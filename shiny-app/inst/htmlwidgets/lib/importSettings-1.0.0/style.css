@@ -1,0 +1,44 @@
+/*  overall widget */
+.importSettings {
+  max-width: 500px;
+}
+
+/* container for layer settings */
+.importSettings .layers {
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  margin-bottom: 3px;
+}
+
+/* layer settings */
+.importSettings .layer-settings {
+  display: flex;
+  width: 98%;
+  border-radius: 5px 5px 5px 5px;
+  margin: 3px;
+}
+
+/* select input for each layer setting */
+.importSettings .layer-settings select {
+  margin-left: auto;
+  border-left: 0px;
+  max-width: 100px;
+}
+
+/* checkbox input for each layer setting */
+.importSettings .layer-settings .input-group-addon {
+  width: 30px;
+}
+
+.importSettings .layer-settings input {
+  margin-top: 2px;
+}
+
+/* ghost styling */
+.importSettings .ghost {
+  background: #C8EBFB;
+  opacity: 0.2;
+}

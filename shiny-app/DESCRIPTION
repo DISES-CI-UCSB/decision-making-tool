@@ -1,0 +1,208 @@
+Package: wheretowork
+Title: Interactive Systematic Conservation Planning Application
+Version: 1.2.5
+Description:
+    Launch an interactive web application for systematic conservation planning.
+    Data can be accessed using projects available on disk, uploaded using
+    project files, or uploaded in shapefile format. Prioritizations are
+    generated using mixed integer programming techniques. The performance of
+    candidate prioritizations can be examined using summary statistics,
+    interactive charts, and tables. Finally, data and prioritizations can also
+    be downloaded for subsequent analysis.
+Authors@R: c(
+  person(c('Jeffrey', 'O'), 'Hanson',
+    email='jeffrey.hanson@uqconnect.edu.au', role = c('aut', 'cre'),
+    comment = c(ORCID = '0000-0002-4716-6134')),
+  person(c('Richard'), 'Schuster',
+    email='richard.schuster@glel.carleton.ca', role = c('aut'),
+    comment = c(ORCID = '0000-0003-3191-7869')),
+  person(c('Joseph'), 'Bennett', role = c('aut')),
+  person(c('Jaimie'), 'Vincent', role = c('aut')),
+  person(c('Dan'), 'Wismer',
+    email='dan.wismer@natureconservancy.ca', role = c('ctb')),
+  person(c('Marc'), 'Edwards',
+    email='marc.edwards@natureconservancy.ca', role = c('ctb'))
+    )
+Imports:
+    methods,
+    stats,
+    utils,
+    assertthat (>= 0.2.1),
+    cachem (>= 1.1.0),
+    cli (>= 3.6.3),
+    colourpicker (>= 1.3.0),
+    config (>= 0.3.2),
+    DT (>= 0.33),
+    data.table (>= 1.15.4),
+    digest (>= 0.6.37),
+    dplyr (>= 1.1.4),
+    fields (>= 16.2),
+    future (>= 1.34.0),
+    golem (>= 0.5.1),
+    ghql (>= 0.1.0),
+    htmltools (>= 0.5.8.1),
+    htmlwidgets (>= 1.6.4),
+    igraph (>= 2.0.3),
+    ipc (>= 0.1.4),
+    jose (>= 1.2.1),
+    leaflet (>= 2.2.2.9001),
+    leaflet.extras2 (>= 1.1.0.9000),
+    lobstr (>= 1.1.2),
+    markdown (>= 1.13),
+    Matrix (>= 1.7-0),
+    openxlsx (>= 4.2.6.1),
+    pkgload (>= 1.4.0),
+    plyr (>= 1.8.9),
+    prioritizr (>= 8.0.4),
+    purrr (>= 1.0.2),
+    R.utils (>= 2.12.3),
+    rcbc (>= 0.1.0.9001),
+    readxl (>= 1.4.3),
+    rlang (>= 1.1.4),
+    RColorBrewer (>= 1.1-3),
+    scales (>= 1.3.0),
+    shiny (>= 1.9.1),
+    shinyalert (>= 3.1.0),
+    shinybusy (>= 0.3.3),
+    shinyFeedback (>= 0.4.0),
+    shinyjs (>= 2.1.0),
+    shinyWidgets (>= 0.8.6),
+    stringi (>= 1.8.4),
+    terra (>= 1.7-78),
+    tibble (>= 3.2.1),
+    tools (>= 4.0.5),
+    units (>= 0.8-5),
+    uuid (>= 1.2-1),
+    viridisLite (>= 0.4.2),
+    withr (>= 3.0.1),
+    yaml (>= 2.3.10)
+Suggests:
+    testthat (>= 3.2.1.1),
+    knitr (>= 1.48),
+    roxygen2 (>= 7.3.2),
+    rmarkdown (>= 2.28),
+    rvest (>= 1.0.4),
+    xml2 (>= 1.3.6),
+    processx (>= 3.8.4),
+    devtools (>= 2.4.5),
+    whereami (>= 0.2.0),
+    pkgdown (>= 2.1.0),
+    gurobi (>= 12.0-0),
+Depends:
+    R (>= 4.4.0),
+    promises (>= 1.3.0),
+    R6 (>= 2.5.1),
+    sf (>= 1.0-16),
+    shinyBS (>= 0.61.1),
+License: file LICENSE + LICENSE.note
+Encoding: UTF-8
+Language: en-US
+URL: https://NCC-CNC.github.io/wheretowork/
+BugReports: https://github.com/NCC-CNC/wheretowork/issues
+VignetteBuilder: knitr
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Collate:
+    'app_config.R'
+    'app_global.R'
+    'app_server.R'
+    'app_ui.R'
+    'internal.R'
+    'class_CategoricalLegend.R'
+    'class_ContinuousLegend.R'
+    'class_Dataset.R'
+    'class_Variable.R'
+    'class_Exclude.R'
+    'class_ExcludeResults.R'
+    'class_Feature.R'
+    'class_FeatureResults.R'
+    'class_Include.R'
+    'class_IncludeResults.R'
+    'class_ManualLegend.R'
+    'class_Solution.R'
+    'class_Theme.R'
+    'class_Weight.R'
+    'class_MapManager.R'
+    'class_NullLegend.R'
+    'class_Parameter-class.R'
+    'class_Provenance.R'
+    'class_Result.R'
+    'class_SolutionSettings.R'
+    'class_Statistic.R'
+    'class_ThemeResults.R'
+    'class_WeightResults.R'
+    'fct_find_projects.R'
+    'fct_find_projects_database.R'
+    'fct_min_set_result.R'
+    'fct_min_shortfall_result.R'
+    'fct_read_project.R'
+    'fct_simulate_excludes.R'
+    'fct_simulate_includes.R'
+    'fct_simulate_legends.R'
+    'fct_simulate_solution.R'
+    'fct_simulate_spatial_data.R'
+    'fct_simulate_themes.R'
+    'fct_simulate_weights.R'
+    'fct_write_project.R'
+    'package.R'
+    'run_app.R'
+    'server_export_data.R'
+    'server_export_spreadsheets.R'
+    'server_generate_new_solution.R'
+    'server_import_builtin_data.R'
+    'server_import_data.R'
+    'server_import_manual_data.R'
+    'server_import_projects_database.R'
+    'server_import_spatial_data.R'
+    'server_initialize_app.R'
+    'server_load_solution.R'
+    'server_login.R'
+    'server_update_map.R'
+    'server_update_solution_results.R'
+    'server_update_solution_settings.R'
+    'server_verify_manual_uploads.R'
+    'server_verify_spatial_uploads.R'
+    'widget_solutionSettings_ui.R'
+    'ui_acknowledgmentsSidebarPane.R'
+    'ui_contactSidebarPane.R'
+    'ui_createProjectModal.R'
+    'ui_exportSidebarPane.R'
+    'widget_solutionResults_ui.R'
+    'ui_helpModal.R'
+    'ui_horizontalPickerInput.R'
+    'ui_importModal.R'
+    'ui_leaflet_map.R'
+    'ui_loginModal.R'
+    'widget_mapManager_ui.R'
+    'ui_mapManagerSidebarPane.R'
+    'ui_newSolutionSidebarPane.R'
+    'ui_solutionResultsModal.R'
+    'ui_solutionResultsSidebarPane.R'
+    'utils-tidy-eval.R'
+    'utils_acknowledge_packages.R'
+    'utils_blank_raster.R'
+    'utils_color_palette.R'
+    'utils_error_misc.R'
+    'utils_extract_data_matrix.R'
+    'utils_file_validation.R'
+    'utils_import_spatial_data.R'
+    'utils_prepare_fileInput.R'
+    'utils_raster_io.R'
+    'utils_shinyjs.R'
+    'utils_spatial_data_statistics.R'
+    'utils_spatial_data_type.R'
+    'utils_spatial_io.R'
+    'utils_spatial_misc.R'
+    'utils_write_excel_workbook.R'
+    'widget_importSettings_server.R'
+    'widget_importSettings_ui.R'
+    'widget_mapManager_html.R'
+    'widget_mapManager_server.R'
+    'widget_solutionResults_server.R'
+    'widget_solutionSettings_server.R'
+    'widget_solutionSetttings_html.R'
+Remotes:
+    r-lib/pkgdown,
+    NCC-CNC/leaflet.extras2,
+    NCC-CNC/leaflet-ncc@pane-extra,
+    dirkschumacher/rcbc

@@ -1,0 +1,96 @@
+/* overall widget */
+.continuous-legend {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 0px 3px 10px;
+}
+
+.continuous-legend-plus {
+  width: 100%;
+  min-height: 115px;
+  overflow:auto;
+  position:relative;
+  transition: 0.8s;
+}
+
+.continuous-legend-minus {
+  width: 100%;
+  min-height: 0px;
+  overflow:auto;
+  position:relative;
+  transition: 0.8s;
+}
+
+/* containers */
+.continuous-legend-flex {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.continuous-legend .color-bar {
+  height: 12px;
+  width: 300px;
+  border-radius: 5px;
+  border: 1px solid var(--symbol-border);  
+}
+
+.continuous-legend .items {
+  width: 300px;
+  display: flex;
+  justify-content: space-between;  
+}
+
+.continuous-legend .item {
+  display: flex;
+  flex-direction: column;  
+}
+
+/* units */
+.continuous-legend .colorbar-units {
+  font-size: 11px;
+  font-weight: 400;
+  padding-left: 5px;
+  margin-right: 5px;
+}
+
+/* labels */
+.continuous-legend .items label {
+  font-size: 11px;
+  font-weight: 400;
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+}
+
+/* ticks */
+.continuous-legend .items .tick {
+    height: 5px;
+    width: 2px;
+    display: inline-block;
+    background-color: var(--symbol-border);
+    color: var(--symbol-border);
+    margin: 0 auto;
+}
+
+/* small screens */
+@media only screen and (max-width: 991px) {
+  .continuous-legend .color-bar {
+    width: 175px;
+  }
+  
+  .continuous-legend .items {
+    width: 175px;
+  }
+}
+
+/* medium screens */
+@media only screen and (max-width: 1199px) and (min-width: 992px) {
+  .continuous-legend .color-bar {
+    width: 250px;
+  }
+  
+  .continuous-legend .items {
+    width: 250px;
+  }
+}

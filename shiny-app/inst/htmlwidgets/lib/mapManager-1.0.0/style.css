@@ -1,0 +1,230 @@
+* {
+    font-family: 'Work Sans', sans-serif;
+}
+
+#map {
+    margin-top: 40px;
+    position: fixed;
+
+}
+#shiny-modal {
+  margin-top: 40px;
+}
+
+#shiny-disconnected-overlay {
+  margin-top: 40px;
+}
+
+/* overall widget */
+.mapManager {
+  padding-right: 3px;
+}
+@-moz-document url-prefix() {
+  .mapManager {
+     padding-right: 14px;
+  }
+}
+
+/* layer containers */
+.map-manager-layer {
+  width: 100%;
+  border: 1px var(--border) solid;
+  border-radius: 5px 5px 5px 5px;
+  margin-bottom: 8px;
+  background: #fcfcfb;
+}
+
+.map-manager-layer .single-container {
+  width: calc(100% - 20px);
+  border: 1px var(--border) solid;
+  border-radius: 5px 5px 5px 5px;
+  margin-bottom: 8px;
+  margin-left: 17px;
+  background: #FFFFFF;
+}
+@-moz-document url-prefix() {
+    .map-manager-layer .single-container {
+        width: calc(100% - 30px);
+    }
+}
+
+.map-manager-layer.hidden-layer,
+.single-container.hidden-layer {
+  background: var(--inactive);
+}
+
+/* ghost styling */
+.ghost {
+  background: #C8EBFB;
+  opacity: 0.2;
+}
+
+/* no click styling */
+.no-click {
+  cursor: not-allowed;
+}
+
+/* header and sub-header */
+.map-manager-layer .header,
+.map-manager-layer .sub-header {
+  margin-bottom: 5px;
+  padding-top: 5px;
+  padding-left: 5px;
+  padding-right: 3px;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+}
+
+.popover {
+    z-index: 99999 !important;
+    min-width: 500px;
+}
+
+.popover-title .close{
+    position: relative;
+    bottom: 3px;
+}
+
+.description-container a:hover {
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.popover-content p img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    height: 280px;
+}
+
+/* header container */
+.map-manager-layer .header {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+  font-size: 14px;
+}
+
+.map-manager-layer .header .name-label {
+  margin-right: auto;
+  word-break: break-all;
+}
+
+.map-manager-layer .header .remove-button {
+  margin-left: 3px;
+  margin-top: 0px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0);
+}
+
+.map-manager-layer .header .icon-container {
+  margin-right: 5px;
+  margin-bottom: 5px;
+}
+
+.map-manager-layer .main {
+  overflow-y: auto;
+  max-height: 45vh;
+  transition:all .4s ease;
+}
+
+/* sub-header container */
+.map-manager-layer .sub-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.map-manager-layer .sub-header .name-label {
+  margin-right: auto;
+  font-size: 12px;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.map-manager-layer .sub-header .provenance-container i {
+  font-size: 12px;
+  margin-right: 3px;
+}
+
+/* view checkbox */
+.map-manager-layer .view-container input[type="checkbox"],
+.map-manager-layer .view-container .checked {
+    display: none;
+    color: black;
+}
+
+.map-manager-layer .view-container .unchecked {
+    color: black;
+}
+
+.map-manager-layer .view-container input[type="checkbox"]:checked ~ .checked
+{
+    display: inline-block;
+}
+
+.map-manager-layer .view-container input[type="checkbox"]:checked ~ .unchecked
+{
+    display: none;
+}
+
+.map-manager-layer .view-container
+{
+    display: none;
+}
+
+/* visible checkbox */
+.map-manager-layer .visible-container input[type="checkbox"],
+.map-manager-layer .visible-container .checked {
+    display: none;
+    color: black;
+}
+
+.map-manager-layer .visible-container .unchecked {
+    color: red;
+}
+
+.map-manager-layer .visible-container input[type="checkbox"]:checked ~ .checked
+{
+    display: inline-block;
+}
+
+.map-manager-layer .visible-container input[type="checkbox"]:checked ~ .unchecked
+{
+    display: none;
+}
+
+.map-manager-layer .theme-layer:has(.sub-header) .header .visible-container  {
+    display: none;
+}
+
+.nav-tabs {
+    border-bottom: 2px solid #ced4da !important;
+}
+
+.nav-tabs > li {
+    margin-top: 2px;
+    margin-bottom: 0px !important;
+}
+
+.nav-tabs > li.active > a, .nav-tabs > li.active > a:focus, .nav-tabs > li.active > a:hover {
+    border: 0px !important;
+}
+
+#view a, #view a:hover, #view a:focus {
+    background-color: #e9ecef;
+    color: #848484;
+    margin: 0 4px;
+    border: 0px !important;
+}
+
+#view .active a {
+    background-color: #ced4da;
+    color: #3366CC;
+    margin: 0 4px;
+    border: 0px !important;
+    font-weight: 600;
+}
+

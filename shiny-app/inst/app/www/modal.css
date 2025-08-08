@@ -1,0 +1,44 @@
+/* fix width for modal dialog */
+[id = 'shiny-modal-wrapper'] .modal-dialog {
+  width: 500px;
+}
+
+/* fix height for soltion settings widget */
+.importSettings .layers {
+  max-height: calc(100vh - 440px) !important;
+}
+
+/* -- modal */
+.modal.sbs-modal {
+  overflow-y: hidden;
+  z-index: 999999;
+}
+
+/* -- modal body */
+.modal.sbs-modal .modal-body {
+  max-height: calc(100vh - 130px);
+}
+
+/* -- define modal-xl class for wide modal */
+@media (min-width: 768px) {
+  .modal-xl {
+    width: 90%;
+    max-width : 1200px;
+  }
+}
+
+.sbs-modal-backdrop {
+  z-index: 999998;
+}
+
+/* -- help modal */
+.help-modal-header {
+  background-color: #0074d9;
+}
+
+.help-modal-title {
+  text-align: center;
+  color: #fff;
+  font-size: 30px;
+  margin: 0;
+}
