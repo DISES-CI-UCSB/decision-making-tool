@@ -1,0 +1,46 @@
+Meta
+doc
+# C++ compiled files
+*.o
+*.so
+*.dll
+.DS_Store
+
+# log files
+gurobi.log
+test.log
+check.log
+spell.log
+gp.log
+examples.log
+restart.txt
+inst/log/*
+*.log
+
+# system files
+.directory
+# do not ignore the following files
+!.gitkeep
+!*/
+!inst/doc/*.html
+!inst/doc/*.Rmd
+!inst/doc/.gitkeep
+
+# devtools files
+doc/*
+Meta/*
+/doc/
+/Meta/
+
+# shinyapps.io
+rsconnect
+^rsconnect
+
+# R profile files
+*.Rhistory
+.Rproj.user/
+/.idea/*
+.Renviron
+
+# large files
+/inst/extdata/

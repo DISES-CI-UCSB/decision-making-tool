@@ -1,0 +1,70 @@
+/* style all tooltips */
+.tooltip {
+  z-index: 99999 !important;
+}
+
+/* style all icons in buttons */
+.action-button.btn-primary.shiny-bound-input i {
+  margin-right: 4px;
+}
+
+.widget-container {
+  height: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* style text in tables */
+.cell-text {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+/* ensure drop down menus in shinyWidgets::pickerInput is always on top */
+.bs-container.dropdown {
+  z-index: 99999999;
+}
+
+/*
+  RE shinyfeedback::loadingButton
+  The .fa-spin animation was disabled by a media query that respects user system 
+  settings for reduced motion (via @media (prefers-reduced-motion: reduce)), 
+  effectively stopping the spinner. Need to override this  
+  https://stackoverflow.com/questions/74295134/fontawesome-6-2-animations-are-not-working-at-all
+*/
+.fa-spin {
+  -webkit-animation-duration: 2s !important;
+  animation-duration: 2s !important;
+  -webkit-animation-iteration-count: infinite !important;
+  animation-iteration-count: infinite !important;
+}
+
+.btn-primary {
+  background-color: #3366cc;
+}
+
+/* hide the "Select import method" option in the welcome dialog */
+div.modal-dialog > div.modal-content > div.modal-body > div:nth-of-type(1) {
+  display: none;
+}
+
+/* hide the "Hide all input layers (to load the project faster)" option in the welcome dialog */
+div.modal-dialog:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div:nth-child(1) {
+  display: none;
+}
+
+/* project descriptions in the load dialog */
+div.modal-dialog div.modal-content div.modal-body div#project-descriptions {
+  margin-bottom: 20px;
+  margin-top: 10px;
+  text-align: justify;
+}
+.shiny-input-container:not(.shiny-input-container-inline) {
+  width: 100%;
+}
+div.selectize-control.shiny-bound-input.shinyjs-resettable.single.plugin-selectize-plugin-a11y {
+  padding-right: 10px;
+  padding-left: 10px;
+}
