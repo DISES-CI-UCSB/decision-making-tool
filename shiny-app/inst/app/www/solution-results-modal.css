@@ -1,0 +1,55 @@
+/* overall widget styling */
+
+/* modal header */
+.solution-results-modal .modal-header-content {
+  display: flex;
+}
+
+/* -- modal content */
+.solution-results-modal .modal-content {
+  height: calc(100vh - 50px);
+}
+
+/* select input */
+.solution-results-modal .select-container .dropdown {
+  width: 280px !important;
+}
+
+.solution-results-modal .select-container .bs-caret {
+  margin-left: 95% !important;
+}
+
+/* radio buttons */
+.solution-results-modal .radio-container {
+  margin-left: 5px;
+}
+
+.solution-results-modal .radio-container .form-group {
+  margin-bottom: 0;
+}
+
+.solution-results-modal .radio-container i {
+  margin-right: 3px;
+}
+
+/* download buttons */
+#summary_results_button,
+#theme_results_button,
+#weight_results_button,
+#include_results_button,
+#exclude_results_button {
+  visibility: hidden;
+  width: 5px;
+}
+
+/* tables */
+.solution-results-modal .spacer {
+  width: 5px;
+  font-size: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.solution-results-modal .dataTables_scrollBody {
+  height: clamp(300px, calc(100vh - 295px), 10000px) !important;
+}
