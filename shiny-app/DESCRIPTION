@@ -176,6 +176,7 @@ Collate:
     'widget_mapManager_ui.R'
     'ui_mapManagerSidebarPane.R'
     'ui_newSolutionSidebarPane.R'
+    'ui_projectSelectionSidebarPane.R'
     'ui_solutionResultsModal.R'
     'ui_solutionResultsSidebarPane.R'
     'utils-tidy-eval.R'

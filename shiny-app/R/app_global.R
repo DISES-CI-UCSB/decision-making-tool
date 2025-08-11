@@ -81,5 +81,4 @@ app_global <- quote({
 
   # import projects
   project_data <- wheretowork::find_projects(project_dir, user_groups)
-
 })

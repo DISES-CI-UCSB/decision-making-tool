@@ -11,9 +11,10 @@ export const resolvers = {
 
     // query files
     files: async () => {
-      return Files.findAll();
+      return Files.findAll({
+        include: [{ model: Users, as: 'uploader' }]
+      });
     },
-
     // query layers
     layers: async () => {
       return Layers.findAll();
@@ -55,13 +56,16 @@ export const resolvers = {
       return newUser;
     },
 
-    addFile: async (parent, { userId, path }) => {
-      const newFile = await Files.create({ user_id: userId, path: path });
+    addFile: async (parent, { uploaderId, path }) => {
+      console.log(uploaderId)
+      console.log(path)
+      const newFile = await Files.create({ uploader_id: uploaderId, path: path });
       return newFile;
     },
 
     // create a new solution with layers
     addSolution: async (parent, { input }) => {
+      // Step 1: Create the Solution (without layers yet)
       const newSolution = await Solutions.create({
         project_id: input.projectId,
         author_id: input.authorId,
@@ -72,22 +76,48 @@ export const resolvers = {
         user_group: input.userGroup,
       });
 
+      // Step 2: For each layer, find or create the corresponding File record based on file path
       const newLayers = await Promise.all(
-        input.layers.map((l) =>
-          Layers.create({ ...l, solution_id: newSolution.id })
-        )
+        input.layers.map(async (layer) => {
+          // Try to find existing File by path
+          let fileRecord = await Files.findOne({ where: { path: layer.filePath } });
+          if (!fileRecord) {
+            // If file not found, create it
+            fileRecord = await Files.create({
+              user_id: input.authorId,  // assuming author uploads file
+              path: layer.filePath,
+            });
+          }
+          
+          // Now create the Layer with the file's id
+          return Layers.create({
+            ...layer,
+            fileId: fileRecord.id,
+            solution_id: newSolution.id,
+          });
+        })
       );
 
-      return { newSolution, newLayers };
+      return { ...newSolution.dataValues, layers: newLayers };
     },
 
     addProject: async (parent, { input }) => {
+      console.log(input)
       const newProject = await Projects.create({
         owner_id: input.ownerId,
         title: input.title,
         description: input.description,
         user_group: input.userGroup,
       });
+
+      // If fileIds were provided, update each file's project_id
+      if (input.fileIds && input.fileIds.length > 0) {
+        await Files.update(
+          { project_id: newProject.id },
+          { where: { id: input.fileIds } }
+        );
+      }
+      
       return newProject;
     },
 

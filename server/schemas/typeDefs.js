@@ -19,6 +19,7 @@ export const typeDefs = gql`
     uploader: User!
     path: String!
     layer: [Layer!]!
+    project: Project!
   }
 
   type Layer {
@@ -59,6 +60,7 @@ export const typeDefs = gql`
     owner: User!
     userGroup: String!
     solutions: [Solution!]!
+    files: [File!]!
   }
 
   type Auth {
@@ -79,7 +81,7 @@ export const typeDefs = gql`
   input LayerInput {
     type: String!
     theme: String!
-    fileId: ID!      
+    filePath: String!       
     name: String!
     legend: String!
     values: [String]!
@@ -91,7 +93,7 @@ export const typeDefs = gql`
     visible: Boolean!
     goal: Float!
     downloadable: Boolean!
-  }
+}
 
   input SolutionInput {
     projectId: ID! 
@@ -104,12 +106,20 @@ export const typeDefs = gql`
     layers: [LayerInput!]!
   }
 
+  input ProjectInput {
+    ownerId: ID!
+    title: String!
+    description: String!
+    userGroup: String!
+    fileIds: [ID!]
+  }
+
   type Mutation {
 
     addUser( username: String!, password: String!, type: String! ): User!
-    addFile( userId: ID!, path: String! ): File!
-    addSolution( input: SolutionInput! ): Solution!
-    addProject( ownerId: ID!, title: String!, description: String!, userGroup: String!): Project!
+    addFile( uploaderId: ID!, path: String! ): File!
+    addSolution(input: SolutionInput!): Solution!
+    addProject(input: ProjectInput!): Project!
 
     userSignOn (username: String!, password: String!): Auth!
   }
