@@ -26,6 +26,11 @@ Files.hasMany(Layers, {
   as: 'layers'
 })
 
+Files.belongsTo(Projects, {
+  foreignKey: 'project_id',
+  as: 'project'
+})
+
 // Each layer has a single file id
 Layers.belongsTo(Files, {
     foreignKey: 'file_id',
@@ -55,6 +60,13 @@ Solutions.belongsTo(Users, {
   foreignKey: 'author_id',
   as: 'author'
 })
+
+// Each project has multiple files
+Projects.hasMany(Files, {
+  foreignKey: "project_id",
+  as: "files",
+  onDelete: "CASCADE",
+});
 
 // Each project can have multiple solutions
 Projects.hasMany(Solutions, {
