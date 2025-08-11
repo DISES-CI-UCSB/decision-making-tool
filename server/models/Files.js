@@ -18,6 +18,13 @@ Files.init(
         key: 'id'
       }
     },
+    project_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'projects',
+        key: 'id'
+      }
+    },
     path: {
       type: DataTypes.STRING, // e.g., "T_ECCC_SAR_Agalinis_gattingeri.tif"
       allowNull: true,
