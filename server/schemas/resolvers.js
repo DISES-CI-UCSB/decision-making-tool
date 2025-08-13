@@ -12,9 +12,24 @@ export const resolvers = {
     // query files
     files: async () => {
       return Files.findAll({
-        include: [{ model: Users, as: 'uploader' }]
+        include: [
+          { model: Users, as: 'uploader' },
+          { model: Projects, as: 'project' }
+        ]
       });
     },
+
+    project_files: async (_, { projectId }) => {
+      return Files.findAll({
+        where: { project_id: projectId },
+        include: [
+          { model: Users, as: 'uploader' },
+          { model: Projects, as: 'project' }
+        ]
+      });
+  },
+
+
     // query layers
     layers: async () => {
       return Layers.findAll();
@@ -45,7 +60,10 @@ export const resolvers = {
 
     project: async (_, { id }) => {
       return await Projects.findByPk(id, {
-        include: [{ model: Solutions, as: "solutions" }],
+        include: [
+          { model: Solutions, as: "solutions" },
+          { model: Files, as: "files" }
+        ],
       });
     },
   },
@@ -56,10 +74,9 @@ export const resolvers = {
       return newUser;
     },
 
-    addFile: async (parent, { uploaderId, path }) => {
-      console.log(uploaderId)
-      console.log(path)
-      const newFile = await Files.create({ uploader_id: uploaderId, path: path });
+    addFile: async (parent, { name, description, uploaderId, projectId, path }) => {
+
+      const newFile = await Files.create({ name: name, description: description, uploader_id: uploaderId, project_id: projectId, path: path });
       return newFile;
     },
 
@@ -109,14 +126,6 @@ export const resolvers = {
         description: input.description,
         user_group: input.userGroup,
       });
-
-      // If fileIds were provided, update each file's project_id
-      if (input.fileIds && input.fileIds.length > 0) {
-        await Files.update(
-          { project_id: newProject.id },
-          { where: { id: input.fileIds } }
-        );
-      }
       
       return newProject;
     },

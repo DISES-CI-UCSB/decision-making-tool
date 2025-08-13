@@ -55,7 +55,8 @@ const startApolloServer = async (typeDefs, resolvers) => {
     await sequelize.authenticate();
     console.log('Database connection established.');
 
-    await sequelize.sync({ alter: true, force: true }); 
+    // await sequelize.sync({ alter: true, force: true }); 
+    await sequelize.sync(); 
     console.log("Tables created or updated")
 
     // Start Apollo server

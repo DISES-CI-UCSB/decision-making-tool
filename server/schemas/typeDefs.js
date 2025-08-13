@@ -16,6 +16,8 @@ export const typeDefs = gql`
 
   type File {
     id: ID!
+    name: String!
+    description: String!
     uploader: User!
     path: String!
     layer: [Layer!]!
@@ -60,7 +62,7 @@ export const typeDefs = gql`
     owner: User!
     userGroup: String!
     solutions: [Solution!]!
-    files: [File!]!
+    files: [File]
   }
 
   type Auth {
@@ -71,6 +73,7 @@ export const typeDefs = gql`
   type Query {
     users: [User]!
     files: [File]!
+    project_files(projectId: ID!): [File]!
     layers: [Layer]!
     layer(id: ID!): Layer!
     solutions(projectId: ID!): [Solution]!
@@ -111,16 +114,15 @@ export const typeDefs = gql`
     title: String!
     description: String!
     userGroup: String!
-    fileIds: [ID!]
   }
 
   type Mutation {
 
     addUser( username: String!, password: String!, type: String! ): User!
-    addFile( uploaderId: ID!, path: String! ): File!
+    addFile( name: String!, description: String!, uploaderId: ID!, projectId: ID!, path: String! ): File!
     addSolution(input: SolutionInput!): Solution!
     addProject(input: ProjectInput!): Project!
 
-    userSignOn (username: String!, password: String!): Auth!
+    userSignOn(username: String!, password: String!): Auth!
   }
 `;
