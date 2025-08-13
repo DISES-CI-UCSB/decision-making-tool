@@ -4,12 +4,15 @@ library(ghql)
 library(DT)
 library(leaflet)
 library(terra)
+library(colourpicker)
+
 
 options(shiny.maxRequestSize = 500 * 1024^2)  # 500 MB
 
 source("login_module.R")
 source("project_module.R")
 source("map_module.R")
+source("solution_module.R")
 
 client <- GraphqlClient$new(url = "http://localhost:3001/graphql")
 
@@ -29,6 +32,11 @@ ui <- fluidPage(
         tags$h3("Project Map"),
         mapUI("map1")
       )
+    ),
+    column(8,
+      wellPanel(
+        solutionUI("solutions1"),
+      )
     )
   )
 )
@@ -40,6 +48,8 @@ server <- function(input, output, session) {
 
   loginServer("login1", client, auth_token, user_info)
   projectServer("projects1", client, auth_token, user_info, projects_data)
+  solutionServer("solutions1", client, auth_token, user_info, projects_data)
+
 
   # For the map, you might want to pass reactive of files or projects if available
   # For now just passing a dummy reactive

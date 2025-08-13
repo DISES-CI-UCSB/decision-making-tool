@@ -1,5 +1,5 @@
 import { AuthenticationError } from "apollo-server-express";
-import { Users, Files, Layers, Solutions, Projects } from "../models/index.js";
+import { Users, Files, ProjectLayers, Solutions, SolutionLayers, Projects } from "../models/index.js";
 import { signToken } from "../utils/auth.js";
 
 export const resolvers = {
@@ -9,7 +9,22 @@ export const resolvers = {
       return Users.findAll();
     },
 
-    // query files
+    // query projects
+    projects: async () => {
+      return Projects.findAll();
+    },
+
+    // query project by id
+    project: async (_, { id }) => {
+      return await Projects.findByPk(id, {
+        include: [
+          { model: Solutions, as: "solutions" },
+          { model: Files, as: "files" }
+        ],
+      });
+    },
+
+    // query all files
     files: async () => {
       return Files.findAll({
         include: [
@@ -31,13 +46,18 @@ export const resolvers = {
 
 
     // query layers
-    layers: async () => {
-      return Layers.findAll();
+    projectLayers: async (_, { projectId }) => {
+      return ProjectLayers.findAll({
+        where: {project_id: projectId},
+        include: [
+          { model: Files, as: 'file'}
+        ]
+      });
     },
 
     // query layer by id, include file
-    layer: async (_, { id }) => {
-      return Layers.findByPk(id, {
+    projectLayer: async (_, { layerId }) => {
+      return ProjectLayers.findByPk(layerId, {
         include: [{ model: Files, as: "file" }],
       });
     },
@@ -47,75 +67,27 @@ export const resolvers = {
       return Solutions.findAll({
         where: { project_id: projectId },
         include: [
-          { model: Layers, as: "layers" },
-          { model: Users, as: "owner" },
+          { model: SolutionLayers, as: "solution_layers", include: [{ model: ProjectLayers, as: "project_layer" }] },
+          { model: Users, as: "author" },
         ],
       });
     },
 
-    // query projects
-    projects: async () => {
-      return Projects.findAll();
-    },
-
-    project: async (_, { id }) => {
-      return await Projects.findByPk(id, {
+    solutionLayers: async (_, { solutionId}) => {
+      return SolutionLayers.findAll({
+        where: { solution_id: solutionId },
         include: [
-          { model: Solutions, as: "solutions" },
-          { model: Files, as: "files" }
-        ],
-      });
-    },
+          { model: ProjectLayers, as: "project_layer"}
+        ]
+      })
+    }
+
   },
 
   Mutation: {
     addUser: async (parent, { username, password, type }) => {
       const newUser = await Users.create({ username, password, type });
       return newUser;
-    },
-
-    addFile: async (parent, { name, description, uploaderId, projectId, path }) => {
-
-      const newFile = await Files.create({ name: name, description: description, uploader_id: uploaderId, project_id: projectId, path: path });
-      return newFile;
-    },
-
-    // create a new solution with layers
-    addSolution: async (parent, { input }) => {
-      // Step 1: Create the Solution (without layers yet)
-      const newSolution = await Solutions.create({
-        project_id: input.projectId,
-        author_id: input.authorId,
-        title: input.title,
-        description: input.description,
-        author_name: input.authorName,
-        author_email: input.authorEmail,
-        user_group: input.userGroup,
-      });
-
-      // Step 2: For each layer, find or create the corresponding File record based on file path
-      const newLayers = await Promise.all(
-        input.layers.map(async (layer) => {
-          // Try to find existing File by path
-          let fileRecord = await Files.findOne({ where: { path: layer.filePath } });
-          if (!fileRecord) {
-            // If file not found, create it
-            fileRecord = await Files.create({
-              user_id: input.authorId,  // assuming author uploads file
-              path: layer.filePath,
-            });
-          }
-          
-          // Now create the Layer with the file's id
-          return Layers.create({
-            ...layer,
-            fileId: fileRecord.id,
-            solution_id: newSolution.id,
-          });
-        })
-      );
-
-      return { ...newSolution.dataValues, layers: newLayers };
     },
 
     addProject: async (parent, { input }) => {
@@ -130,8 +102,60 @@ export const resolvers = {
       return newProject;
     },
 
+    addFile: async (parent, { name, description, uploaderId, projectId, path }) => {
+
+      const newFile = await Files.create({ name: name, description: description, uploader_id: uploaderId, project_id: projectId, path: path });
+      return newFile;
+    },
+
+    addProjectLayer: async(parent, { input }) => {
+      const newProjectLayer = await ProjectLayers.create({
+        project_id: input.projectId,
+        file_id: input.fileId || null,
+        type: input.type,
+        theme: input.theme,
+        name: input.name,
+        legend: input.legend,
+        values: input.values,
+        color: input.color,
+        labels: input.labels,
+        unit: input.unit,
+        provenance: input.provenance,
+        order: input.order,
+        visible: input.visible,
+        downloadable: input.downloadable
+      })
+      return newProjectLayer
+    },
+
+    // create a new solution with layers
+    addSolution: async (parent, { input }) => {
+
+      const newSolution = await Solutions.create({
+        project_id: input.projectId,
+        author_id: input.authorId,
+        title: input.title,
+        description: input.description,
+        author_name: input.authorName,
+        author_email: input.authorEmail,
+        user_group: input.userGroup,
+      });
+
+      return newSolution;
+    },
+
+    addSolutionLayer: async(parent, {input}) => {
+      const newSolutionLayer = await SolutionLayers.create({
+        solution_id: input.solutionId,
+        project_layer_id: input.projectLayerId,
+        goal: input.goal
+      })
+      return newSolutionLayer
+    },
+    
+
     userSignOn: async (parent, { username, password }) => {
-      const user = await Users.findOne({ username });
+      const user = await Users.findOne({ where: { username } });
       if (!user) {
         throw new AuthenticationError("incorrect credentials");
       }

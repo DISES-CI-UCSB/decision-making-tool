@@ -35,6 +35,14 @@ projectServer <- function(id, client, auth_token, user_info, projects_data) {
         }
     }
     '
+    add_project_layer_mutation <- '
+    mutation($input: ProjectLayerInput!) {
+        addProjectLayer(input: $input) {
+            id
+        }
+    }
+    '
+
 
     added_files <- reactiveVal(list())
 
@@ -78,14 +86,26 @@ projectServer <- function(id, client, auth_token, user_info, projects_data) {
         textAreaInput(ns("project_description"), "Description", ""),
         textInput(ns("project_user_group"), "User Group", value = "public"),
 
-        tags$h4("Add Files"),
+        tags$h4("Add Project Layers"),
         fileInput(ns("file_upload"), "Choose File"),
         textInput(ns("file_name"), "File Name"),
         textInput(ns("file_desc"), "File Description"),
-        actionButton(ns("add_file_to_list"), "Add File to List"),
-        br(), br(),
 
-        tags$h4("Files to be uploaded:"),
+        # ProjectLayer fields
+        selectInput(ns("layer_type"), "Layer Type", choices = c("theme", "weight", "include", "exclude")),
+        textInput(ns("layer_theme"), "Theme"),
+        selectInput(ns("layer_legend"), "Legend Type", choices = c("manual", "continuous")),
+        textInput(ns("layer_values"), "Values"),
+        textInput(ns("layer_color"), "Colors (comma-separated)"),
+        textInput(ns("layer_labels"), "Labels (comma-separated)"),
+        textInput(ns("layer_unit"), "Unit"),
+        textInput(ns("layer_provenance"), "Provenance"),
+        checkboxInput(ns("layer_visible"), "Visible", value = TRUE),
+        checkboxInput(ns("layer_downloadable"), "Downloadable", value = TRUE),
+
+        actionButton(ns("add_file_to_list"), "Add Layer"),
+
+        tags$h4("Layers to be uploaded:"),
         DTOutput(ns("added_files_table")),
 
         footer = tagList(
@@ -98,37 +118,62 @@ projectServer <- function(id, client, auth_token, user_info, projects_data) {
     })
 
     observeEvent(input$add_file_to_list, {
-      req(input$file_upload)
-      req(input$file_name)
+        req(input$file_upload)
+        req(input$file_name)
 
-      files <- added_files()
+        files <- added_files()
 
-      new_file <- list(
-        datapath = input$file_upload$datapath,
-        name = input$file_name,
-        description = input$file_desc,
-        orig_name = input$file_upload$name
-      )
-      added_files(c(files, list(new_file)))
+        new_file <- list(
+            datapath = input$file_upload$datapath,
+            name = input$file_name,
+            description = input$file_desc,
+            orig_name = input$file_upload$name,
 
-      shinyjs::reset(ns("file_upload"))
-      shinyjs::reset(ns("file_name"))
-      shinyjs::reset(ns("file_desc"))
-    })
+            # layer info
+            layer = list(
+            type = input$layer_type,
+            theme = input$layer_theme,
+            name = input$file_name, # link to file name
+            legend = input$layer_legend,
+            values = unlist(strsplit(input$layer_values, ",")),
+            color = unlist(strsplit(input$layer_color, ",")),
+            labels = unlist(strsplit(input$layer_labels, ",")),
+            unit = input$layer_unit,
+            provenance = input$layer_provenance,
+            visible = input$layer_visible,
+            downloadable = input$layer_downloadable
+            )
+        )
+
+        added_files(c(files, list(new_file)))
+
+        shinyjs::reset(ns("file_upload"))
+        shinyjs::reset(ns("file_name"))
+        shinyjs::reset(ns("file_desc"))
+        shinyjs::reset(ns("layer_theme"))
+        shinyjs::reset(ns("layer_legend"))
+        shinyjs::reset(ns("layer_values"))
+        shinyjs::reset(ns("layer_color"))
+        shinyjs::reset(ns("layer_labels"))
+        shinyjs::reset(ns("layer_unit"))
+        shinyjs::reset(ns("layer_provenance"))
+        })
+
 
     output$added_files_table <- renderDT({
-      files <- added_files()
-      if (length(files) == 0) {
-        return(datatable(data.frame(Message = "No files added yet"), options = list(dom = 't')))
-      }
-      df <- data.frame(
-        `Original File Name` = sapply(files, function(x) x$orig_name),
-        `Name` = sapply(files, function(x) x$name),
-        `Description` = sapply(files, function(x) x$description),
-        stringsAsFactors = FALSE
-      )
-      datatable(df, rownames = FALSE, options = list(dom = 't'))
+        files <- added_files()
+        if (length(files) == 0) {
+            return(datatable(data.frame(Message = "No files added yet"), options = list(dom = 't')))
+        }
+        df <- data.frame(
+            `Original File Name` = sapply(files, function(x) x$orig_name),
+            `Layer Theme` = sapply(files, function(x) x$layer$theme),
+            `Layer Type` = sapply(files, function(x) x$layer$type),
+            stringsAsFactors = FALSE
+        )
+        datatable(df, rownames = FALSE, options = list(dom = 't'))
     })
+
 
     observeEvent(input$submit_project, {
       req(input$project_title)
@@ -178,26 +223,39 @@ projectServer <- function(id, client, auth_token, user_info, projects_data) {
                 file.copy(file$datapath, target_path, overwrite = TRUE)
                 path_to_store <- target_path
 
+                # 1. Add file
                 qry_file <- Query$new()
                 qry_file$query("addFile", add_file_mutation)
-
                 file_payload <- list(
                     uploaderId = as.character(user_info()$id),
                     path = path_to_store,
                     name = file$name,
                     description = file$description,
-                    projectId = as.character(new_project_id),
-                    )
-                print(file_payload)
-
+                    projectId = as.character(new_project_id)
+                )
                 res_file <- client$exec(
                     qry_file$queries$addFile,
                     headers = list(Authorization = paste("Bearer", auth_token())),
                     variables = file_payload
-                    )
+                )
                 res_file_list <- jsonlite::fromJSON(res_file)
-                # showNotification(paste("File uploaded:", res_file_list$data$title), type = "message")    
-            }
+                new_file_id <- res_file_list$data$addFile$id
+                print(new_file_id)
+
+                # 2. Add layer (linked to file)
+                qry_layer <- Query$new()
+                qry_layer$query("addProjectLayer", add_project_layer_mutation)
+                layer_payload <- list(
+                    input = c(file$layer, list(fileId = as.character(new_file_id)))
+                )
+                print(layer_payload)
+                res_layer <- client$exec(
+                    qry_layer$queries$addProjectLayer,
+                    headers = list(Authorization = paste("Bearer", auth_token())),
+                    variables = layer_payload
+                )
+                }
+
             }, error = function(e) {
             showNotification(paste("Error adding file:", e$message), type = "error")
             })

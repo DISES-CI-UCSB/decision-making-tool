@@ -1,8 +1,9 @@
 import Projects from "./Projects.js";
-import Layers from "./Layers.js";
+import ProjectLayers from "./ProjectLayers.js";
 import Files from "./Files.js"
 import Solutions from "./Solutions.js"
 import Users from "./Users.js";
+import SolutionLayers from "./SolutionLayers.js";
 
 // setup relationships here
 Users.hasMany(Files, {
@@ -21,9 +22,9 @@ Files.belongsTo(Users, {
 })
 
 // Each file can have multiple layers associated with it
-Files.hasMany(Layers, {
+Files.hasMany(ProjectLayers, {
   foreignKey: 'file_id',
-  as: 'layers'
+  as: 'project_layers'
 })
 
 Files.belongsTo(Projects, {
@@ -31,20 +32,35 @@ Files.belongsTo(Projects, {
   as: 'project'
 })
 
-// Each layer has a single file id
-Layers.belongsTo(Files, {
+// Each project layer has a single file id
+ProjectLayers.belongsTo(Files, {
     foreignKey: 'file_id',
     as: 'file'
 })
 
+ProjectLayers.belongsTo(Projects, {
+  foreignKey: 'project_id',
+  as: 'project'
+})
+
+ProjectLayers.hasMany(SolutionLayers, {
+  foreignKey: "project_layer_id",
+  as: "solution_layers"
+})
+
+SolutionLayers.belongsTo(ProjectLayers, {
+  foreignKey: "project_layer_id",
+  as: 'project_layer'
+})
+
 // Each layer has a single solution id
-Layers.belongsTo(Solutions, {
+SolutionLayers.belongsTo(Solutions, {
   foreignKey: 'solution_id',
   as: 'solution'
 })
 
 // Each solution has multiple layers
-Solutions.hasMany(Layers, {
+Solutions.hasMany(SolutionLayers, {
   foreignKey: 'solution_id',
   as: 'layers'
 })
@@ -68,6 +84,12 @@ Projects.hasMany(Files, {
   onDelete: "CASCADE",
 });
 
+Projects.hasMany(ProjectLayers, {
+  foreignKey: "project_id",
+  as: "project_layers",
+  onDelete: "CASCADE"
+})
+
 // Each project can have multiple solutions
 Projects.hasMany(Solutions, {
   foreignKey: "project_id",
@@ -81,4 +103,4 @@ Projects.belongsTo(Users, {
 })
 
 
-export { Users, Projects, Solutions, Files, Layers };
+export { Users, Projects, Solutions, Files, ProjectLayers, SolutionLayers };

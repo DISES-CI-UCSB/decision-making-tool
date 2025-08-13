@@ -20,16 +20,16 @@ export const typeDefs = gql`
     description: String!
     uploader: User!
     path: String!
-    layer: [Layer!]!
+    project_layer: [ProjectLayer!]!
     project: Project!
   }
 
-  type Layer {
+  type ProjectLayer {
     id: ID!
-    solutions: Solution
+    project: Project!
+    file: File!
     type: String!
     theme: String!
-    file: File!
     name: String!
     legend: String!
     values: [String]!
@@ -39,8 +39,14 @@ export const typeDefs = gql`
     provenance: String!
     order: Int!
     visible: Boolean!
-    goal: Float!
     downloadable: Boolean!
+  }
+
+  type SolutionLayer {
+    id: ID!
+    solution: Solution!
+    project_layer: ProjectLayer!
+    goal: Float!
   }
   
   type Solution {
@@ -51,8 +57,8 @@ export const typeDefs = gql`
     author: User!
     author_name: String!
     author_email: String!
-    userGroup: String!
-    layers: [Layer!]!
+    user_group: String!
+    solution_layers: [SolutionLayer!]!
   }
 
   type Project {
@@ -72,41 +78,14 @@ export const typeDefs = gql`
 
   type Query {
     users: [User]!
-    files: [File]!
-    project_files(projectId: ID!): [File]!
-    layers: [Layer]!
-    layer(id: ID!): Layer!
-    solutions(projectId: ID!): [Solution]!
     projects: [Project]!
     project(id: ID!): Project!
-  }
-
-  input LayerInput {
-    type: String!
-    theme: String!
-    filePath: String!       
-    name: String!
-    legend: String!
-    values: [String]!
-    color: [String]!
-    labels: [String]!
-    unit: String!
-    provenance: String!
-    order: Int!
-    visible: Boolean!
-    goal: Float!
-    downloadable: Boolean!
-}
-
-  input SolutionInput {
-    projectId: ID! 
-    authorId: ID! 
-    title: String!
-    description: String!
-    authorName: String!
-    authorEmail: String!
-    userGroup: String!
-    layers: [LayerInput!]!
+    files: [File]!
+    project_files(projectId: ID!): [File]!
+    projectLayers(projectId: ID!): [ProjectLayer]!
+    projectLayer(layerId: ID!): ProjectLayer!
+    solutions(projectId: ID!): [Solution]!
+    solutionLayers(solutionId: ID!): [SolutionLayer]!
   }
 
   input ProjectInput {
@@ -116,12 +95,48 @@ export const typeDefs = gql`
     userGroup: String!
   }
 
+  input ProjectLayerInput {
+    projectId: ID!
+    fileId: ID!
+    type: String!
+    theme: String     
+    name: String!
+    legend: String
+    values: [String]
+    color: [String]
+    labels: [String]
+    unit: String
+    provenance: String
+    order: Int
+    visible: Boolean
+    downloadable: Boolean
+  }
+
+  input SolutionInput {
+    projectId: ID! 
+    authorId: ID! 
+    title: String!
+    description: String!
+    authorName: String!
+    authorEmail: String!
+    userGroup: String!
+  }
+  
+  input SolutionLayerInput {
+    solutionId: ID!
+    projectLayerId: ID!
+    goal: Float
+  }
+
   type Mutation {
 
     addUser( username: String!, password: String!, type: String! ): User!
-    addFile( name: String!, description: String!, uploaderId: ID!, projectId: ID!, path: String! ): File!
-    addSolution(input: SolutionInput!): Solution!
     addProject(input: ProjectInput!): Project!
+    addFile( name: String!, description: String!, uploaderId: ID!, projectId: ID!, path: String! ): File!
+    addProjectLayer( input: ProjectLayerInput ): ProjectLayer!
+    addSolution(input: SolutionInput!): Solution!
+    addSolutionLayer(input: SolutionLayerInput!): SolutionLayer!
+    
 
     userSignOn(username: String!, password: String!): Auth!
   }

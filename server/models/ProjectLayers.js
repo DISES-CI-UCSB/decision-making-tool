@@ -1,9 +1,11 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../config/connection.js";
 
-class Layers extends Model {}
+// All layers that exist within a project. Styling, themes, name etc remains consistent. 
+// Includes all solutions
+class ProjectLayers extends Model {}
 
-Layers.init(
+ProjectLayers.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -11,15 +13,15 @@ Layers.init(
       primaryKey: true,
       autoIncrement: true,
     },
-    solution_id: {
+    project_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: "solutions",
+        model: "projects",
         key: "id",
       },
     },
     type: {
-      type: DataTypes.ENUM("theme", "weight", "include", "exclude"),
+      type: DataTypes.ENUM("theme", "weight", "include", "exclude", "solution"),
       allowNull: false,
     },
     theme: {
@@ -72,14 +74,6 @@ Layers.init(
       allowNull: false,
       defaultValue: false,
     },
-    goal: {
-      type: DataTypes.FLOAT, // Value between 0 and 1
-      allowNull: true,
-      validate: {
-        min: 0,
-        max: 1,
-      },
-    },
     downloadable: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -88,10 +82,10 @@ Layers.init(
   },
   {
     sequelize,
-    modelName: "layers",
-    tableName: "layers",
+    modelName: "projectlayers",
+    tableName: "project_layers",
     timestamps: true,
   }
 );
 
-export default Layers;
+export default ProjectLayers;
