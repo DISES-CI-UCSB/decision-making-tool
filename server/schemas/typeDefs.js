@@ -52,13 +52,17 @@ export const typeDefs = gql`
   type Solution {
     id: ID!
     project: Project!
+    file: File
     title: String!
     description: String!
     author: User!
     author_name: String!
     author_email: String!
     user_group: String!
-    solution_layers: [SolutionLayer!]!
+    themes: [SolutionLayer!]!
+    weights: [ProjectLayer!]
+    includes: [ProjectLayer!]
+    excludes: [ProjectLayer!]
   }
 
   type Project {
@@ -108,6 +112,7 @@ export const typeDefs = gql`
     unit: String
     provenance: String
     order: Int
+    hidden: Boolean
     visible: Boolean
     downloadable: Boolean
   }
@@ -120,10 +125,15 @@ export const typeDefs = gql`
     authorName: String!
     authorEmail: String!
     userGroup: String!
+    fileId: ID
+    weightIds: [ID!]   
+    includeIds: [ID!]  
+    excludeIds: [ID!]
+    themes: [SolutionLayerInput!] 
   }
+
   
   input SolutionLayerInput {
-    solutionId: ID!
     projectLayerId: ID!
     goal: Float
   }

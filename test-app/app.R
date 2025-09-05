@@ -5,6 +5,8 @@ library(DT)
 library(leaflet)
 library(terra)
 library(colourpicker)
+library(jsonlite)
+library(R6)
 
 
 options(shiny.maxRequestSize = 500 * 1024^2)  # 500 MB
@@ -29,8 +31,8 @@ ui <- fluidPage(
       wellPanel(
         projectUI("projects1"),
         hr(),
-        tags$h3("Project Map"),
-        mapUI("map1")
+        # tags$h3("Project Map"),
+        # mapUI("map1")
       )
     ),
     column(8,
@@ -53,7 +55,7 @@ server <- function(input, output, session) {
 
   # For the map, you might want to pass reactive of files or projects if available
   # For now just passing a dummy reactive
-  mapServer("map1", client, auth_token, projects_data)
+  # mapServer("map1", client, auth_token, projects_data)
 }
 
 shinyApp(ui, server)

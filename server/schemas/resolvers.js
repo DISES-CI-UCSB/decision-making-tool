@@ -67,7 +67,7 @@ export const resolvers = {
       return Solutions.findAll({
         where: { project_id: projectId },
         include: [
-          { model: SolutionLayers, as: "solution_layers", include: [{ model: ProjectLayers, as: "project_layer" }] },
+          { model: SolutionLayers, as: "themes", include: [{ model: ProjectLayers, as: "project_layer" }] },
           { model: Users, as: "author" },
         ],
       });
@@ -122,6 +122,7 @@ export const resolvers = {
         unit: input.unit,
         provenance: input.provenance,
         order: input.order,
+        hidden: input.hidden,
         visible: input.visible,
         downloadable: input.downloadable
       })
@@ -130,7 +131,7 @@ export const resolvers = {
 
     // create a new solution with layers
     addSolution: async (parent, { input }) => {
-
+      console.log(input)
       const newSolution = await Solutions.create({
         project_id: input.projectId,
         author_id: input.authorId,
@@ -139,10 +140,37 @@ export const resolvers = {
         author_name: input.authorName,
         author_email: input.authorEmail,
         user_group: input.userGroup,
+        file_id: input.fileId
       });
+
+      // Attach join-table layers
+      if (input.weightIds?.length) {
+        await newSolution.setWeights(input.weightIds);
+      }
+      if (input.includeIds?.length) {
+        await newSolution.setIncludes(input.includeIds);
+      }
+      if (input.excludeIds?.length) {
+        await newSolution.setExcludes(input.excludeIds);
+      }
+      console.log(newSolution)
+
+      // Create solution theme layers
+      if (input.themes?.length) {
+        await Promise.all(
+          input.themes.map(theme =>
+            SolutionLayers.create({
+              solution_id: newSolution.id,
+              project_layer_id: theme.projectLayerId,
+              goal: theme.goal
+            })
+          )
+        );
+      }
 
       return newSolution;
     },
+
 
     addSolutionLayer: async(parent, {input}) => {
       const newSolutionLayer = await SolutionLayers.create({

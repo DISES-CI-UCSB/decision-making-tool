@@ -7,7 +7,7 @@ import { authMiddleware } from './utils/auth.js'
 import { typeDefs, resolvers } from './schemas/index.js';
 import { sequelize } from './config/connection.js';
 
-// import seedWebsite from './seeders/seed';
+import { seedUsers } from './seeds/seedUsers.js';
 const PORT = process.env.PORT || 3001;
 const app = express();
 
@@ -55,9 +55,10 @@ const startApolloServer = async (typeDefs, resolvers) => {
     await sequelize.authenticate();
     console.log('Database connection established.');
 
-    // await sequelize.sync({ alter: true, force: true }); 
+    await sequelize.sync({ alter: true, force: true }); 
     await sequelize.sync(); 
     console.log("Tables created or updated")
+    await seedUsers()
 
     // Start Apollo server
     await server.start();

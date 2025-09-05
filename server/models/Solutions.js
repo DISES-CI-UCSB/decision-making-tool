@@ -18,6 +18,14 @@ Solutions.init(
             key: "id",
         },
     },
+    file_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: "files",
+        key: "id",
+      },
+      allowNull: true, 
+    },
     title: {
       type: DataTypes.STRING,
       allowNull: false,

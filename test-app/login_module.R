@@ -2,8 +2,8 @@ loginUI <- function(id) {
   ns <- NS(id)
   tagList(
     h3("Login"),
-    textInput(ns("username"), "Username"),
-    passwordInput(ns("password"), "Password"),
+    textInput(ns("username"), "Username", value="manager_test"),
+    passwordInput(ns("password"), "Password", value="password123"),
     actionButton(ns("login_btn"), "Login"),
     verbatimTextOutput(ns("login_status"))
   )
@@ -33,14 +33,11 @@ loginServer <- function(id, client, auth_token, user_info) {
       qry$query("login", login_mutation)
 
       tryCatch({
+
         res <- client$exec(qry$queries$login, variables = list(
-          username = "dantest",
-          password = "testpassword1"
+          username = input$username,
+          password = input$password
         ))
-        # res <- client$exec(qry$queries$login, variables = list(
-        #   username = input$username,
-        #   password = input$password
-        # ))
         res_list <- jsonlite::fromJSON(res)
 
         if (!is.null(res_list$data$userSignOn$token)) {

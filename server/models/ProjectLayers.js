@@ -29,8 +29,11 @@ ProjectLayers.init(
       allowNull: true,
     },
     file_id: {
-      type: DataTypes.INTEGER, // e.g., "T_ECCC_SAR_Agalinis_gattingeri.tif"
-      allowNull: true,
+      type: DataTypes.INTEGER,
+      references: {
+        model: "files",
+        key: "id"
+      }
     },
     name: {
       type: DataTypes.STRING, // Used in table of contents
