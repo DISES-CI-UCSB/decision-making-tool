@@ -2,6 +2,13 @@ app_global <- quote({
   # set seed for reproducibility
   set.seed(200)
 
+  # initialize GraphQL client
+  client <- ghql::GraphqlClient$new(url = "http://localhost:3001/graphql")
+  
+  # initialize authentication state
+  auth_token <- shiny::reactiveVal(NULL)
+  user_info <- shiny::reactiveVal(NULL)
+
   # print initial memory usage
   if (isTRUE(wheretowork::get_golem_config("monitor"))) {
       cli::cli_rule()
@@ -51,9 +58,7 @@ app_global <- quote({
   #
   # else:
   #   then import projects from location specified in golem-config.yml
-  
-  # jwt secret
-  secret <- Sys.getenv("JWT_SECRET")
+
   # set user group
   user_groups <- Sys.getenv("SHINYPROXY_USERGROUPS")
   user_groups <- tolower(gsub(" ", "", user_groups, fixed = TRUE))
@@ -81,4 +86,5 @@ app_global <- quote({
 
   # import projects
   project_data <- wheretowork::find_projects(project_dir, user_groups)
+
 })

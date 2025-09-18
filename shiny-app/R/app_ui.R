@@ -8,83 +8,101 @@ app_ui <- function(request) {
     # add external resources
     golem_add_external_resources(),
 
-    # app content
-    shiny::fillPage(
+    ## suppress dependencies that fail to import correctly
+    htmltools::suppressDependencies("shinyBS"),
+    htmltools::suppressDependencies("bootstrap-select"),
 
-      ## suppress dependencies that fail to import correctly
-      htmltools::suppressDependencies("shinyBS"),
-      htmltools::suppressDependencies("bootstrap-select"),
-
-      ## manually insert code dependencies so they import correctly
-      htmltools::tags$head(
-        ### unblock mixed content
-        htmltools::tags$meta(
-          "http-equiv"="Content-Security-Policy", "content"="upgrade-insecure-requests"),
-        ### shinyBS just doesn't work inside Docker containers
-        htmltools::tags$script(src = "www/shinyBS-copy.js"),
-        ### shinyWidgets has invalid SourceMap configuration
-        htmltools::tags$script(src = "www/bootstrap-select-copy.min.js"),
-        htmltools::tags$link(
-          rel = "stylesheet",
-          type = "text/css",
-          href = "www/bootstrap-select-copy.min.css"
-        ),
-        # Colombia header
-        htmltools::tags$link(
-          rel = "stylesheet",
-          type = "text/css",
-          href = "www/colombia/header.css"
-        ),
-        # add Work Sans font from Google Fonts
-        htmltools::tags$link(
-          rel = "stylesheet",
-          type = "text/css",
-          href = "https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap"
-        ),
+    ## manually insert code dependencies so they import correctly
+    htmltools::tags$head(
+      ### unblock mixed content
+      htmltools::tags$meta(
+        "http-equiv"="Content-Security-Policy", "content"="upgrade-insecure-requests"),
+      ### shinyBS just doesn't work inside Docker containers
+      htmltools::tags$script(src = "www/shinyBS-copy.js"),
+      ### shinyWidgets has invalid SourceMap configuration
+      htmltools::tags$script(src = "www/bootstrap-select-copy.min.js"),
+      htmltools::tags$link(
+        rel = "stylesheet",
+        type = "text/css",
+        href = "www/bootstrap-select-copy.min.css"
       ),
-
-      ## start up screen
-      shinybusy::busy_start_up(
-        loader = shinybusy::spin_epic("scaling-squares", color = "#FFF"),
-        text = "Loading...",
-        mode = "auto",
-        color = "#FFF",
-        background = "#001329"
-      ),
-
       # Colombia header
-      includeHTML(app_sys("app/www/colombia/header.html")),
+      htmltools::tags$link(
+        rel = "stylesheet",
+        type = "text/css",
+        href = "www/colombia/header.css"
+      ),
+      # add Work Sans font from Google Fonts
+      htmltools::tags$link(
+        rel = "stylesheet",
+        type = "text/css",
+        href = "https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap"
+      ),
+    ),
 
-      ## leaflet map
-      leaflet::leafletOutput("map", width = "100%", height = "100%"),
+    ## start up screen
+    shinybusy::busy_start_up(
+      loader = shinybusy::spin_epic("scaling-squares", color = "#FFF"),
+      text = "Loading...",
+      mode = "auto",
+      color = "#FFF",
+      background = "#001329"
+    ),
 
-      ## help modal
-      helpModal("helpModal", trigger = "help_button"),
+    # app content using navbar layout
+    bslib::page_navbar(
+      title = "Priorizando la Naturaleza - Colombia",
+      id = "navbar",
 
-      ## data sidebar (appears on left)
-      leaflet.extras2::sidebar_tabs(
-        id = "dataSidebar",
-        iconList = list(
-          shiny::icon("layer-group"),
-          shiny::icon("download"),
-          shiny::icon("envelope"),
-          shiny::icon("heart")
-        ),
-        mapManagerSidebarPane(id = "mapManagerPane"),
-        exportSidebarPane(id = "exportPane"),
-        contactSidebarPane(id = "contactPane"),
-        acknowledgmentsSidebarPane(id = "acknowledgmentsPane")
+      # Main Map Page
+      bslib::nav_panel(
+        title = "Map",
+        value = "map_page",
+        
+        shiny::fillPage(
+          # Colombia header
+          includeHTML(app_sys("app/www/colombia/header.html")),
+
+          ## leaflet map
+          leaflet::leafletOutput("map", width = "100%", height = "100%"),
+
+          ## help modal
+          helpModal("helpModal", trigger = "help_button"),
+
+          ## data sidebar (appears on left)
+          leaflet.extras2::sidebar_tabs(
+            id = "dataSidebar",
+            iconList = list(
+              shiny::icon("layer-group"),
+              shiny::icon("download"),
+              shiny::icon("envelope"),
+              shiny::icon("heart")
+            ),
+
+            mapManagerSidebarPane(id = "mapManagerPane"),
+            exportSidebarPane(id = "exportPane"),
+            contactSidebarPane(id = "contactPane"),
+            acknowledgmentsSidebarPane(id = "acknowledgmentsPane")
+          ),
+
+          ## analysis sidebar (appears on right)
+          leaflet.extras2::sidebar_tabs(
+            id = "analysisSidebar",
+            iconList = list(
+              shiny::icon("rocket"),
+              shiny::icon("tachometer-alt")
+            ),
+            newSolutionSidebarPane(id = "newSolutionPane"),
+            solutionResultsSidebarPane(id = "solutionResultsPane")
+          )
+        )
       ),
 
-      ## analysis sidebar (appears on right)
-      leaflet.extras2::sidebar_tabs(
-        id = "analysisSidebar",
-        iconList = list(
-          shiny::icon("rocket"),
-          shiny::icon("tachometer-alt")
-        ),
-        newSolutionSidebarPane(id = "newSolutionPane"),
-        solutionResultsSidebarPane(id = "solutionResultsPane")
+      # Admin Page (only show if user is manager)
+      bslib::nav_panel(
+        title = "Admin",
+        value = "admin_page",
+        adminPageUI("adminPage")
       )
     )
   )

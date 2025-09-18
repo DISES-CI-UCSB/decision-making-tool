@@ -8,7 +8,7 @@ loginModal <- function(id) {
     assertthat::noNA(id)
   )
   
-  modalDialog(
+  shiny::modalDialog(
     title = tags$p(
       "Priorizando la Naturaleza - Colombia",
       style = "text-align:center; font-weight: bold; font-size: 20px;"
@@ -31,8 +31,8 @@ loginModal <- function(id) {
       
     conditionalPanel(
       condition = paste0("input.", id, "_admin_btn > 0"),
-      textInput(paste0(id, "_admin_username"), "Usuario"),
-      passwordInput(paste0(id, "_admin_password"), "Contraseña"),
+      textInput(paste0(id, "_admin_username"), "Usuario", value = "manager_test"),
+      passwordInput(paste0(id, "_admin_password"), "Contraseña", value = "password123"),
       actionButton(paste0(id, "_login_submit"), "Iniciar sesión")
     ),
     

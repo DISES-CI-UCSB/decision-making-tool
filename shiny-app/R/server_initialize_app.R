@@ -53,7 +53,9 @@ server_initialize_app <- quote({
       ## state variables
       new_solution_id = NULL,
       new_load_solution_id = NULL,
-      task = NULL
+      task = NULL,
+      ## database projects
+      projects_data = data.frame()
     )
   )
 
@@ -65,9 +67,21 @@ server_initialize_app <- quote({
   shinyjs::runjs("$('#dataSidebar').css('display','none');")
   shinyjs::runjs("$('#analysisSidebar').css('display','none');")
 
-  # display import modal on start up
-  shiny::showModal(importModal(id = "importModal"))
-  # shiny::showModal(loginModal(id="loginModal"))
+  # display login modal on start up
+  shiny::showModal(loginModal(id = "loginModal"))
+  
+  # Flag to prevent multiple modal transitions
+  modal_transitioned <- FALSE
+  
+  shiny::observeEvent(auth_token(), {
+    if (!is.null(auth_token()) && !modal_transitioned) {
+      modal_transitioned <<- TRUE
+      
+      # Close login modal and show import modal
+      shiny::removeModal()
+      shiny::showModal(importModal(id = "importModal"))
+    }
+  }, ignoreNULL = TRUE)
 
   # initialize map
   output$map <- leaflet::renderLeaflet({
@@ -85,7 +99,6 @@ server_initialize_app <- quote({
   })
 
   # initialize built in projects
-  print(project_data)
   if (nrow(project_data) > 0) {
     ## update select input with project names
     shiny::updateSelectInput(
@@ -96,6 +109,50 @@ server_initialize_app <- quote({
     ## disable import button since no available projects
     disable_html_element("importModal_builtin_button")
   }
+
+  # update project selection when database projects are available
+  observeEvent(app_data$projects_data, {
+    if (nrow(app_data$projects_data) > 0) {
+      # Create choices from database projects
+      db_choices <- stats::setNames(app_data$projects_data$id, app_data$projects_data$title)
+      
+      # Combine with built-in projects if available
+      if (nrow(project_data) > 0) {
+        builtin_choices <- stats::setNames(project_data$path, project_data$name)
+        all_choices <- c(builtin_choices, db_choices)
+      } else {
+        all_choices <- db_choices
+      }
+      
+      # Update the select input
+      shiny::updateSelectInput(
+        inputId = "importModal_name",
+        choices = all_choices
+      )
+      
+      # Enable the import button
+      enable_html_element("importModal_builtin_button")
+    }
+  })
+
+  # Check if user is manager
+  output$user_is_manager <- reactive({
+    !is.null(user_info()) && user_info()$userGroup == "manager"
+  })
+  outputOptions(output, "user_is_manager", suspendWhenHidden = FALSE)
+
+  # Check if no projects are available
+  output$no_projects_available <- reactive({
+    nrow(app_data$projects_data) == 0 && nrow(project_data) == 0
+  })
+  outputOptions(output, "no_projects_available", suspendWhenHidden = FALSE)
+
+  # Handle go to admin page button click
+  observeEvent(input$importModal_go_to_admin_btn, {
+    # Close import modal and navigate to admin page
+    shiny::removeModal()
+    shiny::updateNavbarPage(session, "navbar", selected = "admin_page")
+  })
 
   # disable buttons that require inputs
   disable_html_element("importModal_manual_button")
@@ -126,6 +183,7 @@ server_initialize_app <- quote({
       session = session, modalId = "helpModal", toggle = "open"
     )
   })
+
 
   # enable load solution button when a solution is selected
   shiny::observeEvent(input$load_solution_list, {

@@ -10,8 +10,35 @@ export const resolvers = {
     },
 
     // query projects
-    projects: async () => {
-      return Projects.findAll();
+    projects: async (_, { userGroup, userType }) => {
+      let whereClause = {};
+      
+      if (userType === 'manager') {
+        // Managers can see all projects
+        whereClause = {};
+      } else if (userType === 'planner') {
+        // Planners can see public projects + projects assigned to them
+        // For now, just show public projects (you'll add assignment logic later)
+        whereClause = { user_group: 'public' };
+      } else {
+        // Public users can only see public projects
+        whereClause = { user_group: 'public' };
+      }
+      
+      // If userGroup is explicitly provided, use that instead (for backwards compatibility)
+      if (userGroup) {
+        whereClause = { user_group: userGroup };
+      }
+      
+      console.log('Projects query - userType:', userType, 'userGroup:', userGroup, 'whereClause:', whereClause);
+      
+      return Projects.findAll({
+        where: whereClause,
+        include: [
+          { model: Users, as: "owner" },
+          { model: Files, as: "files" }
+        ]
+      });
     },
 
     // query project by id

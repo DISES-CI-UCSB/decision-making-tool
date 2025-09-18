@@ -82,7 +82,7 @@ export const typeDefs = gql`
 
   type Query {
     users: [User]!
-    projects: [Project]!
+    projects(userGroup: String, userType: String): [Project]!
     project(id: ID!): Project!
     files: [File]!
     project_files(projectId: ID!): [File]!

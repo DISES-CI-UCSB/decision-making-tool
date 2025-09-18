@@ -65,9 +65,19 @@ importModal <- function(id) {
             loadingLabel = "Loading..."
           )
         ),
-        
-       # logos
+
+       # logos partners
        shiny::hr(),
+       htmltools::tags$p(class = "dev-title", "Proyecto llevado a cabo por:"),
+       htmltools::tags$div(class = "sponser-logos",
+       htmltools::tags$div(class = "sponser-logo-row",
+         htmltools::tags$img(
+           class = "partners-logo",
+           src ="www/partner_logos.webp"
+         ),
+       ),
+       ),
+       # logos wheretowork
        htmltools::tags$p(class = "dev-title", "Herramienta basada en WhereToWork, desarrollada por:"),
        htmltools::tags$div(class = "sponser-logos",
        htmltools::tags$div(class = "sponser-logo-row",
@@ -111,8 +121,27 @@ importModal <- function(id) {
         shiny::selectInput(
           inputId = paste0(id, "_name"),
           label = "Select project",
-          choices = c("No built-in projects available" = "NA"),
+          choices = c("No projects available" = "NA"),
           multiple = FALSE
+        ),
+        # Add create project button for managers
+        shiny::conditionalPanel(
+          condition = "output.user_is_manager",
+          shiny::actionButton(
+            inputId = paste0(id, "_go_to_admin_btn"),
+            label = "Go to Admin Page",
+            class = "btn btn-success",
+            style = "margin-top: 10px;"
+          )
+        ),
+        # Show message when no projects available
+        shiny::conditionalPanel(
+          condition = "output.no_projects_available",
+          shiny::div(
+            class = "alert alert-info",
+            style = "margin-top: 10px;",
+            "No projects are currently available. Contact an administrator to create projects."
+          )
         )
       ),
   

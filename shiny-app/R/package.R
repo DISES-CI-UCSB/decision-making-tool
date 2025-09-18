@@ -5,6 +5,8 @@ NULL
 #' @import promises
 #' @import R6
 #' @import sf
+#' @import ghql
+#' @import jsonlite
 NULL
 
 #' wheretowork: Systematic conservation planning application.
@@ -52,5 +54,9 @@ utils::globalVariables(
 #' @importFrom plyr rbind.fill
 #' @importFrom shinyalert shinyalert
 #' @importFrom withr with_dir
+#' @importFrom ghql GraphqlClient Query
+#' @importFrom jsonlite fromJSON
+#' @importFrom DT dataTableOutput renderDataTable datatable
+#' @importFrom bslib page_navbar nav_panel page_fillable card card_header card_body
 #' @export
 NULL

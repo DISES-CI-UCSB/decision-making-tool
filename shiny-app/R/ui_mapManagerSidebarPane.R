@@ -57,14 +57,6 @@ mapManagerSidebarPane <- function(id,
           class = "sidebar-pane-inner",
           htmltools::tags$div(
             class = "widget-container",
-            # region dropdown
-            shiny::selectInput(
-                inputId  = projectSelectionId,
-                label    = "Select a region:",
-                choices  = sort(unique(project_data$name)),
-                selected = NULL,
-                width    = "100%"
-            ),
             mapManagerOutput(mapManagerId, height = "100%")
           )
         )
