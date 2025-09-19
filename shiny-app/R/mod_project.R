@@ -24,12 +24,38 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
     ns <- session$ns
 
     # GraphQL queries/mutations
-    projects_query <- '
-    query($userGroup: String, $userType: String) {
-      projects(userGroup: $userGroup, userType: $userType) {
+    public_projects_query <- '
+    query {
+      public_projects {
         id
         title
         description
+        user_group
+        planning_unit {
+          id
+          name
+          path
+        }
+        owner {
+          id
+          username
+          type
+        }
+      }
+    }'
+    
+    all_projects_query <- '
+    query {
+      all_projects {
+        id
+        title
+        description
+        user_group
+        planning_unit {
+          id
+          name
+          path
+        }
         owner {
           id
           username
@@ -62,6 +88,19 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
     }
     '
 
+    update_project_mutation <- '
+    mutation($id: ID!, $planningUnitId: ID!) {
+      updateProject(id: $id, planningUnitId: $planningUnitId) {
+        id
+        title
+        planning_unit {
+          id
+          name
+        }
+      }
+    }
+    '
+
     # Reactive to hold CSV + file info
     added_files <- shiny::reactiveVal(NULL)
     tmp_dir <- shiny::reactiveVal(NULL)
@@ -70,28 +109,22 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
     # Fetch projects
     fetch_projects <- function() {
       cat("*** FETCHING PROJECTS ***\n")
-      qry <- ghql::Query$new()
-      qry$query("projects", projects_query)
       
-      # Prepare variables for the query
-      variables <- list()
-      
-      # Always pass userType for proper access control
-      if (!is.null(user_info()) && !is.null(user_info()$type)) {
-        variables$userType <- user_info()$type
-        cat("*** User Type:", user_info()$type, "***\n")
+      # Choose query based on user type
+      if (!is.null(user_info()) && !is.null(user_info()$type) && user_info()$type == "manager") {
+        cat("*** Manager user - fetching ALL projects ***\n")
+        query_name <- "all_projects"
+        query_text <- all_projects_query
+        data_field <- "all_projects"
       } else {
-        variables$userType <- "public"
-        cat("*** Defaulting to public user type ***\n")
+        cat("*** Public/Planner user - fetching PUBLIC projects ***\n")
+        query_name <- "public_projects"
+        query_text <- public_projects_query
+        data_field <- "public_projects"
       }
       
-      # For backwards compatibility, also pass userGroup if available
-      if (!is.null(user_info()) && !is.null(user_info()$userGroup)) {
-        variables$userGroup <- user_info()$userGroup
-        cat("*** User Group:", user_info()$userGroup, "***\n")
-      }
-      
-      cat("*** Query variables:", jsonlite::toJSON(variables), "***\n")
+      qry <- ghql::Query$new()
+      qry$query(query_name, query_text)
       
       tryCatch({
         # Include auth header if available
@@ -100,21 +133,27 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
           headers$Authorization <- paste("Bearer", auth_token())
         }
         
-        res <- client$exec(qry$queries$projects, variables = variables, headers = headers)
+        res <- client$exec(qry$queries[[query_name]], headers = headers)
         cat("*** GraphQL Response:", res, "***\n")
         
         res_list <- jsonlite::fromJSON(res)
-        projects <- res_list$data$projects
+        cat("*** Parsed response structure:", str(res_list), "***\n")
+        projects <- res_list$data[[data_field]]
+        cat("*** Projects data:", str(projects), "***\n")
         
-        cat("*** Found", nrow(projects), "projects ***\n")
-        if (nrow(projects) > 0) {
-          cat("*** Project titles:", paste(projects$title, collapse = ", "), "***\n")
+        if (!is.null(projects) && length(projects) > 0) {
+          projects_df <- as.data.frame(projects)
+          cat("*** Found", nrow(projects_df), "projects ***\n")
+          cat("*** Project titles:", paste(projects_df$title, collapse = ", "), "***\n")
+          projects_data(projects_df)
+        } else {
+          cat("*** No projects found ***\n")
+          projects_data(data.frame())
         }
-        
-        projects_data(as.data.frame(projects))
       }, error = function(e) {
         cat("*** Error fetching projects:", e$message, "***\n")
         shiny::showNotification(paste("Failed to fetch projects:", e$message), type = "error")
+        projects_data(data.frame())
       })
     }
 
@@ -155,11 +194,17 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
       
       shiny::showModal(shiny::modalDialog(
         title = "Add New Project",
+        htmltools::tags$div(style = "height: 1px;"), # Invisible spacer
         shiny::textInput(ns("project_title"), "Project Title", value="National Test"),
         shiny::textAreaInput(ns("project_description"), "Description", value="Test description"),
         shiny::textInput(ns("project_user_group"), "User Group", value = default_user_group),
 
-        htmltools::tags$h4("Upload ZIP containing layers.csv and layer files"),
+        htmltools::tags$h4("Planning Unit File (Required)"),
+        htmltools::tags$p("Upload the .tif file that defines the spatial planning units for this project."),
+        shiny::fileInput(ns("planning_unit_file"), "Choose Planning Unit .tif file", accept = ".tif"),
+
+        htmltools::tags$h4("Project Layers"),
+        htmltools::tags$p("Upload ZIP containing layers.csv and layer files."),
         shiny::fileInput(ns("project_zip"), "Choose ZIP file", accept = ".zip"),
         DT::DTOutput(ns("csv_preview")),
 
@@ -223,6 +268,13 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
     shiny::observeEvent(input$submit_project, {
       shiny::req(input$project_title)
       shiny::req(user_info())
+      
+      # Check if planning unit file is provided
+      if (is.null(input$planning_unit_file)) {
+        shiny::showNotification("Planning unit file (.tif) is required to create a project.", type = "error")
+        return()
+      }
+      
       df <- added_files()
       td <- tmp_dir()
       if(is.null(df) || nrow(df) == 0) {
@@ -237,38 +289,90 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         return()
       }
 
-      # 1️⃣ Add Project
-      qry_proj <- ghql::Query$new()
-      qry_proj$query("addProject", add_project_mutation)
-      payload <- list(
-        input = list(
-          ownerId = as.character(user_info()$id),
-          title = input$project_title,
-          description = input$project_description,
-          userGroup = input$project_user_group
-        )
-      )
-      
-      cat("*** CREATING PROJECT ***\n")
-      cat("*** Owner ID:", user_info()$id, "***\n")
-      cat("*** Title:", input$project_title, "***\n")
-      cat("*** User Group:", input$project_user_group, "***\n")
-
       tryCatch({
+        # 1️⃣ First create project without planning unit to get project ID
+        qry_proj <- ghql::Query$new()
+        qry_proj$query("addProject", add_project_mutation)
+        temp_payload <- list(
+          input = list(
+            ownerId = as.character(user_info()$id),
+            title = input$project_title,
+            description = input$project_description,
+            userGroup = input$project_user_group
+            # No planningUnitId yet
+          )
+        )
+        
+        
         res_proj <- client$exec(
           qry_proj$queries$addProject,
           headers = list(Authorization = paste("Bearer", auth_token())),
-          variables = payload
+          variables = temp_payload
         )
-        cat("*** Project creation response:", res_proj, "***\n")
-        
         res_list <- jsonlite::fromJSON(res_proj)
         new_project_id <- res_list$data$addProject$id
         project_folder_name <- gsub(" ", "_", input$project_title)
-        
-        cat("*** New project ID:", new_project_id, "***\n")
 
-        # 2️⃣ Process each row
+        # 2️⃣ Now upload planning unit file with correct project ID
+        upload_dir <- file.path("uploads", paste0(project_folder_name, new_project_id))
+        if(!dir.exists(upload_dir)) dir.create(upload_dir, recursive = TRUE)
+        
+        planning_unit_path <- file.path(upload_dir, basename(input$planning_unit_file$name))
+        
+        # Load planning unit raster and convert NA values to 0s
+        pu_raster <- terra::rast(input$planning_unit_file$datapath)
+        pu_raster[is.na(pu_raster)] <- 0
+        
+        # Save the cleaned planning unit raster
+        terra::writeRaster(pu_raster, planning_unit_path, overwrite = TRUE)
+        
+        
+        # Add planning unit file to database
+        qry_pu_file <- ghql::Query$new()
+        qry_pu_file$query("addFile", add_file_mutation)
+        pu_file_payload <- list(
+          uploaderId = as.character(user_info()$id),
+          projectId = as.character(new_project_id),
+          path = planning_unit_path,
+          name = "Planning Units",
+          description = "Planning unit spatial file for project"
+        )
+        res_pu_file <- client$exec(
+          qry_pu_file$queries$addFile,
+          headers = list(Authorization = paste("Bearer", auth_token())),
+          variables = pu_file_payload
+        )
+        
+        res_pu_list <- jsonlite::fromJSON(res_pu_file)
+        if (!is.null(res_pu_list$errors)) {
+          stop("Error uploading planning unit file: ", res_pu_list$errors[[1]]$message)
+        }
+        
+        planning_unit_file_id <- res_pu_list$data$addFile$id
+        cat("*** Planning unit file ID:", planning_unit_file_id, "***\n")
+        
+        # 3️⃣ Update project with planning unit file ID
+        qry_update <- ghql::Query$new()
+        qry_update$query("updateProject", update_project_mutation)
+        update_payload <- list(
+          id = as.character(new_project_id),
+          planningUnitId = as.character(planning_unit_file_id)
+        )
+        
+        res_update <- client$exec(
+          qry_update$queries$updateProject,
+          headers = list(Authorization = paste("Bearer", auth_token())),
+          variables = update_payload
+        )
+        
+        res_update_list <- jsonlite::fromJSON(res_update)
+        if (!is.null(res_update_list$errors)) {
+          stop("Error updating project with planning unit: ", res_update_list$errors[[1]]$message)
+        }
+        
+        cat("*** Project updated with planning unit ID:", planning_unit_file_id, "***\n")
+
+        # 4️⃣ Process each layer row
         for(i in seq_len(nrow(df))){
           row <- df[i, ]
 
@@ -276,7 +380,64 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
           upload_dir <- file.path("uploads", paste0(project_folder_name, new_project_id))
           if(!dir.exists(upload_dir)) dir.create(upload_dir, recursive = TRUE)
           target_path <- file.path(upload_dir, basename(row$File))
-          file.copy(file.path(base_folder(), row$File), target_path, overwrite = TRUE)
+          
+          # Validate layer grid matches planning unit grid
+          tryCatch({
+            # Load planning unit raster (we just uploaded it)
+            pu_path <- file.path(upload_dir, basename(input$planning_unit_file$name))
+            
+            if (file.exists(pu_path)) {
+              # Load planning unit raster
+              pu_raster <- terra::rast(pu_path)
+              
+              # Load layer raster
+              layer_raster <- terra::rast(file.path(base_folder(), row$File))
+              
+              # Check if grids match
+              if (!terra::compareGeom(pu_raster, layer_raster, stopOnError = FALSE)) {
+                cat("*** Layer grid mismatch for:", row$Name, "***\n")
+                cat("*** Attempting to align layer to planning unit grid ***\n")
+                
+                # Attempt to align layer to planning unit grid
+                layer_raster <- terra::project(
+                  x = layer_raster, 
+                  y = pu_raster, 
+                  method = "ngb"  # nearest neighbor for most layers
+                )
+                
+                # Convert NA values to 0s
+                layer_raster[is.na(layer_raster)] <- 0
+                
+                # Save the aligned raster temporarily
+                temp_layer_path <- tempfile(fileext = ".tif")
+                terra::writeRaster(layer_raster, temp_layer_path, overwrite = TRUE)
+                
+                # Copy the aligned version
+                file.copy(temp_layer_path, target_path, overwrite = TRUE)
+                unlink(temp_layer_path)
+                
+                cat("*** Layer aligned and saved ***\n")
+              } else {
+                # Grids match, but still convert NA values to 0s
+                layer_raster[is.na(layer_raster)] <- 0
+                
+                # Save the cleaned raster
+                temp_layer_path <- tempfile(fileext = ".tif")
+                terra::writeRaster(layer_raster, temp_layer_path, overwrite = TRUE)
+                file.copy(temp_layer_path, target_path, overwrite = TRUE)
+                unlink(temp_layer_path)
+              }
+            } else {
+              # No planning unit found, copy as normal but warn
+              cat("*** Warning: Planning unit not found for grid validation ***\n")
+              file.copy(file.path(base_folder(), row$File), target_path, overwrite = TRUE)
+            }
+            
+          }, error = function(e) {
+            cat("*** Error during layer grid validation:", e$message, "***\n")
+            cat("*** Copying layer without validation ***\n")
+            file.copy(file.path(base_folder(), row$File), target_path, overwrite = TRUE)
+          })
 
           # Add file via GraphQL
           qry_file <- ghql::Query$new()

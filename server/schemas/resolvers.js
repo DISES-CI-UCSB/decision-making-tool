@@ -9,34 +9,23 @@ export const resolvers = {
       return Users.findAll();
     },
 
-    // query projects
-    projects: async (_, { userGroup, userType }) => {
-      let whereClause = {};
-      
-      if (userType === 'manager') {
-        // Managers can see all projects
-        whereClause = {};
-      } else if (userType === 'planner') {
-        // Planners can see public projects + projects assigned to them
-        // For now, just show public projects (you'll add assignment logic later)
-        whereClause = { user_group: 'public' };
-      } else {
-        // Public users can only see public projects
-        whereClause = { user_group: 'public' };
-      }
-      
-      // If userGroup is explicitly provided, use that instead (for backwards compatibility)
-      if (userGroup) {
-        whereClause = { user_group: userGroup };
-      }
-      
-      console.log('Projects query - userType:', userType, 'userGroup:', userGroup, 'whereClause:', whereClause);
-      
-      return Projects.findAll({
-        where: whereClause,
+    public_projects: async () => {
+      return await Projects.findAll({
+        where: { user_group: 'public' },
         include: [
           { model: Users, as: "owner" },
-          { model: Files, as: "files" }
+          { model: Files, as: "files" },
+          { model: Files, as: "planning_unit" }
+        ]
+      });
+    },
+
+    all_projects: async () => {
+      return await Projects.findAll({
+        include: [
+          { model: Users, as: "owner" },
+          { model: Files, as: "files" },
+          { model: Files, as: "planning_unit" }
         ]
       });
     },
@@ -45,8 +34,10 @@ export const resolvers = {
     project: async (_, { id }) => {
       return await Projects.findByPk(id, {
         include: [
+          { model: Users, as: "owner" },
           { model: Solutions, as: "solutions" },
-          { model: Files, as: "files" }
+          { model: Files, as: "files" },
+          { model: Files, as: "planning_unit" }
         ],
       });
     },
@@ -95,7 +86,11 @@ export const resolvers = {
         where: { project_id: projectId },
         include: [
           { model: SolutionLayers, as: "themes", include: [{ model: ProjectLayers, as: "project_layer" }] },
+          { model: ProjectLayers, as: "weights" },
+          { model: ProjectLayers, as: "includes" },
+          { model: ProjectLayers, as: "excludes" },
           { model: Users, as: "author" },
+          { model: Files, as: "file" },
         ],
       });
     },
@@ -119,14 +114,41 @@ export const resolvers = {
 
     addProject: async (parent, { input }) => {
       console.log(input)
+      
+      // Validate required fields
+      if (!input.userGroup || input.userGroup.trim() === '') {
+        throw new Error('User Group is required and cannot be empty');
+      }
+      
+      // Planning unit validation will be done at the frontend level
+
+      
       const newProject = await Projects.create({
         owner_id: input.ownerId,
         title: input.title,
         description: input.description,
         user_group: input.userGroup,
+        planning_unit_id: input.planningUnitId || null,
       });
       
       return newProject;
+    },
+
+    updateProject: async (parent, { id, planningUnitId }) => {
+      const project = await Projects.findByPk(id);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+      
+      await project.update({ planning_unit_id: planningUnitId });
+      
+      return await Projects.findByPk(id, {
+        include: [
+          { model: Users, as: "owner" },
+          { model: Files, as: "files" },
+          { model: Files, as: "planning_unit" }
+        ]
+      });
     },
 
     addFile: async (parent, { name, description, uploaderId, projectId, path }) => {

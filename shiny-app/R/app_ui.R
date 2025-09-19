@@ -49,13 +49,13 @@ app_ui <- function(request) {
       background = "#001329"
     ),
 
-    # app content using navbar layout
-    bslib::page_navbar(
+    # app content using navbar layout (using shiny instead of bslib to avoid conflicts)
+    shiny::navbarPage(
       title = "Priorizando la Naturaleza - Colombia",
       id = "navbar",
 
       # Main Map Page
-      bslib::nav_panel(
+      shiny::tabPanel(
         title = "Map",
         value = "map_page",
         
@@ -99,7 +99,7 @@ app_ui <- function(request) {
       ),
 
       # Admin Page (only show if user is manager)
-      bslib::nav_panel(
+      shiny::tabPanel(
         title = "Admin",
         value = "admin_page",
         adminPageUI("adminPage")

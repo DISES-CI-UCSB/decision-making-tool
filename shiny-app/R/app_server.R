@@ -57,6 +57,12 @@ app_server <- function(input, output, session) {
 
   # load solution and settings previously generated
   eval(server_load_solution)
+  
+  # load solutions from database
+  eval(server_load_solutions_database)
+  
+  # load database solutions
+  eval(server_load_solution_database)
 
   # admin page management
   eval(server_adminPage)

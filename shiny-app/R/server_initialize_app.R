@@ -98,40 +98,33 @@ server_initialize_app <- quote({
     solutionResults()
   })
 
-  # initialize built in projects
-  if (nrow(project_data) > 0) {
-    ## update select input with project names
-    shiny::updateSelectInput(
-      inputId = "importModal_name",
-      choices = stats::setNames(project_data$path, project_data$name)
-    )
-  } else {
-    ## disable import button since no available projects
-    disable_html_element("importModal_builtin_button")
-  }
-
   # update project selection when database projects are available
-  observeEvent(app_data$projects_data, {
-    if (nrow(app_data$projects_data) > 0) {
-      # Create choices from database projects
-      db_choices <- stats::setNames(app_data$projects_data$id, app_data$projects_data$title)
-      
-      # Combine with built-in projects if available
-      if (nrow(project_data) > 0) {
-        builtin_choices <- stats::setNames(project_data$path, project_data$name)
-        all_choices <- c(builtin_choices, db_choices)
-      } else {
-        all_choices <- db_choices
-      }
+  observeEvent(projects_data(), {
+    cat("*** IMPORT MODAL: Updating dropdown with projects_data() ***\n")
+    if (nrow(projects_data()) > 0) {
+      # Create choices from database projects only
+      db_choices <- stats::setNames(projects_data()$id, projects_data()$title)
+      cat("*** IMPORT MODAL: Updated select input with", length(db_choices), "database projects ***\n")
       
       # Update the select input
       shiny::updateSelectInput(
         inputId = "importModal_name",
-        choices = all_choices
+        choices = db_choices
       )
       
       # Enable the import button
       enable_html_element("importModal_builtin_button")
+      cat("*** IMPORT MODAL: Enabled import button ***\n")
+    } else {
+      cat("*** IMPORT MODAL: No projects available, disabling import button ***\n")
+      # Disable import button since no available projects
+      disable_html_element("importModal_builtin_button")
+      
+      # Clear the select input
+      shiny::updateSelectInput(
+        inputId = "importModal_name",
+        choices = c("No projects available" = "NA")
+      )
     }
   })
 
@@ -143,7 +136,7 @@ server_initialize_app <- quote({
 
   # Check if no projects are available
   output$no_projects_available <- reactive({
-    nrow(app_data$projects_data) == 0 && nrow(project_data) == 0
+    nrow(projects_data()) == 0
   })
   outputOptions(output, "no_projects_available", suspendWhenHidden = FALSE)
 

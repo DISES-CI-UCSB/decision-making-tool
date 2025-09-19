@@ -94,23 +94,19 @@ importModal <- function(id) {
         inputId = paste0(id, "_method"),
         label = "Select import method",
         choices = c(
-          "built-in project" = "builtin",
+          "database project" = "builtin",
           "upload project data" = "manual",
           "upload shapefile" = "spatial"
         ),
-        selected = "built-in project",
+        selected = "database project",
         multiple = FALSE
       ),
 
       ## add project descriptions text
       shiny::HTML(
         "<div id=project-descriptions>
-        <p style='text-align: center;'><b>Proyectos disponibles</b></p>
-        <ul>
-            <li><b>Nacional 1km:</b> Área continental de Colombia a 1km resolución</li>
-            <li><b>Eje Cafetero:</b> (en desarrollo)</li>
-            <li><b>Orinoquía:</b> (en desarrollo)</li>
-        </ul>
+        <p style='text-align: center;'><b>Database Projects</b></p>
+        <p style='text-align: center;'>Select from projects created through the admin interface.</p>
         </div>"),
 
       ## builtin method

@@ -28,7 +28,6 @@ Imports:
     stats,
     utils,
     assertthat (>= 0.2.1),
-    bslib (>= 0.8.0),
     cachem (>= 1.1.0),
     cli (>= 3.6.3),
     colourpicker (>= 1.3.0),
@@ -147,11 +146,10 @@ Collate:
     'fct_simulate_weights.R'
     'fct_write_project.R'
     'mod_project.R'
+    'mod_solution.R'
     'package.R'
     'run_app.R'
-    'server_adminModal.R'
     'server_adminPage.R'
-    'server_admin_management.R'
     'server_export_data.R'
     'server_export_spreadsheets.R'
     'server_generate_new_solution.R'
@@ -162,6 +160,8 @@ Collate:
     'server_import_spatial_data.R'
     'server_initialize_app.R'
     'server_load_solution.R'
+    'server_load_solution_database.R'
+    'server_load_solutions_database.R'
     'server_login.R'
     'server_update_map.R'
     'server_update_solution_results.R'
@@ -170,7 +170,6 @@ Collate:
     'server_verify_spatial_uploads.R'
     'widget_solutionSettings_ui.R'
     'ui_acknowledgmentsSidebarPane.R'
-    'ui_adminModal.R'
     'ui_adminPage.R'
     'ui_contactSidebarPane.R'
     'ui_createProjectModal.R'

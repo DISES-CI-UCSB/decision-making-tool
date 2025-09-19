@@ -139,5 +139,11 @@ Projects.belongsTo(Users, {
   as: "owner"
 })
 
+// Each project has one planning unit file
+Projects.belongsTo(Files, {
+  foreignKey: "planning_unit_id",
+  as: "planning_unit"
+})
+
 
 export { Users, Projects, Solutions, Files, ProjectLayers, SolutionLayers };

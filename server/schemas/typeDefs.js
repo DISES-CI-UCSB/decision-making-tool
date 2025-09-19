@@ -37,14 +37,14 @@ export const typeDefs = gql`
     labels: [String]!
     unit: String!
     provenance: String!
-    order: Int!
+    order: Int
     visible: Boolean!
     downloadable: Boolean!
   }
 
   type SolutionLayer {
     id: ID!
-    solution: Solution!
+    solution: Solution
     project_layer: ProjectLayer!
     goal: Float!
   }
@@ -70,8 +70,9 @@ export const typeDefs = gql`
     title: String!
     description: String!
     owner: User!
-    userGroup: String!
-    solutions: [Solution!]!
+    user_group: String!
+    planning_unit: File
+    solutions: [Solution!]
     files: [File]
   }
 
@@ -82,7 +83,8 @@ export const typeDefs = gql`
 
   type Query {
     users: [User]!
-    projects(userGroup: String, userType: String): [Project]!
+    public_projects: [Project]!
+    all_projects: [Project]!
     project(id: ID!): Project!
     files: [File]!
     project_files(projectId: ID!): [File]!
@@ -97,6 +99,7 @@ export const typeDefs = gql`
     title: String!
     description: String!
     userGroup: String!
+    planningUnitId: ID
   }
 
   input ProjectLayerInput {
@@ -142,6 +145,7 @@ export const typeDefs = gql`
 
     addUser( username: String!, password: String!, type: String! ): User!
     addProject(input: ProjectInput!): Project!
+    updateProject(id: ID!, planningUnitId: ID!): Project!
     addFile( name: String!, description: String!, uploaderId: ID!, projectId: ID!, path: String! ): File!
     addProjectLayer( input: ProjectLayerInput ): ProjectLayer!
     addSolution(input: SolutionInput!): Solution!

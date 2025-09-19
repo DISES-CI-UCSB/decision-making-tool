@@ -12,9 +12,6 @@
 #' @export
 server_adminPage <- quote({
   
-  # Initialize projects data reactive value
-  projects_data <- shiny::reactiveVal(data.frame())
-  
   # Create a reactive trigger for refreshing projects
   refresh_trigger <- shiny::reactiveVal(0)
   
@@ -35,6 +32,9 @@ server_adminPage <- quote({
     
     # Initialize project module server
     projectServer("project_module", client, auth_token, user_info, projects_data, refresh_trigger)
+    
+    # Initialize solution module server
+    solutionServer("solution_module", client, auth_token, user_info, projects_data, refresh_trigger)
   })
   
 })

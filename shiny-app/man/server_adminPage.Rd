@@ -5,7 +5,7 @@
 \alias{server_adminPage}
 \title{Admin Page Server}
 \format{
-An object of class \code{{} of length 4.
+An object of class \code{{} of length 3.
 }
 \usage{
 server_adminPage
