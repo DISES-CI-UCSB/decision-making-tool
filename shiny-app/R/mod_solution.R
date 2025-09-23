@@ -6,8 +6,8 @@
 solutionUI <- function(id) {
   ns <- NS(id)
   tagList(
-    h3("Solutions"),
-    shiny::selectInput(ns("project_select"), "Select Project", choices = NULL),
+    h3("Soluciones"),
+    shiny::selectInput(ns("project_select"), "Seleccionar Proyecto", choices = NULL),
     shiny::uiOutput(ns("add_solutions_ui")),
     DT::DTOutput(ns("solutions_table"))
   )
@@ -123,7 +123,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
     output$solutions_table <- DT::renderDT({
       df <- solutions_data()
       if (nrow(df) == 0) {
-        return(DT::datatable(data.frame(Message = "No solutions found"), options = list(dom = 't')))
+        return(DT::datatable(data.frame(Mensaje = "No se encontraron soluciones"), options = list(dom = 't')))
       }
       DT::datatable(df[, c("id", "title", "description", "author_name", "author_email", "user_group")],
         rownames = FALSE,
@@ -134,7 +134,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
     output$add_solutions_ui <- renderUI({
       req(user_info())
       req(input$project_select)
-      actionButton(ns("show_add_solution"), "Add New Solution")
+      actionButton(ns("show_add_solution"), "Agregar Nueva Solución")
     })
 
     shiny::observeEvent(input$show_add_solution, {
@@ -144,20 +144,20 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
       
       # Clear the CSV preview table when opening modal
       output$csv_preview <- DT::renderDT({
-        DT::datatable(data.frame(Message = "Upload a ZIP file to preview solutions"), 
+        DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las soluciones"), 
                      options = list(dom = 't'))
       })
       
       shiny::showModal(shiny::modalDialog(
-        title = "Add New Solutions to Project",
+        title = "Agregar Nuevas Soluciones al Proyecto",
         htmltools::tags$div(style = "height: 1px;"), # Invisible spacer
-        htmltools::tags$h4("Upload ZIP containing solutions.csv and solution files"),
-        shiny::fileInput(ns("solution_zip"), "Choose ZIP file", accept = ".zip"),
+        htmltools::tags$h4("Sube un archivo ZIP que contenga solutions.csv y archivos de soluciones"),
+        shiny::fileInput(ns("solution_zip"), "Seleccionar archivo ZIP", accept = ".zip"),
         DT::DTOutput(ns("csv_preview")),
 
         footer = htmltools::tagList(
-          shiny::modalButton("Cancel"),
-          shiny::actionButton(ns("add_solutions"), "Add Solutions")
+          shiny::modalButton("Cancelar"),
+          shiny::actionButton(ns("add_solutions"), "Agregar Soluciones")
         ),
         size = "l",
         easyClose = TRUE
@@ -550,7 +550,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
         
         # Clear the CSV preview table
         output$csv_preview <- DT::renderDT({
-          DT::datatable(data.frame(Message = "Upload a ZIP file to preview solutions"), 
+          DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las soluciones"), 
                        options = list(dom = 't'))
         })
 

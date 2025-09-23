@@ -12,7 +12,7 @@
 projectUI <- function(id) {
   ns <- shiny::NS(id)
   htmltools::tagList(
-    htmltools::tags$h3("Projects"),
+    htmltools::tags$h3("Proyectos"),
     DT::DTOutput(ns("projects_table")),
     shiny::uiOutput(ns("add_project_ui"))
   )
@@ -169,7 +169,7 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
     output$projects_table <- DT::renderDT({
       df <- projects_data()
       if (nrow(df) == 0) {
-        return(DT::datatable(data.frame(Message = "No projects found"), options = list(dom = 't')))
+        return(DT::datatable(data.frame(Mensaje = "No se encontraron proyectos"), options = list(dom = 't')))
       }
       DT::datatable(df[, c("id", "title", "description")], 
                 rownames = FALSE,
@@ -178,7 +178,7 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
 
     output$add_project_ui <- shiny::renderUI({
       shiny::req(user_info())
-      shiny::actionButton(ns("show_add_project"), "Add New Project")
+      shiny::actionButton(ns("show_add_project"), "Agregar Nuevo Proyecto")
     })
 
     # Show modal for new project
@@ -188,7 +188,7 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
       
       # Clear the CSV preview table when opening modal
       output$csv_preview <- DT::renderDT({
-        DT::datatable(data.frame(Message = "Upload a ZIP file to preview layers"), 
+        DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las capas"), 
                      options = list(dom = 't'))
       })
       
@@ -200,24 +200,24 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
       }
       
       shiny::showModal(shiny::modalDialog(
-        title = "Add New Project",
+        title = "Agregar Nuevo Proyecto",
         htmltools::tags$div(style = "height: 1px;"), # Invisible spacer
-        shiny::textInput(ns("project_title"), "Project Title", value="National Test"),
-        shiny::textAreaInput(ns("project_description"), "Description", value="Test description"),
-        shiny::textInput(ns("project_user_group"), "User Group", value = default_user_group),
+        shiny::textInput(ns("project_title"), "Título del Proyecto", value="National Test"),
+        shiny::textAreaInput(ns("project_description"), "Descripción", value="Test description"),
+        shiny::textInput(ns("project_user_group"), "Grupo de Usuario", value = default_user_group),
 
-        htmltools::tags$h4("Planning Unit File (Required)"),
-        htmltools::tags$p("Upload the .tif file that defines the spatial planning units for this project."),
-        shiny::fileInput(ns("planning_unit_file"), "Choose Planning Unit .tif file", accept = ".tif"),
+        htmltools::tags$h4("Archivo de Unidad de Planificación (Requerido)"),
+        htmltools::tags$p("Sube el archivo .tif que define las unidades espaciales de planificación para este proyecto."),
+        shiny::fileInput(ns("planning_unit_file"), "Seleccionar archivo .tif de Unidad de Planificación", accept = ".tif"),
 
-        htmltools::tags$h4("Project Layers"),
-        htmltools::tags$p("Upload ZIP containing layers.csv and layer files."),
-        shiny::fileInput(ns("project_zip"), "Choose ZIP file", accept = ".zip"),
+        htmltools::tags$h4("Capas del Proyecto"),
+        htmltools::tags$p("Sube un archivo ZIP que contenga layers.csv y los archivos de capas."),
+        shiny::fileInput(ns("project_zip"), "Seleccionar archivo ZIP", accept = ".zip"),
         DT::DTOutput(ns("csv_preview")),
 
         footer = htmltools::tagList(
-          shiny::modalButton("Cancel"),
-          shiny::actionButton(ns("submit_project"), "Submit Project")
+          shiny::modalButton("Cancelar"),
+          shiny::actionButton(ns("submit_project"), "Crear Proyecto")
         ),
         size = "l",
         easyClose = TRUE
@@ -504,7 +504,7 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         
         # Clear the CSV preview table
         output$csv_preview <- DT::renderDT({
-          DT::datatable(data.frame(Message = "Upload a ZIP file to preview layers"), 
+          DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las capas"), 
                        options = list(dom = 't'))
         })
 

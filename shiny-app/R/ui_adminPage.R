@@ -20,20 +20,20 @@ adminPageUI <- function(id) {
     class = "admin-page-container",
     style = "padding: 20px;",
     
-    htmltools::tags$h2("Project Administration", class = "text-center mb-4"),
+    htmltools::tags$h2("Administración de Proyectos", class = "text-center mb-4"),
     
     # Navigation buttons
     htmltools::tags$div(
       class = "d-flex justify-content-between mb-3",
       shiny::actionButton(
         inputId = ns("back_to_map"),
-        label = "Back to Map",
+        label = "Volver al Mapa",
         class = "btn btn-secondary",
         icon = shiny::icon("arrow-left")
       ),
       shiny::actionButton(
         inputId = ns("refresh_projects"),
-        label = "Refresh Projects",
+        label = "Actualizar Proyectos",
         class = "btn btn-info",
         icon = shiny::icon("refresh")
       )
@@ -48,7 +48,7 @@ adminPageUI <- function(id) {
           class = "panel panel-default",
           htmltools::tags$div(
             class = "panel-heading",
-            htmltools::tags$h4("Project Management", class = "panel-title")
+            htmltools::tags$h4("Gestión de Proyectos", class = "panel-title")
           ),
           htmltools::tags$div(
             class = "panel-body",
@@ -62,7 +62,7 @@ adminPageUI <- function(id) {
           class = "panel panel-default",
           htmltools::tags$div(
             class = "panel-heading",
-            htmltools::tags$h4("Solution Management", class = "panel-title")
+            htmltools::tags$h4("Gestión de Soluciones", class = "panel-title")
           ),
           htmltools::tags$div(
             class = "panel-body",
