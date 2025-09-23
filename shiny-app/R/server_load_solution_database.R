@@ -339,8 +339,9 @@ server_load_solution_database <- quote({
           cat("*** Error in theme UI updates:", e$message, "***\n")
         })
         
-        ### update weights status
+        ### update weights status and factors
         lapply(seq_along(app_data$weights), function(i) {
+          # Update status
           updateSolutionSettings(
             session = session,
             inputId = "newSolutionPane_settings",
@@ -351,6 +352,22 @@ server_load_solution_database <- quote({
               type = "weight"
             )
           )
+          
+          # Update factor (set to -100.0 for enabled weights, matching example solutions)
+          if (app_data$ss$weights[[i]]$status) {
+            # Set default factor of -100.0 for enabled weights (matches example YAML files)
+            app_data$ss$weights[[i]]$set_setting("factor", -100.0)
+            updateSolutionSettings(
+              session = session,
+              inputId = "newSolutionPane_settings",
+              value = list(
+                id = app_data$ss$weights[[i]]$id,
+                setting = "factor",
+                value = -100.0,
+                type = "weight"
+              )
+            )
+          }
         })
         
         ### update includes status

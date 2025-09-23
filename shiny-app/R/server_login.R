@@ -21,7 +21,12 @@ server_login <- quote({
     cat("*** SETTING AUTH TOKEN TO public_token ***\n")
     auth_token("public_token")
     cat("*** AUTH TOKEN SET - VALUE IS:", auth_token(), "***\n")
-
+    
+    # Close the login modal and redirect to map
+    shiny::removeModal()
+    shiny::updateNavbarPage(session, "navbar", selected = "map_page")
+    
+    shiny::showNotification("Acceso público activado", type = "message")
   })
 
   ## admin login button
@@ -84,6 +89,10 @@ server_login <- quote({
         
         # Auth token will trigger modal transition in server_initialize_app.R
         cat("Login successful - auth token set\n")
+        
+        # Close the login modal and redirect to map
+        shiny::removeModal()
+        shiny::updateNavbarPage(session, "navbar", selected = "map_page")
         
         shiny::showNotification("¡Inicio de sesión exitoso!", type = "message")
       } else {

@@ -26,17 +26,23 @@ app_ui <- function(request) {
         type = "text/css",
         href = "www/bootstrap-select-copy.min.css"
       ),
-      # Colombia header
-      htmltools::tags$link(
-        rel = "stylesheet",
-        type = "text/css",
-        href = "www/colombia/header.css"
-      ),
       # add Work Sans font from Google Fonts
       htmltools::tags$link(
         rel = "stylesheet",
         type = "text/css",
         href = "https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap"
+      ),
+      # Colombia navbar styles
+      htmltools::tags$link(
+        rel = "stylesheet",
+        type = "text/css",
+        href = "www/styles.css"
+      ),
+      # Sidebar styles
+      htmltools::tags$link(
+        rel = "stylesheet",
+        type = "text/css",
+        href = "www/sidebar.css"
       ),
     ),
 
@@ -49,9 +55,24 @@ app_ui <- function(request) {
       background = "#001329"
     ),
 
-    # app content using navbar layout (using shiny instead of bslib to avoid conflicts)
+    # Colombia navbar with integrated branding
     shiny::navbarPage(
-      title = "Priorizando la Naturaleza - Colombia",
+      title = htmltools::div(
+        style = "display: flex; align-items: center; height: 70px; width: 100%;",
+        htmltools::img(
+          src = "www/colombia/logo_pnn.webp", 
+          style = "height: 50px; margin-right: 15px;"
+        ),
+        htmltools::span(
+          "Priorizando la Naturaleza - Colombia",
+          style = "color: white; font-weight: bold; font-size: 18px; flex: 1;"
+        ),
+        htmltools::img(
+          src = "www/colombia/logo_gov.svg", 
+          style = "height: 30px; margin-left: 15px;"
+        )
+      ),
+      windowTitle = "Priorizando la Naturaleza - Colombia",
       id = "navbar",
 
       # Main Map Page
@@ -60,25 +81,32 @@ app_ui <- function(request) {
         value = "map_page",
         
         shiny::fillPage(
-          # Colombia header
-          includeHTML(app_sys("app/www/colombia/header.html")),
 
           ## leaflet map
           leaflet::leafletOutput("map", width = "100%", height = "100%"),
 
           ## help modal
           helpModal("helpModal", trigger = "help_button"),
+          
+          ## hidden import modal elements (for server logic compatibility)
+          htmltools::div(
+            style = "display: none;",
+            shiny::selectInput("importModal_name", "Project", choices = c()),
+            shiny::actionButton("importModal_builtin_button", "Import")
+          ),
 
           ## data sidebar (appears on left)
           leaflet.extras2::sidebar_tabs(
             id = "dataSidebar",
             iconList = list(
+              shiny::icon("folder-open"),
               shiny::icon("layer-group"),
               shiny::icon("download"),
               shiny::icon("envelope"),
               shiny::icon("heart")
             ),
 
+            selectProjectSidebarPane(id = "selectProjectPane"),
             mapManagerSidebarPane(id = "mapManagerPane"),
             exportSidebarPane(id = "exportPane"),
             contactSidebarPane(id = "contactPane"),
@@ -98,11 +126,44 @@ app_ui <- function(request) {
         )
       ),
 
-      # Admin Page (only show if user is manager)
-      shiny::tabPanel(
-        title = "Admin",
-        value = "admin_page",
-        adminPageUI("adminPage")
+      # User menu dropdown
+      shiny::navbarMenu(
+        title = "Usuario",
+        icon = shiny::icon("user"),
+        
+        # Login option (shown when not logged in)
+        shiny::tabPanel(
+          title = "Iniciar sesión",
+          value = "login_page",
+          htmltools::div(
+            style = "padding: 20px; text-align: center;",
+            htmltools::h3("Iniciar sesión"),
+            htmltools::p("Haga clic en el botón para iniciar sesión"),
+            shiny::actionButton("menu_login_btn", "Iniciar sesión", class = "btn btn-primary")
+          )
+        ),
+        
+        # Divider
+        "----",
+        
+        # Admin page (will be conditionally shown)
+        shiny::tabPanel(
+          title = "Administración",
+          value = "admin_page",
+          adminPageUI("adminPage")
+        ),
+        
+        # Logout option (will be conditionally shown)
+        shiny::tabPanel(
+          title = "Cerrar sesión",
+          value = "logout_page",
+          htmltools::div(
+            style = "padding: 20px; text-align: center;",
+            htmltools::h3("Cerrar sesión"),
+            htmltools::p("¿Está seguro de que desea cerrar sesión?"),
+            shiny::actionButton("menu_logout_btn", "Cerrar sesión", class = "btn btn-warning")
+          )
+        )
       )
     )
   )

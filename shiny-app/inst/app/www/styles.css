@@ -1,0 +1,194 @@
+/* Clean reset for navbar area only */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Override header.css conflicts */
+.navbar, .navbar.navbar-default, .navbar-default, .navbar-static-top {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+}
+
+/* Override header.css navbar brand hiding */
+.navbar-brand {
+  display: flex !important;
+}
+
+/* Override header.css body padding */
+body {
+  padding-top: 0 !important;
+}
+
+/* Fix sidebar positioning */
+.sidebar {
+  margin-top: 80px !important;
+}
+
+/* Override any tab-content height rules from header.css */
+.tab-content {
+  height: auto !important;
+}
+
+/* Colombia Blue Navbar - TARGETED STYLING */
+.navbar, .navbar-default, .navbar-static-top, nav.navbar {
+  background-color: #0066FF !important;
+  background-image: none !important;
+  background: #0066FF !important;
+  border: none !important;
+  min-height: 80px !important;
+  height: 80px !important;
+  border-bottom: 2px solid #E6EFFD !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Only navbar header and navbar container get blue */
+.navbar .navbar-header, .navbar .container-fluid {
+  background-color: #0066FF !important;
+  background: #0066FF !important;
+  height: 80px !important;
+}
+
+/* Prevent blue from bleeding to other containers */
+.container-fluid:not(.navbar .container-fluid) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* SPACIOUS BRAND STYLING */
+.navbar-brand, span.navbar-brand {
+  color: #ffffff !important;
+  padding: 0 15px !important;
+  height: 80px !important;
+  line-height: 80px !important;
+  font-family: 'Work Sans', sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: auto !important;
+  max-width: 75% !important;
+  flex: 0 0 auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* COMPACT BRAND CONTENT */
+.navbar-brand > div, .navbar-brand div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  height: 80px !important;
+  width: 100% !important;
+  max-width: 450px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* LARGER TITLE TEXT */
+.navbar-brand span, .navbar-brand div span {
+  color: white !important;
+  font-weight: bold !important;
+  font-size: 20px !important;
+  flex: 1 !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+  line-height: 1.3 !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  margin: 0 15px !important;
+  min-width: 350px !important;
+}
+
+/* LARGER LOGOS */
+.navbar-brand img, .navbar-brand div img {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-height: 50px !important;
+  height: auto !important;
+  width: auto !important;
+  margin: 0 12px !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+
+/* Push navigation to the right */
+.navbar-nav {
+  float: right !important;
+  margin-left: auto !important;
+}
+
+/* Navigation links styling */
+.navbar-default .navbar-nav > li > a,
+.navbar-static-top .navbar-nav > li > a {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  font-size: 16px !important;
+  padding: 30px 20px !important;
+  font-family: 'Work Sans', sans-serif !important;
+  height: 80px !important;
+  line-height: 20px !important;
+}
+
+/* Active tab styling */
+.navbar-default .navbar-nav > .active > a, 
+.navbar-default .navbar-nav > .active > a:focus, 
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-static-top .navbar-nav > .active > a, 
+.navbar-static-top .navbar-nav > .active > a:focus, 
+.navbar-static-top .navbar-nav > .active > a:hover {
+  color: #ffffff !important;
+  background-color: #2E7D32 !important;
+}
+
+/* Hover effects */
+.navbar-default .navbar-nav > li > a:hover, 
+.navbar-default .navbar-nav > li > a:focus,
+.navbar-static-top .navbar-nav > li > a:hover, 
+.navbar-static-top .navbar-nav > li > a:focus {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* User dropdown menu styling */
+.navbar-nav .dropdown-menu {
+  background-color: white !important;
+  border: 1px solid #E6EFFD !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+}
+
+.navbar-nav .dropdown-menu > li > a {
+  color: #3366CC !important;
+  font-family: 'Work Sans', sans-serif !important;
+  font-weight: 500 !important;
+  padding: 8px 20px !important;
+}
+
+.navbar-nav .dropdown-menu > li > a:hover {
+  background-color: rgba(51, 102, 204, 0.1) !important;
+  color: #3366CC !important;
+}
+
+.navbar-nav .dropdown-menu .divider {
+  background-color: #E6EFFD !important;
+  margin: 5px 0 !important;
+}
+
+/* Dropdown toggle styling */
+.navbar-nav .dropdown-toggle {
+  color: white !important;
+  font-family: 'Work Sans', sans-serif !important;
+  font-weight: 500 !important;
+}
+
+.navbar-nav .dropdown-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}

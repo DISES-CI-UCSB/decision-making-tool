@@ -63,12 +63,43 @@ server_initialize_app <- quote({
   ## hides leaflet buttons + scalebar
   shinyjs::runjs("document.body.classList.add('startup');")
 
-  # make sidebars hidden
-  shinyjs::runjs("$('#dataSidebar').css('display','none');")
+  # make analysis sidebar hidden initially (solutions panel)
   shinyjs::runjs("$('#analysisSidebar').css('display','none');")
-
-  # display login modal on start up
-  shiny::showModal(loginModal(id = "loginModal"))
+  
+  # show data sidebar (project selection should be visible)
+  shinyjs::runjs("$('#dataSidebar').css('display','block');")
+  
+  # automatically set public user access
+  user_info(list(id = "public", username = "public", userGroup = "public"))
+  auth_token("public_token")
+  cat("*** AUTO-LOGIN: Set as public user ***\n")
+  
+  # automatically open the project selection sidebar pane using the proven method
+  shinyjs::delay(500, {
+    cat("*** OPENING PROJECT SELECTION SIDEBAR ***\n")
+    
+    # Use the same method that worked in import_data
+    tryCatch({
+      map <- leaflet::leafletProxy("map")
+      leaflet.extras2::openSidebar(
+        map,
+        id = "selectProjectPane", 
+        sidebar_id = "dataSidebar"
+      )
+      cat("*** PROJECT SELECTION SIDEBAR OPENED SUCCESSFULLY ***\n")
+    }, error = function(e) {
+      cat("*** ERROR OPENING SIDEBAR:", e$message, "***\n")
+      
+      # Fallback to JavaScript method
+      shinyjs::runjs("
+        console.log('*** FALLBACK: Using JavaScript method ***');
+        $('#dataSidebar').sidebar('open');
+        setTimeout(function() {
+          $('#dataSidebar .sidebar-tabs a:first').click();
+        }, 300);
+      ")
+    })
+  })
   
   # Flag to prevent multiple modal transitions
   modal_transitioned <- FALSE
@@ -77,9 +108,8 @@ server_initialize_app <- quote({
     if (!is.null(auth_token()) && !modal_transitioned) {
       modal_transitioned <<- TRUE
       
-      # Close login modal and show import modal
-      shiny::removeModal()
-      shiny::showModal(importModal(id = "importModal"))
+      # No modal needed - project selection is in sidebar
+      cat("*** AUTH TOKEN SET - Project selection available in sidebar ***\n")
     }
   }, ignoreNULL = TRUE)
 

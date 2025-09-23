@@ -163,6 +163,7 @@ Collate:
     'server_load_solution_database.R'
     'server_load_solutions_database.R'
     'server_login.R'
+    'server_select_project.R'
     'server_update_map.R'
     'server_update_solution_results.R'
     'server_update_solution_settings.R'

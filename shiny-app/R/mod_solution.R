@@ -141,6 +141,13 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
       cat("*** SHOWING SOLUTION MODAL ***\n")
       added_solutions(NULL)
       tmp_dir(NULL)
+      
+      # Clear the CSV preview table when opening modal
+      output$csv_preview <- DT::renderDT({
+        DT::datatable(data.frame(Message = "Upload a ZIP file to preview solutions"), 
+                     options = list(dom = 't'))
+      })
+      
       shiny::showModal(shiny::modalDialog(
         title = "Add New Solutions to Project",
         htmltools::tags$div(style = "height: 1px;"), # Invisible spacer
@@ -310,9 +317,16 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
           row <- df[i, ]
 
           # Copy solution file to uploads folder
+          cat("*** SOLUTION UPLOAD DEBUG ***\n")
+          cat("*** Selected project ID:", input$project_select, "***\n")
+          cat("*** Project folder name:", project_folder_name(), "***\n")
+          
           upload_dir <- file.path("uploads", project_folder_name(), "solutions")
+          cat("*** Upload directory:", upload_dir, "***\n")
+          
           if(!dir.exists(upload_dir)) dir.create(upload_dir, recursive = TRUE)
           target_path <- file.path(upload_dir, basename(row$file_path))
+          cat("*** Target path:", target_path, "***\n")
           
           # Validate solution grid matches planning unit grid
           tryCatch({
@@ -391,6 +405,10 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
 
 
           ### Add solution file via GraphQL
+          cat("*** FILE UPLOAD DEBUG ***\n")
+          cat("*** File exists at target path:", file.exists(target_path), "***\n")
+          cat("*** File size:", if(file.exists(target_path)) file.size(target_path) else "N/A", "bytes ***\n")
+          
           qry_file <- Query$new()
           qry_file$query("addFile", add_file_mutation)
           file_payload <- list(
@@ -400,12 +418,30 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
             name = row$scenario,
             description = paste("Solution file imported from ZIP:", row$description)
           )
+          
+          cat("*** FILE GRAPHQL PAYLOAD ***\n")
+          cat("*** Project ID:", file_payload$projectId, "***\n")
+          cat("*** File path:", file_payload$path, "***\n")
+          cat("*** File name:", file_payload$name, "***\n")
+          
           res_file <- client$exec(
             qry_file$queries$addFile,
             headers = list(Authorization = paste("Bearer", auth_token())),
             variables = file_payload
           )
-          new_file_id <- fromJSON(res_file)$data$addFile$id
+          
+          cat("*** FILE GRAPHQL RESPONSE:", res_file, "***\n")
+          
+          file_res_list <- fromJSON(res_file)
+          
+          # Check for file upload errors
+          if (!is.null(file_res_list$errors)) {
+            cat("*** FILE GRAPHQL ERROR:", file_res_list$errors[[1]]$message, "***\n")
+            stop(paste("File GraphQL error:", file_res_list$errors[[1]]$message))
+          }
+          
+          new_file_id <- file_res_list$data$addFile$id
+          cat("*** FILE UPLOADED SUCCESSFULLY, ID:", new_file_id, "***\n")
 
 
           ### Build themes payload (SolutionLayers)
@@ -420,8 +456,17 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
           targets_vec <- str_to_array(row$targets)
 
           # construct list of theme inputs for addSolution
+          cat("*** THEME MATCHING DEBUG ***\n")
+          cat("*** Themes from CSV:", paste(themes_vec, collapse = ", "), "***\n")
+          
           themes_payload <- lapply(seq_along(themes_vec), function(j) {
             proj_layer_id <- layers_df$id[match(themes_vec[[j]], layers_df$name)]
+            cat("*** Theme:", themes_vec[[j]], "-> Layer ID:", proj_layer_id, "***\n")
+            
+            if (is.na(proj_layer_id)) {
+              cat("*** WARNING: Theme", themes_vec[[j]], "not found in project layers! ***\n")
+            }
+            
             list(
               projectLayerId = proj_layer_id,
               goal = as.numeric(targets_vec[[j]])
@@ -469,14 +514,32 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
               themes = themes_payload
             )
           )
+          
+          cat("*** SOLUTION GRAPHQL PAYLOAD ***\n")
+          cat("*** Project ID in payload:", sol_payload$input$projectId, "***\n")
+          cat("*** Solution title:", sol_payload$input$title, "***\n")
 
           res_sol <- client$exec(
             qry_sol$queries$addSolution,
             headers = list(Authorization = paste("Bearer", auth_token())),
             variables = sol_payload
           )
-                    
+          
+          cat("*** GRAPHQL RESPONSE:", res_sol, "***\n")
+          
           res_list <- fromJSON(res_sol)
+          
+          # Check for GraphQL errors
+          if (!is.null(res_list$errors)) {
+            cat("*** GRAPHQL ERROR:", res_list$errors[[1]]$message, "***\n")
+            stop(paste("GraphQL error:", res_list$errors[[1]]$message))
+          }
+          
+          if (is.null(res_list$data) || is.null(res_list$data$addSolution)) {
+            cat("*** GRAPHQL ERROR: No data returned ***\n")
+            stop("GraphQL mutation returned no data")
+          }
+          
           new_sol_id <- res_list$data$addSolution$id
 
           cat("Added solution:", res_list$data$addSolution$title, "\n")
@@ -484,6 +547,12 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
 
         showNotification(paste("Project created with", nrow(df), "solutions."), type = "message")
         removeModal()
+        
+        # Clear the CSV preview table
+        output$csv_preview <- DT::renderDT({
+          DT::datatable(data.frame(Message = "Upload a ZIP file to preview solutions"), 
+                       options = list(dom = 't'))
+        })
 
         # wait to make sure that solutions are fully uploaded
         Sys.sleep(1)  # give the backend time to finish

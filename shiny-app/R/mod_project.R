@@ -185,6 +185,13 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
     shiny::observeEvent(input$show_add_project, {
       added_files(NULL)
       tmp_dir(NULL)
+      
+      # Clear the CSV preview table when opening modal
+      output$csv_preview <- DT::renderDT({
+        DT::datatable(data.frame(Message = "Upload a ZIP file to preview layers"), 
+                     options = list(dom = 't'))
+      })
+      
       # Set default user group to match current user's group
       default_user_group <- if (!is.null(user_info()) && !is.null(user_info()$userGroup)) {
         user_info()$userGroup
@@ -494,6 +501,12 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
 
         shiny::showNotification(paste("Project created with", nrow(df), "layers."), type = "message")
         shiny::removeModal()
+        
+        # Clear the CSV preview table
+        output$csv_preview <- DT::renderDT({
+          DT::datatable(data.frame(Message = "Upload a ZIP file to preview layers"), 
+                       options = list(dom = 't'))
+        })
 
         # wait to make sure that projects are fully uploaded
         Sys.sleep(1)  # give the backend time to finish

@@ -73,3 +73,60 @@
   text-decoration: none;
   border-bottom: 2px solid #F42F63;
 }
+
+/* Position navbar below Colombia header */
+.navbar.navbar-default {
+  margin-top: 42px !important;
+  margin-bottom: 0 !important;
+  background-color: rgba(51, 102, 204, 0.1) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  min-height: 40px !important;
+}
+
+/* Hide navbar brand since we have our own header */
+.navbar-brand {
+  display: none !important;
+}
+
+/* Style the navbar tabs to match Colombia header */
+.navbar-nav {
+  margin-left: 20px;
+}
+
+.navbar-nav > li > a {
+  color: #3366CC !important;
+  background-color: transparent !important;
+  font-family: 'Work Sans', sans-serif !important;
+  font-weight: 500 !important;
+  padding: 10px 16px !important;
+  border: none !important;
+}
+
+.navbar-nav > li > a:hover {
+  background-color: rgba(51, 102, 204, 0.2) !important;
+  color: #3366CC !important;
+}
+
+.navbar-nav > li.active > a,
+.navbar-nav > li.active > a:hover,
+.navbar-nav > li.active > a:focus {
+  background-color: #3366CC !important;
+  color: white !important;
+  border-radius: 4px !important;
+}
+
+
+/* Adjust body padding for fixed header + navbar */
+body {
+  padding-top: 82px !important; /* 42px header + 40px navbar */
+}
+
+/* Ensure map fills properly with header and navbar */
+.tab-content {
+  height: calc(100vh - 82px); /* 42px header + 40px navbar */
+}
+
+.tab-pane {
+  height: 100%;
+}
