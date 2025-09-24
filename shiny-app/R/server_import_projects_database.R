@@ -177,26 +177,90 @@ server_import_projects_database <- quote({
     }
     
     planning_unit_path <- project_data$planning_unit$path
+    # Convert relative path to absolute path based on environment
+    if (!startsWith(planning_unit_path, "/")) {
+      if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+        # Running in Docker container
+        planning_unit_path <- file.path("/app", planning_unit_path)
+      } else {
+        # Running locally - use current working directory
+        planning_unit_path <- file.path(getwd(), planning_unit_path)
+      }
+    }
     cat("*** Planning unit path:", planning_unit_path, "***\n")
     
     # Read the planning unit raster to create the base dataset
+    cat("*** Checking if planning unit file exists:", file.exists(planning_unit_path), "***\n")
+    if (!file.exists(planning_unit_path)) {
+      stop(paste("Planning unit file not found at:", planning_unit_path, 
+                 "\nThis may be due to container restart. Please re-upload the project."))
+    }
     pu_raster <- terra::rast(planning_unit_path)
     
     # Read all layer files and combine them into a single SpatRaster stack
     layer_paths <- layers_data$file$path
+    # Convert relative paths to absolute paths based on environment
+    layer_paths <- sapply(layer_paths, function(path) {
+      if (!startsWith(path, "/")) {
+        if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+          # Running in Docker container
+          file.path("/app", path)
+        } else {
+          # Running locally - use current working directory
+          file.path(getwd(), path)
+        }
+      } else {
+        path
+      }
+    })
     cat("*** Reading", length(layer_paths), "layer files ***\n")
     
-    # Read all layers
-    layer_rasters <- lapply(layer_paths, function(path) {
+    # Read all layers with error handling
+    layer_rasters <- list()
+    valid_layer_indices <- c()
+    
+    for (i in seq_along(layer_paths)) {
+      path <- layer_paths[i]
       cat("*** Reading layer:", path, "***\n")
-      terra::rast(path)
-    })
+      cat("*** File exists:", file.exists(path), "***\n")
+      
+      if (!file.exists(path)) {
+        cat("*** ERROR: Layer file not found:", path, "***\n")
+        cat("*** This may be due to container restart. Please re-upload the project. ***\n")
+        next
+      }
+      
+      tryCatch({
+        raster <- terra::rast(path)
+        if (inherits(raster, "SpatRaster")) {
+          layer_rasters[[length(layer_rasters) + 1]] <- raster
+          valid_layer_indices <- c(valid_layer_indices, i)
+          cat("*** Successfully loaded layer:", path, "***\n")
+        } else {
+          cat("*** ERROR: Not a valid SpatRaster:", path, "***\n")
+        }
+      }, error = function(e) {
+        cat("*** ERROR loading layer:", path, "- Error:", e$message, "***\n")
+      })
+    }
     
-    # Combine planning unit with all layers
-    all_rasters <- c(pu_raster, do.call(c, layer_rasters))
+    cat("*** Successfully loaded", length(layer_rasters), "out of", length(layer_paths), "layers ***\n")
     
-    # Set names for the raster stack (planning unit + layer names)
-    layer_names <- c("planning_unit", layers_data$name)
+    # Only proceed if we have valid layers
+    if (length(layer_rasters) == 0) {
+      stop("No valid layers could be loaded")
+    }
+    
+    # Combine planning unit with valid layers
+    if (length(layer_rasters) > 0) {
+      all_rasters <- c(pu_raster, do.call(c, layer_rasters))
+    } else {
+      all_rasters <- pu_raster
+    }
+    
+    # Set names for the raster stack (planning unit + valid layer names)
+    valid_layer_names <- layers_data$name[valid_layer_indices]
+    layer_names <- c("planning_unit", valid_layer_names)
     names(all_rasters) <- make.names(layer_names)  # Ensure valid R names
     
     cat("*** Created raster stack with", terra::nlyr(all_rasters), "layers ***\n")
@@ -214,12 +278,14 @@ server_import_projects_database <- quote({
     # Group theme layers by theme name
     theme_groups <- list()
     
-    for (i in seq_len(nrow(layers_data))) {
-      layer <- layers_data[i, ]
+    # Only process layers that were successfully loaded
+    for (i in seq_along(valid_layer_indices)) {
+      original_index <- valid_layer_indices[i]
+      layer <- layers_data[original_index, ]
       
       # Use the layer name as index (it's now a column in the dataset)
       # Add 1 to index because planning_unit is at index 1
-      layer_index <- i + 1  # planning_unit is at index 1, layers start at index 2
+      layer_index <- i + 1  # planning_unit is at index 1, valid layers start at index 2
       layer_name <- make.names(layer$name)  # Ensure valid R name
       
       cat("*** Creating variable for layer", i, ":", layer$name, "using index", layer_index, "***\n")

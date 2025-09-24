@@ -10,5 +10,10 @@ export const sequelize = new Sequelize({
   password: process.env.DB_PW,
   host: process.env.DB_HOST || 'localhost',
   port: 5432,
-  ssl: false,
+  dialectOptions: {
+    ssl: process.env.DB_SSL === 'true' ? {
+      require: true,
+      rejectUnauthorized: false
+    } : false
+  }
 });

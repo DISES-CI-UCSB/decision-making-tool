@@ -146,6 +146,7 @@ export const typeDefs = gql`
     addUser( username: String!, password: String!, type: String! ): User!
     addProject(input: ProjectInput!): Project!
     updateProject(id: ID!, planningUnitId: ID!): Project!
+    deleteProject(id: ID!): Boolean!
     addFile( name: String!, description: String!, uploaderId: ID!, projectId: ID!, path: String! ): File!
     addProjectLayer( input: ProjectLayerInput ): ProjectLayer!
     addSolution(input: SolutionInput!): Solution!

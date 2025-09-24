@@ -151,6 +151,82 @@ export const resolvers = {
       });
     },
 
+    deleteProject: async (parent, { id }) => {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      try {
+        // Find the project first
+        const project = await Projects.findByPk(id, {
+          include: [
+            { model: Files, as: "files" },
+            { model: Files, as: "planning_unit" }
+          ]
+        });
+        
+        if (!project) {
+          throw new Error('Project not found');
+        }
+        
+        // Collect all file paths for deletion
+        const filePaths = [];
+        
+        // Add planning unit file path
+        if (project.planning_unit && project.planning_unit.path) {
+          const fullPath = project.planning_unit.path.startsWith('/') 
+            ? project.planning_unit.path 
+            : path.join('/app', project.planning_unit.path);
+          filePaths.push(fullPath);
+        }
+        
+        // Add all project layer file paths
+        if (project.files && project.files.length > 0) {
+          project.files.forEach(file => {
+            if (file.path) {
+              const fullPath = file.path.startsWith('/') 
+                ? file.path 
+                : path.join('/app', file.path);
+              filePaths.push(fullPath);
+            }
+          });
+        }
+        
+        // Delete the project directory if it exists
+        const projectTitle = project.title.replace(/\s+/g, '_');
+        const projectDir = path.join('/app/uploads', `${projectTitle}${id}`);
+        
+        // Delete database records (cascade will handle related records)
+        await Projects.destroy({ where: { id } });
+        
+        // Delete physical files and directories
+        filePaths.forEach(filePath => {
+          try {
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+              console.log(`Deleted file: ${filePath}`);
+            }
+          } catch (err) {
+            console.error(`Error deleting file ${filePath}:`, err.message);
+          }
+        });
+        
+        // Delete project directory
+        try {
+          if (fs.existsSync(projectDir)) {
+            fs.rmSync(projectDir, { recursive: true, force: true });
+            console.log(`Deleted project directory: ${projectDir}`);
+          }
+        } catch (err) {
+          console.error(`Error deleting project directory ${projectDir}:`, err.message);
+        }
+        
+        return true;
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        throw new Error(`Failed to delete project: ${error.message}`);
+      }
+    },
+
     addFile: async (parent, { name, description, uploaderId, projectId, path }) => {
 
       const newFile = await Files.create({ name: name, description: description, uploader_id: uploaderId, project_id: projectId, path: path });

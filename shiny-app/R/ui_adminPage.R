@@ -24,13 +24,7 @@ adminPageUI <- function(id) {
     
     # Navigation buttons
     htmltools::tags$div(
-      class = "d-flex justify-content-between mb-3",
-      shiny::actionButton(
-        inputId = ns("back_to_map"),
-        label = "Volver al Mapa",
-        class = "btn btn-secondary",
-        icon = shiny::icon("arrow-left")
-      ),
+      class = "d-flex justify-content-end mb-3",
       shiny::actionButton(
         inputId = ns("refresh_projects"),
         label = "Actualizar Proyectos",

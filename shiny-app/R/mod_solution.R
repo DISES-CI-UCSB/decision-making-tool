@@ -155,9 +155,24 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
         shiny::fileInput(ns("solution_zip"), "Seleccionar archivo ZIP", accept = ".zip"),
         DT::DTOutput(ns("csv_preview")),
 
+        # Progress indicator (initially hidden)
+        htmltools::div(
+          id = ns("upload_progress"),
+          style = "display: none; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;",
+          htmltools::div(
+            style = "display: flex; align-items: center; gap: 10px;",
+            htmltools::tags$i(class = "fa fa-spinner fa-spin", style = "color: #007bff;"),
+            htmltools::tags$span("Subiendo soluciones...", style = "font-weight: bold;")
+          ),
+          htmltools::div(
+            id = ns("progress_details"),
+            style = "margin-top: 10px; font-size: 14px; color: #6c757d;"
+          )
+        ),
+
         footer = htmltools::tagList(
           shiny::modalButton("Cancelar"),
-          shiny::actionButton(ns("add_solutions"), "Agregar Soluciones")
+          shiny::actionButton(ns("add_solutions"), "Agregar Soluciones", class = "btn-primary")
         ),
         size = "l",
         easyClose = TRUE
@@ -221,10 +236,19 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
     # Upload solution ZIP
     shiny::observeEvent(input$add_solutions, {
       req(input$solution_zip, input$project_select, user_info())
+      
+      # Show progress indicator and disable submit button
+      shinyjs::show("upload_progress")
+      shinyjs::disable("add_solutions")
+      shinyjs::html("progress_details", "Validando archivos de soluciones...")
+      
       df <- added_solutions()
       td <- tmp_dir()
       if(is.null(df) || nrow(df) == 0) {
         showNotification("No solutions to upload.", type = "error")
+        # Reset UI state
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("add_solutions")
         return()
       }
 
@@ -232,10 +256,14 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
       missing_files <- df$file_path[!df$file_exists]
       if(length(missing_files) > 0) {
         showNotification(paste("Missing solution files in ZIP:", paste(missing_files, collapse = ", ")), type = "error")
+        # Reset UI state
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("add_solutions")
         return()
       }
 
       # Check that all themes, weights, includes, and excludes exist in ProjectLayers
+      shinyjs::html("progress_details", "Verificando capas del proyecto...")
       layer_qry <- Query$new()
       layer_qry$query("projectLayers", project_layers_query)
       tryCatch({
@@ -313,15 +341,23 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
       tryCatch({
       
         # add each solution referenced in csv
+        shinyjs::html("progress_details", paste("Procesando soluciones (0 de", nrow(df), ")..."))
         for (i in seq_len(nrow(df))) {
           row <- df[i, ]
+          shinyjs::html("progress_details", paste("Procesando solución", i, "de", nrow(df), ":", row$scenario))
 
           # Copy solution file to uploads folder
           cat("*** SOLUTION UPLOAD DEBUG ***\n")
           cat("*** Selected project ID:", input$project_select, "***\n")
           cat("*** Project folder name:", project_folder_name(), "***\n")
           
-          upload_dir <- file.path("uploads", project_folder_name(), "solutions")
+          if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+            # Running in Docker container
+            upload_dir <- file.path("/app/uploads", project_folder_name(), "solutions")
+          } else {
+            # Running locally
+            upload_dir <- file.path("uploads", project_folder_name(), "solutions")
+          }
           cat("*** Upload directory:", upload_dir, "***\n")
           
           if(!dir.exists(upload_dir)) dir.create(upload_dir, recursive = TRUE)
@@ -414,7 +450,11 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
           file_payload <- list(
             uploaderId = as.character(user_info()$id),
             projectId = as.character(input$project_select),
-            path = target_path,
+            path = if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+              sub("^/app/", "", target_path) # Store relative path in database (Docker)
+            } else {
+              sub(paste0("^", normalizePath(getwd(), winslash = "/"), "/"), "", normalizePath(target_path, winslash = "/")) # Store relative path (Local)
+            },
             name = row$scenario,
             description = paste("Solution file imported from ZIP:", row$description)
           )
@@ -545,13 +585,17 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
           cat("Added solution:", res_list$data$addSolution$title, "\n")
         }
 
-        showNotification(paste("Project created with", nrow(df), "solutions."), type = "message")
-        removeModal()
-        
-        # Clear the CSV preview table
-        output$csv_preview <- DT::renderDT({
-          DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las soluciones"), 
-                       options = list(dom = 't'))
+        # Success state
+        shinyjs::html("progress_details", "¡Soluciones agregadas exitosamente!")
+        shinyjs::delay(1500, {
+          showNotification(paste("Project created with", nrow(df), "solutions."), type = "message")
+          removeModal()
+          
+          # Clear the CSV preview table
+          output$csv_preview <- DT::renderDT({
+            DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las soluciones"), 
+                         options = list(dom = 't'))
+          })
         })
 
         # wait to make sure that solutions are fully uploaded
@@ -561,6 +605,9 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
         fetch_solutions()
 
       }, error = function(e){
+        # Reset UI state on error
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("add_solutions")
         showNotification(paste("Error creating solutions:", e$message), type = "error")
       })
     })

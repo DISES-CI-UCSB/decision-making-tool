@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  # Development overrides for the server
+  server:
+    environment:
+      NODE_ENV: development
+    volumes:
+      # Mount source code for development
+      - ./server:/app
+      - /app/node_modules
+      # Persistent uploads
+      - uploads_data:/app/uploads
+    command: npm run dev
+
+  # Development overrides for shiny-app
+  shiny-app:
+    environment:
+      R_CONFIG_ACTIVE: development
+    volumes:
+      # Mount source code for development
+      - ./shiny-app:/app
+      # Persistent uploads
+      - uploads_data:/app/uploads
+      # Development projects
+      - ./projects:/projects
+
+  # Remove nginx in development (access services directly)
+  nginx:
+    profiles:
+      - production

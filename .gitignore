@@ -4,3 +4,12 @@
 .Ruserdata
 /server/.env
 /app/
+.env
+azure.env
+*.local
+azure-deployment-info.txt
+AZURE_DEPLOYMENT_README.md
+USER_INSTRUCTIONS_DRAFT.md
+USER_INSTRUCTIONS_SPANISH.md
+ADMIN_FEATURES_GUIDE.md
+ADMIN_FEATURES_GUIDE_SPANISH.md

@@ -80,6 +80,12 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
     }
     '
 
+    delete_project_mutation <- '
+    mutation($id: ID!) {
+      deleteProject(id: $id)
+    }
+    '
+
     add_project_layer_mutation <- '
     mutation($input: ProjectLayerInput!) {
       addProjectLayer(input: $input) {
@@ -204,7 +210,16 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         htmltools::tags$div(style = "height: 1px;"), # Invisible spacer
         shiny::textInput(ns("project_title"), "Título del Proyecto", value="National Test"),
         shiny::textAreaInput(ns("project_description"), "Descripción", value="Test description"),
-        shiny::textInput(ns("project_user_group"), "Grupo de Usuario", value = default_user_group),
+        shiny::selectInput(
+          ns("project_user_group"), 
+          "Grupo de Usuario",
+          choices = list(
+            "Público" = "public",
+            "Planificador" = "planner", 
+            "Administrador" = "manager"
+          ),
+          selected = default_user_group
+        ),
 
         htmltools::tags$h4("Archivo de Unidad de Planificación (Requerido)"),
         htmltools::tags$p("Sube el archivo .tif que define las unidades espaciales de planificación para este proyecto."),
@@ -215,9 +230,24 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         shiny::fileInput(ns("project_zip"), "Seleccionar archivo ZIP", accept = ".zip"),
         DT::DTOutput(ns("csv_preview")),
 
+        # Progress indicator (initially hidden)
+        htmltools::div(
+          id = ns("upload_progress"),
+          style = "display: none; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;",
+          htmltools::div(
+            style = "display: flex; align-items: center; gap: 10px;",
+            htmltools::tags$i(class = "fa fa-spinner fa-spin", style = "color: #007bff;"),
+            htmltools::tags$span("Creando proyecto y subiendo archivos...", style = "font-weight: bold;")
+          ),
+          htmltools::div(
+            id = ns("progress_details"),
+            style = "margin-top: 10px; font-size: 14px; color: #6c757d;"
+          )
+        ),
+
         footer = htmltools::tagList(
           shiny::modalButton("Cancelar"),
-          shiny::actionButton(ns("submit_project"), "Crear Proyecto")
+          shiny::actionButton(ns("submit_project"), "Crear Proyecto", class = "btn-primary")
         ),
         size = "l",
         easyClose = TRUE
@@ -282,10 +312,18 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         return()
       }
       
+      # Show progress indicator and disable submit button
+      shinyjs::show("upload_progress")
+      shinyjs::disable("submit_project")
+      shinyjs::html("progress_details", "Validando archivos...")
+      
       df <- added_files()
       td <- tmp_dir()
       if(is.null(df) || nrow(df) == 0) {
         shiny::showNotification("No layers to upload.", type = "error")
+        # Reset UI state
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("submit_project")
         return()
       }
 
@@ -293,11 +331,15 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
       missing_files <- df$File[!df$file_exists]
       if(length(missing_files) > 0) {
         shiny::showNotification(paste("Missing files in ZIP:", paste(missing_files, collapse = ", ")), type = "error")
+        # Reset UI state
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("submit_project")
         return()
       }
 
       tryCatch({
         # 1️⃣ First create project without planning unit to get project ID
+        shinyjs::html("progress_details", "Creando proyecto en la base de datos...")
         qry_proj <- ghql::Query$new()
         qry_proj$query("addProject", add_project_mutation)
         temp_payload <- list(
@@ -321,16 +363,24 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         project_folder_name <- gsub(" ", "_", input$project_title)
 
         # 2️⃣ Now upload planning unit file with correct project ID
-        upload_dir <- file.path("uploads", paste0(project_folder_name, new_project_id))
+        if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+          # Running in Docker container
+          upload_dir <- file.path("/app/uploads", paste0(project_folder_name, new_project_id))
+        } else {
+          # Running locally
+          upload_dir <- file.path("uploads", paste0(project_folder_name, new_project_id))
+        }
         if(!dir.exists(upload_dir)) dir.create(upload_dir, recursive = TRUE)
         
         planning_unit_path <- file.path(upload_dir, basename(input$planning_unit_file$name))
         
         # Load planning unit raster and convert NA values to 0s
+        shinyjs::html("progress_details", "Procesando archivo de unidad de planificación...")
         pu_raster <- terra::rast(input$planning_unit_file$datapath)
         pu_raster[is.na(pu_raster)] <- 0
         
         # Save the cleaned planning unit raster
+        shinyjs::html("progress_details", "Guardando unidad de planificación...")
         terra::writeRaster(pu_raster, planning_unit_path, overwrite = TRUE)
         
         
@@ -340,7 +390,11 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         pu_file_payload <- list(
           uploaderId = as.character(user_info()$id),
           projectId = as.character(new_project_id),
-          path = planning_unit_path,
+          path = if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+            sub("^/app/", "", planning_unit_path) # Store relative path in database (Docker)
+          } else {
+            sub(paste0("^", normalizePath(getwd(), winslash = "/"), "/"), "", normalizePath(planning_unit_path, winslash = "/")) # Store relative path (Local)
+          },
           name = "Planning Units",
           description = "Planning unit spatial file for project"
         )
@@ -380,11 +434,19 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         cat("*** Project updated with planning unit ID:", planning_unit_file_id, "***\n")
 
         # 4️⃣ Process each layer row
+        shinyjs::html("progress_details", paste("Procesando capas del proyecto (0 de", nrow(df), ")..."))
         for(i in seq_len(nrow(df))){
           row <- df[i, ]
+          shinyjs::html("progress_details", paste("Procesando capa", i, "de", nrow(df), ":", row$Name))
 
           # Copy file to uploads folder
-          upload_dir <- file.path("uploads", paste0(project_folder_name, new_project_id))
+          if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+            # Running in Docker container
+            upload_dir <- file.path("/app/uploads", paste0(project_folder_name, new_project_id))
+          } else {
+            # Running locally
+            upload_dir <- file.path("uploads", paste0(project_folder_name, new_project_id))
+          }
           if(!dir.exists(upload_dir)) dir.create(upload_dir, recursive = TRUE)
           target_path <- file.path(upload_dir, basename(row$File))
           
@@ -452,7 +514,11 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
           file_payload <- list(
             uploaderId = as.character(user_info()$id),
             projectId = as.character(new_project_id),
-            path = target_path,
+            path = if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+              sub("^/app/", "", target_path) # Store relative path in database (Docker)
+            } else {
+              sub(paste0("^", normalizePath(getwd(), winslash = "/"), "/"), "", normalizePath(target_path, winslash = "/")) # Store relative path (Local)
+            },
             name = row$Name,
             description = paste("Imported from ZIP:", row$Theme)
           )
@@ -499,13 +565,17 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
           )
         }
 
-        shiny::showNotification(paste("Project created with", nrow(df), "layers."), type = "message")
-        shiny::removeModal()
-        
-        # Clear the CSV preview table
-        output$csv_preview <- DT::renderDT({
-          DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las capas"), 
-                       options = list(dom = 't'))
+        # Success state
+        shinyjs::html("progress_details", "¡Proyecto creado exitosamente!")
+        shinyjs::delay(1500, {
+          shiny::showNotification(paste("Project created with", nrow(df), "layers."), type = "message")
+          shiny::removeModal()
+          
+          # Clear the CSV preview table
+          output$csv_preview <- DT::renderDT({
+            DT::datatable(data.frame(Mensaje = "Sube un archivo ZIP para previsualizar las capas"), 
+                         options = list(dom = 't'))
+          })
         })
 
         # wait to make sure that projects are fully uploaded
@@ -515,7 +585,43 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         fetch_projects()
 
       }, error = function(e){
-        shiny::showNotification(paste("Error creating project:", e$message), type = "error")
+        # Reset UI state on error
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("submit_project")
+        
+        # If we have a project ID, it means the project was created but something failed later
+        # We should clean up the incomplete project
+        if (exists("new_project_id") && !is.null(new_project_id)) {
+          tryCatch({
+            cat("*** CLEANUP: Deleting incomplete project with ID:", new_project_id, "***\n")
+            
+            # Execute delete project mutation
+            qry_delete <- ghql::Query$new()
+            qry_delete$query("deleteProject", delete_project_mutation)
+            delete_payload <- list(id = as.character(new_project_id))
+            
+            delete_res <- client$exec(
+              qry_delete$queries$deleteProject,
+              headers = list(Authorization = paste("Bearer", auth_token())),
+              variables = delete_payload
+            )
+            
+            cat("*** CLEANUP: Project deletion result:", delete_res, "***\n")
+            shiny::showNotification(
+              paste("Error creating project:", e$message, "- Incomplete project has been cleaned up."), 
+              type = "error"
+            )
+          }, error = function(cleanup_error) {
+            cat("*** CLEANUP ERROR:", cleanup_error$message, "***\n")
+            shiny::showNotification(
+              paste("Error creating project:", e$message, "- Warning: Failed to clean up incomplete project."), 
+              type = "error"
+            )
+          })
+        } else {
+          # Project creation failed before getting an ID, no cleanup needed
+          shiny::showNotification(paste("Error creating project:", e$message), type = "error")
+        }
       })
     })
   })

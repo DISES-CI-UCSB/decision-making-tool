@@ -73,6 +73,9 @@ RUN cd /app && make projects
 # shiny image
 FROM base AS shiny
 
+## create uploads directory with proper permissions
+RUN mkdir -p /app/uploads && chown -R shiny:shiny /app/uploads && chmod 755 /app/uploads
+
 ## set user
 USER shiny
 

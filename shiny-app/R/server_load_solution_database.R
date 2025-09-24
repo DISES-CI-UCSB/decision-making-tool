@@ -406,7 +406,18 @@ server_load_solution_database <- quote({
       })
       
       # Load the TIF file directly
-      solution_raster <- terra::rast(input$load_solution_list)
+      solution_path <- input$load_solution_list
+      # Convert relative path to absolute path based on environment
+      if (!startsWith(solution_path, "/")) {
+        if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+          # Running in Docker container
+          solution_path <- file.path("/app", solution_path)
+        } else {
+          # Running locally - use current working directory
+          solution_path <- file.path(getwd(), solution_path)
+        }
+      }
+      solution_raster <- terra::rast(solution_path)
       
       # Get solution color and name
       curr_color <- input$load_solution_color
