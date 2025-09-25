@@ -83,6 +83,25 @@ az postgres flexible-server db create `
 # Create JWT secret
 $JwtSecret = "MyJWTSecret123456789"
 
+# Create storage account for persistent uploads
+$StorageAccountName = "decisiontool$(Get-Random -Minimum 1000 -Maximum 9999)"
+Write-Host "💾 Creating storage account..." -ForegroundColor Yellow
+az storage account create `
+  --name $StorageAccountName `
+  --resource-group $ResourceGroup `
+  --location $Location `
+  --sku Standard_LRS `
+  --kind StorageV2
+
+# Create file share for uploads
+Write-Host "📁 Creating file share for uploads..." -ForegroundColor Yellow
+az storage share create `
+  --name uploads `
+  --account-name $StorageAccountName
+
+# Get storage account key
+$StorageKey = az storage account keys list --account-name $StorageAccountName --resource-group $ResourceGroup --query "[0].value" --output tsv
+
 # Get ACR credentials
 $AcrUsername = az acr credential show --name $AcrName --query "username" --output tsv
 $AcrPassword = az acr credential show --name $AcrName --query "passwords[0].value" --output tsv
@@ -101,6 +120,10 @@ az container create `
   --registry-password $AcrPassword `
   --dns-name-label "$AppName-server" `
   --ports 4000 `
+  --azure-file-volume-account-name $StorageAccountName `
+  --azure-file-volume-account-key $StorageKey `
+  --azure-file-volume-share-name uploads `
+  --azure-file-volume-mount-path /app/uploads `
   --environment-variables `
     NODE_ENV=production `
     DB_HOST="$DbServerName.postgres.database.azure.com" `
@@ -142,6 +165,18 @@ az webapp config container set `
   --docker-registry-server-user $AcrUsername `
   --docker-registry-server-password $AcrPassword
 
+# Configure persistent storage for uploads
+Write-Host "💾 Configuring persistent storage..." -ForegroundColor Yellow
+az webapp config storage-account add `
+  --resource-group $ResourceGroup `
+  --name "$AppName-shiny" `
+  --custom-id uploads `
+  --storage-type AzureFiles `
+  --share-name uploads `
+  --account-name $StorageAccountName `
+  --access-key $StorageKey `
+  --mount-path /app/uploads
+
 # Save deployment info
 $InfoFile = "azure-deployment-info.txt"
 $Info = @"
@@ -158,6 +193,8 @@ JWT Secret: $JwtSecret
 
 Resource Group: $ResourceGroup
 Container Registry: $AcrLoginServer
+Storage Account: $StorageAccountName
+Storage Key: $StorageKey
 "@
 
 $Info | Out-File -FilePath $InfoFile -Encoding UTF8
