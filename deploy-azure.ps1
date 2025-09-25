@@ -93,6 +93,7 @@ az container create `
   --resource-group $ResourceGroup `
   --name "$AppName-server" `
   --image "$AcrLoginServer/decision-tool-server:latest" `
+  --os-type Linux `
   --cpu 0.5 `
   --memory 0.5 `
   --registry-login-server $AcrLoginServer `
@@ -106,6 +107,7 @@ az container create `
     DB_NAME=$DbName `
     DB_USER=$DbUser `
     DB_PW=$DbPassword `
+    DB_SSL=true `
     JWT_SECRET=$JwtSecret `
     PORT=4000
 
@@ -128,7 +130,8 @@ az webapp config appsettings set `
     R_SHINY_PORT=80 `
     R_SHINY_HOST=0.0.0.0 `
     GRAPHQL_URI="http://$ServerFqdn:4000/graphql" `
-    DOCKER_CONTAINER=true
+    DOCKER_CONTAINER=true `
+    WEBSITES_CONTAINER_START_TIME_LIMIT=1800
 
 # Configure container credentials
 az webapp config container set `
