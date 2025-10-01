@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  shiny-app:
+    image: decisiontoolregistry.azurecr.io/shiny-app:latest 
+    ports:
+      - "80:3838"  # Map Azure's port 80 to container's port 3838
+    environment:
+      R_SHINY_PORT: 3838  # Keep internal port as 3838
+      R_SHINY_HOST: 0.0.0.0
+      GRAPHQL_URI: http://server:4000/graphql
+      DOCKER_CONTAINER: "true"
+      FORCE_DEFAULT_PROJECTS: false
+      PROJECT_DIRECTORY: /projects
+      R_CONFIG_ACTIVE: default
+    volumes:
+      - azure-uploads:/app/uploads
+    depends_on:
+      - server
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3838"]  # Check internal port
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}        # matches your Sequelize DB_PASSWORD
+      POSTGRES_DB: decision_tool
+    volumes:
+      - azure-postgres-data:/var/lib/postgresql/data
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d decision_tool"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    image: decisiontoolregistry.azurecr.io/graphql-server:latest 
+    container_name: graphql-server
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: decision_tool
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 4000
+    volumes:
+      - azure-uploads:/app/uploads
+    depends_on:
+      - postgres
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/graphql"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      
+volumes:
+  azure-uploads:
+    driver: azure_file
+    driver_opts:
+      share_name: uploads
+      storage_account_name: ${AZURE_STORAGE_ACCOUNT}
+      storage_account_key: ${AZURE_STORAGE_KEY}
+
+  azure-postgres-data:
+    driver: azure_file
+    driver_opts:
+      share_name: postgres
+      storage_account_name: ${AZURE_STORAGE_ACCOUNT}
+      storage_account_key: ${AZURE_STORAGE_KEY}
+
+networks:
+  demo-network:
+    driver: bridge

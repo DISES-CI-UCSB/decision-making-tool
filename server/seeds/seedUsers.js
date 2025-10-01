@@ -19,8 +19,14 @@ const userData = [
 ];
 
 export const seedUsers = async () => {
-  await Users.bulkCreate(userData, {
-    individualHooks: true, // ensures password hashing runs
-    returning: true,
-  });
+  const count = await Users.count();   // Check how many users exist
+  if (count === 0) {
+    await Users.bulkCreate(userData, {
+      individualHooks: true, // ensures password hashing runs
+      returning: true,
+    });
+    console.log("Seeded initial users ✅");
+  } else {
+    console.log("Users already exist, skipping seeding 🚫");
+  }
 };

@@ -11,18 +11,6 @@ import { seedUsers } from './seeds/seedUsers.js';
 const PORT = process.env.PORT || 3001;
 const app = express();
 
-// if (process.env.NODE_ENV !== 'production') {
-//   createAdminAccount()
-// }
-// seedWebsite()
-
-// app.use(cors({
-//   origin: ["http://localhost:3000" ]
-// }))
-// app.use(
-//   '/graphql',
-//   cors({origin: ["http://localhost:3001", "http://localhost:3000", "https://studio.apollographql.com"]})
-// )
 
 const server = new ApolloServer({
   typeDefs,
@@ -32,21 +20,6 @@ const server = new ApolloServer({
 
 app.use(urlencoded({ extended: true }));
 app.use(json());
-// app.use('/api', uploadImageRoute)
-// app.use('/api', calendarEventsRoute)
-
-
-// if (process.env.NODE_ENV === 'production') {
-//   app.use(express.static(join(__dirname, '../client/build')));
-//   app.use(express.static(join(__dirname, 'public')));
-// } else {
-//   app.use(express.static('public'));
-// }
-
-// app.get('*', (req, res) => {
-//   res.sendFile(join(__dirname, '../client/build/index.html'));
-// });
-
 
 // Create a new instance of an Apollo server with the GraphQL schema
 const startApolloServer = async (typeDefs, resolvers) => {
