@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+
+# Shiny App
+  shiny-app:
+    build:
+      context: ./shiny-app
+      dockerfile: Dockerfile
+      target: shiny
+    container_name: decision-tool-shiny
+    environment:
+      # Shiny configuration
+      R_SHINY_PORT: 3838
+      R_SHINY_HOST: 0.0.0.0
+      # GraphQL server connection
+      GRAPHQL_URI: http://server:4000/graphql
+      DOCKER_CONTAINER: "true"
+      # Project configuration
+      FORCE_DEFAULT_PROJECTS: ${FORCE_DEFAULT_PROJECTS:-false}
+      PROJECT_DIRECTORY: /projects
+      R_CONFIG_ACTIVE: ${R_CONFIG_ACTIVE:-default}
+    ports:
+      - "3838:3838"
+    volumes:
+      # Shared uploads volume with server
+      - uploads_data:/app/uploads
+    depends_on:
+      - graphql
+    networks:
+      - decision-tool-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: decision_tool
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - decision-tool-network
+
+  
+  # GraphQL Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: decision-tool-server
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: decision_tool
+      DB_USER: postgres
+      DB_PW: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key}
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    volumes:
+      # Persistent volume for uploads
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - decision-tool-network
+
+volumes:
+  # Persistent PostgreSQL data
+  postgres_data:
+    driver: local
+  
+  # Persistent uploads directory
+  uploads_data:
+    driver: local
+
+networks:
+  decision-tool-network:
+    driver: bridge

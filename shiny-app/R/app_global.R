@@ -2,6 +2,37 @@ app_global <- quote({
   # set seed for reproducibility
   set.seed(200)
 
+  # initialize GraphQL client
+  # Determine GraphQL URL based on environment
+  graphql_url <- Sys.getenv("GRAPHQL_URI", "")
+  
+  if (graphql_url == "") {
+    # Auto-detect environment
+    if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+      # Running in Docker container
+      graphql_url <- "http://server:4000/graphql"
+      cat("*** GraphQL: Detected Docker environment, using:", graphql_url, "***\n")
+    } else {
+      # Running locally
+      graphql_url <- "http://localhost:3001/graphql"
+      cat("*** GraphQL: Detected local environment, using:", graphql_url, "***\n")
+    }
+  } else {
+    cat("*** GraphQL: Using environment variable:", graphql_url, "***\n")
+  }
+  
+  client <- ghql::GraphqlClient$new(url = graphql_url)
+  
+  # initialize authentication state
+  auth_token <- shiny::reactiveVal(NULL)
+  user_info <- shiny::reactiveVal(NULL)
+  
+  # initialize project data for database projects
+  projects_data <- shiny::reactiveVal(data.frame())
+  
+  # reactive trigger for solution loading
+  solution_load_trigger <- shiny::reactiveVal(0)
+
   # print initial memory usage
   if (isTRUE(wheretowork::get_golem_config("monitor"))) {
       cli::cli_rule()
@@ -10,9 +41,9 @@ app_global <- quote({
   }
 
   # initialize file upload limits
-  options(shiny.maxRequestSize = 1000*1024^2) # 1GB
+  options(shiny.maxRequestSize = 2000*1024^2) # 2GB
   # set global variables limit for future package
-  options(future.globals.maxSize= 1000*1024^2) # 1GB
+  options(future.globals.maxSize= 2000*1024^2) # 2GB
 
   # initialize asynchronous processing
   ## identify strategy
@@ -38,47 +69,13 @@ app_global <- quote({
   )
   suppressWarnings(future::plan(strategy, workers = 2))
 
-  # find built-in projects
-  # if environmental variable "FORCE_DEFAULT_PROJECTS=true":
-  #   then use built-in projects distributed with shiny app
-  #
-  # elif "projects: default" in golem-config.yml:
-  #   then use built-in projects distributed with shiny app
-  #
-  # elif environmental variable "SHINYPROXY_USERGROUPS=public"
-  #   then use projects only public projects available at the
-  #   location "projects" location in golem config
-  #
-  # else:
-  #   then import projects from location specified in golem-config.yml
+  # Built-in projects disabled - using database projects only
+  # All project data now comes from GraphQL database queries
   
-  # jwt secret
-  secret <- Sys.getenv("JWT_SECRET")
-  # set user group
-  user_groups <- Sys.getenv("SHINYPROXY_USERGROUPS")
-  user_groups <- tolower(gsub(" ", "", user_groups, fixed = TRUE))
-  if (nchar(user_groups) == 0) {
-    user_groups <- "public"
-    # set user group to staff-advanced if running app locally for development
-    if (identical(golem::app_dev(), TRUE)) {
-      user_groups <- "staff-advanced"
-    }
-  }
+  # Create empty project_data for backward compatibility
+  project_data <- data.frame()
+  
+  # Initialize user_groups for backward compatibility with legacy code
+  user_groups <- c("public", "admin")
 
-  user_groups <- strsplit(user_groups, ",", fixed = TRUE)[[1]]
-
-  # ensure that public projects are always available
-  user_groups <- unique(c("public", user_groups))
-
-  # set project data directory
-  if (identical(Sys.getenv("FORCE_DEFAULT_PROJECTS"), "true")) {
-    project_dir <- system.file("extdata", "projects", package = "wheretowork")
-  } else if (identical(wheretowork::get_golem_config("projects"), "default")) {
-    project_dir <- system.file("extdata", "projects", package = "wheretowork")
-  } else {
-    project_dir <- wheretowork::get_golem_config("projects")
-  }
-
-  # import projects
-  project_data <- wheretowork::find_projects(project_dir, user_groups)
 })

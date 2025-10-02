@@ -65,9 +65,19 @@ importModal <- function(id) {
             loadingLabel = "Loading..."
           )
         ),
-        
-       # logos
+
+       # logos partners
        shiny::hr(),
+       htmltools::tags$p(class = "dev-title", "Proyecto llevado a cabo por:"),
+       htmltools::tags$div(class = "sponser-logos",
+       htmltools::tags$div(class = "sponser-logo-row",
+         htmltools::tags$img(
+           class = "partners-logo",
+           src ="www/partner_logos.webp"
+         ),
+       ),
+       ),
+       # logos wheretowork
        htmltools::tags$p(class = "dev-title", "Herramienta basada en WhereToWork, desarrollada por:"),
        htmltools::tags$div(class = "sponser-logos",
        htmltools::tags$div(class = "sponser-logo-row",
@@ -84,23 +94,19 @@ importModal <- function(id) {
         inputId = paste0(id, "_method"),
         label = "Select import method",
         choices = c(
-          "built-in project" = "builtin",
+          "database project" = "builtin",
           "upload project data" = "manual",
           "upload shapefile" = "spatial"
         ),
-        selected = "built-in project",
+        selected = "database project",
         multiple = FALSE
       ),
 
       ## add project descriptions text
       shiny::HTML(
         "<div id=project-descriptions>
-        <p style='text-align: center;'><b>Proyectos disponibles</b></p>
-        <ul>
-            <li><b>Nacional 1km:</b> Área continental de Colombia a 1km resolución</li>
-            <li><b>Eje Cafetero:</b> (en desarrollo)</li>
-            <li><b>Orinoquía:</b> (en desarrollo)</li>
-        </ul>
+        <p style='text-align: center;'><b>Database Projects</b></p>
+        <p style='text-align: center;'>Select from projects created through the admin interface.</p>
         </div>"),
 
       ## builtin method
@@ -111,8 +117,27 @@ importModal <- function(id) {
         shiny::selectInput(
           inputId = paste0(id, "_name"),
           label = "Select project",
-          choices = c("No built-in projects available" = "NA"),
+          choices = c("No projects available" = "NA"),
           multiple = FALSE
+        ),
+        # Add create project button for managers
+        shiny::conditionalPanel(
+          condition = "output.user_is_manager",
+          shiny::actionButton(
+            inputId = paste0(id, "_go_to_admin_btn"),
+            label = "Go to Admin Page",
+            class = "btn btn-success",
+            style = "margin-top: 10px;"
+          )
+        ),
+        # Show message when no projects available
+        shiny::conditionalPanel(
+          condition = "output.no_projects_available",
+          shiny::div(
+            class = "alert alert-info",
+            style = "margin-top: 10px;",
+            "No projects are currently available. Contact an administrator to create projects."
+          )
         )
       ),
   

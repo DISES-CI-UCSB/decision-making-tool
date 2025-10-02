@@ -18,6 +18,11 @@ server_load_solution <- quote({
 
   # load a solution when load_solution_button button pressed
   shiny::observeEvent(input$load_solution_button, {
+    
+    # Skip database solutions - let server_load_solution_database handle them
+    if (grepl("^uploads/", input$load_solution_list)) {
+      return()
+    }
 
     ## specify dependencies
     shiny::req(input$load_solution_list)
@@ -54,7 +59,7 @@ server_load_solution <- quote({
     ### update solution settings widget
     if (identical(class(updated_ss), "try-error") || identical(class(settings_lst), "try-error")) {
       msg <- paste(
-      "There was an error loading the settings from the yaml file of the solution selected."
+      "There was an error loading the settings for the selected solution."
       )
       ### display error modal
       shinyalert::shinyalert(

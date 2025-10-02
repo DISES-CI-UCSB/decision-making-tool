@@ -16,18 +16,20 @@ export const typeDefs = gql`
 
   type File {
     id: ID!
+    name: String!
+    description: String!
     uploader: User!
     path: String!
-    layer: [Layer!]!
+    project_layer: [ProjectLayer!]!
     project: Project!
   }
 
-  type Layer {
+  type ProjectLayer {
     id: ID!
-    solutions: Solution
+    project: Project!
+    file: File!
     type: String!
     theme: String!
-    file: File!
     name: String!
     legend: String!
     values: [String]!
@@ -35,22 +37,32 @@ export const typeDefs = gql`
     labels: [String]!
     unit: String!
     provenance: String!
-    order: Int!
+    order: Int
     visible: Boolean!
-    goal: Float!
     downloadable: Boolean!
+  }
+
+  type SolutionLayer {
+    id: ID!
+    solution: Solution
+    project_layer: ProjectLayer!
+    goal: Float!
   }
   
   type Solution {
     id: ID!
     project: Project!
+    file: File
     title: String!
     description: String!
     author: User!
     author_name: String!
     author_email: String!
-    userGroup: String!
-    layers: [Layer!]!
+    user_group: String!
+    themes: [SolutionLayer!]!
+    weights: [ProjectLayer!]
+    includes: [ProjectLayer!]
+    excludes: [ProjectLayer!]
   }
 
   type Project {
@@ -58,9 +70,10 @@ export const typeDefs = gql`
     title: String!
     description: String!
     owner: User!
-    userGroup: String!
-    solutions: [Solution!]!
-    files: [File!]!
+    user_group: String!
+    planning_unit: File
+    solutions: [Solution!]
+    files: [File]
   }
 
   type Auth {
@@ -70,30 +83,42 @@ export const typeDefs = gql`
 
   type Query {
     users: [User]!
-    files: [File]!
-    layers: [Layer]!
-    layer(id: ID!): Layer!
-    solutions(projectId: ID!): [Solution]!
-    projects: [Project]!
+    public_projects: [Project]!
+    all_projects: [Project]!
     project(id: ID!): Project!
+    files: [File]!
+    project_files(projectId: ID!): [File]!
+    projectLayers(projectId: ID!): [ProjectLayer]!
+    projectLayer(layerId: ID!): ProjectLayer!
+    solutions(projectId: ID!): [Solution]!
+    solutionLayers(solutionId: ID!): [SolutionLayer]!
   }
 
-  input LayerInput {
+  input ProjectInput {
+    ownerId: ID!
+    title: String!
+    description: String!
+    userGroup: String!
+    planningUnitId: ID
+  }
+
+  input ProjectLayerInput {
+    projectId: ID!
+    fileId: ID!
     type: String!
-    theme: String!
-    filePath: String!       
+    theme: String     
     name: String!
-    legend: String!
-    values: [String]!
-    color: [String]!
-    labels: [String]!
-    unit: String!
-    provenance: String!
-    order: Int!
-    visible: Boolean!
-    goal: Float!
-    downloadable: Boolean!
-}
+    legend: String
+    values: [String]
+    color: [String]
+    labels: [String]
+    unit: String
+    provenance: String
+    order: Int
+    hidden: Boolean
+    visible: Boolean
+    downloadable: Boolean
+  }
 
   input SolutionInput {
     projectId: ID! 
@@ -103,24 +128,31 @@ export const typeDefs = gql`
     authorName: String!
     authorEmail: String!
     userGroup: String!
-    layers: [LayerInput!]!
+    fileId: ID
+    weightIds: [ID!]   
+    includeIds: [ID!]  
+    excludeIds: [ID!]
+    themes: [SolutionLayerInput!] 
   }
 
-  input ProjectInput {
-    ownerId: ID!
-    title: String!
-    description: String!
-    userGroup: String!
-    fileIds: [ID!]
+  
+  input SolutionLayerInput {
+    projectLayerId: ID!
+    goal: Float
   }
 
   type Mutation {
 
     addUser( username: String!, password: String!, type: String! ): User!
-    addFile( uploaderId: ID!, path: String! ): File!
-    addSolution(input: SolutionInput!): Solution!
     addProject(input: ProjectInput!): Project!
+    updateProject(id: ID!, planningUnitId: ID!): Project!
+    deleteProject(id: ID!): Boolean!
+    addFile( name: String!, description: String!, uploaderId: ID!, projectId: ID!, path: String! ): File!
+    addProjectLayer( input: ProjectLayerInput ): ProjectLayer!
+    addSolution(input: SolutionInput!): Solution!
+    addSolutionLayer(input: SolutionLayerInput!): SolutionLayer!
+    
 
-    userSignOn (username: String!, password: String!): Auth!
+    userSignOn(username: String!, password: String!): Auth!
   }
 `;

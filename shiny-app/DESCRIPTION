@@ -45,6 +45,7 @@ Imports:
     igraph (>= 2.0.3),
     ipc (>= 0.1.4),
     jose (>= 1.2.1),
+    jsonlite (>= 1.8.8),
     leaflet (>= 2.2.2.9001),
     leaflet.extras2 (>= 1.1.0.9000),
     lobstr (>= 1.1.2),
@@ -101,7 +102,7 @@ URL: https://NCC-CNC.github.io/wheretowork/
 BugReports: https://github.com/NCC-CNC/wheretowork/issues
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Collate:
     'app_config.R'
     'app_global.R'
@@ -132,7 +133,7 @@ Collate:
     'class_ThemeResults.R'
     'class_WeightResults.R'
     'fct_find_projects.R'
-    'fct_find_projects_database.R'
+    'fct_find_projects_db.R'
     'fct_min_set_result.R'
     'fct_min_shortfall_result.R'
     'fct_read_project.R'
@@ -144,8 +145,11 @@ Collate:
     'fct_simulate_themes.R'
     'fct_simulate_weights.R'
     'fct_write_project.R'
+    'mod_project.R'
+    'mod_solution.R'
     'package.R'
     'run_app.R'
+    'server_adminPage.R'
     'server_export_data.R'
     'server_export_spreadsheets.R'
     'server_generate_new_solution.R'
@@ -156,7 +160,10 @@ Collate:
     'server_import_spatial_data.R'
     'server_initialize_app.R'
     'server_load_solution.R'
+    'server_load_solution_database.R'
+    'server_load_solutions_database.R'
     'server_login.R'
+    'server_select_project.R'
     'server_update_map.R'
     'server_update_solution_results.R'
     'server_update_solution_settings.R'
@@ -164,6 +171,7 @@ Collate:
     'server_verify_spatial_uploads.R'
     'widget_solutionSettings_ui.R'
     'ui_acknowledgmentsSidebarPane.R'
+    'ui_adminPage.R'
     'ui_contactSidebarPane.R'
     'ui_createProjectModal.R'
     'ui_exportSidebarPane.R'
@@ -176,7 +184,7 @@ Collate:
     'widget_mapManager_ui.R'
     'ui_mapManagerSidebarPane.R'
     'ui_newSolutionSidebarPane.R'
-    'ui_projectSelectionSidebarPane.R'
+    'ui_selectProjectSidebarPane.R'
     'ui_solutionResultsModal.R'
     'ui_solutionResultsSidebarPane.R'
     'utils-tidy-eval.R'

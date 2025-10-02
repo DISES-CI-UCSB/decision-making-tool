@@ -14,148 +14,481 @@
 #' 
 
 server_import_projects_database <- quote({
-  ## Store form state
-  formData <- reactiveValues(
-    project = list(),
-    solutions = list(),
-    currentSolutionIndex = NULL
-  )
   
+  # GraphQL queries/mutations
+  public_projects_query <- '
+  query {
+    public_projects {
+      id
+      title
+      description
+      user_group
+      planning_unit {
+        id
+        name
+        path
+      }
+      owner {
+        id
+        username
+        type
+      }
+    }
+  }'
   
-  ### Steps
-  observeEvent(input$createProjectModal_next_btn, {
-    current <- input$createProjectModal_modal_steps
+  all_projects_query <- '
+  query {
+    all_projects {
+      id
+      title
+      description
+      user_group
+      planning_unit {
+        id
+        name
+        path
+      }
+      owner {
+        id
+        username
+        type
+      }
+    }
+  }'
+
+  # Fetch projects based on user type and access control
+  fetch_projects <- function() {
     
-    if (current == "project_step") {
-      # Save project data
-      formData$project <- list(
-        title = input$createProjectModal_project_title,
-        description = input$createProjectModal_project_description,
-        user_group = input$createProjectModal_project_user_group
-      )
-      updateTabsetPanel(inputId = "createProjectModal_modal_steps", selected = "solutions_step")
+    # Choose query based on user type
+    if (!is.null(user_info()) && !is.null(user_info()$type) && user_info()$type == "manager") {
+      query_name <- "all_projects"
+      query_text <- all_projects_query
+      data_field <- "all_projects"
+    } else {
+      query_name <- "public_projects"
+      query_text <- public_projects_query
+      data_field <- "public_projects"
+    }
+    
+    qry <- ghql::Query$new()
+    qry$query(query_name, query_text)
+    tryCatch({
+      res <- client$exec(qry$queries[[query_name]])
+      cat("Projects response:", res, "\n")
+      res_list <- jsonlite::fromJSON(res)
       
-    } else if (current == "solutions_step") {
-      updateTabsetPanel(inputId = "createProjectModal_modal_steps", selected = "layers_step")
-    }
-  })
-  
-  observeEvent(input$createProjectModal_prev_btn, {
-    current <- input$createProjectModal_modal_steps
-    
-    if (current == "layers_step") {
-      updateTabsetPanel(inputId = "createProjectModal_modal_steps", selected = "solutions_step")
-    } else if (current == "solutions_step") {
-      updateTabsetPanel(inputId = "createProjectModal_modal_steps", selected = "project_step")
-    }
-  })
-  
-  ### Add solution
-  observeEvent(input$createProjectModal_add_solution, {
-    newIndex <- length(formData$solutions) + 1
-    formData$solutions[[newIndex]] <- list(
-      title = "",
-      description = "",
-      author_name = "",
-      author_email = "",
-      user_group = "",
-      layers = list()
-    )
-  })
-  
-  
-  output$createProjectModal_solutions_ui <- renderUI({
-    if (length(formData$solutions) == 0) {
-      return(tags$p("No solutions yet. Click 'Add Solution' to begin."))
-    }
-    
-    tagList(
-      lapply(seq_along(formData$solutions), function(i) {
-        sol <- formData$solutions[[i]]
-        wellPanel(
-          h4(paste("Solution", i)),
-          textInput(paste0("createProjectModal_solution_title_", i), "Title", value = sol$title),
-          textAreaInput(paste0("createProjectModal_solution_description_", i), "Description", value = sol$description),
-          textInput(paste0("createProjectModal_solution_author_name_", i), "Author Name", value = sol$author_name),
-          textInput(paste0("createProjectModal_solution_author_email_", i), "Author Email", value = sol$author_email),
-          selectInput(paste0("createProjectModal_solution_user_group_", i), "User Group", choices = c("public", "planner", "manager"), selected = sol$user_group),
-          actionButton(paste0("createProjectModal_edit_layers_", i), "Edit Layers")
-        )
-      })
-    )
-  })
-  
-  ### When user clicks "Edit Layers for this Solution"
-  observe({
-    lapply(seq_along(formData$solutions), function(i) {
-      observeEvent(input[[paste0("createProjectModal_edit_layers_", i)]], {
-        formData$currentSolutionIndex <- i
-        updateTabsetPanel(inputId = paste0("createProjectModal_modal_steps"), selected = "layers_step")
-      }, ignoreInit = TRUE)
+      projects <- res_list$data[[data_field]]
+      if (!is.null(projects) && length(projects) > 0) {
+        projects_df <- as.data.frame(projects)
+        projects_data(projects_df)
+        cat("*** Loaded", nrow(projects_df), "projects ***\n")
+      } else {
+        projects_data(data.frame())
+        cat("*** No projects available ***\n")
+      }
+    }, error = function(e) {
+      cat("Error fetching projects:", e$message, "\n")
+      showNotification("Failed to fetch projects", type = "error")
+      projects_data(data.frame())
     })
+  }
+
+  # Fetch projects when user info changes
+  observeEvent(user_info(), { 
+    if (!is.null(user_info())) {
+      fetch_projects() 
+    }
   })
   
-  
-  ### Add layer to current solution
-  observeEvent(input$createProjectModal_add_layer, {
-    i <- formData$currentSolutionIndex
-    if (is.null(i) || length(formData$solutions) < i) return(NULL)
+  # Function to create project structure from database
+  create_project_from_database <- function(project_id) {
+    cat("*** Creating project from database ***\n")
     
-    sol <- formData$solutions[[i]]
-    newIndex <- length(sol$layers) + 1
+    # GraphQL queries
+    project_query <- '
+    query($id: ID!) {
+      project(id: $id) {
+        id
+        title
+        description
+        owner {
+          id
+          username
+          type
+        }
+        planning_unit {
+          id
+          name
+          path
+        }
+      }
+    }'
     
-    sol$layers[[newIndex]] <- list(
-      name = "",
-      type = "",
-      file = NULL
+    project_layers_query <- '
+    query($projectId: ID!) {
+      projectLayers(projectId: $projectId) {
+        id
+        name
+        type
+        theme
+        legend
+        values
+        color
+        labels
+        unit
+        provenance
+        order
+        visible
+        downloadable
+        file {
+          id
+          name
+          path
+        }
+      }
+    }'
+    
+    # Query project details
+    qry_project <- ghql::Query$new()
+    qry_project$query("project", project_query)
+    res_project <- client$exec(
+      qry_project$queries$project,
+      variables = list(id = project_id)
     )
     
-    formData$solutions[[i]] <- sol
-  })
-  
-  output$createProjectModal_layers_ui <- renderUI({
-    i <- formData$currentSolutionIndex
-    if (is.null(i) || length(formData$solutions) < i) return(tags$p("No solution selected."))
+    res_project_list <- jsonlite::fromJSON(res_project)
+    project_data <- res_project_list$data$project
     
-    sol <- formData$solutions[[i]]
+    # Query project layers
+    qry_layers <- ghql::Query$new()
+    qry_layers$query("projectLayers", project_layers_query)
+    res_layers <- client$exec(
+      qry_layers$queries$projectLayers,
+      variables = list(projectId = project_id)
+    )
     
-    if (length(sol$layers) == 0) {
-      return(tags$p("No layers yet. Click 'Add Layer' to begin."))
+    res_layers_list <- jsonlite::fromJSON(res_layers)
+    layers_data <- res_layers_list$data$projectLayers
+    cat("*** Found", nrow(layers_data), "layers ***\n")
+    
+    # Create Dataset object using planning unit file and layer files
+    if (is.null(project_data$planning_unit) || is.null(project_data$planning_unit$path)) {
+      stop("Project does not have a planning unit file")
     }
     
-    tagList(
-      lapply(seq_along(sol$layers), function(j) {
-        layer <- sol$layers[[j]]
-        wellPanel(
-          h4(paste("Layer", j)),
-          textInput(paste0("createProjectModal_layer_name_", i, "_", j), "Name", value = layer$name),
-          selectInput(paste0("createProjectModal_layer_type_", i, "_", j), "Type", choices = c("theme", "weight", "include", "exclude"), selected = layer$type),
-          fileInput(paste0("createProjectModal_layer_file_", i, "_", j), "Upload File")
-        )
+    planning_unit_path <- project_data$planning_unit$path
+    # Convert relative path to absolute path based on environment
+    if (!startsWith(planning_unit_path, "/")) {
+      if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+        # Running in Docker container
+        planning_unit_path <- file.path("/app", planning_unit_path)
+      } else {
+        # Running locally - use current working directory
+        planning_unit_path <- file.path(getwd(), planning_unit_path)
+      }
+    }
+    cat("*** Planning unit path:", planning_unit_path, "***\n")
+    
+    # Read the planning unit raster to create the base dataset
+    cat("*** Checking if planning unit file exists:", file.exists(planning_unit_path), "***\n")
+    if (!file.exists(planning_unit_path)) {
+      stop(paste("Planning unit file not found at:", planning_unit_path, 
+                 "\nThis may be due to container restart. Please re-upload the project."))
+    }
+    pu_raster <- terra::rast(planning_unit_path)
+    
+    # Read all layer files and combine them into a single SpatRaster stack
+    layer_paths <- layers_data$file$path
+    # Convert relative paths to absolute paths based on environment
+    layer_paths <- sapply(layer_paths, function(path) {
+      if (!startsWith(path, "/")) {
+        if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+          # Running in Docker container
+          file.path("/app", path)
+        } else {
+          # Running locally - use current working directory
+          file.path(getwd(), path)
+        }
+      } else {
+        path
+      }
+    })
+    cat("*** Reading", length(layer_paths), "layer files ***\n")
+    
+    # Read all layers with error handling
+    layer_rasters <- list()
+    valid_layer_indices <- c()
+    
+    for (i in seq_along(layer_paths)) {
+      path <- layer_paths[i]
+      cat("*** Reading layer:", path, "***\n")
+      cat("*** File exists:", file.exists(path), "***\n")
+      
+      if (!file.exists(path)) {
+        cat("*** ERROR: Layer file not found:", path, "***\n")
+        cat("*** This may be due to container restart. Please re-upload the project. ***\n")
+        next
+      }
+      
+      tryCatch({
+        raster <- terra::rast(path)
+        if (inherits(raster, "SpatRaster")) {
+          layer_rasters[[length(layer_rasters) + 1]] <- raster
+          valid_layer_indices <- c(valid_layer_indices, i)
+          cat("*** Successfully loaded layer:", path, "***\n")
+        } else {
+          cat("*** ERROR: Not a valid SpatRaster:", path, "***\n")
+        }
+      }, error = function(e) {
+        cat("*** ERROR loading layer:", path, "- Error:", e$message, "***\n")
       })
+    }
+    
+    cat("*** Successfully loaded", length(layer_rasters), "out of", length(layer_paths), "layers ***\n")
+    
+    # Only proceed if we have valid layers
+    if (length(layer_rasters) == 0) {
+      stop("No valid layers could be loaded")
+    }
+    
+    # Combine planning unit with valid layers
+    if (length(layer_rasters) > 0) {
+      all_rasters <- c(pu_raster, do.call(c, layer_rasters))
+    } else {
+      all_rasters <- pu_raster
+    }
+    
+    # Set names for the raster stack (planning unit + valid layer names)
+    valid_layer_names <- layers_data$name[valid_layer_indices]
+    layer_names <- c("planning_unit", valid_layer_names)
+    names(all_rasters) <- make.names(layer_names)  # Ensure valid R names
+    
+    cat("*** Created raster stack with", terra::nlyr(all_rasters), "layers ***\n")
+    cat("*** Layer names:", names(all_rasters), "***\n")
+    
+    # Create dataset from the combined raster stack
+    dataset <- wheretowork::new_dataset_from_auto(all_rasters)
+    
+    # Create themes, weights, includes, excludes from layers
+    themes <- list()
+    weights <- list()
+    includes <- list()
+    excludes <- list()
+    
+    # Group theme layers by theme name
+    theme_groups <- list()
+    
+    # Only process layers that were successfully loaded
+    for (i in seq_along(valid_layer_indices)) {
+      original_index <- valid_layer_indices[i]
+      layer <- layers_data[original_index, ]
+      
+      # Use the layer name as index (it's now a column in the dataset)
+      # Add 1 to index because planning_unit is at index 1
+      layer_index <- i + 1  # planning_unit is at index 1, valid layers start at index 2
+      layer_name <- make.names(layer$name)  # Ensure valid R name
+      
+      cat("*** Creating variable for layer", i, ":", layer$name, "using index", layer_index, "***\n")
+      
+      # Create variable from layer using column index
+      # Handle color and labels which are stored as lists in the data frame
+      layer_colors <- if (length(layer$color[[1]]) > 0) layer$color[[1]] else "random"
+      layer_labels <- if (length(layer$labels[[1]]) > 0) layer$labels[[1]] else "missing"
+      
+      cat("*** Layer colors:", paste(layer_colors, collapse = ", "), "***\n")
+      cat("*** Layer labels:", paste(layer_labels, collapse = ", "), "***\n")
+      
+      variable <- wheretowork::new_variable_from_auto(
+        dataset = dataset,
+        index = layer_index,  # Use column index instead of file path
+        units = if (is.null(layer$unit)) "" else layer$unit,
+        type = if (layer$legend == "continuous") "continuous" else if (layer$legend == "manual") "manual" else "auto",
+        colors = layer_colors,
+        labels = layer_labels
+      )
+      
+      # Add to appropriate category based on type
+      if (layer$type == "theme") {
+        # Create feature for this layer
+        feature <- wheretowork::new_feature(
+          name = layer$name,
+          variable = variable,
+          goal = 0.3,  # Default goal
+          status = TRUE,
+          current = 0,
+          visible = as.logical(layer$visible)
+        )
+        
+        # Group features by theme name
+        theme_name <- layer$theme
+        if (is.null(theme_groups[[theme_name]])) {
+          theme_groups[[theme_name]] <- list()
+        }
+        theme_groups[[theme_name]][[length(theme_groups[[theme_name]]) + 1]] <- feature
+        
+      } else if (layer$type == "weight") {
+        weights[[length(weights) + 1]] <- wheretowork::new_weight(
+          name = layer$name,
+          variable = variable,
+          factor = 1,  # Default factor
+          status = FALSE,
+          visible = as.logical(layer$visible)
+        )
+      } else if (layer$type == "include") {
+        includes[[length(includes) + 1]] <- wheretowork::new_include(
+          name = layer$name,
+          variable = variable,
+          status = FALSE,
+          visible = as.logical(layer$visible)
+        )
+      } else if (layer$type == "exclude") {
+        excludes[[length(excludes) + 1]] <- wheretowork::new_exclude(
+          name = layer$name,
+          variable = variable,
+          status = FALSE,
+          visible = as.logical(layer$visible)
+        )
+      }
+    }
+    
+    # Create themes from grouped features
+    for (theme_name in names(theme_groups)) {
+      themes[[length(themes) + 1]] <- wheretowork::new_theme(
+        name = theme_name,
+        feature = theme_groups[[theme_name]]
+      )
+    }
+    
+    # Return project structure matching read_project output
+    list(
+      name = project_data$title,
+      author_name = project_data$owner$username,
+      author_email = "database@project.com",  # Default email
+      wheretowork_version = utils::packageVersion("wheretowork"),
+      prioritizr_version = utils::packageVersion("prioritizr"),
+      mode = "advanced",  # Default mode
+      dataset = dataset,
+      themes = themes,
+      weights = weights,
+      includes = includes,
+      excludes = excludes
     )
+  }
+  
+  # Handle database project import when import button is clicked
+  observeEvent(input$importModal_builtin_button, {
+    ## specify dependencies
+    shiny::req(input$importModal_builtin_button)
+    shiny::req(input$importModal_name)
+
+    ## update import button
+    disable_html_element("importModal_builtin_button")
+
+    # Check if this is a database project (numeric ID)
+    project_id <- input$importModal_name
+    
+    if (grepl("^[0-9]+$", project_id)) {
+      # This is a database project ID
+      cat("Importing project:", project_id, "\n")
+      
+      ## import configuration
+      x <- try(
+        create_project_from_database(project_id),
+        silent = TRUE
+      )
+
+      ## throw error if needed
+      if (inherits(x, c("try-error", "error"))) {
+        ## prepare download link
+        download_link <- htmltools::tags$a(
+          "download here",
+          href = "#",
+          onclick = paste0(
+            "var element = document.createElement('a');",
+            "element.setAttribute('href', 'data:text/plain;charset=utf-8,",
+            utils::URLencode(paste(c(
+              paste("Database project import failed for project ID:", project_id),
+              paste("Error:", as.character(x))
+            ), collapse = "\\n"), reserved = TRUE),
+            "');",
+            "element.setAttribute('download', 'error-log.txt');",
+            "element.style.display = 'none';",
+            "document.body.appendChild(element);",
+            "element.click();",
+            "document.body.removeChild(element);"
+          )
+        )
+
+        ## show error modal
+        shiny::showModal(
+          shiny::modalDialog(
+            title = "Import failed",
+            htmltools::tags$p(
+              "Oops... Something went wrong when importing this project.",
+              "This is likely due to a mistake in the project data.",
+              "To resolve this issue, please download the error log (",
+              download_link,
+              ") and email it to Richard Schuster",
+              "(",
+              htmltools::tags$a(
+                "richard.schuster@natureconservancy.ca",
+                href = "mailto:richard.schuster@natureconservancy.ca"
+              ),
+              ")."
+            ),
+            footer = shiny::modalButton("Dismiss"),
+            easyClose = TRUE
+          )
+        )
+
+        ## reset import button
+        shinyFeedback::resetLoadingButton("importModal_builtin_button")
+        enable_html_element("importModal_builtin_button")
+
+        ## exit
+        return()
+      }
+
+      ## store project ID for database solution loading
+      app_data$project_id <- project_id
+      
+      ## import data
+      environment(import_data) <- environment()
+      import_data(x = x, mode = get_golem_config("mode"))
+
+      ## remove data modal
+      shiny::removeModal(session)
+      
+      # add side-bar spinner
+      shinyjs::runjs(
+        "const sidebarSpinner = document.createElement('div');
+         sidebarSpinner.classList.add('sidebar-spinner');
+         const mapManagerPane_settings = document.querySelector('#mapManagerPane_settings');
+         mapManagerPane_settings.appendChild(sidebarSpinner);"
+      )    
+
+      ## show help modal if beginner
+      if (identical(app_data$mode, "beginner")) {
+        shinyBS::toggleModal(session, modalId = "helpModal", toggle = "open")
+      }
+      
+      ## Trigger solution dropdown update now that project is loaded
+      shinyjs::delay(1000, {
+        cat("*** Triggering solution dropdown update ***\n")
+        solution_load_trigger(solution_load_trigger() + 1)
+      })
+      
+      ## Show success notification and close import modal
+      shiny::showNotification("Database project imported successfully!", type = "message", duration = 3)
+      shiny::removeModal()
+      
+      cat("*** DATABASE PROJECT IMPORT COMPLETED SUCCESSFULLY ***\n")
+    } else {
+      ## This is not a database project - let the legacy handler deal with it
+      ## Reset the button since we're not handling this case
+      shinyFeedback::resetLoadingButton("importModal_builtin_button")
+      enable_html_element("importModal_builtin_button")
+    }
   })
-  
-  # observe({
-  #   # Save all solution fields
-  #   lapply(seq_along(formData$solutions), function(i) {
-  #     sol <- formData$solutions[[i]]
-  #     sol$title <- input$createProjectModal_solution_title_", i)]]
-  #     sol$description <- input$createProjectModal_solution_description_", i)]]
-  #     sol$author_name <- input$createProjectModal_solution_author_name_", i)]]
-  #     sol$author_email <- input$createProjectModal_solution_author_email_", i)]]
-  #     sol$user_group <- input$createProjectModal_solution_user_group_", i)]]
-  #     
-  #     # Layers
-  #     lapply(seq_along(sol$layers), function(j) {
-  #       sol$layers[[j]]$name <- input$createProjectModal_layer_name_", i, "_", j)]]
-  #       sol$layers[[j]]$type <- input$createProjectModal_layer_type_", i, "_", j)]]
-  #       sol$layers[[j]]$file <- input$createProjectModal_layer_file_", i, "_", j)]]
-  #     })
-  #     
-  #     formData$solutions[[i]] <- sol
-  #   })
-  # })
-  
   
 })

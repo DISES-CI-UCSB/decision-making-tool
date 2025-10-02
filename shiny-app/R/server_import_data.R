@@ -186,22 +186,8 @@ import_data <- function(x, mode) {
     )
   )
 
-  # update load solution list with solution names and file paths
-  project_name <- gsub(" ", "", tolower(app_data$project_name))
-  project_dir <- system.file("extdata", "projects", project_name, package = "wheretowork")
-  # find all the files ended with *-solution.tif in the project directory
-  solution_files <- list.files(project_dir, pattern = "-solution.tif$", full.names = TRUE)
-  # get only the file name without the path and the extension, change the "-" to " "
-  solution_names <- gsub("-solution", "", tools::file_path_sans_ext(basename(solution_files)))
-  shinyWidgets::updatePickerInput(
-      session = session,
-      inputId = "load_solution_list",
-      choices = c("Select a solution to load" = "", stats::setNames(solution_files, solution_names)),
-      selected = "",
-      choicesOpt = list(
-        disabled = c(TRUE, rep(FALSE, length(solution_files)))
-      )
-  )
+  # Note: Solution dropdown is updated in the database import handler
+  # where the proper reactive context (session, auth_token, etc.) is available
 
   # make sidebars visible
   shinyjs::runjs("$('#dataSidebar').css('display','block');")

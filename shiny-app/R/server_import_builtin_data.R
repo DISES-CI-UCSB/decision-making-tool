@@ -19,6 +19,12 @@ server_import_builtin_data <- quote({
     shiny::req(input$importModal_builtin_button)
     shiny::req(input$importModal_name)
 
+    # Skip if this is a database project (handled by server_import_projects_database.R)
+    if (grepl("^[0-9]+$", input$importModal_name)) {
+      cat("*** LEGACY HANDLER: Skipping database project ID:", input$importModal_name, "***\n")
+      return()
+    }
+
     ## update import button
     disable_html_element("importModal_builtin_button")
 

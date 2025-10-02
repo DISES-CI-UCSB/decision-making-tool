@@ -53,7 +53,9 @@ server_initialize_app <- quote({
       ## state variables
       new_solution_id = NULL,
       new_load_solution_id = NULL,
-      task = NULL
+      task = NULL,
+      ## database projects
+      projects_data = data.frame()
     )
   )
 
@@ -61,13 +63,55 @@ server_initialize_app <- quote({
   ## hides leaflet buttons + scalebar
   shinyjs::runjs("document.body.classList.add('startup');")
 
-  # make sidebars hidden
-  shinyjs::runjs("$('#dataSidebar').css('display','none');")
+  # make analysis sidebar hidden initially (solutions panel)
   shinyjs::runjs("$('#analysisSidebar').css('display','none');")
-
-  # display import modal on start up
-  shiny::showModal(importModal(id = "importModal"))
-  # shiny::showModal(loginModal(id="loginModal"))
+  
+  # show data sidebar (project selection should be visible)
+  shinyjs::runjs("$('#dataSidebar').css('display','block');")
+  
+  # automatically set public user access
+  user_info(list(id = "public", username = "public", userGroup = "public"))
+  auth_token("public_token")
+  cat("*** AUTO-LOGIN: Set as public user ***\n")
+  
+  # automatically open the project selection sidebar pane using the proven method
+  shinyjs::delay(500, {
+    cat("*** OPENING PROJECT SELECTION SIDEBAR ***\n")
+    
+    # Use the same method that worked in import_data
+    tryCatch({
+      map <- leaflet::leafletProxy("map")
+      leaflet.extras2::openSidebar(
+        map,
+        id = "selectProjectPane", 
+        sidebar_id = "dataSidebar"
+      )
+      cat("*** PROJECT SELECTION SIDEBAR OPENED SUCCESSFULLY ***\n")
+    }, error = function(e) {
+      cat("*** ERROR OPENING SIDEBAR:", e$message, "***\n")
+      
+      # Fallback to JavaScript method
+      shinyjs::runjs("
+        console.log('*** FALLBACK: Using JavaScript method ***');
+        $('#dataSidebar').sidebar('open');
+        setTimeout(function() {
+          $('#dataSidebar .sidebar-tabs a:first').click();
+        }, 300);
+      ")
+    })
+  })
+  
+  # Flag to prevent multiple modal transitions
+  modal_transitioned <- FALSE
+  
+  shiny::observeEvent(auth_token(), {
+    if (!is.null(auth_token()) && !modal_transitioned) {
+      modal_transitioned <<- TRUE
+      
+      # No modal needed - project selection is in sidebar
+      cat("*** AUTH TOKEN SET - Project selection available in sidebar ***\n")
+    }
+  }, ignoreNULL = TRUE)
 
   # initialize map
   output$map <- leaflet::renderLeaflet({
@@ -84,18 +128,54 @@ server_initialize_app <- quote({
     solutionResults()
   })
 
-  # initialize built in projects
-  print(project_data)
-  if (nrow(project_data) > 0) {
-    ## update select input with project names
-    shiny::updateSelectInput(
-      inputId = "importModal_name",
-      choices = stats::setNames(project_data$path, project_data$name)
-    )
-  } else {
-    ## disable import button since no available projects
-    disable_html_element("importModal_builtin_button")
-  }
+  # update project selection when database projects are available
+  observeEvent(projects_data(), {
+    cat("*** IMPORT MODAL: Updating dropdown with projects_data() ***\n")
+    if (nrow(projects_data()) > 0) {
+      # Create choices from database projects only
+      db_choices <- stats::setNames(projects_data()$id, projects_data()$title)
+      cat("*** IMPORT MODAL: Updated select input with", length(db_choices), "database projects ***\n")
+      
+      # Update the select input
+      shiny::updateSelectInput(
+        inputId = "importModal_name",
+        choices = db_choices
+      )
+      
+      # Enable the import button
+      enable_html_element("importModal_builtin_button")
+      cat("*** IMPORT MODAL: Enabled import button ***\n")
+    } else {
+      cat("*** IMPORT MODAL: No projects available, disabling import button ***\n")
+      # Disable import button since no available projects
+      disable_html_element("importModal_builtin_button")
+      
+      # Clear the select input
+      shiny::updateSelectInput(
+        inputId = "importModal_name",
+        choices = c("No projects available" = "NA")
+      )
+    }
+  })
+
+  # Check if user is manager
+  output$user_is_manager <- reactive({
+    !is.null(user_info()) && user_info()$userGroup == "manager"
+  })
+  outputOptions(output, "user_is_manager", suspendWhenHidden = FALSE)
+
+  # Check if no projects are available
+  output$no_projects_available <- reactive({
+    nrow(projects_data()) == 0
+  })
+  outputOptions(output, "no_projects_available", suspendWhenHidden = FALSE)
+
+  # Handle go to admin page button click
+  observeEvent(input$importModal_go_to_admin_btn, {
+    # Close import modal and navigate to admin page
+    shiny::removeModal()
+    shiny::updateNavbarPage(session, "navbar", selected = "admin_page")
+  })
 
   # disable buttons that require inputs
   disable_html_element("importModal_manual_button")
@@ -126,6 +206,7 @@ server_initialize_app <- quote({
       session = session, modalId = "helpModal", toggle = "open"
     )
   })
+
 
   # enable load solution button when a solution is selected
   shiny::observeEvent(input$load_solution_list, {

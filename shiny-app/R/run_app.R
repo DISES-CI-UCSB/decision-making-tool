@@ -5,8 +5,6 @@
 #' @inheritParams shiny::shinyApp
 #'
 #' @export
-
-
 run_app <- function(onStart = purrr::partial(
                       eval, expr = app_global, envir = globalenv()
                     ),
@@ -14,7 +12,6 @@ run_app <- function(onStart = purrr::partial(
                     enableBookmarking = "disable",
                     uiPattern = "/",
                     ...) {
-  print(globalenv())
   # launch app
   golem::with_golem_options(
     app = shiny::shinyApp(

@@ -31,6 +31,14 @@ Projects.init(
       type: DataTypes.ENUM("public", "planner", "manager"),
       allowNull: false,
     },
+    planning_unit_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "files",
+        key: "id",
+      },
+    },
   },
   {
     sequelize,
