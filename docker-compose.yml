@@ -30,7 +30,6 @@ services:
     networks:
       - decision-tool-network
 
-
   # PostgreSQL Database
   postgres:
     image: postgres:15

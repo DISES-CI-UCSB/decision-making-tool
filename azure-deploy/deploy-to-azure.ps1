@@ -42,6 +42,28 @@ Write-Host "Logging in to Azure Container Registry..."
 az acr login --name $ACR_NAME
 
 # -------------------------------
+# Ensure Azure File Shares exist
+# -------------------------------
+Write-Host "Creating Azure File Shares if they do not exist..."
+
+# Uploads share
+az storage share create `
+    --name uploads `
+    --account-name $env:AZURE_STORAGE_ACCOUNT `
+    --account-key $env:AZURE_STORAGE_KEY `
+    --quota 100
+
+# Postgres data share
+az storage share create `
+    --name postgres `
+    --account-name $env:AZURE_STORAGE_ACCOUNT `
+    --account-key $env:AZURE_STORAGE_KEY `
+    --quota 100
+
+Write-Host "Azure File Shares ready."
+
+
+# -------------------------------
 # Create App Service Plan (Linux)
 # -------------------------------
 Write-Host "Creating App Service Plan..."

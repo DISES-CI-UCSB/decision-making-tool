@@ -76,8 +76,12 @@ FROM base AS shiny
 ## create uploads directory with proper permissions
 RUN mkdir -p /app/uploads && chown -R shiny:shiny /app/uploads && chmod 755 /app/uploads
 
-## set user
-USER shiny
+## create startup script to fix permissions and run as shiny
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'chown -R shiny:shiny /app/uploads' >> /app/start.sh && \
+    echo 'chmod -R 755 /app/uploads' >> /app/start.sh && \
+    echo 'exec su shiny -c "/usr/local/bin/Rscript /app/app.R"' >> /app/start.sh && \
+    chmod +x /app/start.sh
 
 ## select port
 EXPOSE 3838
@@ -93,5 +97,5 @@ RUN env | grep R_SHINY_PORT > /home/shiny/.Renviron && \
 COPY app.R /app/app.R
 WORKDIR /app
 
-## run app
-CMD ["/usr/local/bin/Rscript", "/app/app.R"]
+## run app with permission fix
+CMD ["/app/start.sh"]

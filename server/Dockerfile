@@ -13,8 +13,8 @@ RUN npm install --production
 # Copy application code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/uploads && chmod 755 /app/uploads
 
 # Expose port
 EXPOSE 4000

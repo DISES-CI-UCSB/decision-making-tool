@@ -14,7 +14,7 @@ services:
       PROJECT_DIRECTORY: /projects
       R_CONFIG_ACTIVE: default
     volumes:
-      - azure-uploads:/app/uploads
+      - uploads_data:/app/uploads
     depends_on:
       - server
     networks:
@@ -25,23 +25,26 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    user: "0:0"  # Run as root to fix permissions
 
-  postgres:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD}        # matches your Sequelize DB_PASSWORD
-      POSTGRES_DB: decision_tool
-    volumes:
-      - azure-postgres-data:/var/lib/postgresql/data
-    networks:
-      - demo-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d decision_tool"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Using Azure PostgreSQL instead of local container
+  # postgres:
+  #   image: postgres:15
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #     POSTGRES_DB: decision_tool
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - demo-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d decision_tool"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   user: "0:0"
 
   server:
     image: decisiontoolregistry.azurecr.io/graphql-server:latest 
@@ -50,17 +53,18 @@ services:
       - "4000:4000"
     environment:
       NODE_ENV: production
-      DB_HOST: postgres
+      DB_HOST: decision-tool-postgres.postgres.database.azure.com
       DB_PORT: 5432
       DB_NAME: decision_tool
       DB_USER: postgres
       DB_PASSWORD: ${DB_PASSWORD}
+      DB_SSL: true
+      DB_DIALECT: postgres
       JWT_SECRET: ${JWT_SECRET}
       PORT: 4000
     volumes:
-      - azure-uploads:/app/uploads
-    depends_on:
-      - postgres
+      - uploads_data:/app/uploads
+    # No depends_on since we're using external Azure PostgreSQL
     networks:
       - demo-network
     healthcheck:
@@ -71,19 +75,13 @@ services:
       start_period: 30s
       
 volumes:
-  azure-uploads:
-    driver: azure_file
+  # Persistent uploads directory - using Azure File Share mounted path  
+  uploads_data:
+    driver: local
     driver_opts:
-      share_name: uploads
-      storage_account_name: ${AZURE_STORAGE_ACCOUNT}
-      storage_account_key: ${AZURE_STORAGE_KEY}
-
-  azure-postgres-data:
-    driver: azure_file
-    driver_opts:
-      share_name: postgres
-      storage_account_name: ${AZURE_STORAGE_ACCOUNT}
-      storage_account_key: ${AZURE_STORAGE_KEY}
+      type: none
+      o: bind
+      device: /home/uploads
 
 networks:
   demo-network:
