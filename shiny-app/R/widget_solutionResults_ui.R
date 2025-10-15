@@ -1,4 +1,5 @@
 #' @include internal.R
+#' @include ui_aoiSelection.R
 NULL
 
 #' Solution results
@@ -147,6 +148,7 @@ solutionResults_html <- function(id, style, class, ...) {
             id = paste0(id, "_modal"),
             trigger = paste0(id, "_button")
           ),
+          
           # accordion panels
           htmltools::tags$div(
             class = "solution-results-main",
@@ -154,6 +156,29 @@ solutionResults_html <- function(id, style, class, ...) {
               id = paste0(id, "_collapse"),
               multiple = FALSE,
               open = paste0(id, "_collapseStatisticPanel"),
+              # AOI Selection Panel (collapsible)
+              shinyBS::bsCollapsePanel(
+                title = htmltools::tags$span(
+                  shinyBS::tipify(
+                    el = htmltools::tags$span(
+                      shiny::icon("map-marked-alt"),
+                      "AOI Analysis"
+                    ),
+                    title = paste(
+                      "Area of Interest (AOI) Analysis.",
+                      "Draw or upload a polygon to analyze solution coverage",
+                      "within a specific area. Shows theme coverage statistics",
+                      "and area calculations for the selected region."
+                    ),
+                    options = list(container = "body")
+                  )
+                ),
+                value = paste0(id, "_collapseAOIPanel"),
+                htmltools::tags$div(
+                  class = "panel-content-inner",
+                  aoiSelectionUI(paste0(id, "_aoi"))
+                )
+              ),
               shinyBS::bsCollapsePanel(
                 title = htmltools::tags$span(
                   shinyBS::tipify(

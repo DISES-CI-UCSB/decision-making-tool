@@ -374,4 +374,8 @@ app_server <- function(input, output, session) {
 
   # admin page management
   eval(server_adminPage)
+  
+  # AOI Selection Server Logic
+  # @include server_aoiSelection.R
+  aoi_server <- aoiSelectionServer("solutionResultsPane_results_aoi", app_data, session, map_id = "map")
 }

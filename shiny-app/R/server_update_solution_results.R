@@ -67,4 +67,5 @@ server_update_solution_results <- quote({
         app_data$solutions[[i]]$render_exclude_results()
       })    
   })
+  
 })

@@ -79,7 +79,7 @@
   height: 100%;
   box-sizing: border-box;
   overflow-x: hidden !important;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   padding-bottom: 3px !important;
 }
 
@@ -157,4 +157,26 @@ div#setting-spatial_parameter.parameter-setting.solution-setting {
 /* disable the hide new solution from map */
 div#setting-solution_layer_parameter.parameter-setting.solution-setting {
   /*display: none;*/
+}
+
+/* Enable scrolling for solution results pane */
+#solutionResultsPane {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+#solutionResultsPane .sidebar-pane-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.solution-results-container {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: 100%;
+}
+
+.aoi-analysis-panel {
+  overflow-y: visible !important;
+  max-height: none !important;
 }

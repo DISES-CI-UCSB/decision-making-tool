@@ -278,10 +278,10 @@ solutionSettings_html <- function(id, style, class, ...) {
           title = "Select a color for the solution to load",
           colourpicker::colourInput(
             inputId = "load_solution_color",
-            value = "#FF0000",
+            value = "#228B22",
             showColour = "background",
             label = NULL,
-            palette = "limited"
+            palette = "square"
           )
         ),
         htmltools::tags$div(

@@ -500,11 +500,31 @@ server_load_solution_database <- quote({
               # Create feature results for ALL features in the theme (not just matching ones)
               feature_results_list <- list()
               for (feature in matching_theme$feature) {
+                cat("*** Processing feature:", feature$name, "***\n")
+                
                 # Calculate how much of this feature is held by the solution
-                feature_data <- feature$variable$values
+                # Use get_data() instead of $values to get the actual raster data
+                feature_raster <- feature$variable$get_data()
+                feature_data <- as.vector(feature_raster)
+                
+                cat("***   Feature data length:", length(feature_data), "***\n")
+                cat("***   Feature data range:", paste(range(feature_data, na.rm = TRUE), collapse = " - "), "***\n")
+                cat("***   Solution values length:", length(solution_values), "***\n")
+                
+                # Check if lengths match
+                if (length(feature_data) != length(solution_values)) {
+                  cat("***   WARNING: Length mismatch! Feature:", length(feature_data), 
+                      "vs Solution:", length(solution_values), "***\n")
+                }
+                
                 feature_held <- sum(feature_data[solution_values > 0.5], na.rm = TRUE)
                 feature_total <- feature$variable$total
                 held_proportion <- if (feature_total > 0) feature_held / feature_total else 0
+                
+                cat("***   Feature held:", feature_held, "***\n")
+                cat("***   Feature total:", feature_total, "***\n")
+                cat("***   Held proportion:", held_proportion, "(", round(held_proportion * 100, 2), "%) ***\n")
+                cat("***   Feature current:", feature$current, "(", round(feature$current * 100, 2), "%) ***\n")
                 
                 feature_results_list <- append(feature_results_list, list(
                   new_feature_results(
@@ -536,11 +556,21 @@ server_load_solution_database <- quote({
             weight_names <- weights_df$name
             for (weight in app_data$weights) {
               if (weight$name %in% weight_names) {
+                cat("*** Processing weight:", weight$name, "***\n")
+                
                 # Calculate how much of this weight is held by the solution
-                weight_data <- weight$variable$values
+                # Use get_data() instead of $values
+                weight_raster <- weight$variable$get_data()
+                weight_data <- as.vector(weight_raster)
+                cat("***   Weight data length:", length(weight_data), "***\n")
+                
                 weight_held <- sum(weight_data[solution_values > 0.5], na.rm = TRUE)
                 weight_total <- weight$variable$total
                 held_proportion <- if (weight_total > 0) weight_held / weight_total else 0
+                
+                cat("***   Weight held:", weight_held, "***\n")
+                cat("***   Weight total:", weight_total, "***\n")
+                cat("***   Held proportion:", held_proportion, "(", round(held_proportion * 100, 2), "%) ***\n")
                 
                 weight_results_list <- append(weight_results_list, list(
                   new_weight_results(
@@ -561,11 +591,21 @@ server_load_solution_database <- quote({
             include_names <- includes_df$name
             for (include in app_data$includes) {
               if (include$name %in% include_names) {
+                cat("*** Processing include:", include$name, "***\n")
+                
                 # Calculate how much of this include is held by the solution
-                include_data <- include$variable$values
+                # Use get_data() instead of $values
+                include_raster <- include$variable$get_data()
+                include_data <- as.vector(include_raster)
+                cat("***   Include data length:", length(include_data), "***\n")
+                
                 include_held <- sum(include_data[solution_values > 0.5], na.rm = TRUE)
                 include_total <- include$variable$total
                 held_proportion <- if (include_total > 0) include_held / include_total else 0
+                
+                cat("***   Include held:", include_held, "***\n")
+                cat("***   Include total:", include_total, "***\n")
+                cat("***   Held proportion:", held_proportion, "(", round(held_proportion * 100, 2), "%) ***\n")
                 
                 include_results_list <- append(include_results_list, list(
                   new_include_results(
@@ -587,7 +627,9 @@ server_load_solution_database <- quote({
             for (exclude in app_data$excludes) {
               if (exclude$name %in% exclude_names) {
                 # Calculate how much of this exclude is held by the solution
-                exclude_data <- exclude$variable$values
+                # Use get_data() instead of $values
+                exclude_raster <- exclude$variable$get_data()
+                exclude_data <- as.vector(exclude_raster)
                 exclude_held <- sum(exclude_data[solution_values > 0.5], na.rm = TRUE)
                 exclude_total <- exclude$variable$total
                 held_proportion <- if (exclude_total > 0) exclude_held / exclude_total else 0

@@ -38,6 +38,7 @@ Imports:
     dplyr (>= 1.1.4),
     fields (>= 16.2),
     future (>= 1.34.0),
+    geojsonsf (>= 2.0.0),
     golem (>= 0.5.1),
     ghql (>= 0.1.0),
     htmltools (>= 0.5.8.1),
@@ -47,6 +48,7 @@ Imports:
     jose (>= 1.2.1),
     jsonlite (>= 1.8.8),
     leaflet (>= 2.2.2.9001),
+    leaflet.extras (>= 2.0.0),
     leaflet.extras2 (>= 1.1.0.9000),
     lobstr (>= 1.1.2),
     markdown (>= 1.13),
@@ -54,6 +56,7 @@ Imports:
     openxlsx (>= 4.2.6.1),
     pkgload (>= 1.4.0),
     plyr (>= 1.8.9),
+    plotly (>= 4.10.0),
     prioritizr (>= 8.0.4),
     purrr (>= 1.0.2),
     R.utils (>= 2.12.3),
@@ -150,6 +153,7 @@ Collate:
     'package.R'
     'run_app.R'
     'server_adminPage.R'
+    'server_aoiSelection.R'
     'server_export_data.R'
     'server_export_spreadsheets.R'
     'server_generate_new_solution.R'
@@ -172,6 +176,7 @@ Collate:
     'widget_solutionSettings_ui.R'
     'ui_acknowledgmentsSidebarPane.R'
     'ui_adminPage.R'
+    'ui_aoiSelection.R'
     'ui_contactSidebarPane.R'
     'ui_createProjectModal.R'
     'ui_exportSidebarPane.R'

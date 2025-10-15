@@ -131,10 +131,17 @@ server_generate_new_solution <- quote({
       ## enable stop button
       shinyjs::enable("newSolutionPane_settings_stop_button")
 
-      ## generate result using asynchronous task
-      app_data$task <- future::future(packages = "wheretowork", seed = NULL, {
+      ## TEMPORARY: Running synchronously for testing (future setup too slow on Windows)
+      ## TODO: Re-enable async processing once future performance is resolved
+      
+      ## generate result DIRECTLY (no future - too slow on Windows)
+      cat("*** NEW SOLUTION: Running optimization directly (no async) ***\n")
+      flush.console()
+      
+      tryCatch({
         ### main processing
         if (curr_type) {
+          cat("*** NEW SOLUTION: Using min_shortfall formulation ***\n")
           #### if budget specified, then use the min shortfall formulation
           r <- try(
             min_shortfall_result(
@@ -164,6 +171,7 @@ server_generate_new_solution <- quote({
             silent = TRUE
           )
         } else {
+          cat("*** NEW SOLUTION: Using min_set formulation ***\n")
           #### else, then use the min set formulation
           r <- try(
             min_set_result(
@@ -192,29 +200,67 @@ server_generate_new_solution <- quote({
             silent = TRUE
           )
         }
-        ## return result
-        list(
+        
+        cat("*** NEW SOLUTION: Optimization completed ***\n")
+        
+        ## create result
+        result <- list(
           id = curr_id, name = curr_name, color = curr_color,
           result = r, cache = curr_cache
         )
+        
+        ## process result immediately
+        new_user_result(result)
+        app_data$cache <- result$cache
+        
+      }, error = function(e) {
+        cat("*** NEW SOLUTION: ERROR:", e$message, "***\n")
+        print(e)
+        new_user_result(NULL)
+        shinyFeedback::resetLoadingButton("newSolutionPane_settings_start_button")
+        enable_html_element("newSolutionPane_settings_start_button")
+        enable_html_element("newSolutionPane_settings_name")
+        enable_html_element("newSolutionPane_settings_color")
+        enable_html_element("newSolutionPane_settings_gurobi")
+        shiny::showNotification(paste("Error:", e$message), type = "error")
       })
-      ## add promises to handle result once asynchronous task finished
-      prom <-
-        (app_data$task) %...>%
-        (function(result) {
-          new_user_result(result)
-          app_data$cache <- result$cache
-        }) %...!%
-        (function(error) {
-          new_user_result(NULL)
-          if (!is.null(app_data$new_solution_id)) {
-            warning(error)
-          }
-          NULL
-        })
-
-      ## this needed to implement asynchronous processing,
-      ## see https://github.com/rstudio/promises/issues/23
+      
+      ## No async processing - result handled immediately above
+      
+      ## ============================================================================
+      ## COMMENTED OUT: Original async code using future
+      ## Issue: future::future() call hangs during setup on Windows with large data
+      ## ============================================================================
+      # app_data$task <- future::future(packages = "wheretowork", seed = NULL, {
+      #   ### main processing
+      #   if (curr_type) {
+      #     #### if budget specified, then use the min shortfall formulation
+      #     r <- try(min_shortfall_result(...), silent = TRUE)
+      #   } else {
+      #     #### else, then use the min set formulation
+      #     r <- try(min_set_result(...), silent = TRUE)
+      #   }
+      #   ## return result
+      #   list(id = curr_id, name = curr_name, color = curr_color,
+      #        result = r, cache = curr_cache)
+      # })
+      # 
+      # ## add promises to handle result once asynchronous task finished
+      # prom <-
+      #   (app_data$task) %...>%
+      #   (function(result) {
+      #     new_user_result(result)
+      #     app_data$cache <- result$cache
+      #   }) %...!%
+      #   (function(error) {
+      #     new_user_result(NULL)
+      #     if (!is.null(app_data$new_solution_id)) {
+      #       warning(error)
+      #     }
+      #     NULL
+      #   })
+      ## ============================================================================
+      
       NULL
     }
   )
