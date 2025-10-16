@@ -19,6 +19,241 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
     drawing_mode <- reactiveVal("none")
     drawn_shape <- reactiveVal(NULL)
     
+    # Reactive value to store loaded shapefiles
+    predefined_shapefiles <- reactiveVal(list())
+    
+    # Reactive value to store pre-computed feature choices (for fast dropdown updates)
+    predefined_feature_choices <- reactiveVal(list())
+    
+    # Load predefined shapefiles on initialization (store in memory, not on map yet)
+    observe({
+      shinyjs::show("shapefile_loading_indicator")
+      
+      shp_list <- list()
+      choices_list <- list()
+      
+      # Load colombia_departments_2023
+      dept_path <- system.file("extdata/aois/colombia_departments_2023/colombia_departments_2023.shp", package = "wheretowork")
+      if (file.exists(dept_path)) {
+        tryCatch({
+          dept_sf <- sf::st_read(dept_path, quiet = TRUE)
+          # Transform to WGS84 if needed
+          if (!is.na(sf::st_crs(dept_sf)) && sf::st_crs(dept_sf)$input != "EPSG:4326") {
+            dept_sf <- sf::st_transform(dept_sf, 4326)
+          }
+          shp_list$colombia_departments_2023 <- dept_sf
+          
+          # Pre-compute feature choices
+          name_col <- "NOMBRE_DPT"
+          if (!name_col %in% colnames(dept_sf)) {
+            name_col <- names(dept_sf)[sapply(dept_sf, is.character)][1]
+          }
+          feature_names <- as.character(dept_sf[[name_col]])
+          choices_list$colombia_departments_2023 <- setNames(seq_along(feature_names), feature_names)
+        }, error = function(e) {
+          cat("*** AOI: Error loading departments:", e$message, "***\n")
+        })
+      }
+      
+      # Load colombia_regions
+      regions_path <- system.file("extdata/aois/colombia_regions/colombia_regions.shp", package = "wheretowork")
+      if (file.exists(regions_path)) {
+        tryCatch({
+          regions_sf <- sf::st_read(regions_path, quiet = TRUE)
+          # Transform to WGS84 if needed
+          if (!is.na(sf::st_crs(regions_sf)) && sf::st_crs(regions_sf)$input != "EPSG:4326") {
+            regions_sf <- sf::st_transform(regions_sf, 4326)
+          }
+          shp_list$colombia_regions <- regions_sf
+          
+          # Pre-compute feature choices
+          name_col <- "region"
+          if (!name_col %in% colnames(regions_sf)) {
+            name_col <- names(regions_sf)[sapply(regions_sf, is.character)][1]
+          }
+          feature_names <- as.character(regions_sf[[name_col]])
+          choices_list$colombia_regions <- setNames(seq_along(feature_names), feature_names)
+        }, error = function(e) {
+          cat("*** AOI: Error loading regions:", e$message, "***\n")
+        })
+      }
+      
+      predefined_shapefiles(shp_list)
+      predefined_feature_choices(choices_list)
+      shinyjs::hide("shapefile_loading_indicator")
+    })
+    
+    # Fast update of feature dropdown using updateSelectInput (no renderUI lag!)
+    observeEvent(input$predefined_aoi_type, {
+      req(input$predefined_aoi_type)
+      
+      if (input$predefined_aoi_type == "") {
+        # Reset dropdown if no type selected
+        updateSelectInput(session, "predefined_aoi_feature", 
+                         choices = c("Seleccionar..." = ""),
+                         selected = "")
+        shinyjs::disable("apply_predefined_aoi_btn")
+      } else {
+        # Get pre-computed choices (instant!)
+        feature_choices <- predefined_feature_choices()[[input$predefined_aoi_type]]
+        
+        if (!is.null(feature_choices)) {
+          updateSelectInput(session, "predefined_aoi_feature",
+                           choices = c("Seleccionar..." = "", feature_choices),
+                           selected = "")
+        }
+      }
+    })
+    
+    # Enable/disable button when feature is selected
+    observeEvent(input$predefined_aoi_feature, {
+      if (!is.null(input$predefined_aoi_feature) && input$predefined_aoi_feature != "") {
+        shinyjs::enable("apply_predefined_aoi_btn")
+      } else {
+        shinyjs::disable("apply_predefined_aoi_btn")
+      }
+    })
+    
+    # Handle predefined AOI button click
+    observeEvent(input$apply_predefined_aoi_btn, {
+      req(input$predefined_aoi_type)
+      req(input$predefined_aoi_feature)
+      req(input$predefined_aoi_feature != "")
+      
+      cat("*** AOI: Apply predefined AOI button clicked ***\n")
+      cat("*** AOI: Type:", input$predefined_aoi_type, "***\n")
+      cat("*** AOI: Feature index:", input$predefined_aoi_feature, "***\n")
+      
+      shp_data <- predefined_shapefiles()[[input$predefined_aoi_type]]
+      feature_idx <- as.integer(input$predefined_aoi_feature)
+      
+      if (!is.null(shp_data) && feature_idx > 0 && feature_idx <= nrow(shp_data)) {
+        # Extract selected feature
+        selected_feature <- shp_data[feature_idx, ]
+        
+        # Transform to sf if not already
+        if (!inherits(selected_feature, "sf")) {
+          selected_feature <- sf::st_as_sf(selected_feature)
+        }
+        
+        # Ensure CRS is set (assume WGS84 if not set)
+        # Validate and fix geometry (same as drawn shapes)
+        cat("*** AOI: Validating geometry ***\n")
+        if (!sf::st_is_valid(selected_feature)) {
+          cat("*** AOI: Geometry is invalid, attempting to fix ***\n")
+          selected_feature <- sf::st_make_valid(selected_feature)
+          cat("*** AOI: Geometry fixed ***\n")
+        }
+        
+        # Set CRS to WGS84 if not set (SAME AS DRAWN SHAPES - lines 612-614)
+        if (is.na(sf::st_crs(selected_feature))) {
+          cat("*** AOI: Setting CRS to WGS84 (4326) ***\n")
+          sf::st_crs(selected_feature) <- 4326
+        } else if (sf::st_crs(selected_feature)$epsg != 4326) {
+          cat("*** AOI: Transforming from CRS", sf::st_crs(selected_feature)$epsg, "to WGS84 (4326) ***\n")
+          selected_feature <- sf::st_transform(selected_feature, 4326)
+        }
+        
+        # Get bounding box for zooming
+        bbox <- sf::st_bbox(selected_feature)
+        
+        # DEBUG: Check the feature
+        cat("*** AOI DEBUG: Feature details ***\n")
+        cat("  - Rows:", nrow(selected_feature), "\n")
+        cat("  - Columns:", ncol(selected_feature), "\n")
+        cat("  - CRS:", sf::st_crs(selected_feature)$input, "\n")
+        cat("  - Geometry type:", as.character(sf::st_geometry_type(selected_feature)[1]), "\n")
+        cat("  - Bounding box:", paste(bbox, collapse=", "), "\n")
+        cat("  - Map ID being used:", map_id, "\n")
+        
+        # Convert to GeoJSON (same approach as drawn shapes)
+        cat("*** AOI: Converting feature to GeoJSON ***\n")
+        aoi_geojson <- geojsonsf::sf_geojson(selected_feature)
+        cat("*** AOI: GeoJSON preview (first 500 chars):", substr(aoi_geojson, 1, 500), "\n")
+        
+        # Add to map using JavaScript with GeoJSON (handles MULTIPOLYGON correctly)
+        cat("*** AOI: Adding boundary to map with JavaScript ***\n")
+        
+        # Simplify the geometry to reduce size (important for large regions)
+        simple_feature <- sf::st_simplify(selected_feature, dTolerance = 0.05, preserveTopology = TRUE)
+        cat("*** AOI: Original coords:", nrow(sf::st_coordinates(selected_feature)), "***\n")
+        cat("*** AOI: Simplified coords:", nrow(sf::st_coordinates(simple_feature)), "***\n")
+        
+        # Convert to GeoJSON (already created above)
+        # Escape single quotes and backslashes for JavaScript string
+        geojson_for_js <- gsub("'", "\\\\'", aoi_geojson)
+        geojson_for_js <- gsub("\\\\", "\\\\\\\\", geojson_for_js)
+        
+        # Use JavaScript to add the GeoJSON (EXACT SAME METHOD as drawn shapes at line 258-264)
+        shinyjs::runjs(paste0("
+          (function() {
+            console.log('*** AOI: Getting map for predefined shape ***');
+            var mapElement = document.getElementById('", map_id, "');
+            
+            // Get the Leaflet map from the HTMLWidgets binding (SAME AS LINE 258-264)
+            var map = null;
+            if (mapElement && HTMLWidgets && HTMLWidgets.find) {
+              var widget = HTMLWidgets.find('#", map_id, "');
+              if (widget && widget.getMap) {
+                map = widget.getMap();
+              }
+            }
+            
+            console.log('Leaflet map:', map);
+            
+            if (map) {
+              console.log('*** AOI: Adding predefined shape to map ***');
+              
+              // Remove existing AOI layer if present
+              if (window.predefinedAoiLayer) {
+                map.removeLayer(window.predefinedAoiLayer);
+              }
+              
+              // Parse GeoJSON and add to map
+              var geojson = ", aoi_geojson, ";
+              console.log('GeoJSON type:', geojson.features ? geojson.features[0].geometry.type : 'unknown');
+              
+              window.predefinedAoiLayer = L.geoJSON(geojson, {
+                style: {
+                  color: '#e74c3c',
+                  weight: 3,
+                  fillColor: '#e74c3c',
+                  fillOpacity: 0.1
+                }
+              }).addTo(map);
+              
+              console.log('*** AOI: Predefined shape added to map ***');
+              
+              // Zoom to bounds
+              map.fitBounds(window.predefinedAoiLayer.getBounds());
+            } else {
+              console.error('Map not found:', '", map_id, "');
+            }
+          })();
+        "))
+        
+        cat("*** AOI: JavaScript executed for map display ***\n")
+        
+        # Store AOI data (this is what perform_aoi_analysis expects)
+        aoi_data(selected_feature)
+        
+        # Update status
+        feature_name <- names(predefined_shapefiles()[[input$predefined_aoi_type]])[feature_idx]
+        shinyjs::html("aoi_status_text", paste("AOI Seleccionado - Analizando..."))
+        
+        # Check if solution is loaded
+        if (length(app_data$solution_ids) == 0) {
+          cat("*** AOI: No solutions available ***\n")
+          shiny::showNotification("No hay solución cargada. Por favor cargue una solución primero.", type = "warning")
+          return()
+        }
+        
+        # Perform analysis (no arguments - uses reactive values)
+        cat("*** AOI: Performing analysis for predefined AOI ***\n")
+        perform_aoi_analysis()
+      }
+    })
+    
     # Start drawing polygon
     observeEvent(input$start_draw_polygon_btn, {
       cat("*** AOI: Starting polygon drawing mode ***\n")
@@ -534,6 +769,10 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
       drawn_shape(NULL)
       drawing_mode("none")
       
+      # Clear AOI boundary group
+      leaflet::leafletProxy(map_id) %>%
+        leaflet::clearGroup("aoi")
+      
       # Clear map using JavaScript
       shinyjs::runjs(paste0("
         console.log('*** AOI: Clearing map ***');
@@ -550,6 +789,13 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
         
         if (map) {
           console.log('Map found, removing layers');
+          
+          // Remove predefined AOI layer if present
+          if (window.predefinedAoiLayer) {
+            map.removeLayer(window.predefinedAoiLayer);
+            window.predefinedAoiLayer = null;
+            console.log('Predefined AOI layer removed');
+          }
           
           // Collect layers to remove (can't remove during iteration)
           var layersToRemove = [];
@@ -610,6 +856,7 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
       aoi_geojson <- geojsonsf::sf_geojson(aoi_sf)
       
       map <- leaflet::leafletProxy(map_id)
+      print(map)
       map %>%
         leaflet::clearGroup("aoi") %>% # Clear existing AOI layers
         leaflet::addGeoJSON(
@@ -624,22 +871,19 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
     
     # Function to perform AOI analysis
     perform_aoi_analysis <- function() {
-      cat("*** AOI: perform_aoi_analysis called ***\n")
+      # Debug flag - set to FALSE to reduce logging
+      DEBUG_AOI <- FALSE
       
-      # Show loading spinner
-      shinyjs::show("aoi_loading")
+      # Show loading spinner (use id directly since we're in module scope)
+      shinyjs::show(id = "aoi_loading", anim = TRUE, animType = "fade")
       
       tryCatch({
         req(aoi_data(), app_data$solutions)
         
-        cat("*** AOI: Performing analysis ***\n")
-        cat("*** AOI: AOI data rows:", nrow(aoi_data()), "***\n")
-        cat("*** AOI: Number of solutions:", length(app_data$solutions), "***\n")
-        
         # Get selected solution - use the parent session input
         # The input is in the parent scope, not the module scope
         selected_solution_id <- session$input$solutionResultsPane_results_select
-        cat("*** AOI: Selected solution ID (from parent):", selected_solution_id, "***\n")
+        if (DEBUG_AOI) cat("*** AOI: Selected solution ID (from parent):", selected_solution_id, "***\n")
         
         # If still not available, try getting from app_data
         if (is.null(selected_solution_id) || selected_solution_id == "") {
@@ -736,15 +980,15 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
         shinyjs::show("aoi_analysis_panel")
         
         # Hide loading spinner
-        shinyjs::hide("aoi_loading")
-        shinyjs::html("aoi_status_text", "Analysis complete!")
+        shinyjs::hide(id = "aoi_loading", anim = TRUE, animType = "fade")
+        shinyjs::html(id = "aoi_status_text", html = "Analysis complete!")
         
         # Generate theme overlap charts (one per feature)
         output$aoi_theme_overlap_chart <- shiny::renderUI({
           cat("*** AOI: Generating theme overlap charts ***\n")
           
           # Show loading spinner while rendering
-          shinyjs::show("aoi_loading")
+          shinyjs::show(id = "aoi_loading", anim = TRUE, animType = "fade")
           
           # Check if themes exist
           if (is.null(app_data$themes) || length(app_data$themes) == 0) {
@@ -758,19 +1002,19 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
           for (theme_idx in seq_along(app_data$themes)) {
             theme <- app_data$themes[[theme_idx]]
             theme_name <- theme$name
-            cat("*** AOI: Processing theme:", theme_name, "***\n")
+            # cat("*** AOI: Processing theme:", theme_name, "***\n")
             
             # Each theme has features (layers)
             for (feature_idx in seq_along(theme$feature)) {
               feature <- theme$feature[[feature_idx]]
               feature_name <- feature$name
-              cat("*** AOI:   Processing feature:", feature_name, "***\n")
+              # cat("*** AOI:   Processing feature:", feature_name, "***\n")
               
               tryCatch({
                 # Get the feature raster
                 feature_raster <- feature$variable$get_data()
-                cat("*** AOI:     Feature raster class:", class(feature_raster), "***\n")
-                cat("*** AOI:     Feature raster dimensions:", paste(dim(feature_raster), collapse = "x"), "***\n")
+                # cat("*** AOI:     Feature raster class:", class(feature_raster), "***\n")
+                # cat("*** AOI:     Feature raster dimensions:", paste(dim(feature_raster), collapse = "x"), "***\n")
                 
                 # Resample feature to match solution raster if needed
                 if (!terra::compareGeom(feature_raster, solution_raster, stopOnError = FALSE)) {
@@ -801,22 +1045,22 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
                 min_value <- min(feature_values[feature_values > 0], na.rm = TRUE)
                 unique_values <- length(unique(feature_values[!is.na(feature_values) & feature_values > 0]))
                 
-                cat("*** AOI:     Feature value range:", min_value, "to", max_value, 
-                    ", Unique values:", unique_values, "***\n")
+                # cat("*** AOI:     Feature value range:", min_value, "to", max_value, 
+                #     ", Unique values:", unique_values, "***\n")
                 
                 # Determine if continuous (many unique values) or binary (few unique values)
                 is_continuous <- unique_values > 10
                 
                 if (is_continuous) {
-                  cat("*** AOI:     Detected continuous raster - using richness binning ***\n")
+                  # cat("*** AOI:     Detected continuous raster - using richness binning ***\n")
                   
                   # Create bins: Low, Medium, High (thirds based on max value)
                   low_threshold <- max_value / 3
                   high_threshold <- (max_value * 2) / 3
                   
-                  cat("*** AOI:     Richness bins - Low: 0-", round(low_threshold, 2), 
-                      ", Medium:", round(low_threshold, 2), "-", round(high_threshold, 2),
-                      ", High:", round(high_threshold, 2), "-", round(max_value, 2), "***\n")
+                  # cat("*** AOI:     Richness bins - Low: 0-", round(low_threshold, 2), 
+                  #     ", Medium:", round(low_threshold, 2), "-", round(high_threshold, 2),
+                  #     ", High:", round(high_threshold, 2), "-", round(max_value, 2), "***\n")
                   
                   # Calculate area for each richness category
                   low_richness_mask <- !is.na(feature_values) & feature_values > 0 & feature_values <= low_threshold
@@ -827,15 +1071,15 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
                   low_cells <- sum(low_richness_mask)
                   med_cells <- sum(med_richness_mask)
                   high_cells <- sum(high_richness_mask)
-                  cat("*** AOI:     Cell counts - Low:", low_cells, ", Med:", med_cells, ", High:", high_cells, "***\n")
+                  # cat("*** AOI:     Cell counts - Low:", low_cells, ", Med:", med_cells, ", High:", high_cells, "***\n")
                   
                   # Total area for each richness category in AOI
                   low_area_km2 <- sum(cell_areas_feature[low_richness_mask], na.rm = TRUE) / 1000000
                   med_area_km2 <- sum(cell_areas_feature[med_richness_mask], na.rm = TRUE) / 1000000
                   high_area_km2 <- sum(cell_areas_feature[high_richness_mask], na.rm = TRUE) / 1000000
                   
-                  cat("*** AOI:     Total areas - Low:", low_area_km2, "km², Med:", med_area_km2, 
-                      "km², High:", high_area_km2, "km² ***\n")
+                  # cat("*** AOI:     Total areas - Low:", low_area_km2, "km², Med:", med_area_km2, 
+                  #     "km², High:", high_area_km2, "km² ***\n")
                   
                   # Calculate solution coverage for each richness category
                   # This is: area where BOTH (richness category) AND (solution) are present
@@ -846,22 +1090,22 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
                   low_solution_cells <- sum(low_solution_mask)
                   med_solution_cells <- sum(med_solution_mask)
                   high_solution_cells <- sum(high_solution_mask)
-                  cat("*** AOI:     Solution cells - Low:", low_solution_cells, ", Med:", med_solution_cells, 
-                      ", High:", high_solution_cells, "***\n")
+                  # cat("*** AOI:     Solution cells - Low:", low_solution_cells, ", Med:", med_solution_cells, 
+                  #     ", High:", high_solution_cells, "***\n")
                   
                   low_solution_km2 <- sum(cell_areas_feature[low_solution_mask], na.rm = TRUE) / 1000000
                   med_solution_km2 <- sum(cell_areas_feature[med_solution_mask], na.rm = TRUE) / 1000000
                   high_solution_km2 <- sum(cell_areas_feature[high_solution_mask], na.rm = TRUE) / 1000000
                   
-                  cat("*** AOI:     Solution areas - Low:", low_solution_km2, "km², Med:", med_solution_km2, 
-                      "km², High:", high_solution_km2, "km² ***\n")
+                  # cat("*** AOI:     Solution areas - Low:", low_solution_km2, "km², Med:", med_solution_km2, 
+                  #     "km², High:", high_solution_km2, "km² ***\n")
                   
                   # Calculate coverage percentages
                   low_pct <- if (low_area_km2 > 0) (low_solution_km2 / low_area_km2) * 100 else 0
                   med_pct <- if (med_area_km2 > 0) (med_solution_km2 / med_area_km2) * 100 else 0
                   high_pct <- if (high_area_km2 > 0) (high_solution_km2 / high_area_km2) * 100 else 0
                   
-                  cat("*** AOI:     Coverage % - Low:", low_pct, "%, Med:", med_pct, "%, High:", high_pct, "% ***\n")
+                  # cat("*** AOI:     Coverage % - Low:", low_pct, "%, Med:", med_pct, "%, High:", high_pct, "% ***\n")
                   
                   # Store data for continuous chart (will be handled differently)
                   is_continuous_feature <- TRUE
@@ -872,12 +1116,12 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
                   )
                   
                 } else {
-                  cat("*** AOI:     Detected binary/categorical raster - using presence/absence ***\n")
+                  # cat("*** AOI:     Detected binary/categorical raster - using presence/absence ***\n")
                   is_continuous_feature <- FALSE
                   
                   # Count cells with theme data
                   theme_cells <- sum(!is.na(feature_values) & feature_values > 0)
-                  cat("*** AOI:     Theme cells:", theme_cells, "***\n")
+                  # cat("*** AOI:     Theme cells:", theme_cells, "***\n")
                   
                   # Total theme area in AOI (km²)
                   theme_area_km2 <- sum(cell_areas_feature[!is.na(feature_values) & feature_values > 0], na.rm = TRUE) / 1000000
@@ -889,8 +1133,8 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
                   # Calculate percentage
                   coverage_pct <- if (theme_area_km2 > 0) (solution_coverage_km2 / theme_area_km2) * 100 else 0
                   
-                  cat("*** AOI:     Theme area:", theme_area_km2, "km², Solution coverage:", solution_coverage_km2, 
-                      "km², Coverage %:", coverage_pct, "***\n")
+                  # cat("*** AOI:     Theme area:", theme_area_km2, "km², Solution coverage:", solution_coverage_km2, 
+                  #     "km², Coverage %:", coverage_pct, "***\n")
                 }
                 
                 # Create individual chart for this feature
@@ -1143,12 +1387,12 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
           
           # Return all charts
           if (length(theme_charts) == 0) {
-            shinyjs::hide("aoi_loading")
+            shinyjs::hide(id = "aoi_loading", anim = TRUE, animType = "fade")
             return(htmltools::tags$p("No theme data available", style = "text-align: center; color: #999;"))
           }
           
           # Hide loading spinner
-          shinyjs::hide("aoi_loading")
+          shinyjs::hide(id = "aoi_loading", anim = TRUE, animType = "fade")
           
           htmltools::tagList(theme_charts)
         })
