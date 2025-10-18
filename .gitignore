@@ -13,3 +13,19 @@ USER_INSTRUCTIONS_DRAFT.md
 USER_INSTRUCTIONS_SPANISH.md
 ADMIN_FEATURES_GUIDE.md
 ADMIN_FEATURES_GUIDE_SPANISH.md
+
+# Cambio_Global data files (keep scripts and docs)
+Cambio_Global/*.Rproj
+Cambio_Global/**/*.tif
+Cambio_Global/**/*.fst
+Cambio_Global/**/*.xlsx
+Cambio_Global/**/*.csv
+Cambio_Global/**/*.xml
+Cambio_Global/**/*.ovr
+Cambio_Global/**/*.zip
+Cambio_Global/**/*.cpg
+Cambio_Global/**/*.dbf
+Cambio_Global/**/*.prj
+Cambio_Global/**/*.shp
+Cambio_Global/**/*.shx
+Cambio_Global/**/*.lock

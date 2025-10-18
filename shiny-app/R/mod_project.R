@@ -282,10 +282,19 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
       # Set base folder as the folder containing layers.csv
       base_folder(dirname(csv_path))
 
-      df <- read.csv(csv_path, stringsAsFactors = FALSE)
+      # Read CSV with UTF-8 encoding support (for Spanish accents)
+      df <- read.csv(csv_path, stringsAsFactors = FALSE, fileEncoding = "UTF-8")
+      
+      cat("*** READ layers.csv ***\n")
+      cat("*** Number of rows:", nrow(df), "***\n")
+      cat("*** Columns:", paste(names(df), collapse=", "), "***\n")
+      if (nrow(df) > 0) {
+        cat("*** First row Type:", df$Type[1], "Theme:", df$Theme[1], "Name:", df$Name[1], "***\n")
+      }
 
       # Add column to check file existence
       df$file_exists <- file.exists(file.path(base_folder(), df$File))
+      cat("*** File existence check:", sum(df$file_exists), "out of", nrow(df), "files found ***\n")
 
       # Keep only ProjectLayers schema columns + File
       pl_columns <- c("Type", "Theme", "Name", "Legend", "Values", "Color",
@@ -477,6 +486,13 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
                 # Convert NA values to 0s
                 layer_raster[is.na(layer_raster)] <- 0
                 
+                # For manual/binary layers, standardize to 0 and 1 only
+                if (row$Legend == "manual" && !is.na(row$Values)) {
+                  # Convert all values > 0 to 1 for binary layers
+                  layer_raster[layer_raster > 0] <- 1
+                  cat("*** Standardized manual layer to binary (0, 1) ***\n")
+                }
+                
                 # Save the aligned raster temporarily
                 temp_layer_path <- tempfile(fileext = ".tif")
                 terra::writeRaster(layer_raster, temp_layer_path, overwrite = TRUE)
@@ -489,6 +505,13 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
               } else {
                 # Grids match, but still convert NA values to 0s
                 layer_raster[is.na(layer_raster)] <- 0
+                
+                # For manual/binary layers, standardize to 0 and 1 only
+                if (row$Legend == "manual" && !is.na(row$Values)) {
+                  # Convert all values > 0 to 1 for binary layers
+                  layer_raster[layer_raster > 0] <- 1
+                  cat("*** Standardized manual layer to binary (0, 1) ***\n")
+                }
                 
                 # Save the cleaned raster
                 temp_layer_path <- tempfile(fileext = ".tif")
@@ -537,6 +560,10 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
           }
 
           # Add ProjectLayer
+          cat("*** CREATING PROJECT LAYER:", row$Name, "***\n")
+          cat("*** Type:", row$Type, "Theme:", row$Theme, "***\n")
+          cat("*** new_project_id variable:", new_project_id, "***\n")
+          
           qry_layer <- ghql::Query$new()
           qry_layer$query("addProjectLayer", add_project_layer_mutation)
           layer_payload <- list(
@@ -557,12 +584,31 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
               downloadable = as.logical(row$Downloadable)
             )
           )
+          
+          cat("*** Layer payload prepared ***\n")
+          cat("***   projectId:", as.character(new_project_id), "***\n")
+          cat("***   fileId:", as.character(new_file_id), "***\n")
+          cat("***   values:", paste(parse_array_field(row$Values), collapse=", "), "***\n")
+          cat("***   colors:", paste(parse_array_field(row$Color), collapse=", "), "***\n")
+          cat("***   labels:", paste(parse_array_field(row$Labels), collapse=", "), "***\n")
 
-          client$exec(
+          res_layer <- client$exec(
             qry_layer$queries$addProjectLayer,
             headers = list(Authorization = paste("Bearer", auth_token())),
             variables = layer_payload
           )
+          
+          cat("*** ProjectLayer mutation response:", res_layer, "***\n")
+          res_layer_parsed <- jsonlite::fromJSON(res_layer)
+          
+          if (!is.null(res_layer_parsed$errors)) {
+            cat("*** ERROR CREATING PROJECT LAYER:", res_layer_parsed$errors, "***\n")
+            stop(paste("Failed to create project layer:", row$Name, "-", res_layer_parsed$errors))
+          } else if (!is.null(res_layer_parsed$data$addProjectLayer$id)) {
+            cat("*** PROJECT LAYER CREATED SUCCESSFULLY with ID:", res_layer_parsed$data$addProjectLayer$id, "***\n")
+          } else {
+            cat("*** WARNING: Unexpected response structure for project layer creation ***\n")
+          }
         }
 
         # Success state
@@ -585,6 +631,14 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         fetch_projects()
 
       }, error = function(e){
+        # Log the actual error that caused upload to fail
+        cat("*** UPLOAD ERROR OCCURRED ***\n")
+        cat("*** Error message:", e$message, "***\n")
+        cat("*** Error class:", class(e), "***\n")
+        if (!is.null(e$call)) {
+          cat("*** Error call:", deparse(e$call), "***\n")
+        }
+        
         # Reset UI state on error
         shinyjs::hide("upload_progress")
         shinyjs::enable("submit_project")

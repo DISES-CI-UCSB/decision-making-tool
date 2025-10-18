@@ -35,11 +35,10 @@ server_load_solution_database <- quote({
     curr_id <- uuid::UUIDgenerate()
     app_data$new_load_solution_id <- curr_id
 
-    # Extract solution filename to match with database
-    solution_filename <- basename(input$load_solution_list)
-    solution_title <- gsub("-solution\\.tif$", "-solution", solution_filename)
+    # Extract solution file path to match with database
+    solution_path <- input$load_solution_list
     
-    cat("*** Looking for solution:", solution_title, "***\n")
+    cat("*** Looking for solution by path:", solution_path, "***\n")
     
     # GraphQL query to get solution with all parameters
     solution_query <- '
@@ -109,14 +108,33 @@ server_load_solution_database <- quote({
       
       solutions <- res_list$data$solutions
       
-      # Find the specific solution by title
-      solution <- solutions[solutions$title == solution_title, ]
+      # Find the specific solution by file path
+      cat("*** Number of solutions:", nrow(solutions), "***\n")
+      cat("*** Searching for path:", solution_path, "***\n")
+      cat("*** solutions$file structure:", class(solutions$file), "***\n")
       
-      if (nrow(solution) == 0) {
-        stop("Solution not found: ", solution_title)
+      # jsonlite converts nested GraphQL responses to data frames
+      # solutions$file is a data frame with columns: id, path
+      if (is.data.frame(solutions$file)) {
+        # Extract paths from the file data frame
+        file_paths <- solutions$file$path
+        cat("*** Available paths:", paste(file_paths, collapse=", "), "***\n")
+        
+        # Find matching solution by path
+        match_idx <- which(file_paths == solution_path)
+        
+        if (length(match_idx) == 0) {
+          cat("*** ERROR: No matching path found ***\n")
+          cat("*** Tried to match:", solution_path, "***\n")
+          stop("Solution not found with path: ", solution_path)
+        }
+        
+        solution <- solutions[match_idx[1], ]
+        cat("*** MATCH FOUND: ", solution$title, "***\n")
+        
+      } else {
+        stop("Unexpected solutions$file structure: ", class(solutions$file))
       }
-      
-      cat("*** Found solution:", solution$title[1], "***\n")
       
       # Parse solution parameters from database
       solution_data <- solution[1, ]  # Get first (and should be only) matching solution
@@ -500,31 +518,20 @@ server_load_solution_database <- quote({
               # Create feature results for ALL features in the theme (not just matching ones)
               feature_results_list <- list()
               for (feature in matching_theme$feature) {
-                cat("*** Processing feature:", feature$name, "***\n")
-                
                 # Calculate how much of this feature is held by the solution
                 # Use get_data() instead of $values to get the actual raster data
                 feature_raster <- feature$variable$get_data()
                 feature_data <- as.vector(feature_raster)
                 
-                cat("***   Feature data length:", length(feature_data), "***\n")
-                cat("***   Feature data range:", paste(range(feature_data, na.rm = TRUE), collapse = " - "), "***\n")
-                cat("***   Solution values length:", length(solution_values), "***\n")
-                
                 # Check if lengths match
                 if (length(feature_data) != length(solution_values)) {
-                  cat("***   WARNING: Length mismatch! Feature:", length(feature_data), 
+                  cat("***   WARNING: Length mismatch for feature", feature$name, "! Feature:", length(feature_data), 
                       "vs Solution:", length(solution_values), "***\n")
                 }
                 
                 feature_held <- sum(feature_data[solution_values > 0.5], na.rm = TRUE)
                 feature_total <- feature$variable$total
                 held_proportion <- if (feature_total > 0) feature_held / feature_total else 0
-                
-                cat("***   Feature held:", feature_held, "***\n")
-                cat("***   Feature total:", feature_total, "***\n")
-                cat("***   Held proportion:", held_proportion, "(", round(held_proportion * 100, 2), "%) ***\n")
-                cat("***   Feature current:", feature$current, "(", round(feature$current * 100, 2), "%) ***\n")
                 
                 feature_results_list <- append(feature_results_list, list(
                   new_feature_results(

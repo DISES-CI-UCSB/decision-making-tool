@@ -148,6 +148,9 @@ server_import_projects_database <- quote({
       }
     }'
     
+    cat("*** Querying projectLayers for project ID:", project_id, "***\n")
+    cat("*** Query:", project_layers_query, "***\n")
+    
     # Query project details
     qry_project <- ghql::Query$new()
     qry_project$query("project", project_query)
@@ -162,14 +165,47 @@ server_import_projects_database <- quote({
     # Query project layers
     qry_layers <- ghql::Query$new()
     qry_layers$query("projectLayers", project_layers_query)
+    
+    cat("*** Variables being sent: projectId =", project_id, "(type:", class(project_id), ") ***\n")
+    
     res_layers <- client$exec(
       qry_layers$queries$projectLayers,
-      variables = list(projectId = project_id)
+      variables = list(projectId = as.character(project_id))
     )
+    
+    cat("*** ProjectLayers query response:", res_layers, "***\n")
     
     res_layers_list <- jsonlite::fromJSON(res_layers)
     layers_data <- res_layers_list$data$projectLayers
-    cat("*** Found", nrow(layers_data), "layers ***\n")
+    
+    if (is.null(layers_data) || length(layers_data) == 0) {
+      cat("*** WARNING: No layers found in database for project", project_id, "***\n")
+      cat("*** This means projectLayers were not saved during upload ***\n")
+      stop("No layers found for this project in the database")
+    }
+    
+    cat("*** Found layers data structure ***\n")
+    cat("*** Layers data class:", class(layers_data), "***\n")
+    if (is.data.frame(layers_data)) {
+      cat("*** Number of layers (rows):", nrow(layers_data), "***\n")
+      cat("*** Layer columns:", paste(names(layers_data), collapse=", "), "***\n")
+      if (nrow(layers_data) > 0) {
+        cat("*** First layer name:", layers_data$name[1], "***\n")
+        cat("*** First layer type:", layers_data$type[1], "***\n")
+        if ("file" %in% names(layers_data)) {
+          cat("*** First layer has 'file' column:", !is.null(layers_data$file[1]), "***\n")
+          if (is.data.frame(layers_data$file)) {
+            cat("*** File structure - columns:", paste(names(layers_data$file), collapse=", "), "***\n")
+            if ("path" %in% names(layers_data$file)) {
+              cat("*** First layer file path:", layers_data$file$path[1], "***\n")
+            }
+          }
+        }
+      }
+    } else {
+      cat("*** Layers data is not a data frame! Class:", class(layers_data), "***\n")
+      cat("*** Structure:", str(layers_data), "***\n")
+    }
     
     # Create Dataset object using planning unit file and layer files
     if (is.null(project_data$planning_unit) || is.null(project_data$planning_unit$path)) {
@@ -233,6 +269,20 @@ server_import_projects_database <- quote({
       tryCatch({
         raster <- terra::rast(path)
         if (inherits(raster, "SpatRaster")) {
+          # Check if grid matches planning unit
+          if (!terra::compareGeom(raster, pu_raster, stopOnError = FALSE)) {
+            cat("*** Grid mismatch for layer:", path, "***\n")
+            cat("*** Reprojecting to match planning unit grid ***\n")
+            
+            # Reproject to match planning unit
+            raster <- terra::project(
+              x = raster,
+              y = pu_raster,
+              method = "near"  # nearest neighbor
+            )
+            cat("*** Layer reprojected successfully ***\n")
+          }
+          
           layer_rasters[[length(layer_rasters) + 1]] <- raster
           valid_layer_indices <- c(valid_layer_indices, i)
           cat("*** Successfully loaded layer:", path, "***\n")
@@ -291,21 +341,41 @@ server_import_projects_database <- quote({
       cat("*** Creating variable for layer", i, ":", layer$name, "using index", layer_index, "***\n")
       
       # Create variable from layer using column index
-      # Handle color and labels which are stored as lists in the data frame
+      # Handle color, labels, and values which are stored as lists in the data frame
+      layer_values <- if (length(layer$values[[1]]) > 0) layer$values[[1]] else c()
       layer_colors <- if (length(layer$color[[1]]) > 0) layer$color[[1]] else "random"
       layer_labels <- if (length(layer$labels[[1]]) > 0) layer$labels[[1]] else "missing"
       
+      cat("*** Layer values:", paste(layer_values, collapse = ", "), "***\n")
       cat("*** Layer colors:", paste(layer_colors, collapse = ", "), "***\n")
       cat("*** Layer labels:", paste(layer_labels, collapse = ", "), "***\n")
+      cat("*** Lengths - values:", length(layer_values), "colors:", length(layer_colors), "labels:", length(layer_labels), "***\n")
       
-      variable <- wheretowork::new_variable_from_auto(
-        dataset = dataset,
-        index = layer_index,  # Use column index instead of file path
-        units = if (is.null(layer$unit)) "" else layer$unit,
-        type = if (layer$legend == "continuous") "continuous" else if (layer$legend == "manual") "manual" else "auto",
-        colors = layer_colors,
-        labels = layer_labels
-      )
+      # Check actual raster values for manual layers
+      if (layer$legend == "manual") {
+        raster_unique_vals <- sort(terra::unique(layer_rasters[[length(layer_rasters)]])[[1]])
+        cat("*** RASTER contains these unique values:", paste(raster_unique_vals, collapse = ", "), "***\n")
+        cat("*** CSV expects these values:", paste(layer_values, collapse = ", "), "***\n")
+        if (length(raster_unique_vals) != length(layer_labels)) {
+          cat("*** WARNING: Raster has", length(raster_unique_vals), "unique values but CSV only has", length(layer_labels), "labels! ***\n")
+        }
+      }
+      
+      variable <- tryCatch({
+        wheretowork::new_variable_from_auto(
+          dataset = dataset,
+          index = layer_index,  # Use column index instead of file path
+          units = if (is.null(layer$unit)) "" else layer$unit,
+          type = if (layer$legend == "continuous") "continuous" else if (layer$legend == "manual") "manual" else "auto",
+          colors = layer_colors,
+          labels = layer_labels
+        )
+      }, error = function(e) {
+        cat("*** ERROR creating variable:", e$message, "***\n")
+        cat("*** This is likely because the raster contains values not specified in the CSV ***\n")
+        cat("*** Solution: Re-upload the project after the raster standardization fix ***\n")
+        stop(e$message)
+      })
       
       # Add to appropriate category based on type
       if (layer$type == "theme") {
