@@ -559,18 +559,39 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
 
           ### Build themes payload (SolutionLayers)
           str_to_array <- function(col_values) {
-            list <- strsplit(col_values, ",")
+            # Handle NA, NULL, or empty string
+            if (is.na(col_values) || is.null(col_values) || nchar(trimws(col_values)) == 0) {
+              return(character(0))
+            }
+            list <- strsplit(as.character(col_values), ",")
             vec <- trimws(unlist(list))
+            # Remove empty strings
+            vec <- vec[nchar(vec) > 0]
             return(vec)
           }
 
           # get themes + targets
           themes_vec <- str_to_array(row$themes)
           targets_vec <- str_to_array(row$targets)
+          
+          cat("*** THEME MATCHING DEBUG ***\n")
+          cat("*** Themes from CSV:", paste(themes_vec, collapse = ", "), "***\n")
+          cat("*** Targets from CSV:", paste(targets_vec, collapse = ", "), "***\n")
+          
+          # Check if we have themes
+          if (length(themes_vec) == 0) {
+            cat("*** ERROR: No themes provided in solutions.csv ***\n")
+            stop("Solution must have at least one theme. Check solutions.csv row ", idx)
+          }
+          
+          if (length(themes_vec) != length(targets_vec)) {
+            cat("*** ERROR: Number of themes (", length(themes_vec), ") != number of targets (", length(targets_vec), ") ***\n")
+            stop("Themes and targets must have the same length. Check solutions.csv row ", idx)
+          }
 
           # construct list of theme inputs for addSolution
           cat("*** THEME MATCHING DEBUG ***\n")
-          cat("*** Themes from CSV:", paste(themes_vec, collapse = ", "), "***\n")
+          cat("*** Processing", length(themes_vec), "themes ***\n")
           
           themes_payload <- lapply(seq_along(themes_vec), function(j) {
             proj_layer_id <- layers_df$id[match(themes_vec[[j]], layers_df$name)]

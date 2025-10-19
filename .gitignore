@@ -28,4 +28,7 @@ Cambio_Global/**/*.dbf
 Cambio_Global/**/*.prj
 Cambio_Global/**/*.shp
 Cambio_Global/**/*.shx
+Cambio_Global/**/*.sbx
+Cambio_Global/**/*.sbn
+Cambio_Global/**/*.tfw
 Cambio_Global/**/*.lock
