@@ -81,6 +81,8 @@ constraint_weight_layers <- data.frame(
   output_name = c("resguardos_indigenas", "comunidades_negras", "RUNAP",
                   "ECC_SIRAPEC", "OMECs", "IHEH_2022", "IHEH_2030_desarrollista", "Beneficio_neto"),
   type = c("include", "include", "include", "include", "include", "weight", "weight", "weight"),
+  is_binary = rep(NA, 8),  # Will be determined by checking actual data
+  is_all_na = rep(FALSE, 8),  # Track layers with no data (all NAs)
   stringsAsFactors = FALSE
 )
 
@@ -89,7 +91,33 @@ for (i in 1:nrow(constraint_weight_layers)) {
   out_name <- constraint_weight_layers$output_name[i]
   
   if (col_name %in% names(pu_data)) {
-    cat(sprintf("  Processing: %s\n", col_name))
+    # Check if column has any non-NA values
+    col_values <- pu_data[[col_name]]
+    unique_vals <- unique(col_values[!is.na(col_values)])
+    
+    # Track if column is all NAs (no data for this region)
+    is_all_na <- (length(unique_vals) == 0)
+    
+    if (is_all_na) {
+      cat(sprintf("  Processing %s: column is all NAs (no data for this SIRAP) - will display as grey\n", col_name))
+      # Treat as binary with only 0 values, NAs will become 0
+      is_binary <- TRUE
+      constraint_weight_layers$is_binary[i] <- is_binary
+      constraint_weight_layers$is_all_na[i] <- TRUE
+    } else {
+      cat(sprintf("  Processing: %s\n", col_name))
+      
+      # Check if values are binary (only 0, 1, and NA)
+      is_binary <- all(unique_vals %in% c(0, 1))
+      constraint_weight_layers$is_binary[i] <- is_binary
+      
+      if (is_binary) {
+        cat(sprintf("    Detected as BINARY (values: %s)\n", paste(sort(unique_vals), collapse=", ")))
+      } else {
+        cat(sprintf("    Detected as CONTINUOUS (range: %.2f to %.2f)\n", 
+                    min(col_values, na.rm=TRUE), max(col_values, na.rm=TRUE)))
+      }
+    }
     
     # Create raster matching PU IDs to raster cell values (vectorized)
     r <- pu_raster
@@ -221,28 +249,114 @@ theme_layers <- data.frame(
 )
 
 # Add constraint and weight layers
-constraint_layers <- data.frame(
-  Type = c("include", "include", "include", "include", "include", "weight", "weight", "weight"),
-  Theme = rep("", 8),
-  File = c("resguardos_indigenas.tif", "comunidades_negras.tif", "RUNAP.tif",
-           "ECC_SIRAPEC.tif", "OMECs.tif", "IHEH_2022.tif", "IHEH_2030_desarrollista.tif", "Beneficio_neto.tif"),
-  Name = c("Resguardos Indígenas", "Comunidades Negras", "RUNAP",
-           "ECC SIRAPEC", "OMECs", "IHEH 2022", "IHEH 2030", "Beneficio Neto"),
-  Legend = c("manual", "manual", "manual", "manual", "manual", "continuous", "continuous", "continuous"),
-  Values = c("0, 1", "0, 1", "0, 1", "0, 1", "0, 1", "", "", ""),
-  Color = c("#00000000, #5ea53f", "#00000000, #86af43", "#00000000, #4a7c59",
-            "#00000000, #3d6b4d", "#00000000, #2e5a41", "Reds", "Reds", "Greens"),
-  Labels = c("not included, included", "not included, included", "not included, included",
-             "not included, included", "not included, included", "", "", ""),
-  Unit = rep("km2", 8),
-  Provenance = rep("national", 8),  # Use "national" - valid enum value
-  Order = rep("", 8),
-  Visible = c(rep("TRUE", 5), rep("FALSE", 3)),
-  Hidden = rep("FALSE", 8),
-  Goal = rep("0.3", 8),
-  Downloadable = rep("TRUE", 8),
-  stringsAsFactors = FALSE
-)
+# Filter to only include layers that were actually extracted (is_binary is not NA)
+extracted_constraints <- constraint_weight_layers[!is.na(constraint_weight_layers$is_binary), ]
+
+if (nrow(extracted_constraints) > 0) {
+  # Constraint/weight layers metadata using detected binary status
+  legend_types <- ifelse(extracted_constraints$is_binary, "manual", "continuous")
+  
+  # For all-NA layers, only specify the values that actually exist (just 0)
+  legend_values <- sapply(1:nrow(extracted_constraints), function(j) {
+    if (extracted_constraints$is_binary[j]) {
+      if (extracted_constraints$is_all_na[j]) {
+        "0"  # All-NA layers only have 0 values
+      } else {
+        "0, 1"  # Normal binary layers
+      }
+    } else {
+      ""  # Continuous layers
+    }
+  })
+  
+  # Use different labels for all-NA layers vs. normal binary layers
+  legend_labels <- sapply(1:nrow(extracted_constraints), function(j) {
+    if (extracted_constraints$is_binary[j]) {
+      if (extracted_constraints$is_all_na[j]) {
+        "0"  # All-NA layers - just label the 0 value
+      } else {
+        "not included, included"  # Normal binary layers
+      }
+    } else {
+      ""  # Continuous layers
+    }
+  })
+  
+  # Color palette based on type and binary status
+  colors <- sapply(1:nrow(extracted_constraints), function(j) {
+    if (extracted_constraints$is_binary[j]) {
+      # Check if layer is all NAs (no data)
+      if (extracted_constraints$is_all_na[j]) {
+        # All-NA layers: transparent (hidden)
+        "#00000000"  # Transparent
+      } else {
+        # Normal binary layers get transparent + color
+        color_palette <- c("#00000000, #5ea53f", "#00000000, #86af43", 
+                          "#00000000, #4a7c59", "#00000000, #3d6b4d", "#00000000, #2e5a41")
+        color_palette[((j-1) %% 5) + 1]
+      }
+    } else {
+      # Continuous layers get color ramp
+      if (extracted_constraints$type[j] == "weight") {
+        if (grepl("Beneficio", extracted_constraints$output_name[j])) {
+          "Greens"
+        } else {
+          "Reds"
+        }
+      } else {
+        "Greens"
+      }
+    }
+  })
+  
+  # Dynamically build display names from column names
+  display_names <- c(
+    "Resguardos_Indígenas" = "Resguardos Indígenas",
+    "Comunidades_Negras" = "Comunidades Negras",
+    "RUNAP" = "RUNAP",
+    "ECC_SIRAPEC" = "ECC SIRAPEC",
+    "OMECs" = "OMECs",
+    "IHEH_2022" = "IHEH 2022",
+    "IHEH_2030_desarrollista" = "IHEH 2030",
+    "Beneficio_neto" = "Beneficio Neto"
+  )
+  
+  # Visible: TRUE for includes (except all-NA layers), FALSE for weights
+  visible_values <- sapply(1:nrow(extracted_constraints), function(j) {
+    if (extracted_constraints$type[j] == "include") {
+      # Hide all-NA layers (like Comunidades Negras)
+      if (extracted_constraints$is_all_na[j]) {
+        return("FALSE")
+      } else {
+        return("TRUE")
+      }
+    } else {
+      return("FALSE")  # Weights hidden by default
+    }
+  })
+  
+  constraint_layers <- data.frame(
+    Type = extracted_constraints$type,
+    Theme = rep("", nrow(extracted_constraints)),
+    File = paste0(extracted_constraints$output_name, ".tif"),
+    Name = sapply(extracted_constraints$column_name, function(x) display_names[[x]]),
+    Legend = legend_types,
+    Values = legend_values,
+    Color = colors,
+    Labels = legend_labels,
+    Unit = rep("km2", nrow(extracted_constraints)),
+    Provenance = rep("national", nrow(extracted_constraints)),
+    Order = rep("", nrow(extracted_constraints)),
+    Visible = visible_values,
+    Hidden = rep("FALSE", nrow(extracted_constraints)),
+    Goal = rep("0.3", nrow(extracted_constraints)),
+    Downloadable = rep("TRUE", nrow(extracted_constraints)),
+    stringsAsFactors = FALSE
+  )
+} else {
+  # No constraint/weight layers extracted
+  constraint_layers <- data.frame()
+}
 
 # Combine theme and constraint layers
 layers_metadata <- rbind(theme_layers, constraint_layers)

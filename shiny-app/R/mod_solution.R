@@ -632,15 +632,23 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
           qry_sol <- Query$new()
           qry_sol$query("addSolution", add_solution_mutation)
 
+          # Helper function to convert to string, handling NA
+          safe_char <- function(x) {
+            if (is.na(x) || is.null(x) || length(x) == 0) {
+              return("")
+            }
+            as.character(x)
+          }
+          
           sol_payload <- list(
             input = list(
               projectId   = as.character(input$project_select),
               authorId    = as.character(user_info()$id),
-              title       = as.character(row$scenario),  # Ensure string conversion
-              description = as.character(row$description),
-              authorName  = as.character(row$author_name),
-              authorEmail = as.character(row$author_email),
-              userGroup   = as.character(row$user_group),
+              title       = safe_char(row$scenario),
+              description = safe_char(row$description),
+              authorName  = safe_char(row$author_name),
+              authorEmail = safe_char(row$author_email),
+              userGroup   = safe_char(row$user_group),
               fileId      = as.character(new_file_id),
               weightIds = weight_ids,
               includeIds = include_ids,

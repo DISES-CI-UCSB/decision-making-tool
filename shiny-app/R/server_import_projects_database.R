@@ -353,11 +353,29 @@ server_import_projects_database <- quote({
       
       # Check actual raster values for manual layers
       if (layer$legend == "manual") {
-        raster_unique_vals <- sort(terra::unique(layer_rasters[[length(layer_rasters)]])[[1]])
-        cat("*** RASTER contains these unique values:", paste(raster_unique_vals, collapse = ", "), "***\n")
-        cat("*** CSV expects these values:", paste(layer_values, collapse = ", "), "***\n")
+        raster_unique_vals <- sort(terra::unique(layer_rasters[[i]])[[1]])
+        
+        # Truncate long lists for readability
+        if (length(raster_unique_vals) <= 10) {
+          vals_preview <- paste(raster_unique_vals, collapse = ", ")
+        } else {
+          first_5 <- paste(head(raster_unique_vals, 5), collapse = ", ")
+          last_5 <- paste(tail(raster_unique_vals, 5), collapse = ", ")
+          vals_preview <- paste0(first_5, " ... (", length(raster_unique_vals) - 10, " more) ... ", last_5)
+        }
+        
+        cat("*** RASTER unique values (", length(raster_unique_vals), " total): ", vals_preview, " ***\n", sep = "")
+        cat("*** CSV expects these values: ", paste(layer_values, collapse = ", "), " ***\n", sep = "")
+        
         if (length(raster_unique_vals) != length(layer_labels)) {
-          cat("*** WARNING: Raster has", length(raster_unique_vals), "unique values but CSV only has", length(layer_labels), "labels! ***\n")
+          cat("\n")
+          cat("============================================================\n")
+          cat("ERROR: Raster/CSV value mismatch for layer '", layer$name, "'\n", sep = "")
+          cat("  - Raster has ", length(raster_unique_vals), " unique values\n", sep = "")
+          cat("  - CSV specifies ", length(layer_labels), " labels\n", sep = "")
+          cat("  - Layer file: ", layer$file, "\n", sep = "")
+          cat("============================================================\n")
+          cat("\n")
         }
       }
       
@@ -371,9 +389,24 @@ server_import_projects_database <- quote({
           labels = layer_labels
         )
       }, error = function(e) {
-        cat("*** ERROR creating variable:", e$message, "***\n")
-        cat("*** This is likely because the raster contains values not specified in the CSV ***\n")
-        cat("*** Solution: Re-upload the project after the raster standardization fix ***\n")
+        cat("\n")
+        cat("============================================================\n")
+        cat("FATAL ERROR creating variable for layer: ", layer$name, "\n", sep = "")
+        cat("  Error message: ", e$message, "\n", sep = "")
+        cat("  Layer file: ", layer$file, "\n", sep = "")
+        cat("  Layer type: ", layer$type, "\n", sep = "")
+        cat("  Legend type: ", layer$legend, "\n", sep = "")
+        if (layer$legend == "manual") {
+          cat("  Expected values: ", paste(layer_values, collapse = ", "), "\n", sep = "")
+          cat("  Expected labels: ", paste(layer_labels, collapse = ", "), "\n", sep = "")
+        }
+        cat("\n")
+        cat("Common causes:\n")
+        cat("  1. Raster contains values not in CSV (e.g., floating point errors)\n")
+        cat("  2. Raster file is corrupt or wrong file\n")
+        cat("  3. Values/Labels mismatch in layers.csv\n")
+        cat("============================================================\n")
+        cat("\n")
         stop(e$message)
       })
       

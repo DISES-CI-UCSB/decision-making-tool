@@ -1,5 +1,5 @@
 # ============================================================================
-# Extract Features from RIJ Matrix for Nacional (5km)
+# Extract Features from RIJ Matrix for ORINOQUIA (3km)
 # ============================================================================
 
 library(raster)
@@ -11,18 +11,18 @@ library(dplyr)
 # ============================================================================
 
 cat("\n============================================================================\n")
-cat("Nacional Feature Extraction (5km resolution)\n")
+cat("ORINOQUIA Feature Extraction (3km resolution)\n")
 cat("============================================================================\n\n")
 
 # Set working directory to Cambio_Global root
 setwd("C:/Users/danwillett/Code/SCALE/decision-making-tool/Cambio_Global")
 
 # Define paths
-pu_raster_file <- "./features/PUs_Nacional_5km.tif"
-pu_csv_file <- "./input/PUs_Nacional_5km.csv"
-rij_file <- "./input/rij_Nacional_5km.fst"
+pu_raster_file <- "./PUs/PUs_ORINOQUIA_3km.tif"
+pu_csv_file <- "./input/PUs_ORINOQUIA_3km.csv"
+rij_file <- "./input/rij_ORINOQUIA_3km.fst"
 features_file <- "./input/features_v4_4_24_(MAPV).xlsx"
-output_dir <- "./nacional_processing/extracted_features"
+output_dir <- "./orinoquia_processing/extracted_features"
 
 # Create output directory
 if (!dir.exists(output_dir)) {
@@ -91,90 +91,103 @@ scenarios_file <- "./input/scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xl
 cat("\nLoading scenarios to extract feature names...\n")
 scenarios <- openxlsx::read.xlsx(scenarios_file, sheet = 1, detectDates = FALSE)
 
-# Filter for Nacional scenarios if SIRAP column exists
+# Filter for ORINOQUIA scenarios if SIRAP column exists
 if ("SIRAP" %in% names(scenarios)) {
   cat(sprintf("  Total scenarios in file: %d\n", nrow(scenarios)))
-  scenarios <- scenarios[scenarios$SIRAP == "Nacional" | scenarios$SIRAP == "nacional", ]
-  cat(sprintf("  Filtered to Nacional scenarios: %d\n", nrow(scenarios)))
+  scenarios <- scenarios[scenarios$SIRAP == "ORINOQUIA" | scenarios$SIRAP == "orinoquia" | scenarios$SIRAP == "Orinoquia", ]
+  cat(sprintf("  Filtered to ORINOQUIA scenarios: %d\n", nrow(scenarios)))
 } else {
   cat("  WARNING: No SIRAP column found. Using all scenarios.\n")
 }
 
-# Extract all unique id_elemento values and their names from Nacional scenarios
-all_id_elementos <- c()
-all_elemento_names <- c()
-
-for (i in 1:nrow(scenarios)) {
-  # Get comma-separated IDs
-  ids_str <- as.character(scenarios$id_elemento_priorizacion[i])
-  names_str <- as.character(scenarios$elemento_priorizacion[i])
+# If no ORINOQUIA scenarios found, use all unique features from rij
+if (nrow(scenarios) == 0) {
+  cat("  WARNING: No ORINOQUIA scenarios found in spreadsheet.\n")
+  cat("  Will extract all unique id_elemento_priorizacion from rij/features metadata.\n")
   
-  if (!is.na(ids_str) && !is.na(names_str)) {
-    ids <- trimws(strsplit(ids_str, ",")[[1]])
-    names <- trimws(strsplit(names_str, ",")[[1]])
+  unique_elementos <- unique(features$id_elemento_priorizacion)
+  unique_elementos <- unique_elementos[!is.na(unique_elementos)]
+  
+  # Create basic mapping from features metadata
+  feature_id_to_name <- list()
+  for (elem_id in unique_elementos) {
+    elem_features <- features %>% filter(id_elemento_priorizacion == elem_id)
+    if (nrow(elem_features) > 0) {
+      # Use elemento_priorizacion if available, otherwise use generic name
+      if ("elemento_priorizacion" %in% names(elem_features) && !is.na(elem_features$elemento_priorizacion[1])) {
+        feature_id_to_name[[as.character(elem_id)]] <- elem_features$elemento_priorizacion[1]
+      } else {
+        feature_id_to_name[[as.character(elem_id)]] <- paste("Feature", elem_id)
+      }
+    }
+  }
+  
+} else {
+  # Extract all unique id_elemento values and their names from ORINOQUIA scenarios
+  all_id_elementos <- c()
+  all_elemento_names <- c()
+  
+  for (i in 1:nrow(scenarios)) {
+    # Get comma-separated IDs
+    ids_str <- as.character(scenarios$id_elemento_priorizacion[i])
+    names_str <- as.character(scenarios$elemento_priorizacion[i])
     
-    # Only use if lengths match
-    if (length(ids) == length(names)) {
-      all_id_elementos <- c(all_id_elementos, ids)
-      all_elemento_names <- c(all_elemento_names, names)
+    if (!is.na(ids_str) && !is.na(names_str)) {
+      ids <- trimws(strsplit(ids_str, ",")[[1]])
+      names <- trimws(strsplit(names_str, ",")[[1]])
+      
+      # Only use if lengths match
+      if (length(ids) == length(names)) {
+        all_id_elementos <- c(all_id_elementos, ids)
+        all_elemento_names <- c(all_elemento_names, names)
+      }
+    }
+  }
+  
+  # Create mapping from scenarios
+  scenarios_mapping <- data.frame(
+    id = all_id_elementos,
+    name = all_elemento_names,
+    stringsAsFactors = FALSE
+  )
+  scenarios_mapping <- unique(scenarios_mapping)
+  
+  cat(sprintf("  Extracted %d unique feature mappings from scenarios\n", nrow(scenarios_mapping)))
+  
+  # Get unique elementos that are actually in our rij/features
+  unique_elementos <- unique(features$id_elemento_priorizacion)
+  unique_elementos <- unique_elementos[!is.na(unique_elementos)]
+  
+  # Filter to only elementos in ORINOQUIA scenarios
+  unique_elementos <- unique_elementos[as.character(unique_elementos) %in% scenarios_mapping$id]
+  
+  # Create feature ID to name mapping
+  feature_id_to_name <- list()
+  for (elem_id in unique_elementos) {
+    id_str <- as.character(elem_id)
+    mapping_row <- scenarios_mapping[scenarios_mapping$id == id_str, ]
+    if (nrow(mapping_row) > 0) {
+      feature_id_to_name[[id_str]] <- mapping_row$name[1]
     }
   }
 }
 
-# Create mapping from scenarios
-scenarios_mapping <- data.frame(
-  id = all_id_elementos,
-  name = all_elemento_names,
-  stringsAsFactors = FALSE
-)
-
-# Get unique mappings (in case of duplicates)
-scenarios_mapping <- scenarios_mapping %>%
-  distinct(id, .keep_all = TRUE)
-
-cat(sprintf("  Extracted %d unique feature mappings from scenarios\n", nrow(scenarios_mapping)))
-cat("\nAll extracted mappings:\n")
-for (j in 1:nrow(scenarios_mapping)) {
-  cat(sprintf("  ID %s -> %s\n", scenarios_mapping$id[j], scenarios_mapping$name[j]))
+cat(sprintf("  Will extract %d features for ORINOQUIA\n", length(unique_elementos)))
+cat("  Feature ID to name mapping:\n")
+for (id_str in names(feature_id_to_name)) {
+  cat(sprintf("    %s -> %s\n", id_str, feature_id_to_name[[id_str]]))
 }
 
-# Get unique id_elemento_priorizacion values actually used in Nacional scenarios
-nacional_feature_ids <- unique(as.character(scenarios_mapping$id))
-cat(sprintf("\nFeature IDs used in Nacional scenarios: %d\n", length(nacional_feature_ids)))
-cat("  IDs:", paste(sort(as.numeric(nacional_feature_ids)), collapse=", "), "\n")
-
-# Get all unique elementos in rij data for comparison
-all_elementos_in_rij <- unique(features$id_elemento_priorizacion[!is.na(features$id_elemento_priorizacion)])
-cat(sprintf("\nAll feature elements found in rij data: %d\n", length(all_elementos_in_rij)))
-cat("  IDs:", paste(sort(all_elementos_in_rij), collapse=", "), "\n")
-
-# Only extract features that are used in Nacional scenarios
-unique_elementos <- as.numeric(nacional_feature_ids)
-cat(sprintf("\nWill extract %d features (only those used in Nacional)\n", length(unique_elementos)))
-
-# Build feature_name_map using scenarios data
+# Build feature_name_map
 simple_names <- c()
 display_names <- c()
 
-for (id in sort(unique_elementos)) {
+for (id in unique_elementos) {
   id_str <- as.character(id)
   
-  # Look up in scenarios mapping (try both as string and trimmed)
-  mapping_row <- scenarios_mapping[scenarios_mapping$id == id_str, ]
-  
-  # Try alternate lookups if not found
-  if (nrow(mapping_row) == 0) {
-    # Try trimming whitespace
-    mapping_row <- scenarios_mapping[trimws(scenarios_mapping$id) == id_str, ]
-  }
-  if (nrow(mapping_row) == 0) {
-    # Try as numeric comparison
-    mapping_row <- scenarios_mapping[as.numeric(scenarios_mapping$id) == as.numeric(id_str), ]
-  }
-  
-  if (nrow(mapping_row) > 0) {
-    # Use name from scenarios
-    display_name <- mapping_row$name[1]
+  if (id_str %in% names(feature_id_to_name)) {
+    # Use name from mapping
+    display_name <- feature_id_to_name[[id_str]]
     
     # Create simple name from display name with proper accent handling
     simple_name <- display_name
@@ -192,7 +205,7 @@ for (id in sort(unique_elementos)) {
     # Fallback if not found
     simple_names <- c(simple_names, paste0("feature_", sprintf("%02d", id)))
     display_names <- c(display_names, paste("Feature", id))
-    cat(sprintf("  WARNING: No mapping for id_elemento %d in scenarios\n", id))
+    cat(sprintf("  WARNING: No mapping for id_elemento %d\n", id))
   }
 }
 
@@ -278,7 +291,10 @@ for (i in 1:nrow(feature_name_map)) {
   
   # Threshold binary layers (ONE CATEGORY layers should be 0/1)
   # BUT don't threshold species richness layers (they should be continuous)
-  if (feat_id_elemento %in% binary_elementos && !is_species_richness) {
+  # ALSO don't threshold certain features that have fractional coverage values
+  is_continuous_coverage <- grepl("Nucleo.*SIRAPO|Areas.*Nucleo", feat_display_name, ignore.case = TRUE)
+  
+  if (feat_id_elemento %in% binary_elementos && !is_species_richness && !is_continuous_coverage) {
     cat("  Thresholding to binary (0/1)...\n")
     r_values <- values(r)
     # Following rij creation logic: amount >= 1 means presence
@@ -288,6 +304,8 @@ for (i in 1:nrow(feature_name_map)) {
     r_values[!is.na(r_values) & abs(r_values) < 1e-10] <- 0
     values(r) <- r_values
     cat(sprintf("  Unique values after threshold: %s\n", paste(sort(unique(na.omit(r_values))), collapse=", ")))
+  } else if (is_continuous_coverage) {
+    cat("  Keeping continuous coverage values (not thresholding)\n")
   }
   
   # Write raster - use special name for species richness to avoid conflicts
@@ -298,7 +316,7 @@ for (i in 1:nrow(feature_name_map)) {
   }
   
   # Use appropriate datatype: INT1U for binary (0/1), FLT4S for continuous
-  if (feat_id_elemento %in% binary_elementos && !is_species_richness) {
+  if (feat_id_elemento %in% binary_elementos && !is_species_richness && !is_continuous_coverage) {
     # Binary layers: use unsigned 8-bit integer (0-255 range, but we only use 0 and 1)
     writeRaster(r, output_file, overwrite = TRUE, 
                 options = "COMPRESS=DEFLATE", 

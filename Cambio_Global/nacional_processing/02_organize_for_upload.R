@@ -114,6 +114,7 @@ constraint_weight_layers <- data.frame(
            "weight", "weight", "weight",
            "weight", "weight"),
   is_binary = rep(NA, 9),  # Will be determined by checking actual data
+  is_all_na = rep(FALSE, 9),  # Track layers with no data (all NAs)
   stringsAsFactors = FALSE
 )
 
@@ -122,13 +123,26 @@ for (i in 1:nrow(constraint_weight_layers)) {
   out_name <- constraint_weight_layers$output_name[i]
   
   if (col_name %in% names(pu_data)) {
-    cat(sprintf("  Processing: %s\n", col_name))
-    
-    # Check if values are binary (only 0, 1, and NA)
+    # Check if column has any non-NA values
     col_values <- pu_data[[col_name]]
     unique_vals <- unique(col_values[!is.na(col_values)])
-    is_binary <- all(unique_vals %in% c(0, 1))
-    constraint_weight_layers$is_binary[i] <- is_binary
+    
+    # Track if column is all NAs (no data for this region)
+    is_all_na <- (length(unique_vals) == 0)
+    
+    if (is_all_na) {
+      cat(sprintf("  Processing %s: column is all NAs (no data for this SIRAP) - will display as grey\n", col_name))
+      # Treat as binary with only 0 values, NAs will become 0
+      is_binary <- TRUE
+      constraint_weight_layers$is_binary[i] <- is_binary
+      constraint_weight_layers$is_all_na[i] <- TRUE
+    } else {
+      cat(sprintf("  Processing: %s\n", col_name))
+      
+      # Check if values are binary (only 0, 1, and NA)
+      is_binary <- all(unique_vals %in% c(0, 1))
+      constraint_weight_layers$is_binary[i] <- is_binary
+    }
     
     if (is_binary) {
       cat(sprintf("    Detected as BINARY (values: %s)\n", paste(sort(unique_vals), collapse=", ")))
@@ -299,7 +313,7 @@ feature_layers_metadata <- data.frame(
   Unit = rep("km2", length(extracted_files)),
   Provenance = rep("national", length(extracted_files)),
   Order = rep("", length(extracted_files)),
-  Visible = rep("TRUE", length(extracted_files)),
+  Visible = rep("FALSE", length(extracted_files)),  # Theme layers hidden by default
   Hidden = rep("FALSE", length(extracted_files)),
   Goal = rep("0.3", length(extracted_files)),
   Downloadable = rep("TRUE", length(extracted_files)),
@@ -308,16 +322,46 @@ feature_layers_metadata <- data.frame(
 
 # Constraint/weight layers metadata using detected binary status
 legend_types <- ifelse(constraint_weight_layers$is_binary, "manual", "continuous")
-legend_values <- ifelse(constraint_weight_layers$is_binary, "0, 1", "")
-legend_labels <- ifelse(constraint_weight_layers$is_binary, "not included, included", "")
+
+# For all-NA layers, only specify the values that actually exist (just 0)
+legend_values <- sapply(1:nrow(constraint_weight_layers), function(j) {
+  if (constraint_weight_layers$is_binary[j]) {
+    if (constraint_weight_layers$is_all_na[j]) {
+      "0"  # All-NA layers only have 0 values
+    } else {
+      "0, 1"  # Normal binary layers
+    }
+  } else {
+    ""  # Continuous layers
+  }
+})
+
+  # Use different labels for all-NA layers vs. normal binary layers
+legend_labels <- sapply(1:nrow(constraint_weight_layers), function(j) {
+  if (constraint_weight_layers$is_binary[j]) {
+    if (constraint_weight_layers$is_all_na[j]) {
+      "0"  # All-NA layers - just label the 0 value
+    } else {
+      "not included, included"  # Normal binary layers
+    }
+  } else {
+    ""  # Continuous layers
+  }
+})
 
 # Color palette based on type and binary status
 colors <- sapply(1:nrow(constraint_weight_layers), function(j) {
   if (constraint_weight_layers$is_binary[j]) {
-    # Binary layers get transparent + color
-    color_palette <- c("#00000000, #5ea53f", "#00000000, #86af43", 
-                      "#00000000, #4a7c59", "#00000000, #3d6b4d")
-    color_palette[((j-1) %% 4) + 1]
+    # Check if layer is all NAs (no data)
+    if (constraint_weight_layers$is_all_na[j]) {
+      # All-NA layers: transparent (hidden)
+      "#00000000"  # Transparent
+    } else {
+      # Normal binary layers get transparent + color
+      color_palette <- c("#00000000, #5ea53f", "#00000000, #86af43", 
+                        "#00000000, #4a7c59", "#00000000, #3d6b4d")
+      color_palette[((j-1) %% 4) + 1]
+    }
   } else {
     # Continuous layers get color ramp
     if (constraint_weight_layers$type[j] == "weight") {
@@ -334,6 +378,20 @@ colors <- sapply(1:nrow(constraint_weight_layers), function(j) {
   }
 })
 
+# Visible: TRUE for includes (except all-NA layers), FALSE for weights
+visible_values <- sapply(1:nrow(constraint_weight_layers), function(j) {
+  if (constraint_weight_layers$type[j] == "include") {
+    # Hide all-NA layers (like Comunidades Negras)
+    if (constraint_weight_layers$is_all_na[j]) {
+      return("FALSE")
+    } else {
+      return("TRUE")
+    }
+  } else {
+    return("FALSE")  # Weights hidden by default
+  }
+})
+
 constraint_layers_metadata <- data.frame(
   Type = constraint_weight_layers$type,
   Theme = rep("", nrow(constraint_weight_layers)),
@@ -346,7 +404,7 @@ constraint_layers_metadata <- data.frame(
   Unit = rep("km2", nrow(constraint_weight_layers)),
   Provenance = rep("national", nrow(constraint_weight_layers)),
   Order = rep("", nrow(constraint_weight_layers)),
-  Visible = ifelse(constraint_weight_layers$type == "include", "TRUE", "FALSE"),  # Includes visible, weights hidden
+  Visible = visible_values,
   Hidden = rep("FALSE", nrow(constraint_weight_layers)),
   Goal = rep("0.3", nrow(constraint_weight_layers)),
   Downloadable = rep("TRUE", nrow(constraint_weight_layers)),
@@ -411,7 +469,12 @@ for (i in 1:nrow(scenarios)) {
   for (feat_id in features_used) {
     feat_id_str <- as.character(feat_id)
     if (feat_id_str %in% names(feature_id_to_name)) {
-      feature_names <- c(feature_names, feature_id_to_name[[feat_id_str]])
+      feat_name <- feature_id_to_name[[feat_id_str]]
+      # Map "Especies(8700)" -> "Especies Richness" to match layers.csv
+      if (grepl("Especies.*\\(8700\\)|Especies.*8700", feat_name, ignore.case = TRUE)) {
+        feat_name <- "Especies Richness"
+      }
+      feature_names <- c(feature_names, feat_name)
     } else {
       cat(sprintf("  WARNING: No mapping for feature ID %d\n", feat_id))
       feature_names <- c(feature_names, paste("Feature", feat_id))
