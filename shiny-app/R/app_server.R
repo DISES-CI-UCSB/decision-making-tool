@@ -143,8 +143,8 @@ app_server <- function(input, output, session) {
       shinyjs::hide(selector = "a[data-value='login_page']")
       shinyjs::show(selector = "a[data-value='logout_page']")
       
-      # Show admin page only for managers/planners
-      if (!is.null(user_data) && user_data$userGroup %in% c("manager", "planner")) {
+      # Show admin page only for managers (not planners)
+      if (!is.null(user_data) && user_data$userGroup == "manager") {
         shinyjs::show(selector = "a[data-value='admin_page']")
       } else {
         shinyjs::hide(selector = "a[data-value='admin_page']")
@@ -365,6 +365,9 @@ app_server <- function(input, output, session) {
 
   # update solution results
   eval(server_update_solution_results)
+  
+  # update solution selection modal
+  eval(server_update_solution_selection)
 
   # export data
   eval(server_export_data)

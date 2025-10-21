@@ -1,6 +1,7 @@
 import { AuthenticationError } from "apollo-server-express";
 import { Users, Files, ProjectLayers, Solutions, SolutionLayers, Projects } from "../models/index.js";
 import { signToken } from "../utils/auth.js";
+import { Op } from "sequelize";
 
 export const resolvers = {
   Query: {
@@ -12,6 +13,21 @@ export const resolvers = {
     public_projects: async () => {
       return await Projects.findAll({
         where: { user_group: 'public' },
+        include: [
+          { model: Users, as: "owner" },
+          { model: Files, as: "files" },
+          { model: Files, as: "planning_unit" }
+        ]
+      });
+    },
+
+    planner_projects: async () => {
+      return await Projects.findAll({
+        where: { 
+          user_group: {
+            [Op.in]: ['public', 'planner']
+          }
+        },
         include: [
           { model: Users, as: "owner" },
           { model: Files, as: "files" },

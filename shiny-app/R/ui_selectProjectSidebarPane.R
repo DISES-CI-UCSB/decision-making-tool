@@ -22,7 +22,7 @@ selectProjectSidebarPane <- function(id) {
             container: 'body',
             trigger: 'hover',
             placement: 'right',
-            title: 'Open sidebar for choosing a project to load'
+            title: 'Escoge y abre un proyecto'
           });
         ")),
         htmltools::tags$div(

@@ -109,16 +109,81 @@ solutionResults_html <- function(id, style, class, ...) {
       id = id, class = class, style = style,
       htmltools::div(
         class = "solution-results-container",
+        
+        # Load solution controls (always visible at top)
+        htmltools::tags$div(
+          style = "margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;",
+          htmltools::tags$h5("Cargar Solución", style = "margin-top: 0; margin-bottom: 12px; font-weight: 600;"),
+          htmltools::tags$p("Selecciona una solución de la base de datos para cargarla en el mapa.", 
+                           style = "font-size: 0.85em; color: #666; margin-bottom: 15px; line-height: 1.4;"),
+          
+          # Info button to see all solutions
+          htmltools::tags$div(
+            style = "margin-bottom: 15px; text-align: center;",
+            shiny::actionButton(
+              inputId = "open_solutions_modal",
+              label = "Ver Información de Soluciones",
+              icon = shiny::icon("info-circle"),
+              class = "btn btn-info btn-sm btn-block"
+            )
+          ),
+          
+          # Solution selector dropdown
+          htmltools::tags$div(
+            style = "margin-bottom: 12px;",
+            shinyWidgets::pickerInput(
+              inputId = "load_solution_list",
+              label = "Seleccionar solución:",
+              choices = c("Seleccione una solución" = ""),
+              multiple = FALSE,
+              options = list()
+            )
+          ),
+          
+          # Color and load button row
+          htmltools::tags$div(
+            style = "display: flex; gap: 10px; align-items: flex-end;",
+            htmltools::tags$div(
+              style = "flex: 1;",
+              colourpicker::colourInput(
+                inputId = "load_solution_color",
+                label = "Color de visualización:",
+                value = "#228B22",
+                showColour = "background",
+                palette = "square"
+              )
+            ),
+            htmltools::tags$div(
+              style = "flex: 0 0 auto;",
+              htmltools::tags$label(style = "display: block; margin-bottom: 5px; color: transparent;", "."),
+              shinyFeedback::loadingButton(
+                inputId = "load_solution_button",
+                label = "Cargar",
+                class = "btn btn-primary btn-block",
+                loadingLabel = "Cargando..."
+              )
+            )
+          )
+        ),
+        
         htmltools::div(
           class = "solution-results",
           # header
           htmltools::tags$div(
             class = "solution-results-header",
+            
+            # View solution results section
+            htmltools::tags$div(
+              style = "margin-bottom: 15px;",
+              htmltools::tags$h5("Ver Resultados", style = "margin-top: 0; margin-bottom: 12px; font-weight: 600;"),
+              htmltools::tags$p("Selecciona una solución cargada para ver sus estadísticas y análisis.", 
+                               style = "font-size: 0.85em; color: #666; margin-bottom: 10px; line-height: 1.4;")
+            ),
             # select input
             horizontalPickerInput(
               inputId = paste0(id, "_select"),
-              label = "Solution:",
-              choices = c("NA" = "NA"),
+              label = "Solución cargada:",
+              choices = c("Ninguna" = "NA"),
               selected = NULL,
               options = list(
                 `dropdown-align-right` = "true",
@@ -143,7 +208,7 @@ solutionResults_html <- function(id, style, class, ...) {
               )
             )
           ),
-          # modal
+          # modals
           solutionResultsModal(
             id = paste0(id, "_modal"),
             trigger = paste0(id, "_button")
@@ -156,29 +221,7 @@ solutionResults_html <- function(id, style, class, ...) {
               id = paste0(id, "_collapse"),
               multiple = FALSE,
               open = paste0(id, "_collapseStatisticPanel"),
-              # AOI Selection Panel (collapsible)
-              shinyBS::bsCollapsePanel(
-                title = htmltools::tags$span(
-                  shinyBS::tipify(
-                    el = htmltools::tags$span(
-                      shiny::icon("map-marked-alt"),
-                      "AOI Analysis"
-                    ),
-                    title = paste(
-                      "Area of Interest (AOI) Analysis.",
-                      "Draw or upload a polygon to analyze solution coverage",
-                      "within a specific area. Shows theme coverage statistics",
-                      "and area calculations for the selected region."
-                    ),
-                    options = list(container = "body")
-                  )
-                ),
-                value = paste0(id, "_collapseAOIPanel"),
-                htmltools::tags$div(
-                  class = "panel-content-inner",
-                  aoiSelectionUI(paste0(id, "_aoi"))
-                )
-              ),
+              # Summary Panel
               shinyBS::bsCollapsePanel(
                 title = htmltools::tags$span(
                   shinyBS::tipify(
@@ -359,6 +402,29 @@ solutionResults_html <- function(id, style, class, ...) {
                       )
                     )
                   )
+                )
+              ),
+              # AOI Selection Panel (moved to bottom)
+              shinyBS::bsCollapsePanel(
+                title = htmltools::tags$span(
+                  shinyBS::tipify(
+                    el = htmltools::tags$span(
+                      shiny::icon("map-marked-alt"),
+                      "Análisis de AOI"
+                    ),
+                    title = paste(
+                      "Análisis de Área de Interés (AOI).",
+                      "Dibuja o sube un polígono para analizar la cobertura de la solución",
+                      "dentro de un área específica. Muestra estadísticas de cobertura de temas",
+                      "y cálculos de área para la región seleccionada."
+                    ),
+                    options = list(container = "body")
+                  )
+                ),
+                value = paste0(id, "_collapseAOIPanel"),
+                htmltools::tags$div(
+                  class = "panel-content-inner",
+                  aoiSelectionUI(paste0(id, "_aoi"))
                 )
               )
             )

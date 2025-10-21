@@ -47,7 +47,7 @@ solutionResultsSidebarPane <- function(id, solutionResultsId = NULL) {
   ## create sidebar
   w <-
     leaflet.extras2::sidebar_pane(
-      title = "Solution results",
+      title = "Soluciones",
       id = id,
       icon = NULL,
       htmltools::tags$div(
@@ -57,7 +57,7 @@ solutionResultsSidebarPane <- function(id, solutionResultsId = NULL) {
             container: 'body',
             trigger: 'hover',
             placement: 'left',
-            title: 'Open sidebar for evaluating solutions'
+            title = 'Load and analyze solutions'
           });
         ")),
         htmltools::tags$div(

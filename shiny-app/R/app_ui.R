@@ -117,10 +117,9 @@ app_ui <- function(request) {
           leaflet.extras2::sidebar_tabs(
             id = "analysisSidebar",
             iconList = list(
-              shiny::icon("rocket"),
               shiny::icon("tachometer-alt")
             ),
-            newSolutionSidebarPane(id = "newSolutionPane"),
+            # newSolutionSidebarPane(id = "newSolutionPane"),  # HIDDEN - users shouldn't run prioritizations
             solutionResultsSidebarPane(id = "solutionResultsPane")
           )
         )

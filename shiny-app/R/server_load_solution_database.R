@@ -5,6 +5,7 @@ NULL
 server_load_solution_database <- quote({
 
   # Database solution loading when load_solution_button pressed
+  # (Note: selected solution title is available in server_update_solution_selection.R)
   shiny::observeEvent(input$load_solution_button, {
     
     # Only handle database solutions (file paths starting with "uploads/")
@@ -437,9 +438,10 @@ server_load_solution_database <- quote({
       }
       solution_raster <- terra::rast(solution_path)
       
-      # Get solution color and name
+      # Get solution color and use title from database
       curr_color <- input$load_solution_color
-      curr_name <- gsub("-", " ", tools::file_path_sans_ext(basename(input$load_solution_list)))
+      curr_name <- solution_data$title  # Use title from GraphQL query
+      cat("*** Using solution title:", curr_name, "***\n")
       
       # Extract solution values from raster
       # The dataset only contains cells where planning unit > 0, so we need to filter the solution too

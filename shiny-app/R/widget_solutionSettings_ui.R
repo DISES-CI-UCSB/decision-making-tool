@@ -249,56 +249,15 @@ solutionSettings_html <- function(id, style, class, ...) {
         )
       ),
 
-      ### footer
+      ### footer (load solution controls moved to solutionResults widget)
       htmltools::tags$div(
         class = "solution-footer",
 
-        htmltools::tags$div(
-          class = "load-solution-list",
-          `data-toggle` = "tooltip",
-          `data-placement` = "bottom",
-          `data-container` = "body",
-          `data-trigger` = "hover",
-          title = "Select a solution previously generated for this project",
-          shinyWidgets::pickerInput(
-              inputId = "load_solution_list",
-              choices = c(""),
-              multiple = FALSE,
-              options = list(),
-              choicesOpt = list(style = c("color: grey;")),
-          ),
-          style = "width: calc(100% - 117px);"
-        ),
-        htmltools::tags$div(
-          class = "load-solution-color",
-          `data-toggle` = "tooltip",
-          `data-placement` = "top",
-          `data-container` = "body",
-          `data-trigger` = "hover",
-          title = "Select a color for the solution to load",
-          colourpicker::colourInput(
-            inputId = "load_solution_color",
-            value = "#228B22",
-            showColour = "background",
-            label = NULL,
-            palette = "square"
-          )
-        ),
-        htmltools::tags$div(
-          class = "load-solution-button",
-          `data-toggle` = "tooltip",
-          `data-placement` = "top",
-          `data-container` = "body",
-          `data-trigger` = "hover",
-          title = "Load the settings and solution selected",
-          shinyFeedback::loadingButton(
-            inputId = "load_solution_button",
-            label = "Load",
-            class = "btn btn-primary",
-            loadingLabel = "",
-            style = "width: 86px;"
-          )
-        ),
+        # REMOVED: Load solution controls now in solutionResults widget
+        # htmltools::tags$div(
+        #   class = "load-solution-list",
+        #   ...
+        # ),
         htmltools::tags$div(
           class = "solution-footer-name",
           `data-toggle` = "tooltip",

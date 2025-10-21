@@ -50,7 +50,7 @@ mapManagerSidebarPane <- function(id,
             container: 'body',
             trigger: 'hover',
             placement: 'right',
-            title: 'Open sidebar for controlling data shown on the map'
+            title: 'Escoge y abre los datos visibles sobre el mapa'
           });
         ")),
         htmltools::tags$div(

@@ -34,17 +34,17 @@ mm_header_component_scaffold <- function(id = uuid::UUIDgenerate(),
     icon <- shiny::icon("star", class = "fa-solid")
     remove_tooltip_text <- "Delete Theme"
     visible_tooltip_text <- "Show/hide Theme on map"
-    icon_tooltip_text <- "This is a Theme"
+    icon_tooltip_text <- "Esto es un tema – Los temas describen aspectos de la biodiversidad que son importantes para la conservación (por ejemplo, especies, hábitats, ecosistemas)"
   } else if (identical(type, "weight")) {
     icon <- shiny::icon("weight-hanging")
     remove_tooltip_text <- "Delete Weight"
     visible_tooltip_text <- "Show/hide Weight on map"
-    icon_tooltip_text <- "This is a Weight"
+    icon_tooltip_text <- "Esto es un peso – Un peso describe las propiedades de los lugares que pueden dificultar o mejorar los esfuerzos de conservación"
   } else if (identical(type, "include")) {
     icon <- shiny::icon("lock")
     remove_tooltip_text <- "Delete Include"
     visible_tooltip_text <- "Show/hide Include on map"
-    icon_tooltip_text <- "This is an Include"
+    icon_tooltip_text <- "Esto es una inclusión – Una inclusión se refiere a áreas que ya están gestionadas para la conservación. Al activar una inclusión, se garantiza que las soluciones seleccionen lugares que ya están gestionados para la conservación (similar a \"bloquear\" ciertos lugares en la terminología de planificación sistemática de la conservación)"
   } else if (identical(type, "exclude")) {
     icon <- shiny::icon("ban")
     remove_tooltip_text <- "Delete Exclude"

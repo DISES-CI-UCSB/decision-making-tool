@@ -81,15 +81,11 @@ update_solution_dropdown <- function() {
     print(solutions)
     
     if (nrow(solutions) == 0) {
-      # No solutions found
-      shinyWidgets::updatePickerInput(
-        session = session,
-        inputId = "load_solution_list",
-        choices = c("No solutions available" = ""),
-        selected = "",
-        choicesOpt = list(disabled = c(TRUE))
-      )
+      # No solutions found - disable button
+      shinyjs::disable("open_solutions_modal")
     } else {
+      # Enable button
+      shinyjs::enable("open_solutions_modal")
       # Create choices for dropdown
       # Check if solutions have files
       cat("*** Checking for valid solutions ***\n")

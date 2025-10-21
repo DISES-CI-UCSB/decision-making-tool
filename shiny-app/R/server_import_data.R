@@ -203,7 +203,7 @@ import_data <- function(x, mode) {
   )
   leaflet.extras2::openSidebar(
     map,
-    id = "newSolutionPane", sidebar_id = "analysisSidebar"
+    id = "solutionResultsPane", sidebar_id = "analysisSidebar"
   )
 
   # remove startup mode

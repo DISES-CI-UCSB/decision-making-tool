@@ -46,7 +46,7 @@ helpModal <- function(id, trigger) {
             ),
             htmltools::tags$div(
               class = "modal-header-content",
-              htmltools::h4("Where To Work Help", class = "help-modal-title")
+              htmltools::h4("Ayuda de Where To Work", class = "help-modal-title")
             )
           ),
           ## body

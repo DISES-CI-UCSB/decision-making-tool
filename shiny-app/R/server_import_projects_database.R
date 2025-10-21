@@ -36,6 +36,26 @@ server_import_projects_database <- quote({
     }
   }'
   
+  planner_projects_query <- '
+  query {
+    planner_projects {
+      id
+      title
+      description
+      user_group
+      planning_unit {
+        id
+        name
+        path
+      }
+      owner {
+        id
+        username
+        type
+      }
+    }
+  }'
+  
   all_projects_query <- '
   query {
     all_projects {
@@ -60,10 +80,22 @@ server_import_projects_database <- quote({
   fetch_projects <- function() {
     
     # Choose query based on user type
-    if (!is.null(user_info()) && !is.null(user_info()$type) && user_info()$type == "manager") {
+    user_group <- if (!is.null(user_info()) && !is.null(user_info()$userGroup)) {
+      user_info()$userGroup
+    } else {
+      "public"
+    }
+    
+    cat("*** IMPORT MODAL: Fetching projects for user group:", user_group, "***\n")
+    
+    if (user_group == "manager") {
       query_name <- "all_projects"
       query_text <- all_projects_query
       data_field <- "all_projects"
+    } else if (user_group == "planner") {
+      query_name <- "planner_projects"
+      query_text <- planner_projects_query
+      data_field <- "planner_projects"
     } else {
       query_name <- "public_projects"
       query_text <- public_projects_query
