@@ -29,6 +29,7 @@ cat("\n✓ Feature extraction complete!\n\n")
 cat("STEP 2: Organizing data for upload...\n")
 cat("--------------------------------------------------------------------------------\n")
 
+setwd("C:/Users/danwillett/Code/SCALE/decision-making-tool/Cambio_Global/nacional_processing")
 source("02_organize_for_upload.R")
 
 cat("\n✓ Upload organization complete!\n\n")

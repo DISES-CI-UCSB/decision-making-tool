@@ -459,7 +459,24 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
             
             pu_path <- fromJSON(res_pu)$data$project$planning_unit$path
             
+            # Convert relative path to absolute path based on environment
+            if (!is.null(pu_path)) {
+              if (!startsWith(pu_path, "/")) {
+                if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+                  # Running in Docker container
+                  pu_path <- file.path("/app", pu_path)
+                } else {
+                  # Running locally - use current working directory
+                  pu_path <- file.path(getwd(), pu_path)
+                }
+              }
+            }
+            
+            cat("*** Planning unit path:", pu_path, "***\n")
+            cat("*** Planning unit exists:", !is.null(pu_path) && file.exists(pu_path), "***\n")
+            
             if (!is.null(pu_path) && file.exists(pu_path)) {
+              cat("*** Loading planning unit for solution grid validation ***\n")
               # Load planning unit raster
               pu_raster <- terra::rast(pu_path)
               
@@ -478,8 +495,17 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
                   method = "ngb"  # nearest neighbor for binary solutions
                 )
                 
-                # Convert NA values to 0s
-                solution_raster[is.na(solution_raster)] <- 0
+                # Mask solution to planning unit and fill NAs inside PU
+                # 1. Where PU is NA (outside): set solution to NA (transparent on map)
+                solution_raster[is.na(pu_raster)] <- NA
+                
+                # 2. Where PU exists but solution is NA (inside PU): set to 0
+                # This ensures solution has data wherever PU exists
+                pu_exists <- !is.na(pu_raster)
+                solution_is_na <- is.na(solution_raster)
+                solution_raster[pu_exists & solution_is_na] <- 0
+                
+                cat("*** Masked solution to planning unit and filled NAs inside PU with 0 ***\n")
                 
                 # Save the aligned raster temporarily
                 temp_solution_path <- tempfile(fileext = ".tif")
@@ -491,8 +517,17 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
                 
                 cat("*** Solution aligned and saved ***\n")
               } else {
-                # Grids match, but still convert NA values to 0s
-                solution_raster[is.na(solution_raster)] <- 0
+                # Grids match - mask solution to planning unit and fill NAs inside PU
+                # 1. Where PU is NA (outside): set solution to NA (transparent on map)
+                solution_raster[is.na(pu_raster)] <- NA
+                
+                # 2. Where PU exists but solution is NA (inside PU): set to 0
+                # This ensures solution has data wherever PU exists
+                pu_exists <- !is.na(pu_raster)
+                solution_is_na <- is.na(solution_raster)
+                solution_raster[pu_exists & solution_is_na] <- 0
+                
+                cat("*** Masked solution to planning unit and filled NAs inside PU with 0 ***\n")
                 
                 # Save the cleaned raster
                 temp_solution_path <- tempfile(fileext = ".tif")

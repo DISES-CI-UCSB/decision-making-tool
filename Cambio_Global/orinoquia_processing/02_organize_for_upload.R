@@ -151,6 +151,13 @@ for (i in 1:nrow(constraint_weight_layers)) {
     match_idx <- match(pu_raster_values, pu_data$id)
     output_values <- pu_data[[col_name]][match_idx]  # NA where no match
     
+    # Fill NAs inside planning unit with 0 (represents "absent")
+    # This ensures all layers have data wherever PU exists (required by wheretowork)
+    # Fill where: (1) PU cell exists (not NA in raster), AND (2) data is NA (either no match or actual NA)
+    pu_exists_in_raster <- !is.na(pu_raster_values)
+    data_is_na <- is.na(output_values)
+    output_values[pu_exists_in_raster & data_is_na] <- 0
+    
     values(r) <- output_values
     
     # Write raster
@@ -195,6 +202,38 @@ cat(sprintf("  ✓ Copied %d feature layers\n", length(extracted_files)))
 
 cat("\nCreating layers.csv...\n")
 
+feature_name_map <- data.frame(
+  simple_name = c(
+    "ecosistemas_IAVH",
+    "paramos",
+    "bosque_seco",
+    "especies_focales",
+    "especies_richness",
+    "carbono_organico_suelos",
+    "biomasa_aerea_mas_subterranea",
+    "recarga_agua_subterranea",
+    "areas_nucleoSIRAPO",
+    "humadelesCOL_EC",
+    "Congriales",
+    "condor_habitat"
+  ),
+  display_name = c(
+    "Ecosistemas IAVH",
+    "Páramos",
+    "Bosque Seco",
+    "Especies Focales",
+    "Riqueza de Especies",
+    "Carbono Orgánico Suelos",
+    "Biomasa Aérea más Subterránea",
+    "Recarga de Agua Subterránea",
+    "Áreas núcleo EEP Orinoquía",
+    "Humedales + Humedales SIRAPEC", 
+    "Distribucion Congriales",
+    "Habitat Condor"
+  ),
+  stringsAsFactors = FALSE
+)
+
 # Create metadata for extracted features with proper display names
 display_names_for_layers <- c()
 colors_for_layers <- c()
@@ -203,28 +242,16 @@ for (feat_file in extracted_files) {
   # Extract simple name without .tif
   simple_name <- gsub("\\.tif$", "", feat_file)
   
-  # Try to find matching display name from feature_id_to_name
-  found_name <- NULL
-  for (feat_id in names(feature_id_to_name)) {
-    feat_name <- feature_id_to_name[[feat_id]]
-    feat_simple <- tolower(gsub("[^A-Za-z0-9]", "_", chartr("áéíóúñÁÉÍÓÚÑ", "aeiounAEIOUN", feat_name)))
-    feat_simple <- gsub("_+", "_", feat_simple)
-    feat_simple <- gsub("^_|_$", "", feat_simple)
-    
-    if (feat_simple == simple_name) {
-      found_name <- feat_name
-      break
-    }
-  }
+  # Look up display name
+  found_name <- feature_name_map$display_name[
+    match(simple_name, feature_name_map$simple_name)
+  ]
   
-  if (!is.null(found_name)) {
+  # Use found name or fallback
+  if (!is.na(found_name)) {
     display_names_for_layers <- c(display_names_for_layers, found_name)
   } else {
-    # Fallback: capitalize and clean up filename
-    display_name <- gsub("_", " ", simple_name)
-    display_name <- tools::toTitleCase(display_name)
-    display_names_for_layers <- c(display_names_for_layers, display_name)
-    cat(sprintf("  WARNING: No display name found for %s, using: %s\n", feat_file, display_name))
+    display_names_for_layers <- c(display_names_for_layers, gsub("_", " ", simple_name))
   }
 }
 
@@ -234,25 +261,52 @@ legends_for_layers <- c()
 values_for_layers <- c()
 labels_for_layers <- c()
 
+# Data dictionary: map display_name → theme
+theme_dict <- data.frame(
+  display_name = c(
+    "Ecosistemas IAVH",
+    "Páramos",
+    "Bosque Seco",
+    "Especies Focales",
+    "Riqueza de Especies",
+    "Carbono Orgánico Suelos",
+    "Biomasa Aérea más Subterránea",
+    "Recarga de Agua Subterránea",
+    "Áreas núcleo EEP Orinoquía",
+    "Humedales + Humedales SIRAPEC",
+    "Distribucion Congriales",
+    "Habitat Condor"
+  ),
+  theme = c(
+    "Ecosistemas",
+    "Ecosistemas estratégicos",
+    "Ecosistemas estratégicos",
+    "Especies / Focales",
+    "Especies / Focales",
+    "Servicios ecosistémicos",
+    "Servicios ecosistémicos",
+    "Servicios ecosistémicos",
+    "Ecosistemas estratégicos regionales",
+    "Ecosistemas estratégicos regionales",
+    "Ecosistemas estratégicos regionales",
+    "Especies / Focales"
+  ),
+  stringsAsFactors = FALSE
+)
+
+
 for (i in 1:length(extracted_files)) {
   feat_file <- extracted_files[i]
   feat_name <- display_names_for_layers[i]
   
-  # Map theme based on ORINOQUIA-specific feature names
-  if (grepl("Especies Focales|Habitat.*condor|Hábitat.*cóndor|Especies.*8700|Especies.*\\(8700\\)|especies.*richness", feat_name, ignore.case = TRUE)) {
-    theme <- "Especies / Focales"
-  } else if (grepl("Ecosistemas.*IAvH|Ecosistemas.*IAVH", feat_name, ignore.case = TRUE)) {
-    theme <- "Ecosistemas"
-  } else if (grepl("Páramo|Bosque.*seco|HumedalesCOL|Congriales", feat_name, ignore.case = TRUE)) {
-    theme <- "Ecosistemas estratégicos"
-  } else if (grepl("Áreas.*Nucleo.*SIRAPO|Areas.*Nucleo.*SIRAPO|Nucleo.*SIRAPO", feat_name, ignore.case = TRUE)) {
-    theme <- "Ecosistemas estratégicos regionales"
-  } else if (grepl("Carbono|Biomasa|Recarga", feat_name, ignore.case = TRUE)) {
-    theme <- "Servicios ecosistémicos"
-  } else {
+  theme <- theme_dict$theme[match(feat_name, theme_dict$display_name)]
+  
+  # Handle case where no match found
+  if (is.na(theme)) {
     theme <- "Features"
     cat(sprintf("  WARNING: No theme mapping for feature: %s\n", feat_name))
   }
+  
   themes_for_layers <- c(themes_for_layers, theme)
   
   # Check actual raster values to determine legend type
@@ -277,7 +331,7 @@ for (i in 1:length(extracted_files)) {
       values_for_layers <- c(values_for_layers, "")
       labels_for_layers <- c(labels_for_layers, "")
       # Continuous layers use a color ramp name
-      colors_for_layers <- c(colors_for_layers, "Greens")
+      colors_for_layers <- c(colors_for_layers, "BuPu")
       cat(sprintf("  %s: CONTINUOUS (legend=continuous, range: %.4f to %.4f)\n", 
                   feat_name, min(unique_vals), max(unique_vals)))
     }
@@ -294,6 +348,9 @@ for (i in 1:length(extracted_files)) {
 }
 
 # Feature layers metadata
+# Assign units: km2 for all theme layers (ensures consistency within themes)
+units_for_layers <- rep("km2", length(display_names_for_layers))
+
 feature_layers_metadata <- data.frame(
   Type = rep("theme", length(extracted_files)),
   Theme = themes_for_layers,
@@ -303,7 +360,7 @@ feature_layers_metadata <- data.frame(
   Values = values_for_layers,
   Color = colors_for_layers,  # Two colors for binary, color ramp for continuous
   Labels = labels_for_layers,
-  Unit = rep("km2", length(extracted_files)),
+  Unit = units_for_layers,  # Proper units based on layer type
   Provenance = rep("national", length(extracted_files)),
   Order = rep("", length(extracted_files)),
   Visible = rep("FALSE", length(extracted_files)),  # Theme layers hidden by default
@@ -389,6 +446,17 @@ if (nrow(extracted_constraints) > 0) {
     }
   })
   
+  # Assign units for constraint/weight layers
+  # Use "index" for unitless layers (IHEH, Coca Muertes, Refugios)
+  # Use "km2" for others
+  units_for_constraints <- sapply(extracted_constraints$display_name, function(name) {
+    if (grepl("IHEH|Coca.*Muertes|Refugios.*Clima|Beneficio", name, ignore.case = TRUE)) {
+      return("index")  # Unitless layers
+    } else {
+      return("km2")  # Everything else
+    }
+  }, USE.NAMES = FALSE)
+  
   constraint_layers_metadata <- data.frame(
     Type = extracted_constraints$type,
     Theme = rep("", nrow(extracted_constraints)),
@@ -398,7 +466,7 @@ if (nrow(extracted_constraints) > 0) {
     Values = legend_values,
     Color = colors,
     Labels = legend_labels,
-    Unit = rep("", nrow(extracted_constraints)),
+    Unit = units_for_constraints,  # Proper units based on layer type
     Provenance = rep("national", nrow(extracted_constraints)),
     Order = rep("", nrow(extracted_constraints)),
     Visible = visible_values,
@@ -491,17 +559,64 @@ for (i in 1:nrow(scenarios)) {
   themes_ids_str <- as.character(scenario_row$id_elemento_priorizacion)
   themes_names_str <- as.character(scenario_row$elemento_priorizacion)
   
+  # Hard-coded mapping dictionary: scenario names → database layer names
+  # NOTE: Only include layers that actually exist in Orinoquia
+  scenario_to_layer_map <- c(
+    # Species
+    "Especies(8700)" = "Riqueza de Especies",
+    "Especies" = "Riqueza de Especies",
+    "EspFocales" = "Especies Focales",
+    "Especies Focales" = "Especies Focales",
+    "Habitat_condor" = "Habitat Condor",
+    "condor_habitat" = "Habitat Condor",
+    
+    # Ecosystems (NO Manglares - not in Orinoquia!)
+    "Ecosistemas IAvH" = "Ecosistemas IAVH",
+    "EcosIAvH" = "Ecosistemas IAVH",
+    "Páramo" = "Páramos",
+    "Paramo" = "Páramos",
+    "HumedalesCOL_EC" = "Humedales + Humedales SIRAPEC",
+    "humadelesCOL_EC" = "Humedales + Humedales SIRAPEC",
+    "Bosque seco" = "Bosque Seco",
+    "Bosqueseco" = "Bosque Seco",
+    "Congriales" = "Distribucion Congriales",
+    
+    # Strategic ecosystems - regional
+    "Áreas NucleoSIRAPO" = "Áreas núcleo EEP Orinoquía",
+    "areas_nucleoSIRAPO" = "Áreas núcleo EEP Orinoquía",
+    
+    # Ecosystem services
+    "Carbono Orgánico Suelos" = "Carbono Orgánico Suelos",
+    "Biomasa Aérea más Subterránea" = "Biomasa Aérea más Subterránea",
+    "Recarga de Agua Subterránea" = "Recarga de Agua Subterránea"
+  )
+  
   themes_display <- c()
   if (!is.na(themes_names_str) && themes_names_str != "") {
     themes_raw <- trimws(strsplit(themes_names_str, ",")[[1]])
     # Map spreadsheet names to actual layer names in layers.csv
     themes_display <- sapply(themes_raw, function(theme_name) {
-      # Handle "Especies(8700)" -> "Especies Richness"
-      if (grepl("Especies.*\\(8700\\)|Especies.*8700", theme_name, ignore.case = TRUE)) {
-        return("Especies Richness")
+      # First try direct lookup in mapping dictionary
+      if (theme_name %in% names(scenario_to_layer_map)) {
+        return(scenario_to_layer_map[[theme_name]])
       }
-      # Handle "Especies Focales" -> keep as is (it's a separate layer)
-      # Other themes: return as-is
+      
+      # Try case-insensitive match
+      lower_name <- tolower(theme_name)
+      lower_keys <- tolower(names(scenario_to_layer_map))
+      case_insensitive_match <- match(lower_name, lower_keys)
+      if (!is.na(case_insensitive_match)) {
+        return(scenario_to_layer_map[[case_insensitive_match]])
+      }
+      
+      # Fallback: look up in feature_name_map
+      simple_match <- match(theme_name, feature_name_map$simple_name)
+      if (!is.na(simple_match)) {
+        return(feature_name_map$display_name[simple_match])
+      }
+      
+      # Last resort: return as-is and warn
+      cat(sprintf("    WARNING: No mapping found for theme '%s'\n", theme_name))
       return(theme_name)
     }, USE.NAMES = FALSE)
   }
@@ -638,5 +753,96 @@ cat("  - Weights/includes mapped from column names to display names\n")
 cat("  - Solution files matched correctly by scenario number (R#O)\n")
 cat("\n")
 cat("All metadata extracted from spreadsheet - manual review recommended.\n")
+cat("============================================================================\n")
+
+# ============================================================================
+# 8. Create ZIP Files for Upload
+# ============================================================================
+
+cat("\nCreating ZIP files...\n")
+
+# Delete old ZIPs if they exist
+old_layers_zip <- paste0(upload_dir, "/layers.zip")
+old_solutions_zip <- paste0(upload_dir, "/solutions.zip")
+if (file.exists(old_layers_zip)) {
+  unlink(old_layers_zip)
+  cat("  ✓ Deleted old layers.zip\n")
+}
+if (file.exists(old_solutions_zip)) {
+  unlink(old_solutions_zip)
+  cat("  ✓ Deleted old solutions.zip\n")
+}
+
+# Create layers ZIP (zip contents of layers folder)
+cat("Creating layers.zip...\n")
+layer_file_count <- length(list.files(layers_dir))
+cat(sprintf("  Zipping %d files from layers/ folder\n", layer_file_count))
+
+# Change to layers directory, zip all contents, then change back
+old_wd <- getwd()
+setwd(layers_dir)
+
+zip_result <- tryCatch({
+  all_files <- list.files()
+  utils::zip(zipfile = file.path("..", "layers.zip"), files = all_files)
+  TRUE
+}, error = function(e) {
+  cat("  ERROR creating ZIP:", e$message, "\n")
+  FALSE
+})
+
+setwd(old_wd)
+
+if (file.exists(old_layers_zip)) {
+  cat(sprintf("  ✓ Created layers.zip (%s bytes)\n", 
+              format(file.size(old_layers_zip), big.mark=",")))
+} else {
+  cat("  ✗ Failed to create layers.zip\n")
+}
+
+# Create solutions ZIP (zip contents of solutions folder)
+cat("Creating solutions.zip...\n")
+# First copy solutions.csv to solutions folder for convenience
+file.copy(paste0(upload_dir, "/solutions.csv"), 
+          paste0(solutions_upload_dir, "/solutions.csv"), 
+          overwrite = TRUE)
+
+solution_file_count <- length(list.files(solutions_upload_dir))
+cat(sprintf("  Zipping %d files from solutions/ folder\n", solution_file_count))
+
+if (solution_file_count > 0) {
+  # Change to solutions directory, zip all contents, then change back
+  old_wd <- getwd()
+  setwd(solutions_upload_dir)
+  
+  zip_result <- tryCatch({
+    all_files <- list.files()
+    utils::zip(zipfile = file.path("..", "solutions.zip"), files = all_files)
+    TRUE
+  }, error = function(e) {
+    cat("  ERROR creating ZIP:", e$message, "\n")
+    FALSE
+  })
+  
+  setwd(old_wd)
+  
+  if (file.exists(old_solutions_zip)) {
+    cat(sprintf("  ✓ Created solutions.zip (%s bytes)\n", 
+                format(file.size(old_solutions_zip), big.mark=",")))
+  } else {
+    cat("  ✗ Failed to create solutions.zip\n")
+  }
+} else {
+  cat("  ! No solution files to zip\n")
+}
+
+cat("\n============================================================================\n")
+cat("✓ Upload ready!\n")
+if (file.exists(old_layers_zip)) {
+  cat(sprintf("  - layers.zip: %s\n", old_layers_zip))
+}
+if (file.exists(old_solutions_zip)) {
+  cat(sprintf("  - solutions.zip: %s\n", old_solutions_zip))
+}
 cat("============================================================================\n")
 

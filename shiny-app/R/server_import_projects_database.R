@@ -232,6 +232,7 @@ server_import_projects_database <- quote({
                  "\nThis may be due to container restart. Please re-upload the project."))
     }
     pu_raster <- terra::rast(planning_unit_path)
+    cat("*** Planning unit dimensions: ", terra::ncol(pu_raster), " cols x ", terra::nrow(pu_raster), " rows = ", terra::ncell(pu_raster), " cells ***\n", sep = "")
     
     # Read all layer files and combine them into a single SpatRaster stack
     layer_paths <- layers_data$file$path
@@ -283,9 +284,21 @@ server_import_projects_database <- quote({
             cat("*** Layer reprojected successfully ***\n")
           }
           
-          layer_rasters[[length(layer_rasters) + 1]] <- raster
-          valid_layer_indices <- c(valid_layer_indices, i)
-          cat("*** Successfully loaded layer:", path, "***\n")
+          # Diagnostics: check layer values
+          layer_values <- terra::values(raster)
+          na_count <- sum(is.na(layer_values))
+          non_na_count <- sum(!is.na(layer_values))
+          unique_vals <- unique(layer_values[!is.na(layer_values)])
+          cat("*** Layer diagnostics - NA:", na_count, "Non-NA:", non_na_count, "Unique values:", paste(head(sort(unique_vals), 10), collapse=", "), "***\n")
+          
+          # Skip layers that are all NA (no data in this region)
+          if (non_na_count == 0) {
+            cat("*** SKIPPING layer with all NAs (no data in this region):", path, "***\n")
+          } else {
+            layer_rasters[[length(layer_rasters) + 1]] <- raster
+            valid_layer_indices <- c(valid_layer_indices, i)
+            cat("*** Successfully loaded layer:", path, "***\n")
+          }
         } else {
           cat("*** ERROR: Not a valid SpatRaster:", path, "***\n")
         }
@@ -315,9 +328,11 @@ server_import_projects_database <- quote({
     
     cat("*** Created raster stack with", terra::nlyr(all_rasters), "layers ***\n")
     cat("*** Layer names:", names(all_rasters), "***\n")
+    cat("*** Raster stack dimensions: ", terra::ncol(all_rasters), " cols x ", terra::nrow(all_rasters), " rows = ", terra::ncell(all_rasters), " cells ***\n", sep = "")
     
     # Create dataset from the combined raster stack
     dataset <- wheretowork::new_dataset_from_auto(all_rasters)
+    cat("*** Dataset created with ", nrow(dataset$attribute_data), " cells ***\n", sep = "")
     
     # Create themes, weights, includes, excludes from layers
     themes <- list()
@@ -393,7 +408,7 @@ server_import_projects_database <- quote({
         cat("============================================================\n")
         cat("FATAL ERROR creating variable for layer: ", layer$name, "\n", sep = "")
         cat("  Error message: ", e$message, "\n", sep = "")
-        cat("  Layer file: ", layer$file, "\n", sep = "")
+        cat("  Layer file path: ", if(is.data.frame(layer$file)) layer$file$path else layer$file, "\n", sep = "")
         cat("  Layer type: ", layer$type, "\n", sep = "")
         cat("  Legend type: ", layer$legend, "\n", sep = "")
         if (layer$legend == "manual") {
@@ -405,6 +420,7 @@ server_import_projects_database <- quote({
         cat("  1. Raster contains values not in CSV (e.g., floating point errors)\n")
         cat("  2. Raster file is corrupt or wrong file\n")
         cat("  3. Values/Labels mismatch in layers.csv\n")
+        cat("  4. For binary layers with only one value: layer might be all-absent or all-present\n")
         cat("============================================================\n")
         cat("\n")
         stop(e$message)

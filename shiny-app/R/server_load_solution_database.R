@@ -97,7 +97,7 @@ server_load_solution_database <- quote({
         )
       )
       
-      cat("*** Solution query response:", res, "***\n")
+      cat("*** Solution query executed successfully ***\n")
       
       res_list <- jsonlite::fromJSON(res)
       
@@ -118,7 +118,7 @@ server_load_solution_database <- quote({
       if (is.data.frame(solutions$file)) {
         # Extract paths from the file data frame
         file_paths <- solutions$file$path
-        cat("*** Available paths:", paste(file_paths, collapse=", "), "***\n")
+        cat("*** Found", length(file_paths), "total solutions ***\n")
         
         # Find matching solution by path
         match_idx <- which(file_paths == solution_path)
@@ -442,10 +442,66 @@ server_load_solution_database <- quote({
       curr_name <- gsub("-", " ", tools::file_path_sans_ext(basename(input$load_solution_list)))
       
       # Extract solution values from raster
-      # Since we now convert NA values to 0s during upload, this should be straightforward
-      solution_values <- as.vector(solution_raster)
+      # The dataset only contains cells where planning unit > 0, so we need to filter the solution too
+      solution_values_full <- as.vector(solution_raster)
       
-      cat("*** Extracted solution values from raster ***\n")
+      cat("*** Extracted solution values from raster (full) ***\n")
+      cat("*** Full raster has", length(solution_values_full), "cells ***\n")
+      
+      # Get the planning unit values (planning_unit is always column 1 in dataset)
+      pu_values_in_dataset <- app_data$dataset$attribute_data[[1]]
+      
+      # Filter solution to only include cells where planning unit exists (matches dataset)
+      # The dataset's attribute_data only includes cells where pu is not NA
+      if (length(solution_values_full) != length(pu_values_in_dataset)) {
+        cat("*** Need to filter solution to match dataset ***\n")
+        cat("*** Dataset has", length(pu_values_in_dataset), "cells, full raster has", length(solution_values_full), "cells ***\n")
+        
+        # Query GraphQL to get planning unit file path
+        planning_unit_query <- '
+          query($projectId: ID!) {
+            project(id: $projectId) {
+              planning_unit {
+                path
+              }
+            }
+          }'
+        
+        qry_pu <- ghql::Query$new()
+        qry_pu$query("project", planning_unit_query)
+        res_pu <- client$exec(
+          qry_pu$queries$project,
+          variables = list(projectId = as.character(app_data$project_id))
+        )
+        
+        pu_raster_path <- jsonlite::fromJSON(res_pu)$data$project$planning_unit$path
+        
+        # Convert relative path to absolute path based on environment
+        if (!is.null(pu_raster_path)) {
+          if (!startsWith(pu_raster_path, "/")) {
+            if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+              pu_raster_path <- file.path("/app", pu_raster_path)
+            } else {
+              pu_raster_path <- file.path(getwd(), pu_raster_path)
+            }
+          }
+        }
+        
+        cat("*** Loading planning unit from:", pu_raster_path, "***\n")
+        pu_raster <- terra::rast(pu_raster_path)
+        pu_values_full <- as.vector(pu_raster)
+        
+        # Extract only cells where pu is not NA (matching how dataset was created)
+        # wheretowork filters to cells with valid PU values (not NA)
+        valid_cells_mask <- !is.na(pu_values_full)
+        solution_values <- solution_values_full[valid_cells_mask]
+        
+        cat("*** Filtered solution: kept", sum(valid_cells_mask), "cells where PU is not NA ***\n")
+      } else {
+        solution_values <- solution_values_full
+      }
+      
+      cat("*** Extracted solution values after filtering ***\n")
       
       # Check if solution values match dataset dimensions
       expected_length <- nrow(app_data$dataset$attribute_data)
@@ -454,7 +510,14 @@ server_load_solution_database <- quote({
       cat("*** Expected length:", expected_length, ", Actual length:", actual_length, "***\n")
       
       if (actual_length != expected_length) {
-        stop("Solution dimensions don't match dataset. This should have been fixed during upload. Expected: ", expected_length, ", Got: ", actual_length)
+        cat("*** ERROR: Solution dimension mismatch ***\n")
+        cat("*** Expected cells:", expected_length, "***\n")
+        cat("*** Got cells:", actual_length, "***\n")
+        cat("*** Solution file:", solution_path, "***\n")
+        stop("Solution dimensions don't match dataset.\n",
+             "This solution was not properly aligned during upload.\n",
+             "Please re-upload this solution to fix the issue.\n",
+             "Expected: ", expected_length, " cells, Got: ", actual_length, " cells")
       }
       
       # Generate index for storing data in dataset

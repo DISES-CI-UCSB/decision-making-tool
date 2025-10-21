@@ -32,6 +32,7 @@ cat("\n✓ Step 1 complete\n")
 # ============================================================================
 
 cat("\n--- STEP 2: Organizing Data for Upload ---\n\n")
+setwd("C:/Users/danwillett/Code/SCALE/decision-making-tool/Cambio_Global/orinoquia_processing")
 
 source("02_organize_for_upload.R")
 

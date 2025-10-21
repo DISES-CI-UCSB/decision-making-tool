@@ -127,6 +127,13 @@ for (i in 1:nrow(constraint_weight_layers)) {
     match_idx <- match(pu_raster_values, pu_data$id)
     output_values <- pu_data[[col_name]][match_idx]  # NA where no match
     
+    # Fill NAs inside planning unit with 0 (represents "absent")
+    # This ensures all layers have data wherever PU exists (required by wheretowork)
+    # Fill where: (1) PU cell exists (not NA in raster), AND (2) data is NA (either no match or actual NA)
+    pu_exists_in_raster <- !is.na(pu_raster_values)
+    data_is_na <- is.na(output_values)
+    output_values[pu_exists_in_raster & data_is_na] <- 0
+    
     values(r) <- output_values
     
     # Write raster
@@ -152,10 +159,10 @@ cat("\nCreating layers.csv metadata...\n")
 
 # Hard-coded theme mapping based on Excel structure
 # Feature ID -> Theme (grupo)
+# NOTE: Manglares removed - coastal ecosystem not present in inland Eje Cafetero
 feature_themes <- c(
   "Ecosistemas",                    # 1 - Ecosistemas IAVH
   "Ecosistemas estratégicos",       # 4 - Páramos
-  "Ecosistemas estratégicos",       # 24 - Manglares
   "Ecosistemas estratégicos",       # 6 - Humedales
   "Ecosistemas estratégicos",       # 7 - Bosque Seco
   "Especies",                        # 21 - Riqueza de Especies
@@ -170,12 +177,11 @@ cat("  Using hard-coded theme mapping from Excel\n")
 # Type options: theme, include, exclude, weight
 # Legend options: manual, continuous
 theme_layers <- data.frame(
-  Type = rep("theme", 9),
+  Type = rep("theme", 8),
   Theme = feature_themes,
   File = c(
     "ecosistemas_IAVH.tif",
     "paramos.tif",
-    "manglares.tif",
     "humedales.tif",
     "bosque_seco.tif",
     "especies_richness.tif",
@@ -186,7 +192,6 @@ theme_layers <- data.frame(
   Name = c(
     "Ecosistemas IAVH",
     "Páramos",
-    "Manglares",
     "Humedales",
     "Bosque Seco",
     "Riqueza de Especies",
@@ -195,56 +200,52 @@ theme_layers <- data.frame(
     "Recarga de Agua Subterránea"
   ),
   Legend = c(
-    "continuous",
-    "manual",
-    "manual",
-    "manual",
-    "manual",
-    "continuous",
-    "continuous",
-    "continuous",
-    "manual"
+    "continuous",  # Ecosistemas IAVH
+    "manual",      # Páramos
+    "manual",      # Humedales - only has value 1 (present everywhere)
+    "manual",      # Bosque Seco
+    "continuous",  # Riqueza de Especies
+    "continuous",  # Carbono
+    "continuous",  # Biomasa
+    "manual"       # Recarga
   ),
   Values = c(
-    "",
-    "0, 1",
-    "0, 1",
-    "0, 1",
-    "0, 1",
-    "",
-    "",
-    "",
-    "0, 1"
+    "",        # Ecosistemas IAVH
+    "0, 1",    # Páramos
+    "1",       # Humedales - only value 1 exists
+    "0, 1",    # Bosque Seco
+    "",        # Riqueza de Especies
+    "",        # Carbono
+    "",        # Biomasa
+    "0, 1"     # Recarga
   ),
   Color = c(
-    "Greens",
-    "#00000000, #aaaa00",
-    "#00000000, #6bcac4",
-    "#00000000, #00aaff",
-    "#00000000, #ffaa00",
-    "BuPu",
-    "Greys",
-    "BuGn",
-    "#00000000, #7897b9"
+    "Greens",              # Ecosistemas IAVH
+    "#00000000, #aaaa00", # Páramos
+    "#00aaff",             # Humedales - single color for value 1
+    "#00000000, #ffaa00", # Bosque Seco
+    "BuPu",                # Riqueza de Especies
+    "Greys",               # Carbono
+    "BuGn",                # Biomasa
+    "#00000000, #7897b9"  # Recarga
   ),
   Labels = c(
-    "",
-    "absence, presence",
-    "absence, presence",
-    "absence, presence",
-    "absence, presence",
-    "",
-    "",
-    "",
-    "absence, presence"
+    "",                     # Ecosistemas IAVH
+    "absence, presence",   # Páramos
+    "presence",            # Humedales - single label for value 1
+    "absence, presence",   # Bosque Seco
+    "",                     # Riqueza de Especies
+    "",                     # Carbono
+    "",                     # Biomasa
+    "absence, presence"    # Recarga
   ),
-  Unit = rep("km2", 9),
-  Provenance = rep("national", 9),  # Use "national" - valid enum value
-  Order = rep("", 9),
-  Visible = rep("FALSE", 9),
-  Hidden = rep("FALSE", 9),
-  Goal = rep("0.3", 9),
-  Downloadable = rep("TRUE", 9),
+  Unit = rep("km2", 8),  # All theme layers use km2 for consistency
+  Provenance = rep("national", 8),  # Use "national" - valid enum value
+  Order = rep("", 8),
+  Visible = rep("FALSE", 8),
+  Hidden = rep("FALSE", 8),
+  Goal = rep("0.3", 8),
+  Downloadable = rep("TRUE", 8),
   stringsAsFactors = FALSE
 )
 
@@ -335,6 +336,17 @@ if (nrow(extracted_constraints) > 0) {
     }
   })
   
+  # Assign units for constraint/weight layers
+  # Use "index" for unitless layers, "km2" for others
+  units_for_constraints <- sapply(extracted_constraints$column_name, function(col_name) {
+    display_name <- display_names[[col_name]]
+    if (grepl("IHEH|Coca.*Muertes|Refugios.*Clima|Beneficio", display_name, ignore.case = TRUE)) {
+      return("index")  # Unitless layers
+    } else {
+      return("km2")  # Everything else
+    }
+  }, USE.NAMES = FALSE)
+  
   constraint_layers <- data.frame(
     Type = extracted_constraints$type,
     Theme = rep("", nrow(extracted_constraints)),
@@ -344,7 +356,7 @@ if (nrow(extracted_constraints) > 0) {
     Values = legend_values,
     Color = colors,
     Labels = legend_labels,
-    Unit = rep("km2", nrow(extracted_constraints)),
+    Unit = units_for_constraints,  # Proper units based on layer type
     Provenance = rep("national", nrow(extracted_constraints)),
     Order = rep("", nrow(extracted_constraints)),
     Visible = visible_values,
@@ -573,5 +585,96 @@ cat("Organization complete!\n")
 cat(sprintf("Upload directory: %s\n", normalizePath(upload_dir)))
 cat(sprintf("  - %d layer files\n", length(list.files(layers_dir, pattern = "\\.tif$"))))
 cat(sprintf("  - %d solution files\n", length(list.files(solutions_upload_dir, pattern = "\\.tif$"))))
+cat("============================================================================\n")
+
+# ============================================================================
+# 6. Create ZIP Files for Upload
+# ============================================================================
+
+cat("\nCreating ZIP files...\n")
+
+# Delete old ZIPs if they exist
+old_layers_zip <- paste0(upload_dir, "/layers.zip")
+old_solutions_zip <- paste0(upload_dir, "/solutions.zip")
+if (file.exists(old_layers_zip)) {
+  unlink(old_layers_zip)
+  cat("  ✓ Deleted old layers.zip\n")
+}
+if (file.exists(old_solutions_zip)) {
+  unlink(old_solutions_zip)
+  cat("  ✓ Deleted old solutions.zip\n")
+}
+
+# Create layers ZIP (zip contents of layers folder)
+cat("Creating layers.zip...\n")
+layer_file_count <- length(list.files(layers_dir))
+cat(sprintf("  Zipping %d files from layers/ folder\n", layer_file_count))
+
+# Change to layers directory, zip all contents, then change back
+old_wd <- getwd()
+setwd(layers_dir)
+
+zip_result <- tryCatch({
+  all_files <- list.files()
+  utils::zip(zipfile = file.path("..", "layers.zip"), files = all_files)
+  TRUE
+}, error = function(e) {
+  cat("  ERROR creating ZIP:", e$message, "\n")
+  FALSE
+})
+
+setwd(old_wd)
+
+if (file.exists(old_layers_zip)) {
+  cat(sprintf("  ✓ Created layers.zip (%s bytes)\n", 
+              format(file.size(old_layers_zip), big.mark=",")))
+} else {
+  cat("  ✗ Failed to create layers.zip\n")
+}
+
+# Create solutions ZIP (zip contents of solutions folder)
+cat("Creating solutions.zip...\n")
+# First copy solutions.csv to solutions folder for convenience
+file.copy(paste0(upload_dir, "/solutions.csv"), 
+          paste0(solutions_upload_dir, "/solutions.csv"), 
+          overwrite = TRUE)
+
+solution_file_count <- length(list.files(solutions_upload_dir))
+cat(sprintf("  Zipping %d files from solutions/ folder\n", solution_file_count))
+
+if (solution_file_count > 0) {
+  # Change to solutions directory, zip all contents, then change back
+  old_wd <- getwd()
+  setwd(solutions_upload_dir)
+  
+  zip_result <- tryCatch({
+    all_files <- list.files()
+    utils::zip(zipfile = file.path("..", "solutions.zip"), files = all_files)
+    TRUE
+  }, error = function(e) {
+    cat("  ERROR creating ZIP:", e$message, "\n")
+    FALSE
+  })
+  
+  setwd(old_wd)
+  
+  if (file.exists(old_solutions_zip)) {
+    cat(sprintf("  ✓ Created solutions.zip (%s bytes)\n", 
+                format(file.size(old_solutions_zip), big.mark=",")))
+  } else {
+    cat("  ✗ Failed to create solutions.zip\n")
+  }
+} else {
+  cat("  ! No solution files to zip\n")
+}
+
+cat("\n============================================================================\n")
+cat("✓ Upload ready!\n")
+if (file.exists(old_layers_zip)) {
+  cat(sprintf("  - layers.zip: %s\n", old_layers_zip))
+}
+if (file.exists(old_solutions_zip)) {
+  cat(sprintf("  - solutions.zip: %s\n", old_solutions_zip))
+}
 cat("============================================================================\n")
 

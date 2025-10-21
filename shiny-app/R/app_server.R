@@ -6,6 +6,13 @@
 app_server <- function(input, output, session) {
 
   # initialization
+  ## SESSION-SPECIFIC reactive values (critical for security and proper isolation!)
+  ## Each user session gets its own isolated copies of these reactive values
+  auth_token <- shiny::reactiveVal(NULL)
+  user_info <- shiny::reactiveVal(NULL)
+  projects_data <- shiny::reactiveVal(data.frame())
+  solution_load_trigger <- shiny::reactiveVal(0)
+  
   ## reactive values for sidebar project loading
   sidebar_project_to_load <- shiny::reactiveVal("")
   

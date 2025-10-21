@@ -383,14 +383,22 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
         
         planning_unit_path <- file.path(upload_dir, basename(input$planning_unit_file$name))
         
-        # Load planning unit raster and convert NA values to 0s
+        # Load planning unit raster
         shinyjs::html("progress_details", "Procesando archivo de unidad de planificación...")
         pu_raster <- terra::rast(input$planning_unit_file$datapath)
-        pu_raster[is.na(pu_raster)] <- 0
         
-        # Save the cleaned planning unit raster
+        cat("*** Original PU - unique values:", paste(head(sort(unique(terra::values(pu_raster, na.rm=TRUE))), 20), collapse=", "), "***\n")
+        cat("*** Original PU - NA count:", sum(is.na(terra::values(pu_raster))), "/ ", terra::ncell(pu_raster), "***\n")
+        cat("*** Original PU - Non-NA count:", sum(!is.na(terra::values(pu_raster))), "***\n")
+        
+        # Don't convert anything - just save as-is
+        # wheretowork will filter to cells with non-NA PU values
+        
+        # Save the planning unit raster
         shinyjs::html("progress_details", "Guardando unidad de planificación...")
         terra::writeRaster(pu_raster, planning_unit_path, overwrite = TRUE)
+        
+        cat("*** Saved PU with", sum(!is.na(terra::values(pu_raster))), "valid cells ***\n")
         
         
         # Add planning unit file to database
@@ -483,8 +491,17 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
                   method = "ngb"  # nearest neighbor for most layers
                 )
                 
-                # Convert NA values to 0s
-                layer_raster[is.na(layer_raster)] <- 0
+                # Mask layer to planning unit and fill NAs inside PU
+                # 1. Where PU is NA (outside): set layer to NA (transparent on map)
+                layer_raster[is.na(pu_raster)] <- NA
+                
+                # 2. Where PU exists but layer is NA (inside PU): set to 0 
+                # This ensures all layers have data wherever PU exists (required by wheretowork)
+                pu_exists <- !is.na(pu_raster)
+                layer_is_na <- is.na(layer_raster)
+                layer_raster[pu_exists & layer_is_na] <- 0
+                
+                cat("*** Masked layer to planning unit and filled NAs inside PU with 0 ***\n")
                 
                 # For manual/binary layers, standardize to 0 and 1 only
                 if (row$Legend == "manual" && !is.na(row$Values)) {
@@ -503,8 +520,17 @@ projectServer <- function(id, client, auth_token, user_info, projects_data, refr
                 
                 cat("*** Layer aligned and saved ***\n")
               } else {
-                # Grids match, but still convert NA values to 0s
-                layer_raster[is.na(layer_raster)] <- 0
+                # Grids match - mask layer to planning unit and fill NAs inside PU
+                # 1. Where PU is NA (outside): set layer to NA (transparent on map)
+                layer_raster[is.na(pu_raster)] <- NA
+                
+                # 2. Where PU exists but layer is NA (inside PU): set to 0
+                # This ensures all layers have data wherever PU exists (required by wheretowork)
+                pu_exists <- !is.na(pu_raster)
+                layer_is_na <- is.na(layer_raster)
+                layer_raster[pu_exists & layer_is_na] <- 0
+                
+                cat("*** Masked layer to planning unit and filled NAs inside PU with 0 ***\n")
                 
                 # For manual/binary layers, standardize to 0 and 1 only
                 if (row$Legend == "manual" && !is.na(row$Values)) {

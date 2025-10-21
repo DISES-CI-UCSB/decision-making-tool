@@ -30,6 +30,8 @@ cat("\n\n")
 
 cat("STEP 2: Organizing data for upload...\n")
 cat("----------------------------------------------------------------------------\n")
+setwd("C:/Users/danwillett/Code/SCALE/decision-making-tool/Cambio_Global/eje_cafetero_processing")
+
 source("02_organize_for_upload.R", echo = FALSE)
 
 # ============================================================================

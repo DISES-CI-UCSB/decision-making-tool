@@ -17,11 +17,14 @@ setwd("C:/Users/danwillett/Code/SCALE/decision-making-tool/Cambio_Global")
 extension <- "EJE_CAFETERO"
 resolution <- "1km"
 
-# Output directory for extracted features
+# Output directory for extracted features (clean it first if it exists)
 output_dir <- paste0("./eje_cafetero_processing/extracted_features")
-if (!dir.exists(output_dir)) {
-  dir.create(output_dir, recursive = TRUE)
+if (dir.exists(output_dir)) {
+  cat("Cleaning existing extracted features directory...\n")
+  unlink(output_dir, recursive = TRUE)
+  cat("  ✓ Old files deleted\n")
 }
+dir.create(output_dir, recursive = TRUE)
 
 # ============================================================================
 # 1. Load Data
@@ -64,11 +67,10 @@ primary_features <- c(1, 4, 24, 6, 7, 21, 11, 12, 15)
 # Create simplified feature name mapping
 # source_file: path to TIF file if not in rij matrix (use NA if in rij)
 feature_name_map <- data.frame(
-  id_elemento = primary_features,
+  id_elemento = primary_features[primary_features != 24],  # Remove 24 (Manglares - coastal, not in Eje Cafetero)
   simple_name = c(
     "ecosistemas_IAVH",
     "paramos",
-    "manglares",
     "humedales",
     "bosque_seco",
     "especies_richness",
@@ -79,7 +81,6 @@ feature_name_map <- data.frame(
   display_name = c(
     "Ecosistemas IAVH",
     "Páramos",
-    "Manglares",
     "Humedales",
     "Bosque Seco",
     "Riqueza de Especies",
@@ -90,8 +91,7 @@ feature_name_map <- data.frame(
   source_file = c(
     NA,  # In rij
     NA,  # In rij
-    "./features/Manglares INVEMAR.tif",
-    "./features/humedales.tif",
+    NA,  # In rij
     NA,  # In rij
     NA,  # In rij
     "./features/GSOC_v1.5_fixed_1km.tif",
@@ -138,6 +138,16 @@ for (i in 1:nrow(feature_name_map)) {
       cat("  Raster already matches planning units\n")
     }
     
+    # Fill NAs inside planning unit with 0 (represents absence)
+    # This ensures all layers have data wherever PU exists (required by wheretowork)
+    r_values <- values(r)
+    pu_values <- values(pu_raster)
+    pu_exists <- !is.na(pu_values)
+    data_is_na <- is.na(r_values)
+    r_values[pu_exists & data_is_na] <- 0
+    values(r) <- r_values
+    cat("  Filled NAs inside planning unit with 0\n")
+    
   } else {
     # Extract from rij matrix
     cat("  Source: RIJ matrix\n")
@@ -177,6 +187,12 @@ for (i in 1:nrow(feature_name_map)) {
       match_idx <- match(pu_values, feat_data$pu)
       output_values <- feat_data$richness[match_idx]  # NA where no match
       
+      # Fill NAs inside planning unit with 0 (represents absence)
+      # This ensures all layers have data wherever PU exists (required by wheretowork)
+      pu_exists <- !is.na(pu_values)
+      data_is_na <- is.na(output_values)
+      output_values[pu_exists & data_is_na] <- 0
+      
       values(r) <- output_values
       
     } else {
@@ -195,7 +211,22 @@ for (i in 1:nrow(feature_name_map)) {
       match_idx <- match(pu_values, feat_data$pu)
       output_values <- feat_data$total[match_idx]  # NA where no match
       
+      # Fill NAs inside planning unit with 0 (represents absence)
+      # This ensures all layers have data wherever PU exists (required by wheretowork)
+      pu_exists <- !is.na(pu_values)
+      data_is_na <- is.na(output_values)
+      output_values[pu_exists & data_is_na] <- 0
+      
       values(r) <- output_values
+      # cleanup values greater than 1
+      r_values <- values(r)
+      # Following rij creation logic: amount >= 1 means presence
+      r_values[!is.na(r_values) & r_values >= 1] <- 1
+      r_values[!is.na(r_values) & r_values < 1] <- 0
+      # Clean up floating point precision issues - values very close to 0 should be exactly 0
+      r_values[!is.na(r_values) & abs(r_values) < 1e-10] <- 0
+      values(r) <- r_values
+      cat(sprintf("  Unique values after threshold: %s\n", paste(sort(unique(na.omit(r_values))), collapse=", ")))
     }
     
     # Clean up intermediate data
