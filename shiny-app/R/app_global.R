@@ -23,15 +23,11 @@ app_global <- quote({
   
   client <- ghql::GraphqlClient$new(url = graphql_url)
   
-  # initialize authentication state
-  auth_token <- shiny::reactiveVal(NULL)
-  user_info <- shiny::reactiveVal(NULL)
-  
-  # initialize project data for database projects
-  projects_data <- shiny::reactiveVal(data.frame())
-  
-  # reactive trigger for solution loading
-  solution_load_trigger <- shiny::reactiveVal(0)
+  # NOTE: The following reactive values are now initialized per-session in app_server.R
+  # to prevent state from being shared across different users (critical security fix):
+  # - auth_token and user_info (authentication state)
+  # - projects_data (user-specific project lists based on permissions)
+  # - solution_load_trigger (user-specific UI triggers)
 
   # print initial memory usage
   if (isTRUE(wheretowork::get_golem_config("monitor"))) {

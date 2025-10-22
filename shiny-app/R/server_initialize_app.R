@@ -183,8 +183,9 @@ server_initialize_app <- quote({
   shinyjs::disable("exportPane_button")
   shinyjs::disable("newSolutionPane_settings_stop_button")
 
-  # disable solution results sidebar button
-  disable_html_css_selector("#analysisSidebar li:nth-child(2)")
+  # Solution results tab is now the only analysis tab (tab 1, always enabled)
+  # No need to disable it since users can load existing solutions
+  # disable_html_css_selector("#analysisSidebar li:nth-child(2)")
 
   # manually update solution settings sidebar content,
   # if can't manually stop processing

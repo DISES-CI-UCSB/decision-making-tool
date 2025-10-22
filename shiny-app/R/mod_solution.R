@@ -264,26 +264,73 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
 
       # Check that all themes, weights, includes, and excludes exist in ProjectLayers
       shinyjs::html("progress_details", "Verificando capas del proyecto...")
+      
+      cat("*** FETCHING PROJECT LAYERS FOR VALIDATION ***\n")
+      cat("*** Project ID:", input$project_select, "***\n")
+      
       layer_qry <- Query$new()
       layer_qry$query("projectLayers", project_layers_query)
-      tryCatch({
+      
+      fetch_result <- tryCatch({
         res <- client$exec(
           layer_qry$queries$projectLayers,
           headers = list(Authorization = paste("Bearer", auth_token())),
           variables = list(projectId = as.character(input$project_select))
-          )        
-        print(res)
+        )
+        
+        cat("*** ProjectLayers response received ***\n")
+        cat("*** Response:", substr(res, 1, 500), "...\n")
+        
         res_list <- fromJSON(res)
-        project_layers_data(as.data.frame(res_list$data$projectLayers))
-      
+        
+        # Check for errors in response
+        if (!is.null(res_list$errors)) {
+          cat("*** ERROR in projectLayers query:", res_list$errors[[1]]$message, "***\n")
+          stop(paste("GraphQL error:", res_list$errors[[1]]$message))
+        }
+        
+        layers_data <- res_list$data$projectLayers
+        
+        if (is.null(layers_data) || nrow(layers_data) == 0) {
+          cat("*** ERROR: No project layers found for project", input$project_select, "***\n")
+          stop("No project layers found. Please ensure the project has layers uploaded.")
+        }
+        
+        cat("*** Found", nrow(layers_data), "project layers ***\n")
+        cat("*** Layer names:", paste(layers_data$name, collapse=", "), "***\n")
+        
+        project_layers_data(as.data.frame(layers_data))
+        TRUE
+        
       }, error = function(e) {
-        showNotification("Failed to fetch project layers", type = "error")
-        return()
+        cat("*** ERROR FETCHING PROJECT LAYERS ***\n")
+        cat("*** Error message:", e$message, "***\n")
+        cat("*** Error class:", class(e), "***\n")
+        
+        showNotification(
+          paste("Failed to fetch project layers:", e$message), 
+          type = "error",
+          duration = 10
+        )
+        
+        # Reset UI state
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("add_solutions")
+        
+        FALSE
       })
+      
+      # If fetch failed, stop here
+      if (!fetch_result) {
+        return()
+      }
 
       layers_df <- project_layers_data()
       req(layers_df)  # ensure it's not NULL
-      print(layers_df)
+      
+      cat("*** VALIDATING LAYER REFERENCES IN SOLUTIONS ***\n")
+      cat("*** Available layer names in project:", paste(layers_df$name, collapse=", "), "***\n")
+      cat("*** Number of solutions to validate:", nrow(df), "***\n")
 
       # --- Helper to check validity ---
       parse_and_check <- function(col_values, valid_names) {
@@ -300,12 +347,23 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
       invalid_refs <- list()
       for (i in seq_len(nrow(df))) {
         row <- df[i, ]
+        
+        cat("*** Validating solution:", row$scenario, "***\n")
+        cat("***   themes:", row$themes, "***\n")
+        cat("***   weights:", row$weights, "***\n")
+        cat("***   includes:", row$includes, "***\n")
+        cat("***   excludes:", row$excludes, "***\n")
 
         # check each type
         bad_themes   <- parse_and_check(row$themes,   layers_df$name)
         bad_weights  <- parse_and_check(row$weights,  layers_df$name)
         bad_includes <- parse_and_check(row$includes, layers_df$name)
         bad_excludes <- parse_and_check(row$excludes, layers_df$name)
+        
+        if (length(bad_themes) > 0) cat("***   BAD themes:", paste(bad_themes, collapse=", "), "***\n")
+        if (length(bad_weights) > 0) cat("***   BAD weights:", paste(bad_weights, collapse=", "), "***\n")
+        if (length(bad_includes) > 0) cat("***   BAD includes:", paste(bad_includes, collapse=", "), "***\n")
+        if (length(bad_excludes) > 0) cat("***   BAD excludes:", paste(bad_excludes, collapse=", "), "***\n")
 
         if (length(c(bad_themes, bad_weights, bad_includes, bad_excludes)) > 0) {
           invalid_refs[[row$scenario]] <- list(
@@ -319,22 +377,37 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
 
       # If anything invalid, stop + notify
       if (length(invalid_refs) > 0) {
+        cat("*** VALIDATION FAILED - Invalid layer references found ***\n")
+        
         msg <- lapply(names(invalid_refs), function(scn) {
           bads <- invalid_refs[[scn]]
-          paste0("Scenario '", scn, "' invalid: ",
+          paste0("Scenario '", scn, "' references non-existent layers:\n",
                 paste(
                   unlist(mapply(function(type, vals) {
-                    if (length(vals) > 0) paste0(type, " [", paste(vals, collapse = ", "), "]")
+                    if (length(vals) > 0) paste0("  ", type, ": [", paste(vals, collapse = ", "), "]")
                   },
                   names(bads), bads, SIMPLIFY = FALSE)),
-                  collapse = "; "
+                  collapse = "\n"
                 ))
         })
-        showNotification(paste(msg, collapse = " | "), type = "error", duration = NULL)
+        
+        full_msg <- paste(
+          "Layer validation failed!\n\n",
+          paste(msg, collapse = "\n\n"),
+          "\n\nAvailable layers:", paste(layers_df$name, collapse=", ")
+        )
+        
+        showNotification(full_msg, type = "error", duration = NULL)
+        
+        # Reset UI state
+        shinyjs::hide("upload_progress")
+        shinyjs::enable("add_solutions")
+        
         return()
       }
 
       # ✅ if here, all layers referenced are valid
+      cat("*** VALIDATION PASSED - All layer references are valid ***\n")
       showNotification("All layer references valid!", type = "message")
 
       # Add solutions to database
@@ -386,7 +459,24 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
             
             pu_path <- fromJSON(res_pu)$data$project$planning_unit$path
             
+            # Convert relative path to absolute path based on environment
+            if (!is.null(pu_path)) {
+              if (!startsWith(pu_path, "/")) {
+                if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+                  # Running in Docker container
+                  pu_path <- file.path("/app", pu_path)
+                } else {
+                  # Running locally - use current working directory
+                  pu_path <- file.path(getwd(), pu_path)
+                }
+              }
+            }
+            
+            cat("*** Planning unit path:", pu_path, "***\n")
+            cat("*** Planning unit exists:", !is.null(pu_path) && file.exists(pu_path), "***\n")
+            
             if (!is.null(pu_path) && file.exists(pu_path)) {
+              cat("*** Loading planning unit for solution grid validation ***\n")
               # Load planning unit raster
               pu_raster <- terra::rast(pu_path)
               
@@ -405,8 +495,17 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
                   method = "ngb"  # nearest neighbor for binary solutions
                 )
                 
-                # Convert NA values to 0s
-                solution_raster[is.na(solution_raster)] <- 0
+                # Mask solution to planning unit and fill NAs inside PU
+                # 1. Where PU is NA (outside): set solution to NA (transparent on map)
+                solution_raster[is.na(pu_raster)] <- NA
+                
+                # 2. Where PU exists but solution is NA (inside PU): set to 0
+                # This ensures solution has data wherever PU exists
+                pu_exists <- !is.na(pu_raster)
+                solution_is_na <- is.na(solution_raster)
+                solution_raster[pu_exists & solution_is_na] <- 0
+                
+                cat("*** Masked solution to planning unit and filled NAs inside PU with 0 ***\n")
                 
                 # Save the aligned raster temporarily
                 temp_solution_path <- tempfile(fileext = ".tif")
@@ -418,8 +517,17 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
                 
                 cat("*** Solution aligned and saved ***\n")
               } else {
-                # Grids match, but still convert NA values to 0s
-                solution_raster[is.na(solution_raster)] <- 0
+                # Grids match - mask solution to planning unit and fill NAs inside PU
+                # 1. Where PU is NA (outside): set solution to NA (transparent on map)
+                solution_raster[is.na(pu_raster)] <- NA
+                
+                # 2. Where PU exists but solution is NA (inside PU): set to 0
+                # This ensures solution has data wherever PU exists
+                pu_exists <- !is.na(pu_raster)
+                solution_is_na <- is.na(solution_raster)
+                solution_raster[pu_exists & solution_is_na] <- 0
+                
+                cat("*** Masked solution to planning unit and filled NAs inside PU with 0 ***\n")
                 
                 # Save the cleaned raster
                 temp_solution_path <- tempfile(fileext = ".tif")
@@ -455,7 +563,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
             } else {
               sub(paste0("^", normalizePath(getwd(), winslash = "/"), "/"), "", normalizePath(target_path, winslash = "/")) # Store relative path (Local)
             },
-            name = row$scenario,
+            name = as.character(row$scenario),  # Ensure it's a string, not a number
             description = paste("Solution file imported from ZIP:", row$description)
           )
           
@@ -486,18 +594,39 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
 
           ### Build themes payload (SolutionLayers)
           str_to_array <- function(col_values) {
-            list <- strsplit(col_values, ",")
+            # Handle NA, NULL, or empty string
+            if (is.na(col_values) || is.null(col_values) || nchar(trimws(col_values)) == 0) {
+              return(character(0))
+            }
+            list <- strsplit(as.character(col_values), ",")
             vec <- trimws(unlist(list))
+            # Remove empty strings
+            vec <- vec[nchar(vec) > 0]
             return(vec)
           }
 
           # get themes + targets
           themes_vec <- str_to_array(row$themes)
           targets_vec <- str_to_array(row$targets)
+          
+          cat("*** THEME MATCHING DEBUG ***\n")
+          cat("*** Themes from CSV:", paste(themes_vec, collapse = ", "), "***\n")
+          cat("*** Targets from CSV:", paste(targets_vec, collapse = ", "), "***\n")
+          
+          # Check if we have themes
+          if (length(themes_vec) == 0) {
+            cat("*** ERROR: No themes provided in solutions.csv ***\n")
+            stop("Solution must have at least one theme. Check solutions.csv row ", idx)
+          }
+          
+          if (length(themes_vec) != length(targets_vec)) {
+            cat("*** ERROR: Number of themes (", length(themes_vec), ") != number of targets (", length(targets_vec), ") ***\n")
+            stop("Themes and targets must have the same length. Check solutions.csv row ", idx)
+          }
 
           # construct list of theme inputs for addSolution
           cat("*** THEME MATCHING DEBUG ***\n")
-          cat("*** Themes from CSV:", paste(themes_vec, collapse = ", "), "***\n")
+          cat("*** Processing", length(themes_vec), "themes ***\n")
           
           themes_payload <- lapply(seq_along(themes_vec), function(j) {
             proj_layer_id <- layers_df$id[match(themes_vec[[j]], layers_df$name)]
@@ -538,15 +667,23 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
           qry_sol <- Query$new()
           qry_sol$query("addSolution", add_solution_mutation)
 
+          # Helper function to convert to string, handling NA
+          safe_char <- function(x) {
+            if (is.na(x) || is.null(x) || length(x) == 0) {
+              return("")
+            }
+            as.character(x)
+          }
+          
           sol_payload <- list(
             input = list(
               projectId   = as.character(input$project_select),
               authorId    = as.character(user_info()$id),
-              title       = row$scenario,
-              description = row$description,
-              authorName  = row$author_name,
-              authorEmail = row$author_email,
-              userGroup   = row$user_group,
+              title       = safe_char(row$scenario),
+              description = safe_char(row$description),
+              authorName  = safe_char(row$author_name),
+              authorEmail = safe_char(row$author_email),
+              userGroup   = safe_char(row$user_group),
               fileId      = as.character(new_file_id),
               weightIds = weight_ids,
               includeIds = include_ids,

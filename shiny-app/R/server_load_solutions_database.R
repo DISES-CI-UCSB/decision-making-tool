@@ -71,24 +71,21 @@ update_solution_dropdown <- function() {
     }
     
     solutions <- res_list$data$solutions
-    
     cat("*** Found", nrow(solutions), "solutions for project", app_data$project_id, "***\n")
     cat("*** Solutions structure:", str(solutions), "***\n")
     cat("*** Solutions file column class:", class(solutions$file), "***\n")
     if (nrow(solutions) > 0) {
       cat("*** First solution file:", str(solutions$file[[1]]), "***\n")
     }
+
+    print(solutions)
     
     if (nrow(solutions) == 0) {
-      # No solutions found
-      shinyWidgets::updatePickerInput(
-        session = session,
-        inputId = "load_solution_list",
-        choices = c("No solutions available" = ""),
-        selected = "",
-        choicesOpt = list(disabled = c(TRUE))
-      )
+      # No solutions found - disable button
+      shinyjs::disable("open_solutions_modal")
     } else {
+      # Enable button
+      shinyjs::enable("open_solutions_modal")
       # Create choices for dropdown
       # Check if solutions have files
       cat("*** Checking for valid solutions ***\n")

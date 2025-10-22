@@ -29,42 +29,35 @@ server_update_solution_results <- quote({
     )
   })
 
-  # update tables in solution modal
+  # Also watch the modal's own dropdown for changes
   shiny::observeEvent(input$solutionResultsPane_results_modal_select, {
-    ## specify dependencies
-    if (
-      !input$solutionResultsPane_results_select %in% app_data$solution_ids) {
+    cat("*** Modal dropdown changed to:", input$solutionResultsPane_results_modal_select, "***\n")
+    
+    if (!input$solutionResultsPane_results_modal_select %in% app_data$solution_ids) {
       return()
     }
-
-    ## find selected solution
-    i <- which(
-      app_data$solution_ids == input$solutionResultsPane_results_modal_select
-    )
-    ## render summary results
-    output$solutionResultsPane_results_modal_summary_table <-
-      DT::renderDT({
-        app_data$solutions[[i]]$render_summary_results()
-      })
-    ## render theme results
-    output$solutionResultsPane_results_modal_themes_table <-
-      DT::renderDT({
-        app_data$solutions[[i]]$render_theme_results()
-      })
-    ## render weight results
-    output$solutionResultsPane_results_modal_weights_table <-
-      DT::renderDT({
-        app_data$solutions[[i]]$render_weight_results()
-      })
-    ## render include results
-    output$solutionResultsPane_results_modal_includes_table <-
-      DT::renderDT({
-        app_data$solutions[[i]]$render_include_results()
-      })
-    ## render exclude results
-    output$solutionResultsPane_results_modal_excludes_table <-
-      DT::renderDT({
-        app_data$solutions[[i]]$render_exclude_results()
-      })    
-  })
+    
+    i <- which(app_data$solution_ids == input$solutionResultsPane_results_modal_select)
+    if (length(i) == 0) return()
+    
+    cat("*** Rendering all tables for modal dropdown selection ***\n")
+    
+    # Force immediate render of all tables
+    output$solutionResultsPane_results_modal_summary_table <<- DT::renderDT({
+      app_data$solutions[[i]]$render_summary_results()
+    })
+    output$solutionResultsPane_results_modal_themes_table <<- DT::renderDT({
+      app_data$solutions[[i]]$render_theme_results()
+    })
+    output$solutionResultsPane_results_modal_weights_table <<- DT::renderDT({
+      app_data$solutions[[i]]$render_weight_results()
+    })
+    output$solutionResultsPane_results_modal_includes_table <<- DT::renderDT({
+      app_data$solutions[[i]]$render_include_results()
+    })
+    output$solutionResultsPane_results_modal_excludes_table <<- DT::renderDT({
+      app_data$solutions[[i]]$render_exclude_results()
+    })
+  }, ignoreNULL = TRUE, ignoreInit = FALSE)  # Fire even on first value
+  
 })

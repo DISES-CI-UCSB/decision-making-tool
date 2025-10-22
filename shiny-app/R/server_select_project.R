@@ -58,8 +58,25 @@ server_select_project <- quote({
                   }
                 }
               }'
+          } else if (user_data$userGroup == "planner") {
+            # Planners see public and planner-specific projects
+            cat("*** USER IS PLANNER - Fetching planner_projects ***\n")
+            projects_query <- '
+              query {
+                planner_projects {
+                  id
+                  title
+                  description
+                  user_group
+                  owner {
+                    id
+                    username
+                    type
+                  }
+                }
+              }'
           } else {
-            # Planners see public and assigned projects (for now, same as public)
+            # Other users see only public projects
             projects_query <- '
               query {
                 public_projects {
@@ -80,6 +97,8 @@ server_select_project <- quote({
           qry <- ghql::Query$new()
           qry$query('projects', projects_query)
           res <- client$exec(qry$queries$projects)
+          
+          cat("*** GraphQL query executed ***\n")
           res_list <- jsonlite::fromJSON(res)
           
           if (!is.null(res_list$errors)) {
@@ -87,11 +106,15 @@ server_select_project <- quote({
             return()
           }
           
-          # Extract projects data
-          if (user_data$userGroup == "public" || user_data$userGroup == "planner") {
+          # Extract projects data based on user type
+          if (user_data$userGroup == "public") {
             projects_df <- res_list$data$public_projects
-          } else {
+          } else if (user_data$userGroup == "planner") {
+            projects_df <- res_list$data$planner_projects
+          } else if (user_data$userGroup == "manager") {
             projects_df <- res_list$data$all_projects
+          } else {
+            projects_df <- res_list$data$public_projects  # Fallback
           }
           
           if (!is.null(projects_df) && nrow(projects_df) > 0) {

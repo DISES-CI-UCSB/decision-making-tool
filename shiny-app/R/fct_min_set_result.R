@@ -179,6 +179,11 @@ min_set_result <- function(area_data,
                            try_gurobi = FALSE,
                            load_solution = NULL) {
   
+  cat("*** MIN_SET_RESULT: Function called ***\n")
+  cat("*** MIN_SET_RESULT: Planning units:", length(area_data), "***\n")
+  cat("*** MIN_SET_RESULT: Themes:", nrow(theme_data), "***\n")
+  flush.console()
+  
   # validate arguments
   assertthat::assert_that(
     ## id
@@ -261,6 +266,9 @@ min_set_result <- function(area_data,
       identical(exclude_settings$id, rownames(exclude_data))
     )
   }  
+  
+  cat("*** MIN_SET_RESULT: Validation passed ***\n")
+  flush.console()
 
   # calculate targets
   ## extract values
@@ -450,10 +458,19 @@ min_set_result <- function(area_data,
         prioritizr::add_locked_out_constraints(locked_out[initial_pu_idx])
     }    
     ### solve problem to generate solution if needed
+    cat("*** SOLVE: Starting initial optimization with CBC solver ***\n")
+    cat("*** SOLVE: Planning units to optimize:", length(initial_pu_idx), "***\n")
+    cat("*** SOLVE: Themes:", nrow(theme_data), "***\n")
+    cat("*** SOLVE: This may take several minutes... ***\n")
+    flush.console()
+    
     initial_solution <- rep(0, length(cost))
     initial_solution[initial_pu_idx] <- c(
       prioritizr::solve.ConservationProblem(initial_problem, run_checks = FALSE)
     )
+    
+    cat("*** SOLVE: Initial optimization COMPLETE ***\n")
+    flush.console()
     ### store solution in cache
     cache$set(key, initial_solution)
   }

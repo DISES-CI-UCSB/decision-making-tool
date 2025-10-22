@@ -1,6 +1,7 @@
 import { AuthenticationError } from "apollo-server-express";
 import { Users, Files, ProjectLayers, Solutions, SolutionLayers, Projects } from "../models/index.js";
 import { signToken } from "../utils/auth.js";
+import { Op } from "sequelize";
 
 export const resolvers = {
   Query: {
@@ -12,6 +13,21 @@ export const resolvers = {
     public_projects: async () => {
       return await Projects.findAll({
         where: { user_group: 'public' },
+        include: [
+          { model: Users, as: "owner" },
+          { model: Files, as: "files" },
+          { model: Files, as: "planning_unit" }
+        ]
+      });
+    },
+
+    planner_projects: async () => {
+      return await Projects.findAll({
+        where: { 
+          user_group: {
+            [Op.in]: ['public', 'planner']
+          }
+        },
         include: [
           { model: Users, as: "owner" },
           { model: Files, as: "files" },
@@ -65,12 +81,34 @@ export const resolvers = {
 
     // query layers
     projectLayers: async (_, { projectId }) => {
-      return ProjectLayers.findAll({
+      console.log('*** projectLayers resolver called with projectId:', projectId, 'type:', typeof projectId);
+      
+      const layers = await ProjectLayers.findAll({
         where: {project_id: projectId},
         include: [
           { model: Files, as: 'file'}
         ]
       });
+      
+      console.log('*** projectLayers query returned', layers ? layers.length : 0, 'layers');
+      if (layers && layers.length > 0) {
+        console.log('*** First layer:', {
+          id: layers[0].id,
+          name: layers[0].name,
+          project_id: layers[0].project_id,
+          file_id: layers[0].file_id
+        });
+      } else {
+        console.log('*** No layers found for project_id:', projectId);
+        console.log('*** Checking all project layers in DB...');
+        const allLayers = await ProjectLayers.findAll({ limit: 5 });
+        console.log('*** Total layers in DB (sample):', allLayers.length);
+        if (allLayers.length > 0) {
+          console.log('*** Sample layer project_ids:', allLayers.map(l => l.project_id));
+        }
+      }
+      
+      return layers;
     },
 
     // query layer by id, include file
@@ -234,6 +272,11 @@ export const resolvers = {
     },
 
     addProjectLayer: async(parent, { input }) => {
+      console.log('*** addProjectLayer mutation called ***');
+      console.log('*** input.projectId:', input.projectId, 'type:', typeof input.projectId);
+      console.log('*** input.fileId:', input.fileId);
+      console.log('*** input.name:', input.name);
+      
       const newProjectLayer = await ProjectLayers.create({
         project_id: input.projectId,
         file_id: input.fileId || null,
@@ -251,6 +294,9 @@ export const resolvers = {
         visible: input.visible,
         downloadable: input.downloadable
       })
+      
+      console.log('*** Created ProjectLayer with id:', newProjectLayer.id, 'project_id:', newProjectLayer.project_id);
+      
       return newProjectLayer
     },
 

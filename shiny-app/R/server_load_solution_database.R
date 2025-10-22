@@ -5,6 +5,7 @@ NULL
 server_load_solution_database <- quote({
 
   # Database solution loading when load_solution_button pressed
+  # (Note: selected solution title is available in server_update_solution_selection.R)
   shiny::observeEvent(input$load_solution_button, {
     
     # Only handle database solutions (file paths starting with "uploads/")
@@ -35,11 +36,10 @@ server_load_solution_database <- quote({
     curr_id <- uuid::UUIDgenerate()
     app_data$new_load_solution_id <- curr_id
 
-    # Extract solution filename to match with database
-    solution_filename <- basename(input$load_solution_list)
-    solution_title <- gsub("-solution\\.tif$", "-solution", solution_filename)
+    # Extract solution file path to match with database
+    solution_path <- input$load_solution_list
     
-    cat("*** Looking for solution:", solution_title, "***\n")
+    cat("*** Looking for solution by path:", solution_path, "***\n")
     
     # GraphQL query to get solution with all parameters
     solution_query <- '
@@ -98,7 +98,7 @@ server_load_solution_database <- quote({
         )
       )
       
-      cat("*** Solution query response:", res, "***\n")
+      cat("*** Solution query executed successfully ***\n")
       
       res_list <- jsonlite::fromJSON(res)
       
@@ -109,14 +109,33 @@ server_load_solution_database <- quote({
       
       solutions <- res_list$data$solutions
       
-      # Find the specific solution by title
-      solution <- solutions[solutions$title == solution_title, ]
+      # Find the specific solution by file path
+      cat("*** Number of solutions:", nrow(solutions), "***\n")
+      cat("*** Searching for path:", solution_path, "***\n")
+      cat("*** solutions$file structure:", class(solutions$file), "***\n")
       
-      if (nrow(solution) == 0) {
-        stop("Solution not found: ", solution_title)
+      # jsonlite converts nested GraphQL responses to data frames
+      # solutions$file is a data frame with columns: id, path
+      if (is.data.frame(solutions$file)) {
+        # Extract paths from the file data frame
+        file_paths <- solutions$file$path
+        cat("*** Found", length(file_paths), "total solutions ***\n")
+        
+        # Find matching solution by path
+        match_idx <- which(file_paths == solution_path)
+        
+        if (length(match_idx) == 0) {
+          cat("*** ERROR: No matching path found ***\n")
+          cat("*** Tried to match:", solution_path, "***\n")
+          stop("Solution not found with path: ", solution_path)
+        }
+        
+        solution <- solutions[match_idx[1], ]
+        cat("*** MATCH FOUND: ", solution$title, "***\n")
+        
+      } else {
+        stop("Unexpected solutions$file structure: ", class(solutions$file))
       }
-      
-      cat("*** Found solution:", solution$title[1], "***\n")
       
       # Parse solution parameters from database
       solution_data <- solution[1, ]  # Get first (and should be only) matching solution
@@ -419,15 +438,72 @@ server_load_solution_database <- quote({
       }
       solution_raster <- terra::rast(solution_path)
       
-      # Get solution color and name
+      # Get solution color and use title from database
       curr_color <- input$load_solution_color
-      curr_name <- gsub("-", " ", tools::file_path_sans_ext(basename(input$load_solution_list)))
+      curr_name <- solution_data$title  # Use title from GraphQL query
+      cat("*** Using solution title:", curr_name, "***\n")
       
       # Extract solution values from raster
-      # Since we now convert NA values to 0s during upload, this should be straightforward
-      solution_values <- as.vector(solution_raster)
+      # The dataset only contains cells where planning unit > 0, so we need to filter the solution too
+      solution_values_full <- as.vector(solution_raster)
       
-      cat("*** Extracted solution values from raster ***\n")
+      cat("*** Extracted solution values from raster (full) ***\n")
+      cat("*** Full raster has", length(solution_values_full), "cells ***\n")
+      
+      # Get the planning unit values (planning_unit is always column 1 in dataset)
+      pu_values_in_dataset <- app_data$dataset$attribute_data[[1]]
+      
+      # Filter solution to only include cells where planning unit exists (matches dataset)
+      # The dataset's attribute_data only includes cells where pu is not NA
+      if (length(solution_values_full) != length(pu_values_in_dataset)) {
+        cat("*** Need to filter solution to match dataset ***\n")
+        cat("*** Dataset has", length(pu_values_in_dataset), "cells, full raster has", length(solution_values_full), "cells ***\n")
+        
+        # Query GraphQL to get planning unit file path
+        planning_unit_query <- '
+          query($projectId: ID!) {
+            project(id: $projectId) {
+              planning_unit {
+                path
+              }
+            }
+          }'
+        
+        qry_pu <- ghql::Query$new()
+        qry_pu$query("project", planning_unit_query)
+        res_pu <- client$exec(
+          qry_pu$queries$project,
+          variables = list(projectId = as.character(app_data$project_id))
+        )
+        
+        pu_raster_path <- jsonlite::fromJSON(res_pu)$data$project$planning_unit$path
+        
+        # Convert relative path to absolute path based on environment
+        if (!is.null(pu_raster_path)) {
+          if (!startsWith(pu_raster_path, "/")) {
+            if (file.exists("/.dockerenv") || Sys.getenv("DOCKER_CONTAINER") == "true") {
+              pu_raster_path <- file.path("/app", pu_raster_path)
+            } else {
+              pu_raster_path <- file.path(getwd(), pu_raster_path)
+            }
+          }
+        }
+        
+        cat("*** Loading planning unit from:", pu_raster_path, "***\n")
+        pu_raster <- terra::rast(pu_raster_path)
+        pu_values_full <- as.vector(pu_raster)
+        
+        # Extract only cells where pu is not NA (matching how dataset was created)
+        # wheretowork filters to cells with valid PU values (not NA)
+        valid_cells_mask <- !is.na(pu_values_full)
+        solution_values <- solution_values_full[valid_cells_mask]
+        
+        cat("*** Filtered solution: kept", sum(valid_cells_mask), "cells where PU is not NA ***\n")
+      } else {
+        solution_values <- solution_values_full
+      }
+      
+      cat("*** Extracted solution values after filtering ***\n")
       
       # Check if solution values match dataset dimensions
       expected_length <- nrow(app_data$dataset$attribute_data)
@@ -436,7 +512,14 @@ server_load_solution_database <- quote({
       cat("*** Expected length:", expected_length, ", Actual length:", actual_length, "***\n")
       
       if (actual_length != expected_length) {
-        stop("Solution dimensions don't match dataset. This should have been fixed during upload. Expected: ", expected_length, ", Got: ", actual_length)
+        cat("*** ERROR: Solution dimension mismatch ***\n")
+        cat("*** Expected cells:", expected_length, "***\n")
+        cat("*** Got cells:", actual_length, "***\n")
+        cat("*** Solution file:", solution_path, "***\n")
+        stop("Solution dimensions don't match dataset.\n",
+             "This solution was not properly aligned during upload.\n",
+             "Please re-upload this solution to fix the issue.\n",
+             "Expected: ", expected_length, " cells, Got: ", actual_length, " cells")
       }
       
       # Generate index for storing data in dataset
@@ -463,8 +546,19 @@ server_load_solution_database <- quote({
         total_selected <- sum(solution_values > 0.5, na.rm = TRUE)
         total_units <- length(solution_values)
         area_data <- app_data$dataset$get_planning_unit_areas()
+        
+        cat("*** Area data diagnostic: ***\n")
+        cat("***   Length:", length(area_data), "***\n")
+        cat("***   Range:", paste(range(area_data, na.rm = TRUE), collapse = " - "), "***\n")
+        cat("***   Has NAs:", any(is.na(area_data)), "***\n")
+        cat("***   Sum:", sum(area_data, na.rm = TRUE), "***\n")
+        
         total_area <- sum(area_data[solution_values > 0.5], na.rm = TRUE)
         total_area_all <- sum(area_data, na.rm = TRUE)
+        
+        cat("***   Selected area:", total_area, "***\n")
+        cat("***   Total area:", total_area_all, "***\n")
+        cat("***   Area in km²:", total_area * 1e-6, "***\n")
         
         statistics_list <- list(
           new_statistic(
@@ -475,9 +569,9 @@ server_load_solution_database <- quote({
           ),
           new_statistic(
             name = "Total area",
-            value = total_area * 1e-6,  # Convert to km²
+            value = if (is.finite(total_area) && total_area > 0) total_area else 0,  # Keep in m² (wheretowork converts to km²)
             units = stringi::stri_unescape_unicode("km\\u00B2"),
-            proportion = total_area / total_area_all
+            proportion = if (is.finite(total_area_all) && total_area_all > 0) total_area / total_area_all else 0
           )
         )
         
@@ -501,7 +595,20 @@ server_load_solution_database <- quote({
               feature_results_list <- list()
               for (feature in matching_theme$feature) {
                 # Calculate how much of this feature is held by the solution
-                feature_data <- feature$variable$values
+                # Get feature data from the dataset using the variable's index
+                feature_index <- feature$variable$index
+                feature_data <- app_data$dataset$attribute_data[[feature_index]]
+                
+                cat("***   Processing feature:", feature$name, ", index:", feature_index, "***\n")
+                
+                # Check if lengths match
+                if (length(feature_data) != length(solution_values)) {
+                  cat("***   WARNING: Length mismatch for feature", feature$name, "! Feature:", length(feature_data), 
+                      "vs Solution:", length(solution_values), "***\n")
+                  cat("***   Skipping this feature ***\n")
+                  next  # Skip this feature if lengths don't match
+                }
+                
                 feature_held <- sum(feature_data[solution_values > 0.5], na.rm = TRUE)
                 feature_total <- feature$variable$total
                 held_proportion <- if (feature_total > 0) feature_held / feature_total else 0
@@ -536,11 +643,21 @@ server_load_solution_database <- quote({
             weight_names <- weights_df$name
             for (weight in app_data$weights) {
               if (weight$name %in% weight_names) {
+                cat("*** Processing weight:", weight$name, "***\n")
+                
                 # Calculate how much of this weight is held by the solution
-                weight_data <- weight$variable$values
+                # Get data from dataset using variable's index
+                weight_index <- weight$variable$index
+                weight_data <- app_data$dataset$attribute_data[[weight_index]]
+                cat("***   Weight data length:", length(weight_data), "***\n")
+                
                 weight_held <- sum(weight_data[solution_values > 0.5], na.rm = TRUE)
                 weight_total <- weight$variable$total
                 held_proportion <- if (weight_total > 0) weight_held / weight_total else 0
+                
+                cat("***   Weight held:", weight_held, "***\n")
+                cat("***   Weight total:", weight_total, "***\n")
+                cat("***   Held proportion:", held_proportion, "(", round(held_proportion * 100, 2), "%) ***\n")
                 
                 weight_results_list <- append(weight_results_list, list(
                   new_weight_results(
@@ -561,11 +678,21 @@ server_load_solution_database <- quote({
             include_names <- includes_df$name
             for (include in app_data$includes) {
               if (include$name %in% include_names) {
+                cat("*** Processing include:", include$name, "***\n")
+                
                 # Calculate how much of this include is held by the solution
-                include_data <- include$variable$values
+                # Get data from dataset using variable's index
+                include_index <- include$variable$index
+                include_data <- app_data$dataset$attribute_data[[include_index]]
+                cat("***   Include data length:", length(include_data), "***\n")
+                
                 include_held <- sum(include_data[solution_values > 0.5], na.rm = TRUE)
                 include_total <- include$variable$total
                 held_proportion <- if (include_total > 0) include_held / include_total else 0
+                
+                cat("***   Include held:", include_held, "***\n")
+                cat("***   Include total:", include_total, "***\n")
+                cat("***   Held proportion:", held_proportion, "(", round(held_proportion * 100, 2), "%) ***\n")
                 
                 include_results_list <- append(include_results_list, list(
                   new_include_results(
@@ -587,7 +714,9 @@ server_load_solution_database <- quote({
             for (exclude in app_data$excludes) {
               if (exclude$name %in% exclude_names) {
                 # Calculate how much of this exclude is held by the solution
-                exclude_data <- exclude$variable$values
+                # Get data from dataset using variable's index
+                exclude_index <- exclude$variable$index
+                exclude_data <- app_data$dataset$attribute_data[[exclude_index]]
                 exclude_held <- sum(exclude_data[solution_values > 0.5], na.rm = TRUE)
                 exclude_total <- exclude$variable$total
                 held_proportion <- if (exclude_total > 0) exclude_held / exclude_total else 0
@@ -603,6 +732,32 @@ server_load_solution_database <- quote({
           }
         }
         
+        # Log what we're about to pass to new_solution
+        cat("*** Creating solution with results: ***\n")
+        cat("***   Statistics:", length(statistics_list), "items ***\n")
+        cat("***   Theme results:", length(theme_results_list), "items ***\n")
+        cat("***   Weight results:", length(weight_results_list), "items ***\n")
+        cat("***   Include results:", length(include_results_list), "items ***\n")
+        cat("***   Exclude results:", length(exclude_results_list), "items ***\n")
+        
+        # Set solution parameters with hardcoded defaults from Cambio Global scripts
+        # All solutions use: no area budget, 50% spatial clustering, no override includes
+        solution_parameters <- lapply(app_data$ss$parameters, function(param) {
+          p <- param$clone()
+          if (p$id == "budget_parameter") {
+            # No area budget constraint
+            p$set_setting("status", FALSE)
+          } else if (p$id == "boundary_gap_parameter") {
+            # 50% spatial clustering (boundary length modifier)
+            p$set_setting("status", TRUE)
+            p$set_setting("value", 50)
+          } else if (p$id == "overlap_parameter") {
+            # No override includes
+            p$set_setting("status", FALSE)
+          }
+          return(p)
+        })
+        
         # Create solution object directly (bypassing Result class)
         s <- new_solution(
           name = curr_name,
@@ -611,7 +766,7 @@ server_load_solution_database <- quote({
           visible = if (app_data$ss$get_parameter("solution_layer_parameter")$status) FALSE else TRUE,
           invisible = NA_real_,
           loaded = TRUE,
-          parameters = lapply(app_data$ss$parameters, function(x) x$clone()),  # Current parameters after loading
+          parameters = solution_parameters,  # Use hardcoded parameters
           statistics = statistics_list,
           theme_results = theme_results_list,
           weight_results = weight_results_list,
@@ -655,6 +810,24 @@ server_load_solution_database <- quote({
           session = session,
           inputId = "solutionResultsPane_results",
           value = s
+        )
+        
+        ## add new solution to solution results modal dropdown
+        cat("*** Updating modal dropdown ***\n")
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "solutionResultsPane_results_modal_select",
+          choices = app_data$solution_ids,
+          selected = s$id
+        )
+        
+        ## update main solution selector (now a selectInput)
+        cat("*** Updating main solution selector ***\n")
+        shiny::updateSelectInput(
+          session = session,
+          inputId = "solutionResultsPane_results_select",
+          choices = app_data$solution_ids,
+          selected = s$id
         )
 
         ## add new solution to export sidebar

@@ -33,7 +33,7 @@ exportSidebarPane <- function(id) {
           container: 'body',
           trigger: 'hover',
           placement: 'right',
-          title: 'Open sidebar for downloading data and solutions'
+          title: 'Escoge datos y soluciones para descargar'
         });
       ")),
       htmltools::tags$div(

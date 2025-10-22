@@ -6,6 +6,13 @@
 app_server <- function(input, output, session) {
 
   # initialization
+  ## SESSION-SPECIFIC reactive values (critical for security and proper isolation!)
+  ## Each user session gets its own isolated copies of these reactive values
+  auth_token <- shiny::reactiveVal(NULL)
+  user_info <- shiny::reactiveVal(NULL)
+  projects_data <- shiny::reactiveVal(data.frame())
+  solution_load_trigger <- shiny::reactiveVal(0)
+  
   ## reactive values for sidebar project loading
   sidebar_project_to_load <- shiny::reactiveVal("")
   
@@ -136,8 +143,8 @@ app_server <- function(input, output, session) {
       shinyjs::hide(selector = "a[data-value='login_page']")
       shinyjs::show(selector = "a[data-value='logout_page']")
       
-      # Show admin page only for managers/planners
-      if (!is.null(user_data) && user_data$userGroup %in% c("manager", "planner")) {
+      # Show admin page only for managers (not planners)
+      if (!is.null(user_data) && user_data$userGroup == "manager") {
         shinyjs::show(selector = "a[data-value='admin_page']")
       } else {
         shinyjs::hide(selector = "a[data-value='admin_page']")
@@ -236,10 +243,18 @@ app_server <- function(input, output, session) {
           shiny::div("Loading project...")
         })
         
-        # Clear solution results
-        output$solutionResultsPane_results <- shiny::renderUI({
-          shiny::div("No project loaded")
+        # Clear solution results widget and selector
+        output$solutionResultsPane_results <- renderSolutionResults({
+          solutionResults()  # Empty solution results
         })
+        
+        # Clear solution selector
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "solutionResultsPane_results_select",
+          choices = c("Ninguna" = "NA"),
+          selected = "NA"
+        )
         
         # Clear export fields
         shiny::updateSelectizeInput(
@@ -247,6 +262,22 @@ app_server <- function(input, output, session) {
           inputId = "exportPane_fields",
           choices = character(0)
         )
+        
+        # Clear any AOI shapes from map
+        shinyjs::runjs("
+          if (typeof window.aoiPolygon !== 'undefined' && window.aoiPolygon) {
+            try {
+              var map = $('#map').data('leafletMap');
+              if (map && window.aoiPolygon) {
+                map.removeLayer(window.aoiPolygon);
+              }
+              window.aoiPolygon = null;
+              console.log('*** AOI shape cleared ***');
+            } catch (e) {
+              console.log('*** Error clearing AOI:', e.message, '***');
+            }
+          }
+        ")
         
         cat("*** UI ELEMENTS CLEARED ***\n")
       }, error = function(e) {
@@ -358,6 +389,9 @@ app_server <- function(input, output, session) {
 
   # update solution results
   eval(server_update_solution_results)
+  
+  # update solution selection modal
+  eval(server_update_solution_selection)
 
   # export data
   eval(server_export_data)
@@ -374,4 +408,8 @@ app_server <- function(input, output, session) {
 
   # admin page management
   eval(server_adminPage)
+  
+  # AOI Selection Server Logic
+  # @include server_aoiSelection.R
+  aoi_server <- aoiSelectionServer("solutionResultsPane_results_aoi", app_data, session, map_id = "map")
 }
