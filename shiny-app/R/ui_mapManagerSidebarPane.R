@@ -40,7 +40,7 @@ mapManagerSidebarPane <- function(id,
   ## create sidebar
   w <-
     leaflet.extras2::sidebar_pane(
-      title = "Table of contents",
+      title = "Tabla de contenido",
       id = id,
       icon = NULL,
       htmltools::tags$div(

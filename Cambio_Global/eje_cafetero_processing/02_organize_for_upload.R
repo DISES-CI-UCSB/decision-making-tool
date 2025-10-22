@@ -195,8 +195,8 @@ theme_layers <- data.frame(
     "Humedales",
     "Bosque Seco",
     "Riqueza de Especies",
-    "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea",
+    "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea (t C/ha)",
     "Recarga de Agua Subterránea"
   ),
   Legend = c(
@@ -220,13 +220,13 @@ theme_layers <- data.frame(
     "0, 1"     # Recarga
   ),
   Color = c(
-    "Greens",              # Ecosistemas IAVH
+    "Spectral",            # Ecosistemas IAVH - special palette
     "#00000000, #aaaa00", # Páramos
     "#00aaff",             # Humedales - single color for value 1
     "#00000000, #ffaa00", # Bosque Seco
     "BuPu",                # Riqueza de Especies
-    "Greys",               # Carbono
-    "BuGn",                # Biomasa
+    "BuPu",                # Carbono - default continuous palette
+    "BuPu",                # Biomasa - default continuous palette
     "#00000000, #7897b9"  # Recarga
   ),
   Labels = c(
@@ -310,16 +310,16 @@ if (nrow(extracted_constraints) > 0) {
     }
   })
   
-  # Dynamically build display names from column names
+  # Dynamically build display names from column names (with units where helpful)
   display_names <- c(
     "Resguardos_Indígenas" = "Resguardos Indígenas",
     "Comunidades_Negras" = "Comunidades Negras",
     "RUNAP" = "RUNAP",
     "ECC_SIRAPEC" = "ECC SIRAPEC",
     "OMECs" = "OMECs",
-    "IHEH_2022" = "IHEH 2022",
-    "IHEH_2030_desarrollista" = "IHEH 2030",
-    "Beneficio_neto" = "Beneficio Neto"
+    "IHEH_2022" = "IHEH 2022 (índice 0-100)",
+    "IHEH_2030_desarrollista" = "IHEH 2030 (índice 0-100)",
+    "Beneficio_neto" = "Beneficio Neto (COP)"
   )
   
   # Visible: TRUE for includes (except all-NA layers), FALSE for weights
@@ -456,9 +456,9 @@ for (i in 1:nrow(scenarios)) {
   
   # Map cost column names to display layer names
   cost_name_map <- c(
-    "IHEH_2022" = "IHEH 2022",
-    "IHEH_2030_desarrollista" = "IHEH 2030",
-    "Beneficio_neto" = "Beneficio Neto"
+    "IHEH_2022" = "IHEH 2022 (índice 0-100)",
+    "IHEH_2030_desarrollista" = "IHEH 2030 (índice 0-100)",
+    "Beneficio_neto" = "Beneficio Neto (COP)"
     # Add more mappings as needed
   )
   

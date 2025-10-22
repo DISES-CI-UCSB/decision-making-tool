@@ -352,8 +352,8 @@ Solution <- R6::R6Class(
         pd$status == TRUE & nchar(pd$units) > 0 ~ paste0(pd$value, pd$units),
         TRUE ~ "On"
       )
-      # combine data
-      x <- dplyr::bind_rows(pd, rd)
+      # combine data - Statistics first, then Settings
+      x <- dplyr::bind_rows(rd, pd)
       # return formatted table
       tibble::tibble(
         `Name` = x$name,

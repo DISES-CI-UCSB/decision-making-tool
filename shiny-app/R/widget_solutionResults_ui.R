@@ -117,51 +117,34 @@ solutionResults_html <- function(id, style, class, ...) {
           htmltools::tags$p("Selecciona una solución de la base de datos para cargarla en el mapa.", 
                            style = "font-size: 0.85em; color: #666; margin-bottom: 15px; line-height: 1.4;"),
           
-          # Info button to see all solutions
+          # Open solutions modal button
           htmltools::tags$div(
-            style = "margin-bottom: 15px; text-align: center;",
+            style = "text-align: center;",
             shiny::actionButton(
               inputId = "open_solutions_modal",
-              label = "Ver Información de Soluciones",
-              icon = shiny::icon("info-circle"),
-              class = "btn btn-info btn-sm btn-block"
+              label = "Ver y Seleccionar Soluciones",
+              icon = shiny::icon("table"),
+              class = "btn btn-primary btn-block",
+              style = "padding: 12px 20px; font-size: 16px; font-weight: 500;"
             )
           ),
           
-          # Solution selector dropdown
+          # Hidden simple inputs for JavaScript to populate (needed by load handler)
           htmltools::tags$div(
-            style = "margin-bottom: 12px;",
-            shinyWidgets::pickerInput(
+            style = "display: none;",
+            shiny::textInput(
               inputId = "load_solution_list",
-              label = "Seleccionar solución:",
-              choices = c("Seleccione una solución" = ""),
-              multiple = FALSE,
-              options = list()
-            )
-          ),
-          
-          # Color and load button row
-          htmltools::tags$div(
-            style = "display: flex; gap: 10px; align-items: flex-end;",
-            htmltools::tags$div(
-              style = "flex: 1;",
-              colourpicker::colourInput(
-                inputId = "load_solution_color",
-                label = "Color de visualización:",
-                value = "#228B22",
-                showColour = "background",
-                palette = "square"
-              )
+              label = NULL,
+              value = ""
             ),
-            htmltools::tags$div(
-              style = "flex: 0 0 auto;",
-              htmltools::tags$label(style = "display: block; margin-bottom: 5px; color: transparent;", "."),
-              shinyFeedback::loadingButton(
-                inputId = "load_solution_button",
-                label = "Cargar",
-                class = "btn btn-primary btn-block",
-                loadingLabel = "Cargando..."
-              )
+            shiny::textInput(
+              inputId = "load_solution_color",
+              label = NULL,
+              value = "#228B22"
+            ),
+            shiny::actionButton(
+              inputId = "load_solution_button",
+              label = "Hidden Load"
             )
           )
         ),
@@ -171,40 +154,45 @@ solutionResults_html <- function(id, style, class, ...) {
           # header
           htmltools::tags$div(
             class = "solution-results-header",
+            style = "display: flex; flex-direction: column;",
             
-            # View solution results section
+            # View solution results section title
             htmltools::tags$div(
-              style = "margin-bottom: 15px;",
-              htmltools::tags$h5("Ver Resultados", style = "margin-top: 0; margin-bottom: 12px; font-weight: 600;"),
+              style = "margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0; display: block; width: 100%;",
+              htmltools::tags$h5("Ver Resultados", style = "margin-top: 0; margin-bottom: 8px; font-weight: 600; font-size: 16px; display: block;"),
               htmltools::tags$p("Selecciona una solución cargada para ver sus estadísticas y análisis.", 
-                               style = "font-size: 0.85em; color: #666; margin-bottom: 10px; line-height: 1.4;")
+                               style = "font-size: 0.85em; color: #666; margin-bottom: 0; line-height: 1.4; display: block;")
             ),
-            # select input
-            horizontalPickerInput(
-              inputId = paste0(id, "_select"),
-              label = "Solución cargada:",
-              choices = c("Ninguna" = "NA"),
-              selected = NULL,
-              options = list(
-                `dropdown-align-right` = "true",
-                `container` = "body"
-              )
-            ),
-            # modal button
+            
+            # Solution selector and button row
             htmltools::tags$div(
-              class = "solution-button-container",
-              `data-toggle` = "tooltip",
-              `data-placement` = "top",
-              `data-container` = "body",
-              `data-placement` = "bottom",
-              title = "View solution results in tables",
-              # button to import data
-              shinyBS::bsButton(
-                inputId = paste0(id, "_button"),
-                label = "",
-                icon = shiny::icon("table"),
-                style = "primary",
-                type = "action"
+              style = "display: flex; gap: 10px; align-items: flex-end; width: 100%;",
+              # Dropdown - basic selectInput (simplest approach)
+              htmltools::tags$div(
+                style = "flex: 1;",
+                shiny::selectInput(
+                  inputId = paste0(id, "_select"),
+                  label = "Solución cargada:",
+                  choices = c("Ninguna" = "NA"),
+                  selected = "NA",
+                  width = "100%"
+                )
+              ),
+              # Table button (icon only, smaller)
+              htmltools::tags$div(
+                style = "flex: 0 0 auto; width: 40px;",
+                `data-toggle` = "tooltip",
+                `data-placement` = "top",
+                title = "Ver resultados en tablas",
+                htmltools::tags$label(style = "display: block; margin-bottom: 5px; color: transparent;", "."),
+                shinyBS::bsButton(
+                  inputId = paste0(id, "_button"),
+                  label = "",
+                  icon = shiny::icon("table"),
+                  style = "primary",
+                  type = "action",
+                  size = "small"
+                )
               )
             )
           ),

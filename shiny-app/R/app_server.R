@@ -243,10 +243,18 @@ app_server <- function(input, output, session) {
           shiny::div("Loading project...")
         })
         
-        # Clear solution results
-        output$solutionResultsPane_results <- shiny::renderUI({
-          shiny::div("No project loaded")
+        # Clear solution results widget and selector
+        output$solutionResultsPane_results <- renderSolutionResults({
+          solutionResults()  # Empty solution results
         })
+        
+        # Clear solution selector
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "solutionResultsPane_results_select",
+          choices = c("Ninguna" = "NA"),
+          selected = "NA"
+        )
         
         # Clear export fields
         shiny::updateSelectizeInput(
@@ -254,6 +262,22 @@ app_server <- function(input, output, session) {
           inputId = "exportPane_fields",
           choices = character(0)
         )
+        
+        # Clear any AOI shapes from map
+        shinyjs::runjs("
+          if (typeof window.aoiPolygon !== 'undefined' && window.aoiPolygon) {
+            try {
+              var map = $('#map').data('leafletMap');
+              if (map && window.aoiPolygon) {
+                map.removeLayer(window.aoiPolygon);
+              }
+              window.aoiPolygon = null;
+              console.log('*** AOI shape cleared ***');
+            } catch (e) {
+              console.log('*** Error clearing AOI:', e.message, '***');
+            }
+          }
+        ")
         
         cat("*** UI ELEMENTS CLEARED ***\n")
       }, error = function(e) {

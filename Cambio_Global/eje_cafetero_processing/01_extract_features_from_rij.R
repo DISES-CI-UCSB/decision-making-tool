@@ -84,12 +84,12 @@ feature_name_map <- data.frame(
     "Humedales",
     "Bosque Seco",
     "Riqueza de Especies",
-    "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea",
+    "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea (t C/ha)",
     "Recarga de Agua Subterránea"
   ),
   source_file = c(
-    NA,  # In rij
+    "./features/ecosistemas.tif",
     NA,  # In rij
     NA,  # In rij
     NA,  # In rij

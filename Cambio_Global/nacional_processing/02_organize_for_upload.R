@@ -108,8 +108,8 @@ constraint_weight_layers <- data.frame(
                   "IHEH_2022", "beneficio_neto", "IHEH_2030",
                   "coca_muertes_1622", "refugios_clima"),
   display_name = c("Resguardos Indígenas", "Comunidades Negras", "RUNAP", "OMECs",
-                   "IHEH 2022", "Beneficio Neto", "IHEH 2030",
-                   "Coca Muertes 2016-2022", "Refugios Clima 8.5"),
+                   "IHEH 2022 (índice 0-100)", "Beneficio Neto (COP)", "IHEH 2030 (índice 0-100)",
+                   "Coca Muertes 2016-2022 (# eventos)", "Refugios Clima 8.5 (# especies)"),
   type = c("include", "include", "include", "include",
            "weight", "weight", "weight",
            "weight", "weight"),
@@ -229,8 +229,8 @@ feature_name_map <- data.frame(
     "Humedales",
     "Bosque Seco",
     "Riqueza de Especies",
-    "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea",
+    "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea (t C/ha)",
     "Recarga de Agua Subterránea"
   ),
   stringsAsFactors = FALSE
@@ -274,8 +274,8 @@ theme_dict <- data.frame(
     "Humedales",
     "Bosque Seco",
     "Riqueza de Especies",
-    "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea",
+    "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea (t C/ha)",
     "Recarga de Agua Subterránea"
   ),
   theme = c(
@@ -328,10 +328,11 @@ for (j in 1:length(display_names_for_layers)) {
       legends_for_layers <- c(legends_for_layers, "continuous")
       values_for_layers <- c(values_for_layers, "")
       labels_for_layers <- c(labels_for_layers, "")
-      # Continuous layers use a color ramp name
-      colors_for_layers <- c(colors_for_layers, "Greens")
-      cat(sprintf("  %s: CONTINUOUS (legend=continuous, range: %.4f to %.4f)\n", 
-                  feat_name, min(unique_vals), max(unique_vals)))
+      # Continuous layers use color ramp: BuPu default, Spectral for Ecosistemas IAVH
+      color_palette <- if (feat_name == "Ecosistemas IAVH") "Spectral" else "BuPu"
+      colors_for_layers <- c(colors_for_layers, color_palette)
+      cat(sprintf("  %s: CONTINUOUS (legend=continuous, palette=%s, range: %.4f to %.4f)\n", 
+                  feat_name, color_palette, min(unique_vals), max(unique_vals)))
     }
     
     rm(r)  # Clean up raster object
@@ -340,8 +341,10 @@ for (j in 1:length(display_names_for_layers)) {
     legends_for_layers <- c(legends_for_layers, "continuous")
     values_for_layers <- c(values_for_layers, "")
     labels_for_layers <- c(labels_for_layers, "")
-    colors_for_layers <- c(colors_for_layers, "Greens")
-    cat(sprintf("  WARNING: Raster file not found for %s, defaulting to continuous\n", feat_name))
+    # Default to BuPu, Spectral for Ecosistemas IAVH
+    color_palette <- if (feat_name == "Ecosistemas IAVH") "Spectral" else "BuPu"
+    colors_for_layers <- c(colors_for_layers, color_palette)
+    cat(sprintf("  WARNING: Raster file not found for %s, defaulting to continuous with %s palette\n", feat_name, color_palette))
   }
 }
 
@@ -547,13 +550,13 @@ for (i in 1:nrow(scenarios)) {
     "Bosque Seco" = "Bosque Seco",
     "bosque_seco" = "Bosque Seco",
     
-    # Ecosystem services - various capitalizations
-    "Carbono Orgánico Suelos" = "Carbono Orgánico Suelos",
-    "Carbono orgánico en suelos" = "Carbono Orgánico Suelos",
-    "carbono_organico_suelos" = "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea" = "Biomasa Aérea más Subterránea",
-    "Biomasa aérea más biomasa subterránea" = "Biomasa Aérea más Subterránea",
-    "biomasa_aerea_mas_subterranea" = "Biomasa Aérea más Subterránea",
+    # Ecosystem services - map to new names WITH units
+    "Carbono Orgánico Suelos" = "Carbono Orgánico Suelos (t C/ha)",
+    "Carbono orgánico en suelos" = "Carbono Orgánico Suelos (t C/ha)",
+    "carbono_organico_suelos" = "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea" = "Biomasa Aérea más Subterránea (t C/ha)",
+    "Biomasa aérea más biomasa subterránea" = "Biomasa Aérea más Subterránea (t C/ha)",
+    "biomasa_aerea_mas_subterranea" = "Biomasa Aérea más Subterránea (t C/ha)",
     "Recarga de Agua Subterránea" = "Recarga de Agua Subterránea",
     "Recarga de agua subterranea" = "Recarga de Agua Subterránea",
     "recarga_agua_subterranea" = "Recarga de Agua Subterránea"
@@ -602,13 +605,13 @@ for (i in 1:nrow(scenarios)) {
   # Get cost/weight information and map column names to display names
   cost_col <- if (!is.null(scenarios$costo) && !is.na(scenarios$costo[i])) scenarios$costo[i] else ""
   
-  # Map cost column names to display layer names
+  # Map cost column names to display layer names (with units)
   cost_name_map <- c(
-    "IHEH_2022" = "IHEH 2022",
-    "IHEH_2030_desarrollista" = "IHEH 2030",
-    "Beneficio_neto" = "Beneficio Neto",
-    "Coca_Muertes_1622" = "Coca Muertes 2016-2022",
-    "Refugios_Clima_8_5" = "Refugios Clima 8.5"
+    "IHEH_2022" = "IHEH 2022 (índice 0-100)",
+    "IHEH_2030_desarrollista" = "IHEH 2030 (índice 0-100)",
+    "Beneficio_neto" = "Beneficio Neto (COP)",
+    "Coca_Muertes_1622" = "Coca Muertes 2016-2022 (# eventos)",
+    "Refugios_Clima_8_5" = "Refugios Clima 8.5 (# especies)"
   )
   
   weights_str <- ""

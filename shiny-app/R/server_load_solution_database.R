@@ -546,8 +546,19 @@ server_load_solution_database <- quote({
         total_selected <- sum(solution_values > 0.5, na.rm = TRUE)
         total_units <- length(solution_values)
         area_data <- app_data$dataset$get_planning_unit_areas()
+        
+        cat("*** Area data diagnostic: ***\n")
+        cat("***   Length:", length(area_data), "***\n")
+        cat("***   Range:", paste(range(area_data, na.rm = TRUE), collapse = " - "), "***\n")
+        cat("***   Has NAs:", any(is.na(area_data)), "***\n")
+        cat("***   Sum:", sum(area_data, na.rm = TRUE), "***\n")
+        
         total_area <- sum(area_data[solution_values > 0.5], na.rm = TRUE)
         total_area_all <- sum(area_data, na.rm = TRUE)
+        
+        cat("***   Selected area:", total_area, "***\n")
+        cat("***   Total area:", total_area_all, "***\n")
+        cat("***   Area in km²:", total_area * 1e-6, "***\n")
         
         statistics_list <- list(
           new_statistic(
@@ -558,9 +569,9 @@ server_load_solution_database <- quote({
           ),
           new_statistic(
             name = "Total area",
-            value = total_area * 1e-6,  # Convert to km²
+            value = if (is.finite(total_area) && total_area > 0) total_area else 0,  # Keep in m² (wheretowork converts to km²)
             units = stringi::stri_unescape_unicode("km\\u00B2"),
-            proportion = total_area / total_area_all
+            proportion = if (is.finite(total_area_all) && total_area_all > 0) total_area / total_area_all else 0
           )
         )
         
@@ -584,14 +595,18 @@ server_load_solution_database <- quote({
               feature_results_list <- list()
               for (feature in matching_theme$feature) {
                 # Calculate how much of this feature is held by the solution
-                # Use get_data() instead of $values to get the actual raster data
-                feature_raster <- feature$variable$get_data()
-                feature_data <- as.vector(feature_raster)
+                # Get feature data from the dataset using the variable's index
+                feature_index <- feature$variable$index
+                feature_data <- app_data$dataset$attribute_data[[feature_index]]
+                
+                cat("***   Processing feature:", feature$name, ", index:", feature_index, "***\n")
                 
                 # Check if lengths match
                 if (length(feature_data) != length(solution_values)) {
                   cat("***   WARNING: Length mismatch for feature", feature$name, "! Feature:", length(feature_data), 
                       "vs Solution:", length(solution_values), "***\n")
+                  cat("***   Skipping this feature ***\n")
+                  next  # Skip this feature if lengths don't match
                 }
                 
                 feature_held <- sum(feature_data[solution_values > 0.5], na.rm = TRUE)
@@ -631,9 +646,9 @@ server_load_solution_database <- quote({
                 cat("*** Processing weight:", weight$name, "***\n")
                 
                 # Calculate how much of this weight is held by the solution
-                # Use get_data() instead of $values
-                weight_raster <- weight$variable$get_data()
-                weight_data <- as.vector(weight_raster)
+                # Get data from dataset using variable's index
+                weight_index <- weight$variable$index
+                weight_data <- app_data$dataset$attribute_data[[weight_index]]
                 cat("***   Weight data length:", length(weight_data), "***\n")
                 
                 weight_held <- sum(weight_data[solution_values > 0.5], na.rm = TRUE)
@@ -666,9 +681,9 @@ server_load_solution_database <- quote({
                 cat("*** Processing include:", include$name, "***\n")
                 
                 # Calculate how much of this include is held by the solution
-                # Use get_data() instead of $values
-                include_raster <- include$variable$get_data()
-                include_data <- as.vector(include_raster)
+                # Get data from dataset using variable's index
+                include_index <- include$variable$index
+                include_data <- app_data$dataset$attribute_data[[include_index]]
                 cat("***   Include data length:", length(include_data), "***\n")
                 
                 include_held <- sum(include_data[solution_values > 0.5], na.rm = TRUE)
@@ -699,9 +714,9 @@ server_load_solution_database <- quote({
             for (exclude in app_data$excludes) {
               if (exclude$name %in% exclude_names) {
                 # Calculate how much of this exclude is held by the solution
-                # Use get_data() instead of $values
-                exclude_raster <- exclude$variable$get_data()
-                exclude_data <- as.vector(exclude_raster)
+                # Get data from dataset using variable's index
+                exclude_index <- exclude$variable$index
+                exclude_data <- app_data$dataset$attribute_data[[exclude_index]]
                 exclude_held <- sum(exclude_data[solution_values > 0.5], na.rm = TRUE)
                 exclude_total <- exclude$variable$total
                 held_proportion <- if (exclude_total > 0) exclude_held / exclude_total else 0
@@ -717,6 +732,32 @@ server_load_solution_database <- quote({
           }
         }
         
+        # Log what we're about to pass to new_solution
+        cat("*** Creating solution with results: ***\n")
+        cat("***   Statistics:", length(statistics_list), "items ***\n")
+        cat("***   Theme results:", length(theme_results_list), "items ***\n")
+        cat("***   Weight results:", length(weight_results_list), "items ***\n")
+        cat("***   Include results:", length(include_results_list), "items ***\n")
+        cat("***   Exclude results:", length(exclude_results_list), "items ***\n")
+        
+        # Set solution parameters with hardcoded defaults from Cambio Global scripts
+        # All solutions use: no area budget, 50% spatial clustering, no override includes
+        solution_parameters <- lapply(app_data$ss$parameters, function(param) {
+          p <- param$clone()
+          if (p$id == "budget_parameter") {
+            # No area budget constraint
+            p$set_setting("status", FALSE)
+          } else if (p$id == "boundary_gap_parameter") {
+            # 50% spatial clustering (boundary length modifier)
+            p$set_setting("status", TRUE)
+            p$set_setting("value", 50)
+          } else if (p$id == "overlap_parameter") {
+            # No override includes
+            p$set_setting("status", FALSE)
+          }
+          return(p)
+        })
+        
         # Create solution object directly (bypassing Result class)
         s <- new_solution(
           name = curr_name,
@@ -725,7 +766,7 @@ server_load_solution_database <- quote({
           visible = if (app_data$ss$get_parameter("solution_layer_parameter")$status) FALSE else TRUE,
           invisible = NA_real_,
           loaded = TRUE,
-          parameters = lapply(app_data$ss$parameters, function(x) x$clone()),  # Current parameters after loading
+          parameters = solution_parameters,  # Use hardcoded parameters
           statistics = statistics_list,
           theme_results = theme_results_list,
           weight_results = weight_results_list,
@@ -769,6 +810,24 @@ server_load_solution_database <- quote({
           session = session,
           inputId = "solutionResultsPane_results",
           value = s
+        )
+        
+        ## add new solution to solution results modal dropdown
+        cat("*** Updating modal dropdown ***\n")
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "solutionResultsPane_results_modal_select",
+          choices = app_data$solution_ids,
+          selected = s$id
+        )
+        
+        ## update main solution selector (now a selectInput)
+        cat("*** Updating main solution selector ***\n")
+        shiny::updateSelectInput(
+          session = session,
+          inputId = "solutionResultsPane_results_select",
+          choices = app_data$solution_ids,
+          selected = s$id
         )
 
         ## add new solution to export sidebar

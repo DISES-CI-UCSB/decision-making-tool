@@ -397,8 +397,8 @@ server_generate_new_solution <- quote({
       selected = dplyr::last(app_data$solution_ids)
     )
 
-    ## show the new solution in the results widget
-    shinyWidgets::updatePickerInput(
+    ## show the new solution in the results widget (now using selectInput)
+    shiny::updateSelectInput(
       session = session,
       inputId = "solutionResultsPane_results_select",
       choices = app_data$solution_ids,

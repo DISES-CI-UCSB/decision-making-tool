@@ -74,8 +74,8 @@ server_update_solution_selection <- quote({
       
       cat("*** Building HTML table for", nrow(solutions_raw), "solutions ***\n")
       
-      # Build HTML table
-      table_html <- '<table class="table table-striped table-hover" style="font-size: 12px; width: 100%;">
+      # Build HTML table with clickable rows
+      table_html <- '<table class="table table-striped table-hover" id="solutions_info_table" style="font-size: 12px; width: 100%; cursor: pointer;">
         <thead>
           <tr>
             <th style="width: 20%;">Título</th>
@@ -87,7 +87,21 @@ server_update_solution_selection <- quote({
         </thead>
         <tbody>'
       
+      # Store file paths for JavaScript access
+      file_paths_js <- list()
+      
       for (i in 1:nrow(solutions_raw)) {
+        # Get file path
+        file_path <- if (is.data.frame(solutions_raw$file)) {
+          as.character(solutions_raw$file$path[i])
+        } else if (is.list(solutions_raw$file[[i]])) {
+          as.character(solutions_raw$file[[i]]$path)
+        } else {
+          NA_character_
+        }
+        
+        if (is.na(file_path)) next
+        file_paths_js[[i]] <- file_path
         # Get themes
         themes_text <- if (is.null(solutions_raw$themes[[i]]) || !is.data.frame(solutions_raw$themes[[i]]) || 
                            nrow(solutions_raw$themes[[i]]) == 0) {
@@ -120,15 +134,17 @@ server_update_solution_selection <- quote({
           solutions_raw$description[i]
         }
         
-        # Add row
+        # Add row with data attributes for selection
         table_html <- paste0(table_html, sprintf('
-          <tr>
+          <tr data-solution-path="%s" data-solution-title="%s" class="solution-row" style="cursor: pointer;">
             <td><strong>%s</strong></td>
             <td>%s</td>
             <td>%s</td>
             <td>%s</td>
             <td>%s</td>
           </tr>',
+          htmltools::htmlEscape(file_path),
+          htmltools::htmlEscape(solutions_raw$title[i]),
           htmltools::htmlEscape(solutions_raw$title[i]),
           htmltools::htmlEscape(desc_text),
           htmltools::htmlEscape(themes_text),
@@ -139,27 +155,94 @@ server_update_solution_selection <- quote({
       
       table_html <- paste0(table_html, '</tbody></table>')
       
-      # Add search box with explicit visibility styling
+      # Add search box, table, and interactive controls
       full_html <- paste0('
         <div style="margin-bottom: 15px; display: block !important; visibility: visible !important;">
           <input type="text" id="solution_table_search" class="form-control" placeholder="Buscar en la tabla..." style="width: 100%; padding: 8px;">
         </div>
-        <div style="max-height: 500px; overflow-y: auto; display: block !important; visibility: visible !important; min-height: 200px; background-color: white;">
+        <div style="max-height: 400px; overflow-y: auto; display: block !important; visibility: visible !important; min-height: 200px; background-color: white; margin-bottom: 20px;">
           ', table_html, '
         </div>
+        <div id="solution_selection_status" style="padding: 10px; background-color: #e3f2fd; border-radius: 4px; margin-bottom: 15px; display: none;">
+          <strong>Seleccionado:</strong> <span id="selected_solution_name">Ninguno</span>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: flex-end; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+          <div style="flex: 1; max-width: 200px;">
+            <label style="font-weight: bold; margin-bottom: 5px; display: block;">Color de visualización:</label>
+            <input type="color" id="modal_solution_color_picker" value="#228B22" style="width: 100%; height: 40px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="flex: 0 0 auto;">
+            <button id="load_selected_solution_btn" class="btn btn-primary btn-lg" disabled style="padding: 10px 30px;">
+              <i class="fa fa-upload"></i> Cargar Solución Seleccionada
+            </button>
+          </div>
+        </div>
         <script>
-          console.log("*** Table HTML loaded - searching for table element ***");
-          setTimeout(function() {
-            var table = $(".table.table-striped");
-            console.log("*** Table found:", table.length, "***");
-            console.log("*** Table visible:", table.is(":visible"), "***");
-            console.log("*** Table display:", table.css("display"), "***");
-            console.log("*** Table height:", table.height(), "***");
-          }, 100);
+          var selectedSolutionPath = null;
+          var selectedSolutionTitle = null;
           
+          // Row click handler
+          $(".solution-row").on("click", function() {
+            $(".solution-row").removeClass("info");
+            $(this).addClass("info");
+            
+            selectedSolutionPath = $(this).data("solution-path");
+            selectedSolutionTitle = $(this).data("solution-title");
+            
+            $("#selected_solution_name").text(selectedSolutionTitle);
+            $("#solution_selection_status").show();
+            $("#load_selected_solution_btn").prop("disabled", false);
+            
+            console.log("*** Selected solution:", selectedSolutionTitle, "***");
+            console.log("*** Path:", selectedSolutionPath, "***");
+          });
+          
+          // Load button click handler
+          $("#load_selected_solution_btn").on("click", function() {
+            if (!selectedSolutionPath) {
+              alert("Por favor selecciona una solución de la tabla");
+              return;
+            }
+            
+            var selectedColor = $("#modal_solution_color_picker").val();
+            console.log("*** Loading solution:", selectedSolutionTitle, "with color:", selectedColor, "***");
+            console.log("*** Path to load:", selectedSolutionPath, "***");
+            
+            // Check if elements exist
+            console.log("*** load_solution_list exists:", $("#load_solution_list").length, "***");
+            console.log("*** load_solution_color exists:", $("#load_solution_color").length, "***");
+            console.log("*** load_solution_button exists:", $("#load_solution_button").length, "***");
+            
+            // Close modal
+            $(".modal").modal("hide");
+            
+            // Set inputs and trigger load DIRECTLY (bypass dropdown)
+            setTimeout(function() {
+              console.log("*** Setting values and triggering load ***");
+              
+              // Set the hidden inputs that load_solution_button expects
+              if (typeof Shiny !== "undefined") {
+                // Use Shiny setInputValue to properly update the reactive values
+                Shiny.setInputValue("load_solution_list", selectedSolutionPath, {priority: "event"});
+                Shiny.setInputValue("load_solution_color", selectedColor, {priority: "event"});
+                
+                console.log("*** Shiny inputs set - path:", selectedSolutionPath, ", color:", selectedColor, "***");
+                
+                // Small delay then click the button
+                setTimeout(function() {
+                  console.log("*** Triggering load button click ***");
+                  $("#load_solution_button").click();
+                }, 100);
+              } else {
+                console.error("*** Shiny object not found ***");
+              }
+            }, 300);
+          });
+          
+          // Search handler
           $("#solution_table_search").on("keyup", function() {
             var value = $(this).val().toLowerCase();
-            $(".table tbody tr").filter(function() {
+            $(".solution-row").filter(function() {
               $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
             });
           });
@@ -185,15 +268,15 @@ server_update_solution_selection <- quote({
     
     shiny::showModal(
       shiny::modalDialog(
-        title = htmltools::h3("Información de Soluciones Disponibles", style = "margin: 0; font-weight: bold;"),
+        title = htmltools::h3("Seleccionar y Cargar Solución", style = "margin: 0; font-weight: bold;"),
         size = "l",  # Large size
         easyClose = TRUE,
         
         htmltools::div(
           style = "min-height: 600px; display: block !important;",
           htmltools::p(
-            "Esta tabla muestra todas las soluciones disponibles para este proyecto. Usa el menú desplegable 'Seleccionar solución' para cargar una solución en el mapa.",
-            style = "color: #666; margin-bottom: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff; font-size: 14px;"
+            htmltools::HTML("<strong>Instrucciones:</strong> Haz clic en una fila para seleccionar la solución, elige un color, y luego haz clic en 'Cargar Solución Seleccionada'."),
+            style = "color: #666; margin-bottom: 20px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107; font-size: 14px;"
           ),
           htmltools::div(
             style = "display: block !important; visibility: visible !important; overflow: visible !important;",

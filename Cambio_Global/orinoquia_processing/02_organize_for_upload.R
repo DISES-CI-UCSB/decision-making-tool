@@ -100,8 +100,8 @@ constraint_weight_layers <- data.frame(
                   "IHEH_2022", "beneficio_neto", "IHEH_2030",
                   "coca_muertes_1622", "refugios_clima"),
   display_name = c("Resguardos Indígenas", "Comunidades Negras", "RUNAP", "OMECs",
-                   "IHEH 2022", "Beneficio Neto", "IHEH 2030",
-                   "Coca Muertes 2016-2022", "Refugios Clima 8.5"),
+                   "IHEH 2022 (índice 0-100)", "Beneficio Neto (COP)", "IHEH 2030 (índice 0-100)",
+                   "Coca Muertes 2016-2022 (# eventos)", "Refugios Clima 8.5 (# especies)"),
   type = c("include", "include", "include", "include",
            "weight", "weight", "weight",
            "weight", "weight"),
@@ -223,8 +223,8 @@ feature_name_map <- data.frame(
     "Bosque Seco",
     "Especies Focales",
     "Riqueza de Especies",
-    "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea",
+    "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea (t C/ha)",
     "Recarga de Agua Subterránea",
     "Áreas núcleo EEP Orinoquía",
     "Humedales + Humedales SIRAPEC", 
@@ -269,8 +269,8 @@ theme_dict <- data.frame(
     "Bosque Seco",
     "Especies Focales",
     "Riqueza de Especies",
-    "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea",
+    "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea (t C/ha)",
     "Recarga de Agua Subterránea",
     "Áreas núcleo EEP Orinoquía",
     "Humedales + Humedales SIRAPEC",
@@ -330,10 +330,11 @@ for (i in 1:length(extracted_files)) {
       legends_for_layers <- c(legends_for_layers, "continuous")
       values_for_layers <- c(values_for_layers, "")
       labels_for_layers <- c(labels_for_layers, "")
-      # Continuous layers use a color ramp name
-      colors_for_layers <- c(colors_for_layers, "BuPu")
-      cat(sprintf("  %s: CONTINUOUS (legend=continuous, range: %.4f to %.4f)\n", 
-                  feat_name, min(unique_vals), max(unique_vals)))
+      # Continuous layers use color ramp: BuPu default, Spectral for Ecosistemas IAVH
+      color_palette <- if (feat_name == "Ecosistemas IAVH") "Spectral" else "BuPu"
+      colors_for_layers <- c(colors_for_layers, color_palette)
+      cat(sprintf("  %s: CONTINUOUS (legend=continuous, palette=%s, range: %.4f to %.4f)\n", 
+                  feat_name, color_palette, min(unique_vals), max(unique_vals)))
     }
     
     rm(r)  # Clean up raster object
@@ -342,8 +343,10 @@ for (i in 1:length(extracted_files)) {
     legends_for_layers <- c(legends_for_layers, "continuous")
     values_for_layers <- c(values_for_layers, "")
     labels_for_layers <- c(labels_for_layers, "")
-    colors_for_layers <- c(colors_for_layers, "Greens")
-    cat(sprintf("  WARNING: Raster file not found for %s, defaulting to continuous\n", feat_name))
+    # Default to BuPu, Spectral for Ecosistemas IAVH
+    color_palette <- if (feat_name == "Ecosistemas IAVH") "Spectral" else "BuPu"
+    colors_for_layers <- c(colors_for_layers, color_palette)
+    cat(sprintf("  WARNING: Raster file not found for %s, defaulting to continuous with %s palette\n", feat_name, color_palette))
   }
 }
 
@@ -559,7 +562,7 @@ for (i in 1:nrow(scenarios)) {
   themes_ids_str <- as.character(scenario_row$id_elemento_priorizacion)
   themes_names_str <- as.character(scenario_row$elemento_priorizacion)
   
-  # Hard-coded mapping dictionary: scenario names → database layer names
+  # Hard-coded mapping dictionary: scenario names → database layer names WITH units
   # NOTE: Only include layers that actually exist in Orinoquia
   scenario_to_layer_map <- c(
     # Species
@@ -567,6 +570,12 @@ for (i in 1:nrow(scenarios)) {
     "Especies" = "Riqueza de Especies",
     "EspFocales" = "Especies Focales",
     "Especies Focales" = "Especies Focales",
+    
+    # Ecosystem services - map to names WITH units
+    "Carbono Orgánico Suelos" = "Carbono Orgánico Suelos (t C/ha)",
+    "carbono_organico_suelos" = "Carbono Orgánico Suelos (t C/ha)",
+    "Biomasa Aérea más Subterránea" = "Biomasa Aérea más Subterránea (t C/ha)",
+    "biomasa_aerea_mas_subterranea" = "Biomasa Aérea más Subterránea (t C/ha)",
     "Habitat_condor" = "Habitat Condor",
     "condor_habitat" = "Habitat Condor",
     
@@ -585,10 +594,9 @@ for (i in 1:nrow(scenarios)) {
     "Áreas NucleoSIRAPO" = "Áreas núcleo EEP Orinoquía",
     "areas_nucleoSIRAPO" = "Áreas núcleo EEP Orinoquía",
     
-    # Ecosystem services
-    "Carbono Orgánico Suelos" = "Carbono Orgánico Suelos",
-    "Biomasa Aérea más Subterránea" = "Biomasa Aérea más Subterránea",
-    "Recarga de Agua Subterránea" = "Recarga de Agua Subterránea"
+    # Ecosystem services - already added above with units
+    "Recarga de Agua Subterránea" = "Recarga de Agua Subterránea",
+    "recarga_agua_subterranea" = "Recarga de Agua Subterránea"
   )
   
   themes_display <- c()

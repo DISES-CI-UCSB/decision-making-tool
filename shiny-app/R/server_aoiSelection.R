@@ -337,8 +337,12 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
                 color: '#e74c3c',
                 weight: 2,
                 fillColor: '#e74c3c',
-                fillOpacity: 0.3
+                fillOpacity: 0.3,
+                pane: 'overlayPane'  // Use overlay pane to appear above tiles
               }).addTo(map);
+              
+              // Bring to front
+              polygon.bringToFront();
               
               // Store the polygon for later use
               window.aoiPolygon = polygon;
@@ -431,8 +435,12 @@ aoiSelectionServer <- function(id, app_data, session, map_id = "map") {
                   color: '#e74c3c',
                   weight: 2,
                   fillColor: '#e74c3c',
-                  fillOpacity: 0.3
+                  fillOpacity: 0.3,
+                  pane: 'overlayPane'
                 }).addTo(map);
+                
+                // Bring to front
+                rectangle.bringToFront();
                 
                 window.aoiPolygon = rectangle;
                 window.aoiDrawingMode = 'none';
