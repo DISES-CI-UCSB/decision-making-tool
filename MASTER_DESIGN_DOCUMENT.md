@@ -301,8 +301,9 @@ The Right Sidebar dynamically displays different analytical content based on use
 
 **Purpose:** Provide high-level summary statistics about the currently active conservation scenario.
 
-**Content:**
-*   **Scenario Identity:**
+**Content (Component Sections):**
+
+*   **Section 1: Scenario Identity**
     *   Solution name/ID
     *   Match quality indicator (e.g., "95% Match to your priorities")
     *   Date created or last updated
@@ -327,13 +328,15 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Official data sources cited with full agency names and publication dates
         *   Data currency indicators (e.g., "Based on 2023 biodiversity data")
         *   Link to detailed methodology and data provenance documentation
-*   **Spatial Summary:**
+
+*   **Section 2: Spatial Summary**
     *   **Total Priority Area:** Area displayed with explicit units (km² and hectares) and percentage of Colombia designated for conservation
     *   **Component Breakdown:** Terrestrial vs. Marine conservation area statistics
     *   **Number of Priority Zones:** Count of discrete conservation patches/reserves
     *   **Average Patch Size:** Mean area of conservation zones (with units)
     *   **Largest Priority Zone:** Size of the biggest contiguous conservation area (with units)
-*   **Conservation Achievement:**
+
+*   **Section 3: Conservation Achievement**
     *   **Themes (Goals):** Visual indicators showing which conservation targets are met
         *   Example: "✓ Species Protection: 32% (Goal: 30%)"
         *   Example: "✗ Wetlands: 18% (Goal: 25%)"
@@ -345,12 +348,13 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Species habitats protected
         *   Carbon stored (tCO2e)
         *   Water regulation capacity
-*   **Cost/Trade-off Summary:**
+
+*   **Section 4: Cost/Trade-off Summary**
     *   **Opportunity Cost:** Estimated economic impact (agricultural rent, development restrictions)
     *   **Human Footprint:** Average human pressure index within priority areas
     *   **Conflict Exposure:** Presence of social or land-use conflicts in priority zones
 
-*   **Trade-off Analysis Framework (Mandatory):**
+*   **Section 5: Trade-off Analysis Framework (Mandatory)**
     *   **Purpose:** Explicitly show "what you are getting vs. what you are losing" to address the requirement that information must be presented with implications, not just displayed without context.
     *   **Structure:** Two-part framework with auto-generated explanatory text:
     
@@ -446,7 +450,7 @@ The Right Sidebar dynamically displays different analytical content based on use
     **Example Integrated Trade-off Narrative:**
     *   "This scenario achieves **GOOD** biodiversity protection (**7 species groups** with adequate habitats) at **MODERATE** economic cost (**$350M** agricultural opportunity cost). While **HIGH** carbon storage is secured (**2.5B tCO2e**), implementation will require addressing **15% overlap** with human-modified landscapes and **8,200 km²** of historical conflict zones."
 
-*   **National Contribution Calculator:**
+*   **Section 6: National Contribution Calculator**
     *   **Colombia's Conservation Target Contribution:**
         *   Percentage of Colombia's territory protected by this solution (e.g., "12% of Colombia")
         *   Contribution toward national 30% target (e.g., "40% progress toward 30x30 goal")
@@ -459,7 +463,7 @@ The Right Sidebar dynamically displays different analytical content based on use
             *   Moderate: 5-10%
             *   Limited: < 5%
 
-*   **Actions:**
+*   **Section 7: Actions**
     *   "View Full Scenario Details" button
     *   "Compare with Another Scenario" button (Tier 2)
     *   "Download Solution Data" button
@@ -489,9 +493,9 @@ The Right Sidebar dynamically displays different analytical content based on use
 *   Region name (e.g., "Municipality of Popayán" or "Cauca Department")
 *   Region type and area (km²)
 
-**Content Sections:**
+**Content (Component Sections):**
 
-*   **A. Regional Conservation Summary**
+*   **Section A: Regional Conservation Summary**
     *   **Priority Area in this Region:** 
         *   Area (km²) and percentage of the region designated for conservation
         *   Visual: Progress bar showing % of region included in conservation priorities
@@ -499,7 +503,7 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Number of priority zones within this region
         *   Spatial distribution (concentrated vs. dispersed)
 
-*   **B. Biodiversity Metrics**
+*   **Section B: Biodiversity Metrics**
     *   **Species Richness:**
         *   Bar chart showing richness by taxonomic group (Mammals, Birds, Amphibians, Reptiles, Plants)
         *   Comparison to national average
@@ -511,7 +515,7 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Donut chart showing percentage coverage of different ecosystem types
         *   Examples: Cloud Forest (15%), Paramo (8%), Dry Forest (12%), Wetlands (5%)
 
-*   **C. Ecosystem Services**
+*   **Section C: Ecosystem Services**
     *   **Carbon Storage:**
         *   Total carbon biomass in the region (tCO2e)
         *   Above-ground and below-ground (soil organic carbon)
@@ -522,7 +526,7 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Importance for downstream communities
         *   Stat card or gauge visualization
 
-*   **D. Land Use & Socio-Economic Context**
+*   **Section D: Land Use & Socio-Economic Context**
     *   **Human Footprint:**
         *   Average Human Footprint Index (0-100 scale, **units and methodology clearly stated**)
         *   **Detailed Breakdown:** Percentage of planning units by Human Footprint category:
@@ -553,7 +557,7 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   **Consultation Requirements:** Flagging areas requiring prior consultation under Colombian law and ILO Convention 169
         *   **Differential Prioritization Context:** Narrative explaining cultural importance for decision-making
 
-*   **E. Protection Status**
+*   **Section E: Protection Status**
     *   **Existing Protected Areas:**
         *   List of national/regional protected areas within the region
         *   Examples: "Puracé National Park", "Los Farallones Regional Park"
@@ -574,7 +578,7 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   "Gap" visualization showing new conservation opportunities
         *   Breakdown by gap severity (e.g., "High priority, no current protection: 15%")
 
-*   **F. Regional vs. National Contribution Analysis (Mandatory)**
+*   **Section F: Regional vs. National Contribution Analysis (Mandatory)**
     *   **Purpose:** Quantify how this region contributes to national conservation goals and provide comparative context for regional decision-makers. This addresses the critical need to "correlate regional and national data to provide a reference for analysis."
     
     *   **National Target Contribution Calculator:**
