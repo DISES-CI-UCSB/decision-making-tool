@@ -1,7 +1,30 @@
 # Conservation Decision Support Tool: Master Design Document
 *Authoritative Source of Truth for Application Development*
 
-## 1. Product Vision
+## Document Hierarchy Legend
+
+
+This document uses a consistent naming convention to clarify the hierarchy of content:
+
+| Level | Term | Numbering | Example | Visual Cue |
+|-------|------|-----------|---------|------------|
+| **L1** | **Part** | 1, 2, 3, 4, 5 | Part 1: Product Vision | `# H1` + `---` divider before |
+| **L2** | **Area** | 4.1, 4.2, 4.3 | Area 4.1: Layout & UI Structure | `## H2` |
+| **L3** | **Component** | 4.3.1, 4.3.2 | Component 4.3.1: Solution Overview Panel | `### H3` |
+| **L4** | **Section** | A, B, C, D, E, F | Section F: Regional vs. National Contribution | Bold text with bullets |
+| **L5** | **Sub-section** | F.1, F.2, F.3 | Sub-section F.1: National Target Calculator | Nested bullets |
+| **L6** | **Element** | a, b, c | Element F.4.a: National Scale Context | Further nested bullets |
+
+**Navigation Tips:**
+- **Parts** are the major document divisions (Product Vision, User Personas, Workflows, etc.)
+- **Areas** are functional groupings within Parts
+- **Components** are specific UI elements or feature modules
+- **Sections** are logical groupings within a Component
+- **Sub-sections** and **Elements** provide granular detail within Sections
+
+---
+
+# Part 1: Product Vision
 
 **Conservation Decision Support Tool** is an interactive systematic conservation planning application for Colombia. It empowers users—from the general public to regional planners—to identify and prioritize conservation areas based on biodiversity, ecosystem services, and socio-economic data across **both terrestrial and marine/oceanic components** of Colombia's territory.
 
@@ -13,7 +36,7 @@ The application operates on a **"Pre-calculated Exploration"** model. Instead of
 
 ---
 
-## 2. User Personas & Access Levels
+# Part 2: User Personas & Access Levels
 
 The application serves three distinct user tiers.
 
@@ -75,7 +98,7 @@ The application serves three distinct user tiers.
 
 ---
 
-## 3. Core User Workflows
+# Part 3: Core User Workflows
 
 ### 3.1. The Discovery Workflow (Tiers 1 & 2)
 *The primary interface for exploring conservation priorities using the **Solution Finder** as the central discovery tool.*
@@ -193,9 +216,90 @@ The application serves three distinct user tiers.
 
 ---
 
-## 4. Functional Specifications
+# Part 4: Functional Specifications
 
-### 4.1. Layout & UI Structure
+## Area 4.0: Components Overview & Summary
+
+This section provides a high-level overview of all UI components in the application, making it easy to understand the system architecture and locate specific components in the detailed specifications below.
+
+#### Component 4.0.1: Components Summary Tables
+
+**Table A: Interactive Application Components**
+
+These are the live UI components users interact with in the application.
+
+| Component Name | Location | Has Metrics? | # of Metrics | Top 3-5 Key Metrics | Metrics Table |
+|----------------|----------|--------------|--------------|---------------------|---------------|
+| **LEFT SIDEBAR** | | | | | |
+| Solution Selector | Left Sidebar | No | 0 | — | — |
+| Layer Visibility Manager | Left Sidebar | No | 0 | — | — |
+| Symbology Control Panel | Left Sidebar | No | 0 | — | — |
+| Export/Report Buttons | Left Sidebar | No | 0 | — | — |
+| **CENTER PANEL** | | | | | |
+| Interactive Map | Center Panel | No | 0 | — | — |
+| Map Controls | Center Panel | No | 0 | — | — |
+| **RIGHT SIDEBAR** | | | | | |
+| Solution Overview Panel | Right Sidebar | **Yes** | **17** | Goal Achievement %, Carbon Storage (tCO2e), Opportunity Cost (USD), Human Footprint Overlap %, Match Quality % | Section 4.3.5.1 |
+| AOI Dashboard | Right Sidebar | **Yes** | **47** | Priority Area (km²), Species Richness, Carbon Biomass (tCO2e), % of National Ecosystem, Regional Significance | Section 4.3.5.2 |
+| Scenario Comparison Panel | Right Sidebar | **Yes** | **4** | Agreement Area (km²), Unique to Scenario A, Unique to Scenario B, Synergy Zones | Section 4.3.5.3 |
+| Welcome Panel | Right Sidebar | No | 0 | — | — |
+| **MODALS** | | | | | |
+| Solution Finder Modal | Modal | No | 0 | — | — |
+| Perspective Selection Modal | Modal | No | 0 | — | — |
+
+**Interactive Components Summary:** 12 total components, 3 with metrics, **68 unique metrics** (see Section 4.3.5 for complete metrics reference)
+
+**Table B: Generated Reports & Documentation**
+
+These are outputs that can be viewed in-app (Page View) and downloaded (PDF) for sharing and detailed analysis. Reports primarily **reuse metrics** from the interactive components above but may include additional unique metrics.
+
+| Report Name | Output Format | Metrics Source | # of Additional Unique Metrics | Section Reference |
+|-------------|---------------|----------------|-------------------------------|-------------------|
+| Trade-off Analysis Report | PDF + Page View | Reuses Solution Overview Panel metrics | **0** (all metrics from 4.3.1) | 4.4 (Report #1) |
+| Ecosystem Assessment Report | PDF + Page View | Reuses AOI Dashboard metrics + adds ecosystem-specific detail | TBD | 4.4 (Report #2) |
+| Connectivity Report | PDF + Page View | Reuses AOI Dashboard metrics + adds connectivity analysis | TBD | 4.4 (Report #3) |
+| Species Conservation Report | PDF + Page View | Reuses AOI Dashboard metrics + adds species-specific detail | TBD | 4.4 (Report #4) |
+| Territorial Planning Report | PDF + Page View | Reuses AOI Dashboard metrics + adds planning-specific metrics | TBD | 4.4 (Report #5) |
+| Ethnic Territory Consultation Report | PDF + Page View | Reuses AOI Dashboard cultural metrics + adds consultation detail | TBD | 4.4 (Report #6) |
+
+**Reports Summary:** 6 total reports, all available as both in-app Page View and downloadable PDF. Trade-off Analysis Report is fully specified (reuses 17 metrics from Solution Overview Panel). Other thematic reports (Reports #2-6) require specification to determine unique metrics vs. reused metrics.
+
+#### 4.0.2. Summary Statistics of All Components, Reports,  Metrics
+
+**Interactive Components:**
+- **Total Interactive Components:** 12
+- **Components with Metrics:** 3 (Solution Overview Panel, AOI Dashboard, Scenario Comparison Panel)
+- **Total Unique Metrics in Interactive App:** 68
+- **Most Metric-Heavy Component:** AOI Dashboard (47 unique metrics)
+
+**Reports:**
+- **Total Reports:** 6
+- **Fully Specified Reports:** 1 (Trade-off Analysis Report)
+- **Reports Requiring Specification:** 5 (thematic reports #2-6)
+
+**Overall:**
+- **Total UI Components + Reports:** 18
+- **Metric Distribution:** All 68 metrics concentrated in Right Sidebar (Analysis Components)
+
+#### 4.0.3. Key Insights for Team Review
+
+**Where to Focus Your Review:**
+1. **Right Sidebar Components (Analysis Dashboard)** - This is where ALL 68 metrics live
+   - Solution Overview Panel: 17 unique metrics (Section 4.3.1)
+   - AOI Dashboard: 47 unique metrics (Section 4.3.2)
+   - Scenario Comparison Panel: 4 unique metrics (Section 4.3.3)
+
+2. **Reports** - Currently only Trade-off Analysis Report (#1) is fully specified
+   - Reports #2-6 need specification work to determine unique vs. reused metrics
+
+
+**Important Notes:**
+- **Control and visualization components have NO metrics** - they're for user interaction and display only
+- **All metrics are in the Analysis Dashboard** (Right Sidebar) - this is intentional for focused data interpretation
+- **Reports reuse metrics** from interactive components - reduces duplication and ensures consistency
+- **Metric tables in Sections 4.3.1 and 4.3.2** show exactly which metrics appear where (with "Also appears in:" column coming in restructure)
+
+## Area 4.1: Layout & UI Structure
 The interface follows a three-pane layout with a prominent modal workflow for solution discovery.
 
 *   **Left Sidebar ("Control Dashboard"):**
@@ -272,7 +376,7 @@ The interface follows a three-pane layout with a prominent modal workflow for so
         3. **Scenario Comparison Panel** (Section 4.3.3) - Tier 2 only, when comparing two solutions. Shows side-by-side analysis and difference metrics.
         4. **Welcome/Getting Started Panel** (Section 4.3.4) - When no solution is active. Guides new users to begin exploring.
 
-### 4.2. Solution Finder ("Selection Grid") Modal
+## Area 4.2: Solution Finder ("Selection Grid") Modal
 A large, centralized Modal interface for discovering conservation scenarios. This is separated from the sidebar to accommodate the comprehensive input options and narrative-driven exploration.
 
 *   **UI Components:**
@@ -292,18 +396,18 @@ A large, centralized Modal interface for discovering conservation scenarios. Thi
     *   System provides feedback if selected combination has low match quality or is outside the scenario library coverage
     *   User clicks "Apply Scenario" to load the best match onto the main Center Panel map
 
-### 4.3. Right Sidebar Analysis Views
+## Area 4.3: Right Sidebar Analysis Views
 
 The Right Sidebar dynamically displays different analytical content based on user actions and context.
 
-### 4.3.1. Solution Overview Panel
+### Component 4.3.1: Solution Overview Panel
 *Trigger: A conservation solution is loaded/active, but no specific region is selected.*
 
 **Purpose:** Provide high-level summary statistics about the currently active conservation scenario.
 
 **Content (Component Sections):**
 
-*   **Section 1: Scenario Identity**
+*   **Section A: Scenario Identity**
     *   Solution name/ID
     *   Match quality indicator (e.g., "95% Match to your priorities")
     *   Date created or last updated
@@ -329,14 +433,14 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Data currency indicators (e.g., "Based on 2023 biodiversity data")
         *   Link to detailed methodology and data provenance documentation
 
-*   **Section 2: Spatial Summary**
+*   **Section B: Spatial Summary**
     *   **Total Priority Area:** Area displayed with explicit units (km² and hectares) and percentage of Colombia designated for conservation
     *   **Component Breakdown:** Terrestrial vs. Marine conservation area statistics
     *   **Number of Priority Zones:** Count of discrete conservation patches/reserves
     *   **Average Patch Size:** Mean area of conservation zones (with units)
     *   **Largest Priority Zone:** Size of the biggest contiguous conservation area (with units)
 
-*   **Section 3: Conservation Achievement**
+*   **Section C: Conservation Achievement**
     *   **Themes (Goals):** Visual indicators showing which conservation targets are met
         *   Example: "✓ Species Protection: 32% (Goal: 30%)"
         *   Example: "✗ Wetlands: 18% (Goal: 25%)"
@@ -349,12 +453,12 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Carbon stored (tCO2e)
         *   Water regulation capacity
 
-*   **Section 4: Cost/Trade-off Summary**
+*   **Section D: Cost/Trade-off Summary**
     *   **Opportunity Cost:** Estimated economic impact (agricultural rent, development restrictions)
     *   **Human Footprint:** Average human pressure index within priority areas
     *   **Conflict Exposure:** Presence of social or land-use conflicts in priority zones
 
-*   **Section 5: Trade-off Analysis Framework (Mandatory)**
+*   **Section E: Trade-off Analysis Framework (Mandatory)**
     *   **Purpose:** Explicitly show "what you are getting vs. what you are losing" to address the requirement that information must be presented with implications, not just displayed without context.
     *   **Structure:** Two-part framework with auto-generated explanatory text:
     
@@ -400,30 +504,7 @@ The Right Sidebar dynamically displays different analytical content based on use
             *   "**15% of priority areas** overlap with moderate-to-high human pressure zones"
             *   "Conservation priorities overlap with **8,200 km²** of historical conflict zones, requiring careful implementation planning"
     
-    **Metrics Table for Trade-off Analysis Framework:**
-    
-    | Metric Category | Metric Name | Units | Purpose | Visualization |
-    |----------------|-------------|-------|---------|---------------|
-    | **GAINS** | | | | |
-    | Conservation Achievement | Conservation Goals Met | Count / Percentage | Show how many conservation targets are achieved | Visual checkmarks (✓/✗) |
-    | Conservation Achievement | Species Groups Protected | Count (e.g., "8 of 10") | Show breadth of biodiversity protection | Progress bar or fraction |
-    | Conservation Achievement | Threatened Species Secured | Count | Highlight protection of at-risk species | Badge with count |
-    | Conservation Achievement | Ecosystem Coverage | km² and % | Show area of each ecosystem type protected | Bar chart by ecosystem |
-    | Ecosystem Services | Carbon Storage Capacity | tCO2e (tonnes CO2 equivalent) | Quantify climate mitigation value | Stat card with large number |
-    | Ecosystem Services | Water Regulation Services | m³ or index value | Quantify water provision importance | Gauge or stat card |
-    | Ecosystem Services | Connectivity | Corridor count or index | Show landscape connectivity | Network diagram or index |
-    | **LOSSES/COSTS** | | | | |
-    | Economic Impact | Agricultural Opportunity Cost | COP and USD (millions) | Quantify foregone agricultural revenue | Stat card, currency format |
-    | Economic Impact | Affected Agricultural Area | km² and % | Show spatial extent of agricultural impact | Bar chart or map overlay |
-    | Development Constraints | Human Footprint Overlap | km² and % of priority areas | Show overlap with developed landscapes | Percentage bar, histogram |
-    | Development Constraints | Development Restriction Area | km² | Show area where development constrained | Stat card with area |
-    | Development Constraints | Economic Impact of Restrictions | COP and USD (millions) | Estimate cost of development constraints | Stat card, currency format |
-    | Social Constraints | Conflict Zone Overlap | km² | Show overlap with historical conflict areas | Map overlay, stat card |
-    | Social Constraints | Land Dispute Overlap | km² | Show overlap with active disputes | Map overlay, stat card |
-    | **SUMMARY METRICS** | | | | |
-    | Overall Quality | Goal Achievement Quality | Percentage (0-100%) | Overall success rate for targets | Progress bar with label |
-    | Overall Quality | Match Quality | Percentage (0-100%) | How well solution matches user priorities | Badge (e.g., "95% Match") |
-    | Overall Quality | Trade-off Balance Score | Composite index | Holistic assessment of gains vs. costs | Radar chart or gauge |
+    **Metrics Reference:** See **Section 4.3.5.1** for the complete Solution Overview Panel Metrics Table (17 metrics).
     
     **Template-Based Text Generation Rules:**
     
@@ -450,7 +531,7 @@ The Right Sidebar dynamically displays different analytical content based on use
     **Example Integrated Trade-off Narrative:**
     *   "This scenario achieves **GOOD** biodiversity protection (**7 species groups** with adequate habitats) at **MODERATE** economic cost (**$350M** agricultural opportunity cost). While **HIGH** carbon storage is secured (**2.5B tCO2e**), implementation will require addressing **15% overlap** with human-modified landscapes and **8,200 km²** of historical conflict zones."
 
-*   **Section 6: National Contribution Calculator**
+*   **Section F: National Contribution Calculator**
     *   **Colombia's Conservation Target Contribution:**
         *   Percentage of Colombia's territory protected by this solution (e.g., "12% of Colombia")
         *   Contribution toward national 30% target (e.g., "40% progress toward 30x30 goal")
@@ -463,7 +544,7 @@ The Right Sidebar dynamically displays different analytical content based on use
             *   Moderate: 5-10%
             *   Limited: < 5%
 
-*   **Section 7: Actions**
+*   **Section G: Actions**
     *   "View Full Scenario Details" button
     *   "Compare with Another Scenario" button (Tier 2)
     *   "Download Solution Data" button
@@ -484,7 +565,7 @@ The Right Sidebar dynamically displays different analytical content based on use
                 *   **Change Perspective:** Re-generate the report with a different perspective (data stays the same, text framing changes)
                 *   **Close/Return:** Go back to main map interface
 
-### 4.3.2. AOI Dashboard (Area of Interest Analytics)
+### Component 4.3.2: AOI Dashboard (Area of Interest Analytics)
 *Trigger: User clicks on a Municipality, Department, or SIRAP on the map.*
 
 **Purpose:** Provide detailed, region-specific statistics showing how the conservation solution affects this particular area.
@@ -579,9 +660,12 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Breakdown by gap severity (e.g., "High priority, no current protection: 15%")
 
 *   **Section F: Regional vs. National Contribution Analysis (Mandatory)**
-    *   **Purpose:** Quantify how this region contributes to national conservation goals and provide comparative context for regional decision-makers. This addresses the critical need to "correlate regional and national data to provide a reference for analysis."
     
-    *   **National Target Contribution Calculator:**
+    **Purpose:** Quantify how this region contributes to national conservation goals and provide comparative context for regional decision-makers. This addresses the critical need to "correlate regional and national data to provide a reference for analysis."
+    
+    **Metrics Reference:** See **Section 4.3.5.2** for the complete AOI Dashboard Metrics Table (47 metrics).
+    
+    *   **Sub-section F.1: National Target Contribution Calculator**
         *   **AOI Contribution to National 17%/30% Targets:**
             *   Calculate and display: "Priority areas in this region represent **X%** of Colombia's national conservation target"
             *   Progress indicator: "This region contributes **Y%** toward achieving the national 30% goal"
@@ -595,9 +679,11 @@ The Right Sidebar dynamically displays different analytical content based on use
                 *   **Minor Contributor:** < 2%
             *   Example text: "This department is a **CRITICAL** contributor to national conservation, providing **12%** of the priority areas needed to achieve Colombia's 30% protection target"
     
-    *   **Comparative Statistics Table (AOI vs. National):**
-        *   **Purpose:** Show how this region's features compare to national totals
-        *   **Required Metrics:**
+    *   **Sub-section F.2: Comparative Statistics Display (Example Wireframe)**
+        
+        **Purpose:** Show how this region's features compare to national totals. This is an **example of how the data would be displayed** in the UI; the underlying metrics are defined in Section 4.3.5.2.
+        
+        **Example Display Format:**
         
         | Feature Category | AOI Distribution | National Distribution | Regional Significance |
         |-----------------|------------------|----------------------|----------------------|
@@ -615,7 +701,7 @@ The Right Sidebar dynamically displays different analytical content based on use
         *   Visual: Bar charts comparing regional vs. national percentages for key metrics
         *   Color coding: Green (above-average representation), Yellow (average), Red (below-average)
     
-    *   **AOI Content Summary:**
+    *   **Sub-section F.3: AOI Content Summary**
         *   **Biodiversity within AOI:**
             *   Species richness by taxonomic group (counts and comparison to national average)
             *   Threatened species count and percentage of national total
@@ -630,79 +716,32 @@ The Right Sidebar dynamically displays different analytical content based on use
             *   Existing protected area coverage (km² and % of AOI)
             *   Agricultural opportunity cost (total economic value in COP and USD)
     
-    *   **Metrics Table for AOI Dashboard:**
+    *   **Sub-section F.4: Template-Based Contextual Narrative**
+        
+        Auto-generated text explaining regional significance at multiple scales:
+        
+        *   **Element F.4.a: National Scale Context**
+            *   "This region contains **15% of Colombia's cloud forest ecosystems**, making it a **CRITICAL** contributor to national cloud forest conservation goals"
+            *   "With **20% of Colombia's paramo ecosystems**, this area is of **EXCEPTIONAL** importance for high-elevation biodiversity and water regulation"
+            *   Threshold-based significance classification (***example values for team refinement***):
+                *   **EXCEPTIONAL:** > 20% of national distribution
+                *   **CRITICAL:** 10-20%
+                *   **IMPORTANT:** 5-10%
+                *   **MODERATE:** 2-5%
+                *   **MINOR:** < 2%
+        
+        *   **Element F.4.b: Regional Scale Context**
+            *   "Within Cauca Department, this municipality accounts for **45%** of departmental endemic bird habitats, significantly exceeding its proportional area"
+            *   "This region supports **8 of Colombia's 32 threatened amphibian species** (25%), indicating exceptional amphibian diversity"
+        
+        *   **Element F.4.c: Connectivity & Strategic Value**
+            *   "Priority areas in this region **connect two major protected area systems** (Puracé NP and Los Farallones Regional Park), serving a critical corridor function"
+            *   "This area provides water regulation services to **2.5 million downstream residents** in the Cauca River basin"
+        
+        *   **Element F.4.d: Example Integrated Regional Narrative**
+            *   "This municipality is a **CRITICAL** national contributor, containing **15% of Colombia's cloud forests** and **20% of paramo ecosystems**. It supports **8 threatened amphibian species** (25% of national total) and stores **85M tCO2e** (7% of national carbon stocks). Priority conservation areas here serve dual functions: protecting **above-average biodiversity** while maintaining **water regulation for 2.5M downstream residents**. However, implementation must address **$125M in agricultural opportunity cost** and overlap with **moderate human pressure zones** (35% of priority areas)."
     
-    | Metric Category | Metric Name | Units | Purpose | Visualization |
-    |----------------|-------------|-------|---------|---------------|
-    | **REGIONAL CONSERVATION** | | | | |
-    | Priority Area | Priority Area in Region | km² and % of region | Show extent of conservation in this area | Progress bar |
-    | Priority Area | Number of Priority Zones | Count | Show fragmentation/concentration | Stat card |
-    | Priority Area | Average Patch Size | km² or ha | Assess spatial configuration | Stat card |
-    | **BIODIVERSITY** | | | | |
-    | Species | Species Richness by Taxon | Count per group (Mammals, Birds, etc.) | Compare biodiversity across groups | Bar chart |
-    | Species | Threatened Species Count | Count | Highlight at-risk species presence | Badge with red highlight |
-    | Species | Endemic Species Count | Count | Show unique regional biodiversity | Badge |
-    | Species | % of National Species Total | Percentage | Show regional significance | Stat with comparison |
-    | Ecosystems | Ecosystem Type Coverage | km² and % | Show ecosystem representation | Donut chart |
-    | **ECOSYSTEM SERVICES** | | | | |
-    | Carbon | Total Carbon Biomass | tCO2e | Quantify climate value | Stat card, large number |
-    | Carbon | Above-ground Carbon | tCO2e | Show living biomass carbon | Breakdown stat |
-    | Carbon | Soil Organic Carbon | tCO2e | Show soil carbon storage | Breakdown stat |
-    | Carbon | Average Carbon Density | tCO2e/ha | Show per-area efficiency | Stat card |
-    | Carbon | % of National Carbon | Percentage | Show regional carbon significance | Comparison stat |
-    | Water | Water Regulation Capacity | m³ or index value | Quantify water provision | Gauge visualization |
-    | Water | Downstream Beneficiaries | Population count | Show human dependency | Stat card with icon |
-    | **SOCIO-ECONOMIC CONTEXT** | | | | |
-    | Human Pressure | Average Human Footprint | Index 0-100 | Assess development pressure | Gauge |
-    | Human Pressure | HF Distribution (Low/Mod/High/Very High) | % by category | Show pressure distribution | Histogram or stacked bar |
-    | Land Use | Land Use Type Breakdown | % by type (Forest, Pasture, Crop, etc.) | Show current land uses | Donut or stacked chart |
-    | Economic Impact | Agricultural Opportunity Cost | COP and USD | Quantify economic trade-off | Stat card, currency |
-    | Economic Impact | % of Region in Agriculture | Percentage | Show agricultural intensity | Stat |
-    | Conflict | Historical Conflict Zone Overlap | km² | Show conflict exposure | Map overlay, stat |
-    | Conflict | Social Conflict Risk Level | Categorical (Low/Mod/High) | Assess implementation risk | Badge or gauge |
-    | **CULTURAL & ETHNIC** | | | | |
-    | Ethnic Territories | Indigenous Reservations | List and total km² | Identify indigenous lands | List + area stat |
-    | Ethnic Territories | Community Councils | List and total km² | Identify Afro-Colombian territories | List + area stat |
-    | Consultation | Consultation Requirement Flag | Yes/No + area (km²) | Identify legal consultation needs | Badge/alert |
-    | **PROTECTION STATUS** | | | | |
-    | Existing Protection | Protected Areas List | List of names | Identify existing protections | List with icons |
-    | Existing Protection | Total Protected Area | km² and % of AOI | Show current protection coverage | Progress bar |
-    | Overlap Analysis | % Overlap with National Parks | Percentage | Show complementarity | Breakdown stat |
-    | Overlap Analysis | % Overlap with OMECs | Percentage | Show complementarity | Breakdown stat |
-    | Overlap Analysis | % Overlap with Indigenous Territories | Percentage | Show cultural overlap | Breakdown stat |
-    | Gap Analysis | Coverage Gap | % of priority unprotected | Show new conservation opportunity | Progress bar (inverse) |
-    | Synergy | Synergy Score | Index or categorical | Assess system complementarity | Gauge or badge |
-    | **NATIONAL CONTRIBUTION** | | | | |
-    | National Target | % Contribution to 30% Goal | Percentage | Show national target progress | Progress bar |
-    | National Distribution | % of National Ecosystem X in AOI | Percentage per ecosystem type | Show regional significance | Comparison table |
-    | National Distribution | % of National Species X in AOI | Percentage per species group | Show biodiversity significance | Comparison table |
-    | National Distribution | Regional Significance Classification | Categorical (Exceptional/Critical/Important/Moderate/Minor) | Summarize regional importance | Badge with color coding |
-    
-    *   **Template-Based Contextual Narrative:**
-        *   **Auto-generated text explaining regional significance at multiple scales:**
-        
-        **National Scale Context:**
-        *   "This region contains **15% of Colombia's cloud forest ecosystems**, making it a **CRITICAL** contributor to national cloud forest conservation goals"
-        *   "With **20% of Colombia's paramo ecosystems**, this area is of **EXCEPTIONAL** importance for high-elevation biodiversity and water regulation"
-        *   Threshold-based significance classification (***example values for team refinement***):
-            *   **EXCEPTIONAL:** > 20% of national distribution
-            *   **CRITICAL:** 10-20%
-            *   **IMPORTANT:** 5-10%
-            *   **MODERATE:** 2-5%
-            *   **MINOR:** < 2%
-        
-        **Regional Scale Context:**
-        *   "Within Cauca Department, this municipality accounts for **45%** of departmental endemic bird habitats, significantly exceeding its proportional area"
-        *   "This region supports **8 of Colombia's 32 threatened amphibian species** (25%), indicating exceptional amphibian diversity"
-        
-        **Connectivity & Strategic Value:**
-        *   "Priority areas in this region **connect two major protected area systems** (Puracé NP and Los Farallones Regional Park), serving a critical corridor function"
-        *   "This area provides water regulation services to **2.5 million downstream residents** in the Cauca River basin"
-        
-        **Example Integrated Regional Narrative:**
-        *   "This municipality is a **CRITICAL** national contributor, containing **15% of Colombia's cloud forests** and **20% of paramo ecosystems**. It supports **8 threatened amphibian species** (25% of national total) and stores **85M tCO2e** (7% of national carbon stocks). Priority conservation areas here serve dual functions: protecting **above-average biodiversity** while maintaining **water regulation for 2.5M downstream residents**. However, implementation must address **$125M in agricultural opportunity cost** and overlap with **moderate human pressure zones** (35% of priority areas)."
-    
-    *   **Key Observations:**
+    *   **Sub-section F.5: Key Observations**
         *   Automatically generated insights highlighting notable features
         *   Example: "High biodiversity with moderate conflict risk and exceptional water provision importance"
 
@@ -719,7 +758,7 @@ The Right Sidebar dynamically displays different analytical content based on use
     *   **Temporal currency** of the data (e.g., "2023 species distribution models")
     *   **Methodology references** (links to technical documentation)
 
-### 4.3.3. Scenario Comparison Panel (Tier 2 Only)
+### Component 4.3.3: Scenario Comparison Panel (Tier 2 Only)
 *Trigger: User clicks "Compare Scenarios" and selects two solutions to compare.*
 
 **Purpose:** Show side-by-side analysis of two different conservation scenarios to support trade-off decisions.
@@ -730,7 +769,7 @@ The Right Sidebar dynamically displays different analytical content based on use
 
 **Content:**
 
-*   **A. Comparative Statistics Table**
+*   **Section A: Comparative Statistics Table**
     
     Visual table with rows and columns:
 
@@ -744,19 +783,19 @@ The Right Sidebar dynamically displays different analytical content based on use
     | **Average Human Footprint** | 42 | 38 | -4 |
     | **Conflict Exposure (km²)** | 8,200 | 5,100 | -3,100 |
 
-*   **B. Theme Achievement Comparison**
+*   **Section B: Theme Achievement Comparison**
     *   Side-by-side goal achievement for each conservation feature
     *   Visual indicators (✓/✗) for each scenario
     *   Highlights where scenarios differ in goal achievement
 
-*   **C. Spatial Overlap Analysis**
+*   **Section C: Spatial Overlap Analysis**
     *   **Agreement:** Area (km²) selected in BOTH scenarios (shown in green on map)
     *   **Conflict/Difference:** Area selected in only one scenario (shown in orange/blue on map)
     *   **Unique to Scenario A:** Area (km²)
     *   **Unique to Scenario B:** Area (km²)
     *   **Connectivity/Synergy Zones:** Potential corridor areas that connect priority zones (purple on map)
 
-*   **D. Trade-off Narrative**
+*   **Section D: Trade-off Narrative**
     *   Automatically generated summary text highlighting key trade-offs:
         *   "Scenario A protects more area (+27,000 km²) but has higher opportunity cost (+$130M)"
         *   "Scenario B achieves one additional species goal while reducing conflict exposure"
@@ -769,7 +808,7 @@ The Right Sidebar dynamically displays different analytical content based on use
 *   "Export Comparison Map Image" button (PNG/JPG)
 *   "Exit Comparison Mode" button
 
-### 4.3.4. Welcome/Getting Started Panel
+### Component 4.3.4: Welcome/Getting Started Panel
 *Trigger: No solution is active (initial load or user cleared selection).*
 
 **Purpose:** Guide new users to begin exploring.
@@ -793,7 +832,136 @@ The Right Sidebar dynamically displays different analytical content based on use
 *   "Open Solution Finder" button (primary CTA)
 *   "View Tutorial" or "Watch Demo" link (optional)
 
-### 4.4. Advanced Reporting (Tier 2)
+### Component 4.3.5: Metrics Reference Tables (Master Metrics Consolidation)
+
+This section consolidates all metrics from the Right Sidebar analysis components into one reference location for easy completeness checking and team review.
+
+**Purpose:** Provide a single source of truth for all 68 metrics tracked in the application. Each table shows metrics for one component, with an "Also Appears In" column indicating where metrics are reused across components and reports.
+
+#### 4.3.5.1. Solution Overview Panel Metrics (17 Metrics)
+
+*Component Reference: Section 4.3.1*
+
+| # | Metric Name | Units | Purpose | Visualization | Also Appears In |
+|---|-------------|-------|---------|---------------|-----------------|
+| **GAINS (Conservation Achievements)** | | | | | |
+| 1 | Conservation Goals Met | Count and % | Show how many conservation targets achieved | Visual checkmarks (✓/✗) | Trade-off Report, Comparison Panel |
+| 2 | Species Groups Protected | Count (e.g., "8 of 10") | Show breadth of biodiversity protection | Progress bar or fraction | Trade-off Report |
+| 3 | Threatened Species Secured | Count | Highlight protection of at-risk species | Badge with count | Trade-off Report, AOI Dashboard |
+| 4 | Ecosystem Coverage | km² and % | Show area of each ecosystem type protected | Bar chart by ecosystem | Trade-off Report, AOI Dashboard |
+| 5 | Carbon Storage Capacity | tCO2e | Quantify climate mitigation value | Stat card with large number | Trade-off Report, AOI Dashboard |
+| 6 | Water Regulation Services | m³ or index | Quantify water provision importance | Gauge or stat card | Trade-off Report, AOI Dashboard |
+| 7 | Connectivity Index | Corridor count or index | Show landscape connectivity | Network diagram or index | Trade-off Report |
+| **LOSSES/COSTS (Trade-offs)** | | | | | |
+| 8 | Agricultural Opportunity Cost | COP and USD (millions) | Quantify foregone agricultural revenue | Stat card, currency format | Trade-off Report, AOI Dashboard |
+| 9 | Affected Agricultural Area | km² and % | Show spatial extent of agricultural impact | Bar chart or map overlay | Trade-off Report |
+| 10 | Human Footprint Overlap | km² and % of priority areas | Show overlap with developed landscapes | Percentage bar, histogram | Trade-off Report, AOI Dashboard |
+| 11 | Development Restriction Area | km² | Show area where development constrained | Stat card with area | Trade-off Report |
+| 12 | Economic Impact of Restrictions | COP and USD (millions) | Estimate cost of development constraints | Stat card, currency format | Trade-off Report |
+| 13 | Conflict Zone Overlap | km² | Show overlap with historical conflict areas | Map overlay, stat card | Trade-off Report, AOI Dashboard |
+| 14 | Land Dispute Overlap | km² | Show overlap with active disputes | Map overlay, stat card | Trade-off Report |
+| **SUMMARY METRICS** | | | | | |
+| 15 | Goal Achievement Quality | % (0-100%) | Overall success rate for targets | Progress bar with label | Trade-off Report, Comparison Panel |
+| 16 | Match Quality | % (0-100%) | How well solution matches user priorities | Badge (e.g., "95% Match") | Solution Overview only |
+| 17 | National Contribution | % of Colombia | Solution's contribution to 30% target | Progress bar | Trade-off Report, AOI Dashboard |
+
+#### 4.3.5.2. AOI Dashboard Metrics (47 Metrics)
+
+*Component Reference: Section 4.3.2*
+
+| # | Metric Name | Units | Purpose | Visualization | Also Appears In |
+|---|-------------|-------|---------|---------------|-----------------|
+| **REGIONAL CONSERVATION** | | | | | |
+| 1 | Priority Area in Region | km² | Show conservation extent in this area | Progress bar | Regional Report |
+| 2 | Priority Area in Region | % of region | Show proportion of region prioritized | Progress bar | Regional Report |
+| 3 | Number of Priority Zones | Count | Show fragmentation/concentration | Stat card | Regional Report |
+| **BIODIVERSITY** | | | | | |
+| 4 | Species Richness - Mammals | Count | Compare biodiversity - mammals | Bar chart | Species Report |
+| 5 | Species Richness - Birds | Count | Compare biodiversity - birds | Bar chart | Species Report |
+| 6 | Species Richness - Amphibians | Count | Compare biodiversity - amphibians | Bar chart | Species Report |
+| 7 | Species Richness - Reptiles | Count | Compare biodiversity - reptiles | Bar chart | Species Report |
+| 8 | Species Richness - Plants | Count | Compare biodiversity - plants | Bar chart | Species Report |
+| 9 | Threatened Species Count | Count | Highlight at-risk species presence | Badge with red highlight | Species Report, Solution Overview |
+| 10 | Endemic Species Count | Count | Show unique regional biodiversity | Badge | Species Report |
+| 11 | % of National Species Total | % | Show regional significance for species | Stat with comparison | Species Report |
+| **ECOSYSTEMS** | | | | | |
+| 12 | Ecosystem Coverage - Cloud Forest | km² and % | Show ecosystem representation | Donut chart segment | Ecosystem Report |
+| 13 | Ecosystem Coverage - Paramo | km² and % | Show ecosystem representation | Donut chart segment | Ecosystem Report |
+| 14 | Ecosystem Coverage - Dry Forest | km² and % | Show ecosystem representation | Donut chart segment | Ecosystem Report |
+| 15 | Ecosystem Coverage - Wetlands | km² and % | Show ecosystem representation | Donut chart segment | Ecosystem Report |
+| 16 | Ecosystem Coverage - Other | km² and % | Show ecosystem representation | Donut chart segment | Ecosystem Report |
+| **ECOSYSTEM SERVICES** | | | | | |
+| 17 | Total Carbon Biomass | tCO2e | Quantify climate value | Stat card, large number | Solution Overview |
+| 18 | Above-ground Carbon | tCO2e | Show living biomass carbon | Breakdown stat | Ecosystem Report |
+| 19 | Soil Organic Carbon | tCO2e | Show soil carbon storage | Breakdown stat | Ecosystem Report |
+| 20 | Average Carbon Density | tCO2e/ha | Show per-area efficiency | Stat card | Ecosystem Report |
+| 21 | % of National Carbon | % | Show regional carbon significance | Comparison stat | Regional Report |
+| 22 | Water Regulation Capacity | m³ or index | Quantify water provision | Gauge | Solution Overview |
+| 23 | Downstream Beneficiaries | Population count | Show human dependency on water | Stat card with icon | Regional Report |
+| **SOCIO-ECONOMIC CONTEXT** | | | | | |
+| 24 | Average Human Footprint | Index 0-100 | Assess development pressure | Gauge | Solution Overview |
+| 25 | HF Distribution - Low (0-20) | % of area | Show pressure distribution | Histogram segment | Territorial Report |
+| 26 | HF Distribution - Moderate (21-50) | % of area | Show pressure distribution | Histogram segment | Territorial Report |
+| 27 | HF Distribution - High (51-80) | % of area | Show pressure distribution | Histogram segment | Territorial Report |
+| 28 | HF Distribution - Very High (81-100) | % of area | Show pressure distribution | Histogram segment | Territorial Report |
+| 29 | Land Use - Natural Forest | % | Show current land uses | Donut segment | Territorial Report |
+| 30 | Land Use - Pasture | % | Show current land uses | Donut segment | Territorial Report |
+| 31 | Land Use - Crop Agriculture | % | Show current land uses | Donut segment | Territorial Report |
+| 32 | Land Use - Other | % | Show current land uses | Donut segment | Territorial Report |
+| 33 | Agricultural Opportunity Cost | COP and USD | Quantify economic trade-off | Stat card, currency | Solution Overview |
+| 34 | % of Region in Agriculture | % | Show agricultural intensity | Stat | Territorial Report |
+| 35 | Historical Conflict Zone Overlap | km² | Show conflict exposure | Map overlay, stat | Solution Overview |
+| 36 | Social Conflict Risk Level | Categorical (Low/Mod/High) | Assess implementation risk | Badge or gauge | Territorial Report |
+| **CULTURAL & ETHNIC** | | | | | |
+| 37 | Indigenous Reservations Area | km² | Identify indigenous lands | List + area stat | Ethnic Report |
+| 38 | Community Councils Area | km² | Identify Afro-Colombian territories | List + area stat | Ethnic Report |
+| 39 | Consultation Requirement Flag | Yes/No | Identify legal consultation needs | Badge/alert | Ethnic Report |
+| 40 | Consultation Requirement Area | km² | Quantify consultation area | Stat | Ethnic Report |
+| **PROTECTION STATUS** | | | | | |
+| 41 | Total Protected Area in AOI | km² and % | Show current protection coverage | Progress bar | Regional Report |
+| 42 | % Overlap with National Parks | % | Show complementarity | Breakdown stat | Regional Report |
+| 43 | % Overlap with OMECs | % | Show complementarity | Breakdown stat | Regional Report |
+| 44 | % Overlap with Indigenous Territories | % | Show cultural overlap | Breakdown stat | Ethnic Report |
+| 45 | Coverage Gap | % of priority unprotected | Show new conservation opportunity | Progress bar (inverse) | Regional Report |
+| 46 | Synergy Score | Index or categorical | Assess system complementarity | Gauge or badge | Regional Report |
+| **NATIONAL CONTRIBUTION** | | | | | |
+| 47 | Regional Significance Classification | Categorical | Summarize regional importance | Badge with color coding | Regional Report, Solution Overview |
+
+#### 4.3.5.3. Scenario Comparison Panel Metrics (4 Unique Metrics)
+
+*Component Reference: Section 4.3.3*
+
+These metrics are unique to scenario comparison and do not appear elsewhere.
+
+| # | Metric Name | Units | Purpose | Visualization | Also Appears In |
+|---|-------------|-------|---------|---------------|-----------------|
+| 1 | Agreement Area | km² | Show areas selected in BOTH scenarios | Green overlay on map, stat card | Comparison Report only |
+| 2 | Unique to Scenario A | km² | Show areas only in Scenario A | Orange overlay on map, stat card | Comparison Report only |
+| 3 | Unique to Scenario B | km² | Show areas only in Scenario B | Blue overlay on map, stat card | Comparison Report only |
+| 4 | Connectivity/Synergy Zones | km² | Show potential corridors linking priorities | Purple overlay on map, stat card | Comparison Report only |
+
+**Note:** The Scenario Comparison Panel also displays comparative versions of metrics from the Solution Overview Panel (Goal Achievement, Carbon Storage, Opportunity Cost, etc.) in a side-by-side table format. These are not counted as unique metrics since they reuse the same data definitions.
+
+#### 4.3.5.4. Metrics Summary
+
+**Total Unique Metrics:** 68
+- Solution Overview Panel: 17 metrics
+- AOI Dashboard: 47 metrics
+- Scenario Comparison Panel: 4 unique metrics
+
+**Metric Reuse Patterns:**
+- **Most Reused:** Carbon Storage, Opportunity Cost, Human Footprint (appear in 3+ components/reports)
+- **Component-Specific:** Match Quality (Solution Overview only), Comparison metrics (Comparison Panel only)
+- **Report Coverage:** Trade-off Report uses all 17 Solution Overview metrics; Thematic Reports use subsets of AOI Dashboard metrics
+
+**Team Review Checklist:**
+- ☐ Verify all metrics are derivable from Prioritizer output
+- ☐ Verify all metrics are useful for decision-making
+- ☐ Verify units are correct and consistent
+- ☐ Verify no metrics are missing
+- ☐ Verify no duplicate/redundant metrics
+
+## Area 4.4: Advanced Reporting (Tier 2)
 Automated PDF generation for specific planning needs. All reports must include detailed statistical breakdowns and contextual narratives.
 
 **Required Report Content Standards:**
@@ -912,7 +1080,7 @@ Automated PDF generation for specific planning needs. All reports must include d
     *   Cultural significance assessment
     *   Recommendations for community engagement
 
-### 4.5. Comprehensive Data Layer Specifications
+## Area 4.5: Comprehensive Data Layer Specifications
 
 The application must include the following data layers with complete metadata transparency:
 
@@ -1008,7 +1176,7 @@ The application must include the following data layers with complete metadata tr
     *   Population density
     *   **Metadata Required:** Census year, definition of "urban"
 
-### 4.6. Data Transparency & Usability Requirements
+## Area 4.6: Data Transparency & Usability Requirements
 
 To ensure maximum trust and usability across all user tiers, the application must adhere to the following standards:
 
@@ -1083,7 +1251,7 @@ To ensure maximum trust and usability across all user tiers, the application mus
     *   Include full methodology appendix and data citations
     *   Accessible format (screen-reader compatible)
 
-### 4.7. Critical User Experience (UX) Requirements Checklist
+## Area 4.7: Critical User Experience (UX) Requirements Checklist
 
 The following high-impact usability features are mandatory for user trust and efficiency:
 
@@ -1166,7 +1334,7 @@ The following high-impact usability features are mandatory for user trust and ef
     *   Optimization trade-offs prioritizing other features
 *   ☐ **Integrated Trade-off Narratives:** Multi-sentence auto-generated summaries synthesizing gains, losses, and implications for decision-making
 
-### 4.8. Stakeholder Requirements Verification Matrix
+### Area 4.8: Stakeholder Requirements Verification Matrix
 
 This section provides explicit confirmation that all granular functional specifications requested by stakeholders are documented in the MDD.
 
@@ -1210,7 +1378,7 @@ This section provides explicit confirmation that all granular functional specifi
 
 ---
 
-## 5. Data Dictionary & Glossary
+## Part 5: Data Dictionary & Glossary
 
 ### 5.1. Core Entities
 
