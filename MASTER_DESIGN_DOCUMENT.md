@@ -239,15 +239,15 @@ These are the live UI components users interact with in the application.
 | Interactive Map | Center Panel | No | 0 | — | — |
 | Map Controls | Center Panel | No | 0 | — | — |
 | **RIGHT SIDEBAR** | | | | | |
-| Solution Overview Panel | Right Sidebar | **Yes** | **17** | Goal Achievement %, Carbon Storage (tCO2e), Opportunity Cost (USD), Human Footprint Overlap %, Match Quality % | Section 4.3.5.1 |
-| AOI Dashboard | Right Sidebar | **Yes** | **47** | Priority Area (km²), Species Richness, Carbon Biomass (tCO2e), % of National Ecosystem, Regional Significance | Section 4.3.5.2 |
-| Scenario Comparison Panel | Right Sidebar | **Yes** | **4** | Agreement Area (km²), Unique to Scenario A, Unique to Scenario B, Synergy Zones | Section 4.3.5.3 |
+| Solution Overview Panel | Right Sidebar | **Yes** | **17** | Goal Achievement %, Carbon Storage (tCO2e), Opportunity Cost (USD), Human Footprint Overlap %, Match Quality % | Area 4.4.1 |
+| AOI Dashboard | Right Sidebar | **Yes** | **47** | Priority Area (km²), Species Richness, Carbon Biomass (tCO2e), % of National Ecosystem, Regional Significance | Area 4.4.2 |
+| Scenario Comparison Panel | Right Sidebar | **Yes** | **4** | Agreement Area (km²), Unique to Scenario A, Unique to Scenario B, Synergy Zones | Area 4.4.3 |
 | Welcome Panel | Right Sidebar | No | 0 | — | — |
 | **MODALS** | | | | | |
 | Solution Finder Modal | Modal | No | 0 | — | — |
 | Perspective Selection Modal | Modal | No | 0 | — | — |
 
-**Interactive Components Summary:** 12 total components, 3 with metrics, **68 unique metrics** (see Section 4.3.5 for complete metrics reference)
+**Interactive Components Summary:** 12 total components, 3 with metrics, **68 unique metrics** (see Area 4.4 for complete metrics reference)
 
 **Table B: Generated Reports & Documentation**
 
@@ -255,12 +255,12 @@ These are outputs that can be viewed in-app (Page View) and downloaded (PDF) for
 
 | Report Name | Output Format | Metrics Source | # of Additional Unique Metrics | Section Reference |
 |-------------|---------------|----------------|-------------------------------|-------------------|
-| Trade-off Analysis Report | PDF + Page View | Reuses Solution Overview Panel metrics | **0** (all metrics from 4.3.1) | 4.4 (Report #1) |
-| Ecosystem Assessment Report | PDF + Page View | Reuses AOI Dashboard metrics + adds ecosystem-specific detail | TBD | 4.4 (Report #2) |
-| Connectivity Report | PDF + Page View | Reuses AOI Dashboard metrics + adds connectivity analysis | TBD | 4.4 (Report #3) |
-| Species Conservation Report | PDF + Page View | Reuses AOI Dashboard metrics + adds species-specific detail | TBD | 4.4 (Report #4) |
-| Territorial Planning Report | PDF + Page View | Reuses AOI Dashboard metrics + adds planning-specific metrics | TBD | 4.4 (Report #5) |
-| Ethnic Territory Consultation Report | PDF + Page View | Reuses AOI Dashboard cultural metrics + adds consultation detail | TBD | 4.4 (Report #6) |
+| Trade-off Analysis Report | PDF + Page View | Reuses Solution Overview Panel metrics | **0** (all metrics from 4.3.1) | 4.5 (Report #1) |
+| Ecosystem Assessment Report | PDF + Page View | Reuses AOI Dashboard metrics + adds ecosystem-specific detail | TBD | 4.5 (Report #2) |
+| Connectivity Report | PDF + Page View | Reuses AOI Dashboard metrics + adds connectivity analysis | TBD | 4.5 (Report #3) |
+| Species Conservation Report | PDF + Page View | Reuses AOI Dashboard metrics + adds species-specific detail | TBD | 4.5 (Report #4) |
+| Territorial Planning Report | PDF + Page View | Reuses AOI Dashboard metrics + adds planning-specific metrics | TBD | 4.5 (Report #5) |
+| Ethnic Territory Consultation Report | PDF + Page View | Reuses AOI Dashboard cultural metrics + adds consultation detail | TBD | 4.5 (Report #6) |
 
 **Reports Summary:** 6 total reports, all available as both in-app Page View and downloadable PDF. Trade-off Analysis Report is fully specified (reuses 17 metrics from Solution Overview Panel). Other thematic reports (Reports #2-6) require specification to determine unique metrics vs. reused metrics.
 
@@ -285,9 +285,9 @@ These are outputs that can be viewed in-app (Page View) and downloaded (PDF) for
 
 **Where to Focus Your Review:**
 1. **Right Sidebar Components (Analysis Dashboard)** - This is where ALL 68 metrics live
-   - Solution Overview Panel: 17 unique metrics (Section 4.3.1)
-   - AOI Dashboard: 47 unique metrics (Section 4.3.2)
-   - Scenario Comparison Panel: 4 unique metrics (Section 4.3.3)
+   - Solution Overview Panel: 17 unique metrics (Component 4.3.1)
+   - AOI Dashboard: 47 unique metrics (Component 4.3.2)
+   - Scenario Comparison Panel: 4 unique metrics (Component 4.3.3)
 
 2. **Reports** - Currently only Trade-off Analysis Report (#1) is fully specified
    - Reports #2-6 need specification work to determine unique vs. reused metrics
@@ -504,7 +504,7 @@ The Right Sidebar dynamically displays different analytical content based on use
             *   "**15% of priority areas** overlap with moderate-to-high human pressure zones"
             *   "Conservation priorities overlap with **8,200 km²** of historical conflict zones, requiring careful implementation planning"
     
-    **Metrics Reference:** See **Section 4.3.5.1** for the complete Solution Overview Panel Metrics Table (17 metrics).
+    **Metrics Reference:** See **Area 4.4.1** for the complete Solution Overview Panel Metrics Table (17 metrics).
     
     **Template-Based Text Generation Rules:**
     
@@ -663,7 +663,7 @@ The Right Sidebar dynamically displays different analytical content based on use
     
     **Purpose:** Quantify how this region contributes to national conservation goals and provide comparative context for regional decision-makers. This addresses the critical need to "correlate regional and national data to provide a reference for analysis."
     
-    **Metrics Reference:** See **Section 4.3.5.2** for the complete AOI Dashboard Metrics Table (47 metrics).
+    **Metrics Reference:** See **Area 4.4.2** for the complete AOI Dashboard Metrics Table (47 metrics).
     
     *   **Sub-section F.1: National Target Contribution Calculator**
         *   **AOI Contribution to National 17%/30% Targets:**
@@ -681,7 +681,7 @@ The Right Sidebar dynamically displays different analytical content based on use
     
     *   **Sub-section F.2: Comparative Statistics Display (Example Wireframe)**
         
-        **Purpose:** Show how this region's features compare to national totals. This is an **example of how the data would be displayed** in the UI; the underlying metrics are defined in Section 4.3.5.2.
+        **Purpose:** Show how this region's features compare to national totals. This is an **example of how the data would be displayed** in the UI; the underlying metrics are defined in Area 4.4.2.
         
         **Example Display Format:**
         
@@ -832,15 +832,15 @@ The Right Sidebar dynamically displays different analytical content based on use
 *   "Open Solution Finder" button (primary CTA)
 *   "View Tutorial" or "Watch Demo" link (optional)
 
-### Component 4.3.5: Metrics Reference Tables (Master Metrics Consolidation)
+## Area 4.4: Metrics Reference Tables (Master Metrics Consolidation)
 
 This section consolidates all metrics from the Right Sidebar analysis components into one reference location for easy completeness checking and team review.
 
 **Purpose:** Provide a single source of truth for all 68 metrics tracked in the application. Each table shows metrics for one component, with an "Also Appears In" column indicating where metrics are reused across components and reports.
 
-#### 4.3.5.1. Solution Overview Panel Metrics (17 Metrics)
+#### 4.4.1. Solution Overview Panel Metrics (17 Metrics)
 
-*Component Reference: Section 4.3.1*
+*Component Reference: Component 4.3.1*
 
 | # | Metric Name | Units | Purpose | Visualization | Also Appears In |
 |---|-------------|-------|---------|---------------|-----------------|
@@ -865,9 +865,9 @@ This section consolidates all metrics from the Right Sidebar analysis components
 | 16 | Match Quality | % (0-100%) | How well solution matches user priorities | Badge (e.g., "95% Match") | Solution Overview only |
 | 17 | National Contribution | % of Colombia | Solution's contribution to 30% target | Progress bar | Trade-off Report, AOI Dashboard |
 
-#### 4.3.5.2. AOI Dashboard Metrics (47 Metrics)
+#### 4.4.2. AOI Dashboard Metrics (47 Metrics)
 
-*Component Reference: Section 4.3.2*
+*Component Reference: Component 4.3.2*
 
 | # | Metric Name | Units | Purpose | Visualization | Also Appears In |
 |---|-------------|-------|---------|---------------|-----------------|
@@ -927,9 +927,9 @@ This section consolidates all metrics from the Right Sidebar analysis components
 | **NATIONAL CONTRIBUTION** | | | | | |
 | 47 | Regional Significance Classification | Categorical | Summarize regional importance | Badge with color coding | Regional Report, Solution Overview |
 
-#### 4.3.5.3. Scenario Comparison Panel Metrics (4 Unique Metrics)
+#### 4.4.3. Scenario Comparison Panel Metrics (4 Unique Metrics)
 
-*Component Reference: Section 4.3.3*
+*Component Reference: Component 4.3.3*
 
 These metrics are unique to scenario comparison and do not appear elsewhere.
 
@@ -942,7 +942,7 @@ These metrics are unique to scenario comparison and do not appear elsewhere.
 
 **Note:** The Scenario Comparison Panel also displays comparative versions of metrics from the Solution Overview Panel (Goal Achievement, Carbon Storage, Opportunity Cost, etc.) in a side-by-side table format. These are not counted as unique metrics since they reuse the same data definitions.
 
-#### 4.3.5.4. Metrics Summary
+#### 4.4.4. Metrics Summary
 
 **Total Unique Metrics:** 68
 - Solution Overview Panel: 17 metrics
@@ -961,7 +961,7 @@ These metrics are unique to scenario comparison and do not appear elsewhere.
 - ☐ Verify no metrics are missing
 - ☐ Verify no duplicate/redundant metrics
 
-## Area 4.4: Advanced Reporting (Tier 2)
+## Area 4.5: Advanced Reporting (Tier 2)
 Automated PDF generation for specific planning needs. All reports must include detailed statistical breakdowns and contextual narratives.
 
 **Required Report Content Standards:**
@@ -1080,11 +1080,11 @@ Automated PDF generation for specific planning needs. All reports must include d
     *   Cultural significance assessment
     *   Recommendations for community engagement
 
-## Area 4.5: Comprehensive Data Layer Specifications
+## Area 4.6: Comprehensive Data Layer Specifications
 
 The application must include the following data layers with complete metadata transparency:
 
-#### 4.5.1. Biodiversity Layers (Terrestrial & Marine)
+#### 4.6.1. Biodiversity Layers (Terrestrial & Marine)
 *   **Species Distribution Models:**
     *   Mammals, Birds, Amphibians, Reptiles, Plants (terrestrial)
     *   Marine species (fish, marine mammals, corals)
@@ -1095,7 +1095,7 @@ The application must include the following data layers with complete metadata tr
     *   Marine ecosystems (Coral reefs, Mangroves, Seagrass beds, Deep-sea habitats)
     *   **Metadata Required:** Classification system used, mapping date, spatial accuracy
 
-#### 4.5.2. Socio-Economic & Cultural Layers
+#### 4.6.2. Socio-Economic & Cultural Layers
 *   **Ethnic and Cultural Territories:**
     *   Indigenous Reservations (Resguardos Indígenas) with legal status and dates
     *   Community Councils (Consejos Comunitarios) for Afro-Colombian communities
@@ -1108,7 +1108,7 @@ The application must include the following data layers with complete metadata tr
     *   Property boundaries (when available and legally permissible)
     *   **Metadata Required:** Census year, valuation methodology, data source
 
-#### 4.5.3. Environmental Service Layers
+#### 4.6.3. Environmental Service Layers
 *   **Carbon Storage:**
     *   Above-ground biomass (tC/ha)
     *   Below-ground and soil organic carbon (tC/ha)
@@ -1119,7 +1119,7 @@ The application must include the following data layers with complete metadata tr
     *   Water supply zones for communities
     *   **Metadata Required:** Hydrological model used, temporal resolution
 
-#### 4.5.4. Territorial Planning & Administrative Layers
+#### 4.6.4. Territorial Planning & Administrative Layers
 *   **Territorial Planning Determinants (Determinantes de Ordenamiento Territorial):**
     *   Legal land-use restrictions and requirements
     *   Order of prevalence hierarchy
@@ -1130,7 +1130,7 @@ The application must include the following data layers with complete metadata tr
     *   Marine jurisdictional boundaries (Territorial Sea, EEZ)
     *   **Metadata Required:** Administrative level, DIVIPOLA codes, legal boundaries source
 
-#### 4.5.5. Prospective & Future Scenario Layers
+#### 4.6.5. Prospective & Future Scenario Layers
 *   **Deforestation Risk Models:**
     *   Future deforestation probability (short-term: 5 years, long-term: 20 years)
     *   Historical deforestation trends
@@ -1146,7 +1146,7 @@ The application must include the following data layers with complete metadata tr
     *   Urbanization growth models
     *   **Metadata Required:** Data source, projection methodology, confidence intervals
 
-#### 4.5.6. Conflict & Security Layers
+#### 4.6.6. Conflict & Security Layers
 *   **Historical Conflict Zones:**
     *   Armed conflict events (with date ranges, e.g., 2016-2022)
     *   Post-conflict reintegration zones
@@ -1156,7 +1156,7 @@ The application must include the following data layers with complete metadata tr
     *   Environmental defender incidents
     *   **Metadata Required:** Source organization, temporal range, verification status
 
-#### 4.5.7. Protected Areas & Conservation Status
+#### 4.6.7. Protected Areas & Conservation Status
 *   **Existing Protected Areas:**
     *   National Parks, Regional Parks, Private Reserves
     *   Marine Protected Areas (MPAs)
@@ -1167,7 +1167,7 @@ The application must include the following data layers with complete metadata tr
     *   Priority areas not currently protected
     *   **Metadata Required:** Gap analysis methodology, target metrics
 
-#### 4.5.8. Infrastructure & Context Layers
+#### 4.6.8. Infrastructure & Context Layers
 *   **Transportation:**
     *   Roads (classified by type), Rivers (navigable), Airports, Ports
     *   **Metadata Required:** Infrastructure database source, update frequency
@@ -1176,11 +1176,11 @@ The application must include the following data layers with complete metadata tr
     *   Population density
     *   **Metadata Required:** Census year, definition of "urban"
 
-## Area 4.6: Data Transparency & Usability Requirements
+## Area 4.7: Data Transparency & Usability Requirements
 
 To ensure maximum trust and usability across all user tiers, the application must adhere to the following standards:
 
-#### 4.6.1. Metadata Display Standards
+#### 4.7.1. Metadata Display Standards
 *   **Universal Unit Clarity:** All numerical values must display units explicitly:
     *   Area: km² and/or hectares (ha)
     *   Carbon: tonnes of CO2 equivalent (tCO2e) or tonnes of Carbon (tC)
@@ -1198,7 +1198,7 @@ To ensure maximum trust and usability across all user tiers, the application mus
     *   Category definitions for classified data
     *   Legend must update dynamically when layers are toggled
 
-#### 4.6.2. Layer Management & Visualization
+#### 4.7.2. Layer Management & Visualization
 *   **Dynamic Symbology Editing:**
     *   Users must be able to change colors and transparency of loaded solutions and uploaded data **without re-uploading**
     *   Color palette selector with accessibility-friendly options (colorblind-safe palettes)
@@ -1216,7 +1216,7 @@ To ensure maximum trust and usability across all user tiers, the application mus
     *   Zoom level indicator
     *   Basemap switcher with thumbnail previews
 
-#### 4.6.3. User Data Upload & Management (Tier 2)
+#### 4.7.3. User Data Upload & Management (Tier 2)
 *   **Supported Formats:**
     *   Vector: Shapefile (.shp with all auxiliary files), GeoJSON, KML/KMZ, GeoPackage
     *   Raster: GeoTIFF, ERDAS Imagine (.img), ESRI Grid
@@ -1236,7 +1236,7 @@ To ensure maximum trust and usability across all user tiers, the application mus
     *   Rename, delete, or temporarily hide uploaded layers
     *   Export modified or drawn layers
 
-#### 4.6.4. Export & Download Standards
+#### 4.7.4. Export & Download Standards
 *   **Spatial Data Export:**
     *   Conservation solutions: Shapefile, GeoJSON, GeoPackage, GeoTIFF (rasterized)
     *   Include full attribute table with metadata fields
@@ -1251,17 +1251,17 @@ To ensure maximum trust and usability across all user tiers, the application mus
     *   Include full methodology appendix and data citations
     *   Accessible format (screen-reader compatible)
 
-## Area 4.7: Critical User Experience (UX) Requirements Checklist
+## Area 4.8: Critical User Experience (UX) Requirements Checklist
 
 The following high-impact usability features are mandatory for user trust and efficiency:
 
-#### 4.7.1. Session Management & Authentication
+#### 4.8.1. Session Management & Authentication
 *   ☐ **Login Persistence:** Implement secure token-based authentication with persistent sessions (7-day default, configurable)
 *   ☐ **"Remember Me" Option:** Allow users to extend session duration
 *   ☐ **No Forced Re-login on Reload:** Users should remain authenticated across browser reloads and tab closures
 *   ☐ **Session Timeout Warning:** Provide advance notice (5 minutes) before session expiration with option to extend
 
-#### 4.7.1b. Language Support & Internationalization
+#### 4.8.1b. Language Support & Internationalization
 *   ☐ **Bilingual Interface:** Application must support Spanish and English
 *   ☐ **Default Language:** Spanish (Español) - primary language for Colombia
 *   ☐ **Language Toggle:** Accessible language switcher in header or settings menu
@@ -1269,7 +1269,7 @@ The following high-impact usability features are mandatory for user trust and ef
 *   ☐ **Language Persistence:** User's language preference is remembered across sessions
 *   ☐ **PDF Export Language:** Downloaded reports respect the currently selected language
 
-#### 4.7.2. Layer Visibility & Default States
+#### 4.8.2. Layer Visibility & Default States
 *   ☐ **Default Visible Layers:** On application load, the following reference layers must be visible:
     *   Existing Protected Areas (National Parks, Regional Parks)
     *   OMECs (Other Effective Conservation Measures)
@@ -1278,25 +1278,25 @@ The following high-impact usability features are mandatory for user trust and ef
 *   ☐ **Clear Visual Distinction:** Conservation solution layer must be visually distinct from existing protected areas (use different colors/patterns)
 *   ☐ **Layer Load Confirmation:** Visual feedback when layers are loading or have finished loading
 
-#### 4.7.3. Symbology Control (No Delete-and-Reload Required)
+#### 4.8.3. Symbology Control (No Delete-and-Reload Required)
 *   ☐ **Active Solution Layer:** Users can change color and transparency without reloading the solution
 *   ☐ **User-Uploaded Vector Layers:** Direct color, transparency, and outline controls in the Left Sidebar
 *   ☐ **User-Uploaded Raster Layers:** Color ramp and transparency controls
 *   ☐ **Apply/Reset Buttons:** Ability to preview changes before applying or reset to defaults
 *   ☐ **Symbology Persistence:** User's symbology preferences are remembered during the session
 
-#### 4.7.4. Filtering & Search Capabilities
+#### 4.8.4. Filtering & Search Capabilities
 *   ☐ **Filter by Environmental Authority (CARs):** Dedicated filter to display data by specific Corporación Autónoma Regional
 *   ☐ **Filter by Administrative Boundary:** Quick filters for Municipality, Department, SIRAP
 *   ☐ **Layer Search:** Text search to quickly find specific layers in the visibility manager
 *   ☐ **Geocoding Search:** Location search by place name, address, or coordinates
 
-#### 4.7.5. Optimization Parameter Transparency
+#### 4.8.5. Optimization Parameter Transparency
 *   ☐ **Explicit Layer Names in Weight Factors:** Scenario summaries must show actual layer names (e.g., "Agricultural Opportunity Cost 2021") instead of generic terms (e.g., "Cost")
 *   ☐ **Goal Context Narratives:** Auto-generated text explaining the significance of percentage goals at national and regional levels
 *   ☐ **Optimization Settings Display:** Full transparency on clustering parameters, budget constraints, and solver settings used
 
-#### 4.7.6. Advanced Technical Capabilities (Tier 3)
+#### 4.8.6. Advanced Technical Capabilities (Tier 3)
 *   ☐ **Species Group Fragmentation:** Ability to split species groups by endemism, threat status, taxonomic subgroups, or cost factors for differential optimization
 *   ☐ **SIRAP Data Ingestion:** Streamlined workflow for validating and publishing new layers from regional partners with:
     *   Format validation
@@ -1305,7 +1305,7 @@ The following high-impact usability features are mandatory for user trust and ef
     *   Preview and approval workflow
     *   Version control
 
-#### 4.7.7. Report Detail Requirements
+#### 4.8.7. Report Detail Requirements
 *   ☐ **Detailed Statistical Breakdowns:** All reports include:
     *   Percentage of cells by human footprint value category
     *   Land use type distributions
@@ -1313,7 +1313,7 @@ The following high-impact usability features are mandatory for user trust and ef
 *   ☐ **Contextual Narratives:** Interpretive text explaining the "why" behind statistics
 *   ☐ **Methodology Transparency:** Full appendix with data sources, dates, and calculation methods
 
-#### 4.7.8. Analytical Output & Narrative Features
+#### 4.8.8. Analytical Output & Narrative Features
 *   ☐ **Trade-off Analysis Framework:** Mandatory "Gains vs. Losses" structure in Solution Overview Panel (condensed) and Advanced Reports (detailed)
 *   ☐ **Template-Based Explanatory Text Generation:** Auto-generated contextual narratives for all scenarios based on data thresholds (not AI-generated prose, but structured if-then text)
 *   ☐ **National Contribution Calculator:** Display solution's contribution toward Colombia's 30% conservation target at both:
@@ -1334,11 +1334,11 @@ The following high-impact usability features are mandatory for user trust and ef
     *   Optimization trade-offs prioritizing other features
 *   ☐ **Integrated Trade-off Narratives:** Multi-sentence auto-generated summaries synthesizing gains, losses, and implications for decision-making
 
-### Area 4.8: Stakeholder Requirements Verification Matrix
+## Area 4.9: Stakeholder Requirements Verification Matrix
 
 This section provides explicit confirmation that all granular functional specifications requested by stakeholders are documented in the MDD.
 
-#### 4.8.1. Advanced Analytical & Scenario Features (Tier 2 & 3)
+#### 4.9.1. Advanced Analytical & Scenario Features (Tier 2 & 3)
 
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
@@ -1346,39 +1346,39 @@ This section provides explicit confirmation that all granular functional specifi
 | **Automated Goal Calculation** | ☐ Required | Section 3.1.1 | Tier 2 users can select specific data layers and request automatic calculation of standardized goal percentages (17%, 30%, etc.) |
 | **Vector Rendering for Management Figures** | ☐ Required | Section 4.1 | Protected Areas, OMECs, and management figures must be displayed as vector polygons (not rasters) for precision at all scales |
 
-#### 4.8.2. User Experience & Interface Clarity
+#### 4.9.2. User Experience & Interface Clarity
 
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
 | **Explicit Layer Names in Weight Summaries** | ☐ Required | Section 4.3.1, 4.7.5 | Scenario Overview Panel must display actual layer names (e.g., "Agricultural Opportunity Cost 2021") instead of generic terms |
 | **Login Session Persistence** | ☐ Required | Section 2.2, 4.7.1 | Secure token-based authentication with 7-day session, no forced re-login on reload |
 | **Dynamic Symbology Control** | ☐ Required | Section 4.1, 4.6.2, 4.7.3 | Users can modify color/transparency of solutions and uploaded layers without deletion/reload |
-| **Goal Achievement Narratives** | ☐ Required | Section 4.3.1, 4.7.5 | System auto-generates contextual narratives explaining goal significance at national and regional scales |
+| **Goal Achievement Narratives** | ☐ Required | Section 4.3.1, 4.8.5 | System auto-generates contextual narratives explaining goal significance at national and regional scales |
 
-#### 4.8.3. Data Management & Reporting Detail
+#### 4.9.3. Data Management & Reporting Detail
 
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
 | **Filter by Environmental Authority (CARs)** | ☐ Required | Section 4.1, 4.7.4 | Layer Visibility Manager includes dedicated filter for individual Corporaciones Autónomas Regionales |
 | **SIRAP Data Management Workflow** | ☐ Required | Section 2.3 | Complete workflow for ingestion, validation, version updates, and deprecation of outdated layers with documentation |
-| **Detailed Report Metrics** | ☐ Required | Section 4.3.2, 4.4, 4.7.7 | Reports include percentage breakdowns by human footprint categories, land uses, and relationships with management figures |
+| **Detailed Report Metrics** | ☐ Required | Section 4.3.2, 4.5, 4.8.7 | Reports include percentage breakdowns by human footprint categories, land uses, and relationships with management figures |
 
-#### 4.8.4. Analytical Narrative & Trade-off Features (NEW)
+#### 4.9.4. Analytical Narrative & Trade-off Features (NEW)
 
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
-| **Mandatory Scenario Narrative Content** | ☐ Required | Section 4.3.1, 4.4, 4.7.8 | Explicit "Gains vs. Losses" framework with template-based text showing what you get vs. what you lose. Condensed version in Solution Overview Panel, detailed version in Trade-off Analysis Report (Section 4.4, Report Type 1) |
-| **Explicit Tradeoff Analysis Report** | ☐ Required | Section 4.4 (Report #1) | Full detailed report with GAINS section (conservation goals, species, ecosystem services) and LOSSES/COSTS section (opportunity cost, human footprint, development restrictions, conflict exposure) with comprehensive narrative analysis |
-| **Quantitative Regional vs. National Contribution** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.7.8 | National Contribution Calculator in both Solution Overview Panel (overall solution level) and AOI Dashboard (regional level). Includes comparative statistics table showing AOI vs. national distribution with template-based significance classification |
-| **Template-Based Text Generation with Thresholds** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.7.8 | Example thresholds specified for opportunity cost ($200M/$500M), human footprint (30%/60%), goal achievement (90%/75%/50%), species protection (8/5 groups), regional significance (10%/5%/2% of national distribution). Thresholds are examples for team refinement |
-| **Goal Unmet Explanations** | ☐ Required | Section 4.4 (Report #1) | Narrative analysis must explain WHY goals are unmet: insufficient ecosystem in territory, cost constraints, or optimization trade-offs prioritizing other features |
-| **Conflict and Pressure Mapping Layer** | ☐ Required | Section 4.3.1, 4.4 | Explicit visualization and analysis of high-priority conservation areas overlapping with high development pressure, human footprint, and conflict zones in both sidebar summaries and detailed reports |
+| **Mandatory Scenario Narrative Content** | ☐ Required | Section 4.3.1, 4.5, 4.8.8 | Explicit "Gains vs. Losses" framework with template-based text showing what you get vs. what you lose. Condensed version in Solution Overview Panel, detailed version in Trade-off Analysis Report (Section 4.5, Report Type 1) |
+| **Explicit Tradeoff Analysis Report** | ☐ Required | Section 4.5 (Report #1) | Full detailed report with GAINS section (conservation goals, species, ecosystem services) and LOSSES/COSTS section (opportunity cost, human footprint, development restrictions, conflict exposure) with comprehensive narrative analysis |
+| **Quantitative Regional vs. National Contribution** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.8.8 | National Contribution Calculator in both Solution Overview Panel (overall solution level) and AOI Dashboard (regional level). Includes comparative statistics table showing AOI vs. national distribution with template-based significance classification |
+| **Template-Based Text Generation with Thresholds** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.8.8 | Example thresholds specified for opportunity cost ($200M/$500M), human footprint (30%/60%), goal achievement (90%/75%/50%), species protection (8/5 groups), regional significance (10%/5%/2% of national distribution). Thresholds are examples for team refinement |
+| **Goal Unmet Explanations** | ☐ Required | Section 4.5 (Report #1) | Narrative analysis must explain WHY goals are unmet: insufficient ecosystem in territory, cost constraints, or optimization trade-offs prioritizing other features |
+| **Conflict and Pressure Mapping Layer** | ☐ Required | Section 4.3.1, 4.5 | Explicit visualization and analysis of high-priority conservation areas overlapping with high development pressure, human footprint, and conflict zones in both sidebar summaries and detailed reports |
 
 **Verification Status:** All stakeholder-requested granular specifications, including analytical narrative features, are explicitly documented in the MDD and ready for implementation.
 
 ---
 
-## Part 5: Data Dictionary & Glossary
+# Part 5: Data Dictionary & Glossary
 
 ### 5.1. Core Entities
 
