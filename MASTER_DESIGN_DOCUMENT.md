@@ -343,6 +343,7 @@ The interface follows a three-pane layout with a prominent modal workflow for so
             *   **Prospective Models:** Future scenario layers showing deforestation projections, climate change impacts, transformation risks, and drivers of biodiversity loss
         *   **Management Figures Rendering Standard:**
             *   **Vector Representation Required:** Existing Protected Areas (APs), OMECs, and other management figures **must be displayed as vector shapes (polygons) rather than rasterized layers** to ensure precision and detail at regional and local scales
+            *   **📋 User Requirement Origin:** This requirement directly addresses stakeholder feedback that the previous tool version displayed PAs/management figures as rasters. Users explicitly requested shapes for precision. **This fix must be maintained in the PNN technical handover documentation.**
             *   Vector rendering enables:
                 *   Clean boundary visualization at any zoom level
                 *   Accurate overlap analysis with conservation solutions
@@ -956,7 +957,7 @@ If a metric's Required Input(s) reference a layer that is ❌ Missing or ❓ Unk
 | 42 | % Overlap with National Parks | % of solution overlapping National Parks | % | National parks layer | ❓ Unknown | `(Solution ∩ Parks) / Solution area × 100` | Breakdown stat | Pending | Regional Report |
 | 43 | % Overlap with OMECs | % of solution overlapping OMECs | % | OMECs layer | ⚠️ Outdated (2020) | `(Solution ∩ OMECs) / Solution area × 100` | Breakdown stat | Pending | Regional Report |
 | 44 | % Overlap with Indigenous Territories | % of solution in indigenous territories | % | Indigenous territories layer | ❓ Unknown | `(Solution ∩ Indigenous) / Solution area × 100` | Breakdown stat | Pending | Ethnic Report |
-| 45 | Coverage Gap | % of priority area not currently protected | % of priority unprotected | Derived from #41-44 | ✅ Calculated | `100 - (% in any protection category)` | Progress bar (inverse) | Pending | Regional Report |
+| 45 | Coverage Gap | Priority area not currently protected by any management figure | **km² and %** of priority unprotected | Derived from #41-44 | ✅ Calculated | `Total priority area - (area in any protection/management category)`; `(Unprotected area / Total priority area) × 100` | Stat card (km²) + Progress bar (inverse %) | Pending | Regional Report |
 | 46 | Synergy Score | How well solution complements existing protection | Index or categorical | Protected areas layer, Solution output | ❓ Unknown (methodology TBD) | TBD - methodology specification needed | Gauge or badge | Pending | Regional Report |
 | **NATIONAL CONTRIBUTION** | | | | | | | | | |
 | 47 | Regional Significance Classification | Categorical importance of AOI to national conservation | Categorical | Derived from multiple metrics | ✅ Calculated (thresholds TBD) | TBD - classification thresholds needed | Badge with color coding | Pending | Regional Report, Solution Overview |
@@ -1005,7 +1006,7 @@ These metrics supplement the reused AOI Dashboard connectivity-related metrics w
 | # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Rationale |
 |---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------|
 | 1 | Connectivity Pinch Point Count | Count of critical bottlenecks in connectivity network | Count | Connectivity analysis layer | ❓ Unknown | TBD - depends on connectivity methodology | Map overlay with pinch point markers, stat card | Pending | Assists in corridor delimitation decisions |
-| 2 | Corridor Restoration Priority Index | Priority ranking for restoration to improve connectivity | Index (Low/Medium/High/Critical) | Connectivity layer, Land use layer, Restoration potential layer | ❓ Unknown (multiple layers) | TBD - multi-criteria prioritization needed | Choropleth map, priority list | Pending | Identifies high-value restoration opportunities |
+| 2 | Corridor Restoration Priority Index | Priority ranking and **area (km²)** for restoration to meet unmet connectivity goals | Index (Low/Medium/High/Critical) + **km²** | Connectivity layer, Land use layer, Restoration potential layer (ECO_RESTORATION) | ❓ Unknown (ECO_RESTORATION) | `SUM(area where restoration potential = High AND connectivity gap exists)`; TBD - multi-criteria prioritization methodology | Choropleth map showing restoration priority zones, stat card with total km², priority list | Pending | **Addresses stakeholder request** for identifying areas that allow goals to be met under a restoration strategy |
 | 3 | Connectivity Score Contribution | AOI's importance to regional/national connectivity | % | Connectivity analysis (AOI vs. national) | ❓ Unknown | `AOI connectivity value / National connectivity value × 100` | Stat card with comparison context | Pending | Demonstrates regional significance |
 
 #### 4.4.6. Species Conservation Report Metrics (Report #4) — 3 Unique Metrics
@@ -1020,7 +1021,7 @@ These metrics supplement the reused AOI Dashboard biodiversity metrics (metrics 
 | 2 | Endemic Species Protection Achievement | Goal achievement for endemic species specifically | Count and % | Prioritizr output, Endemism attribute | ❓ Unknown (endemism attribute) | `COUNT(endemic species meeting target) / Total endemic species` | Progress bars by endemic status | Pending | Supports species group fragmentation reporting |
 | 3 | Habitat Fragmentation Index by Taxa | Habitat structural integrity per taxonomic group | Index (0-1) | Species distribution layers, Landscape fragmentation metrics | ❓ Unknown (fragmentation analysis) | TBD - landscape ecology methodology needed | Heatmap or bar chart by taxonomic group | Pending | Reflects need for taxon-specific habitat assessment |
 
-#### 4.4.7. Territorial Planning Report Metrics (Report #5) — 3 Unique Metrics
+#### 4.4.7. Territorial Planning Report Metrics (Report #5) — 4 Unique Metrics
 
 *Component Reference: Area 4.5 (Report #5)*
 
@@ -1031,6 +1032,7 @@ These metrics supplement the reused AOI Dashboard socio-economic metrics (metric
 | 1 | Territorial Planning Compatibility Score | Alignment between priorities and official land-use plans | Index (Compatible/Partial Conflict/Major Conflict) | Prioritizr output, Territorial Planning Determinants layer | ❓ Unknown (determinants layer) | TBD - conflict detection methodology needed | Traffic light badge, conflict map overlay | Pending | Key layer requested by planners |
 | 2 | Development Restriction Overlap | Priority area in legally restricted development zones | km² and % | Prioritizr output, Agricultural frontier layer, Zoning constraint layers | ❓ Unknown (multiple layers) | `SUM(solution ∩ restricted zones)` | Stat card, map overlay | Pending | Supports land-use conflict analysis |
 | 3 | Priority Area Distribution by Jurisdiction | Breakdown of priorities by municipality and CAR | Breakdown (km² and %) | Prioritizr output, Municipality boundaries, CAR boundaries | ❓ Unknown (admin boundaries) | `SUM(solution area) per jurisdiction` | Table and choropleth map | Pending | Vital for multi-jurisdictional coordination |
+| 4 | Potential Production Area Change | Projected agricultural area impacted by conservation priorities based on future land use scenarios | km² and % | Prioritizr output, Agricultural frontier layer (SOCIO_AG_FRONTIER), Future land use projections | ❓ Unknown (SOCIO_AG_FRONTIER) | `SUM(solution area ∩ projected agricultural expansion zones)` | Stat card with projected loss/gain breakdown, map overlay | Pending | Addresses stakeholder request for data showing potential or reduced production areas |
 
 #### 4.4.8. Ethnic Territory Consultation Report Metrics (Report #6) — 3 Unique Metrics
 
@@ -1046,15 +1048,15 @@ These metrics supplement the reused AOI Dashboard cultural metrics (metrics #37-
 
 #### 4.4.9. Metrics Summary
 
-**Total Unique Metrics:** 83
+**Total Unique Metrics:** 84
 - Solution Overview Panel: 17 metrics
 - AOI Dashboard: 47 metrics
 - Scenario Comparison Panel: 4 unique metrics
-- Thematic Report Metrics (Suggested): 15 metrics
+- Thematic Report Metrics (Suggested): 16 metrics
   - Ecosystem Assessment Report: 3 metrics
   - Connectivity Report: 3 metrics
   - Species Conservation Report: 3 metrics
-  - Territorial Planning Report: 3 metrics
+  - Territorial Planning Report: 4 metrics *(+1 added: Potential Production Area Change)*
   - Ethnic Territory Consultation Report: 3 metrics
 
 **Metric Table Column Definitions:**
@@ -1074,12 +1076,18 @@ These metrics supplement the reused AOI Dashboard cultural metrics (metrics #37-
 
 **Asset Status Summary (as of document creation):**
 - ✅ **Available:** System-generated outputs and derived calculations
-- ⚠️ **Outdated:** OMECs layer (2020 vintage noted)
-- ❌ **Missing:** Economic valuation model, Sacred sites layer
-- ❓ **Unknown:** Most external data layers require verification
+- ⚠️ **Outdated:** OMECs layer (2020 vintage noted) — **Replacement plan required (see 4.11.6)**
+- ❌ **Missing:** Economic valuation model (`SOCIO_ECON_MODEL`), Sacred sites layer (`ETH_SACRED`) — **Acquisition required before Tier 2 development**
+- ❓ **Unknown:** Most external data layers require verification — **35 of 42 layers unverified (see 4.11.9)**
 
-**⚠️ CRITICAL: Data Gap Analysis Required**
-Before implementation, the team must verify each metric's Required Input(s) against the Layer Registry (Area 4.11). Any metric with Asset Status ❌ or ❓ cannot be implemented until the required layer is secured.
+**🚨 CRITICAL: Data Gap Analysis Required — IMPLEMENTATION BLOCKER**
+Before implementation, the team must verify each metric's Required Input(s) against the Layer Registry (Area 4.11). **Any metric with Asset Status ❌ or ❓ cannot be implemented until the required layer is secured.**
+
+| Blocking Issue | Affected Metrics | Action Required |
+|----------------|------------------|-----------------|
+| `SOCIO_ECON_MODEL` ❌ Missing | Metric #12 (Economic Impact of Restrictions) | Develop or acquire economic valuation model |
+| `ETH_SACRED` ❌ Missing | Ethnic Report Metric #1 (Culturally Significant Landscape Overlap) | Identify data source for sacred sites |
+| 35 layers ❓ Unknown | ~60 metrics across all panels/reports | Data Team verification sprint |
 
 **Metric Reuse Patterns:**
 - **Most Reused:** Carbon Storage, Opportunity Cost, Human Footprint (appear in 3+ components/reports)
@@ -1098,6 +1106,16 @@ Before implementation, the team must verify each metric's Required Input(s) agai
 - ☐ **Science Team:** Review and approve suggested thematic report metrics (4.4.4–4.4.8)
 - ☐ Verify units are correct and consistent across all tables
 - ☐ Verify no duplicate/redundant metrics
+
+**⚠️ Metrics Not Explicitly Requested but Essential for Functionality:**
+
+The following metrics were not explicitly named in stakeholder feedback but are **required** to fulfill mandated features. They must be retained:
+
+| Metric | Location | Justification |
+|--------|----------|---------------|
+| **Goal Achievement Quality** (#15, 4.4.1) | Solution Overview | Essential for auto-generating the Trade-off Analysis Narrative (e.g., classifying outcomes as "Good" or "Excellent"). Supports the required narrative framing functionality. |
+| **Regional Significance Classification** (#47, 4.4.2) | AOI Dashboard | Directly supports the high-priority requirement for Regional vs. National Contribution Analysis by providing significance classification (e.g., "Critical Contributor", "Major Contributor"). |
+| **Scenario Comparison Metrics** (#1-4, 4.4.3) | Comparison Panel | Foundational components (Agreement Area, Unique Area A/B, Synergy Zones) required to execute the explicitly requested Scenario Comparison Tool (map arithmetic, showing overlaps/synergies). |
 
 ## Area 4.5: Advanced Reporting (Tier 2)
 Automated PDF generation for specific planning needs. All reports must include detailed statistical breakdowns and contextual narratives.
@@ -1124,6 +1142,7 @@ Automated PDF generation for specific planning needs. All reports must include d
         *   **All data, metrics, charts, and statistics remain the same** regardless of perspective
         *   Perspective choice only affects how the auto-generated narrative text is worded and which aspects are emphasized
         *   User can regenerate the report with a different perspective to see alternative framings of the same data
+        *   **⚠️ VALIDATION REQUIRED:** The five predefined perspectives (Regional Planner, Community Leader, Conservationist, Economist, Climate Advocate) are a design interpretation of the stakeholder request for a "narrative of the actors." **Before implementation, verify the utility and relevance of these specific personas with the Mesa Nacional/stakeholders during design review** to ensure they align with the actual roles and needs of tool users.
     *   **Language Support:**
         *   Default language: Spanish (Español)
         *   Alternative language: English
@@ -1484,7 +1503,7 @@ This section provides explicit confirmation that all granular functional specifi
 |------------|--------|--------------|---------------------|
 | **Species Group Fragmentation Control** | ☐ Required | Section 2.3, 3.3.1 | Tier 3 Managers can fragment species groups by endemism, threat status, taxonomic subgroups, or cost factors with independent goals and weights for each fragment |
 | **Automated Goal Calculation** | ☐ Required | Section 3.1.1 | Tier 2 users can select specific data layers and request automatic calculation of standardized goal percentages (17%, 30%, etc.) |
-| **Vector Rendering for Management Figures** | ☐ Required | Section 4.1 | Protected Areas, OMECs, and management figures must be displayed as vector polygons (not rasters) for precision at all scales |
+| **Vector Rendering for Management Figures** | ☐ Required | Section 4.1 | Protected Areas, OMECs, and management figures must be displayed as vector polygons (not rasters) for precision at all scales. **⚠️ User-requested fix:** Addresses previous tool flaw where PAs were displayed as rasters. |
 
 #### 4.9.2. User Experience & Interface Clarity
 
@@ -1615,6 +1634,35 @@ The following API endpoints are anticipated (to be refined during implementation
 4. ☐ Define calculation methods for derived metrics
 5. ☐ Design API endpoints to serve metrics to front-end
 
+### 4.10.7. Infrastructure & Scalability Requirements
+
+**⚠️ ACTION REQUIRED:** Technical review identified that infrastructure specifications need additional detail. The following must be specified before deployment:
+
+**Hardware Requirements Clarification:**
+
+| Resource | Minimum Requirement | Specification Needed |
+|----------|---------------------|----------------------|
+| **CPU** | 6-core processor | ☐ Clarify: Does this apply to the **container** or the **host server**? |
+| **RAM** | 16GB | ☐ Clarify: Is this allocated to the application container or required on the host? |
+| **Storage** | TBD | ☐ Specify: Required storage for layer cache, solution library, and database |
+| **Network** | TBD | ☐ Specify: Bandwidth requirements for concurrent users |
+
+**Scalability Strategy (To Be Detailed):**
+
+The following scalability elements are committed to but require technical specification:
+
+- ☐ **Load Balancer Configuration:** Document load balancer requirements (e.g., nginx, AWS ALB) for distributing traffic across application instances
+- ☐ **Horizontal Scaling Plan:** Define auto-scaling thresholds and instance limits
+- ☐ **Database Scaling:** Specify whether spatial database (PostGIS) requires read replicas or clustering
+- ☐ **CDN/Caching Strategy:** Document tile caching and static asset delivery approach
+- ☐ **Concurrent User Capacity:** Target capacity for simultaneous users (Tier 1 + Tier 2 + Tier 3)
+
+**Technical Team Deliverables:**
+1. ☐ Complete infrastructure specification document detailing server vs. container resource allocation
+2. ☐ Architecture diagram showing load balancing and scaling components
+3. ☐ Performance benchmarks for target user loads
+4. ☐ Cost estimates for different scaling scenarios
+
 ---
 
 ## Area 4.11: Layer Registry (Data Asset Inventory)
@@ -1709,6 +1757,19 @@ These are produced by the Prioritizr optimization engine and are always availabl
 | `PA_PARKS` | National parks layer | PNNC / RUNAP | — | — | — | ❓ Unknown |
 | `PA_OMEC` | OMECs layer | Protected Planet | OMEC_2020.shp | 2020 | protectedplanet.net | ⚠️ **Outdated** |
 
+**🚨 OMEC Layer Replacement Plan (MANDATORY):**
+
+The OMECs layer (`PA_OMEC`) is flagged as outdated (2020 vintage). Stakeholders have explicitly noted this issue, citing specific examples such as the El Tuparro Biosphere Reserve requiring update. **This layer must be updated before final tool handoff.**
+
+| Action | Responsible Party | Target Date | Status |
+|--------|-------------------|-------------|--------|
+| Identify current OMEC data source (Protected Planet 2024+ or RUNAP) | Data Team | ☐ TBD | Pending |
+| Acquire updated OMEC layer | Data Team | ☐ TBD | Pending |
+| Validate layer against known OMEC sites (e.g., El Tuparro) | Data Team | ☐ TBD | Pending |
+| Deprecate `OMEC_2020.shp` via Layer Deprecation Workflow (Section 2.3) | Tier 3 Admin | ☐ TBD | Pending |
+| Publish new OMEC layer as current version | Tier 3 Admin | ☐ TBD | Pending |
+| Update scenarios using deprecated layer (warning notifications) | System/Admin | ☐ TBD | Pending |
+
 ---
 
 #### 4.11.7. Cultural & Ethnic Territory Layers
@@ -1750,7 +1811,22 @@ These are produced by the Prioritizr optimization engine and are always availabl
 | Administrative & Planning | 7 | 0 | 0 | 0 | 7 |
 | **TOTAL** | **42** | **4** | **1** | **2** | **35** |
 
-**⚠️ ACTION REQUIRED:** 35 of 42 required layers have unknown availability status. The Data Team must verify each layer and update this registry before development can proceed.
+**🚨 CRITICAL ACTION REQUIRED — IMPLEMENTATION BLOCKER:**
+
+**35 of 42 required layers have unknown availability status (❓ Unknown).** Implementation cannot proceed until these data gaps are resolved.
+
+| Priority | Action | Responsible Party | Deadline |
+|----------|--------|-------------------|----------|
+| 🔴 **CRITICAL** | Verify status of all 35 ❓ Unknown layers | Data Team | ☐ **Before Sprint 1** |
+| 🔴 **CRITICAL** | Acquire `SOCIO_ECON_MODEL` (Economic valuation model) — required for Metric #12 | Data Team / Science Team | ☐ **Before Tier 2 development** |
+| 🔴 **CRITICAL** | Acquire `ETH_SACRED` (Sacred sites layer) — required for Ethnic Report Metric #1 | Data Team | ☐ **Before Tier 2 development** |
+| 🟠 **HIGH** | Update `PA_OMEC` layer (outdated 2020 vintage) | Data Team | ☐ **Before final handoff** |
+| 🟡 **MEDIUM** | Verify `SOCIO_AG_FRONTIER` (Agricultural frontier layer) for Territorial Metric #4 | Data Team | ☐ **Before Tier 2 development** |
+
+**Without resolving these gaps:**
+- Metrics with ❓ Unknown inputs cannot be calculated or displayed
+- Metrics with ❌ Missing inputs (Economic Impact #12, Sacred Sites overlap) will show "Data Unavailable" or be hidden entirely
+- Reports depending on missing layers will be incomplete
 
 ---
 
@@ -1773,10 +1849,14 @@ The fundamental spatial unit of analysis (grid cell or polygon). All data is sum
 **Theme (Conservation Feature)**
 A biological or physical feature to be protected (e.g., "Cloud Forest", "Spectacled Bear Habitat").
 *   **Goal:** The target percentage (0-100%) of this feature to protect.
+*   **📋 Terminology Note:** Stakeholders may use the term **"Attribute"** (Atributo) to refer to both natural and cultural features. In this application, "Attribute" is synonymous with "Theme" or "Conservation Feature." The recommended organizational structure categorizes inputs as: **Attributes** (features to protect), **Limitations/Costs** (factors that increase solution cost), and **Opportunities/Benefits** (factors that decrease cost or add value).
 
 **Weight (Influence Factor)**
 A socio-economic or physical layer that acts as a cost or benefit (e.g., "Land Cost", "Distance to Roads").
 *   **Factor:** An importance value (-100 to +100). Negative avoids the feature; Positive prefers it.
+*   **📋 Terminology Note:** In the user interface, weights should be contextually labeled using descriptive terms that convey their semantic meaning rather than the generic term "Weight":
+    *   Use **"Cost"** or **"Limitation"** for factors the optimization should avoid (negative weights) — e.g., "Cost: Agricultural Opportunity Cost", "Limitation: Human Footprint"
+    *   Use **"Benefit"** or **"Opportunity"** for factors the optimization should prefer (positive weights) — e.g., "Benefit: Connectivity Index", "Opportunity: Restoration Potential"
 
 **Include (Constraint)**
 Areas that *must* be included in the solution (e.g., Existing National Parks).
@@ -1787,7 +1867,28 @@ Areas that *must not* be included in the solution (e.g., Urban Centers).
 **Solution (Scenario)**
 A single pre-calculated result showing selected Planning Units. Defined by the specific combination of Goals, Weights, and Constraints used to generate it.
 
-### 5.2. Optimization Terminology
+### 5.2. Naming Conventions & Acronym Policy
+
+**📋 Official Names Requirement:** All official communications, report headers, data citations, and metadata displays must use **full proper names** of Colombian institutions and entities rather than acronyms. This includes but is not limited to:
+
+| Acronym | Full Name (Spanish) | Full Name (English) |
+|---------|---------------------|---------------------|
+| PNN / PNNC | Parques Nacionales Naturales de Colombia | National Natural Parks of Colombia |
+| CARs | Corporaciones Autónomas Regionales | Regional Autonomous Corporations |
+| SIRAP | Sistema Regional de Áreas Protegidas | Regional System of Protected Areas |
+| SINAP | Sistema Nacional de Áreas Protegidas | National System of Protected Areas |
+| MADS | Ministerio de Ambiente y Desarrollo Sostenible | Ministry of Environment and Sustainable Development |
+| IAvH / Humboldt | Instituto de Investigación de Recursos Biológicos Alexander von Humboldt | Alexander von Humboldt Biological Resources Research Institute |
+| IDEAM | Instituto de Hidrología, Meteorología y Estudios Ambientales | Institute of Hydrology, Meteorology and Environmental Studies |
+| IGAC | Instituto Geográfico Agustín Codazzi | Agustín Codazzi Geographic Institute |
+| ANT | Agencia Nacional de Tierras | National Land Agency |
+| DANE | Departamento Administrativo Nacional de Estadística | National Administrative Department of Statistics |
+| UPRA | Unidad de Planificación Rural Agropecuaria | Rural Agricultural Planning Unit |
+| OMECs / OECMs | Otras Medidas Efectivas de Conservación Basadas en Áreas | Other Effective Area-based Conservation Measures |
+
+**Implementation:** Interface elements may display acronyms for space efficiency, but must include the full name in tooltips, metadata panels, and all exported reports/PDFs.
+
+### 5.3. Optimization Terminology
 
 **Minimum Set:** An optimization objective that minimizes total cost while meeting all conservation goals.
 **Minimum Shortfall:** An optimization objective that maximizes goal achievement within a fixed budget.
