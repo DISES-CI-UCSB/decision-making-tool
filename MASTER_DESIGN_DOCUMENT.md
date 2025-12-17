@@ -771,6 +771,8 @@ The Right Sidebar dynamically displays different analytical content based on use
 
 *   **Section A: Comparative Statistics Table**
     
+    **Note:** All metrics in this table are drawn from the Solution Overview Panel metrics (see Area 4.4.1) and displayed side-by-side for comparison. These are included in the master metrics table.
+    
     Visual table with rows and columns:
 
     | Metric | Scenario A | Scenario B | Difference |
@@ -1081,6 +1083,8 @@ Automated PDF generation for specific planning needs. All reports must include d
     *   Recommendations for community engagement
 
 ## Area 4.6: Comprehensive Data Layer Specifications
+
+**Note:** This section describes the categories and types of data layers required for the application. We will need to create an **Official Layer Inventory** document which will provide the definitive list of actual layer names, sources, vintages, and technical specifications for implementation. This section requires further specification.
 
 The application must include the following data layers with complete metadata transparency:
 
