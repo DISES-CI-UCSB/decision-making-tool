@@ -855,7 +855,7 @@ This section consolidates all metrics from the Right Sidebar analysis components
 - **Desirability**: Stakeholder validation status (Pending/Approved/Remove)
 
 **⚠️ IMPORTANT — Layer Asset Details:**
-For each **Required Input** listed in these tables, see the **Layer Registry (Section 4.6.9)** to verify:
+For each **Required Input** listed in these tables, see the **Layer Registry (Area 4.11)** to verify:
 - Whether the asset is actually available
 - The actual file/asset name
 - Source agency, version date, and URL
@@ -1079,7 +1079,7 @@ These metrics supplement the reused AOI Dashboard cultural metrics (metrics #37-
 - ❓ **Unknown:** Most external data layers require verification
 
 **⚠️ CRITICAL: Data Gap Analysis Required**
-Before implementation, the team must verify each metric's Required Input(s) against the Layer Registry (Section 4.6.9). Any metric with Asset Status ❌ or ❓ cannot be implemented until the required layer is secured.
+Before implementation, the team must verify each metric's Required Input(s) against the Layer Registry (Area 4.11). Any metric with Asset Status ❌ or ❓ cannot be implemented until the required layer is secured.
 
 **Metric Reuse Patterns:**
 - **Most Reused:** Carbon Storage, Opportunity Cost, Human Footprint (appear in 3+ components/reports)
@@ -1091,7 +1091,7 @@ Before implementation, the team must verify each metric's Required Input(s) agai
 - Once approved, back-end team can finalize API endpoints and calculation methods.
 
 **Team Review Checklist:**
-- ☐ **Data Team:** Verify Layer Registry (4.6.9) is complete and accurate
+- ☐ **Data Team:** Verify Layer Registry (Area 4.11) is complete and accurate
 - ☐ **Data Team:** Update Asset Status for all metrics based on actual layer availability
 - ☐ **Science Team:** Review all metrics marked `Pending` and update to `Approved` or `Remove`
 - ☐ **Science Team:** Specify calculation methodology for metrics marked "TBD"
@@ -1315,148 +1315,6 @@ The application must include the following data layers with complete metadata tr
     *   Urban centers, Rural communities
     *   Population density
     *   **Metadata Required:** Census year, definition of "urban"
-
-#### 4.6.9. Layer Registry (Data Asset Inventory)
-
-**Purpose:** This registry provides the authoritative list of all data layers required by the metrics in Area 4.4. It maps **layer requirements** (what we need) to **actual assets** (what we have), enabling immediate identification of data gaps.
-
-**How to Use This Registry:**
-1. Find a metric's "Required Input(s)" in the metrics tables (4.4.1–4.4.8)
-2. Look up that layer in this registry
-3. Check the "Status" column — if ❌ or ❓, the metric cannot be calculated
-
-**Status Legend:**
-- ✅ **Available** — Asset confirmed, ready for use
-- ⚠️ **Outdated** — Asset exists but needs updating
-- ❌ **Missing** — No asset available, blocks dependent metrics
-- ❓ **Unknown** — Availability not yet verified
-
----
-
-**Table A: System-Generated Layers (Prioritizr Outputs)**
-
-These are produced by the Prioritizr optimization engine and are always available when a scenario exists.
-
-| Layer ID | Required Layer | Description | Status | Notes |
-|----------|----------------|-------------|--------|-------|
-| `SYS_SOLUTION` | Prioritizr solution output | Selected planning units (the conservation solution) | ✅ Available | Core system output |
-| `SYS_GOALS` | Goal achievement data | Target achievement per conservation feature | ✅ Available | Included in solution metadata |
-| `SYS_COSTS` | Cost summary | Total cost of solution | ✅ Available | Included in solution metadata |
-| `SYS_SCENARIO_MATCH` | Scenario matching algorithm | Nearest-neighbor similarity scoring | ✅ Available | Application logic |
-
----
-
-**Table B: Biodiversity & Species Layers**
-
-| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
-|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
-| `BIO_SDM_MAMMALS` | Species distribution - Mammals | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
-| `BIO_SDM_BIRDS` | Species distribution - Birds | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
-| `BIO_SDM_AMPHIBIANS` | Species distribution - Amphibians | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
-| `BIO_SDM_REPTILES` | Species distribution - Reptiles | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
-| `BIO_SDM_PLANTS` | Species distribution - Plants | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
-| `BIO_IUCN_STATUS` | IUCN threat status attribute | IUCN Red List | — | — | — | ❓ Unknown |
-| `BIO_ENDEMISM` | Endemism attribute | Humboldt | — | — | — | ❓ Unknown |
-
----
-
-**Table C: Ecosystem & Environmental Layers**
-
-| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
-|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
-| `ECO_TYPES` | Ecosystem type layer | Humboldt / IDEAM | — | — | — | ❓ Unknown |
-| `ECO_CARBON_TOTAL` | Carbon storage layer (total) | IDEAM | — | — | — | ❓ Unknown |
-| `ECO_CARBON_ABOVE` | Above-ground carbon layer | IDEAM | — | — | — | ❓ Unknown |
-| `ECO_CARBON_SOIL` | Soil organic carbon layer | IDEAM | — | — | — | ❓ Unknown |
-| `ECO_WATER_REG` | Water regulation layer | IDEAM | — | — | — | ❓ Unknown |
-| `ECO_WATERSHED` | Watershed boundaries | IDEAM | — | — | — | ❓ Unknown |
-| `ECO_CONNECTIVITY` | Connectivity analysis layer | TBD | — | — | — | ❓ Unknown |
-| `ECO_RESTORATION` | Restoration potential layer | TBD | — | — | — | ❓ Unknown |
-
----
-
-**Table D: Socio-Economic & Land Use Layers**
-
-| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
-|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
-| `SOCIO_HF` | Human Footprint layer | Humboldt (IAvH) | — | — | — | ❓ Unknown |
-| `SOCIO_LANDUSE` | Land use layer | IDEAM / UPRA | — | — | — | ❓ Unknown |
-| `SOCIO_AG_COST` | Agricultural opportunity cost layer | Humboldt (IAvH) | — | — | — | ❓ Unknown |
-| `SOCIO_AG_FRONTIER` | Agricultural frontier layer | UPRA | — | — | — | ❓ Unknown |
-| `SOCIO_ECON_MODEL` | Economic valuation model | TBD | — | — | — | ❌ **Missing** |
-| `SOCIO_POPULATION` | Population data | DANE | — | — | — | ❓ Unknown |
-
----
-
-**Table E: Conflict & Security Layers**
-
-| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
-|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
-| `CONFLICT_ZONES` | Conflict zones layer | UNODC / Gov't sources | — | — | — | ❓ Unknown |
-| `CONFLICT_DISPUTES` | Land disputes layer | ANT / Gov't sources | — | — | — | ❓ Unknown |
-| `CONFLICT_SOCIAL` | Social conflict risk layer | TBD | — | — | — | ❓ Unknown |
-
----
-
-**Table F: Protected Areas & Conservation Layers**
-
-| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
-|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
-| `PA_ALL` | Protected areas layer (all categories) | PNNC / RUNAP | — | — | — | ❓ Unknown |
-| `PA_PARKS` | National parks layer | PNNC / RUNAP | — | — | — | ❓ Unknown |
-| `PA_OMEC` | OMECs layer | Protected Planet | OMEC_2020.shp | 2020 | protectedplanet.net | ⚠️ **Outdated** |
-
----
-
-**Table G: Cultural & Ethnic Territory Layers**
-
-| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
-|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
-| `ETH_INDIGENOUS` | Indigenous territories layer | ANT | — | — | — | ❓ Unknown |
-| `ETH_COUNCILS` | Community councils layer | ANT | — | — | — | ❓ Unknown |
-| `ETH_SACRED` | Sacred sites layer | TBD | — | — | — | ❌ **Missing** |
-| `ETH_LEGAL_MAP` | FPIC legal requirement mapping | TBD | — | — | — | ❓ Unknown |
-
----
-
-**Table H: Administrative & Planning Layers**
-
-| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
-|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
-| `ADMIN_NATIONAL` | National boundary | IGAC | — | — | — | ❓ Unknown |
-| `ADMIN_DEPT` | Department boundaries | IGAC / DANE | — | — | — | ❓ Unknown |
-| `ADMIN_MUNI` | Municipality boundaries | IGAC / DANE | — | — | — | ❓ Unknown |
-| `ADMIN_CAR` | CAR (Environmental Authority) boundaries | MADS | — | — | — | ❓ Unknown |
-| `ADMIN_SIRAP` | SIRAP boundaries | MADS | — | — | — | ❓ Unknown |
-| `PLAN_DETERMINANTS` | Territorial Planning Determinants layer | CARs / Municipal offices | — | — | — | ❓ Unknown |
-| `PLAN_ZONING` | Zoning constraint layers | CARs / Municipal offices | — | — | — | ❓ Unknown |
-
----
-
-**Layer Registry Summary:**
-
-| Category | Total Layers | ✅ Available | ⚠️ Outdated | ❌ Missing | ❓ Unknown |
-|----------|--------------|--------------|-------------|------------|------------|
-| System-Generated | 4 | 4 | 0 | 0 | 0 |
-| Biodiversity & Species | 7 | 0 | 0 | 0 | 7 |
-| Ecosystem & Environmental | 8 | 0 | 0 | 0 | 8 |
-| Socio-Economic & Land Use | 6 | 0 | 0 | 1 | 5 |
-| Conflict & Security | 3 | 0 | 0 | 0 | 3 |
-| Protected Areas | 3 | 0 | 1 | 0 | 2 |
-| Cultural & Ethnic | 4 | 0 | 0 | 1 | 3 |
-| Administrative & Planning | 7 | 0 | 0 | 0 | 7 |
-| **TOTAL** | **42** | **4** | **1** | **2** | **35** |
-
-**⚠️ ACTION REQUIRED:** 35 of 42 required layers have unknown availability status. The Data Team must verify each layer and update this registry before development can proceed.
-
----
-
-**Layer Registry Maintenance Process:**
-
-1. **When adding a new metric:** Add any new Required Input(s) to this registry
-2. **When acquiring a new layer:** Update the "Actual Asset Name," "Version/Date," "URL/Reference," and "Status" columns
-3. **When a layer becomes outdated:** Update status to ⚠️ and note the issue
-4. **Quarterly review:** Data Team should audit all layer statuses
 
 ## Area 4.7: Data Transparency & Usability Requirements
 
@@ -1756,6 +1614,152 @@ The following API endpoints are anticipated (to be refined during implementation
 3. ☐ Identify any metrics that cannot be supported with current data
 4. ☐ Define calculation methods for derived metrics
 5. ☐ Design API endpoints to serve metrics to front-end
+
+---
+
+## Area 4.11: Layer Registry (Data Asset Inventory)
+
+**Purpose:** This registry provides the authoritative list of all data layers required by the metrics in Area 4.4. It maps **layer requirements** (what we need) to **actual assets** (what we have), enabling immediate identification of data gaps.
+
+**📋 Future Consideration:** This registry may be extracted to a standalone document (`LAYER_REGISTRY.md`) for easier maintenance by the Data Team.
+
+**How to Use This Registry:**
+1. Find a metric's "Required Input(s)" in the metrics tables (4.4.1–4.4.8)
+2. Look up that layer in this registry
+3. Check the "Status" column — if ❌ or ❓, the metric cannot be calculated
+
+**Status Legend:**
+- ✅ **Available** — Asset confirmed, ready for use
+- ⚠️ **Outdated** — Asset exists but needs updating
+- ❌ **Missing** — No asset available, blocks dependent metrics
+- ❓ **Unknown** — Availability not yet verified
+
+---
+
+#### 4.11.1. System-Generated Layers (Prioritizr Outputs)
+
+These are produced by the Prioritizr optimization engine and are always available when a scenario exists.
+
+| Layer ID | Required Layer | Description | Status | Notes |
+|----------|----------------|-------------|--------|-------|
+| `SYS_SOLUTION` | Prioritizr solution output | Selected planning units (the conservation solution) | ✅ Available | Core system output |
+| `SYS_GOALS` | Goal achievement data | Target achievement per conservation feature | ✅ Available | Included in solution metadata |
+| `SYS_COSTS` | Cost summary | Total cost of solution | ✅ Available | Included in solution metadata |
+| `SYS_SCENARIO_MATCH` | Scenario matching algorithm | Nearest-neighbor similarity scoring | ✅ Available | Application logic |
+
+---
+
+#### 4.11.2. Biodiversity & Species Layers
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `BIO_SDM_MAMMALS` | Species distribution - Mammals | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
+| `BIO_SDM_BIRDS` | Species distribution - Birds | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
+| `BIO_SDM_AMPHIBIANS` | Species distribution - Amphibians | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
+| `BIO_SDM_REPTILES` | Species distribution - Reptiles | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
+| `BIO_SDM_PLANTS` | Species distribution - Plants | Humboldt (BioModelos) | — | — | — | ❓ Unknown |
+| `BIO_IUCN_STATUS` | IUCN threat status attribute | IUCN Red List | — | — | — | ❓ Unknown |
+| `BIO_ENDEMISM` | Endemism attribute | Humboldt | — | — | — | ❓ Unknown |
+
+---
+
+#### 4.11.3. Ecosystem & Environmental Layers
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `ECO_TYPES` | Ecosystem type layer | Humboldt / IDEAM | — | — | — | ❓ Unknown |
+| `ECO_CARBON_TOTAL` | Carbon storage layer (total) | IDEAM | — | — | — | ❓ Unknown |
+| `ECO_CARBON_ABOVE` | Above-ground carbon layer | IDEAM | — | — | — | ❓ Unknown |
+| `ECO_CARBON_SOIL` | Soil organic carbon layer | IDEAM | — | — | — | ❓ Unknown |
+| `ECO_WATER_REG` | Water regulation layer | IDEAM | — | — | — | ❓ Unknown |
+| `ECO_WATERSHED` | Watershed boundaries | IDEAM | — | — | — | ❓ Unknown |
+| `ECO_CONNECTIVITY` | Connectivity analysis layer | TBD | — | — | — | ❓ Unknown |
+| `ECO_RESTORATION` | Restoration potential layer | TBD | — | — | — | ❓ Unknown |
+
+---
+
+#### 4.11.4. Socio-Economic & Land Use Layers
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `SOCIO_HF` | Human Footprint layer | Humboldt (IAvH) | — | — | — | ❓ Unknown |
+| `SOCIO_LANDUSE` | Land use layer | IDEAM / UPRA | — | — | — | ❓ Unknown |
+| `SOCIO_AG_COST` | Agricultural opportunity cost layer | Humboldt (IAvH) | — | — | — | ❓ Unknown |
+| `SOCIO_AG_FRONTIER` | Agricultural frontier layer | UPRA | — | — | — | ❓ Unknown |
+| `SOCIO_ECON_MODEL` | Economic valuation model | TBD | — | — | — | ❌ **Missing** |
+| `SOCIO_POPULATION` | Population data | DANE | — | — | — | ❓ Unknown |
+
+---
+
+#### 4.11.5. Conflict & Security Layers
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `CONFLICT_ZONES` | Conflict zones layer | UNODC / Gov't sources | — | — | — | ❓ Unknown |
+| `CONFLICT_DISPUTES` | Land disputes layer | ANT / Gov't sources | — | — | — | ❓ Unknown |
+| `CONFLICT_SOCIAL` | Social conflict risk layer | TBD | — | — | — | ❓ Unknown |
+
+---
+
+#### 4.11.6. Protected Areas & Conservation Layers
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `PA_ALL` | Protected areas layer (all categories) | PNNC / RUNAP | — | — | — | ❓ Unknown |
+| `PA_PARKS` | National parks layer | PNNC / RUNAP | — | — | — | ❓ Unknown |
+| `PA_OMEC` | OMECs layer | Protected Planet | OMEC_2020.shp | 2020 | protectedplanet.net | ⚠️ **Outdated** |
+
+---
+
+#### 4.11.7. Cultural & Ethnic Territory Layers
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `ETH_INDIGENOUS` | Indigenous territories layer | ANT | — | — | — | ❓ Unknown |
+| `ETH_COUNCILS` | Community councils layer | ANT | — | — | — | ❓ Unknown |
+| `ETH_SACRED` | Sacred sites layer | TBD | — | — | — | ❌ **Missing** |
+| `ETH_LEGAL_MAP` | FPIC legal requirement mapping | TBD | — | — | — | ❓ Unknown |
+
+---
+
+#### 4.11.8. Administrative & Planning Layers
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `ADMIN_NATIONAL` | National boundary | IGAC | — | — | — | ❓ Unknown |
+| `ADMIN_DEPT` | Department boundaries | IGAC / DANE | — | — | — | ❓ Unknown |
+| `ADMIN_MUNI` | Municipality boundaries | IGAC / DANE | — | — | — | ❓ Unknown |
+| `ADMIN_CAR` | CAR (Environmental Authority) boundaries | MADS | — | — | — | ❓ Unknown |
+| `ADMIN_SIRAP` | SIRAP boundaries | MADS | — | — | — | ❓ Unknown |
+| `PLAN_DETERMINANTS` | Territorial Planning Determinants layer | CARs / Municipal offices | — | — | — | ❓ Unknown |
+| `PLAN_ZONING` | Zoning constraint layers | CARs / Municipal offices | — | — | — | ❓ Unknown |
+
+---
+
+#### 4.11.9. Layer Registry Summary
+
+| Category | Total Layers | ✅ Available | ⚠️ Outdated | ❌ Missing | ❓ Unknown |
+|----------|--------------|--------------|-------------|------------|------------|
+| System-Generated | 4 | 4 | 0 | 0 | 0 |
+| Biodiversity & Species | 7 | 0 | 0 | 0 | 7 |
+| Ecosystem & Environmental | 8 | 0 | 0 | 0 | 8 |
+| Socio-Economic & Land Use | 6 | 0 | 0 | 1 | 5 |
+| Conflict & Security | 3 | 0 | 0 | 0 | 3 |
+| Protected Areas | 3 | 0 | 1 | 0 | 2 |
+| Cultural & Ethnic | 4 | 0 | 0 | 1 | 3 |
+| Administrative & Planning | 7 | 0 | 0 | 0 | 7 |
+| **TOTAL** | **42** | **4** | **1** | **2** | **35** |
+
+**⚠️ ACTION REQUIRED:** 35 of 42 required layers have unknown availability status. The Data Team must verify each layer and update this registry before development can proceed.
+
+---
+
+#### 4.11.10. Layer Registry Maintenance Process
+
+1. **When adding a new metric:** Add any new Required Input(s) to this registry
+2. **When acquiring a new layer:** Update the "Actual Asset Name," "Version/Date," "URL/Reference," and "Status" columns
+3. **When a layer becomes outdated:** Update status to ⚠️ and note the issue
+4. **Quarterly review:** Data Team should audit all layer statuses
 
 ---
 
