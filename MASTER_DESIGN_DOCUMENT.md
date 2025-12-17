@@ -171,7 +171,57 @@ The application serves three distinct user tiers.
     *   User generates a technical **Thematic Report** (PDF) for their planning process.
     *   User downloads the spatial data for use in desktop GIS software.
 
-### 3.3. The Solution Request Workflow (Tier 3 Only)
+### 3.3. Environmental Offset & Compensation Use Case (Tiers 2 & 3)
+*Specialized workflow for environmental offset planning and mitigation calculations.*
+
+**Purpose:** Stakeholders emphasized the tool's application for defining environmental offsets, calculating compensation importance, and determining mitigation requirements. This use case describes how planners use the tool to identify and justify conservation areas for offset purposes.
+
+**Workflow:**
+
+1.  **Define Offset Context:**
+    *   User (Tier 2 Planner) identifies the development project requiring environmental compensation
+    *   User specifies the ecosystem type(s), species habitats, or ecosystem services impacted by the project
+    *   User defines the geographic region where offset areas must be located (same biogeographic unit, watershed, etc.)
+
+2.  **Identify Candidate Offset Areas:**
+    *   User explores pre-calculated conservation scenarios to identify priority areas that provide **ecological equivalence**:
+        *   Same ecosystem types as impacted area
+        *   Similar or higher biodiversity value
+        *   Connectivity to existing protected areas
+    *   User filters scenarios by relevant themes (e.g., "Cloud Forest protection", "Jaguar habitat")
+    *   **AOI Dashboard** provides metrics on ecosystem representation, species coverage, and conservation value
+
+3.  **Calculate Offset Equivalence:**
+    *   User generates **Trade-off Analysis Report** for candidate offset areas, which provides:
+        *   **Ecosystem Coverage:** Area (km²) of each ecosystem type in candidate zones
+        *   **Species Habitat:** Threatened and endemic species with habitat in offset areas
+        *   **Ecosystem Services:** Carbon storage (tCO2e), water regulation capacity
+        *   **Connectivity Value:** Contribution to landscape connectivity
+    *   User generates **Territorial Planning Report** to assess:
+        *   Land use compatibility
+        *   Agricultural opportunity cost of offset designation
+        *   Jurisdictional distribution (municipalities, CARs)
+
+4.  **Justify Offset Selection:**
+    *   Reports provide auto-generated narrative text explaining:
+        *   Why the selected offset area is ecologically equivalent to the impacted area
+        *   The conservation gains achieved by protecting the offset area
+        *   Trade-offs and opportunity costs of the offset designation
+    *   User exports reports (PDF) and spatial data (Shapefile/GeoJSON) for submission to environmental authorities
+
+5.  **Scenario Comparison for Offset Optimization (Tier 2):**
+    *   User compares multiple candidate offset scenarios using the **Scenario Comparison Panel**
+    *   Difference maps show which areas provide the greatest ecological equivalence
+    *   Comparative metrics help justify the final offset selection
+
+**Key Reports for Offset Planning:**
+- **Trade-off Analysis Report:** Comprehensive ecological and economic justification
+- **Territorial Planning Report:** Land use compatibility and administrative context
+- **Ecosystem Assessment Report:** Detailed ecosystem representation analysis
+
+---
+
+### 3.4. The Solution Request Workflow (Tier 3 Only)
 *Administrative tools for expanding the solution library.*
 
 1.  **Define New Optimization:**
@@ -925,6 +975,12 @@ If a metric's Required Input(s) reference a layer that is ❌ Missing or ❓ Unk
 | 14 | Ecosystem Coverage - Dry Forest | Area of dry forest ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Dry Forest') in solution` | Donut chart segment | Pending | Ecosystem Report |
 | 15 | Ecosystem Coverage - Wetlands | Area of wetland ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Wetlands') in solution` | Donut chart segment | Pending | Ecosystem Report |
 | 16 | Ecosystem Coverage - Other | Area of other ecosystem types within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem NOT IN above categories) in solution` | Donut chart segment | Pending | Ecosystem Report |
+| **MARINE & COASTAL ECOSYSTEMS** | | | | | | | | | |
+| 48 | Marine Protected Area (MPA) Overlap | Area and percentage of solution overlapping existing Marine Protected Areas | km² and % | Marine Protected Areas layer (PA_MPA) | ❓ Unknown | `SUM(solution area ∩ MPAs)`; `(Solution ∩ MPAs) / Solution area × 100` | Stat card, map overlay | Pending | Regional Report, Ecosystem Report |
+| 49 | Coral Reef Coverage | Area of coral reef ecosystems within marine solution areas | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Coral Reef') in solution` | Donut chart segment | Pending | Ecosystem Report |
+| 50 | Mangrove Coverage | Area of mangrove ecosystems within solution | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Mangrove') in solution` | Donut chart segment | Pending | Ecosystem Report |
+| 51 | Seagrass Bed Coverage | Area of seagrass bed ecosystems within solution | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Seagrass') in solution` | Donut chart segment | Pending | Ecosystem Report |
+| 52 | % of Solution in EEZ | Percentage of solution within Colombia's Exclusive Economic Zone (marine areas) | % | EEZ boundary layer (ADMIN_EEZ) | ❓ Unknown | `(Solution area ∩ EEZ) / Total solution area × 100` | Stat card | Pending | Regional Report |
 | **ECOSYSTEM SERVICES** | | | | | | | | | |
 | 17 | Total Carbon Biomass | Total carbon stored in priority areas | tCO2e | Carbon storage layer (total) | ❓ Unknown | `SUM(carbon density × area) for solution pixels` | Stat card, large number | Pending | Solution Overview |
 | 18 | Above-ground Carbon | Above-ground carbon biomass in priority areas | tCO2e | Above-ground carbon layer | ❓ Unknown | `SUM(above-ground carbon × area) for solution pixels` | Breakdown stat | Pending | Ecosystem Report |
@@ -981,11 +1037,11 @@ These metrics are unique to scenario comparison and do not appear elsewhere.
 
 **Note:** The Scenario Comparison Panel also displays comparative versions of metrics from the Solution Overview Panel (Goal Achievement, Carbon Storage, Opportunity Cost, etc.) in a side-by-side table format. These are not counted as unique metrics since they reuse the same data definitions.
 
-#### 4.4.4. Ecosystem Assessment Report Metrics (Report #2) — 3 Unique Metrics
+#### 4.4.4. Ecosystem Assessment Report Metrics (Report #2) — 5 Unique Metrics
 
 *Component Reference: Area 4.5 (Report #2)*
 
-These metrics supplement the reused AOI Dashboard ecosystem metrics (metrics #12-21) with ecosystem-specific diagnostic detail. **Status: Suggested — Pending Science Team Review.**
+These metrics supplement the reused AOI Dashboard ecosystem metrics (metrics #12-21, #48-52) with ecosystem-specific diagnostic detail. **Status: Suggested — Pending Science Team Review.**
 
 **Table Legend:**
 - **Asset Status:** ✅ Available | ⚠️ Outdated/Issues | ❌ Missing | ❓ Unknown
@@ -996,6 +1052,8 @@ These metrics supplement the reused AOI Dashboard ecosystem metrics (metrics #12
 | 1 | Ecosystem Protection Gap | % of each ecosystem type unprotected within priorities | % | Protected areas layer, Ecosystem type layer | ❓ Unknown (both layers) | `(Ecosystem_Area - Protected_Ecosystem_Area) / Ecosystem_Area × 100` per type | Progress bar (inverse), breakdown by ecosystem | Pending | Addresses stakeholder need to understand WHY goals are unmet |
 | 2 | Ecosystem Service Provision Score | Composite score of ecosystem service value | Index (Low/Medium/High) | Water regulation layer, Carbon density layer | ❓ Unknown (both layers) | TBD - weighting formula needed for composite | Gauge with categorical labels | Pending | Supports narrative about strategic ecosystem conservation |
 | 3 | Human Footprint Pressure by Ecosystem Type | Human pressure distribution within each ecosystem | Breakdown (%) | Human Footprint layer, Ecosystem type layer | ❓ Unknown (both layers) | `HF category distribution per ecosystem type` | Stacked bar chart by ecosystem | Pending | Provides diagnostic context for ecosystem condition |
+| 4 | Marine Ecosystem Representation Index | Composite assessment of strategic marine ecosystem coverage (coral reefs, mangroves, seagrass) | Index (Low/Medium/High/Excellent) | Marine ecosystem type layer, PA_MPA | ❓ Unknown | TBD - representation target thresholds per marine ecosystem type | Traffic light badge per ecosystem type | Pending | **Addresses stakeholder request** for strategic marine ecosystem coverage assessment |
+| 5 | Marine-Terrestrial Connectivity | Identification of priority areas bridging coastal and marine ecosystems | km² and count | Connectivity layer, Marine ecosystem layer, Coastal zone boundaries | ❓ Unknown | TBD - buffer analysis identifying connected marine-terrestrial zones | Map overlay with highlighted transition zones | Pending | Supports integrated land-sea conservation planning |
 
 #### 4.4.5. Connectivity Report Metrics (Report #3) — 3 Unique Metrics
 
@@ -1048,12 +1106,12 @@ These metrics supplement the reused AOI Dashboard cultural metrics (metrics #37-
 
 #### 4.4.9. Metrics Summary
 
-**Total Unique Metrics:** 84
+**Total Unique Metrics:** 91
 - Solution Overview Panel: 17 metrics
-- AOI Dashboard: 47 metrics
+- AOI Dashboard: 52 metrics *(+5 added: Marine & Coastal Ecosystems metrics #48-52)*
 - Scenario Comparison Panel: 4 unique metrics
-- Thematic Report Metrics (Suggested): 16 metrics
-  - Ecosystem Assessment Report: 3 metrics
+- Thematic Report Metrics (Suggested): 18 metrics
+  - Ecosystem Assessment Report: 5 metrics *(+2 added: Marine Ecosystem Representation, Marine-Terrestrial Connectivity)*
   - Connectivity Report: 3 metrics
   - Species Conservation Report: 3 metrics
   - Territorial Planning Report: 4 metrics *(+1 added: Potential Production Area Change)*
@@ -1078,7 +1136,7 @@ These metrics supplement the reused AOI Dashboard cultural metrics (metrics #37-
 - ✅ **Available:** System-generated outputs and derived calculations
 - ⚠️ **Outdated:** OMECs layer (2020 vintage noted) — **Replacement plan required (see 4.11.6)**
 - ❌ **Missing:** Economic valuation model (`SOCIO_ECON_MODEL`), Sacred sites layer (`ETH_SACRED`) — **Acquisition required before Tier 2 development**
-- ❓ **Unknown:** Most external data layers require verification — **35 of 42 layers unverified (see 4.11.9)**
+- ❓ **Unknown:** Most external data layers require verification — **42 of 49 layers unverified (see 4.11.9)**
 
 **🚨 CRITICAL: Data Gap Analysis Required — IMPLEMENTATION BLOCKER**
 Before implementation, the team must verify each metric's Required Input(s) against the Layer Registry (Area 4.11). **Any metric with Asset Status ❌ or ❓ cannot be implemented until the required layer is secured.**
@@ -1087,7 +1145,7 @@ Before implementation, the team must verify each metric's Required Input(s) agai
 |----------------|------------------|-----------------|
 | `SOCIO_ECON_MODEL` ❌ Missing | Metric #12 (Economic Impact of Restrictions) | Develop or acquire economic valuation model |
 | `ETH_SACRED` ❌ Missing | Ethnic Report Metric #1 (Culturally Significant Landscape Overlap) | Identify data source for sacred sites |
-| 35 layers ❓ Unknown | ~60 metrics across all panels/reports | Data Team verification sprint |
+| 42 layers ❓ Unknown | ~70 metrics across all panels/reports | Data Team verification sprint |
 
 **Metric Reuse Patterns:**
 - **Most Reused:** Carbon Storage, Opportunity Cost, Human Footprint (appear in 3+ components/reports)
@@ -1428,6 +1486,17 @@ The following high-impact usability features are mandatory for user trust and ef
 *   ☐ **Language Persistence:** User's language preference is remembered across sessions
 *   ☐ **PDF Export Language:** Downloaded reports respect the currently selected language
 
+#### 4.8.1c. Low-Bandwidth & Accessibility Optimization
+*   ☐ **Optimized Tile Loading:** Map tiles must use progressive loading and appropriate zoom-level caching to minimize bandwidth requirements
+*   ☐ **Minimized Asynchronous Calls:** Reduce the number and frequency of API calls; batch requests where possible
+*   ☐ **Lazy Loading:** Defer loading of non-critical UI components and data until needed
+*   ☐ **Compressed Data Transfer:** Enable gzip/brotli compression for all API responses
+*   ☐ **Offline Capability (Future):** Consider progressive web app (PWA) architecture for basic offline access to previously loaded data
+*   ☐ **Connection Quality Indicator:** Display network status and provide graceful degradation messaging when connection is slow or unstable
+*   ☐ **Image Optimization:** Use WebP or other optimized formats for icons and static images; lazy-load large images in reports
+
+**📋 Rationale:** Regional users (CARs, SIRAPs, rural planners) may access the tool from areas with limited or unreliable internet connectivity. Performance optimization ensures the tool remains functional across Colombia's varied network infrastructure.
+
 #### 4.8.2. Layer Visibility & Default States
 *   ☐ **Default Visible Layers:** On application load, the following reference layers must be visible:
     *   Existing Protected Areas (National Parks, Regional Parks)
@@ -1663,6 +1732,41 @@ The following scalability elements are committed to but require technical specif
 3. ☐ Performance benchmarks for target user loads
 4. ☐ Cost estimates for different scaling scenarios
 
+### 4.10.8. Interoperability & National Standards Compliance
+
+**Purpose:** Ensure the tool integrates seamlessly with Colombia's existing environmental data infrastructure and official systems.
+
+#### A. Coordinate Reference System (CRS) Standards
+
+| Standard | Requirement | Implementation |
+|----------|-------------|----------------|
+| **Primary CRS** | MAGNA-SIRGAS (EPSG:4686) | ☐ All spatial data exports (Shapefile, GeoTIFF, GeoJSON) must default to MAGNA-SIRGAS |
+| **Alternative CRS** | WGS84 (EPSG:4326) | ☐ Available as export option for international compatibility |
+| **Web Display** | Web Mercator (EPSG:3857) | ☐ Used internally for web map display only |
+| **Validation** | On-the-fly reprojection | ☐ System must validate CRS of uploaded layers and reproject to MAGNA-SIRGAS for analysis |
+
+**📋 Rationale:** MAGNA-SIRGAS is Colombia's official geodetic reference system. All spatial data exchanged with government agencies (CARs, PNNC, IGAC) must use this CRS for compatibility with national datasets.
+
+#### B. Authentication & User Management Compatibility
+
+| Requirement | Implementation | Status |
+|-------------|----------------|--------|
+| **PNNC Authentication Protocol** | ☐ Tier 2/3 user management must support standard PNNC authentication protocols (to be specified by PNNC IT) | Pending specification |
+| **LDAP/Active Directory** | ☐ System should be compatible with LDAP or Active Directory integration for institutional deployments | Pending specification |
+| **SSO Capability** | ☐ Consider Single Sign-On (SSO) capability for future integration with Colombian government identity systems | Optional/Future |
+
+**📋 Rationale:** PNNC IT staff will maintain the system long-term. Authentication must align with existing institutional identity management systems.
+
+#### C. Data Exchange Formats
+
+| Format | Use Case | Compliance |
+|--------|----------|------------|
+| **Shapefile** | Primary vector export for GIS compatibility | ☐ Include .prj file with MAGNA-SIRGAS definition |
+| **GeoJSON** | Web API responses and lightweight data exchange | ☐ Coordinate order: longitude, latitude (RFC 7946) |
+| **GeoTIFF** | Raster export | ☐ Include georeferencing in MAGNA-SIRGAS |
+| **GeoPackage** | Modern vector format (optional) | ☐ Include as alternative to Shapefile |
+| **CSV** | Tabular data export | ☐ Include coordinate columns in MAGNA-SIRGAS |
+
 ---
 
 ## Area 4.11: Layer Registry (Data Asset Inventory)
@@ -1726,6 +1830,22 @@ These are produced by the Prioritizr optimization engine and are always availabl
 
 ---
 
+#### 4.11.3b. Marine & Coastal Ecosystem Layers
+
+*Required for metrics #48-52 (AOI Dashboard) and Ecosystem Assessment Report metrics #4-5.*
+
+| Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
+|----------|----------------|------------------------|-------------------|--------------|---------------|--------|
+| `MARINE_ECO_TYPES` | Marine ecosystem type layer (coral reefs, mangroves, seagrass, etc.) | INVEMAR | — | — | — | ❓ Unknown |
+| `MARINE_CORAL` | Coral reef distribution | INVEMAR | — | — | — | ❓ Unknown |
+| `MARINE_MANGROVE` | Mangrove ecosystem distribution | INVEMAR / IDEAM | — | — | — | ❓ Unknown |
+| `MARINE_SEAGRASS` | Seagrass bed distribution | INVEMAR | — | — | — | ❓ Unknown |
+| `MARINE_COASTAL` | Coastal zone boundaries | DIMAR / INVEMAR | — | — | — | ❓ Unknown |
+
+**📋 Note:** Marine ecosystem layers are essential for the tool to fulfill its stated territorial scope covering both terrestrial AND marine/oceanic components. INVEMAR (Instituto de Investigaciones Marinas y Costeras José Benito Vives de Andréis) is the primary source agency for marine ecosystem data in Colombia.
+
+---
+
 #### 4.11.4. Socio-Economic & Land Use Layers
 
 | Layer ID | Required Layer | Expected Source Agency | Actual Asset Name | Version/Date | URL/Reference | Status |
@@ -1756,6 +1876,7 @@ These are produced by the Prioritizr optimization engine and are always availabl
 | `PA_ALL` | Protected areas layer (all categories) | PNNC / RUNAP | — | — | — | ❓ Unknown |
 | `PA_PARKS` | National parks layer | PNNC / RUNAP | — | — | — | ❓ Unknown |
 | `PA_OMEC` | OMECs layer | Protected Planet | OMEC_2020.shp | 2020 | protectedplanet.net | ⚠️ **Outdated** |
+| `PA_MPA` | Marine Protected Areas layer | PNNC / DIMAR / INVEMAR | — | — | — | ❓ Unknown |
 
 **🚨 OMEC Layer Replacement Plan (MANDATORY):**
 
@@ -1781,6 +1902,20 @@ The OMECs layer (`PA_OMEC`) is flagged as outdated (2020 vintage). Stakeholders 
 | `ETH_SACRED` | Sacred sites layer | TBD | — | — | — | ❌ **Missing** |
 | `ETH_LEGAL_MAP` | FPIC legal requirement mapping | TBD | — | — | — | ❓ Unknown |
 
+**🚨 ETH_SACRED Acquisition Plan (CRITICAL — Required for Ethnic Report):**
+
+The Sacred Sites layer (`ETH_SACRED`) is **required** for the Ethnic Territory Consultation Report Metric #1 (Culturally Significant Landscape Overlap). Without this layer, the tool cannot fulfill its mandate to address community spiritual dimensions and FPIC compliance.
+
+| Action | Responsible Party | Potential Sources | Status |
+|--------|-------------------|-------------------|--------|
+| Identify authoritative data source | Data Team | ANT, Ministry of Interior, Indigenous organizations, DANE | ☐ Pending |
+| Assess data sensitivity and access restrictions | Data Team / Legal | Legal counsel, Indigenous community representatives | ☐ Pending |
+| Negotiate data sharing agreement (if required) | Project Lead | Source agency | ☐ Pending |
+| Acquire and validate layer | Data Team | — | ☐ Pending |
+| Document metadata and usage restrictions | Data Team | — | ☐ Pending |
+
+**⚠️ Note:** Sacred sites data may have cultural sensitivity restrictions. The acquisition process must respect Indigenous data sovereignty principles and may require community consultation before use in the tool.
+
 ---
 
 #### 4.11.8. Administrative & Planning Layers
@@ -1792,6 +1927,7 @@ The OMECs layer (`PA_OMEC`) is flagged as outdated (2020 vintage). Stakeholders 
 | `ADMIN_MUNI` | Municipality boundaries | IGAC / DANE | — | — | — | ❓ Unknown |
 | `ADMIN_CAR` | CAR (Environmental Authority) boundaries | MADS | — | — | — | ❓ Unknown |
 | `ADMIN_SIRAP` | SIRAP boundaries | MADS | — | — | — | ❓ Unknown |
+| `ADMIN_EEZ` | Exclusive Economic Zone (EEZ) boundary | DIMAR / Colombian Navy | — | — | — | ❓ Unknown |
 | `PLAN_DETERMINANTS` | Territorial Planning Determinants layer | CARs / Municipal offices | — | — | — | ❓ Unknown |
 | `PLAN_ZONING` | Zoning constraint layers | CARs / Municipal offices | — | — | — | ❓ Unknown |
 
@@ -1804,23 +1940,25 @@ The OMECs layer (`PA_OMEC`) is flagged as outdated (2020 vintage). Stakeholders 
 | System-Generated | 4 | 4 | 0 | 0 | 0 |
 | Biodiversity & Species | 7 | 0 | 0 | 0 | 7 |
 | Ecosystem & Environmental | 8 | 0 | 0 | 0 | 8 |
+| **Marine & Coastal** | **5** | **0** | **0** | **0** | **5** |
 | Socio-Economic & Land Use | 6 | 0 | 0 | 1 | 5 |
 | Conflict & Security | 3 | 0 | 0 | 0 | 3 |
-| Protected Areas | 3 | 0 | 1 | 0 | 2 |
+| Protected Areas & Conservation | 4 | 0 | 1 | 0 | 3 |
 | Cultural & Ethnic | 4 | 0 | 0 | 1 | 3 |
-| Administrative & Planning | 7 | 0 | 0 | 0 | 7 |
-| **TOTAL** | **42** | **4** | **1** | **2** | **35** |
+| Administrative & Planning | 8 | 0 | 0 | 0 | 8 |
+| **TOTAL** | **49** | **4** | **1** | **2** | **42** |
 
 **🚨 CRITICAL ACTION REQUIRED — IMPLEMENTATION BLOCKER:**
 
-**35 of 42 required layers have unknown availability status (❓ Unknown).** Implementation cannot proceed until these data gaps are resolved.
+**42 of 49 required layers have unknown availability status (❓ Unknown).** Implementation cannot proceed until these data gaps are resolved.
 
 | Priority | Action | Responsible Party | Deadline |
 |----------|--------|-------------------|----------|
-| 🔴 **CRITICAL** | Verify status of all 35 ❓ Unknown layers | Data Team | ☐ **Before Sprint 1** |
+| 🔴 **CRITICAL** | Verify status of all 42 ❓ Unknown layers | Data Team | ☐ **Before Sprint 1** |
 | 🔴 **CRITICAL** | Acquire `SOCIO_ECON_MODEL` (Economic valuation model) — required for Metric #12 | Data Team / Science Team | ☐ **Before Tier 2 development** |
 | 🔴 **CRITICAL** | Acquire `ETH_SACRED` (Sacred sites layer) — required for Ethnic Report Metric #1 | Data Team | ☐ **Before Tier 2 development** |
 | 🟠 **HIGH** | Update `PA_OMEC` layer (outdated 2020 vintage) | Data Team | ☐ **Before final handoff** |
+| 🟠 **HIGH** | Acquire marine ecosystem layers (`MARINE_ECO_TYPES`, `PA_MPA`, `ADMIN_EEZ`) — required for stated territorial scope | Data Team | ☐ **Before marine metrics implementation** |
 | 🟡 **MEDIUM** | Verify `SOCIO_AG_FRONTIER` (Agricultural frontier layer) for Territorial Metric #4 | Data Team | ☐ **Before Tier 2 development** |
 
 **Without resolving these gaps:**
