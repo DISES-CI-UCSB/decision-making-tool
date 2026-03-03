@@ -899,7 +899,24 @@ If a data point is quantifiable and changes based on the selected region/scenari
 
 This section consolidates all metrics from the Right Sidebar analysis components into one reference location for easy completeness checking and team review.
 
-**Purpose:** Provide a single source of truth for all 83 metrics tracked in the application (68 core + 15 suggested thematic report metrics). Each table shows metrics for one component, with key columns:
+**Purpose:** Provide a single source of truth for all 91 metrics tracked in the application (73 core UI metrics + 18 suggested thematic report metrics). Each table shows metrics for one component, with key columns:
+
+**Understanding Where Metrics Appear:**
+
+Metrics in this application appear in two distinct contexts with different purposes:
+
+| Context | Location | Purpose | Update Frequency |
+|---------|----------|---------|------------------|
+| **Real-Time UI Components** | Right Sidebar (Solution Overview, AOI Dashboard, Comparison Panel) | Interactive exploration, quick reference during map analysis | Live updates as user interacts with map |
+| **Generated Reports** | PDF exports and dedicated report pages (Area 4.5) | Documentation, stakeholder communication, formal decision support | Generated on-demand, static snapshot |
+
+**Metric Reuse Pattern:**
+- Many metrics appear in **both** contexts (e.g., Carbon Storage, Agricultural Opportunity Cost)
+- The **"Also Appears In"** column in each table tracks where each metric is reused
+- UI components show condensed versions; reports include expanded context, comparisons, and narrative interpretation
+- Report-specific metrics (sections 4.4.4–4.4.8) appear **only** in generated reports, not in real-time UI
+
+Each table shows metrics for one component, with key columns:
 - **Required Input(s)**: Data layers needed to calculate this metric
 - **Asset Status**: Quick indicator (✅/⚠️/❌/❓) of whether we have the required data
 - **Calculation**: Formula or method to derive the metric
@@ -1176,9 +1193,10 @@ The following metrics were not explicitly named in stakeholder feedback but are 
 | **Scenario Comparison Metrics** (#1-4, 4.4.3) | Comparison Panel | Foundational components (Agreement Area, Unique Area A/B, Synergy Zones) required to execute the explicitly requested Scenario Comparison Tool (map arithmetic, showing overlaps/synergies). |
 
 ## Area 4.5: Advanced Reporting (Tier 2)
-Automated PDF generation for specific planning needs. All reports must include detailed statistical breakdowns and contextual narratives.
 
-**Required Report Content Standards:**
+Automated report generation for specific planning needs. Reports are available as interactive page views within the application and as downloadable PDFs.
+
+**Required Report Content Standards (All Reports):**
 *   **Detailed Distributions:** All reports must include percentage breakdowns of planning units by:
     *   Human Footprint value categories (Low, Moderate, High, Very High)
     *   Land use types (Natural Forest, Pasture, Agriculture, Urban, etc.)
@@ -1186,29 +1204,40 @@ Automated PDF generation for specific planning needs. All reports must include d
     *   Relationships with existing management figures (overlap percentages)
 *   **Contextual Narratives:** Auto-generated interpretive text explaining the significance of statistics at both regional and national scales
 *   **Methodology Appendix:** Full documentation of data sources, dates, and calculation methods
+*   **Language Support:** All reports available in Spanish (default) and English
 
-**Report Types:**
+---
 
-1.  **Trade-off Analysis Report (Gains vs. Losses) - MANDATORY:**
-    *   **Purpose:** Provide comprehensive "what you are getting vs. what you are losing" analysis to ensure decisions are made with full understanding of implications
-    *   **Delivery Method:** 
-        *   **Dedicated Page View:** Opens as a full-screen or overlay page within the application for interactive browsing
-        *   **Downloadable PDF:** Complete report can be exported as PDF for offline use, sharing, and archival
-        *   Both formats contain identical content (all charts, maps, statistics, and narrative text)
-    *   **Perspective-Based Narrative Framing:**
-        *   User selects a perspective (Regional Planner, Community Leader, Conservationist, Economist, or Climate Advocate) when generating the report
-        *   **All data, metrics, charts, and statistics remain the same** regardless of perspective
-        *   Perspective choice only affects how the auto-generated narrative text is worded and which aspects are emphasized
-        *   User can regenerate the report with a different perspective to see alternative framings of the same data
-        *   **⚠️ VALIDATION REQUIRED:** The five predefined perspectives (Regional Planner, Community Leader, Conservationist, Economist, Climate Advocate) are a design interpretation of the stakeholder request for a "narrative of the actors." **Before implementation, verify the utility and relevance of these specific personas with the Mesa Nacional/stakeholders during design review** to ensure they align with the actual roles and needs of tool users.
-    *   **Language Support:**
-        *   Default language: Spanish (Español)
-        *   Alternative language: English
-        *   Language toggle available throughout the application
-        *   Both page view and PDF export respect the selected language
-    *   **Required Structure:** Full detailed version of the Trade-off Analysis Framework (see Section 4.3.1)
-    
-    **GAINS Section (Detailed):**
+### Component 4.5.1: Trade-off Analysis Report (Gains vs. Losses)
+*Trigger: User clicks "Generate Trade-off Report" from Solution Overview Panel or Report menu. This report is MANDATORY for all conservation scenarios.*
+
+**Metrics Reference:** See **Area 4.4.1** (Solution Overview Panel Metrics) — all 17 metrics appear in this report.
+
+**Purpose:** Provide comprehensive "what you are getting vs. what you are losing" analysis to ensure decisions are made with full understanding of implications.
+
+**Primary Audience:** Decision-makers, regional planners, conservation program managers, stakeholders requiring formal documentation
+
+**Key Questions Answered:**
+*   What conservation goals does this scenario achieve? Which remain unmet?
+*   What are the economic costs (agricultural opportunity cost, development restrictions)?
+*   What implementation challenges exist (human footprint overlap, conflict zones)?
+*   How does this scenario compare to national conservation targets?
+
+**Delivery Method:**
+*   **Dedicated Page View:** Opens as a full-screen or overlay page within the application for interactive browsing
+*   **Downloadable PDF:** Complete report can be exported as PDF for offline use, sharing, and archival
+*   Both formats contain identical content (all charts, maps, statistics, and narrative text)
+
+**Perspective-Based Narrative Framing:**
+*   User selects a perspective (Regional Planner, Community Leader, Conservationist, Economist, or Climate Advocate) when generating the report
+*   **All data, metrics, charts, and statistics remain the same** regardless of perspective
+*   Perspective choice only affects how the auto-generated narrative text is worded and which aspects are emphasized
+*   User can regenerate the report with a different perspective to see alternative framings of the same data
+*   **⚠️ VALIDATION REQUIRED:** The five predefined perspectives are a design interpretation of the stakeholder request for a "narrative of the actors." **Before implementation, verify the utility and relevance of these specific personas with the Mesa Nacional/stakeholders during design review.**
+
+**Content (Report Sections):**
+
+*   **Section A: GAINS (Conservation Achievements)**
     *   Complete list of all conservation goals met and unmet with explanations
     *   Detailed breakdown of species groups protected:
         *   Count by taxonomic group (Mammals, Birds, Amphibians, Reptiles, Plants)
@@ -1226,8 +1255,8 @@ Automated PDF generation for specific planning needs. All reports must include d
         *   Percentage of priority areas by ecosystem type
         *   Percentage by protection status (new vs. existing protected areas)
         *   Spatial configuration metrics (patch count, average size, largest patch)
-    
-    **LOSSES/COSTS Section (Detailed):**
+
+*   **Section B: LOSSES/COSTS (Trade-offs)**
     *   Agricultural opportunity cost breakdown:
         *   Total economic value (COP and USD with conversion date)
         *   Breakdown by agricultural type (crops, pasture, silvopasture)
@@ -1252,48 +1281,234 @@ Automated PDF generation for specific planning needs. All reports must include d
     *   Relationship with existing management figures:
         *   Overlap percentages with National Parks, OMECs, private reserves, etc.
         *   Complementarity analysis (new conservation areas vs. expansions)
-    
-    **Full Narrative Analysis:**
+
+*   **Section C: Full Narrative Analysis**
     *   Comprehensive auto-generated text (2-3 paragraphs) synthesizing the gains and losses
     *   Explicit statement of major trade-offs: "This scenario prioritizes X at the cost of Y"
     *   Contextual explanations: WHY certain goals are met or unmet (insufficient ecosystem area vs. cost constraints vs. optimization trade-offs)
     *   Risk assessment: Implementation challenges and recommended mitigation strategies
-    *   Example: "This conservation scenario achieves GOOD biodiversity protection (7 of 10 species groups with adequate habitats) and EXCELLENT ecosystem service provision (2.5B tCO2e carbon storage, water regulation for 8M people) at a MODERATE economic cost ($350M agricultural opportunity cost representing 12% of regional agricultural GDP). The solution prioritizes high-elevation ecosystems (cloud forests, paramo) which explain the unmet lowland wetland targets (-7% below goal). Implementation faces MODERATE challenges: 15% of priority areas overlap with human-modified landscapes requiring restoration approaches, and 8,200 km² overlap with historical conflict zones necessitating careful community engagement and consultation, particularly with 5 indigenous territories and 3 community councils within priority areas. The solution complements the existing protected area system well (35% overlap with current management figures) while identifying 65% as new priority areas filling critical conservation gaps."
-    
-    *   **Visual Report Components:**
-        *   Side-by-side bar charts: Goals Met vs. Goals Unmet
-        *   Dual-axis chart: Biodiversity gains vs. Economic costs
-        *   Map series: Conservation priorities, Human pressure overlay, Conflict zone overlay, Existing protected areas overlay
+    *   **Example Narrative:** "This conservation scenario achieves GOOD biodiversity protection (7 of 10 species groups with adequate habitats) and EXCELLENT ecosystem service provision (2.5B tCO2e carbon storage, water regulation for 8M people) at a MODERATE economic cost ($350M agricultural opportunity cost representing 12% of regional agricultural GDP). The solution prioritizes high-elevation ecosystems (cloud forests, paramo) which explain the unmet lowland wetland targets (-7% below goal). Implementation faces MODERATE challenges: 15% of priority areas overlap with human-modified landscapes requiring restoration approaches, and 8,200 km² overlap with historical conflict zones necessitating careful community engagement and consultation, particularly with 5 indigenous territories and 3 community councils within priority areas. The solution complements the existing protected area system well (35% overlap with current management figures) while identifying 65% as new priority areas filling critical conservation gaps."
 
-2.  **Ecosystem Assessment Report:** 
+*   **Section D: Visual Report Components**
+    *   Side-by-side bar charts: Goals Met vs. Goals Unmet
+    *   Dual-axis chart: Biodiversity gains vs. Economic costs
+    *   Map series: Conservation priorities, Human pressure overlay, Conflict zone overlay, Existing protected areas overlay
+
+---
+
+### Component 4.5.2: Ecosystem Assessment Report
+*Trigger: User clicks "Generate Ecosystem Report" from Report menu or AOI Dashboard ecosystem section.*
+
+**Purpose:** Evaluate how well a conservation scenario represents Colombia's diverse ecosystems and identify gaps where critical habitats remain unprotected.
+
+**Primary Audience:** Conservation scientists, environmental authorities (CARs), protected area managers
+
+**Key Questions Answered:**
+*   Which ecosystems are well-represented in this scenario? Which have protection gaps?
+*   What is the condition (human footprint level) of ecosystems within priority areas?
+*   How does ecosystem coverage compare to representation targets?
+*   What is the relationship between priority areas and the existing protected area network?
+
+**Content (Report Sections):**
+
+*   **Section A: Ecosystem Representation Summary**
     *   Detailed breakdown of ecosystem representation and gaps within the AOI
     *   Percentage of each ecosystem type protected vs. unprotected
-    *   Distribution across human footprint categories
-    *   Relationship with existing protected area system
+    *   Comparison to national and international representation targets (e.g., 30x30)
 
-2.  **Connectivity Report:** 
+*   **Section B: Ecosystem Condition Analysis**
+    *   Distribution across human footprint categories by ecosystem type
+    *   Ecosystem health/integrity indicators where available
+
+*   **Section C: Marine & Coastal Ecosystems** *(for coastal AOIs)*
+    *   Marine ecosystem representation (coral reefs, mangroves, seagrass beds)
+    *   Marine-terrestrial connectivity assessment
+    *   Marine Protected Area overlap analysis
+
+*   **Section D: Protected Area Relationship**
+    *   Relationship with existing protected area system
+    *   Gap analysis: ecosystems underrepresented in current protection network
+    *   Complementarity assessment (new priorities vs. existing coverage)
+
+*   **Section E: Visual Components**
+    *   Ecosystem coverage donut/bar charts
+    *   Map series: Ecosystem types, Protection gaps, Human footprint by ecosystem
+
+**Metrics Reference:** See **Area 4.4.4** (Ecosystem Assessment Report Metrics) + AOI Dashboard ecosystem metrics (#12-21, #48-52).
+
+---
+
+### Component 4.5.3: Connectivity Report
+*Trigger: User clicks "Generate Connectivity Report" from Report menu or AOI Dashboard connectivity section.*
+
+**Purpose:** Analyze landscape connectivity to identify critical corridors, bottlenecks, and restoration opportunities that enable species movement and genetic flow between priority areas.
+
+**Primary Audience:** Landscape ecologists, corridor planners, regional environmental authorities (CARs), restoration practitioners
+
+**Key Questions Answered:**
+*   Where are the critical corridors connecting priority areas?
+*   What are the major bottlenecks or barriers to species movement?
+*   Which areas should be prioritized for restoration to improve connectivity?
+*   How does this AOI contribute to regional/national connectivity networks?
+
+**Content (Report Sections):**
+
+*   **Section A: Connectivity Overview**
+    *   Structural connectivity assessment for the AOI
+    *   Connectivity index scores and interpretation
+
+*   **Section B: Corridor Identification**
     *   Maps of structural connectivity and critical corridors
+    *   Corridor width and quality metrics
+
+*   **Section C: Bottleneck Analysis**
     *   Identification of pinch points and bottlenecks
-    *   Connectivity metrics by land use type
+    *   Barrier locations and types (roads, agriculture, urban)
+
+*   **Section D: Restoration Priorities**
+    *   Priority restoration areas with area estimates (km²)
+    *   Restoration feasibility by land use type
     *   Recommendations for corridor restoration
 
-3.  **Species Conservation Report:** 
-    *   Critical habitat maps for focal species
+*   **Section E: Regional Context**
+    *   AOI contribution to regional/national connectivity networks
+    *   Connectivity metrics by land use type
+
+*   **Section F: Visual Components**
+    *   Connectivity heatmaps and corridor network maps
+    *   Pinch point markers and restoration priority zones
+
+**Metrics Reference:** See **Area 4.4.5** (Connectivity Report Metrics).
+
+---
+
+### Component 4.5.4: Species Conservation Report
+*Trigger: User clicks "Generate Species Report" from Report menu or AOI Dashboard biodiversity section.*
+
+**Purpose:** Provide species-level analysis of how well a conservation scenario protects biodiversity, with emphasis on threatened, endemic, and focal species.
+
+**Primary Audience:** Biodiversity specialists, IUCN Red List assessors, species conservation programs, environmental impact assessors
+
+**Key Questions Answered:**
+*   How many species (by taxonomic group) have adequate habitat protected?
+*   Which threatened species have secured habitats? Which remain at risk?
+*   Are endemic species adequately represented in priority areas?
+*   What is the habitat fragmentation status for key species groups?
+
+**Content (Report Sections):**
+
+*   **Section A: Species Richness Overview**
+    *   Species counts by taxonomic group (Mammals, Birds, Amphibians, Reptiles, Plants)
+    *   Comparison to national species totals
+
+*   **Section B: Threatened Species Analysis**
+    *   Protection achievement breakdown by IUCN threat category (CR, EN, VU)
+    *   List of threatened species with secured vs. at-risk habitats
+    *   Critical habitat maps for focal threatened species
+
+*   **Section C: Endemic Species Assessment**
+    *   Endemic species count and protection achievement
+    *   Endemic vs. non-endemic species protection comparison
+
+*   **Section D: Habitat Quality & Fragmentation**
+    *   Habitat fragmentation metrics by taxonomic group
     *   Threat level analysis and spatial distribution
-    *   Habitat fragmentation metrics
-    *   Endemic vs. non-endemic species protection assessment
 
-4.  **Territorial Planning Report:** 
-    *   Zoning recommendations and land-use conflict analysis
-    *   Compatibility assessment with Territorial Planning Determinants
-    *   Opportunity cost analysis by land use category
+*   **Section E: Visual Components**
+    *   Species richness bar charts by taxa
+    *   Threatened species protection progress bars
+    *   Critical habitat maps for focal species
+
+**Metrics Reference:** See **Area 4.4.6** (Species Conservation Report Metrics) + AOI Dashboard biodiversity metrics (#4-11).
+
+---
+
+### Component 4.5.5: Territorial Planning Report
+*Trigger: User clicks "Generate Territorial Planning Report" from Report menu or AOI Dashboard socio-economic section.*
+
+**Purpose:** Analyze how conservation priorities align with territorial planning frameworks, land-use regulations, and administrative jurisdictions to support multi-sectoral coordination.
+
+**Primary Audience:** Municipal planners (POT), departmental planning offices, regional environmental authorities (CARs), MinAmbiente territorial planners
+
+**Key Questions Answered:**
+*   How do priority areas align with existing territorial planning determinants?
+*   Which municipalities and CARs have the largest share of priority areas?
+*   What are the land-use conflicts (agriculture, development) within priority zones?
+*   What is the agricultural opportunity cost by jurisdiction?
+*   How might future agricultural expansion be affected?
+
+**Content (Report Sections):**
+
+*   **Section A: Jurisdictional Distribution**
     *   Priority area distribution across municipalities and CARs
+    *   Breakdown by department and region
 
-5.  **Ethnic Territory Consultation Report:** 
-    *   Analysis of conservation priorities intersecting with indigenous reservations and community councils
+*   **Section B: Planning Compatibility Assessment**
+    *   Compatibility assessment with Territorial Planning Determinants
+    *   Identification of conflicts with existing land-use designations
+
+*   **Section C: Land Use Conflict Analysis**
+    *   Zoning recommendations and land-use conflict analysis
+    *   Areas with competing land use demands
+
+*   **Section D: Economic Impact by Jurisdiction**
+    *   Opportunity cost analysis by land use category
+    *   Agricultural opportunity cost by municipality/CAR
+
+*   **Section E: Future Scenarios**
+    *   Projected agricultural expansion impacts
+    *   Development restriction implications
+
+*   **Section F: Visual Components**
+    *   Choropleth maps by jurisdiction
+    *   Land use conflict overlay maps
+    *   Opportunity cost distribution charts
+
+**Metrics Reference:** See **Area 4.4.7** (Territorial Planning Report Metrics) + AOI Dashboard socio-economic metrics (#24-36).
+
+---
+
+### Component 4.5.6: Ethnic Territory Consultation Report
+*Trigger: User clicks "Generate Ethnic Territory Report" from Report menu, or automatically flagged when priority areas overlap indigenous/Afro-Colombian territories.*
+
+**Purpose:** Identify where conservation priorities intersect with indigenous reservations and Afro-Colombian community councils to ensure compliance with prior consultation requirements (Free, Prior, and Informed Consent - FPIC) under Colombian law and ILO Convention 169.
+
+**Primary Audience:** Community liaison officers, indigenous affairs specialists, legal compliance teams, community leaders, MinInterior consultation coordinators
+
+**Key Questions Answered:**
+*   Do priority areas overlap with indigenous reservations or community councils?
+*   Is prior consultation (FPIC) legally required? For which communities?
+*   What is the extent (km²) of overlap with ethnic territories?
+*   Are there culturally significant sites within priority areas?
+*   What are the recommended next steps for community engagement?
+
+**Content (Report Sections):**
+
+*   **Section A: Territorial Overlap Summary**
+    *   Analysis of conservation priorities intersecting with indigenous reservations
+    *   Analysis of priorities intersecting with Afro-Colombian community councils
+    *   Total area and percentage overlap by territory type
+
+*   **Section B: Consultation Requirements**
     *   Consultation requirements under Colombian law and ILO Convention 169
-    *   Cultural significance assessment
+    *   FPIC risk assessment and compliance guidance
+    *   List of specific communities requiring consultation
+
+*   **Section C: Cultural Significance Assessment**
+    *   Cultural significance assessment (where data available)
+    *   Sacred sites and culturally important areas within priorities
+
+*   **Section D: Engagement Recommendations**
     *   Recommendations for community engagement
+    *   Suggested consultation timeline and process
+    *   Co-management opportunity identification
+
+*   **Section E: Visual Components**
+    *   Map overlays: Priority areas vs. ethnic territories
+    *   Territory-by-territory breakdown tables
+    *   FPIC requirement flags and alerts
+
+**Metrics Reference:** See **Area 4.4.8** (Ethnic Territory Consultation Report Metrics) + AOI Dashboard cultural metrics (#37-40, #44).
 
 ## Area 4.6: Comprehensive Data Layer Specifications
 
