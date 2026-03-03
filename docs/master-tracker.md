@@ -9,8 +9,8 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Upload updated MASTER_DESIGN_DOCUMENT to repo | ⚪ Not Started | New collaborator changes; replace current MDD |
-| Provide updated Area 4.4 metrics | ⚪ Not Started | Needed before branching out work |
+| Upload updated MASTER_DESIGN_DOCUMENT to repo | 🟢 Done | Synced with Master Design Document (1).md; CSV as metrics source of truth. Ready for commit. |
+| Provide updated Area 4.4 metrics | 🟢 Done | DISES Metrics - Finalized Metrics.csv (49 metrics) is source of truth; master doc aligned. |
 | Upload prioritizr .zip (solutions + metrics) | ⚪ Not Started | Actual run output for loading solutions & calculating metrics |
 | Discuss branch breakdown with AI | ⚪ Not Started | Blocked until MDD + metrics are provided |
 
@@ -47,4 +47,4 @@
 
 ---
 
-*Last updated: March 3, 2026*
+*Last updated: March 3, 2026 — MASTER_DESIGN_DOCUMENT sync + CSV metrics alignment complete*

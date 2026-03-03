@@ -1,8 +1,14 @@
 # Conservation Decision Support Tool: Master Design Document
-*Authoritative Source of Truth for Application Development*
+
+*Source of Truth for Application Development*
+
+This document is the authoritative design and requirements specification for a decision support tool intended to help Colombian conservation institutions evaluate trade-offs and identify priority areas for conservation.
+
+It translates stakeholder feedback and policy requirements into buildable system behavior.
+
+It is not a proposal, a narrative justification, or a UI mockup set. Its primary function is to allow developers to implement the system and to allow domain experts to verify that required decision logic, data inputs, and outputs are correct.
 
 ## Document Hierarchy Legend
-
 
 This document uses a consistent naming convention to clarify the hierarchy of content:
 
@@ -22,11 +28,112 @@ This document uses a consistent naming convention to clarify the hierarchy of co
 - **Sections** are logical groupings within a Component
 - **Sub-sections** and **Elements** provide granular detail within Sections
 
+## Review Guide: How to Review This Document
+
+### Purpose of This Review Guide
+
+This document is large and serves multiple functions. Not all sections require the same level of review from all readers.
+
+This Review Guide exists to:
+
+- Direct reviewers to the sections where their expertise is most needed
+- Clarify the type of feedback requested
+- Reduce unnecessary review effort
+- Ensure that high-priority sections are validated first, before secondary refinement
+
+**Note:** Reviewers are not expected to read this document end-to-end unless explicitly noted below.
+
+---
+
+### High-Priority Review Areas (Read First)
+
+The following sections are **implementation-critical**. These sections define system behavior, decision logic, metrics, reports, and data requirements. Feedback on these sections should be prioritized.
+
+| Area | Title | Primary Reviewers |
+|------|-------|-------------------|
+| **4.3** | **Right Sidebar Analysis Views (Right Sidebar Components)** | **All** |
+| **4.4** | **Metrics Reference Tables** | **All** |
+| **4.5** | **Reports** | **All** |
+| 4.6 | Data Layers | Data, GIS, and Backend Contributors |
+| 4.11 | Layer Registry (Data Asset Inventory) | Data, GIS, and Backend Contributors |
+
+Once these sections are validated and stabilized, the remaining sections can be reviewed for completeness and clarity.
+
+---
+
+### Role-Based Review Assignments
+
+**Amy (PI / Scientific Oversight)**
+
+**Primary focus areas:**
+- Part 1, Part 2, Part 3
+- Areas 4.3, 4.4, 4.5
+- Summary tables of metrics
+- Report structure and decision outputs
+
+**Review focus:**
+- Are the decision-support components aligned with real conservation decision-making needs?
+- Do the metrics meaningfully support trade-off evaluation?
+- Are the reports sufficient for institutional and policy-facing use?
+- Are any critical factors, assumptions, or decision signals missing?
+
+**Secondary review:**
+- Remaining sections can be reviewed after high-priority sections are validated.
+- Detailed data-layer verification may be delegated to data or GIS specialists as appropriate.
+
+---
+
+**Science and Domain Experts (Conservation, Modeling, Policy)**
+
+**Primary focus areas:**
+- Areas 4.3, 4.4, 4.6, and relevant portions of 4.5
+
+**Requested feedback:**
+- Verify that the listed metrics are correct, complete, and decision-relevant
+- Confirm that metric definitions and formulas are scientifically valid
+- Identify missing metrics or incorrect formulations
+- Flag metrics that may be misleading or redundant
+
+**When reviewing metrics:**
+- Assume metrics will be displayed primarily in the right-hand sidebar and in reports
+- Focus on *what* is being calculated, not *how* it is visually presented
+
+---
+
+**Data, GIS, and Backend Contributors**
+
+**Primary focus areas:**
+- Areas 4.6 and 4.11
+
+**Requested feedback:**
+- Verify that required input layers exist or can be obtained
+- Confirm data sources, coverage, and update status
+- Identify gaps where:
+  - Data is missing
+  - Data is outdated
+  - Data assumptions are unclear
+- Flag metrics that cannot currently be computed with known data assets
+
+This review is intended to surface feasibility issues early, before implementation.
+
+---
+
+### Sections Not Requiring Active Review
+
+The following sections are included to document stakeholder requests, transparency requirements, and compliance needs. **Active review is not requested** unless errors or contradictions are noticed.
+
+- User experience requirements
+- Transparency and documentation requirements
+- Stakeholder requirements and verification matrices
+- Narrative background and justification sections
+
+These sections exist for traceability and accountability and should not be treated as design debates.
+
 ---
 
 # Part 1: Product Vision
 
-**Conservation Decision Support Tool** is an interactive systematic conservation planning application for Colombia. It empowers users—from the general public to regional planners—to identify and prioritize conservation areas based on biodiversity, ecosystem services, and socio-economic data across **both terrestrial and marine/oceanic components** of Colombia's territory.
+**The ECO-PLAN Decision Support Tool** is an interactive systematic conservation planning application for Colombia. It empowers users—from the general public to regional planners—to identify and prioritize conservation areas based on biodiversity, ecosystem services, and socio-economic data across **both terrestrial and marine/oceanic components** of Colombia's territory.
 
 The application operates on a **"Pre-calculated Exploration"** model. Instead of running complex optimizations in real-time, the system allows users to define their priorities, instantly matches them to the best-fitting pre-calculated scenario from a vast library, and provides deep analytical tools to explore that solution.
 
@@ -45,13 +152,13 @@ The application serves three distinct user tiers.
 *   **Access:** Public URL, no login required.
 *   **Primary Goal:** Discover conservation priorities in their municipality or region.
 *   **Key Features:** 
-    *   Solution Finder (Slider-based discovery).
+    *   Solution Finder (Matrix of check boxes-based discovery).
     *   Interactive Map exploration.
     *   AOI (Area of Interest) Dashboard for local statistics.
     *   Basic PDF Summary Report.
 
 ### 2.2. Tier 2: The "Decision Maker" (Planner)
-*   **Identity:** Regional environmental authority (CARs), government planners, technical staff.
+*   **Identity:** Regional environmental authority (SIRAPs), government planners, technical staff.
 *   **Access:** Authenticated (Login required).
     *   **Session Persistence:** Login sessions must persist across browser reloads and page navigations. Users should not be forced to re-authenticate on every application reload. Implement secure token-based authentication with configurable session duration (e.g., 7-day persistent login with "Remember Me" option).
 *   **Primary Goal:** Perform detailed trade-off analysis and generate technical planning inputs.
@@ -60,7 +167,7 @@ The application serves three distinct user tiers.
     *   **Scenario Comparison:** Side-by-side views and difference mapping (conflict/agreement). Comparison tools are **Tier 2-only** to provide professional-grade trade-off analysis while maintaining simplicity for public users.
     *   **Custom Data Upload:** 
         *   Upload **vector layers** (Shapefiles, GeoJSON, KML/KMZ) to overlay on the map
-        *   Upload **raster layers** (GeoTIFF, IMG) for analysis
+        *   Upload **raster layers** (GeoTIFF, IMG) for visualization
         *   **Draw custom Areas of Interest:** Interactive polygon drawing tools to define analysis boundaries
         *   Full symbology control (color, transparency, labels) for uploaded layers
     *   **Advanced Reports:** Thematic reports for Connectivity, Ecosystems, Species Conservation, and Territorial Planning.
@@ -96,6 +203,8 @@ The application serves three distinct user tiers.
     *   **Queue Management:** Submit and monitor backend optimization jobs.
     *   **Publishing:** Review and publish new solutions to the public library.
 
+*Note from Amy: We are not going to design a separate user persona or different set of tool functionality for the 'Manager' role. We can acknowledge that the Mesa wants this persona, but they will be in charge of figuring out how this person operates behind the scenes. The Tier 3: The "Manager" section exists now simply as an acknowledgement of what the Mesa wants.*
+
 ---
 
 # Part 3: Core User Workflows
@@ -114,7 +223,7 @@ The application serves three distinct user tiers.
         *   "Low-Cost Conservation Strategy"
         *   "Carbon & Water Security Focus"
         *   "Cultural Heritage & Biodiversity"
-    *   Users can click a featured scenario to load it immediately, OR proceed to define custom priorities
+    *   Users can click a featured scenario to load it immediately, OR proceed to request custom priorities (requesting custom priorities may not even get developed)
 
 2.  **Set Conservation Targets:**
     *   User interacts with the **Solution Finder** controls:
@@ -130,7 +239,7 @@ The application serves three distinct user tiers.
     *   **Warning System:** If user selects conflicting or extreme combinations, system provides feedback (e.g., "These settings may result in low-quality matches or no feasible solutions")
 
 #### 3.1.2. Instant Matching & Results
-*System finds the best-matching pre-calculated scenario.*
+*System finds the matched, pre-calculated scenario.*
 
 1.  **Real-Time Search:**
     *   The system performs a Nearest Neighbor search against the pre-calculated library
@@ -171,7 +280,7 @@ The application serves three distinct user tiers.
     *   User generates a technical **Thematic Report** (PDF) for their planning process.
     *   User downloads the spatial data for use in desktop GIS software.
 
-### 3.3. Environmental Offset & Compensation Use Case (Tiers 2 & 3)
+### 3.3. Environmental Offset & Compensation Use Case (Tiers 2 & 3) [Flagged for Potential Removal]
 *Specialized workflow for environmental offset planning and mitigation calculations.*
 
 **Purpose:** Stakeholders emphasized the tool's application for defining environmental offsets, calculating compensation importance, and determining mitigation requirements. This use case describes how planners use the tool to identify and justify conservation areas for offset purposes.
@@ -221,52 +330,7 @@ The application serves three distinct user tiers.
 
 ---
 
-### 3.4. The Solution Request Workflow (Tier 3 Only)
-*Administrative tools for expanding the solution library.*
-
-1.  **Define New Optimization:**
-    *   Admin accesses the **Admin Dashboard** or **Solution Request Panel**.
-    *   Specifies parameters for a new conservation scenario:
-        *   **Theme Goals:** Target percentages for each conservation feature (e.g., "Protect 40% of Jaguar habitat").
-        *   **Species Group Fragmentation (Advanced):** 
-            *   Option to fragment broad species groups into differential subgroups:
-                *   By **Endemism**: "Endemic vs. Non-endemic species within Mammals"
-                *   By **Threat Status**: "Critically Endangered vs. Endangered vs. Vulnerable"
-                *   By **Taxonomic Subgroup**: "Primates vs. Carnivores vs. Ungulates within Mammals"
-                *   By **Cost Factors**: "High-cost habitats vs. Low-cost habitats for the same species group"
-            *   Assign independent goals and weights to each fragment
-            *   Example: "Protect 50% of Endemic Birds (weight: 100) vs. 30% of Non-endemic Birds (weight: 50)"
-        *   **Weight Factors:** Importance values for cost/benefit layers (e.g., "Agricultural Opportunity Cost 2021: -80", "Connectivity Index: +60").
-        *   **Constraints:** Include/Exclude areas (e.g., "Must include National Parks", "Exclude Urban Centers").
-        *   **Optimization Settings:** Budget constraints, clustering parameters, solver settings.
-    *   Assigns a descriptive name and metadata to the solution request.
-
-2.  **Submit & Queue:**
-    *   Admin submits the optimization job to the processing queue.
-    *   System validates parameters and estimates computation time.
-    *   Job enters the queue with status "Pending" or "Running".
-
-3.  **Monitor Progress:**
-    *   Admin views the **Job Queue Dashboard** showing:
-        *   Active jobs (currently running optimizations).
-        *   Queued jobs (waiting to be processed).
-        *   Completed jobs (finished successfully).
-        *   Failed jobs (errors or timeouts).
-    *   System provides status updates and estimated completion time.
-
-4.  **Review & Publish:**
-    *   Once optimization completes, Admin reviews the solution:
-        *   Views the solution on the map.
-        *   Checks statistics (goals met, area required, cost).
-        *   Verifies spatial pattern and quality.
-    *   Admin decides to:
-        *   **Publish:** Add the solution to the public library (visible to Tier 1 & 2 users).
-        *   **Archive:** Save for internal use only.
-        *   **Delete:** Remove if unsatisfactory or redundant.
-
----
-
-# Part 4: Functional Specifications
+# Part 4: Components & Functional Specifications
 
 ## Area 4.0: Components Overview & Summary
 
@@ -281,7 +345,7 @@ These are the live UI components users interact with in the application.
 | Component Name | Location | Has Metrics? | # of Metrics | Top 3-5 Key Metrics | Metrics Table |
 |----------------|----------|--------------|--------------|---------------------|---------------|
 | **LEFT SIDEBAR** | | | | | |
-| Solution Selector | Left Sidebar | No | 0 | — | — |
+| Solution Selector | Button in Left Sidebar -> Pop-Up Modal | No | 0 | — | — |
 | Layer Visibility Manager | Left Sidebar | No | 0 | — | — |
 | Symbology Control Panel | Left Sidebar | No | 0 | — | — |
 | Export/Report Buttons | Left Sidebar | No | 0 | — | — |
@@ -289,61 +353,63 @@ These are the live UI components users interact with in the application.
 | Interactive Map | Center Panel | No | 0 | — | — |
 | Map Controls | Center Panel | No | 0 | — | — |
 | **RIGHT SIDEBAR** | | | | | |
-| Solution Overview Panel | Right Sidebar | **Yes** | **17** | Goal Achievement %, Carbon Storage (tCO2e), Opportunity Cost (USD), Human Footprint Overlap %, Match Quality % | Area 4.4.1 |
-| AOI Dashboard | Right Sidebar | **Yes** | **47** | Priority Area (km²), Species Richness, Carbon Biomass (tCO2e), % of National Ecosystem, Regional Significance | Area 4.4.2 |
-| Scenario Comparison Panel | Right Sidebar | **Yes** | **4** | Agreement Area (km²), Unique to Scenario A, Unique to Scenario B, Synergy Zones | Area 4.4.3 |
+| Solution Overview Panel | Right Sidebar | **Yes** | **10** | Conservation Goals Met, Carbon Storage Capacity, National Contribution, Agricultural Opportunity Cost, Conflict Zone Overlap | Area 4.4.1 |
+| AOI Dashboard | Right Sidebar | **Yes** | **36** | Priority Area in Region, Species Richness by Taxa, Ecosystem Coverage, Total Carbon Biomass, Protected Area Overlap | Area 4.4.2 |
+| Scenario Comparison Panel | Right Sidebar | **Yes** | **3** | Agreement Area (km²), Unique to Scenario A, Unique to Scenario B | Area 4.4.3 |
 | Welcome Panel | Right Sidebar | No | 0 | — | — |
 | **MODALS** | | | | | |
 | Solution Finder Modal | Modal | No | 0 | — | — |
 | Perspective Selection Modal | Modal | No | 0 | — | — |
 
-**Interactive Components Summary:** 12 total components, 3 with metrics, **68 core metrics** + **15 suggested thematic report metrics** = **83 total unique metrics** (see Area 4.4 for complete metrics reference)
+**Interactive Components Summary:** 12 total components, 3 with metrics, **49 finalized metrics** (39 Yes + 10 Maybe) based on `DISES Metrics - Finalized Metrics.csv` (see Area 4.4 for complete metrics reference).
 
 **Table B: Generated Reports & Documentation**
 
 These are outputs that can be viewed in-app (Page View) and downloaded (PDF) for sharing and detailed analysis. Reports primarily **reuse metrics** from the interactive components above but may include additional unique metrics.
 
+Jan 26th, 2026 Note: We may have one report where the user can add bundles of metrics.
+
 | Report Name | Output Format | Metrics Source | # of Additional Unique Metrics | Section Reference |
 |-------------|---------------|----------------|-------------------------------|-------------------|
-| Trade-off Analysis Report | PDF + Page View | Reuses Solution Overview Panel metrics | **0** (all metrics from 4.3.1) | 4.5 (Report #1) |
-| Ecosystem Assessment Report | PDF + Page View | Reuses AOI Dashboard metrics + adds ecosystem-specific detail | **3** (see 4.4.4) ⚠️ | 4.5 (Report #2) |
-| Connectivity Report | PDF + Page View | Reuses AOI Dashboard metrics + adds connectivity analysis | **3** (see 4.4.5) ⚠️ | 4.5 (Report #3) |
-| Species Conservation Report | PDF + Page View | Reuses AOI Dashboard metrics + adds species-specific detail | **3** (see 4.4.6) ⚠️ | 4.5 (Report #4) |
-| Territorial Planning Report | PDF + Page View | Reuses AOI Dashboard metrics + adds planning-specific metrics | **3** (see 4.4.7) ⚠️ | 4.5 (Report #5) |
-| Ethnic Territory Consultation Report | PDF + Page View | Reuses AOI Dashboard cultural metrics + adds consultation detail | **3** (see 4.4.8) ⚠️ | 4.5 (Report #6) |
+| ~~Trade-off Analysis Report~~ | ~~PDF + Page View~~ | ~~Reuses Solution Overview Panel metrics~~ | ~~**0** (all metrics from 4.3.1)~~ | ~~4.5 (Report #1)~~ |
+| Ecosystem Assessment Report | PDF + Page View | Reuses AOI Dashboard ecosystem metrics | **TBD** (not finalized in CSV) | 4.5 (Report #2) |
+| Connectivity Report | PDF + Page View | Reuses AOI Dashboard and Scenario Comparison metrics | **TBD** (not finalized in CSV) | 4.5 (Report #3) |
+| Species Conservation Report | PDF + Page View | Reuses AOI Dashboard biodiversity metrics | **TBD** (not finalized in CSV) | 4.5 (Report #4) |
+| Territorial Planning Report | PDF + Page View | Reuses AOI Dashboard socio-economic metrics | **TBD** (not finalized in CSV) | 4.5 (Report #5) |
+| Ethnic Territory Consultation Report | PDF + Page View | Reuses AOI Dashboard cultural metrics | **TBD** (not finalized in CSV) | 4.5 (Report #6) |
 
-**Reports Summary:** 6 total reports, all available as both in-app Page View and downloadable PDF. Trade-off Analysis Report is fully specified (reuses 17 metrics from Solution Overview Panel). Thematic reports (Reports #2-6) now have **15 suggested unique metrics** (3 per report) pending science team approval (⚠️ = suggested, not yet approved).
+**Reports Summary:** 6 total reports, all available as both in-app Page View and downloadable PDF. As of the current finalized metrics CSV, report-specific unique metrics are **not finalized** and should be treated as TBD.
 
 ### 4.0.2. Summary Statistics of All Components, Reports,  Metrics
 
 **Interactive Components:**
 - **Total Interactive Components:** 12
 - **Components with Metrics:** 3 (Solution Overview Panel, AOI Dashboard, Scenario Comparison Panel)
-- **Total Core Metrics in Interactive App:** 68
-- **Most Metric-Heavy Component:** AOI Dashboard (47 unique metrics)
+- **Total Finalized Metrics in Interactive App:** 49 (from CSV)
+- **Most Metric-Heavy Component:** AOI Dashboard (36 metrics)
 
 **Reports:**
 - **Total Reports:** 6
 - **Fully Specified Reports:** 1 (Trade-off Analysis Report)
-- **Thematic Reports with Suggested Metrics:** 5 (Reports #2-6, see sections 4.4.4–4.4.8)
-- **Total Suggested Thematic Report Metrics:** 15 (⚠️ pending science team approval)
+- **Thematic Reports with Finalized Unique Metrics:** 0 (reports currently reuse finalized interactive metrics)
+- **Report-Unique Metrics Status:** TBD pending future metric finalization cycle
 
-**Total Metrics (All Sources):** 83 (68 core + 15 suggested)
+**Total Finalized Metrics (Current Source of Truth):** 49 (39 Yes + 10 Maybe)
 
 **Overall:**
 - **Total UI Components + Reports:** 18
-- **Metric Distribution:** All 68 core metrics concentrated in Right Sidebar (Analysis Components); 15 additional suggested metrics for Thematic Reports
+- **Metric Distribution:** All finalized metrics are concentrated in Right Sidebar analysis components; report-specific unique metrics are pending future definition
 
 ### 4.0.3. Key Insights for Team Review
 
 **Where to Focus Your Review:**
-1. **Right Sidebar Components (Analysis Dashboard)** - This is where all 68 core metrics live
-   - Solution Overview Panel: 17 unique metrics (Component 4.3.1)
-   - AOI Dashboard: 47 unique metrics (Component 4.3.2)
-   - Scenario Comparison Panel: 4 unique metrics (Component 4.3.3)
+1. **Right Sidebar Components (Analysis Dashboard)** - This is where all finalized metrics currently live
+   - Solution Overview Panel: 10 finalized metrics (Component 4.3.1)
+   - AOI Dashboard: 36 finalized metrics (Component 4.3.2)
+   - Scenario Comparison Panel: 3 finalized metrics (Component 4.3.3)
 
-2. **Reports** - Currently only Trade-off Analysis Report (#1) is fully specified
-   - Reports #2-6 need specification work to determine unique vs. reused metrics
+2. **Reports** - Reports primarily reuse finalized metrics from the right sidebar components
+   - Any report-unique metrics should be treated as proposed/TBD until they are added to the finalized metrics CSV
 
 
 **Important Notes:**
@@ -431,14 +497,15 @@ The interface follows a three-pane layout with a prominent modal workflow for so
         4. **Welcome/Getting Started Panel** (Section 4.3.4) - When no solution is active. Guides new users to begin exploring.
 
 ## Area 4.2: Solution Finder ("Selection Grid") Modal
+
+*NOTE: The mock-ups referenced below are AI-generated and not meant to be considered the definitive design. Discussion is ongoing.*
 A large, centralized Modal interface for discovering conservation scenarios. This is separated from the sidebar to accommodate the comprehensive input options and narrative-driven exploration.
 
-*   **UI Components:**
+*   **UI Components (Amy note: We decided (on 1/12) that users will only be able to select targets and includes/excludes. We will get rid of the middle sliders for the weights/costs):**
     *   **Theme Goal Selectors:** 
         *   **Discrete target options** for each conservation feature (e.g., 17%, 30%, 34%, or Custom)
         *   **Layer-based calculation tool:** Users can select specific data layers and the system automatically calculates standardized goal percentages (e.g., "Protect 30% of Jaguar Habitat")
         *   Visual indicators showing alignment with international conservation targets (e.g., 30x30 initiative)
-    *   **Weight Sliders:** Control importance (-100 to +100) for cost/benefit layers with labeled presets ("Avoid", "Neutral", "Prefer")
     *   **Constraint Toggles:** Binary On/Off switches for Includes (Lock-in) and Excludes (Lock-out)
     *   **Narrative Navigation:** 
         *   Guided workflows presenting scenarios organized by stakeholder narratives and use cases
@@ -450,9 +517,15 @@ A large, centralized Modal interface for discovering conservation scenarios. Thi
     *   System provides feedback if selected combination has low match quality or is outside the scenario library coverage
     *   User clicks "Apply Scenario" to load the best match onto the main Center Panel map
 
-## Area 4.3: Right Sidebar Analysis Views
+## Area 4.3: Right Sidebar Analysis Views (Right Sidebar Components)
 
-The Right Sidebar dynamically displays different analytical content based on user actions and context.
+At a high level, there are **three** main analysis perspectives the right sidebar is meant to serve:
+
+1. The solution overview (the entire solution)
+2. The area of interest (selected regions or custom polygons)
+3. Comparison between solutions
+
+There is also the welcome/getting started view. The following components describe how these perspectives will be served.
 
 ### Component 4.3.1: Solution Overview Panel
 *Trigger: A conservation solution is loaded/active, but no specific region is selected.*
@@ -558,7 +631,7 @@ The Right Sidebar dynamically displays different analytical content based on use
             *   "**15% of priority areas** overlap with moderate-to-high human pressure zones"
             *   "Conservation priorities overlap with **8,200 km²** of historical conflict zones, requiring careful implementation planning"
     
-    **Metrics Reference:** See **Area 4.4.1** for the complete Solution Overview Panel Metrics Table (17 metrics).
+    **Metrics Reference:** See **Area 4.4.1** for the complete Solution Overview Panel metrics table (10 finalized metrics).
     
     **Template-Based Text Generation Rules:**
     
@@ -624,7 +697,7 @@ The Right Sidebar dynamically displays different analytical content based on use
 
 **Purpose:** Provide detailed, region-specific statistics showing how the conservation solution affects this particular area.
 
-**Metrics Note:** This component displays **47 unique metrics** (see Area 4.4.2 for complete list with data source and availability status). Each Section below contains a mix of:
+**Metrics Note:** This component displays **36 finalized metrics** (see Area 4.4.2 for complete list with data source and availability status). Each section below contains a mix of:
 - **Metrics** (quantifiable data points) — all listed in Area 4.4.2
 - **Visualizations** (charts, graphs, maps) — how metrics are displayed
 - **Narrative Text** (auto-generated explanations) — contextual interpretation of metrics
@@ -724,7 +797,7 @@ If a data point is quantifiable and changes based on the selected region/scenari
     
     **Purpose:** Quantify how this region contributes to national conservation goals and provide comparative context for regional decision-makers. This addresses the critical need to "correlate regional and national data to provide a reference for analysis."
     
-    **Metrics Reference:** See **Area 4.4.2** for the complete AOI Dashboard Metrics Table (47 metrics).
+    **Metrics Reference:** See **Area 4.4.2** for the complete AOI Dashboard metrics table (36 finalized metrics).
     
     *   **Sub-section F.1: National Target Contribution Calculator**
         *   **AOI Contribution to National 17%/30% Targets:**
@@ -895,32 +968,15 @@ If a data point is quantifiable and changes based on the selected region/scenari
 *   "Open Solution Finder" button (primary CTA)
 *   "View Tutorial" or "Watch Demo" link (optional)
 
-## Area 4.4: Metrics Reference Tables (Master Metrics Consolidation)
+## Area 4.4: Metrics Reference Tables (for Area 4.3 Right-Sidebar Components & Area 4.5 Reports)
 
 This section consolidates all metrics from the Right Sidebar analysis components into one reference location for easy completeness checking and team review.
 
-**Purpose:** Provide a single source of truth for all 91 metrics tracked in the application (73 core UI metrics + 18 suggested thematic report metrics). Each table shows metrics for one component, with key columns:
+**Purpose:** Provide a single source of truth for all **49 finalized metrics** tracked in the application, aligned to `DISES Metrics - Finalized Metrics.csv`. Each table shows metrics for one component, with key columns:
 
-**Understanding Where Metrics Appear:**
-
-Metrics in this application appear in two distinct contexts with different purposes:
-
-| Context | Location | Purpose | Update Frequency |
-|---------|----------|---------|------------------|
-| **Real-Time UI Components** | Right Sidebar (Solution Overview, AOI Dashboard, Comparison Panel) | Interactive exploration, quick reference during map analysis | Live updates as user interacts with map |
-| **Generated Reports** | PDF exports and dedicated report pages (Area 4.5) | Documentation, stakeholder communication, formal decision support | Generated on-demand, static snapshot |
-
-**Metric Reuse Pattern:**
-- Many metrics appear in **both** contexts (e.g., Carbon Storage, Agricultural Opportunity Cost)
-- The **"Also Appears In"** column in each table tracks where each metric is reused
-- UI components show condensed versions; reports include expanded context, comparisons, and narrative interpretation
-- Report-specific metrics (sections 4.4.4–4.4.8) appear **only** in generated reports, not in real-time UI
-
-Each table shows metrics for one component, with key columns:
 - **Required Input(s)**: Data layers needed to calculate this metric
 - **Asset Status**: Quick indicator (✅/⚠️/❌/❓) of whether we have the required data
 - **Calculation**: Formula or method to derive the metric
-- **Desirability**: Stakeholder validation status (Pending/Approved/Remove)
 
 **⚠️ IMPORTANT — Layer Asset Details:**
 For each **Required Input** listed in these tables, see the **Layer Registry (Area 4.11)** to verify:
@@ -932,110 +988,111 @@ If a metric's Required Input(s) reference a layer that is ❌ Missing or ❓ Unk
 
 **Back-End Integration Note:** See **Area 4.10** for API specifications and back-end data requirements.
 
-#### 4.4.1. Solution Overview Panel Metrics (17 Metrics)
+### Metrics For Right Sidebar Components (in Area 4.3)
+
+#### 4.4.1. Solution Overview Panel Metrics (Finalized)
 
 *Component Reference: Component 4.3.1*
 
 **Table Legend:**
 - **Asset Status:** ✅ Available | ⚠️ Outdated/Issues | ❌ Missing | ❓ Unknown
-- **Desirability:** `Pending` = Needs review | `Approved` = Confirmed needed | `Remove` = Marked for removal
+- **Verdict:** `Yes` = Approved for inclusion | `Maybe` = Conditional on data/feasibility | Blank = Removed during review
 
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Also Appears In |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------------|
-| **GAINS (Conservation Achievements)** | | | | | | | | | |
-| 1 | Conservation Goals Met | Count/percentage of conservation targets achieved by the solution | Count and % | Prioritizr solution output | ✅ System-generated | `COUNT(targets where achieved >= goal) / Total targets × 100` | Visual checkmarks (✓/✗) | Pending | Trade-off Report, Comparison Panel |
-| 2 | Species Groups Protected | Number of species groups with adequate habitat protection | Count (e.g., "8 of 10") | Prioritizr solution output | ✅ System-generated | `COUNT(species groups meeting target threshold)` | Progress bar or fraction | Pending | Trade-off Report |
-| 3 | Threatened Species Secured | Count of threatened species with habitat targets met | Count | Prioritizr output, Species distribution layers, IUCN threat status | ❓ Unknown (species layers) | `COUNT(threatened species where habitat target met)` | Badge with count | Pending | Trade-off Report, AOI Dashboard |
-| 4 | Ecosystem Coverage | Area and percentage of key ecosystems within the solution | km² and % | Prioritizr output, Ecosystem type layer | ❓ Unknown (ecosystem layer) | `SUM(solution area per ecosystem type)` | Bar chart by ecosystem | Pending | Trade-off Report, AOI Dashboard |
-| 5 | Carbon Storage Capacity | Total carbon stored in priority areas | tCO2e | Carbon storage layer | ❓ Unknown | `SUM(carbon value × area) for solution pixels` | Stat card with large number | Pending | Trade-off Report, AOI Dashboard |
-| 6 | Water Regulation Services | Hydrological regulation capacity of priority areas | m³ or index | Water regulation layer | ❓ Unknown | `SUM or MEAN(water regulation index) for solution` | Gauge or stat card | Pending | Trade-off Report, AOI Dashboard |
-| 7 | Connectivity Index | Measure of landscape connectivity within/between priority areas | Corridor count or index | Connectivity analysis layer | ❓ Unknown | TBD - depends on connectivity methodology | Network diagram or index | Pending | Trade-off Report |
-| **LOSSES/COSTS (Trade-offs)** | | | | | | | | | |
-| 8 | Agricultural Opportunity Cost | Economic value of agricultural production foregone | COP and USD (millions) | Agricultural opportunity cost layer | ❓ Unknown | `SUM(ag cost value × area) for solution pixels` | Stat card, currency format | Pending | Trade-off Report, AOI Dashboard |
-| 9 | Affected Agricultural Area | Area of agricultural land within conservation priorities | km² and % | Land use layer | ❓ Unknown | `SUM(area where land use = agriculture) in solution` | Bar chart or map overlay | Pending | Trade-off Report |
-| 10 | Human Footprint Overlap | Extent of human-modified areas within priorities | km² and % of priority areas | Human Footprint layer | ❓ Unknown | `SUM(solution area where HF > threshold) / Total solution area` | Percentage bar, histogram | Pending | Trade-off Report, AOI Dashboard |
-| 11 | Development Restriction Area | Area where future development would be constrained | km² | Prioritizr solution output | ✅ System-generated | `SUM(solution area outside existing PAs)` | Stat card with area | Pending | Trade-off Report |
-| 12 | Economic Impact of Restrictions | Estimated economic impact of development restrictions | COP and USD (millions) | Economic valuation model | ❌ **NO ASSET** - Model TBD | TBD - requires economic model specification | Stat card, currency format | Pending | Trade-off Report |
-| 13 | Conflict Zone Overlap | Priority areas intersecting historical conflict zones | km² | Conflict zones layer | ❓ Unknown | `SUM(solution area ∩ conflict zones)` | Map overlay, stat card | Pending | Trade-off Report, AOI Dashboard |
-| 14 | Land Dispute Overlap | Priority areas with active land tenure disputes | km² | Land disputes layer | ❓ Unknown | `SUM(solution area ∩ dispute areas)` | Map overlay, stat card | Pending | Trade-off Report |
-| **SUMMARY METRICS** | | | | | | | | | |
-| 15 | Goal Achievement Quality | Overall score of how well targets were met | % (0-100%) | Derived from metric #1 | ✅ Calculated | `Weighted average of individual goal achievement %` | Progress bar with label | Pending | Trade-off Report, Comparison Panel |
-| 16 | Match Quality | How closely the matched scenario fits user preferences | % (0-100%) | Scenario matching algorithm | ✅ System-generated | `Similarity score from nearest-neighbor matching` | Badge (e.g., "95% Match") | Pending | Solution Overview only |
-| 17 | National Contribution | Percentage of Colombia's territory in priority areas | % of Colombia | Prioritizr solution output, National boundary | ✅ System-generated | `Total solution area / Colombia total area × 100` | Progress bar | Pending | Trade-off Report, AOI Dashboard |
+| # | Metric Name | Category | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Verdict | Also Appears In | Notes |
+|---|-------------|----------|-------------|-------|-------------------|--------------|-------------|---------------|---------|-----------------|-------|
+| **GAINS (Conservation Achievements)** | | | | | | | | | | | |
+| 1 | Conservation Goals Met | General | Count/percentage of conservation targets achieved by the solution | Count and % | Prioritizr solution output | ✅ System-generated | `COUNT(targets where achieved >= goal) / Total targets × 100` | Visual checkmarks (✓/✗) | **Yes** | Trade-off Report, Comparison Panel | Make sure target is clear quantitatively |
+| 2 | Species Groups Protected | Species/Biodiversity | Number of species groups with adequate habitat protection | Count (e.g., "8 of 10") | Prioritizr solution output | ✅ System-generated | `COUNT(species groups meeting target threshold)` | Progress bar or fraction | **Yes** | Trade-off Report | |
+| 3 | Threatened Species Secured | Species/Biodiversity | Count of threatened species with habitat targets met | Count | Prioritizr output, Species distribution layers, IUCN threat status | ❓ Unknown | `COUNT(threatened species where habitat target met)` | Badge with count | **Yes** | Trade-off Report, AOI Dashboard | We do have the data. Column sums of RIJ matrix. rredlist package — we can match to species name |
+| 4 | Ecosystem Coverage | Ecosystems | Area and percentage of key ecosystems within the solution | km² and % | Prioritizr output, Ecosystem type layer | ❓ Unknown | `SUM(solution area per ecosystem type)` | Bar chart by ecosystem | **Yes** | Trade-off Report, AOI Dashboard | |
+| 5 | Carbon Storage Capacity | Carbon | Total carbon stored in priority areas | tCO2e | Carbon storage layer | ❓ Unknown | `SUM(carbon value × area) for solution pixels` | Stat card with large number | **Yes** | Trade-off Report, AOI Dashboard | |
+| 6 | Water Regulation Services | Water | Hydrological regulation capacity of priority areas | m³ or index | Water regulation layer | ❓ Unknown | `SUM or MEAN(water regulation index) for solution` | Gauge or stat card | **Maybe** | Trade-off Report, AOI Dashboard | Depends on if we have the data and how easy this is to compute. If they have a priority layer that exists then it would just be %. Check with the Mesa; would be a comparison metric rather than a base metric |
+| **LOSSES/COSTS (Trade-offs)** | | | | | | | | | | | |
+| 8 | Agricultural Opportunity Cost | Land Cover/Habitat | Economic value of agricultural production foregone | COP and USD (millions) | Agricultural opportunity cost layer | ❓ Unknown | `SUM(ag cost value × area) for solution pixels` | Stat card, currency format | **Maybe** | Trade-off Report, AOI Dashboard | Net benefit is included as a cost in the runs, so they may want this included — or maybe it doesn't make sense to include it |
+| 9 | Affected Agricultural Area | Land Cover/Habitat | Area of agricultural land within conservation priorities | km² and % | Land use layer | ❓ Unknown | `SUM(area where land use = agriculture) in solution` | Bar chart or map overlay | **Yes** | Trade-off Report | |
+| 13 | Conflict Zone Overlap | Conflict | Priority areas intersecting historical conflict zones | km² | Conflict zones layer | ❓ Unknown | `SUM(solution area ∩ conflict zones)` | Map overlay, stat card | **Maybe** | Trade-off Report, AOI Dashboard | The only conflict zone layer we have is coco-muertes — Kevin has used for some runs (raster layer) but the cost is so small that it doesn't seem worth it. Instead of using as a cost layer, we could just include as an output stat |
+| **SUMMARY METRICS** | | | | | | | | | | | |
+| 17 | National Contribution | General | Percentage of Colombia's territory in priority areas | % of Colombia | Prioritizr solution output, National boundary | ✅ System-generated | `Total solution area / Colombia total area × 100` | Progress bar | **Yes** | Trade-off Report, AOI Dashboard | Should be with #1; can we also include how much is added on top of how much is already there in place? |
 
-#### 4.4.2. AOI Dashboard Metrics (47 Metrics)
+**Metrics Removed During Review (Previously in this table):**
+- ~~#7 Connectivity Index~~ — Removed
+- ~~#10 Human Footprint Overlap~~ — Removed
+- ~~#11 Development Restriction Area~~ — Removed
+- ~~#12 Economic Impact of Restrictions~~ — Removed (❌ NO ASSET)
+- ~~#14 Land Dispute Overlap~~ — Removed
+- ~~#15 Goal Achievement Quality~~ — Removed
+- ~~#16 Match Quality~~ — Removed
+
+#### 4.4.2. AOI Dashboard Metrics (Finalized)
 
 *Component Reference: Component 4.3.2*
 
 **Table Legend:**
 - **Asset Status:** ✅ Available | ⚠️ Outdated/Issues | ❌ Missing | ❓ Unknown
-- **Desirability:** `Pending` = Needs review | `Approved` = Confirmed needed | `Remove` = Marked for removal
+- **Verdict:** `Yes` = Approved for inclusion | `Maybe` = Conditional on data/feasibility | Blank = Removed during review
 
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Also Appears In |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------------|
-| **REGIONAL CONSERVATION** | | | | | | | | | |
-| 1 | Priority Area in Region | Total area of conservation priorities within the AOI | km² | Prioritizr solution output, AOI boundary | ✅ System-generated | `SUM(solution area within AOI)` | Progress bar | Pending | Regional Report |
-| 2 | Priority Area % of Region | Percentage of AOI covered by conservation priorities | % of region | Derived from #1, AOI boundary | ✅ Calculated | `Priority area / AOI total area × 100` | Progress bar | Pending | Regional Report |
-| 3 | Number of Priority Zones | Count of distinct priority patches in the AOI | Count | Prioritizr solution output, AOI boundary | ✅ System-generated | `COUNT(distinct connected components in solution)` | Stat card | Pending | Regional Report |
-| **BIODIVERSITY** | | | | | | | | | |
-| 4 | Species Richness - Mammals | Count of mammal species with habitat in solution area | Count | Species distribution - Mammals | ❓ Unknown | `COUNT(mammal species where habitat overlaps solution)` | Bar chart | Pending | Species Report |
-| 5 | Species Richness - Birds | Count of bird species with habitat in solution area | Count | Species distribution - Birds | ❓ Unknown | `COUNT(bird species where habitat overlaps solution)` | Bar chart | Pending | Species Report |
-| 6 | Species Richness - Amphibians | Count of amphibian species with habitat in solution area | Count | Species distribution - Amphibians | ❓ Unknown | `COUNT(amphibian species where habitat overlaps solution)` | Bar chart | Pending | Species Report |
-| 7 | Species Richness - Reptiles | Count of reptile species with habitat in solution area | Count | Species distribution - Reptiles | ❓ Unknown | `COUNT(reptile species where habitat overlaps solution)` | Bar chart | Pending | Species Report |
-| 8 | Species Richness - Plants | Count of plant species with habitat in solution area | Count | Species distribution - Plants | ❓ Unknown | `COUNT(plant species where habitat overlaps solution)` | Bar chart | Pending | Species Report |
-| 9 | Threatened Species Count | Count of IUCN threatened species in solution area | Count | Species distribution layers, IUCN threat status attribute | ❓ Unknown | `COUNT(species where IUCN status IN (CR, EN, VU) AND habitat overlaps solution)` | Badge with red highlight | Pending | Species Report, Solution Overview |
-| 10 | Endemic Species Count | Count of endemic species with habitat in solution area | Count | Species distribution layers, Endemism attribute | ❓ Unknown | `COUNT(species where endemic = TRUE AND habitat overlaps solution)` | Badge | Pending | Species Report |
-| 11 | % of National Species Total | Percentage of Colombia's total species found in AOI | % | Species distribution layers, National species totals | ❓ Unknown | `AOI species count / National species count × 100` | Stat with comparison | Pending | Species Report |
-| **ECOSYSTEMS** | | | | | | | | | |
-| 12 | Ecosystem Coverage - Cloud Forest | Area of cloud forest ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Cloud Forest') in solution` | Donut chart segment | Pending | Ecosystem Report |
-| 13 | Ecosystem Coverage - Paramo | Area of paramo ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Paramo') in solution` | Donut chart segment | Pending | Ecosystem Report |
-| 14 | Ecosystem Coverage - Dry Forest | Area of dry forest ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Dry Forest') in solution` | Donut chart segment | Pending | Ecosystem Report |
-| 15 | Ecosystem Coverage - Wetlands | Area of wetland ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Wetlands') in solution` | Donut chart segment | Pending | Ecosystem Report |
-| 16 | Ecosystem Coverage - Other | Area of other ecosystem types within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem NOT IN above categories) in solution` | Donut chart segment | Pending | Ecosystem Report |
-| **MARINE & COASTAL ECOSYSTEMS** | | | | | | | | | |
-| 48 | Marine Protected Area (MPA) Overlap | Area and percentage of solution overlapping existing Marine Protected Areas | km² and % | Marine Protected Areas layer (PA_MPA) | ❓ Unknown | `SUM(solution area ∩ MPAs)`; `(Solution ∩ MPAs) / Solution area × 100` | Stat card, map overlay | Pending | Regional Report, Ecosystem Report |
-| 49 | Coral Reef Coverage | Area of coral reef ecosystems within marine solution areas | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Coral Reef') in solution` | Donut chart segment | Pending | Ecosystem Report |
-| 50 | Mangrove Coverage | Area of mangrove ecosystems within solution | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Mangrove') in solution` | Donut chart segment | Pending | Ecosystem Report |
-| 51 | Seagrass Bed Coverage | Area of seagrass bed ecosystems within solution | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Seagrass') in solution` | Donut chart segment | Pending | Ecosystem Report |
-| 52 | % of Solution in EEZ | Percentage of solution within Colombia's Exclusive Economic Zone (marine areas) | % | EEZ boundary layer (ADMIN_EEZ) | ❓ Unknown | `(Solution area ∩ EEZ) / Total solution area × 100` | Stat card | Pending | Regional Report |
-| **ECOSYSTEM SERVICES** | | | | | | | | | |
-| 17 | Total Carbon Biomass | Total carbon stored in priority areas | tCO2e | Carbon storage layer (total) | ❓ Unknown | `SUM(carbon density × area) for solution pixels` | Stat card, large number | Pending | Solution Overview |
-| 18 | Above-ground Carbon | Above-ground carbon biomass in priority areas | tCO2e | Above-ground carbon layer | ❓ Unknown | `SUM(above-ground carbon × area) for solution pixels` | Breakdown stat | Pending | Ecosystem Report |
-| 19 | Soil Organic Carbon | Soil organic carbon in priority areas | tCO2e | Soil organic carbon layer | ❓ Unknown | `SUM(soil carbon × area) for solution pixels` | Breakdown stat | Pending | Ecosystem Report |
-| 20 | Average Carbon Density | Mean carbon density per hectare in solution | tCO2e/ha | Derived from #17 | ✅ Calculated | `Total carbon / Total solution area` | Stat card | Pending | Ecosystem Report |
-| 21 | % of National Carbon | Percentage of Colombia's carbon stored in AOI priorities | % | Derived from #17, National carbon total | ❓ Unknown (national total) | `AOI carbon / National carbon × 100` | Comparison stat | Pending | Regional Report |
-| 22 | Water Regulation Capacity | Hydrological regulation service provision | m³ or index | Water regulation layer | ❓ Unknown | `SUM or MEAN(water regulation value) for solution` | Gauge | Pending | Solution Overview |
-| 23 | Downstream Beneficiaries | Population benefiting from watershed services | Population count | Watershed boundaries, Population data | ❓ Unknown | `SUM(population in downstream watersheds of solution)` | Stat card with icon | Pending | Regional Report |
-| **SOCIO-ECONOMIC CONTEXT** | | | | | | | | | |
-| 24 | Average Human Footprint | Mean human footprint index in priority areas | Index 0-100 | Human Footprint layer | ❓ Unknown | `MEAN(HF value) for solution pixels` | Gauge | Pending | Solution Overview |
-| 25 | HF Distribution - Low (0-20) | % of priority area with low human footprint | % of area | Human Footprint layer | ❓ Unknown | `Area where HF 0-20 / Total solution area × 100` | Histogram segment | Pending | Territorial Report |
-| 26 | HF Distribution - Moderate (21-50) | % of priority area with moderate human footprint | % of area | Human Footprint layer | ❓ Unknown | `Area where HF 21-50 / Total solution area × 100` | Histogram segment | Pending | Territorial Report |
-| 27 | HF Distribution - High (51-80) | % of priority area with high human footprint | % of area | Human Footprint layer | ❓ Unknown | `Area where HF 51-80 / Total solution area × 100` | Histogram segment | Pending | Territorial Report |
-| 28 | HF Distribution - Very High (81-100) | % of priority area with very high human footprint | % of area | Human Footprint layer | ❓ Unknown | `Area where HF 81-100 / Total solution area × 100` | Histogram segment | Pending | Territorial Report |
-| 29 | Land Use - Natural Forest | % of priority area that is natural forest | % | Land use layer | ❓ Unknown | `Area where land use = 'Forest' / Total solution area × 100` | Donut segment | Pending | Territorial Report |
-| 30 | Land Use - Pasture | % of priority area that is pasture | % | Land use layer | ❓ Unknown | `Area where land use = 'Pasture' / Total solution area × 100` | Donut segment | Pending | Territorial Report |
-| 31 | Land Use - Crop Agriculture | % of priority area that is cropland | % | Land use layer | ❓ Unknown | `Area where land use = 'Crops' / Total solution area × 100` | Donut segment | Pending | Territorial Report |
-| 32 | Land Use - Other | % of priority area with other land uses | % | Land use layer | ❓ Unknown | `Area where land use NOT IN above / Total solution area × 100` | Donut segment | Pending | Territorial Report |
-| 33 | Agricultural Opportunity Cost | Economic value of agricultural production foregone in AOI | COP and USD | Agricultural opportunity cost layer | ❓ Unknown | `SUM(ag cost × area) for solution pixels in AOI` | Stat card, currency | Pending | Solution Overview |
-| 34 | % of Region in Agriculture | Percentage of AOI currently in agricultural use | % | Land use layer | ❓ Unknown | `Agricultural area / AOI total area × 100` | Stat | Pending | Territorial Report |
-| 35 | Historical Conflict Zone Overlap | Priority area overlapping historical conflict zones | km² | Conflict zones layer | ❓ Unknown | `SUM(solution area ∩ conflict zones)` | Map overlay, stat | Pending | Solution Overview |
-| 36 | Social Conflict Risk Level | Categorical risk assessment for social conflict | Categorical (Low/Mod/High) | Social conflict risk layer | ❓ Unknown | TBD - classification methodology needed | Badge or gauge | Pending | Territorial Report |
-| **CULTURAL & ETHNIC** | | | | | | | | | |
-| 37 | Indigenous Reservations Area | Area of indigenous reservations within priorities | km² | Indigenous territories layer | ❓ Unknown | `SUM(solution area ∩ indigenous territories)` | List + area stat | Pending | Ethnic Report |
-| 38 | Community Councils Area | Area of Afro-Colombian community councils within priorities | km² | Community councils layer | ❓ Unknown | `SUM(solution area ∩ community councils)` | List + area stat | Pending | Ethnic Report |
-| 39 | Consultation Requirement Flag | Whether prior consultation is required | Yes/No | Derived from #37, #38 | ✅ Calculated | `IF(#37 > 0 OR #38 > 0, 'Yes', 'No')` | Badge/alert | Pending | Ethnic Report |
-| 40 | Consultation Requirement Area | Total area requiring prior consultation | km² | Derived from #37, #38 | ✅ Calculated | `#37 + #38` | Stat | Pending | Ethnic Report |
-| **PROTECTION STATUS** | | | | | | | | | |
-| 41 | Total Protected Area in AOI | Area already under formal protection in the AOI | km² and % | Protected areas layer (all categories) | ❓ Unknown | `SUM(solution area ∩ protected areas)` | Progress bar | Pending | Regional Report |
-| 42 | % Overlap with National Parks | % of solution overlapping National Parks | % | National parks layer | ❓ Unknown | `(Solution ∩ Parks) / Solution area × 100` | Breakdown stat | Pending | Regional Report |
-| 43 | % Overlap with OMECs | % of solution overlapping OMECs | % | OMECs layer | ⚠️ Outdated (2020) | `(Solution ∩ OMECs) / Solution area × 100` | Breakdown stat | Pending | Regional Report |
-| 44 | % Overlap with Indigenous Territories | % of solution in indigenous territories | % | Indigenous territories layer | ❓ Unknown | `(Solution ∩ Indigenous) / Solution area × 100` | Breakdown stat | Pending | Ethnic Report |
-| 45 | Coverage Gap | Priority area not currently protected by any management figure | **km² and %** of priority unprotected | Derived from #41-44 | ✅ Calculated | `Total priority area - (area in any protection/management category)`; `(Unprotected area / Total priority area) × 100` | Stat card (km²) + Progress bar (inverse %) | Pending | Regional Report |
-| 46 | Synergy Score | How well solution complements existing protection | Index or categorical | Protected areas layer, Solution output | ❓ Unknown (methodology TBD) | TBD - methodology specification needed | Gauge or badge | Pending | Regional Report |
-| **NATIONAL CONTRIBUTION** | | | | | | | | | |
-| 47 | Regional Significance Classification | Categorical importance of AOI to national conservation | Categorical | Derived from multiple metrics | ✅ Calculated (thresholds TBD) | TBD - classification thresholds needed | Badge with color coding | Pending | Regional Report, Solution Overview |
+| # | Metric Name | Category | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Verdict | Also Appears In | Notes |
+|---|-------------|----------|-------------|-------|-------------------|--------------|-------------|---------------|---------|-----------------|-------|
+| **REGIONAL CONSERVATION** | | | | | | | | | | | |
+| 18 | Priority Area in Region | General | Total area of conservation priorities within the AOI | km² | Prioritizr solution output, AOI boundary | ✅ System-generated | `SUM(solution area within AOI)` | Progress bar | **Yes** | Regional Report | |
+| 19 | Priority Area % of Region | General | Percentage of AOI covered by conservation priorities | % of region | Derived from #1, AOI boundary | ✅ Calculated | `Priority area / AOI total area × 100` | Progress bar | **Yes** | Regional Report | Can we add additional on top of whatever is already protected by RUNAP? |
+| **BIODIVERSITY** | | | | | | | | | | | |
+| 21 | Species Richness - Mammals | Species/Biodiversity | Count of mammal species with habitat in solution area | Count | Species distribution - Mammals | ❓ Unknown | `COUNT(mammal species where habitat overlaps solution)` | Bar chart | **Yes** | Species Report | |
+| 22 | Species Richness - Birds | Species/Biodiversity | Count of bird species with habitat in solution area | Count | Species distribution - Birds | ❓ Unknown | `COUNT(bird species where habitat overlaps solution)` | Bar chart | **Yes** | Species Report | |
+| 23 | Species Richness - Amphibians | Species/Biodiversity | Count of amphibian species with habitat in solution area | Count | Species distribution - Amphibians | ❓ Unknown | `COUNT(amphibian species where habitat overlaps solution)` | Bar chart | **Yes** | Species Report | |
+| 24 | Species Richness - Reptiles | Species/Biodiversity | Count of reptile species with habitat in solution area | Count | Species distribution - Reptiles | ❓ Unknown | `COUNT(reptile species where habitat overlaps solution)` | Bar chart | **Yes** | Species Report | |
+| 25 | Species Richness - Plants | Species/Biodiversity | Count of plant species with habitat in solution area | Count | Species distribution - Plants | ❓ Unknown | `COUNT(plant species where habitat overlaps solution)` | Bar chart | **Yes** | Species Report | |
+| 26 | Threatened Species Count | Species/Biodiversity | Count of IUCN threatened species in solution area | Count | Species distribution layers, IUCN threat status attribute | ❓ Unknown | `COUNT(species where IUCN status IN (CR, EN, VU) AND habitat overlaps solution)` | Badge with red highlight | **Yes** | Species Report, Solution Overview | |
+| 27 | Endemic Species Count | Species/Biodiversity | Count of endemic species with habitat in solution area | Count | Species distribution layers, Endemism attribute | ❓ Unknown | `COUNT(species where endemic = TRUE AND habitat overlaps solution)` | Badge | **Yes** | Species Report | |
+| 28 | % of National Species Total | Species/Biodiversity | Percentage of Colombia's total species found in AOI | % | Species distribution layers, National species totals | ❓ Unknown | `AOI species count / National species count × 100` | Stat with comparison | **Yes** | Species Report | |
+| **ECOSYSTEMS** | | | | | | | | | | | |
+| 29 | Ecosystem Coverage - Cloud Forest | Ecosystems | Area of cloud forest ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Cloud Forest') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
+| 30 | Ecosystem Coverage - Paramo | Ecosystems | Area of paramo ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Paramo') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
+| 31 | Ecosystem Coverage - Dry Forest | Ecosystems | Area of dry forest ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Dry Forest') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
+| 32 | Ecosystem Coverage - Wetlands | Ecosystems | Area of wetland ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Wetlands') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
+| 33 | Ecosystem Coverage - Other | Ecosystems | Area of other ecosystem types within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem NOT IN above categories) in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
+| **MARINE & COASTAL ECOSYSTEMS** | | | | | | | | | | | |
+| 34 | Marine Protected Area (MPA) Overlap | Marine | Area and percentage of solution overlapping existing Marine Protected Areas | km² and % | Marine Protected Areas layer (PA_MPA) | ❓ Unknown | `SUM(solution area ∩ MPAs)`; `(Solution ∩ MPAs) / Solution area × 100` | Stat card, map overlay | **Maybe** | Regional Report, Ecosystem Report | Not currently running marine protected solutions. Future work. Could add species from AquaMap data |
+| 35 | Coral Reef Coverage | Marine | Area of coral reef ecosystems within marine solution areas | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Coral Reef') in solution` | Donut chart segment | **Maybe** | Ecosystem Report | |
+| 36 | Mangrove Coverage | Marine | Area of mangrove ecosystems within solution | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Mangrove') in solution` | Donut chart segment | **Maybe** | Ecosystem Report | |
+| 37 | Seagrass Bed Coverage | Marine | Area of seagrass bed ecosystems within solution | km² and % | Marine ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Seagrass') in solution` | Donut chart segment | **Maybe** | Ecosystem Report | |
+| 38 | % of Solution in EEZ | Marine | Percentage of solution within Colombia's Exclusive Economic Zone (marine areas) | % | EEZ boundary layer (ADMIN_EEZ) | ❓ Unknown | `(Solution area ∩ EEZ) / Total solution area × 100` | Stat card | **Maybe** | Regional Report | Why would they run this outside of their EEZ? |
+| **ECOSYSTEM SERVICES** | | | | | | | | | | | |
+| 39 | Total Carbon Biomass | Carbon | Total carbon stored in priority areas | tCO2e | Carbon storage layer (total) | ❓ Unknown | `SUM(carbon density × area) for solution pixels` | Stat card, large number | **Yes** | Solution Overview | |
+| 40 | Above-ground Carbon | Carbon | Above-ground carbon biomass in priority areas | tCO2e | Above-ground carbon layer | ❓ Unknown | `SUM(above-ground carbon × area) for solution pixels` | Breakdown stat | **Yes** | Ecosystem Report | |
+| 41 | Soil Organic Carbon | Carbon | Soil organic carbon in priority areas | tCO2e | Soil organic carbon layer | ❓ Unknown | `SUM(soil carbon × area) for solution pixels` | Breakdown stat | **Yes** | Ecosystem Report | |
+| 43 | % of National Carbon | Carbon | Percentage of Colombia's carbon stored in AOI priorities | % | Derived from #17, National carbon total | ❓ Unknown (national total) | `AOI carbon / National carbon × 100` | Comparison stat | **Yes** | Regional Report | We could add carbon on top of what is already being stored in existing RUNAPs |
+| 44 | Water Regulation Capacity | Water | Hydrological regulation service provision | m³ or index | Water regulation layer | ❓ Unknown | `SUM or MEAN(water regulation value) for solution` | Gauge | **Yes** | Solution Overview | Do we actually have m³ for this? We need something for water so lets calc amount in the solution, and also the amount above and beyond what is in RUNAP. Ask Mesa if they have this data |
+| **SOCIO-ECONOMIC CONTEXT** | | | | | | | | | | | |
+| 51 | Land Use - Natural Forest | Land Cover/Habitat | % of priority area that is natural forest | % | Land use layer | ❓ Unknown | `Area where land use = 'Forest' / Total solution area × 100` | Donut segment | **Yes** | Territorial Report | |
+| 52 | Land Use - Pasture | Land Cover/Habitat | % of priority area that is pasture | % | Land use layer | ❓ Unknown | `Area where land use = 'Pasture' / Total solution area × 100` | Donut segment | **Yes** | Territorial Report | |
+| 53 | Land Use - Crop Agriculture | Land Cover/Habitat | % of priority area that is cropland | % | Land use layer | ❓ Unknown | `Area where land use = 'Crops' / Total solution area × 100` | Donut segment | **Yes** | Territorial Report | |
+| 54 | Land Use - Other | Land Cover/Habitat | % of priority area with other land uses | % | Land use layer | ❓ Unknown | `Area where land use NOT IN above / Total solution area × 100` | Donut segment | **Yes** | Territorial Report | |
+| 55 | Agricultural Opportunity Cost | Land Cover/Habitat | Economic value of agricultural production foregone in AOI | COP and USD | Agricultural opportunity cost layer | ❓ Unknown | `SUM(ag cost × area) for solution pixels in AOI` | Stat card, currency | **Maybe** | Solution Overview | Check with Mesa on this one to see if they want it and have the data to compute it. If not, we drop |
+| 57 | Historical Conflict Zone Overlap | Conflict | Priority area overlapping historical conflict zones | km² | Conflict zones layer | ❓ Unknown | `SUM(solution area ∩ conflict zones)` | Map overlay, stat | **Maybe** | Solution Overview | Right now being used as cost but we will try to convince them to just add post hoc. Current areas are representative enough |
+| **CULTURAL & ETHNIC** | | | | | | | | | | | |
+| 59 | Indigenous Territories | Cultural/Indigenous | Area of indigenous territories within priorities | km² | Indigenous territories layer | ❓ Unknown | `SUM(solution area ∩ indigenous territories)` | List + area stat | **Yes** | Ethnic Report | |
+| 60 | Community Councils Area | Cultural/Indigenous | Area of Afro-Colombian community councils within priorities | km² | Community councils layer | ❓ Unknown | `SUM(solution area ∩ community councils)` | List + area stat | **Yes** | Ethnic Report | |
+| **PROTECTION STATUS** | | | | | | | | | | | |
+| 63 | Total Protected Area in AOI | General | Area already under formal protection in the AOI | km² and % | Protected areas layer (all categories) | ❓ Unknown | `SUM(solution area ∩ protected areas)` | Progress bar | **Yes** | Regional Report | Should be breakdown stat? |
+| 64 | % Overlap with National Parks | General | % of solution overlapping National Parks | % | National parks layer | ❓ Unknown | `(Solution ∩ Parks) / Solution area × 100` | Breakdown stat | **Yes** | Regional Report | Plus what goes above and beyond the protected areas |
+| 66 | % Overlap with Indigenous Territories | Cultural/Indigenous | % of solution in indigenous territories | % | Indigenous territories layer | ❓ Unknown | `(Solution ∩ Indigenous) / Solution area × 100` | Breakdown stat | **Yes** | Ethnic Report | Goes with #59 |
 
-#### 4.4.3. Scenario Comparison Panel Metrics (4 Unique Metrics)
+**Metrics Removed During Review (Previously in this table):**
+- ~~#3 Number of Priority Zones~~ — Removed
+- ~~#20 Average Carbon Density~~ — Removed
+- ~~#23 Downstream Beneficiaries~~ — Removed
+- ~~#24-28 Human Footprint Distribution (Low/Moderate/High/Very High, Average)~~ — Removed
+- ~~#34 % of Region in Agriculture~~ — Removed
+- ~~#36 Social Conflict Risk Level~~ — Removed
+- ~~#39 Consultation Requirement Flag~~ — Removed
+- ~~#40 Consultation Requirement Area~~ — Removed
+- ~~#43 % Overlap with OMECs~~ — Removed
+- ~~#45 Coverage Gap~~ — Removed
+- ~~#46 Synergy Score~~ — Removed
+- ~~#47 Regional Significance Classification~~ — Removed
+
+#### 4.4.3. Scenario Comparison Panel Metrics (3 Finalized Metrics)
 
 *Component Reference: Component 4.3.3*
 
@@ -1043,96 +1100,61 @@ These metrics are unique to scenario comparison and do not appear elsewhere.
 
 **Table Legend:**
 - **Asset Status:** ✅ Available | ⚠️ Outdated/Issues | ❌ Missing | ❓ Unknown
-- **Desirability:** `Pending` = Needs review | `Approved` = Confirmed needed | `Remove` = Marked for removal
+- **Verdict:** `Yes` = Approved for inclusion
 
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Also Appears In |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------------|
-| 1 | Agreement Area | Area selected in both scenarios being compared | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario A ∩ Scenario B` | Green overlay on map, stat card | Pending | Comparison Report only |
-| 2 | Unique to Scenario A | Area selected only in Scenario A (baseline) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario A - Scenario B` | Orange overlay on map, stat card | Pending | Comparison Report only |
-| 3 | Unique to Scenario B | Area selected only in Scenario B (comparison) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario B - Scenario A` | Blue overlay on map, stat card | Pending | Comparison Report only |
-| 4 | Connectivity/Synergy Zones | Areas that could connect the two scenarios' priorities | km² | Two Prioritizr solutions, Connectivity analysis layer | ❓ Unknown (connectivity layer) | TBD - methodology specification needed | Purple overlay on map, stat card | Pending | Comparison Report only |
+| # | Metric Name | Category | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Verdict | Also Appears In |
+|---|-------------|----------|-------------|-------|-------------------|--------------|-------------|---------------|---------|-----------------|
+| 70 | Agreement Area | General | Area selected in both scenarios being compared | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario A ∩ Scenario B` | Green overlay on map, stat card | **Yes** | Comparison Report only |
+| 71 | Unique to Scenario A | General | Area selected only in Scenario A (baseline) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario A - Scenario B` | Orange overlay on map, stat card | **Yes** | Comparison Report only |
+| 72 | Unique to Scenario B | General | Area selected only in Scenario B (comparison) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario B - Scenario A` | Blue overlay on map, stat card | **Yes** | Comparison Report only |
+
+**Metrics Removed During Review:**
+- ~~#4 Connectivity/Synergy Zones~~ — Removed
 
 **Note:** The Scenario Comparison Panel also displays comparative versions of metrics from the Solution Overview Panel (Goal Achievement, Carbon Storage, Opportunity Cost, etc.) in a side-by-side table format. These are not counted as unique metrics since they reuse the same data definitions.
 
-#### 4.4.4. Ecosystem Assessment Report Metrics (Report #2) — 5 Unique Metrics
+### Metrics for the 5 Reports (in Area 4.5)
 
+Note: All metrics for **Report #1 (Trade-off Analysis Report)** reuse the finalized Solution Overview metrics in 4.4.1.
+
+#### 4.4.4. Ecosystem Assessment Report Metrics (Report #2)
 *Component Reference: Area 4.5 (Report #2)*
 
-These metrics supplement the reused AOI Dashboard ecosystem metrics (metrics #12-21, #48-52) with ecosystem-specific diagnostic detail. **Status: Suggested — Pending Science Team Review.**
+Status: **No report-unique finalized metrics in current CSV source of truth.**
+Use finalized AOI ecosystem metrics from 4.4.2 until a new CSV revision explicitly adds report-unique metrics.
 
-**Table Legend:**
-- **Asset Status:** ✅ Available | ⚠️ Outdated/Issues | ❌ Missing | ❓ Unknown
-- **Desirability:** `Pending` = Needs review | `Approved` = Confirmed needed | `Remove` = Marked for removal
-
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Rationale |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------|
-| 1 | Ecosystem Protection Gap | % of each ecosystem type unprotected within priorities | % | Protected areas layer, Ecosystem type layer | ❓ Unknown (both layers) | `(Ecosystem_Area - Protected_Ecosystem_Area) / Ecosystem_Area × 100` per type | Progress bar (inverse), breakdown by ecosystem | Pending | Addresses stakeholder need to understand WHY goals are unmet |
-| 2 | Ecosystem Service Provision Score | Composite score of ecosystem service value | Index (Low/Medium/High) | Water regulation layer, Carbon density layer | ❓ Unknown (both layers) | TBD - weighting formula needed for composite | Gauge with categorical labels | Pending | Supports narrative about strategic ecosystem conservation |
-| 3 | Human Footprint Pressure by Ecosystem Type | Human pressure distribution within each ecosystem | Breakdown (%) | Human Footprint layer, Ecosystem type layer | ❓ Unknown (both layers) | `HF category distribution per ecosystem type` | Stacked bar chart by ecosystem | Pending | Provides diagnostic context for ecosystem condition |
-| 4 | Marine Ecosystem Representation Index | Composite assessment of strategic marine ecosystem coverage (coral reefs, mangroves, seagrass) | Index (Low/Medium/High/Excellent) | Marine ecosystem type layer, PA_MPA | ❓ Unknown | TBD - representation target thresholds per marine ecosystem type | Traffic light badge per ecosystem type | Pending | **Addresses stakeholder request** for strategic marine ecosystem coverage assessment |
-| 5 | Marine-Terrestrial Connectivity | Identification of priority areas bridging coastal and marine ecosystems | km² and count | Connectivity layer, Marine ecosystem layer, Coastal zone boundaries | ❓ Unknown | TBD - buffer analysis identifying connected marine-terrestrial zones | Map overlay with highlighted transition zones | Pending | Supports integrated land-sea conservation planning |
-
-#### 4.4.5. Connectivity Report Metrics (Report #3) — 3 Unique Metrics
-
+#### 4.4.5. Connectivity Report Metrics (Report #3)
 *Component Reference: Area 4.5 (Report #3)*
 
-These metrics supplement the reused AOI Dashboard connectivity-related metrics with corridor-specific analysis. **Status: Suggested — Pending Science Team Review.**
+Status: **No report-unique finalized metrics in current CSV source of truth.**
+Use finalized AOI/Comparison metrics from 4.4.2 and 4.4.3 where applicable.
 
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Rationale |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------|
-| 1 | Connectivity Pinch Point Count | Count of critical bottlenecks in connectivity network | Count | Connectivity analysis layer | ❓ Unknown | TBD - depends on connectivity methodology | Map overlay with pinch point markers, stat card | Pending | Assists in corridor delimitation decisions |
-| 2 | Corridor Restoration Priority Index | Priority ranking and **area (km²)** for restoration to meet unmet connectivity goals | Index (Low/Medium/High/Critical) + **km²** | Connectivity layer, Land use layer, Restoration potential layer (ECO_RESTORATION) | ❓ Unknown (ECO_RESTORATION) | `SUM(area where restoration potential = High AND connectivity gap exists)`; TBD - multi-criteria prioritization methodology | Choropleth map showing restoration priority zones, stat card with total km², priority list | Pending | **Addresses stakeholder request** for identifying areas that allow goals to be met under a restoration strategy |
-| 3 | Connectivity Score Contribution | AOI's importance to regional/national connectivity | % | Connectivity analysis (AOI vs. national) | ❓ Unknown | `AOI connectivity value / National connectivity value × 100` | Stat card with comparison context | Pending | Demonstrates regional significance |
-
-#### 4.4.6. Species Conservation Report Metrics (Report #4) — 3 Unique Metrics
-
+#### 4.4.6. Species Conservation Report Metrics (Report #4)
 *Component Reference: Area 4.5 (Report #4)*
 
-These metrics supplement the reused AOI Dashboard biodiversity metrics (metrics #4-11) with species-specific detail. Reflects Tier 3 capability to fragment species groups by attributes. **Status: Suggested — Pending Science Team Review.**
+Status: **No report-unique finalized metrics in current CSV source of truth.**
+Use finalized AOI biodiversity metrics from 4.4.2 until explicitly finalized in CSV.
 
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Rationale |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------|
-| 1 | Protection % by IUCN Threat Status | Habitat protection achievement by threat category | % (breakdown) | Prioritizr output, IUCN threat status attribute | ❓ Unknown (IUCN attribute) | `% target met per threat category (CR, EN, VU)` | Grouped bar chart (CR/EN/VU) | Pending | Addresses need for threat-level differential analysis |
-| 2 | Endemic Species Protection Achievement | Goal achievement for endemic species specifically | Count and % | Prioritizr output, Endemism attribute | ❓ Unknown (endemism attribute) | `COUNT(endemic species meeting target) / Total endemic species` | Progress bars by endemic status | Pending | Supports species group fragmentation reporting |
-| 3 | Habitat Fragmentation Index by Taxa | Habitat structural integrity per taxonomic group | Index (0-1) | Species distribution layers, Landscape fragmentation metrics | ❓ Unknown (fragmentation analysis) | TBD - landscape ecology methodology needed | Heatmap or bar chart by taxonomic group | Pending | Reflects need for taxon-specific habitat assessment |
-
-#### 4.4.7. Territorial Planning Report Metrics (Report #5) — 4 Unique Metrics
-
+#### 4.4.7. Territorial Planning Report Metrics (Report #5)
 *Component Reference: Area 4.5 (Report #5)*
 
-These metrics supplement the reused AOI Dashboard socio-economic metrics (metrics #24-36) with planning-specific analysis for regional coordination. **Status: Suggested — Pending Science Team Review.**
+Status: **No report-unique finalized metrics in current CSV source of truth.**
+Use finalized AOI socio-economic and jurisdictional metrics from 4.4.2.
 
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Rationale |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------|
-| 1 | Territorial Planning Compatibility Score | Alignment between priorities and official land-use plans | Index (Compatible/Partial Conflict/Major Conflict) | Prioritizr output, Territorial Planning Determinants layer | ❓ Unknown (determinants layer) | TBD - conflict detection methodology needed | Traffic light badge, conflict map overlay | Pending | Key layer requested by planners |
-| 2 | Development Restriction Overlap | Priority area in legally restricted development zones | km² and % | Prioritizr output, Agricultural frontier layer, Zoning constraint layers | ❓ Unknown (multiple layers) | `SUM(solution ∩ restricted zones)` | Stat card, map overlay | Pending | Supports land-use conflict analysis |
-| 3 | Priority Area Distribution by Jurisdiction | Breakdown of priorities by municipality and CAR | Breakdown (km² and %) | Prioritizr output, Municipality boundaries, CAR boundaries | ❓ Unknown (admin boundaries) | `SUM(solution area) per jurisdiction` | Table and choropleth map | Pending | Vital for multi-jurisdictional coordination |
-| 4 | Potential Production Area Change | Projected agricultural area impacted by conservation priorities based on future land use scenarios | km² and % | Prioritizr output, Agricultural frontier layer (SOCIO_AG_FRONTIER), Future land use projections | ❓ Unknown (SOCIO_AG_FRONTIER) | `SUM(solution area ∩ projected agricultural expansion zones)` | Stat card with projected loss/gain breakdown, map overlay | Pending | Addresses stakeholder request for data showing potential or reduced production areas |
-
-#### 4.4.8. Ethnic Territory Consultation Report Metrics (Report #6) — 3 Unique Metrics
-
+#### 4.4.8. Ethnic Territory Consultation Report Metrics (Report #6)
 *Component Reference: Area 4.5 (Report #6)*
 
-These metrics supplement the reused AOI Dashboard cultural metrics (metrics #37-40, #44) with consultation-specific detail required under Colombian law. **Status: Suggested — Pending Science Team Review.**
-
-| # | Metric Name | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Desirability | Rationale |
-|---|-------------|-------------|-------|-------------------|--------------|-------------|---------------|--------------|-----------|
-| 1 | Culturally Significant Landscape Overlap | Priority area overlapping sacred/culturally significant sites | km² and % | Prioritizr output, Sacred sites layer, Indigenous conservation designations | ❌ **NO ASSET** (sacred sites) | `SUM(solution ∩ cultural sites)` | Map overlay, stat card with breakdown | Pending | Addresses community spiritual dimension |
-| 2 | Free, Prior, and Informed Consent (FPIC) Risk Score | Consultation requirement risk level | Categorical (Low/Medium/High) | Prioritizr output, Indigenous territories, Community councils, Legal requirement mapping | ❓ Unknown (legal mapping) | TBD - legal requirement classification needed | Risk badge, flagged areas map | Pending | Critical for compliance planning |
-| 3 | Protection Coverage in Ethnic Territories | % of solution within ethnic territories by type | % (separated by type) | Prioritizr output, Indigenous Reservations layer, Community Councils layer | ❓ Unknown (ethnic territory layers) | `(Solution ∩ Territory) / Total solution area × 100` per type | Dual progress bars (Reservations vs. Councils) | Pending | Demonstrates ethnic territory contribution
+Status: **No report-unique finalized metrics in current CSV source of truth.**
+Use finalized AOI cultural/territorial metrics from 4.4.2.
 
 #### 4.4.9. Metrics Summary
 
-**Total Unique Metrics:** 91
-- Solution Overview Panel: 17 metrics
-- AOI Dashboard: 52 metrics *(+5 added: Marine & Coastal Ecosystems metrics #48-52)*
-- Scenario Comparison Panel: 4 unique metrics
-- Thematic Report Metrics (Suggested): 18 metrics
-  - Ecosystem Assessment Report: 5 metrics *(+2 added: Marine Ecosystem Representation, Marine-Terrestrial Connectivity)*
-  - Connectivity Report: 3 metrics
-  - Species Conservation Report: 3 metrics
-  - Territorial Planning Report: 4 metrics *(+1 added: Potential Production Area Change)*
-  - Ethnic Territory Consultation Report: 3 metrics
+**Total Finalized Metrics (CSV Source of Truth):** 49
+
+- Solution Overview Panel: 10 metrics (7 Yes + 3 Maybe)
+- AOI Dashboard: 36 metrics (29 Yes + 7 Maybe)
+- Scenario Comparison Panel: 3 metrics (3 Yes)
+- Report-unique finalized metrics: 0
 
 **Metric Table Column Definitions:**
 
@@ -1146,53 +1168,37 @@ These metrics supplement the reused AOI Dashboard cultural metrics (metrics #37-
 | **Asset Status** | ✅ Available / ⚠️ Outdated / ❌ Missing / ❓ Unknown |
 | **Calculation** | Formula or method to derive the metric |
 | **Visualization** | How the metric is displayed in the UI |
-| **Desirability** | Pending / Approved / Remove (stakeholder validation) |
+| **Verdict** | Yes / Maybe per finalized CSV review |
 | **Also Appears In** | Other components/reports using this metric |
 
 **Asset Status Summary (as of document creation):**
 - ✅ **Available:** System-generated outputs and derived calculations
 - ⚠️ **Outdated:** OMECs layer (2020 vintage noted) — **Replacement plan required (see 4.11.6)**
-- ❌ **Missing:** Economic valuation model (`SOCIO_ECON_MODEL`), Sacred sites layer (`ETH_SACRED`) — **Acquisition required before Tier 2 development**
-- ❓ **Unknown:** Most external data layers require verification — **42 of 49 layers unverified (see 4.11.9)**
+- ❓ **Unknown:** Most external data layers still require verification
 
 **🚨 CRITICAL: Data Gap Analysis Required — IMPLEMENTATION BLOCKER**
-Before implementation, the team must verify each metric's Required Input(s) against the Layer Registry (Area 4.11). **Any metric with Asset Status ❌ or ❓ cannot be implemented until the required layer is secured.**
+Before implementation, verify each metric's required inputs against the Layer Registry (Area 4.11). Any metric with Asset Status ❌ or ❓ cannot be implemented until the required data layer is secured.
 
 | Blocking Issue | Affected Metrics | Action Required |
 |----------------|------------------|-----------------|
-| `SOCIO_ECON_MODEL` ❌ Missing | Metric #12 (Economic Impact of Restrictions) | Develop or acquire economic valuation model |
-| `ETH_SACRED` ❌ Missing | Ethnic Report Metric #1 (Culturally Significant Landscape Overlap) | Identify data source for sacred sites |
-| 42 layers ❓ Unknown | ~70 metrics across all panels/reports | Data Team verification sprint |
+| `SOCIO_ECON_MODEL` ❌ Missing | Opportunity-cost-related metrics if expanded in future revisions | Develop or acquire economic valuation model |
+| `ETH_SACRED` ❌ Missing | Potential future ethnic consultation metrics | Identify data source for sacred sites |
+| External layers ❓ Unknown | Multiple finalized metrics in 4.4.1 and 4.4.2 | Data Team verification sprint |
 
 **Metric Reuse Patterns:**
-- **Most Reused:** Carbon Storage, Opportunity Cost, Human Footprint (appear in 3+ components/reports)
-- **Component-Specific:** Match Quality (Solution Overview only), Comparison metrics (Comparison Panel only)
-- **Report Coverage:** Trade-off Report uses all 17 Solution Overview metrics; Thematic Reports use subsets of AOI Dashboard metrics plus their unique metrics
-
-**Thematic Report Metrics Status:**
-- ⚠️ **Status: Suggested** — The 15 thematic report metrics (sections 4.4.4–4.4.8) are derived from stakeholder feedback analysis and require formal adoption by the science team before implementation.
-- Once approved, back-end team can finalize API endpoints and calculation methods.
+- **Most Reused:** Carbon, opportunity cost, and overlap metrics appear across panels and reports
+- **Component-Specific:** Comparison metrics (#70-72) are specific to 4.4.3
+- **Report Coverage:** Reports currently reuse finalized right-sidebar metrics
 
 **Team Review Checklist:**
 - ☐ **Data Team:** Verify Layer Registry (Area 4.11) is complete and accurate
-- ☐ **Data Team:** Update Asset Status for all metrics based on actual layer availability
-- ☐ **Science Team:** Review all metrics marked `Pending` and update to `Approved` or `Remove`
-- ☐ **Science Team:** Specify calculation methodology for metrics marked "TBD"
-- ☐ **Science Team:** Review and approve suggested thematic report metrics (4.4.4–4.4.8)
+- ☐ **Data Team:** Update Asset Status for finalized metrics based on actual layer availability
+- ☐ **Science Team:** Reconfirm `Yes` / `Maybe` verdicts in the CSV when data availability changes
+- ☐ **Science Team:** Add report-unique metrics to a future CSV revision before they are treated as finalized
 - ☐ Verify units are correct and consistent across all tables
 - ☐ Verify no duplicate/redundant metrics
 
-**⚠️ Metrics Not Explicitly Requested but Essential for Functionality:**
-
-The following metrics were not explicitly named in stakeholder feedback but are **required** to fulfill mandated features. They must be retained:
-
-| Metric | Location | Justification |
-|--------|----------|---------------|
-| **Goal Achievement Quality** (#15, 4.4.1) | Solution Overview | Essential for auto-generating the Trade-off Analysis Narrative (e.g., classifying outcomes as "Good" or "Excellent"). Supports the required narrative framing functionality. |
-| **Regional Significance Classification** (#47, 4.4.2) | AOI Dashboard | Directly supports the high-priority requirement for Regional vs. National Contribution Analysis by providing significance classification (e.g., "Critical Contributor", "Major Contributor"). |
-| **Scenario Comparison Metrics** (#1-4, 4.4.3) | Comparison Panel | Foundational components (Agreement Area, Unique Area A/B, Synergy Zones) required to execute the explicitly requested Scenario Comparison Tool (map arithmetic, showing overlaps/synergies). |
-
-## Area 4.5: Advanced Reporting (Tier 2)
+## Area 4.5: Reports (Tier 2)
 
 Automated report generation for specific planning needs. Reports are available as interactive page views within the application and as downloadable PDFs.
 
@@ -1211,7 +1217,7 @@ Automated report generation for specific planning needs. Reports are available a
 ### Component 4.5.1: Trade-off Analysis Report (Gains vs. Losses)
 *Trigger: User clicks "Generate Trade-off Report" from Solution Overview Panel or Report menu. This report is MANDATORY for all conservation scenarios.*
 
-**Metrics Reference:** See **Area 4.4.1** (Solution Overview Panel Metrics) — all 17 metrics appear in this report.
+**Metrics Reference:** See **Area 4.4.1** (Solution Overview Panel Metrics) — all 10 finalized metrics can be reused in this report.
 
 **Purpose:** Provide comprehensive "what you are getting vs. what you are losing" analysis to ensure decisions are made with full understanding of implications.
 
@@ -1334,7 +1340,7 @@ Automated report generation for specific planning needs. Reports are available a
     *   Ecosystem coverage donut/bar charts
     *   Map series: Ecosystem types, Protection gaps, Human footprint by ecosystem
 
-**Metrics Reference:** See **Area 4.4.4** (Ecosystem Assessment Report Metrics) + AOI Dashboard ecosystem metrics (#12-21, #48-52).
+**Metrics Reference:** Use AOI Dashboard ecosystem and marine metrics from **Area 4.4.2**. Report-unique metrics are TBD until a future CSV revision finalizes them.
 
 ---
 
@@ -1378,7 +1384,7 @@ Automated report generation for specific planning needs. Reports are available a
     *   Connectivity heatmaps and corridor network maps
     *   Pinch point markers and restoration priority zones
 
-**Metrics Reference:** See **Area 4.4.5** (Connectivity Report Metrics).
+**Metrics Reference:** Use finalized comparison metrics in **Area 4.4.3** and relevant AOI metrics in **Area 4.4.2**. Report-unique connectivity metrics are TBD until a future CSV revision finalizes them.
 
 ---
 
@@ -1419,7 +1425,7 @@ Automated report generation for specific planning needs. Reports are available a
     *   Threatened species protection progress bars
     *   Critical habitat maps for focal species
 
-**Metrics Reference:** See **Area 4.4.6** (Species Conservation Report Metrics) + AOI Dashboard biodiversity metrics (#4-11).
+**Metrics Reference:** Use AOI Dashboard biodiversity metrics from **Area 4.4.2**. Report-unique species metrics are TBD until a future CSV revision finalizes them.
 
 ---
 
@@ -1464,7 +1470,7 @@ Automated report generation for specific planning needs. Reports are available a
     *   Land use conflict overlay maps
     *   Opportunity cost distribution charts
 
-**Metrics Reference:** See **Area 4.4.7** (Territorial Planning Report Metrics) + AOI Dashboard socio-economic metrics (#24-36).
+**Metrics Reference:** Use AOI Dashboard socio-economic and jurisdictional metrics from **Area 4.4.2**. Report-unique territorial planning metrics are TBD until a future CSV revision finalizes them.
 
 ---
 
@@ -1508,7 +1514,7 @@ Automated report generation for specific planning needs. Reports are available a
     *   Territory-by-territory breakdown tables
     *   FPIC requirement flags and alerts
 
-**Metrics Reference:** See **Area 4.4.8** (Ethnic Territory Consultation Report Metrics) + AOI Dashboard cultural metrics (#37-40, #44).
+**Metrics Reference:** Use AOI Dashboard cultural and overlap metrics from **Area 4.4.2**. Report-unique ethnic consultation metrics are TBD until a future CSV revision finalizes them.
 
 ## Area 4.6: Comprehensive Data Layer Specifications
 
@@ -1811,7 +1817,7 @@ This section provides explicit confirmation that all granular functional specifi
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
 | **Mandatory Scenario Narrative Content** | ☐ Required | Section 4.3.1, 4.5, 4.8.8 | Explicit "Gains vs. Losses" framework with template-based text showing what you get vs. what you lose. Condensed version in Solution Overview Panel, detailed version in Trade-off Analysis Report (Section 4.5, Report Type 1) |
-| **Explicit Tradeoff Analysis Report** | ☐ Required | Section 4.5 (Report #1) | Full detailed report with GAINS section (conservation goals, species, ecosystem services) and LOSSES/COSTS section (opportunity cost, human footprint, development restrictions, conflict exposure) with comprehensive narrative analysis |
+| ~~**Explicit Tradeoff Analysis Report**~~ | ~~☐ Required~~ | ~~Section 4.5 (Report #1)~~ | ~~Full detailed report with GAINS section (conservation goals, species, ecosystem services) and LOSSES/COSTS section (opportunity cost, human footprint, development restrictions, conflict exposure) with comprehensive narrative analysis~~ |
 | **Quantitative Regional vs. National Contribution** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.8.8 | National Contribution Calculator in both Solution Overview Panel (overall solution level) and AOI Dashboard (regional level). Includes comparative statistics table showing AOI vs. national distribution with template-based significance classification |
 | **Template-Based Text Generation with Thresholds** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.8.8 | Example thresholds specified for opportunity cost ($200M/$500M), human footprint (30%/60%), goal achievement (90%/75%/50%), species protection (8/5 groups), regional significance (10%/5%/2% of national distribution). Thresholds are examples for team refinement |
 | **Goal Unmet Explanations** | ☐ Required | Section 4.5 (Report #1) | Narrative analysis must explain WHY goals are unmet: insufficient ecosystem in territory, cost constraints, or optimization trade-offs prioritizing other features |
@@ -1991,7 +1997,7 @@ The following scalability elements are committed to but require technical specif
 **📋 Future Consideration:** This registry may be extracted to a standalone document (`LAYER_REGISTRY.md`) for easier maintenance by the Data Team.
 
 **How to Use This Registry:**
-1. Find a metric's "Required Input(s)" in the metrics tables (4.4.1–4.4.8)
+1. Find a metric's "Required Input(s)" in the finalized metrics tables (4.4.1–4.4.3)
 2. Look up that layer in this registry
 3. Check the "Status" column — if ❌ or ❓, the metric cannot be calculated
 
