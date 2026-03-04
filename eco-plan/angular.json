@@ -27,11 +27,25 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/@arcgis/core/assets",
+                "output": "assets/arcgis-core"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/@arcgis/map-components/dist/cdn/assets",
+                "output": "assets/arcgis-map-components"
               }
             ],
             "styles": [
               "src/styles.scss"
-            ]
+            ],
+            "loader": {
+              ".woff": "file",
+              ".woff2": "file"
+            }
           },
           "configurations": {
             "production": {
