@@ -5,3 +5,6 @@
 /server/.env
 /app/
 /data/*
+/eco-plan/node_modules/
+/eco-plan/dist/
+/eco-plan/.angular/
