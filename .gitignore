@@ -4,3 +4,4 @@
 .Ruserdata
 /server/.env
 /app/
+/data/*
