@@ -8,33 +8,37 @@
     </h3>
 
     <div id="panel-container-controls" class="flex items-center gap-2">
-      <button
-        *ngFor="let action of actionButtons"
-        [id]="action.id"
-        type="button"
-        class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
-        (click)="onActionClick(action.id)"
-      >
-        {{ action.labelKey | translate }}
-      </button>
+      @for (action of actionButtons; track action.id) {
+        <button
+          [id]="action.id"
+          type="button"
+          class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
+          (click)="onActionClick(action.id)"
+        >
+          {{ action.labelKey | translate }}
+        </button>
+      }
 
-      <button
-        *ngIf="collapsible"
-        id="panel-container-collapse-toggle"
-        type="button"
-        class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
-        (click)="onToggleCollapse()"
-      >
-        {{
-          collapsed
-            ? ('layout.desktop.expand' | translate)
-            : ('layout.desktop.collapse' | translate)
-        }}
-      </button>
+      @if (collapsible) {
+        <button
+          id="panel-container-collapse-toggle"
+          type="button"
+          class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
+          (click)="onToggleCollapse()"
+        >
+          {{
+            collapsed
+              ? ('layout.desktop.expand' | translate)
+              : ('layout.desktop.collapse' | translate)
+          }}
+        </button>
+      }
     </div>
   </header>
 
-  <div *ngIf="!collapsed" id="panel-container-content" class="p-3">
-    <ng-content></ng-content>
-  </div>
+  @if (!collapsed) {
+    <div id="panel-container-content" class="p-3">
+      <ng-content></ng-content>
+    </div>
+  }
 </section>

@@ -36,8 +36,11 @@
     <div
       id="app-shell-mobile-overlay"
       class="fixed inset-0 z-30 bg-black/30"
+      tabindex="0"
       [class.hidden]="!leftDrawerOpen && !rightDrawerOpen"
       (click)="closeMobileDrawers()"
+      (keydown.enter)="closeMobileDrawers()"
+      (keydown.space)="closeMobileDrawers()"
     ></div>
 
     <aside

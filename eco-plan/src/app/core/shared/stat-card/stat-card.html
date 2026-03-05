@@ -1,28 +1,31 @@
-<article
-  [id]="rootId"
-  class="rounded-panel border border-earth-300 bg-white p-3 shadow-sm"
->
+<article [id]="rootId" class="rounded-panel border border-earth-300 bg-white p-3 shadow-sm">
   <div id="stat-card-header" class="flex items-center justify-between">
     <p id="stat-card-label" class="text-sm text-gray-600">
       {{ labelKey | translate }}
     </p>
-    <span *ngIf="icon" id="stat-card-icon" class="text-lg">{{ icon }}</span>
+    @if (icon) {
+      <span id="stat-card-icon" class="text-lg">{{ icon }}</span>
+    }
   </div>
 
   <div id="stat-card-value-row" class="mt-2 flex items-baseline gap-2">
     <span id="stat-card-value" class="text-2xl font-semibold">{{ value }}</span>
-    <span *ngIf="unitKey" id="stat-card-unit" class="text-sm text-gray-600">
-      {{ unitKey | translate }}
-    </span>
+    @if (unitKey) {
+      <span id="stat-card-unit" class="text-sm text-gray-600">
+        {{ unitKey | translate }}
+      </span>
+    }
   </div>
 
-  <div *ngIf="trendDirection" id="stat-card-trend" class="mt-2 text-sm">
-    <span
-      id="stat-card-trend-value"
-      [class.text-canopy-500]="trendDirection === 'up'"
-      [class.text-red-600]="trendDirection === 'down'"
-    >
-      {{ trendDirection === 'up' ? '▲' : '▼' }} {{ trendPercent }}%
-    </span>
-  </div>
+  @if (trendDirection) {
+    <div id="stat-card-trend" class="mt-2 text-sm">
+      <span
+        id="stat-card-trend-value"
+        [class.text-canopy-500]="trendDirection === 'up'"
+        [class.text-red-600]="trendDirection === 'down'"
+      >
+        {{ trendDirection === 'up' ? '▲' : '▼' }} {{ trendPercent }}%
+      </span>
+    </div>
+  }
 </article>

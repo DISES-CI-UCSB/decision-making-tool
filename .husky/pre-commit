@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+cd "eco-plan" || exit 1
+npx lint-staged
