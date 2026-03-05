@@ -8,6 +8,7 @@
 .env
 azure.env
 *.local
+.DS_Store
 azure-deployment-info.txt
 AZURE_DEPLOYMENT_README.md
 USER_INSTRUCTIONS_DRAFT.md
