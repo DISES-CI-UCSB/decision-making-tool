@@ -1,0 +1,29 @@
+{
+  "app": {
+    "mapTitle": "Mapa de la herramienta de toma de decisiones"
+  },
+  "header": {
+    "appTitle": "Herramienta de Toma de Decisiones",
+    "languageToggleLabel": "Cambiar a {{lang}}"
+  },
+  "common": {
+    "close": "Cerrar"
+  },
+  "layout": {
+    "leftSidebarTitle": "Barra lateral izquierda",
+    "leftSidebarPlaceholder": "Contenedor temporal para los controles de soluciones.",
+    "rightSidebarTitle": "Barra lateral derecha",
+    "rightSidebarPlaceholder": "Contenedor temporal para paneles de analisis.",
+    "mobile": {
+      "shellTitle": "Diseno de paneles",
+      "leftPanelButton": "Panel izquierdo",
+      "rightPanelButton": "Panel derecho"
+    },
+    "desktop": {
+      "collapse": "Colapsar",
+      "expand": "Expandir",
+      "showLeft": "Mostrar izquierda",
+      "showRight": "Mostrar derecha"
+    }
+  }
+}

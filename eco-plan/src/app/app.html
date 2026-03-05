@@ -1,3 +1,4 @@
+<app-header id="foundation-header"></app-header>
 <app-shell id="foundation-app-shell">
   <section
     id="foundation-left-sidebar-slot"
@@ -5,15 +6,15 @@
     class="h-full p-3 text-sm text-ink-900"
   >
     <h2 id="foundation-left-sidebar-title" class="mb-2 text-base font-semibold">
-      Left Sidebar
+      {{ 'layout.leftSidebarTitle' | translate }}
     </h2>
     <p id="foundation-left-sidebar-description">
-      Placeholder container for solution controls.
+      {{ 'layout.leftSidebarPlaceholder' | translate }}
     </p>
   </section>
 
   <section id="foundation-center-slot" slot-center class="h-full p-3 md:p-4">
-    <h1 id="map-panel-title" class="sr-only">{{ title() }}</h1>
+    <h1 id="map-panel-title" class="sr-only">{{ 'app.mapTitle' | translate }}</h1>
     <arcgis-map
       id="foundation-map-view"
       class="h-full rounded-panel border border-earth-300 shadow-sm"
@@ -29,10 +30,10 @@
     class="h-full p-3 text-sm text-ink-900"
   >
     <h2 id="foundation-right-sidebar-title" class="mb-2 text-base font-semibold">
-      Right Sidebar
+      {{ 'layout.rightSidebarTitle' | translate }}
     </h2>
     <p id="foundation-right-sidebar-description">
-      Placeholder container for analysis dashboards.
+      {{ 'layout.rightSidebarPlaceholder' | translate }}
     </p>
   </section>
 </app-shell>

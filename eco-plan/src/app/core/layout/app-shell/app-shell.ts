@@ -1,10 +1,12 @@
 import { Component, HostListener } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 type ResizeSide = 'left' | 'right';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
+  imports: [TranslatePipe],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss'
 })

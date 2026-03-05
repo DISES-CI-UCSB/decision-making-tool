@@ -1,0 +1,29 @@
+{
+  "app": {
+    "mapTitle": "Decision-making tool map"
+  },
+  "header": {
+    "appTitle": "Decision-Making Tool",
+    "languageToggleLabel": "Switch to {{lang}}"
+  },
+  "common": {
+    "close": "Close"
+  },
+  "layout": {
+    "leftSidebarTitle": "Left Sidebar",
+    "leftSidebarPlaceholder": "Placeholder container for solution controls.",
+    "rightSidebarTitle": "Right Sidebar",
+    "rightSidebarPlaceholder": "Placeholder container for analysis dashboards.",
+    "mobile": {
+      "shellTitle": "Panel Layout",
+      "leftPanelButton": "Left Panel",
+      "rightPanelButton": "Right Panel"
+    },
+    "desktop": {
+      "collapse": "Collapse",
+      "expand": "Expand",
+      "showLeft": "Show Left",
+      "showRight": "Show Right"
+    }
+  }
+}

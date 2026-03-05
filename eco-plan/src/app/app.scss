@@ -1,11 +1,11 @@
 :host {
   display: block;
-  height: 100%;
+  height: 100vh;
 }
 
 #foundation-app-shell,
 #foundation-center-slot {
-  height: 100%;
+  height: calc(100vh - 49px);
 }
 
 #foundation-map-view {

@@ -14,16 +14,18 @@
         class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
         (click)="openLeftDrawer()"
       >
-        Left Panel
+        {{ 'layout.mobile.leftPanelButton' | translate }}
       </button>
-      <h1 id="app-shell-mobile-title" class="text-sm font-semibold">Layout Shell</h1>
+      <h1 id="app-shell-mobile-title" class="text-sm font-semibold">
+        {{ 'layout.mobile.shellTitle' | translate }}
+      </h1>
       <button
         id="app-shell-mobile-right-drawer-toggle"
         type="button"
         class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
         (click)="openRightDrawer()"
       >
-        Right Panel
+        {{ 'layout.mobile.rightPanelButton' | translate }}
       </button>
     </header>
 
@@ -51,7 +53,7 @@
           class="rounded-chip border border-earth-300 px-3 py-1 text-sm"
           (click)="closeMobileDrawers()"
         >
-          Close
+          {{ 'common.close' | translate }}
         </button>
       </div>
       <section id="app-shell-mobile-left-drawer-content" class="h-[calc(100%-2.5rem)]">
@@ -72,7 +74,7 @@
           class="rounded-chip border border-earth-300 px-3 py-1 text-sm"
           (click)="closeMobileDrawers()"
         >
-          Close
+          {{ 'common.close' | translate }}
         </button>
       </div>
       <section id="app-shell-mobile-right-drawer-content" class="h-[calc(100%-2.5rem)]">
@@ -98,7 +100,11 @@
           class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
           (click)="toggleLeftCollapse()"
         >
-          {{ leftCollapsed ? 'Expand' : 'Collapse' }}
+          {{
+            leftCollapsed
+              ? ('layout.desktop.expand' | translate)
+              : ('layout.desktop.collapse' | translate)
+          }}
         </button>
       </div>
       <section
@@ -126,7 +132,7 @@
           [class.invisible]="!leftCollapsed"
           (click)="toggleLeftCollapse()"
         >
-          Show Left
+          {{ 'layout.desktop.showLeft' | translate }}
         </button>
         <button
           id="app-shell-desktop-right-reopen-button"
@@ -135,7 +141,7 @@
           [class.invisible]="!rightCollapsed"
           (click)="toggleRightCollapse()"
         >
-          Show Right
+          {{ 'layout.desktop.showRight' | translate }}
         </button>
       </div>
       <section id="app-shell-desktop-center-pane-content" class="h-[calc(100%-3rem)] min-h-0">
@@ -161,7 +167,11 @@
           class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
           (click)="toggleRightCollapse()"
         >
-          {{ rightCollapsed ? 'Expand' : 'Collapse' }}
+          {{
+            rightCollapsed
+              ? ('layout.desktop.expand' | translate)
+              : ('layout.desktop.collapse' | translate)
+          }}
         </button>
       </div>
       <section

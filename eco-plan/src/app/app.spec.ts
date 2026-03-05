@@ -1,10 +1,18 @@
 import { TestBed } from '@angular/core/testing';
+import { provideTranslateLoader, provideTranslateService, TranslateNoOpLoader } from '@ngx-translate/core';
 import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [
+        provideTranslateService({
+          lang: 'es',
+          fallbackLang: 'en',
+          loader: provideTranslateLoader(TranslateNoOpLoader)
+        })
+      ]
     }).compileComponents();
   });
 
@@ -19,7 +27,7 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('#map-panel-title')?.textContent).toContain(
-      'Decision Making Tool Map'
+      'app.mapTitle'
     );
   });
 });
