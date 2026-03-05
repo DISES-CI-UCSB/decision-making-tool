@@ -1,8 +1,9 @@
-<main id="app-main">
-  <section id="map-panel-section">
+<main id="app-main" class="min-h-screen bg-ocean-50 font-sans text-ink-900">
+  <section id="map-panel-section" class="h-full p-4 md:p-6">
     <h1 id="map-panel-title" class="sr-only">{{ title() }}</h1>
     <arcgis-map
       id="foundation-map-view"
+      class="h-full rounded-panel border border-earth-300 shadow-sm"
       basemap="streets-navigation-vector"
       center="-74.0721,4.7110"
       zoom="6"
