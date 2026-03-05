@@ -18,7 +18,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
+    expect(compiled.querySelector('#map-panel-title')?.textContent).toContain(
       'Decision Making Tool Map'
     );
   });

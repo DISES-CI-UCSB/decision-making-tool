@@ -1,5 +1,18 @@
-<main id="app-main" class="min-h-screen bg-ocean-50 font-sans text-ink-900">
-  <section id="map-panel-section" class="h-full p-4 md:p-6">
+<app-shell id="foundation-app-shell">
+  <section
+    id="foundation-left-sidebar-slot"
+    slot-left
+    class="h-full p-3 text-sm text-ink-900"
+  >
+    <h2 id="foundation-left-sidebar-title" class="mb-2 text-base font-semibold">
+      Left Sidebar
+    </h2>
+    <p id="foundation-left-sidebar-description">
+      Placeholder container for solution controls.
+    </p>
+  </section>
+
+  <section id="foundation-center-slot" slot-center class="h-full p-3 md:p-4">
     <h1 id="map-panel-title" class="sr-only">{{ title() }}</h1>
     <arcgis-map
       id="foundation-map-view"
@@ -9,5 +22,18 @@
       zoom="6"
     ></arcgis-map>
   </section>
-</main>
+
+  <section
+    id="foundation-right-sidebar-slot"
+    slot-right
+    class="h-full p-3 text-sm text-ink-900"
+  >
+    <h2 id="foundation-right-sidebar-title" class="mb-2 text-base font-semibold">
+      Right Sidebar
+    </h2>
+    <p id="foundation-right-sidebar-description">
+      Placeholder container for analysis dashboards.
+    </p>
+  </section>
+</app-shell>
 <router-outlet id="app-router-outlet"></router-outlet>
