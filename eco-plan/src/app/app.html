@@ -27,7 +27,7 @@
   <section
     id="foundation-right-sidebar-slot"
     slot-right
-    class="h-full p-3 text-sm text-ink-900"
+    class="h-full space-y-3 p-3 text-sm text-ink-900"
   >
     <h2 id="foundation-right-sidebar-title" class="mb-2 text-base font-semibold">
       {{ 'layout.rightSidebarTitle' | translate }}
@@ -35,6 +35,44 @@
     <p id="foundation-right-sidebar-description">
       {{ 'layout.rightSidebarPlaceholder' | translate }}
     </p>
+
+    <app-panel-container
+      id="foundation-stats-panel"
+      rootId="foundation-stats-panel-root"
+      titleKey="shared.demoPanelTitle"
+      [collapsible]="true"
+      [actionButtons]="[
+        { id: 'foundation-panel-refresh-action', labelKey: 'shared.refreshAction' }
+      ]"
+    >
+      <div id="foundation-shared-components-demo" class="space-y-3">
+        <app-stat-card
+          id="foundation-shared-stat-card"
+          rootId="foundation-shared-stat-card-root"
+          labelKey="shared.statLabel"
+          [value]="86"
+          unitKey="shared.statUnit"
+          icon="🌿"
+          [trendPercent]="4.2"
+        ></app-stat-card>
+
+        <app-progress-bar
+          id="foundation-shared-progress-bar"
+          rootId="foundation-shared-progress-bar-root"
+          labelKey="shared.progressLabel"
+          [value]="62"
+          [max]="100"
+          theme="ocean"
+        ></app-progress-bar>
+
+        <app-badge
+          id="foundation-shared-badge"
+          rootId="foundation-shared-badge-root"
+          textKey="shared.badgeText"
+          variant="info"
+        ></app-badge>
+      </div>
+    </app-panel-container>
   </section>
 </app-shell>
 <router-outlet id="app-router-outlet"></router-outlet>

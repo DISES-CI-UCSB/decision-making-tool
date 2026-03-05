@@ -13,6 +13,14 @@
     "tierTwoPageTitle": "Tier 2 feature area",
     "tierTwoPageDescription": "This route is accessible only to DecisionMaker and Manager accounts."
   },
+  "shared": {
+    "demoPanelTitle": "Shared Components Demo",
+    "refreshAction": "Refresh",
+    "statLabel": "Match score",
+    "statUnit": "%",
+    "progressLabel": "Implementation progress",
+    "badgeText": "In review"
+  },
   "layout": {
     "leftSidebarTitle": "Left Sidebar",
     "leftSidebarPlaceholder": "Placeholder container for solution controls.",
