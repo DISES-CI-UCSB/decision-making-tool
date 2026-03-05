@@ -9,6 +9,10 @@
   "common": {
     "close": "Cerrar"
   },
+  "auth": {
+    "tierTwoPageTitle": "Area de funcionalidades de Nivel 2",
+    "tierTwoPageDescription": "Esta ruta solo es accesible para cuentas DecisionMaker y Manager."
+  },
   "layout": {
     "leftSidebarTitle": "Barra lateral izquierda",
     "leftSidebarPlaceholder": "Contenedor temporal para los controles de soluciones.",

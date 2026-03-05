@@ -9,6 +9,10 @@
   "common": {
     "close": "Close"
   },
+  "auth": {
+    "tierTwoPageTitle": "Tier 2 feature area",
+    "tierTwoPageDescription": "This route is accessible only to DecisionMaker and Manager accounts."
+  },
   "layout": {
     "leftSidebarTitle": "Left Sidebar",
     "leftSidebarPlaceholder": "Placeholder container for solution controls.",
