@@ -21,6 +21,24 @@
     "progressLabel": "Implementation progress",
     "badgeText": "In review"
   },
+  "metrics": {
+    "biodiversity": {
+      "label": "Biodiversity"
+    },
+    "carbon": {
+      "label": "Carbon Storage"
+    },
+    "cost": {
+      "label": "Implementation Cost"
+    }
+  },
+  "analysis": {
+    "sections": {
+      "ecology": "Ecology",
+      "climate": "Climate",
+      "finance": "Finance"
+    }
+  },
   "layout": {
     "leftSidebarTitle": "Left Sidebar",
     "leftSidebarPlaceholder": "Placeholder container for solution controls.",

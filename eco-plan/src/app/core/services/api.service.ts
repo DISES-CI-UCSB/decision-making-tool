@@ -1,16 +1,18 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { type LayerConfig, type Metric, type Solution } from '@core/models';
-import { Observable } from 'rxjs';
 import {
-  type LayerStats,
-  type MatchingResult,
-  type MatchingTarget,
-  type SolutionComparison
-} from './mock-data.service';
+  type AnalysisMetricFixturesResponse,
+  type AoiMetricsResponse,
+  type CompareSolutionsResponse,
+  type LayerConfig,
+  type Solution,
+  type SolutionMetricsResponse,
+} from '@core/models';
+import { Observable } from 'rxjs';
+import { type LayerStats, type MatchingResult, type MatchingTarget } from './mock-data.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -20,20 +22,20 @@ export class ApiService {
     return this.http.get<Solution>(`${this.baseUrl}/solutions/${id}`);
   }
 
-  getSolutionMetrics(id: string): Observable<Metric[]> {
-    return this.http.get<Metric[]>(`${this.baseUrl}/solutions/${id}/metrics`);
+  getSolutionMetrics(id: string): Observable<SolutionMetricsResponse> {
+    return this.http.get<SolutionMetricsResponse>(`${this.baseUrl}/solutions/${id}/metrics`);
   }
 
-  getAOIMetrics(solutionId: string, aoiId: string): Observable<Metric[]> {
-    return this.http.get<Metric[]>(
-      `${this.baseUrl}/solutions/${solutionId}/aoi/${aoiId}/metrics`
+  getAOIMetrics(solutionId: string, aoiId: string): Observable<AoiMetricsResponse> {
+    return this.http.get<AoiMetricsResponse>(
+      `${this.baseUrl}/solutions/${solutionId}/aoi/${aoiId}/metrics`,
     );
   }
 
-  compareSolutions(id1: string, id2: string): Observable<SolutionComparison> {
+  compareSolutions(id1: string, id2: string): Observable<CompareSolutionsResponse> {
     const params = new HttpParams().set('id1', id1).set('id2', id2);
-    return this.http.get<SolutionComparison>(`${this.baseUrl}/solutions/compare`, {
-      params
+    return this.http.get<CompareSolutionsResponse>(`${this.baseUrl}/solutions/compare`, {
+      params,
     });
   }
 
@@ -46,9 +48,12 @@ export class ApiService {
   }
 
   findMatchingSolutions(targets: MatchingTarget[]): Observable<MatchingResult[]> {
-    return this.http.post<MatchingResult[]>(
-      `${this.baseUrl}/solutions/match`,
-      targets
+    return this.http.post<MatchingResult[]>(`${this.baseUrl}/solutions/match`, targets);
+  }
+
+  getAnalysisMetricFixtures(solutionId: string): Observable<AnalysisMetricFixturesResponse> {
+    return this.http.get<AnalysisMetricFixturesResponse>(
+      `${this.baseUrl}/solutions/${solutionId}/metrics/fixtures/anl`,
     );
   }
 }

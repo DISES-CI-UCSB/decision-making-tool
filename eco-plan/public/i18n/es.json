@@ -21,6 +21,24 @@
     "progressLabel": "Progreso de implementacion",
     "badgeText": "En revision"
   },
+  "metrics": {
+    "biodiversity": {
+      "label": "Biodiversidad"
+    },
+    "carbon": {
+      "label": "Almacenamiento de carbono"
+    },
+    "cost": {
+      "label": "Costo de implementacion"
+    }
+  },
+  "analysis": {
+    "sections": {
+      "ecology": "Ecologia",
+      "climate": "Clima",
+      "finance": "Finanzas"
+    }
+  },
   "layout": {
     "leftSidebarTitle": "Barra lateral izquierda",
     "leftSidebarPlaceholder": "Contenedor temporal para los controles de soluciones.",

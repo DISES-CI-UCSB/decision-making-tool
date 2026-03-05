@@ -3,7 +3,7 @@ import {
   HttpHandlerFn,
   HttpInterceptorFn,
   HttpRequest,
-  HttpResponse
+  HttpResponse,
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { MockDataService } from '@core/services/mock-data.service';
@@ -14,7 +14,7 @@ const LATENCY_MS = 150;
 
 export const mockApiInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
-  next: HttpHandlerFn
+  next: HttpHandlerFn,
 ): Observable<HttpEvent<unknown>> => {
   if (!req.url.startsWith('/api')) {
     return next(req);
@@ -35,15 +35,20 @@ export const mockApiInterceptor: HttpInterceptorFn = (
 
   if (req.method === 'GET' && /^\/api\/solutions\/[^/]+\/metrics$/.test(path)) {
     const solutionId = path.split('/')[3];
-    return mockSuccessResponse(mockData.getSolutionMetrics(solutionId));
+    const response = mockData.getSolutionMetrics(solutionId);
+    if (!response) {
+      return mockErrorResponse(404, 'Solution metrics not found');
+    }
+    return mockSuccessResponse(response);
   }
 
-  if (
-    req.method === 'GET' &&
-    /^\/api\/solutions\/[^/]+\/aoi\/[^/]+\/metrics$/.test(path)
-  ) {
+  if (req.method === 'GET' && /^\/api\/solutions\/[^/]+\/aoi\/[^/]+\/metrics$/.test(path)) {
     const [, , , solutionId, , aoiId] = path.split('/');
-    return mockSuccessResponse(mockData.getAoiMetrics(solutionId, aoiId));
+    const response = mockData.getAoiMetrics(solutionId, aoiId);
+    if (!response) {
+      return mockErrorResponse(404, 'AOI metrics not found');
+    }
+    return mockSuccessResponse(response);
   }
 
   if (req.method === 'GET' && path === '/api/solutions/compare') {
@@ -77,6 +82,15 @@ export const mockApiInterceptor: HttpInterceptorFn = (
     return mockSuccessResponse(mockData.findMatchingSolutions(targets));
   }
 
+  if (req.method === 'GET' && /^\/api\/solutions\/[^/]+\/metrics\/fixtures\/anl$/.test(path)) {
+    const solutionId = path.split('/')[3];
+    const fixtures = mockData.getAnalysisMetricFixtures(solutionId);
+    if (!fixtures) {
+      return mockErrorResponse(404, 'ANL metric fixtures not found');
+    }
+    return mockSuccessResponse(fixtures);
+  }
+
   return mockErrorResponse(404, `No mock route for ${req.method} ${path}`);
 };
 
@@ -84,14 +98,11 @@ function mockSuccessResponse<T>(body: T): Observable<HttpEvent<T>> {
   return of(new HttpResponse<T>({ status: 200, body })).pipe(delay(LATENCY_MS));
 }
 
-function mockErrorResponse(
-  status: number,
-  message: string
-): Observable<HttpEvent<unknown>> {
+function mockErrorResponse(status: number, message: string): Observable<HttpEvent<unknown>> {
   return of(
     new HttpResponse({
       status,
-      body: { message }
-    })
+      body: { message },
+    }),
   ).pipe(delay(LATENCY_MS));
 }
