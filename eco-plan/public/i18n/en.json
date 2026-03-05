@@ -1,0 +1,59 @@
+{
+  "app": {
+    "mapTitle": "Decision-making tool map"
+  },
+  "header": {
+    "appTitle": "Decision-Making Tool",
+    "languageToggleLabel": "Switch to {{lang}}"
+  },
+  "common": {
+    "close": "Close"
+  },
+  "auth": {
+    "tierTwoPageTitle": "Tier 2 feature area",
+    "tierTwoPageDescription": "This route is accessible only to DecisionMaker and Manager accounts."
+  },
+  "shared": {
+    "demoPanelTitle": "Shared Components Demo",
+    "refreshAction": "Refresh",
+    "statLabel": "Match score",
+    "statUnit": "%",
+    "progressLabel": "Implementation progress",
+    "badgeText": "In review"
+  },
+  "metrics": {
+    "biodiversity": {
+      "label": "Biodiversity"
+    },
+    "carbon": {
+      "label": "Carbon Storage"
+    },
+    "cost": {
+      "label": "Implementation Cost"
+    }
+  },
+  "analysis": {
+    "sections": {
+      "ecology": "Ecology",
+      "climate": "Climate",
+      "finance": "Finance"
+    }
+  },
+  "layout": {
+    "leftSidebarTitle": "Left Sidebar",
+    "leftSidebarPlaceholder": "Placeholder container for solution controls.",
+    "rightSidebarTitle": "Right Sidebar",
+    "rightSidebarPlaceholder": "Placeholder container for analysis dashboards.",
+    "mobile": {
+      "shellTitle": "Panel Layout",
+      "leftPanelButton": "Left Panel",
+      "rightPanelButton": "Right Panel"
+    },
+    "desktop": {
+      "collapse": "Collapse",
+      "expand": "Expand",
+      "showLeft": "Show Left",
+      "showRight": "Show Right"
+    }
+  }
+}

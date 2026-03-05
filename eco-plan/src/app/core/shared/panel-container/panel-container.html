@@ -1,0 +1,44 @@
+<section [id]="rootId" class="rounded-panel border border-earth-300 bg-white shadow-sm">
+  <header
+    id="panel-container-header"
+    class="flex items-center justify-between gap-2 border-b border-earth-300 px-3 py-2"
+  >
+    <h3 id="panel-container-title" class="text-sm font-semibold">
+      {{ titleKey | translate }}
+    </h3>
+
+    <div id="panel-container-controls" class="flex items-center gap-2">
+      @for (action of actionButtons; track action.id) {
+        <button
+          [id]="action.id"
+          type="button"
+          class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
+          (click)="onActionClick(action.id)"
+        >
+          {{ action.labelKey | translate }}
+        </button>
+      }
+
+      @if (collapsible) {
+        <button
+          id="panel-container-collapse-toggle"
+          type="button"
+          class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
+          (click)="onToggleCollapse()"
+        >
+          {{
+            collapsed
+              ? ('layout.desktop.expand' | translate)
+              : ('layout.desktop.collapse' | translate)
+          }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (!collapsed) {
+    <div id="panel-container-content" class="p-3">
+      <ng-content></ng-content>
+    </div>
+  }
+</section>

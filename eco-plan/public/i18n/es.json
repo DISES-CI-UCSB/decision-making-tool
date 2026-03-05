@@ -1,0 +1,59 @@
+{
+  "app": {
+    "mapTitle": "Mapa de la herramienta de toma de decisiones"
+  },
+  "header": {
+    "appTitle": "Herramienta de Toma de Decisiones",
+    "languageToggleLabel": "Cambiar a {{lang}}"
+  },
+  "common": {
+    "close": "Cerrar"
+  },
+  "auth": {
+    "tierTwoPageTitle": "Area de funcionalidades de Nivel 2",
+    "tierTwoPageDescription": "Esta ruta solo es accesible para cuentas DecisionMaker y Manager."
+  },
+  "shared": {
+    "demoPanelTitle": "Demostracion de componentes compartidos",
+    "refreshAction": "Actualizar",
+    "statLabel": "Puntaje de ajuste",
+    "statUnit": "%",
+    "progressLabel": "Progreso de implementacion",
+    "badgeText": "En revision"
+  },
+  "metrics": {
+    "biodiversity": {
+      "label": "Biodiversidad"
+    },
+    "carbon": {
+      "label": "Almacenamiento de carbono"
+    },
+    "cost": {
+      "label": "Costo de implementacion"
+    }
+  },
+  "analysis": {
+    "sections": {
+      "ecology": "Ecologia",
+      "climate": "Clima",
+      "finance": "Finanzas"
+    }
+  },
+  "layout": {
+    "leftSidebarTitle": "Barra lateral izquierda",
+    "leftSidebarPlaceholder": "Contenedor temporal para los controles de soluciones.",
+    "rightSidebarTitle": "Barra lateral derecha",
+    "rightSidebarPlaceholder": "Contenedor temporal para paneles de analisis.",
+    "mobile": {
+      "shellTitle": "Diseno de paneles",
+      "leftPanelButton": "Panel izquierdo",
+      "rightPanelButton": "Panel derecho"
+    },
+    "desktop": {
+      "collapse": "Colapsar",
+      "expand": "Expandir",
+      "showLeft": "Mostrar izquierda",
+      "showRight": "Mostrar derecha"
+    }
+  }
+}

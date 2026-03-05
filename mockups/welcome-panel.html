@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Panel - Conservation Decision Support Tool</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #212121;
+            background: #E0E0E0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .sidebar-panel {
+            width: 420px;
+            max-width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        .panel-content {
+            padding: 32px 24px;
+        }
+
+        .welcome-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .welcome-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2E7D32;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .welcome-intro {
+            font-size: 15px;
+            color: #616161;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .welcome-subtext {
+            font-size: 14px;
+            color: #2E7D32;
+            font-weight: 500;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-heading {
+            font-size: 18px;
+            font-weight: 600;
+            color: #212121;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #FAFAFA;
+            border-radius: 8px;
+            border-left: 4px solid #2E7D32;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            background: #2E7D32;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #212121;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-title i {
+            color: #2E7D32;
+        }
+
+        .step-description {
+            font-size: 13px;
+            color: #616161;
+            line-height: 1.5;
+        }
+
+        .featured-scenarios {
+            margin-bottom: 32px;
+        }
+
+        .scenarios-subtext {
+            font-size: 13px;
+            color: #757575;
+            margin-bottom: 12px;
+        }
+
+        .scenario-card {
+            background: #F5F5F5;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .scenario-card:hover {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+            border-color: #2E7D32;
+        }
+
+        .scenario-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .scenario-content {
+            flex: 1;
+        }
+
+        .scenario-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #212121;
+            margin-bottom: 2px;
+        }
+
+        .scenario-description {
+            font-size: 12px;
+            color: #757575;
+        }
+
+        .scenario-arrow {
+            color: #9E9E9E;
+            font-size: 18px;
+        }
+
+        .primary-button {
+            width: 100%;
+            background: #2E7D32;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .primary-button:hover {
+            background: #1B5E20;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .primary-button i {
+            font-size: 18px;
+        }
+
+        .secondary-actions {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .secondary-link {
+            color: #1976D2;
+            text-decoration: none;
+            font-size: 14px;
+            margin: 0 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+
+        .secondary-link:hover {
+            color: #0D47A1;
+            text-decoration: underline;
+        }
+
+        .tip-box {
+            background: #E3F2FD;
+            border-left: 4px solid #1976D2;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #616161;
+            line-height: 1.5;
+        }
+
+        .tip-box i {
+            color: #1976D2;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar-panel">
+        <div class="panel-content">
+            <!-- Welcome Header -->
+            <div class="welcome-header">
+                <div class="welcome-icon">🌿</div>
+                <h1 class="welcome-title">Welcome to the Conservation Decision Support Tool</h1>
+                <p class="welcome-intro">
+                    Explore conservation priorities across Colombia's terrestrial and marine ecosystems. 
+                    Discover optimal conservation scenarios based on biodiversity, ecosystem services, 
+                    and socio-economic factors.
+                </p>
+                <p class="welcome-subtext">
+                    Get started by selecting conservation priorities using the Solution Finder
+                </p>
+            </div>
+
+            <!-- Quick Start Guide -->
+            <div class="section">
+                <h2 class="section-heading">
+                    <i class="fas fa-rocket"></i>
+                    How It Works
+                </h2>
+
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">
+                            <i class="fas fa-bullseye"></i>
+                            Define Your Priorities
+                        </div>
+                        <div class="step-description">
+                            Click "Find a Solution" to set conservation targets, costs, and constraints 
+                            using the Solution Finder
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">
+                            <i class="fas fa-map"></i>
+                            Explore the Map
+                        </div>
+                        <div class="step-description">
+                            View conservation priorities overlaid on Colombia's biodiversity and land-use data
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">
+                            <i class="fas fa-chart-bar"></i>
+                            Analyze Regions
+                        </div>
+                        <div class="step-description">
+                            Click on any municipality, department, or SIRAP for detailed local statistics 
+                            and trade-off analysis
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Featured Scenarios -->
+            <div class="featured-scenarios">
+                <h2 class="section-heading">
+                    <i class="fas fa-star"></i>
+                    Featured Scenarios
+                </h2>
+                <p class="scenarios-subtext">Click a scenario to explore immediately</p>
+
+                <div class="scenario-card" onclick="loadScenario('balanced')">
+                    <div class="scenario-icon">⚖️</div>
+                    <div class="scenario-content">
+                        <div class="scenario-name">Balanced Conservation & Development</div>
+                        <div class="scenario-description">Moderate protection with economic considerations</div>
+                    </div>
+                    <div class="scenario-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="scenario-card" onclick="loadScenario('biodiversity')">
+                    <div class="scenario-icon">🦜</div>
+                    <div class="scenario-content">
+                        <div class="scenario-name">Maximum Biodiversity Protection</div>
+                        <div class="scenario-description">Prioritizes threatened species and ecosystem richness</div>
+                    </div>
+                    <div class="scenario-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="scenario-card" onclick="loadScenario('low-cost')">
+                    <div class="scenario-icon">💰</div>
+                    <div class="scenario-content">
+                        <div class="scenario-name">Low-Cost Conservation Strategy</div>
+                        <div class="scenario-description">Achieves conservation goals with minimal economic impact</div>
+                    </div>
+                    <div class="scenario-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="scenario-card" onclick="loadScenario('carbon-water')">
+                    <div class="scenario-icon">💧</div>
+                    <div class="scenario-content">
+                        <div class="scenario-name">Carbon & Water Security Focus</div>
+                        <div class="scenario-description">Emphasizes ecosystem services for climate resilience</div>
+                    </div>
+                    <div class="scenario-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="scenario-card" onclick="loadScenario('cultural')">
+                    <div class="scenario-icon">🏛️</div>
+                    <div class="scenario-content">
+                        <div class="scenario-name">Cultural Heritage & Biodiversity</div>
+                        <div class="scenario-description">Integrates indigenous territories with conservation priorities</div>
+                    </div>
+                    <div class="scenario-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Primary Action -->
+            <button class="primary-button" onclick="openSolutionFinder()">
+                <i class="fas fa-compass"></i>
+                Open Solution Finder
+            </button>
+
+            <!-- Secondary Actions -->
+            <div class="secondary-actions">
+                <a href="#" class="secondary-link">
+                    <i class="fas fa-play-circle"></i>
+                    View Tutorial
+                </a>
+                <a href="#" class="secondary-link">
+                    <i class="fas fa-video"></i>
+                    Watch Demo
+                </a>
+            </div>
+
+            <!-- Tip Box -->
+            <div class="tip-box">
+                <i class="fas fa-lightbulb"></i>
+                <strong>Tip:</strong> You can compare scenarios, generate reports, and download data 
+                after selecting a solution.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadScenario(scenarioId) {
+            console.log('Loading featured scenario:', scenarioId);
+            alert(`Loading ${scenarioId} scenario...\n\n(In the real app, this would load the scenario onto the map and display the Solution Overview Panel)`);
+        }
+
+        function openSolutionFinder() {
+            console.log('Opening Solution Finder modal');
+            alert('Opening Solution Finder...\n\n(In the real app, this would open the large Solution Finder modal where users define priorities)');
+        }
+    </script>
+</body>
+</html>

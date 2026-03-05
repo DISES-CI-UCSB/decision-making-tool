@@ -1,0 +1,17 @@
+<header
+  id="foundation-header-container"
+  class="flex items-center justify-between border-b border-earth-300 bg-white px-4 py-2"
+>
+  <h1 id="foundation-header-title" class="text-base font-semibold text-ink-900">
+    {{ 'header.appTitle' | translate }}
+  </h1>
+
+  <button
+    id="foundation-header-language-toggle-button"
+    type="button"
+    class="rounded-chip border border-earth-300 bg-ocean-50 px-3 py-1 text-sm"
+    (click)="toggleLanguage()"
+  >
+    {{ 'header.languageToggleLabel' | translate: { lang: activeLanguage === 'es' ? 'EN' : 'ES' } }}
+  </button>
+</header>

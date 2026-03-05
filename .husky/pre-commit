@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Ensure node is on PATH for GUI git clients (VS Code, etc.) that don't source shell profiles
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" --no-use
+
+cd "eco-plan" || exit 1
+npx lint-staged

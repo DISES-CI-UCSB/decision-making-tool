@@ -1,0 +1,14 @@
+<div [id]="rootId" class="rounded-panel border border-earth-300 bg-white p-3">
+  <div id="progress-bar-header" class="mb-2 flex items-center justify-between text-sm">
+    <span id="progress-bar-label">{{ labelKey | translate }}</span>
+    <span id="progress-bar-value">{{ value }} / {{ max }}</span>
+  </div>
+  <div id="progress-bar-track" class="h-2 w-full rounded-chip bg-earth-100">
+    <div
+      id="progress-bar-fill"
+      class="h-2 rounded-chip transition-[width]"
+      [class]="barThemeClass"
+      [style.width.%]="percent"
+    ></div>
+  </div>
+</div>

@@ -13,7 +13,7 @@ AZURE_DEPLOYMENT_README.md
 USER_INSTRUCTIONS_DRAFT.md
 USER_INSTRUCTIONS_SPANISH.md
 ADMIN_FEATURES_GUIDE.md
-ADMIN_FEATURES_GUIDE_SPANISH.md
+ADMIN_FEATURES_GUID E_SPANISH.md
 
 # Cambio_Global data files (keep scripts and docs)
 Cambio_Global/*.Rproj
@@ -33,3 +33,7 @@ Cambio_Global/**/*.sbx
 Cambio_Global/**/*.sbn
 Cambio_Global/**/*.tfw
 Cambio_Global/**/*.lock
+/data/*
+/eco-plan/node_modules/
+/eco-plan/dist/
+/eco-plan/.angular/

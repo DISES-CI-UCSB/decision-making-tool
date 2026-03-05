@@ -1,0 +1,74 @@
+<app-header id="foundation-header"></app-header>
+<app-shell id="foundation-app-shell">
+  <section id="foundation-left-sidebar-slot" slot-left class="h-full p-3 text-sm text-ink-900">
+    <h2 id="foundation-left-sidebar-title" class="mb-2 text-base font-semibold">
+      {{ 'layout.leftSidebarTitle' | translate }}
+    </h2>
+    <p id="foundation-left-sidebar-description">
+      {{ 'layout.leftSidebarPlaceholder' | translate }}
+    </p>
+  </section>
+
+  <section id="foundation-center-slot" slot-center class="h-full p-3 md:p-4">
+    <h1 id="map-panel-title" class="sr-only">{{ 'app.mapTitle' | translate }}</h1>
+    <arcgis-map
+      id="foundation-map-view"
+      class="h-full rounded-panel border border-earth-300 shadow-sm"
+      basemap="streets-navigation-vector"
+      center="-74.0721,4.7110"
+      zoom="6"
+    ></arcgis-map>
+  </section>
+
+  <section
+    id="foundation-right-sidebar-slot"
+    slot-right
+    class="h-full space-y-3 p-3 text-sm text-ink-900"
+  >
+    <h2 id="foundation-right-sidebar-title" class="mb-2 text-base font-semibold">
+      {{ 'layout.rightSidebarTitle' | translate }}
+    </h2>
+    <p id="foundation-right-sidebar-description">
+      {{ 'layout.rightSidebarPlaceholder' | translate }}
+    </p>
+
+    <app-panel-container
+      id="foundation-stats-panel"
+      rootId="foundation-stats-panel-root"
+      titleKey="shared.demoPanelTitle"
+      [collapsible]="true"
+      [actionButtons]="[
+        { id: 'foundation-panel-refresh-action', labelKey: 'shared.refreshAction' },
+      ]"
+    >
+      <div id="foundation-shared-components-demo" class="space-y-3">
+        <app-stat-card
+          id="foundation-shared-stat-card"
+          rootId="foundation-shared-stat-card-root"
+          labelKey="shared.statLabel"
+          [value]="86"
+          unitKey="shared.statUnit"
+          icon="🌿"
+          [trendPercent]="4.2"
+        ></app-stat-card>
+
+        <app-progress-bar
+          id="foundation-shared-progress-bar"
+          rootId="foundation-shared-progress-bar-root"
+          labelKey="shared.progressLabel"
+          [value]="62"
+          [max]="100"
+          theme="ocean"
+        ></app-progress-bar>
+
+        <app-badge
+          id="foundation-shared-badge"
+          rootId="foundation-shared-badge-root"
+          textKey="shared.badgeText"
+          variant="info"
+        ></app-badge>
+      </div>
+    </app-panel-container>
+  </section>
+</app-shell>
+<router-outlet id="app-router-outlet"></router-outlet>
