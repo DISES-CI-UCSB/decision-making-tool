@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { AppShellComponent } from '@core/layout/app-shell/app-shell';
 import { HeaderComponent } from '@core/layout/header/header';
 import { BadgeComponent } from '@core/shared/badge/badge';
+import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { PanelContainerComponent } from '@core/shared/panel-container/panel-container';
 import { ProgressBarComponent } from '@core/shared/progress-bar/progress-bar';
 import { StatCardComponent } from '@core/shared/stat-card/stat-card';
@@ -14,6 +15,7 @@ import { TranslatePipe } from '@ngx-translate/core';
     AppShellComponent,
     BadgeComponent,
     HeaderComponent,
+    ModalShellComponent,
     PanelContainerComponent,
     ProgressBarComponent,
     RouterOutlet,
@@ -24,4 +26,23 @@ import { TranslatePipe } from '@ngx-translate/core';
   styleUrl: './app.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class App {}
+export class App {
+  protected solutionFinderModalOpen = false;
+  protected perspectiveModalOpen = false;
+
+  protected openSolutionFinderModal(): void {
+    this.solutionFinderModalOpen = true;
+  }
+
+  protected closeSolutionFinderModal(): void {
+    this.solutionFinderModalOpen = false;
+  }
+
+  protected openPerspectiveModal(): void {
+    this.perspectiveModalOpen = true;
+  }
+
+  protected closePerspectiveModal(): void {
+    this.perspectiveModalOpen = false;
+  }
+}

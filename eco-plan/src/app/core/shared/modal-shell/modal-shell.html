@@ -1,0 +1,65 @@
+@if (isRendered) {
+  <div
+    [id]="rootId"
+    tabindex="0"
+    class="fixed inset-0 z-110 flex items-end justify-center bg-ink-900/60 p-4 transition-opacity duration-200 md:items-center"
+    [class.opacity-100]="isActive"
+    [class.opacity-0]="!isActive"
+    (click)="onBackdropClick($event)"
+    (keydown)="onBackdropKeydown($event)"
+  >
+    <section
+      #panelElement
+      [id]="rootId + '-panel'"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="ariaLabelKey ? (ariaLabelKey | translate) : null"
+      [attr.aria-labelledby]="titleKey ? rootId + '-title' : null"
+      tabindex="-1"
+      class="w-full overflow-hidden bg-white shadow-xl transition-all duration-200 ease-out focus:outline-none"
+      [ngClass]="{
+        'max-h-[85vh] max-w-3xl rounded-panel border border-earth-300': mode === 'standard',
+        'h-full max-h-full max-w-full rounded-none border-0': mode === 'full-screen',
+        'translate-y-0 opacity-100': isActive,
+        'translate-y-4 opacity-0': !isActive,
+      }"
+      (click)="$event.stopPropagation()"
+      (keydown)="onPanelKeydown($event)"
+    >
+      @if (titleKey || showCloseButton) {
+        <header
+          [id]="rootId + '-header'"
+          class="flex items-center justify-between border-b border-earth-300 bg-white px-4 py-3"
+        >
+          @if (titleKey) {
+            <h2 [id]="rootId + '-title'" class="text-base font-semibold text-ink-900">
+              {{ titleKey | translate }}
+            </h2>
+          } @else {
+            <div [id]="rootId + '-title-placeholder'" class="h-6"></div>
+          }
+
+          @if (showCloseButton) {
+            <button
+              [id]="rootId + '-close-button'"
+              type="button"
+              class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm transition hover:bg-earth-100"
+              (click)="onCloseButtonClick()"
+            >
+              {{ 'common.close' | translate }}
+            </button>
+          }
+        </header>
+      }
+
+      <div
+        [id]="rootId + '-content'"
+        class="overflow-auto"
+        [class.h-[calc(100%-3.5rem)]]="mode === 'full-screen'"
+        [class.p-4]="mode === 'standard'"
+      >
+        <ng-content></ng-content>
+      </div>
+    </section>
+  </div>
+}

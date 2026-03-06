@@ -7,6 +7,24 @@
     <p id="foundation-left-sidebar-description">
       {{ 'layout.leftSidebarPlaceholder' | translate }}
     </p>
+    <div id="foundation-modal-demo-controls" class="mt-4 space-y-2">
+      <button
+        id="foundation-open-solution-finder-modal-button"
+        type="button"
+        class="w-full rounded-chip border border-earth-300 bg-white px-3 py-2 text-left text-sm font-medium transition hover:bg-earth-100"
+        (click)="openSolutionFinderModal()"
+      >
+        {{ 'solutionControls.modal.openSolutionFinder' | translate }}
+      </button>
+      <button
+        id="foundation-open-perspective-modal-button"
+        type="button"
+        class="w-full rounded-chip border border-earth-300 bg-white px-3 py-2 text-left text-sm font-medium transition hover:bg-earth-100"
+        (click)="openPerspectiveModal()"
+      >
+        {{ 'solutionControls.modal.openPerspective' | translate }}
+      </button>
+    </div>
   </section>
 
   <section id="foundation-center-slot" slot-center class="h-full p-3 md:p-4">
@@ -71,4 +89,55 @@
     </app-panel-container>
   </section>
 </app-shell>
+
+<app-modal-shell
+  id="solution-finder-modal-shell"
+  rootId="solution-finder-modal-shell-root"
+  mode="full-screen"
+  titleKey="solutionControls.modal.solutionFinderTitle"
+  [isOpen]="solutionFinderModalOpen"
+  [closeOnBackdrop]="true"
+  [closeOnEscape]="true"
+  [showCloseButton]="true"
+  (requestClose)="closeSolutionFinderModal()"
+>
+  <section id="solution-finder-modal-demo-content" class="h-full p-4 md:p-6">
+    <h2 id="solution-finder-modal-demo-heading" class="mb-2 text-lg font-semibold text-ink-900">
+      {{ 'solutionControls.modal.solutionFinderHeading' | translate }}
+    </h2>
+    <p id="solution-finder-modal-demo-description" class="max-w-2xl text-sm text-ink-900">
+      {{ 'solutionControls.modal.solutionFinderDescription' | translate }}
+    </p>
+  </section>
+</app-modal-shell>
+
+<app-modal-shell
+  id="perspective-modal-shell"
+  rootId="perspective-modal-shell-root"
+  mode="standard"
+  titleKey="solutionControls.modal.perspectiveTitle"
+  [isOpen]="perspectiveModalOpen"
+  [closeOnBackdrop]="true"
+  [closeOnEscape]="true"
+  [showCloseButton]="true"
+  (requestClose)="closePerspectiveModal()"
+>
+  <section id="perspective-modal-demo-content" class="space-y-3">
+    <h2 id="perspective-modal-demo-heading" class="text-base font-semibold text-ink-900">
+      {{ 'solutionControls.modal.perspectiveHeading' | translate }}
+    </h2>
+    <p id="perspective-modal-demo-description" class="text-sm text-ink-900">
+      {{ 'solutionControls.modal.perspectiveDescription' | translate }}
+    </p>
+    <button
+      id="perspective-modal-demo-close-button"
+      type="button"
+      class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm transition hover:bg-earth-100"
+      (click)="closePerspectiveModal()"
+    >
+      {{ 'common.close' | translate }}
+    </button>
+  </section>
+</app-modal-shell>
+
 <router-outlet id="app-router-outlet"></router-outlet>
