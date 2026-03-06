@@ -1,6 +1,7 @@
 :host {
   display: block;
   height: 100vh;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
 }
 
 #foundation-app-shell,
@@ -11,6 +12,11 @@
 #foundation-map-view {
   display: block;
   height: 100%;
+}
+
+#foundation-left-sidebar-slot,
+#foundation-right-sidebar-slot {
+  backdrop-filter: saturate(140%) blur(4px);
 }
 
 #map-panel-title.sr-only {

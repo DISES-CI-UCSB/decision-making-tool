@@ -1,52 +1,112 @@
 <app-header id="foundation-header"></app-header>
 <app-shell id="foundation-app-shell">
-  <section id="foundation-left-sidebar-slot" slot-left class="h-full p-3 text-sm text-ink-900">
-    <h2 id="foundation-left-sidebar-title" class="mb-2 text-base font-semibold">
+  <section
+    id="foundation-left-sidebar-slot"
+    data-slot="left"
+    class="h-full space-y-4 bg-slate-50/80 p-4 text-sm text-slate-800"
+  >
+    <h2
+      id="foundation-left-sidebar-title"
+      class="text-base font-semibold tracking-tight text-slate-900"
+    >
       {{ 'layout.leftSidebarTitle' | translate }}
     </h2>
-    <p id="foundation-left-sidebar-description">
+    <p id="foundation-left-sidebar-description" class="text-sm leading-6 text-slate-600">
       {{ 'layout.leftSidebarPlaceholder' | translate }}
     </p>
-    <div id="foundation-modal-demo-controls" class="mt-4 space-y-2">
-      <button
-        id="foundation-open-solution-finder-modal-button"
-        type="button"
-        class="w-full rounded-chip border border-earth-300 bg-white px-3 py-2 text-left text-sm font-medium transition hover:bg-earth-100"
-        (click)="openSolutionFinderModal()"
+    <div
+      id="foundation-modal-demo-controls"
+      class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm ring-1 ring-slate-100"
+    >
+      <h3
+        id="foundation-modal-demo-controls-title"
+        class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500"
       >
-        {{ 'solutionControls.modal.openSolutionFinder' | translate }}
-      </button>
-      <button
-        id="foundation-open-perspective-modal-button"
-        type="button"
-        class="w-full rounded-chip border border-earth-300 bg-white px-3 py-2 text-left text-sm font-medium transition hover:bg-earth-100"
-        (click)="openPerspectiveModal()"
-      >
-        {{ 'solutionControls.modal.openPerspective' | translate }}
-      </button>
+        Modal Controls
+      </h3>
+      <div id="foundation-modal-demo-controls-buttons" class="space-y-2">
+        <button
+          id="foundation-open-solution-finder-modal-button"
+          type="button"
+          class="w-full rounded-xl border border-slate-200 bg-slate-900 px-3 py-2 text-left text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          (click)="openSolutionFinderModal()"
+        >
+          {{ 'solutionControls.modal.openSolutionFinder' | translate }}
+        </button>
+        <button
+          id="foundation-open-perspective-modal-button"
+          type="button"
+          class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          (click)="openPerspectiveModal()"
+        >
+          {{ 'solutionControls.modal.openPerspective' | translate }}
+        </button>
+      </div>
     </div>
   </section>
 
-  <section id="foundation-center-slot" slot-center class="h-full p-3 md:p-4">
+  <section id="foundation-center-slot" data-slot="center" class="h-full bg-slate-100/70 p-3 md:p-4">
     <h1 id="map-panel-title" class="sr-only">{{ 'app.mapTitle' | translate }}</h1>
-    <arcgis-map
-      id="foundation-map-view"
-      class="h-full rounded-panel border border-earth-300 shadow-sm"
-      basemap="streets-navigation-vector"
-      center="-74.0721,4.7110"
-      zoom="6"
-    ></arcgis-map>
+    <div
+      id="foundation-map-panel-shell"
+      class="relative h-full rounded-2xl border border-slate-200 bg-white shadow-md"
+    >
+      <arcgis-map
+        id="foundation-map-view"
+        class="h-full rounded-2xl"
+        basemap="streets-navigation-vector"
+        center="-74.0721,4.7110"
+        zoom="6"
+      ></arcgis-map>
+      <section
+        id="foundation-map-demo-legend-card"
+        class="pointer-events-none absolute left-3 top-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm"
+      >
+        <h2
+          id="foundation-map-demo-legend-title"
+          class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+        >
+          Demo Layers
+        </h2>
+        <ul id="foundation-map-demo-legend-list" class="mt-2 space-y-1.5 text-xs text-slate-700">
+          <li id="foundation-map-demo-legend-biodiversity-item" class="flex items-center gap-2">
+            <span
+              id="foundation-map-demo-legend-biodiversity-dot"
+              class="h-2 w-2 rounded-full bg-emerald-500"
+            ></span>
+            Biodiversity Priority
+          </li>
+          <li id="foundation-map-demo-legend-carbon-item" class="flex items-center gap-2">
+            <span
+              id="foundation-map-demo-legend-carbon-dot"
+              class="h-2 w-2 rounded-full bg-sky-500"
+            ></span>
+            Carbon Storage
+          </li>
+          <li id="foundation-map-demo-legend-cost-item" class="flex items-center gap-2">
+            <span
+              id="foundation-map-demo-legend-cost-dot"
+              class="h-2 w-2 rounded-full bg-amber-500"
+            ></span>
+            Implementation Cost
+          </li>
+        </ul>
+      </section>
+    </div>
   </section>
 
   <section
     id="foundation-right-sidebar-slot"
-    slot-right
-    class="h-full space-y-3 p-3 text-sm text-ink-900"
+    data-slot="right"
+    class="h-full space-y-4 bg-slate-50/80 p-4 text-sm text-slate-800"
   >
-    <h2 id="foundation-right-sidebar-title" class="mb-2 text-base font-semibold">
+    <h2
+      id="foundation-right-sidebar-title"
+      class="text-base font-semibold tracking-tight text-slate-900"
+    >
       {{ 'layout.rightSidebarTitle' | translate }}
     </h2>
-    <p id="foundation-right-sidebar-description">
+    <p id="foundation-right-sidebar-description" class="text-sm leading-6 text-slate-600">
       {{ 'layout.rightSidebarPlaceholder' | translate }}
     </p>
 
