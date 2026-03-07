@@ -23,7 +23,7 @@ export class AppShellComponent {
   private readonly maxLeftWidth = 520;
   private readonly minRightWidth = 240;
   private readonly maxRightWidth = 620;
-  private readonly handleWidth = 10;
+  private readonly resizeHitAreaWidth = 12;
   private readonly minCenterWidth = 400;
 
   private activeResizeSide: ResizeSide | null = null;
@@ -38,10 +38,16 @@ export class AppShellComponent {
   protected get desktopGridTemplateColumns(): string {
     const leftPaneWidth = this.leftCollapsed ? 0 : this.leftWidth;
     const rightPaneWidth = this.rightCollapsed ? 0 : this.rightWidth;
-    const leftHandleWidth = this.leftCollapsed ? 0 : this.handleWidth;
-    const rightHandleWidth = this.rightCollapsed ? 0 : this.handleWidth;
 
-    return `${leftPaneWidth}px ${leftHandleWidth}px minmax(0, 1fr) ${rightHandleWidth}px ${rightPaneWidth}px`;
+    return `${leftPaneWidth}px minmax(0, 1fr) ${rightPaneWidth}px`;
+  }
+
+  protected get leftResizeHandleOffset(): string {
+    return `${Math.max(this.leftWidth - this.resizeHitAreaWidth / 2, 0)}px`;
+  }
+
+  protected get rightResizeHandleOffset(): string {
+    return `${Math.max(this.rightWidth - this.resizeHitAreaWidth / 2, 0)}px`;
   }
 
   protected toggleLeftCollapse(): void {
@@ -121,7 +127,7 @@ export class AppShellComponent {
 
   private autoCollapseForViewport(): void {
     if (this.isMobileViewport) return;
-    const bothSidebarsTotal = this.leftWidth + this.rightWidth + 2 * this.handleWidth;
+    const bothSidebarsTotal = this.leftWidth + this.rightWidth;
     if (window.innerWidth < bothSidebarsTotal + this.minCenterWidth) {
       this.rightCollapsed = true;
     }

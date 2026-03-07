@@ -42,7 +42,7 @@
   <!-- Desktop: 5-column CSS grid (left | handle | center | handle | right) -->
   <section
     id="app-shell-content"
-    class="min-h-0 flex-1"
+    class="relative min-h-0 flex-1"
     [class.grid]="!isMobileViewport"
     [style.gridTemplateColumns]="!isMobileViewport ? desktopGridTemplateColumns : null"
   >
@@ -94,28 +94,20 @@
       </section>
     </aside>
 
-    <!-- ─── Left resize handle (desktop only) ─── -->
-    <div
-      id="app-shell-desktop-left-resize-handle"
-      class="cursor-col-resize bg-earth-100 transition hover:bg-earth-300"
-      [class.hidden]="isMobileViewport || leftCollapsed"
-      (mousedown)="startResize('left', $event)"
-    ></div>
-
     <!-- ─── Center pane (always visible) ─── -->
     <section
       id="app-shell-center-pane"
-      class="flex h-full min-w-0 flex-col overflow-hidden bg-ocean-50"
+      class="relative flex h-full min-w-0 flex-col overflow-hidden bg-ocean-50"
     >
       <div
         id="app-shell-desktop-center-toolbar"
-        class="flex shrink-0 justify-between p-2"
+        class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-between p-2"
         [class.hidden]="isMobileViewport"
       >
         <button
           id="app-shell-desktop-left-reopen-button"
           type="button"
-          class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
+          class="pointer-events-auto rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
           [class.invisible]="!leftCollapsed"
           (click)="toggleLeftCollapse()"
         >
@@ -124,7 +116,7 @@
         <button
           id="app-shell-desktop-right-reopen-button"
           type="button"
-          class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
+          class="pointer-events-auto rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
           [class.invisible]="!rightCollapsed"
           (click)="toggleRightCollapse()"
         >
@@ -132,18 +124,10 @@
         </button>
       </div>
 
-      <section id="app-shell-center-pane-content" class="min-h-0 flex-1">
+      <section id="app-shell-center-pane-content" class="h-full min-h-0">
         <ng-content select="[slot-center]"></ng-content>
       </section>
     </section>
-
-    <!-- ─── Right resize handle (desktop only) ─── -->
-    <div
-      id="app-shell-desktop-right-resize-handle"
-      class="cursor-col-resize bg-earth-100 transition hover:bg-earth-300"
-      [class.hidden]="isMobileViewport || rightCollapsed"
-      (mousedown)="startResize('right', $event)"
-    ></div>
 
     <!-- ─── Right sidebar ─── -->
     <!-- Mobile: off-screen fixed drawer, slides in via translate -->
@@ -195,5 +179,21 @@
         <ng-content select="[slot-right]"></ng-content>
       </section>
     </aside>
+
+    <div
+      id="app-shell-left-resize-hit-area"
+      class="absolute inset-y-0 z-20 cursor-col-resize"
+      [class.hidden]="isMobileViewport || leftCollapsed"
+      [style.left]="leftResizeHandleOffset"
+      (mousedown)="startResize('left', $event)"
+    ></div>
+
+    <div
+      id="app-shell-right-resize-hit-area"
+      class="absolute inset-y-0 z-20 cursor-col-resize"
+      [class.hidden]="isMobileViewport || rightCollapsed"
+      [style.right]="rightResizeHandleOffset"
+      (mousedown)="startResize('right', $event)"
+    ></div>
   </section>
 </main>

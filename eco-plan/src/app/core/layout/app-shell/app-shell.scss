@@ -3,9 +3,9 @@
   height: 100%;
 }
 
-#app-shell-desktop-left-resize-handle,
-#app-shell-desktop-right-resize-handle {
-  width: 10px;
+#app-shell-left-resize-hit-area,
+#app-shell-right-resize-hit-area {
+  width: 12px;
 }
 
 @media (min-width: 768px) {
@@ -21,5 +21,10 @@
     transition: none !important;
     overflow: auto;
     padding: 0;
+  }
+
+  #app-shell-left-resize-hit-area,
+  #app-shell-right-resize-hit-area {
+    background: transparent;
   }
 }
