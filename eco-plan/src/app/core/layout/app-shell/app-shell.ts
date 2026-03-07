@@ -23,6 +23,7 @@ export class AppShellComponent {
   private readonly maxLeftWidth = 520;
   private readonly minRightWidth = 280;
   private readonly maxRightWidth = 620;
+  private readonly leftRailWidth = 72;
   private readonly handleWidth = 10;
 
   private activeResizeSide: ResizeSide | null = null;
@@ -34,7 +35,7 @@ export class AppShellComponent {
   }
 
   protected get desktopGridTemplateColumns(): string {
-    const leftPaneWidth = this.leftCollapsed ? 0 : this.leftWidth;
+    const leftPaneWidth = this.leftCollapsed ? this.leftRailWidth : this.leftWidth;
     const rightPaneWidth = this.rightCollapsed ? 0 : this.rightWidth;
     const leftHandleWidth = this.leftCollapsed ? 0 : this.handleWidth;
     const rightHandleWidth = this.rightCollapsed ? 0 : this.handleWidth;

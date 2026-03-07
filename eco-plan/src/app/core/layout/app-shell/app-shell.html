@@ -96,27 +96,130 @@
       id="app-shell-desktop-left-pane"
       class="min-w-0 overflow-auto border-r border-slate-200 bg-white"
     >
-      <div id="app-shell-desktop-left-pane-header" class="flex justify-end p-2">
-        <button
-          id="app-shell-desktop-left-collapse-toggle"
-          type="button"
-          class="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-          (click)="toggleLeftCollapse()"
+      @if (!leftCollapsed) {
+        <div id="app-shell-desktop-left-pane-header" class="flex justify-end p-2">
+          <button
+            id="app-shell-desktop-left-collapse-toggle"
+            type="button"
+            class="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            (click)="toggleLeftCollapse()"
+          >
+            {{ 'layout.desktop.collapse' | translate }}
+          </button>
+        </div>
+        <section id="app-shell-desktop-left-pane-content" class="h-[calc(100%-2.75rem)]">
+          <ng-content select="[data-slot='left']"></ng-content>
+        </section>
+      } @else {
+        <section
+          id="app-shell-desktop-left-icon-rail"
+          class="flex h-full flex-col items-center justify-between gap-3 p-2"
         >
-          {{
-            leftCollapsed
-              ? ('layout.desktop.expand' | translate)
-              : ('layout.desktop.collapse' | translate)
-          }}
-        </button>
-      </div>
-      <section
-        id="app-shell-desktop-left-pane-content"
-        class="h-[calc(100%-2.75rem)]"
-        [class.hidden]="leftCollapsed"
-      >
-        <ng-content select="[data-slot='left']"></ng-content>
-      </section>
+          <div
+            id="app-shell-desktop-left-icon-rail-group"
+            class="flex w-full flex-col items-center gap-2"
+          >
+            <button
+              id="app-shell-desktop-left-rail-active-solution-button"
+              type="button"
+              class="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100"
+              aria-label="Active solution section"
+              title="Active solution section"
+            >
+              <svg
+                id="app-shell-desktop-left-rail-active-solution-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="h-5 w-5"
+                aria-hidden="true"
+              >
+                <path
+                  d="M6 4h12a1 1 0 0 1 1 1v14l-3-2-3 2-3-2-3 2V5a1 1 0 0 1 1-1Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <button
+              id="app-shell-desktop-left-rail-data-layers-button"
+              type="button"
+              class="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100"
+              aria-label="Data layers section"
+              title="Data layers section"
+            >
+              <svg
+                id="app-shell-desktop-left-rail-data-layers-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="h-5 w-5"
+                aria-hidden="true"
+              >
+                <path
+                  d="m4 8 8-4 8 4-8 4-8-4Zm0 4 8 4 8-4M4 16l8 4 8-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <button
+              id="app-shell-desktop-left-rail-actions-button"
+              type="button"
+              class="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100"
+              aria-label="Actions section"
+              title="Actions section"
+            >
+              <svg
+                id="app-shell-desktop-left-rail-actions-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="h-5 w-5"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 3v3m0 12v3M4.6 6.2l2.1 2.1m10.6 10.6 2.1 2.1M3 12h3m12 0h3M4.6 17.8l2.1-2.1m10.6-10.6 2.1-2.1M12 9.5A2.5 2.5 0 1 1 12 14.5 2.5 2.5 0 0 1 12 9.5Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <button
+            id="app-shell-desktop-left-rail-expand-button"
+            type="button"
+            class="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100"
+            (click)="toggleLeftCollapse()"
+            [attr.aria-label]="'layout.desktop.expand' | translate"
+            [attr.title]="'layout.desktop.expand' | translate"
+          >
+            <svg
+              id="app-shell-desktop-left-rail-expand-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 5 16 12 9 19"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </section>
+      }
     </aside>
 
     <div
