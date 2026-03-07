@@ -7,3 +7,19 @@
 #app-shell-desktop-right-resize-handle {
   width: 10px;
 }
+
+@media (min-width: 768px) {
+  #app-shell-left-pane,
+  #app-shell-right-pane {
+    position: static !important;
+    z-index: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    translate: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+    overflow: auto;
+    padding: 0;
+  }
+}

@@ -11,19 +11,20 @@ type ResizeSide = 'left' | 'right';
   styleUrl: './app-shell.scss',
 })
 export class AppShellComponent {
-  protected leftWidth = 320;
-  protected rightWidth = 380;
+  protected leftWidth = 280;
+  protected rightWidth = 320;
   protected leftCollapsed = false;
   protected rightCollapsed = false;
   protected leftDrawerOpen = false;
   protected rightDrawerOpen = false;
   protected isMobileViewport = false;
 
-  private readonly minLeftWidth = 260;
+  private readonly minLeftWidth = 220;
   private readonly maxLeftWidth = 520;
-  private readonly minRightWidth = 280;
+  private readonly minRightWidth = 240;
   private readonly maxRightWidth = 620;
   private readonly handleWidth = 10;
+  private readonly minCenterWidth = 400;
 
   private activeResizeSide: ResizeSide | null = null;
   private dragStartX = 0;
@@ -31,6 +32,7 @@ export class AppShellComponent {
 
   constructor() {
     this.updateViewportMode();
+    this.autoCollapseForViewport();
   }
 
   protected get desktopGridTemplateColumns(): string {
@@ -114,6 +116,14 @@ export class AppShellComponent {
     this.isMobileViewport = window.innerWidth < 768;
     if (!this.isMobileViewport) {
       this.closeMobileDrawers();
+    }
+  }
+
+  private autoCollapseForViewport(): void {
+    if (this.isMobileViewport) return;
+    const bothSidebarsTotal = this.leftWidth + this.rightWidth + 2 * this.handleWidth;
+    if (window.innerWidth < bothSidebarsTotal + this.minCenterWidth) {
+      this.rightCollapsed = true;
     }
   }
 

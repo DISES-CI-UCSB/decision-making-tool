@@ -1,55 +1,65 @@
-<main id="app-shell-main" class="h-screen bg-ocean-50 text-ink-900">
-  <section
-    id="app-shell-mobile-layout"
-    class="flex h-full flex-col md:hidden"
+<main id="app-shell-main" class="flex h-full flex-col bg-ocean-50 text-ink-900">
+  <!-- ═══ Mobile top bar ═══ -->
+  <header
+    id="app-shell-mobile-header"
+    class="flex items-center justify-between border-b border-earth-300 bg-white px-3 py-2"
     [class.hidden]="!isMobileViewport"
   >
-    <header
-      id="app-shell-mobile-header"
-      class="flex items-center justify-between border-b border-earth-300 bg-white px-3 py-2"
+    <button
+      id="app-shell-mobile-left-drawer-toggle"
+      type="button"
+      class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
+      (click)="openLeftDrawer()"
     >
-      <button
-        id="app-shell-mobile-left-drawer-toggle"
-        type="button"
-        class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
-        (click)="openLeftDrawer()"
-      >
-        {{ 'layout.mobile.leftPanelButton' | translate }}
-      </button>
-      <h1 id="app-shell-mobile-title" class="text-sm font-semibold">
-        {{ 'layout.mobile.shellTitle' | translate }}
-      </h1>
-      <button
-        id="app-shell-mobile-right-drawer-toggle"
-        type="button"
-        class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
-        (click)="openRightDrawer()"
-      >
-        {{ 'layout.mobile.rightPanelButton' | translate }}
-      </button>
-    </header>
+      {{ 'layout.mobile.leftPanelButton' | translate }}
+    </button>
+    <h1 id="app-shell-mobile-title" class="text-sm font-semibold">
+      {{ 'layout.mobile.shellTitle' | translate }}
+    </h1>
+    <button
+      id="app-shell-mobile-right-drawer-toggle"
+      type="button"
+      class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
+      (click)="openRightDrawer()"
+    >
+      {{ 'layout.mobile.rightPanelButton' | translate }}
+    </button>
+  </header>
 
-    <section id="app-shell-mobile-center-pane" class="h-[calc(100%-3rem)] min-h-0">
-      <ng-content select="[slot-center]"></ng-content>
-    </section>
+  <!-- ═══ Mobile backdrop overlay ═══ -->
+  <div
+    id="app-shell-mobile-overlay"
+    class="fixed inset-0 z-30 bg-black/30"
+    tabindex="0"
+    [class.hidden]="!isMobileViewport || (!leftDrawerOpen && !rightDrawerOpen)"
+    (click)="closeMobileDrawers()"
+    (keydown.enter)="closeMobileDrawers()"
+    (keydown.space)="closeMobileDrawers()"
+  ></div>
 
-    <div
-      id="app-shell-mobile-overlay"
-      class="fixed inset-0 z-30 bg-black/30"
-      tabindex="0"
-      [class.hidden]="!leftDrawerOpen && !rightDrawerOpen"
-      (click)="closeMobileDrawers()"
-      (keydown.enter)="closeMobileDrawers()"
-      (keydown.space)="closeMobileDrawers()"
-    ></div>
-
+  <!-- ═══ Content area ═══ -->
+  <!-- Mobile: block layout with fixed-position sidebar drawers -->
+  <!-- Desktop: 5-column CSS grid (left | handle | center | handle | right) -->
+  <section
+    id="app-shell-content"
+    class="min-h-0 flex-1"
+    [class.grid]="!isMobileViewport"
+    [style.gridTemplateColumns]="!isMobileViewport ? desktopGridTemplateColumns : null"
+  >
+    <!-- ─── Left sidebar ─── -->
+    <!-- Mobile: off-screen fixed drawer, slides in via translate -->
+    <!-- Desktop: static grid column (SCSS media query overrides fixed positioning) -->
     <aside
-      id="app-shell-mobile-left-drawer"
-      class="fixed left-0 top-0 z-40 h-full w-80 max-w-[85vw] border-r border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
-      [class.-translate-x-full]="!leftDrawerOpen"
+      id="app-shell-left-pane"
+      class="fixed left-0 top-0 z-40 h-full w-80 max-w-[85vw] -translate-x-full border-r border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
       [class.translate-x-0]="leftDrawerOpen"
+      [class.-translate-x-full]="!leftDrawerOpen"
     >
-      <div id="app-shell-mobile-left-drawer-header" class="mb-3 flex justify-end">
+      <div
+        id="app-shell-mobile-left-close-wrapper"
+        class="mb-3 flex justify-end"
+        [class.hidden]="!isMobileViewport"
+      >
         <button
           id="app-shell-mobile-left-drawer-close"
           type="button"
@@ -59,44 +69,12 @@
           {{ 'common.close' | translate }}
         </button>
       </div>
-      <section id="app-shell-mobile-left-drawer-content" class="h-[calc(100%-2.5rem)]">
-        <ng-content select="[slot-left]"></ng-content>
-      </section>
-    </aside>
 
-    <aside
-      id="app-shell-mobile-right-drawer"
-      class="fixed right-0 top-0 z-40 h-full w-80 max-w-[85vw] border-l border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
-      [class.translate-x-full]="!rightDrawerOpen"
-      [class.translate-x-0]="rightDrawerOpen"
-    >
-      <div id="app-shell-mobile-right-drawer-header" class="mb-3 flex justify-end">
-        <button
-          id="app-shell-mobile-right-drawer-close"
-          type="button"
-          class="rounded-chip border border-earth-300 px-3 py-1 text-sm"
-          (click)="closeMobileDrawers()"
-        >
-          {{ 'common.close' | translate }}
-        </button>
-      </div>
-      <section id="app-shell-mobile-right-drawer-content" class="h-[calc(100%-2.5rem)]">
-        <ng-content select="[slot-right]"></ng-content>
-      </section>
-    </aside>
-  </section>
-
-  <section
-    id="app-shell-desktop-layout"
-    class="hidden h-full md:grid"
-    [style.gridTemplateColumns]="desktopGridTemplateColumns"
-    [class.grid]="!isMobileViewport"
-  >
-    <aside
-      id="app-shell-desktop-left-pane"
-      class="min-w-0 overflow-auto border-r border-earth-300 bg-white"
-    >
-      <div id="app-shell-desktop-left-pane-header" class="flex justify-end p-2">
+      <div
+        id="app-shell-desktop-left-pane-header"
+        class="flex justify-end p-2"
+        [class.hidden]="isMobileViewport"
+      >
         <button
           id="app-shell-desktop-left-collapse-toggle"
           type="button"
@@ -110,24 +88,30 @@
           }}
         </button>
       </div>
-      <section
-        id="app-shell-desktop-left-pane-content"
-        class="h-[calc(100%-2.75rem)]"
-        [class.hidden]="leftCollapsed"
-      >
+
+      <section id="app-shell-left-pane-content" [class.hidden]="leftCollapsed && !isMobileViewport">
         <ng-content select="[slot-left]"></ng-content>
       </section>
     </aside>
 
+    <!-- ─── Left resize handle (desktop only) ─── -->
     <div
       id="app-shell-desktop-left-resize-handle"
       class="cursor-col-resize bg-earth-100 transition hover:bg-earth-300"
-      [class.hidden]="leftCollapsed"
+      [class.hidden]="isMobileViewport || leftCollapsed"
       (mousedown)="startResize('left', $event)"
     ></div>
 
-    <section id="app-shell-desktop-center-pane" class="min-w-0 overflow-hidden bg-ocean-50">
-      <div id="app-shell-desktop-center-toolbar" class="flex justify-between p-2">
+    <!-- ─── Center pane (always visible) ─── -->
+    <section
+      id="app-shell-center-pane"
+      class="flex h-full min-w-0 flex-col overflow-hidden bg-ocean-50"
+    >
+      <div
+        id="app-shell-desktop-center-toolbar"
+        class="flex shrink-0 justify-between p-2"
+        [class.hidden]="isMobileViewport"
+      >
         <button
           id="app-shell-desktop-left-reopen-button"
           type="button"
@@ -147,23 +131,49 @@
           {{ 'layout.desktop.showRight' | translate }}
         </button>
       </div>
-      <section id="app-shell-desktop-center-pane-content" class="h-[calc(100%-3rem)] min-h-0">
+
+      <section id="app-shell-center-pane-content" class="min-h-0 flex-1">
         <ng-content select="[slot-center]"></ng-content>
       </section>
     </section>
 
+    <!-- ─── Right resize handle (desktop only) ─── -->
     <div
       id="app-shell-desktop-right-resize-handle"
       class="cursor-col-resize bg-earth-100 transition hover:bg-earth-300"
-      [class.hidden]="rightCollapsed"
+      [class.hidden]="isMobileViewport || rightCollapsed"
       (mousedown)="startResize('right', $event)"
     ></div>
 
+    <!-- ─── Right sidebar ─── -->
+    <!-- Mobile: off-screen fixed drawer, slides in via translate -->
+    <!-- Desktop: static grid column (SCSS media query overrides fixed positioning) -->
     <aside
-      id="app-shell-desktop-right-pane"
-      class="min-w-0 overflow-auto border-l border-earth-300 bg-white"
+      id="app-shell-right-pane"
+      class="fixed right-0 top-0 z-40 h-full w-80 max-w-[85vw] translate-x-full border-l border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
+      [class.translate-x-0]="rightDrawerOpen"
+      [class.translate-x-full]="!rightDrawerOpen"
     >
-      <div id="app-shell-desktop-right-pane-header" class="flex justify-start p-2">
+      <div
+        id="app-shell-mobile-right-close-wrapper"
+        class="mb-3 flex justify-end"
+        [class.hidden]="!isMobileViewport"
+      >
+        <button
+          id="app-shell-mobile-right-drawer-close"
+          type="button"
+          class="rounded-chip border border-earth-300 px-3 py-1 text-sm"
+          (click)="closeMobileDrawers()"
+        >
+          {{ 'common.close' | translate }}
+        </button>
+      </div>
+
+      <div
+        id="app-shell-desktop-right-pane-header"
+        class="flex justify-start p-2"
+        [class.hidden]="isMobileViewport"
+      >
         <button
           id="app-shell-desktop-right-collapse-toggle"
           type="button"
@@ -177,10 +187,10 @@
           }}
         </button>
       </div>
+
       <section
-        id="app-shell-desktop-right-pane-content"
-        class="h-[calc(100%-2.75rem)]"
-        [class.hidden]="rightCollapsed"
+        id="app-shell-right-pane-content"
+        [class.hidden]="rightCollapsed && !isMobileViewport"
       >
         <ng-content select="[slot-right]"></ng-content>
       </section>
