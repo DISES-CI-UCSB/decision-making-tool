@@ -7,6 +7,7 @@ import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { PanelContainerComponent } from '@core/shared/panel-container/panel-container';
 import { ProgressBarComponent } from '@core/shared/progress-bar/progress-bar';
 import { StatCardComponent } from '@core/shared/stat-card/stat-card';
+import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-container/sidebar-container';
 import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
@@ -19,6 +20,7 @@ import { TranslatePipe } from '@ngx-translate/core';
     PanelContainerComponent,
     ProgressBarComponent,
     RouterOutlet,
+    SidebarContainerComponent,
     StatCardComponent,
     TranslatePipe,
   ],

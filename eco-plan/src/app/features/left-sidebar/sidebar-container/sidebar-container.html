@@ -1,0 +1,46 @@
+<section
+  id="left-sidebar-container"
+  class="flex h-full flex-col gap-3 overflow-y-auto rounded-panel border border-earth-300 bg-slate-50/80 p-3 text-sm text-ink-900"
+>
+  @for (section of sectionSlots; track section.id) {
+    <article
+      [id]="'left-sidebar-section-' + section.id"
+      class="rounded-panel border border-earth-300 bg-white shadow-sm"
+      [class.mt-auto]="section.stickToBottom === true"
+    >
+      <div
+        [id]="'left-sidebar-section-header-' + section.id"
+        class="flex items-center justify-between gap-2 border-b border-earth-300 px-3 py-2"
+      >
+        <h3 [id]="'left-sidebar-section-title-' + section.id" class="text-sm font-semibold">
+          {{ section.title }}
+        </h3>
+
+        <button
+          [id]="'left-sidebar-section-toggle-' + section.id"
+          type="button"
+          class="rounded-chip border border-earth-300 px-2 py-1 text-xs transition hover:bg-earth-100"
+          [attr.aria-expanded]="!section.isCollapsed"
+          [attr.aria-controls]="'left-sidebar-section-content-' + section.id"
+          (click)="toggleSection(section.id)"
+        >
+          {{ section.isCollapsed ? 'Expand' : 'Collapse' }}
+        </button>
+      </div>
+
+      @if (!section.isCollapsed) {
+        <div
+          [id]="'left-sidebar-section-content-' + section.id"
+          class="px-3 py-3 text-xs text-ink-900/70"
+        >
+          <div
+            [id]="'left-sidebar-section-slot-' + section.id"
+            class="rounded-chip bg-earth-100 p-2"
+          >
+            {{ section.title }} placeholder
+          </div>
+        </div>
+      }
+    </article>
+  }
+</section>
