@@ -69,11 +69,11 @@ export class AppShellComponent implements AfterViewInit {
   }
 
   protected get leftCollapseControlOffset(): string {
-    return this.leftCollapsed ? '8px' : `${Math.max(this.leftWidth - 12, 0)}px`;
+    return this.leftCollapsed ? '0px' : `${Math.max(this.leftWidth, 0)}px`;
   }
 
   protected get rightCollapseControlOffset(): string {
-    return this.rightCollapsed ? '8px' : `${Math.max(this.rightWidth - 12, 0)}px`;
+    return this.rightCollapsed ? '0px' : `${Math.max(this.rightWidth, 0)}px`;
   }
 
   protected toggleLeftCollapse(): void {
