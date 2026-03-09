@@ -8,6 +8,8 @@ import { AppStateService, type RightSidebarMode } from '@core/services/app-state
 import { MockDataService } from '@core/services/mock-data.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+type SidebarTab = 'overview' | 'aoi' | 'comparison';
+
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
@@ -24,6 +26,7 @@ export class PanelSwitcherComponent {
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
+  protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = computed(() => {
     const solution = this.activeSolution();
     if (!solution) {
@@ -97,6 +100,29 @@ export class PanelSwitcherComponent {
 
   protected getStatusKey(status: MetricReadinessStatus): string {
     return `analysis.status.${status}`;
+  }
+
+  protected getTabLabelKey(tab: SidebarTab): string {
+    return `analysis.modes.${tab}`;
+  }
+
+  protected isTabActive(tab: SidebarTab): boolean {
+    const mode = this.rightSidebarMode();
+    if (tab === 'overview') {
+      return mode === 'welcome' || mode === 'overview';
+    }
+
+    return mode === tab;
+  }
+
+  protected selectTab(tab: SidebarTab): void {
+    if (tab === 'overview') {
+      const hasSolution = this.activeSolution() !== null;
+      this.appState.setRightSidebarMode(hasSolution ? 'overview' : 'welcome');
+      return;
+    }
+
+    this.appState.setRightSidebarMode(tab);
   }
 
   protected isMetricReady(metric: MetricValue): boolean {

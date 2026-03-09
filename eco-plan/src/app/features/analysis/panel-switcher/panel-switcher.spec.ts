@@ -66,4 +66,21 @@ describe('PanelSwitcherComponent', () => {
       'Bosque Alto Andino',
     );
   });
+
+  it('switches tabs from overview to aoi when clicked', () => {
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const aoiTabButton = compiled.querySelector(
+      '#right-sidebar-panel-tab-aoi',
+    ) as HTMLButtonElement;
+    expect(aoiTabButton).not.toBeNull();
+
+    aoiTabButton.click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#right-sidebar-aoi-panel')).not.toBeNull();
+    expect(compiled.querySelector('#right-sidebar-welcome-panel')).toBeNull();
+  });
 });

@@ -2,10 +2,29 @@
   id="right-sidebar-panel-switcher"
   class="flex h-full min-h-0 flex-col overflow-hidden bg-white"
 >
-  <header
-    id="right-sidebar-panel-switcher-header"
-    class="border-b border-slate-200 px-5 py-4 backdrop-blur-sm"
-  >
+  <nav id="right-sidebar-panel-tab-nav" class="bg-white" aria-label="Right sidebar view tabs">
+    <div id="right-sidebar-panel-tab-nav-content" class="grid h-12 grid-cols-3">
+      @for (tab of sidebarTabs; track tab) {
+        <button
+          [id]="'right-sidebar-panel-tab-' + tab"
+          type="button"
+          class="right-sidebar-panel-tab-button flex h-full w-full items-center justify-center border-b border-slate-200 px-2 text-center text-sm font-semibold leading-tight text-slate-500 transition-colors"
+          [class.bg-slate-100]="isTabActive(tab)"
+          [class.border-b-2]="isTabActive(tab)"
+          [class.border-slate-700]="isTabActive(tab)"
+          [class.text-slate-900]="isTabActive(tab)"
+          [class.text-slate-500]="!isTabActive(tab)"
+          [class.hover:text-slate-700]="!isTabActive(tab)"
+          [attr.aria-current]="isTabActive(tab) ? 'page' : null"
+          (click)="selectTab(tab)"
+        >
+          {{ getTabLabelKey(tab) | translate }}
+        </button>
+      }
+    </div>
+  </nav>
+
+  <header id="right-sidebar-panel-switcher-header" class="px-5 py-4">
     <div
       id="right-sidebar-panel-switcher-header-content"
       class="flex items-center justify-between gap-3"
