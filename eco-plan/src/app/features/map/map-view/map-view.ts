@@ -11,6 +11,8 @@ import {
 import ArcGISMap from '@arcgis/core/Map';
 import ArcGISMapView from '@arcgis/core/views/MapView';
 import Point from '@arcgis/core/geometry/Point';
+import Attribution from '@arcgis/core/widgets/Attribution';
+import ScaleBar from '@arcgis/core/widgets/ScaleBar';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
@@ -31,6 +33,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private view: InstanceType<typeof ArcGISMapView> | null = null;
+  private scaleBarWidget: InstanceType<typeof ScaleBar> | null = null;
+  private attributionWidget: InstanceType<typeof Attribution> | null = null;
   private readonly basemapService = inject(MapBasemapService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly debugMarker = 'UCS-39-map-debug-v1';
@@ -54,9 +58,50 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     console.info(`[MapView][${this.debugMarker}] ngOnDestroy`);
+    this.removeMapWidgets();
     this.view?.destroy();
     this.view = null;
     this.map = null;
+  }
+
+  protected zoomIn(): void {
+    void this.animateZoomBy(1);
+  }
+
+  protected zoomOut(): void {
+    void this.animateZoomBy(-1);
+  }
+
+  private async animateZoomBy(delta: number): Promise<void> {
+    if (!this.view) {
+      return;
+    }
+
+    const currentZoom = this.view.zoom ?? COLOMBIA_ZOOM;
+    const minZoom = this.view.constraints.minZoom ?? 0;
+    const maxZoom = this.view.constraints.maxZoom ?? 24;
+    const targetZoom = Math.max(minZoom, Math.min(maxZoom, currentZoom + delta));
+
+    if (targetZoom === currentZoom) {
+      return;
+    }
+
+    try {
+      await this.view.goTo(
+        { zoom: targetZoom },
+        {
+          animate: true,
+          duration: 250,
+          easing: 'ease-in-out',
+        },
+      );
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      console.error(`[MapView][${this.debugMarker}] zoom animation failed:`, error);
+    }
   }
 
   private initMapWhenReady(retries = 15): void {
@@ -112,7 +157,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         center: COLOMBIA_CENTER,
         zoom: COLOMBIA_ZOOM,
         constraints: { minZoom: 4 },
+        ui: { components: [] },
       });
+
+      this.addMapWidgets();
 
       this.view.when(
         () => console.info(`[MapView][${this.debugMarker}] ready`),
@@ -126,6 +174,44 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       console.error(`[MapView][${this.debugMarker}] constructor threw:`, err);
       this.mapErrorMessage = `Map creation error: ${err}`;
       this.cdr.detectChanges();
+    }
+  }
+
+  private addMapWidgets(): void {
+    if (!this.view) {
+      return;
+    }
+
+    this.scaleBarWidget = new ScaleBar({
+      id: 'map-view-scale-bar-widget',
+      unit: 'metric',
+      view: this.view,
+    });
+
+    this.attributionWidget = new Attribution({
+      id: 'map-view-attribution-widget',
+      view: this.view,
+    });
+
+    this.view.ui.add(this.scaleBarWidget, 'bottom-left');
+    this.view.ui.add(this.attributionWidget, 'bottom-right');
+  }
+
+  private removeMapWidgets(): void {
+    if (!this.view) {
+      return;
+    }
+
+    if (this.scaleBarWidget) {
+      this.view.ui.remove(this.scaleBarWidget);
+      this.scaleBarWidget.destroy();
+      this.scaleBarWidget = null;
+    }
+
+    if (this.attributionWidget) {
+      this.view.ui.remove(this.attributionWidget);
+      this.attributionWidget.destroy();
+      this.attributionWidget = null;
     }
   }
 
