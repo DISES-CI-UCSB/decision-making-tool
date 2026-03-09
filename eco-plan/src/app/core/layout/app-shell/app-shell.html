@@ -40,6 +40,8 @@
     class="relative min-h-0 flex-1"
     [class.grid]="!isMobileViewport"
     [style.gridTemplateColumns]="!isMobileViewport ? desktopGridTemplateColumns : null"
+    [style.--app-shell-left-pane-width.px]="leftWidth"
+    [style.--app-shell-right-pane-width.px]="rightWidth"
   >
     <aside
       id="app-shell-left-pane"
@@ -70,7 +72,8 @@
       <section
         id="app-shell-left-pane-content"
         class="h-full min-h-0"
-        [class.hidden]="leftCollapsed && !isMobileViewport"
+        [attr.aria-hidden]="leftCollapsed && !isMobileViewport ? 'true' : null"
+        [attr.inert]="leftCollapsed && !isMobileViewport ? '' : null"
       >
         <ng-content select="[slot-left]"></ng-content>
       </section>
@@ -129,7 +132,8 @@
       <section
         id="app-shell-right-pane-content"
         class="h-full min-h-0"
-        [class.hidden]="rightCollapsed && !isMobileViewport"
+        [attr.aria-hidden]="rightCollapsed && !isMobileViewport ? 'true' : null"
+        [attr.inert]="rightCollapsed && !isMobileViewport ? '' : null"
       >
         <ng-content select="[slot-right]"></ng-content>
       </section>
@@ -161,7 +165,7 @@
     <button
       id="app-shell-left-boundary-toggle"
       type="button"
-      class="absolute top-1/2 z-30 flex h-9 w-6 -translate-x-px -translate-y-1/2 items-center justify-center rounded-r-lg border border-slate-200 bg-white/96 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+      class="absolute top-1/2 z-30 flex h-9 w-6 -translate-x-px -translate-y-1/2 items-center justify-center rounded-r-lg border border-slate-200 bg-white/96 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none"
       [class.hidden]="isMobileViewport"
       [style.left]="leftCollapseControlOffset"
       [attr.aria-label]="
@@ -203,7 +207,7 @@
     <button
       id="app-shell-right-boundary-toggle"
       type="button"
-      class="absolute top-1/2 z-30 flex h-9 w-6 translate-x-px -translate-y-1/2 items-center justify-center rounded-l-lg border border-slate-200 bg-white/96 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+      class="absolute top-1/2 z-30 flex h-9 w-6 translate-x-px -translate-y-1/2 items-center justify-center rounded-l-lg border border-slate-200 bg-white/96 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none"
       [class.hidden]="isMobileViewport"
       [style.right]="rightCollapseControlOffset"
       [attr.aria-label]="

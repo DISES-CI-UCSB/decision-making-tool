@@ -3,6 +3,24 @@
   height: 100%;
 }
 
+#app-shell-content {
+  transition: grid-template-columns 360ms ease;
+}
+
+#app-shell-left-boundary-toggle {
+  transition:
+    left 360ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+#app-shell-right-boundary-toggle {
+  transition:
+    right 360ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
 .scroll-area-overlay {
   overflow-y: auto;
   scrollbar-width: none;
@@ -15,6 +33,10 @@
 }
 
 @media (min-width: 768px) {
+  #app-shell-content {
+    overflow: hidden;
+  }
+
   #app-shell-left-pane,
   #app-shell-right-pane {
     position: relative !important;
@@ -24,8 +46,18 @@
     translate: none !important;
     transform: none !important;
     box-shadow: none !important;
-    transition: none !important;
     padding: 0;
+    overflow-x: clip;
+  }
+
+  #app-shell-left-pane-content {
+    width: var(--app-shell-left-pane-width, 340px);
+    min-width: var(--app-shell-left-pane-width, 340px);
+  }
+
+  #app-shell-right-pane-content {
+    width: var(--app-shell-right-pane-width, 360px);
+    min-width: var(--app-shell-right-pane-width, 360px);
   }
 
   #app-shell-left-resize-hit-area,

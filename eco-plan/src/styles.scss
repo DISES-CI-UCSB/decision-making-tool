@@ -32,3 +32,18 @@ body {
   height: 100%;
   margin: 0;
 }
+
+/* Remove ArcGIS focus outlines/rings in the map viewport for clean screenshots/interactions. */
+#map-view-container .esri-view-surface:focus,
+#map-view-container .esri-view-surface--inset-outline:focus,
+#map-view-container .esri-view-root:focus,
+#map-view-container [tabindex]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#map-view-container .esri-view-surface:focus::after {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
