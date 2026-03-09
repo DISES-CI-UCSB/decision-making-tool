@@ -33,6 +33,99 @@
     }
   },
   "analysis": {
+    "modes": {
+      "welcome": "No solution selected",
+      "overview": "Overview",
+      "aoi": "Area of Interest",
+      "comparison": "Comparison"
+    },
+    "status": {
+      "ready": "Ready",
+      "derivation_needed": "Needs derivation",
+      "blocked": "Blocked",
+      "pending": "Pending"
+    },
+    "common": {
+      "valueUnavailable": "Unavailable",
+      "deltaUnavailable": "No delta"
+    },
+    "empty": {
+      "kicker": "Analysis panel",
+      "title": "Select a solution to inspect its analysis.",
+      "description": "The right sidebar is reserved for reading the currently selected solution, area details, and comparisons.",
+      "heroTitle": "Nothing is selected yet.",
+      "heroDescription": "Use the controls in the left sidebar to start a solution search or switch to an existing solution.",
+      "stepsTitle": "What appears here next",
+      "stepsDescription": "Once a solution is loaded, this panel updates automatically.",
+      "stepOneTitle": "Overview metrics",
+      "stepOneDescription": "See headline metrics and grouped indicators for the current solution.",
+      "stepTwoTitle": "AOI and comparison details",
+      "stepTwoDescription": "Inspect local AOI changes or compare the baseline against another candidate."
+    },
+    "welcome": {
+      "kicker": "Analysis workspace",
+      "title": "Start with a solution to unlock analysis panels.",
+      "description": "Use the Solution Finder to load a scenario, review its metrics, and compare tradeoffs without leaving the map workspace.",
+      "heroTitle": "Right-side guidance stays in sync with your workflow.",
+      "heroDescription": "When a solution is active, this panel can switch between overview, AOI, and comparison views as the rest of the experience comes online.",
+      "getStarted": "Get Started",
+      "stepsTitle": "How this flow works",
+      "stepsDescription": "A lightweight onboarding sequence for first-time users.",
+      "steps": {
+        "choose": {
+          "title": "Choose a solution",
+          "description": "Open the Solution Finder to load a candidate strategy for the current planning context."
+        },
+        "review": {
+          "title": "Review the overview",
+          "description": "Scan headline metrics to understand ecological, climate, and finance signals."
+        },
+        "compare": {
+          "title": "Compare options",
+          "description": "Switch into comparison mode once another solution is available for side-by-side review."
+        }
+      }
+    },
+    "overview": {
+      "kicker": "Active solution",
+      "title": "Solution overview",
+      "description": "A compact summary of the current solution and the metrics currently available for review.",
+      "solutionLabel": "Loaded solution",
+      "noDescription": "No description is available for this solution yet.",
+      "matchLabel": "Match score",
+      "sectionsLabel": "Metric groups",
+      "emptyTitle": "No active solution yet",
+      "emptyDescription": "Load a solution to replace the welcome panel with overview metrics."
+    },
+    "aoi": {
+      "kicker": "AOI detail",
+      "title": "Area of interest detail",
+      "description": "Focus the active solution on a selected geography to inspect AOI-specific metrics.",
+      "selectedLabel": "Selected AOI",
+      "typeLabel": "Type",
+      "types": {
+        "municipality": "Municipality",
+        "department": "Department",
+        "sirap": "SIRAP"
+      },
+      "emptyTitle": "No area of interest selected",
+      "emptyDescription": "Select an AOI to populate this panel with local metrics and context.",
+      "emptyMetricsTitle": "AOI metrics are not ready",
+      "emptyMetricsDescription": "AOI metrics appear here once both a solution and an area of interest are available."
+    },
+    "comparison": {
+      "kicker": "Compare solutions",
+      "title": "Side-by-side comparison",
+      "description": "Review baseline and candidate solution metrics in one place before making a recommendation.",
+      "baselineLabel": "Baseline solution",
+      "candidateLabel": "Candidate solution",
+      "baselineShort": "Baseline",
+      "candidateShort": "Candidate",
+      "emptyTitle": "No comparison solution loaded",
+      "emptyDescription": "Add a second solution to compare tradeoffs against the current baseline.",
+      "noBaselineTitle": "Choose a baseline first",
+      "noBaselineDescription": "Load an active solution before opening comparison mode."
+    },
     "sections": {
       "ecology": "Ecology",
       "climate": "Climate",
@@ -57,6 +150,30 @@
     }
   },
   "solutionControls": {
+    "onboarding": {
+      "kicker": "Solution controls",
+      "title": "Start here to choose the solution you want to inspect.",
+      "description": "Use the left sidebar to launch the Solution Finder, switch between candidates, and drive what appears in the analysis panel.",
+      "heroTitle": "Selection belongs with the controls.",
+      "heroDescription": "Choose a solution first, then review its metrics and comparisons in the right sidebar.",
+      "getStarted": "Get Started",
+      "stepsTitle": "Suggested flow",
+      "stepsDescription": "A simple sequence for first-time users.",
+      "steps": {
+        "choose": {
+          "title": "Open Solution Finder",
+          "description": "Start a guided search for the best-fit solution for the current planning context."
+        },
+        "review": {
+          "title": "Load and switch solutions",
+          "description": "Use this sidebar to control which solution is active before reviewing details."
+        },
+        "compare": {
+          "title": "Inspect the analysis",
+          "description": "Once a solution is active, use the right sidebar to read overview, AOI, and comparison details."
+        }
+      }
+    },
     "modal": {
       "openSolutionFinder": "Open Solution Finder Modal",
       "openPerspective": "Open Perspective Modal",

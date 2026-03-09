@@ -2,11 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AppShellComponent } from '@core/layout/app-shell/app-shell';
 import { HeaderComponent } from '@core/layout/header/header';
-import { BadgeComponent } from '@core/shared/badge/badge';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
-import { PanelContainerComponent } from '@core/shared/panel-container/panel-container';
-import { ProgressBarComponent } from '@core/shared/progress-bar/progress-bar';
-import { StatCardComponent } from '@core/shared/stat-card/stat-card';
+import { PanelSwitcherComponent } from '@features/analysis/panel-switcher/panel-switcher';
 import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-container/sidebar-container';
 import { MapViewComponent } from '@features/map/map-view/map-view';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -15,15 +12,12 @@ import { TranslatePipe } from '@ngx-translate/core';
   selector: 'app-root',
   imports: [
     AppShellComponent,
-    BadgeComponent,
     HeaderComponent,
     MapViewComponent,
     ModalShellComponent,
-    PanelContainerComponent,
-    ProgressBarComponent,
+    PanelSwitcherComponent,
     RouterOutlet,
     SidebarContainerComponent,
-    StatCardComponent,
     TranslatePipe,
   ],
   templateUrl: './app.html',

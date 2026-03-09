@@ -33,6 +33,99 @@
     }
   },
   "analysis": {
+    "modes": {
+      "welcome": "Sin solucion seleccionada",
+      "overview": "Resumen",
+      "aoi": "Area de interes",
+      "comparison": "Comparacion"
+    },
+    "status": {
+      "ready": "Listo",
+      "derivation_needed": "Requiere derivacion",
+      "blocked": "Bloqueado",
+      "pending": "Pendiente"
+    },
+    "common": {
+      "valueUnavailable": "No disponible",
+      "deltaUnavailable": "Sin delta"
+    },
+    "empty": {
+      "kicker": "Panel de analisis",
+      "title": "Selecciona una solucion para inspeccionar su analisis.",
+      "description": "La barra lateral derecha esta reservada para revisar la solucion actual, los detalles del area y las comparaciones.",
+      "heroTitle": "Todavia no hay nada seleccionado.",
+      "heroDescription": "Usa los controles de la barra lateral izquierda para iniciar una busqueda de soluciones o cambiar a una solucion existente.",
+      "stepsTitle": "Lo que aparecera aqui despues",
+      "stepsDescription": "Cuando se cargue una solucion, este panel se actualizara automaticamente.",
+      "stepOneTitle": "Metricas de resumen",
+      "stepOneDescription": "Consulta metricas principales e indicadores agrupados para la solucion actual.",
+      "stepTwoTitle": "Detalles de AOI y comparacion",
+      "stepTwoDescription": "Inspecciona cambios locales del AOI o compara la solucion base con otra candidata."
+    },
+    "welcome": {
+      "kicker": "Espacio de analisis",
+      "title": "Empieza con una solucion para activar los paneles de analisis.",
+      "description": "Usa el Buscador de Soluciones para cargar un escenario, revisar sus metricas y comparar compensaciones sin salir del espacio del mapa.",
+      "heroTitle": "La guia del panel derecho acompana tu flujo de trabajo.",
+      "heroDescription": "Cuando hay una solucion activa, este panel puede cambiar entre vistas de resumen, AOI y comparacion a medida que el resto de la experiencia se activa.",
+      "getStarted": "Comenzar",
+      "stepsTitle": "Como funciona este flujo",
+      "stepsDescription": "Una secuencia de incorporacion ligera para personas que usan la herramienta por primera vez.",
+      "steps": {
+        "choose": {
+          "title": "Elegir una solucion",
+          "description": "Abre el Buscador de Soluciones para cargar una estrategia candidata para el contexto de planificacion actual."
+        },
+        "review": {
+          "title": "Revisar el resumen",
+          "description": "Explora metricas principales para entender senales de ecologia, clima y finanzas."
+        },
+        "compare": {
+          "title": "Comparar opciones",
+          "description": "Cambia al modo de comparacion cuando haya otra solucion disponible para una revision lado a lado."
+        }
+      }
+    },
+    "overview": {
+      "kicker": "Solucion activa",
+      "title": "Resumen de la solucion",
+      "description": "Un resumen compacto de la solucion actual y de las metricas disponibles para revisar.",
+      "solutionLabel": "Solucion cargada",
+      "noDescription": "Todavia no hay una descripcion disponible para esta solucion.",
+      "matchLabel": "Puntaje de ajuste",
+      "sectionsLabel": "Grupos de metricas",
+      "emptyTitle": "Todavia no hay una solucion activa",
+      "emptyDescription": "Carga una solucion para reemplazar el panel de bienvenida con metricas de resumen."
+    },
+    "aoi": {
+      "kicker": "Detalle de AOI",
+      "title": "Detalle del area de interes",
+      "description": "Enfoca la solucion activa en una geografia seleccionada para inspeccionar metricas especificas del AOI.",
+      "selectedLabel": "AOI seleccionado",
+      "typeLabel": "Tipo",
+      "types": {
+        "municipality": "Municipio",
+        "department": "Departamento",
+        "sirap": "SIRAP"
+      },
+      "emptyTitle": "No hay un area de interes seleccionada",
+      "emptyDescription": "Selecciona un AOI para completar este panel con metricas locales y contexto.",
+      "emptyMetricsTitle": "Las metricas del AOI no estan listas",
+      "emptyMetricsDescription": "Las metricas del AOI aparecen aqui cuando hay una solucion y un area de interes disponibles."
+    },
+    "comparison": {
+      "kicker": "Comparar soluciones",
+      "title": "Comparacion lado a lado",
+      "description": "Revisa metricas de una solucion base y una candidata en un solo lugar antes de hacer una recomendacion.",
+      "baselineLabel": "Solucion base",
+      "candidateLabel": "Solucion candidata",
+      "baselineShort": "Base",
+      "candidateShort": "Candidata",
+      "emptyTitle": "No hay una solucion de comparacion cargada",
+      "emptyDescription": "Agrega una segunda solucion para comparar compensaciones con la solucion base actual.",
+      "noBaselineTitle": "Primero elige una solucion base",
+      "noBaselineDescription": "Carga una solucion activa antes de abrir el modo de comparacion."
+    },
     "sections": {
       "ecology": "Ecologia",
       "climate": "Clima",
@@ -57,6 +150,30 @@
     }
   },
   "solutionControls": {
+    "onboarding": {
+      "kicker": "Controles de soluciones",
+      "title": "Empieza aqui para elegir la solucion que quieres inspeccionar.",
+      "description": "Usa la barra lateral izquierda para abrir el Buscador de Soluciones, cambiar entre candidatas y controlar lo que aparece en el panel de analisis.",
+      "heroTitle": "La seleccion debe vivir con los controles.",
+      "heroDescription": "Primero elige una solucion y luego revisa sus metricas y comparaciones en la barra lateral derecha.",
+      "getStarted": "Comenzar",
+      "stepsTitle": "Flujo sugerido",
+      "stepsDescription": "Una secuencia simple para personas que usan la herramienta por primera vez.",
+      "steps": {
+        "choose": {
+          "title": "Abrir el Buscador de Soluciones",
+          "description": "Inicia una busqueda guiada para encontrar la solucion con mejor ajuste para el contexto actual de planificacion."
+        },
+        "review": {
+          "title": "Cargar y cambiar soluciones",
+          "description": "Usa esta barra lateral para controlar cual solucion esta activa antes de revisar detalles."
+        },
+        "compare": {
+          "title": "Inspeccionar el analisis",
+          "description": "Cuando una solucion este activa, usa la barra lateral derecha para revisar resumen, AOI y comparaciones."
+        }
+      }
+    },
     "modal": {
       "openSolutionFinder": "Abrir modal de busqueda de soluciones",
       "openPerspective": "Abrir modal de perspectivas",

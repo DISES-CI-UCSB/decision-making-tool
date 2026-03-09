@@ -1,7 +1,10 @@
 <app-header id="foundation-header"></app-header>
 <app-shell id="foundation-app-shell">
   <section id="foundation-left-sidebar-slot" slot-left class="h-full bg-slate-50/80 p-3">
-    <app-sidebar-container id="solution-controls-left-sidebar-container"></app-sidebar-container>
+    <app-sidebar-container
+      id="solution-controls-left-sidebar-container"
+      (solutionFinderRequested)="openSolutionFinderModal()"
+    ></app-sidebar-container>
   </section>
 
   <section
@@ -58,55 +61,12 @@
   <section
     id="foundation-right-sidebar-slot"
     slot-right
-    class="h-full space-y-4 bg-slate-50/80 p-4 text-sm text-slate-800"
+    class="h-full min-h-0 bg-slate-50/80 p-4 text-sm text-slate-800"
   >
-    <h2
-      id="foundation-right-sidebar-title"
-      class="text-base font-semibold tracking-tight text-slate-900"
-    >
-      {{ 'layout.rightSidebarTitle' | translate }}
-    </h2>
-    <p id="foundation-right-sidebar-description" class="text-sm leading-6 text-slate-600">
-      {{ 'layout.rightSidebarPlaceholder' | translate }}
-    </p>
-
-    <app-panel-container
-      id="foundation-stats-panel"
-      rootId="foundation-stats-panel-root"
-      titleKey="shared.demoPanelTitle"
-      [collapsible]="true"
-      [actionButtons]="[
-        { id: 'foundation-panel-refresh-action', labelKey: 'shared.refreshAction' },
-      ]"
-    >
-      <div id="foundation-shared-components-demo" class="space-y-3">
-        <app-stat-card
-          id="foundation-shared-stat-card"
-          rootId="foundation-shared-stat-card-root"
-          labelKey="shared.statLabel"
-          [value]="86"
-          unitKey="shared.statUnit"
-          icon="🌿"
-          [trendPercent]="4.2"
-        ></app-stat-card>
-
-        <app-progress-bar
-          id="foundation-shared-progress-bar"
-          rootId="foundation-shared-progress-bar-root"
-          labelKey="shared.progressLabel"
-          [value]="62"
-          [max]="100"
-          theme="ocean"
-        ></app-progress-bar>
-
-        <app-badge
-          id="foundation-shared-badge"
-          rootId="foundation-shared-badge-root"
-          textKey="shared.badgeText"
-          variant="info"
-        ></app-badge>
-      </div>
-    </app-panel-container>
+    <app-panel-switcher
+      id="foundation-right-sidebar-panel-switcher"
+      class="block h-full min-h-0"
+    ></app-panel-switcher>
   </section>
 </app-shell>
 <app-modal-shell

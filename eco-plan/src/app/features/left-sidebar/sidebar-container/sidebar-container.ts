@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 interface SidebarSection {
   id: string;
@@ -8,13 +9,39 @@ interface SidebarSection {
   stickToBottom?: boolean;
 }
 
+interface OnboardingStep {
+  id: string;
+  titleKey: string;
+  descriptionKey: string;
+}
+
 @Component({
   selector: 'app-sidebar-container',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './sidebar-container.html',
 })
 export class SidebarContainerComponent {
+  @Output() readonly solutionFinderRequested = new EventEmitter<void>();
+
+  protected readonly onboardingSteps: OnboardingStep[] = [
+    {
+      id: 'choose',
+      titleKey: 'solutionControls.onboarding.steps.choose.title',
+      descriptionKey: 'solutionControls.onboarding.steps.choose.description',
+    },
+    {
+      id: 'review',
+      titleKey: 'solutionControls.onboarding.steps.review.title',
+      descriptionKey: 'solutionControls.onboarding.steps.review.description',
+    },
+    {
+      id: 'compare',
+      titleKey: 'solutionControls.onboarding.steps.compare.title',
+      descriptionKey: 'solutionControls.onboarding.steps.compare.description',
+    },
+  ];
+
   protected readonly sectionSlots: SidebarSection[] = [
     {
       id: 'active-solution',
@@ -41,5 +68,9 @@ export class SidebarContainerComponent {
     }
 
     section.isCollapsed = !section.isCollapsed;
+  }
+
+  protected requestSolutionFinder(): void {
+    this.solutionFinderRequested.emit();
   }
 }
