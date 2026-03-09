@@ -181,6 +181,58 @@
       "perspectiveTitle": "Perspective Selector",
       "perspectiveHeading": "Standard modal shell",
       "perspectiveDescription": "This modal uses the standard shell mode and shares the same close behavior and accessibility features."
+    },
+    "finder": {
+      "kicker": "Conservation scenario search",
+      "title": "Find a conservation scenario",
+      "description": "Select targets and constraints, then run a match against available scenario templates.",
+      "selectionSummary": "Current selections",
+      "targetsLabel": "targets",
+      "constraintsLabel": "constraints",
+      "loading": "Finding best-fit scenarios...",
+      "sections": {
+        "targets": "Conservation Targets",
+        "constraints": "Includes and Excludes",
+        "results": "Matching Results"
+      },
+      "labels": {
+        "include": "Include",
+        "exclude": "Exclude"
+      },
+      "actions": {
+        "reset": "Reset to defaults",
+        "cancel": "Cancel",
+        "findMatches": "Find matches",
+        "apply": "Apply selected scenario"
+      },
+      "empty": {
+        "title": "Run matching to view scenarios",
+        "description": "Choose at least one target or constraint, then click Find matches."
+      },
+      "preview": {
+        "title": "Preview map",
+        "mapLabel": "Primary layer"
+      },
+      "targets": {
+        "mammalSpecies": "Mammal Species",
+        "cloudForest": "Cloud Forest",
+        "threatenedAmphibians": "Threatened Amphibians",
+        "paramoEcosystems": "Paramo Ecosystems",
+        "wetlands": "Wetlands"
+      },
+      "constraints": {
+        "includeNationalParks": "Include National Parks",
+        "excludeUrbanCenters": "Exclude Urban Centers",
+        "connectProtectedAreas": "Connect Protected Areas",
+        "excludeMining": "Exclude Mining",
+        "includeIndigenousTerritories": "Include Indigenous Territories",
+        "excludeConflictZones": "Exclude Conflict Zones"
+      },
+      "results": {
+        "scenarioJaguarCorridor": "Higher emphasis on species corridor continuity near protected area buffers.",
+        "scenarioAndesWater": "Balances cloud-forest protection and water regulation targets in upland basins.",
+        "scenarioCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."
+      }
     }
   }
 }

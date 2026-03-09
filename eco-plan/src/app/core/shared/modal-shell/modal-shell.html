@@ -2,7 +2,7 @@
   <div
     [id]="rootId"
     tabindex="0"
-    class="fixed inset-0 z-110 flex items-end justify-center bg-ink-900/60 p-4 transition-opacity duration-200 md:items-center"
+    class="fixed inset-0 z-110 flex items-end justify-center bg-slate-900/70 px-4 py-2 transition-opacity duration-200 md:items-center md:py-3"
     [class.opacity-100]="isActive"
     [class.opacity-0]="!isActive"
     (click)="onBackdropClick($event)"
@@ -18,7 +18,8 @@
       tabindex="-1"
       class="w-full overflow-hidden bg-white shadow-xl transition-all duration-200 ease-out focus:outline-none"
       [ngClass]="{
-        'max-h-[85vh] max-w-3xl rounded-panel border border-earth-300': mode === 'standard',
+        'max-h-[85vh] max-w-3xl rounded-2xl border border-slate-200': mode === 'standard',
+        'max-h-[92vh] max-w-[92vw] rounded-2xl border border-slate-200': mode === 'wide',
         'h-full max-h-full max-w-full rounded-none border-0': mode === 'full-screen',
         'translate-y-0 opacity-100': isActive,
         'translate-y-4 opacity-0': !isActive,
@@ -29,7 +30,7 @@
       @if (titleKey || showCloseButton) {
         <header
           [id]="rootId + '-header'"
-          class="flex items-center justify-between border-b border-earth-300 bg-white px-4 py-3"
+          class="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3"
         >
           @if (titleKey) {
             <h2 [id]="rootId + '-title'" class="text-base font-semibold text-ink-900">
@@ -57,6 +58,7 @@
         class="overflow-auto"
         [class.h-[calc(100%-3.5rem)]]="mode === 'full-screen'"
         [class.p-4]="mode === 'standard'"
+        [class.p-0]="mode === 'wide' || mode === 'full-screen'"
       >
         <ng-content></ng-content>
       </div>
