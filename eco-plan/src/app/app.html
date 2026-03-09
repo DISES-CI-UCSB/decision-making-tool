@@ -65,7 +65,7 @@
 <app-modal-shell
   id="solution-finder-modal-shell"
   rootId="solution-finder-modal-shell-root"
-  mode="full-screen"
+  mode="wide"
   titleKey="solutionControls.modal.solutionFinderTitle"
   [isOpen]="solutionFinderModalOpen"
   [closeOnBackdrop]="true"
@@ -73,7 +73,13 @@
   [showCloseButton]="true"
   (requestClose)="closeSolutionFinderModal()"
 >
-  <section id="solution-finder-modal-content-shell" class="h-full p-4 md:p-6"></section>
+  <section id="solution-finder-modal-content-shell" class="h-full">
+    <app-finder-modal
+      id="solution-finder-modal-workflow-component"
+      (closeRequested)="closeSolutionFinderModal()"
+      (scenarioApplied)="onScenarioApplied()"
+    ></app-finder-modal>
+  </section>
 </app-modal-shell>
 
 <app-modal-shell

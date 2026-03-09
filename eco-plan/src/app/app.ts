@@ -6,6 +6,7 @@ import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { PanelSwitcherComponent } from '@features/analysis/panel-switcher/panel-switcher';
 import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-container/sidebar-container';
 import { MapViewComponent } from '@features/map/map-view/map-view';
+import { FinderModalComponent } from '@features/solution-finder/finder-modal/finder-modal';
 import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
@@ -18,6 +19,7 @@ import { TranslatePipe } from '@ngx-translate/core';
     PanelSwitcherComponent,
     RouterOutlet,
     SidebarContainerComponent,
+    FinderModalComponent,
     TranslatePipe,
   ],
   templateUrl: './app.html',
@@ -48,5 +50,9 @@ export class App implements OnInit {
 
   protected closePerspectiveModal(): void {
     this.perspectiveModalOpen = false;
+  }
+
+  protected onScenarioApplied(): void {
+    this.closeSolutionFinderModal();
   }
 }
