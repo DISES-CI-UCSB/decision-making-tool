@@ -13,6 +13,8 @@ import ArcGISMapView from '@arcgis/core/views/MapView';
 import Point from '@arcgis/core/geometry/Point';
 import Attribution from '@arcgis/core/widgets/Attribution';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
+import { AppStateService } from '@core/services/app-state.service';
+import { LayerRendererService } from '@features/map/services/layer-renderer.service';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
@@ -36,18 +38,27 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private scaleBarWidget: InstanceType<typeof ScaleBar> | null = null;
   private attributionWidget: InstanceType<typeof Attribution> | null = null;
   private readonly basemapService = inject(MapBasemapService);
+  private readonly layerRenderer = inject(LayerRendererService);
+  private readonly appState = inject(AppStateService);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly debugMarker = 'UCS-39-map-debug-v1';
+  private readonly debugMarker = 'UCS-40-layer-infra-v1';
   protected mapErrorMessage = '';
 
   constructor() {
     console.info(`[MapView][${this.debugMarker}] constructor`);
+
     effect(() => {
       const activeBasemap = this.basemapService.basemap();
       console.info(`[MapView][${this.debugMarker}] basemap signal -> ${activeBasemap}`);
       if (this.map) {
         this.map.basemap = activeBasemap as never;
       }
+    });
+
+    effect(() => {
+      const layers = this.appState.visibleLayers$();
+      console.info(`[MapView][${this.debugMarker}] visibleLayers$ -> ${layers.length} layer(s)`);
+      this.layerRenderer.syncLayers(layers);
     });
   }
 
@@ -150,6 +161,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     try {
       console.info(`[MapView][${this.debugMarker}] creating ArcGISMap + ArcGISMapView`);
       this.map = new ArcGISMap({ basemap: 'topo-vector' });
+      this.layerRenderer.initialize(this.map);
+      this.layerRenderer.syncLayers(this.appState.visibleLayers$());
 
       this.view = new ArcGISMapView({
         container: el,
