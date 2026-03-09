@@ -3,15 +3,21 @@
   height: 100%;
 }
 
-#app-shell-left-resize-hit-area,
-#app-shell-right-resize-hit-area {
-  width: 12px;
+.scroll-area-overlay {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.scroll-area-overlay::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 @media (min-width: 768px) {
   #app-shell-left-pane,
   #app-shell-right-pane {
-    position: static !important;
+    position: relative !important;
     z-index: auto !important;
     width: auto !important;
     max-width: none !important;
@@ -19,7 +25,6 @@
     transform: none !important;
     box-shadow: none !important;
     transition: none !important;
-    overflow: auto;
     padding: 0;
   }
 

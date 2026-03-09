@@ -1,13 +1,13 @@
-<main id="app-shell-main" class="flex h-full flex-col bg-ocean-50 text-ink-900">
+<main id="app-shell-main" class="flex h-full flex-col bg-slate-50 text-ink-900">
   <header
     id="app-shell-mobile-header"
-    class="flex items-center justify-between border-b border-earth-300 bg-white px-3 py-2"
+    class="flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-2"
     [class.hidden]="!isMobileViewport"
   >
     <button
       id="app-shell-mobile-left-drawer-toggle"
       type="button"
-      class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
+      class="rounded-chip border border-slate-200 bg-white px-3 py-2 text-sm"
       (click)="openLeftDrawer()"
     >
       {{ 'layout.mobile.leftPanelButton' | translate }}
@@ -18,7 +18,7 @@
     <button
       id="app-shell-mobile-right-drawer-toggle"
       type="button"
-      class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm"
+      class="rounded-chip border border-slate-200 bg-white px-3 py-2 text-sm"
       (click)="openRightDrawer()"
     >
       {{ 'layout.mobile.rightPanelButton' | translate }}
@@ -43,78 +43,58 @@
   >
     <aside
       id="app-shell-left-pane"
-      class="fixed left-0 top-0 z-40 h-full w-80 max-w-[85vw] -translate-x-full border-r border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
+      #appShellLeftScrollArea
+      class="scroll-area-overlay fixed left-0 top-0 z-40 h-full w-80 max-w-[85vw] -translate-x-full border-r border-slate-200 bg-white shadow-lg shadow-slate-900/5 transition-transform duration-200"
       [class.translate-x-0]="leftDrawerOpen"
       [class.-translate-x-full]="!leftDrawerOpen"
+      (mouseenter)="setScrollbarInteracting('left', true)"
+      (mouseleave)="setScrollbarInteracting('left', false)"
+      (focusin)="setScrollbarInteracting('left', true)"
+      (focusout)="setScrollbarInteracting('left', false)"
     >
       <div
         id="app-shell-mobile-left-close-wrapper"
-        class="mb-3 flex justify-end"
+        class="m-3 mb-0 flex justify-end"
         [class.hidden]="!isMobileViewport"
       >
         <button
           id="app-shell-mobile-left-drawer-close"
           type="button"
-          class="rounded-chip border border-earth-300 px-3 py-1 text-sm"
+          class="rounded-chip border border-slate-200 px-3 py-1 text-sm"
           (click)="closeMobileDrawers()"
         >
           {{ 'common.close' | translate }}
         </button>
       </div>
 
-      <div
-        id="app-shell-desktop-left-pane-header"
-        class="flex justify-end p-2"
-        [class.hidden]="isMobileViewport"
+      <section
+        id="app-shell-left-pane-content"
+        class="h-full min-h-0"
+        [class.hidden]="leftCollapsed && !isMobileViewport"
       >
-        <button
-          id="app-shell-desktop-left-collapse-toggle"
-          type="button"
-          class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
-          (click)="toggleLeftCollapse()"
-        >
-          {{
-            leftCollapsed
-              ? ('layout.desktop.expand' | translate)
-              : ('layout.desktop.collapse' | translate)
-          }}
-        </button>
-      </div>
-
-      <section id="app-shell-left-pane-content" [class.hidden]="leftCollapsed && !isMobileViewport">
         <ng-content select="[slot-left]"></ng-content>
       </section>
+
+      <div
+        id="app-shell-left-overlay-scrollbar-track"
+        class="pointer-events-none absolute inset-y-0 right-0 z-20 w-3"
+      >
+        <div
+          id="app-shell-left-overlay-scrollbar-thumb"
+          class="absolute right-0.5 w-1 rounded-full bg-slate-400/70 transition-opacity duration-200"
+          [class.opacity-100]="isLeftOverlayThumbVisible()"
+          [class.opacity-0]="!isLeftOverlayThumbVisible()"
+          [class.hidden]="leftOverlayScrollbar.thumbHeight() === 0"
+          [style.height.px]="leftOverlayScrollbar.thumbHeight()"
+          [style.top.px]="leftOverlayScrollbar.thumbTop()"
+        ></div>
+      </div>
     </aside>
 
     <section
       id="app-shell-center-pane"
-      class="relative flex h-full min-w-0 flex-col overflow-hidden bg-ocean-50"
+      class="relative flex h-full min-w-0 flex-col overflow-hidden bg-white"
     >
-      <div
-        id="app-shell-desktop-center-toolbar"
-        class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-between p-2"
-        [class.hidden]="isMobileViewport"
-      >
-        <button
-          id="app-shell-desktop-left-reopen-button"
-          type="button"
-          class="pointer-events-auto rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
-          [class.invisible]="!leftCollapsed"
-          (click)="toggleLeftCollapse()"
-        >
-          {{ 'layout.desktop.showLeft' | translate }}
-        </button>
-        <button
-          id="app-shell-desktop-right-reopen-button"
-          type="button"
-          class="pointer-events-auto rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
-          [class.invisible]="!rightCollapsed"
-          (click)="toggleRightCollapse()"
-        >
-          {{ 'layout.desktop.showRight' | translate }}
-        </button>
-      </div>
-
       <section id="app-shell-center-pane-content" class="h-full min-h-0">
         <ng-content select="[slot-center]"></ng-content>
       </section>
@@ -122,66 +102,136 @@
 
     <aside
       id="app-shell-right-pane"
-      class="fixed right-0 top-0 z-40 h-full w-80 max-w-[85vw] translate-x-full border-l border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
+      #appShellRightScrollArea
+      class="scroll-area-overlay fixed right-0 top-0 z-40 h-full w-80 max-w-[85vw] translate-x-full border-l border-slate-200 bg-white shadow-lg shadow-slate-900/5 transition-transform duration-200"
       [class.translate-x-0]="rightDrawerOpen"
       [class.translate-x-full]="!rightDrawerOpen"
+      (mouseenter)="setScrollbarInteracting('right', true)"
+      (mouseleave)="setScrollbarInteracting('right', false)"
+      (focusin)="setScrollbarInteracting('right', true)"
+      (focusout)="setScrollbarInteracting('right', false)"
     >
       <div
         id="app-shell-mobile-right-close-wrapper"
-        class="mb-3 flex justify-end"
+        class="m-3 mb-0 flex justify-end"
         [class.hidden]="!isMobileViewport"
       >
         <button
           id="app-shell-mobile-right-drawer-close"
           type="button"
-          class="rounded-chip border border-earth-300 px-3 py-1 text-sm"
+          class="rounded-chip border border-slate-200 px-3 py-1 text-sm"
           (click)="closeMobileDrawers()"
         >
           {{ 'common.close' | translate }}
         </button>
       </div>
 
-      <div
-        id="app-shell-desktop-right-pane-header"
-        class="flex justify-start p-2"
-        [class.hidden]="isMobileViewport"
-      >
-        <button
-          id="app-shell-desktop-right-collapse-toggle"
-          type="button"
-          class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm"
-          (click)="toggleRightCollapse()"
-        >
-          {{
-            rightCollapsed
-              ? ('layout.desktop.expand' | translate)
-              : ('layout.desktop.collapse' | translate)
-          }}
-        </button>
-      </div>
-
       <section
         id="app-shell-right-pane-content"
+        class="h-full min-h-0"
         [class.hidden]="rightCollapsed && !isMobileViewport"
       >
         <ng-content select="[slot-right]"></ng-content>
       </section>
+
+      <div
+        id="app-shell-right-overlay-scrollbar-track"
+        class="pointer-events-none absolute inset-y-0 right-0 z-20 w-3"
+      >
+        <div
+          id="app-shell-right-overlay-scrollbar-thumb"
+          class="absolute right-0.5 w-1 rounded-full bg-slate-400/70 transition-opacity duration-200"
+          [class.opacity-100]="isRightOverlayThumbVisible()"
+          [class.opacity-0]="!isRightOverlayThumbVisible()"
+          [class.hidden]="rightOverlayScrollbar.thumbHeight() === 0"
+          [style.height.px]="rightOverlayScrollbar.thumbHeight()"
+          [style.top.px]="rightOverlayScrollbar.thumbTop()"
+        ></div>
+      </div>
     </aside>
 
     <div
       id="app-shell-left-resize-hit-area"
-      class="absolute inset-y-0 z-20 cursor-col-resize"
+      class="absolute inset-y-0 z-20 w-3 cursor-col-resize"
       [class.hidden]="isMobileViewport || leftCollapsed"
       [style.left]="leftResizeHandleOffset"
       (mousedown)="startResize('left', $event)"
     ></div>
 
+    <button
+      id="app-shell-left-boundary-toggle"
+      type="button"
+      class="absolute top-5 z-30 flex h-9 w-6 items-center justify-center rounded-r-lg border border-slate-200 bg-white/96 text-slate-400 shadow-sm shadow-slate-900/8 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+      [class.hidden]="isMobileViewport"
+      [style.left]="leftCollapseControlOffset"
+      [attr.aria-label]="
+        leftCollapsed
+          ? ('layout.desktop.showLeft' | translate)
+          : ('layout.desktop.collapse' | translate)
+      "
+      [attr.title]="
+        leftCollapsed
+          ? ('layout.desktop.showLeft' | translate)
+          : ('layout.desktop.collapse' | translate)
+      "
+      (click)="toggleLeftCollapse()"
+    >
+      <span
+        id="app-shell-left-boundary-toggle-icon"
+        aria-hidden="true"
+        class="text-base leading-none"
+      >
+        {{ leftCollapsed ? '›' : '‹' }}
+      </span>
+      <span id="app-shell-left-boundary-toggle-label" class="sr-only">
+        {{
+          leftCollapsed
+            ? ('layout.desktop.showLeft' | translate)
+            : ('layout.desktop.collapse' | translate)
+        }}
+      </span>
+    </button>
+
     <div
       id="app-shell-right-resize-hit-area"
-      class="absolute inset-y-0 z-20 cursor-col-resize"
+      class="absolute inset-y-0 z-20 w-3 cursor-col-resize"
       [class.hidden]="isMobileViewport || rightCollapsed"
       [style.right]="rightResizeHandleOffset"
       (mousedown)="startResize('right', $event)"
     ></div>
+
+    <button
+      id="app-shell-right-boundary-toggle"
+      type="button"
+      class="absolute top-5 z-30 flex h-9 w-6 items-center justify-center rounded-l-lg border border-slate-200 bg-white/96 text-slate-400 shadow-sm shadow-slate-900/8 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+      [class.hidden]="isMobileViewport"
+      [style.right]="rightCollapseControlOffset"
+      [attr.aria-label]="
+        rightCollapsed
+          ? ('layout.desktop.showRight' | translate)
+          : ('layout.desktop.collapse' | translate)
+      "
+      [attr.title]="
+        rightCollapsed
+          ? ('layout.desktop.showRight' | translate)
+          : ('layout.desktop.collapse' | translate)
+      "
+      (click)="toggleRightCollapse()"
+    >
+      <span
+        id="app-shell-right-boundary-toggle-icon"
+        aria-hidden="true"
+        class="text-base leading-none"
+      >
+        {{ rightCollapsed ? '‹' : '›' }}
+      </span>
+      <span id="app-shell-right-boundary-toggle-label" class="sr-only">
+        {{
+          rightCollapsed
+            ? ('layout.desktop.showRight' | translate)
+            : ('layout.desktop.collapse' | translate)
+        }}
+      </span>
+    </button>
   </section>
 </main>

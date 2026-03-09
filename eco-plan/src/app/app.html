@@ -1,22 +1,15 @@
 <app-header id="foundation-header"></app-header>
 <app-shell id="foundation-app-shell">
-  <section id="foundation-left-sidebar-slot" slot-left class="h-full bg-slate-50/80 p-3">
+  <section id="foundation-left-sidebar-slot" slot-left class="h-full min-h-0 bg-white">
     <app-sidebar-container
       id="solution-controls-left-sidebar-container"
       (solutionFinderRequested)="openSolutionFinderModal()"
     ></app-sidebar-container>
   </section>
 
-  <section
-    id="foundation-center-slot"
-    slot-center
-    class="h-full min-h-0 bg-slate-100/70 p-3 md:p-4"
-  >
+  <section id="foundation-center-slot" slot-center class="h-full min-h-0 bg-white p-0">
     <h1 id="map-panel-title" class="sr-only">{{ 'app.mapTitle' | translate }}</h1>
-    <div
-      id="foundation-map-panel-shell"
-      class="relative h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md"
-    >
+    <div id="foundation-map-panel-shell" class="relative h-full overflow-hidden bg-white">
       <app-map-view
         id="foundation-map-view-component"
         class="block h-full w-full min-w-0"
@@ -61,7 +54,7 @@
   <section
     id="foundation-right-sidebar-slot"
     slot-right
-    class="h-full min-h-0 bg-slate-50/80 p-4 text-sm text-slate-800"
+    class="h-full min-h-0 bg-white text-sm text-slate-800"
   >
     <app-panel-switcher
       id="foundation-right-sidebar-panel-switcher"

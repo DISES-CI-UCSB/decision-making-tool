@@ -1,11 +1,8 @@
 <section
   id="left-sidebar-container"
-  class="flex h-full flex-col gap-3 overflow-y-auto rounded-panel border border-earth-300 bg-slate-50/80 p-3 text-sm text-ink-900"
+  class="flex h-full min-h-0 flex-col bg-white p-0 text-sm text-ink-900"
 >
-  <section
-    id="left-sidebar-onboarding-panel"
-    class="rounded-panel border border-emerald-200 bg-white p-4 shadow-sm"
-  >
+  <section id="left-sidebar-onboarding-panel" class="border-b border-slate-200 bg-white p-4">
     <div id="left-sidebar-onboarding-content" class="space-y-4">
       <header id="left-sidebar-onboarding-header" class="space-y-2">
         <p
@@ -64,7 +61,7 @@
           @for (step of onboardingSteps; track step.id; let index = $index) {
             <article
               [id]="'left-sidebar-onboarding-step-card-' + step.id"
-              class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+              class="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4"
             >
               <div
                 [id]="'left-sidebar-onboarding-step-card-content-' + step.id"
@@ -102,27 +99,29 @@
   @for (section of sectionSlots; track section.id) {
     <article
       [id]="'left-sidebar-section-' + section.id"
-      class="rounded-panel border border-earth-300 bg-white shadow-sm"
+      class="border-b border-slate-200 bg-white"
       [class.mt-auto]="section.stickToBottom === true"
     >
-      <div
-        [id]="'left-sidebar-section-header-' + section.id"
-        class="flex items-center justify-between gap-2 border-b border-earth-300 px-3 py-2"
-      >
-        <h3 [id]="'left-sidebar-section-title-' + section.id" class="text-sm font-semibold">
-          {{ section.title }}
-        </h3>
-
-        <button
-          [id]="'left-sidebar-section-toggle-' + section.id"
-          type="button"
-          class="rounded-chip border border-earth-300 px-2 py-1 text-xs transition hover:bg-earth-100"
-          [attr.aria-expanded]="!section.isCollapsed"
-          [attr.aria-controls]="'left-sidebar-section-content-' + section.id"
-          (click)="toggleSection(section.id)"
+      <div [id]="'left-sidebar-section-header-' + section.id" class="border-b border-slate-200">
+        <div
+          [id]="'left-sidebar-section-header-row-' + section.id"
+          class="flex items-center justify-between gap-2 px-3 py-2"
         >
-          {{ section.isCollapsed ? 'Expand' : 'Collapse' }}
-        </button>
+          <h3 [id]="'left-sidebar-section-title-' + section.id" class="text-sm font-semibold">
+            {{ section.title }}
+          </h3>
+
+          <button
+            [id]="'left-sidebar-section-toggle-' + section.id"
+            type="button"
+            class="rounded-chip border border-slate-200 bg-white px-2 py-1 text-xs transition hover:bg-slate-100"
+            [attr.aria-expanded]="!section.isCollapsed"
+            [attr.aria-controls]="'left-sidebar-section-content-' + section.id"
+            (click)="toggleSection(section.id)"
+          >
+            {{ section.isCollapsed ? 'Expand' : 'Collapse' }}
+          </button>
+        </div>
       </div>
 
       @if (!section.isCollapsed) {
@@ -130,10 +129,7 @@
           [id]="'left-sidebar-section-content-' + section.id"
           class="px-3 py-3 text-xs text-ink-900/70"
         >
-          <div
-            [id]="'left-sidebar-section-slot-' + section.id"
-            class="rounded-chip bg-earth-100 p-2"
-          >
+          <div [id]="'left-sidebar-section-slot-' + section.id" class="rounded-xl bg-slate-100 p-2">
             {{ section.title }} placeholder
           </div>
         </div>

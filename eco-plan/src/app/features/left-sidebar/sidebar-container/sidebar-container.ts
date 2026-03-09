@@ -20,6 +20,7 @@ interface OnboardingStep {
   standalone: true,
   imports: [CommonModule, TranslatePipe],
   templateUrl: './sidebar-container.html',
+  styleUrl: './sidebar-container.scss',
 })
 export class SidebarContainerComponent {
   @Output() readonly solutionFinderRequested = new EventEmitter<void>();
