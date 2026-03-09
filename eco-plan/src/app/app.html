@@ -1,31 +1,72 @@
 <app-header id="foundation-header"></app-header>
 <app-shell id="foundation-app-shell">
-  <section id="foundation-left-sidebar-slot" slot-left class="h-full p-3 text-sm text-ink-900">
-    <h2 id="foundation-left-sidebar-title" class="mb-2 text-base font-semibold">
-      {{ 'layout.leftSidebarTitle' | translate }}
-    </h2>
-    <p id="foundation-left-sidebar-description">
-      {{ 'layout.leftSidebarPlaceholder' | translate }}
-    </p>
+  <section id="foundation-left-sidebar-slot" slot-left class="h-full bg-slate-50/80 p-3">
+    <app-sidebar-container id="solution-controls-left-sidebar-container"></app-sidebar-container>
   </section>
 
-  <section id="foundation-center-slot" slot-center class="h-full min-h-0">
+  <section
+    id="foundation-center-slot"
+    slot-center
+    class="h-full min-h-0 bg-slate-100/70 p-3 md:p-4"
+  >
     <h1 id="map-panel-title" class="sr-only">{{ 'app.mapTitle' | translate }}</h1>
-    <app-map-view
-      id="foundation-map-view-component"
-      class="block h-full w-full min-w-0"
-    ></app-map-view>
+    <div
+      id="foundation-map-panel-shell"
+      class="relative h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md"
+    >
+      <app-map-view
+        id="foundation-map-view-component"
+        class="block h-full w-full min-w-0"
+      ></app-map-view>
+      <section
+        id="foundation-map-demo-legend-card"
+        class="pointer-events-none absolute left-3 top-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm"
+      >
+        <h2
+          id="foundation-map-demo-legend-title"
+          class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+        >
+          Demo Layers
+        </h2>
+        <ul id="foundation-map-demo-legend-list" class="mt-2 space-y-1.5 text-xs text-slate-700">
+          <li id="foundation-map-demo-legend-biodiversity-item" class="flex items-center gap-2">
+            <span
+              id="foundation-map-demo-legend-biodiversity-dot"
+              class="h-2 w-2 rounded-full bg-emerald-500"
+            ></span>
+            Biodiversity Priority
+          </li>
+          <li id="foundation-map-demo-legend-carbon-item" class="flex items-center gap-2">
+            <span
+              id="foundation-map-demo-legend-carbon-dot"
+              class="h-2 w-2 rounded-full bg-sky-500"
+            ></span>
+            Carbon Storage
+          </li>
+          <li id="foundation-map-demo-legend-cost-item" class="flex items-center gap-2">
+            <span
+              id="foundation-map-demo-legend-cost-dot"
+              class="h-2 w-2 rounded-full bg-amber-500"
+            ></span>
+            Implementation Cost
+          </li>
+        </ul>
+      </section>
+    </div>
   </section>
 
   <section
     id="foundation-right-sidebar-slot"
     slot-right
-    class="h-full space-y-3 p-3 text-sm text-ink-900"
+    class="h-full space-y-4 bg-slate-50/80 p-4 text-sm text-slate-800"
   >
-    <h2 id="foundation-right-sidebar-title" class="mb-2 text-base font-semibold">
+    <h2
+      id="foundation-right-sidebar-title"
+      class="text-base font-semibold tracking-tight text-slate-900"
+    >
       {{ 'layout.rightSidebarTitle' | translate }}
     </h2>
-    <p id="foundation-right-sidebar-description">
+    <p id="foundation-right-sidebar-description" class="text-sm leading-6 text-slate-600">
       {{ 'layout.rightSidebarPlaceholder' | translate }}
     </p>
 
@@ -68,4 +109,47 @@
     </app-panel-container>
   </section>
 </app-shell>
+<app-modal-shell
+  id="solution-finder-modal-shell"
+  rootId="solution-finder-modal-shell-root"
+  mode="full-screen"
+  titleKey="solutionControls.modal.solutionFinderTitle"
+  [isOpen]="solutionFinderModalOpen"
+  [closeOnBackdrop]="true"
+  [closeOnEscape]="true"
+  [showCloseButton]="true"
+  (requestClose)="closeSolutionFinderModal()"
+>
+  <section id="solution-finder-modal-content-shell" class="h-full p-4 md:p-6"></section>
+</app-modal-shell>
+
+<app-modal-shell
+  id="perspective-modal-shell"
+  rootId="perspective-modal-shell-root"
+  mode="standard"
+  titleKey="solutionControls.modal.perspectiveTitle"
+  [isOpen]="perspectiveModalOpen"
+  [closeOnBackdrop]="true"
+  [closeOnEscape]="true"
+  [showCloseButton]="true"
+  (requestClose)="closePerspectiveModal()"
+>
+  <section id="perspective-modal-demo-content" class="space-y-3">
+    <h2 id="perspective-modal-demo-heading" class="text-base font-semibold text-ink-900">
+      {{ 'solutionControls.modal.perspectiveHeading' | translate }}
+    </h2>
+    <p id="perspective-modal-demo-description" class="text-sm text-ink-900">
+      {{ 'solutionControls.modal.perspectiveDescription' | translate }}
+    </p>
+    <button
+      id="perspective-modal-demo-close-button"
+      type="button"
+      class="rounded-chip border border-earth-300 bg-white px-3 py-2 text-sm transition hover:bg-earth-100"
+      (click)="closePerspectiveModal()"
+    >
+      {{ 'common.close' | translate }}
+    </button>
+  </section>
+</app-modal-shell>
+
 <router-outlet id="app-router-outlet"></router-outlet>

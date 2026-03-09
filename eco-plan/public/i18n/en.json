@@ -55,5 +55,15 @@
       "showLeft": "Show Left",
       "showRight": "Show Right"
     }
+  },
+  "solutionControls": {
+    "modal": {
+      "openSolutionFinder": "Open Solution Finder Modal",
+      "openPerspective": "Open Perspective Modal",
+      "solutionFinderTitle": "Solution Finder",
+      "perspectiveTitle": "Perspective Selector",
+      "perspectiveHeading": "Standard modal shell",
+      "perspectiveDescription": "This modal uses the standard shell mode and shares the same close behavior and accessibility features."
+    }
   }
 }

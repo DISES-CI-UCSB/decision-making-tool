@@ -55,5 +55,15 @@
       "showLeft": "Mostrar izquierda",
       "showRight": "Mostrar derecha"
     }
+  },
+  "solutionControls": {
+    "modal": {
+      "openSolutionFinder": "Abrir modal de busqueda de soluciones",
+      "openPerspective": "Abrir modal de perspectivas",
+      "solutionFinderTitle": "Buscador de Soluciones",
+      "perspectiveTitle": "Selector de Perspectiva",
+      "perspectiveHeading": "Shell modal estandar",
+      "perspectiveDescription": "Este modal usa el modo estandar del shell y comparte el mismo comportamiento de cierre y funciones de accesibilidad."
+    }
   }
 }

@@ -1,5 +1,4 @@
 <main id="app-shell-main" class="flex h-full flex-col bg-ocean-50 text-ink-900">
-  <!-- ═══ Mobile top bar ═══ -->
   <header
     id="app-shell-mobile-header"
     class="flex items-center justify-between border-b border-earth-300 bg-white px-3 py-2"
@@ -26,7 +25,6 @@
     </button>
   </header>
 
-  <!-- ═══ Mobile backdrop overlay ═══ -->
   <div
     id="app-shell-mobile-overlay"
     class="fixed inset-0 z-30 bg-black/30"
@@ -37,18 +35,12 @@
     (keydown.space)="closeMobileDrawers()"
   ></div>
 
-  <!-- ═══ Content area ═══ -->
-  <!-- Mobile: block layout with fixed-position sidebar drawers -->
-  <!-- Desktop: 5-column CSS grid (left | handle | center | handle | right) -->
   <section
     id="app-shell-content"
     class="relative min-h-0 flex-1"
     [class.grid]="!isMobileViewport"
     [style.gridTemplateColumns]="!isMobileViewport ? desktopGridTemplateColumns : null"
   >
-    <!-- ─── Left sidebar ─── -->
-    <!-- Mobile: off-screen fixed drawer, slides in via translate -->
-    <!-- Desktop: static grid column (SCSS media query overrides fixed positioning) -->
     <aside
       id="app-shell-left-pane"
       class="fixed left-0 top-0 z-40 h-full w-80 max-w-[85vw] -translate-x-full border-r border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
@@ -94,7 +86,6 @@
       </section>
     </aside>
 
-    <!-- ─── Center pane (always visible) ─── -->
     <section
       id="app-shell-center-pane"
       class="relative flex h-full min-w-0 flex-col overflow-hidden bg-ocean-50"
@@ -129,9 +120,6 @@
       </section>
     </section>
 
-    <!-- ─── Right sidebar ─── -->
-    <!-- Mobile: off-screen fixed drawer, slides in via translate -->
-    <!-- Desktop: static grid column (SCSS media query overrides fixed positioning) -->
     <aside
       id="app-shell-right-pane"
       class="fixed right-0 top-0 z-40 h-full w-80 max-w-[85vw] translate-x-full border-l border-earth-300 bg-white p-3 shadow-lg transition-transform duration-200"
