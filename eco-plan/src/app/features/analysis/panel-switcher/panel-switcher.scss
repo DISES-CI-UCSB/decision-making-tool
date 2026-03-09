@@ -26,10 +26,6 @@
   }
 }
 
-.right-sidebar-panel-tab-button:hover {
-  background-color: rgb(248 250 252);
-}
-
-.right-sidebar-panel-tab-button[aria-current='page']:hover {
-  background-color: rgb(241 245 249);
+.right-sidebar-panel-tab-button[aria-selected='false']:hover {
+  background-color: rgb(248 250 252 / 80%);
 }

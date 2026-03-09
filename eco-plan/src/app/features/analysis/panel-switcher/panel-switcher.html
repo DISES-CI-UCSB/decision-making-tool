@@ -2,20 +2,29 @@
   id="right-sidebar-panel-switcher"
   class="flex h-full min-h-0 flex-col overflow-hidden bg-white"
 >
-  <nav id="right-sidebar-panel-tab-nav" class="bg-white" aria-label="Right sidebar view tabs">
+  <nav
+    id="right-sidebar-panel-tab-nav"
+    class="bg-white"
+    aria-label="Right sidebar view tabs"
+    role="tablist"
+  >
     <div id="right-sidebar-panel-tab-nav-content" class="grid h-12 grid-cols-3">
       @for (tab of sidebarTabs; track tab) {
         <button
           [id]="'right-sidebar-panel-tab-' + tab"
           type="button"
-          class="right-sidebar-panel-tab-button flex h-full w-full items-center justify-center border-b border-slate-200 px-2 text-center text-sm font-semibold leading-tight text-slate-500 transition-colors"
+          class="right-sidebar-panel-tab-button relative flex h-full w-full items-center justify-center border-b-2 px-2 text-center text-sm font-semibold leading-tight text-slate-500 transition-colors duration-150 ease-out focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
           [class.bg-slate-100]="isTabActive(tab)"
-          [class.border-b-2]="isTabActive(tab)"
-          [class.border-slate-700]="isTabActive(tab)"
+          [class.border-slate-900]="isTabActive(tab)"
+          [class.border-slate-200]="!isTabActive(tab)"
           [class.text-slate-900]="isTabActive(tab)"
           [class.text-slate-500]="!isTabActive(tab)"
+          [class.hover:bg-slate-50]="!isTabActive(tab)"
           [class.hover:text-slate-700]="!isTabActive(tab)"
           [attr.aria-current]="isTabActive(tab) ? 'page' : null"
+          role="tab"
+          [attr.aria-selected]="isTabActive(tab)"
+          aria-controls="right-sidebar-panel-switcher-content-shell"
           (click)="selectTab(tab)"
         >
           {{ getTabLabelKey(tab) | translate }}
