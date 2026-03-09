@@ -1,0 +1,40 @@
+<section
+  id="analysis-panel-switcher-root"
+  class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto"
+>
+  <nav
+    id="analysis-panel-switcher-tabs"
+    aria-label="Analysis panel views"
+    class="flex flex-wrap gap-2"
+  >
+    @for (panel of panelOptions; track panel.id) {
+      <button
+        [id]="'analysis-panel-switcher-tab-' + panel.id"
+        type="button"
+        class="rounded-chip border px-3 py-2 text-xs font-medium transition"
+        [ngClass]="
+          isActivePanel(panel.id)
+            ? 'border-ocean-500 bg-ocean-500 text-white'
+            : 'border-earth-300 bg-white text-ink-900 hover:border-ocean-300 hover:bg-ocean-50'
+        "
+        [attr.aria-pressed]="isActivePanel(panel.id)"
+        (click)="setActivePanel(panel.id)"
+      >
+        {{ panel.titleKey | translate }}
+      </button>
+    }
+  </nav>
+
+  <app-panel-container
+    id="analysis-panel-switcher-panel"
+    rootId="analysis-panel-switcher-panel-root"
+    [titleKey]="activePanel.titleKey"
+  >
+    <div
+      id="analysis-panel-switcher-panel-content"
+      class="rounded-panel border border-dashed border-earth-300 bg-ocean-50 p-3 text-sm text-ink-700"
+    >
+      {{ activePanel.descriptionKey | translate }}
+    </div>
+  </app-panel-container>
+</section>
