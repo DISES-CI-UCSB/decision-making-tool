@@ -58,4 +58,36 @@ describe('FinderModalComponent', () => {
 
     expect(closeRequestedSpy).toHaveBeenCalled();
   });
+
+  it('emits scenarioApplied and closeRequested when apply is called with a selected match', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance;
+    const scenarioAppliedSpy = vi.spyOn(component.scenarioApplied, 'emit');
+    const closeRequestedSpy = vi.spyOn(component.closeRequested, 'emit');
+
+    const selectedMatch = {
+      id: 'scenario-jaguar-corridor',
+      solutionId: 'sol-001',
+      scenarioId: 'Ecos30+RUNAP_HF',
+      name: 'Jaguar Corridor Emphasis',
+      description: 'Sample scenario description',
+      mapLabel: 'Corridor Strength',
+      ecosystemTargets: 30,
+      selectedUnits: 387656,
+      matchPercentage: 91,
+    };
+    (
+      component as unknown as {
+        selectedMatch: typeof selectedMatch;
+        selectedMatchId: string;
+        applySelectedScenario: () => void;
+      }
+    ).selectedMatch = selectedMatch;
+    (component as unknown as { selectedMatchId: string }).selectedMatchId = selectedMatch.id;
+
+    (component as unknown as { applySelectedScenario: () => void }).applySelectedScenario();
+
+    expect(scenarioAppliedSpy).toHaveBeenCalledWith(selectedMatch);
+    expect(closeRequestedSpy).toHaveBeenCalled();
+  });
 });

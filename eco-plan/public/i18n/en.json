@@ -232,6 +232,9 @@
         "scenarioJaguarCorridor": "Higher emphasis on species corridor continuity near protected area buffers.",
         "scenarioAndesWater": "Balances cloud-forest protection and water regulation targets in upland basins.",
         "scenarioCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."
+      },
+      "toast": {
+        "solutionLoaded": "Solution loaded"
       }
     }
   }
