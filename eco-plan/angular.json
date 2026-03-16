@@ -39,6 +39,16 @@
                 "glob": "**/*",
                 "input": "node_modules/@arcgis/map-components/dist/cdn/assets",
                 "output": "assets/arcgis-map-components"
+              },
+              {
+                "glob": "*.tif",
+                "input": "../data/Nacional_1km_solutions",
+                "output": "data/solutions"
+              },
+              {
+                "glob": "*.csv",
+                "input": "../data/Nacional_1km_solutions",
+                "output": "data/solutions"
               }
             ],
             "styles": ["src/tailwind.css", "src/styles.scss"],
@@ -49,11 +59,12 @@
           },
           "configurations": {
             "production": {
+              "allowedCommonJsDependencies": ["lerc"],
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "3.5MB",
+                  "maximumError": "5MB"
                 },
                 {
                   "type": "anyComponentStyle",

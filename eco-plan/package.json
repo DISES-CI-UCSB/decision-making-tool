@@ -24,6 +24,7 @@
     "@arcgis/map-components": "^5.0.9",
     "@ngx-translate/core": "^17.0.0",
     "@ngx-translate/http-loader": "^17.0.0",
+    "geotiff": "^3.0.5",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

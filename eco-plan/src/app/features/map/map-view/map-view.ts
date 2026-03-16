@@ -16,6 +16,9 @@ import ScaleBar from '@arcgis/core/widgets/ScaleBar';
 import { AppStateService } from '@core/services/app-state.service';
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
+import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { SolutionLegendComponent } from '@features/map/components/solution-legend/solution-legend';
+import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
@@ -23,6 +26,7 @@ const COLOMBIA_ZOOM = 6;
 @Component({
   selector: 'app-map-view',
   standalone: true,
+  imports: [SolutionLegendComponent, DevToolsPanelComponent],
   templateUrl: './map-view.html',
   styleUrl: './map-view.scss',
   host: {
@@ -39,6 +43,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private attributionWidget: InstanceType<typeof Attribution> | null = null;
   private readonly basemapService = inject(MapBasemapService);
   private readonly layerRenderer = inject(LayerRendererService);
+  private readonly solutionLayer = inject(SolutionLayerService);
   private readonly appState = inject(AppStateService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly debugMarker = 'UCS-40-layer-infra-v1';
@@ -162,6 +167,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       console.info(`[MapView][${this.debugMarker}] creating ArcGISMap + ArcGISMapView`);
       this.map = new ArcGISMap({ basemap: 'topo-vector' });
       this.layerRenderer.initialize(this.map);
+      this.solutionLayer.initialize(this.map);
       this.layerRenderer.syncLayers(this.appState.visibleLayers$());
 
       this.view = new ArcGISMapView({

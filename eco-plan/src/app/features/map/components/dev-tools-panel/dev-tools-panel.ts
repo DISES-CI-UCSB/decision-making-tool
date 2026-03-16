@@ -1,0 +1,222 @@
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+
+@Component({
+  selector: 'app-dev-tools-panel',
+  standalone: true,
+  template: `
+    <div id="dev-tools-toggle" class="pointer-events-auto absolute bottom-3 right-3 z-20">
+      <button
+        id="dev-tools-toggle-btn"
+        type="button"
+        class="rounded-lg border border-slate-300 bg-white/95 px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+        (click)="isOpen.set(!isOpen())"
+      >
+        {{ isOpen() ? 'Close DevTools' : 'DevTools' }}
+      </button>
+    </div>
+
+    @if (isOpen()) {
+      <div
+        id="dev-tools-panel"
+        class="pointer-events-auto absolute bottom-12 right-3 z-20 w-96 max-h-[70vh] overflow-auto rounded-xl border border-slate-200 bg-white/98 p-4 shadow-lg font-mono text-xs"
+      >
+        <h3 id="dev-tools-title" class="text-sm font-bold text-slate-800 mb-3">
+          Solution Dev Tools
+        </h3>
+
+        <!-- Scenario Picker -->
+        <section id="dev-tools-scenario-picker" class="mb-3">
+          <label
+            id="dev-tools-scenario-label"
+            for="dev-tools-scenario-select"
+            class="block text-slate-500 mb-1"
+            >Load Scenario</label
+          >
+          <select
+            id="dev-tools-scenario-select"
+            class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
+            [value]="selectedScenarioId()"
+            (change)="onScenarioChange($event)"
+          >
+            <option value="">-- select --</option>
+            @for (s of scenarios; track s.id) {
+              <option [value]="s.id">{{ s.id }}</option>
+            }
+          </select>
+          <div id="dev-tools-scenario-actions" class="mt-1.5 flex gap-1.5">
+            <button
+              id="dev-tools-load-btn"
+              type="button"
+              class="rounded border border-emerald-400 bg-emerald-50 px-2 py-1 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
+              [disabled]="!selectedScenarioId() || solutionLayer.isLoading$()"
+              (click)="loadScenario()"
+            >
+              {{ solutionLayer.isLoading$() ? 'Loading...' : 'Load on Map' }}
+            </button>
+            <button
+              id="dev-tools-clear-btn"
+              type="button"
+              class="rounded border border-red-300 bg-red-50 px-2 py-1 text-red-600 hover:bg-red-100"
+              (click)="clearSolution()"
+            >
+              Clear
+            </button>
+          </div>
+        </section>
+
+        @if (solutionLayer.loadError$()) {
+          <div
+            id="dev-tools-error"
+            class="mb-3 rounded bg-red-50 border border-red-200 p-2 text-red-700"
+          >
+            {{ solutionLayer.loadError$() }}
+          </div>
+        }
+
+        @if (loaded(); as sol) {
+          <!-- Scenario Info -->
+          <section id="dev-tools-scenario-info" class="mb-3 border-t border-slate-200 pt-3">
+            <h4 id="dev-tools-scenario-info-title" class="font-bold text-slate-700 mb-1">
+              Scenario
+            </h4>
+            <dl id="dev-tools-scenario-dl" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+              <dt class="text-slate-400">ID</dt>
+              <dd class="text-slate-800">{{ sol.scenario.id }}</dd>
+              <dt class="text-slate-400">Targets</dt>
+              <dd class="text-slate-800">{{ sol.scenario.ecosystemTargets }}%</dd>
+              <dt class="text-slate-400">Constraints</dt>
+              <dd class="text-slate-800">{{ sol.scenario.constraints.join(', ') }}</dd>
+              <dt class="text-slate-400">Cost Layer</dt>
+              <dd class="text-slate-800">{{ sol.scenario.costLayer }}</dd>
+              <dt class="text-slate-400">Description</dt>
+              <dd class="text-slate-800">{{ sol.scenario.description }}</dd>
+            </dl>
+          </section>
+
+          <!-- Raster Metadata -->
+          <section id="dev-tools-raster-meta" class="mb-3 border-t border-slate-200 pt-3">
+            <h4 id="dev-tools-raster-meta-title" class="font-bold text-slate-700 mb-1">
+              Raster Metadata
+            </h4>
+            <dl id="dev-tools-raster-dl" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+              <dt class="text-slate-400">Dimensions</dt>
+              <dd class="text-slate-800">
+                {{ sol.rasterMeta.width }} x {{ sol.rasterMeta.height }}
+              </dd>
+              <dt class="text-slate-400">CRS</dt>
+              <dd class="text-slate-800">{{ sol.rasterMeta.crs }}</dd>
+              <dt class="text-slate-400">Bands</dt>
+              <dd class="text-slate-800">{{ sol.rasterMeta.bandCount }}</dd>
+              <dt class="text-slate-400">Resolution</dt>
+              <dd class="text-slate-800">{{ formatRes(sol.rasterMeta.resolution) }}</dd>
+              <dt class="text-slate-400">Extent</dt>
+              <dd class="text-slate-800">{{ formatBbox(sol.rasterMeta.bbox) }}</dd>
+              <dt class="text-slate-400">NoData</dt>
+              <dd class="text-slate-800">{{ sol.rasterMeta.noDataValue ?? 'none' }}</dd>
+            </dl>
+          </section>
+
+          <!-- Statistics -->
+          <section id="dev-tools-stats" class="mb-3 border-t border-slate-200 pt-3">
+            <h4 id="dev-tools-stats-title" class="font-bold text-slate-700 mb-1">
+              Selection Statistics
+            </h4>
+            <dl id="dev-tools-stats-dl" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+              <dt class="text-slate-400">Selected</dt>
+              <dd class="text-slate-800">
+                {{ sol.rasterMeta.selectedCount.toLocaleString() }} cells
+              </dd>
+              <dt class="text-slate-400">Total Valid</dt>
+              <dd class="text-slate-800">
+                {{ sol.rasterMeta.totalValidCells.toLocaleString() }} cells
+              </dd>
+              <dt class="text-slate-400">Selected %</dt>
+              <dd class="text-slate-800">{{ sol.rasterMeta.selectedPct.toFixed(1) }}%</dd>
+              <dt class="text-slate-400">Cost</dt>
+              <dd class="text-slate-800">{{ sol.scenario.totalCost.toLocaleString() }}</dd>
+              <dt class="text-slate-400">Load Time</dt>
+              <dd class="text-slate-800">{{ sol.loadTimeMs }}ms</dd>
+            </dl>
+          </section>
+
+          <!-- Mini Canvas Preview -->
+          <section id="dev-tools-preview" class="border-t border-slate-200 pt-3">
+            <h4 id="dev-tools-preview-title" class="font-bold text-slate-700 mb-1">
+              Raster Preview
+            </h4>
+            <div
+              id="dev-tools-preview-canvas-wrapper"
+              class="rounded border border-slate-200 bg-slate-900 p-1 inline-block"
+            >
+              <canvas
+                id="dev-tools-preview-canvas"
+                #previewCanvas
+                class="block"
+                [width]="200"
+                [height]="previewHeight()"
+                style="image-rendering: pixelated;"
+              >
+              </canvas>
+            </div>
+          </section>
+        }
+      </div>
+    }
+  `,
+})
+export class DevToolsPanelComponent {
+  protected readonly solutionLayer = inject(SolutionLayerService);
+  private readonly catalog = inject(SolutionCatalogService);
+
+  readonly scenarios = this.catalog.getAll();
+  readonly selectedScenarioId = signal('');
+  readonly isOpen = signal(false);
+
+  readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
+
+  readonly previewHeight = computed(() => {
+    const sol = this.loaded();
+    if (!sol) return 140;
+    return Math.round((sol.rasterMeta.height / sol.rasterMeta.width) * 200);
+  });
+
+  constructor() {
+    effect(() => {
+      const sol = this.loaded();
+      if (!sol) return;
+      requestAnimationFrame(() => this.drawPreview(sol.canvas));
+    });
+  }
+
+  onScenarioChange(event: Event): void {
+    this.selectedScenarioId.set((event.target as HTMLSelectElement).value);
+  }
+
+  loadScenario(): void {
+    const id = this.selectedScenarioId();
+    if (id) void this.solutionLayer.showSolution(id);
+  }
+
+  clearSolution(): void {
+    this.solutionLayer.removeSolutionLayer();
+  }
+
+  formatRes(res: [number, number]): string {
+    return `${Math.abs(res[0]).toFixed(5)}° x ${Math.abs(res[1]).toFixed(5)}°`;
+  }
+
+  formatBbox(bbox: [number, number, number, number]): string {
+    return `[${bbox.map((v) => v.toFixed(2)).join(', ')}]`;
+  }
+
+  private drawPreview(source: HTMLCanvasElement): void {
+    const el = document.getElementById('dev-tools-preview-canvas') as HTMLCanvasElement | null;
+    if (!el) return;
+    const ctx = el.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, el.width, el.height);
+    ctx.drawImage(source, 0, 0, el.width, el.height);
+  }
+}
