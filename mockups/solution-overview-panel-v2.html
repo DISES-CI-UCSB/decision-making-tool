@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solution Overview Panel - v2</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Color Palette */
+            --primary-green: #059669;
+            --primary-green-light: #d1fae5;
+            --primary-green-dark: #047857;
+            
+            --primary-blue: #2563eb;
+            --primary-blue-light: #dbeafe;
+            --primary-blue-dark: #1d4ed8;
+
+            --warning-orange: #d97706;
+            --warning-orange-light: #fef3c7;
+            
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --text-light: #9ca3af;
+            
+            --bg-main: #ffffff;
+            --bg-subtle: #f9fafb;
+            --border-color: #e5e7eb;
+            
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #e5e7eb;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .sidebar {
+            width: 420px;
+            background-color: var(--bg-main);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem 1.5rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-main);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: var(--primary-green-light);
+            color: var(--primary-green-dark);
+            margin-bottom: 0.75rem;
+        }
+
+        .scenario-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            color: var(--text-main);
+        }
+
+        .scenario-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Hero Metrics */
+        .hero-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .hero-card {
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .hero-card.green {
+            border-color: #a7f3d0;
+            background-color: #f0fdf4;
+        }
+
+        .hero-card.blue {
+            border-color: #bfdbfe;
+            background-color: #f8fafc;
+        }
+
+        .hero-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hero-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .hero-card.green .hero-value { color: var(--primary-green-dark); }
+        .hero-card.blue .hero-value { color: var(--primary-blue-dark); }
+
+        .hero-subtext {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: auto;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 0.25rem;
+            display: flex;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--primary-green);
+        }
+        
+        .progress-bar-fill.blue { background-color: var(--primary-blue); }
+        .progress-bar-fill.blue-light { background-color: #93c5fd; } /* For existing protection */
+
+        /* Section Styling */
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .section-title.gains { color: var(--primary-green-dark); }
+        .section-title.costs { color: var(--warning-orange); }
+
+        .metric-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .metric-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .metric-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .metric-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+        }
+
+        .metric-icon.green { background-color: var(--primary-green-light); color: var(--primary-green-dark); }
+        .metric-icon.orange { background-color: var(--warning-orange-light); color: var(--warning-orange); }
+        .metric-icon.gray { background-color: #f3f4f6; color: var(--text-muted); }
+
+        .metric-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .metric-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .metric-value-container {
+            text-align: right;
+        }
+
+        .metric-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .metric-target {
+            font-size: 0.7rem;
+            color: var(--text-light);
+        }
+
+        .conditional-tag {
+            font-size: 0.65rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            background-color: #f3f4f6;
+            color: var(--text-muted);
+            border: 1px dashed #d1d5db;
+            margin-left: 0.5rem;
+        }
+
+        /* Action Buttons */
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-green-dark);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-subtle);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Custom Scrollbar */
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 10px;
+        }
+
+        /* Insight Box */
+        .insight-box {
+            background-color: #f8fafc;
+            border-left: 3px solid var(--primary-blue);
+            padding: 0.75rem 1rem;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+        
+        .insight-box strong {
+            color: var(--text-main);
+        }
+
+        .insight-box.gains {
+            background-color: #f0fdf4;
+            border-left-color: var(--primary-green);
+        }
+
+        .insight-box.costs {
+            background-color: #fffbeb;
+            border-left-color: var(--warning-orange);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <!-- Header -->
+        <div class="sidebar-header">
+            <div class="badge">
+                <i class="fas fa-check-circle"></i> 95% Match
+            </div>
+            <h1 class="scenario-title">Cloud Forest Protection</h1>
+            <div class="scenario-meta">
+                Generated: Mar 16, 2026 • 30% Target Scenario
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="sidebar-content">
+            
+            <!-- Hero Metrics (#1 & #17) -->
+            <div class="hero-metrics">
+                <!-- Metric #1: Conservation Goals Met -->
+                <div class="hero-card green">
+                    <div class="hero-label">Goals Met</div>
+                    <div class="hero-value">8<span style="font-size: 1rem; color: #6b7280;">/10</span></div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: 80%;"></div>
+                    </div>
+                    <div class="hero-subtext">Themes achieving target</div>
+                </div>
+                
+                <!-- Metric #17: National Contribution -->
+                <div class="hero-card blue">
+                    <div class="hero-label">Nat'l Contribution</div>
+                    <div class="hero-value">12<span style="font-size: 1rem; color: #6b7280;">%</span></div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill blue-light" style="width: 8%;" title="Existing Protection (8%)"></div>
+                        <div class="progress-bar-fill blue" style="width: 4%;" title="Added by Solution (4%)"></div>
+                    </div>
+                    <div class="hero-subtext">Adds <strong>4%</strong> to existing 8%</div>
+                </div>
+
+            </div>
+
+            <!-- Gains Section -->
+            <div class="section">
+                <div class="section-title gains">
+                    <i class="fas fa-arrow-trend-up"></i> Conservation Gains
+                </div>
+                <div class="metric-list">
+                    
+                    <!-- Metric #2: Species Groups Protected -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon green"><i class="fas fa-paw"></i></div>
+                            <div>
+                                <div class="metric-name">Species Groups</div>
+                                <div class="metric-desc">Adequate habitat protection</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">45 / 50</div>
+                            <div class="metric-target">90% of total</div>
+                        </div>
+                    </div>
+
+                    <!-- Metric #3: Threatened Species Secured -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon green"><i class="fas fa-shield-heart"></i></div>
+                            <div>
+                                <div class="metric-name">Threatened Species</div>
+                                <div class="metric-desc">IUCN status targets met</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">28 / 32</div>
+                            <div class="metric-target">88% secured</div>
+                        </div>
+                    </div>
+
+                    <!-- Metric #4: Ecosystem Coverage -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon green"><i class="fas fa-tree"></i></div>
+                            <div>
+                                <div class="metric-name">Ecosystem Coverage</div>
+                                <div class="metric-desc">Total priority area</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">125,000 km²</div>
+                            <div class="metric-target">85% of target</div>
+                        </div>
+                    </div>
+
+                    <!-- Metric #5: Carbon Storage Capacity -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon green"><i class="fas fa-leaf"></i></div>
+                            <div>
+                                <div class="metric-name">Carbon Storage</div>
+                                <div class="metric-desc">Total biomass secured</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">2.3B</div>
+                            <div class="metric-target">tCO₂e</div>
+                        </div>
+                    </div>
+
+                    <!-- Metric #6: Water Regulation Services (Conditional) -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon gray"><i class="fas fa-droplet"></i></div>
+                            <div>
+                                <div class="metric-name">Water Regulation <span class="conditional-tag">Conditional</span></div>
+                                <div class="metric-desc">Hydrological capacity</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">450M</div>
+                            <div class="metric-target">m³ index</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="insight-gains" class="insight-box gains">
+                    <strong>Insight:</strong> This scenario secures 45/50 species groups, includes 125,000 km² of ecosystem coverage, and stores 2.3 billion tCO₂e.
+                </div>
+            </div>
+
+            <!-- Costs & Trade-offs Section -->
+            <div class="section">
+                <div class="section-title costs">
+                    <i class="fas fa-scale-balanced"></i> Costs & Trade-offs
+                </div>
+                <div class="metric-list">
+                    
+                    <!-- Metric #9: Affected Agricultural Area -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon orange"><i class="fas fa-tractor"></i></div>
+                            <div>
+                                <div class="metric-name">Affected Ag. Area</div>
+                                <div class="metric-desc">Land within priorities</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">8,500 km²</div>
+                            <div class="metric-target">15% overlap</div>
+                        </div>
+                    </div>
+
+                    <!-- Metric #8: Agricultural Opportunity Cost (Conditional) -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon gray"><i class="fas fa-coins"></i></div>
+                            <div>
+                                <div class="metric-name">Ag. Opp. Cost <span class="conditional-tag">Conditional</span></div>
+                                <div class="metric-desc">Production foregone</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">$350M</div>
+                            <div class="metric-target">USD</div>
+                        </div>
+                    </div>
+
+                    <!-- Metric #13: Conflict Zone Overlap (Conditional) -->
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <div class="metric-icon gray"><i class="fas fa-triangle-exclamation"></i></div>
+                            <div>
+                                <div class="metric-name">Conflict Overlap <span class="conditional-tag">Conditional</span></div>
+                                <div class="metric-desc">Historical conflict zones</div>
+                            </div>
+                        </div>
+                        <div class="metric-value-container">
+                            <div class="metric-value">95,000 km²</div>
+                            <div class="metric-target">Area affected</div>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div id="insight-costs" class="insight-box costs">
+                    <strong>Insight:</strong> This scenario affects 8,500 km² of agricultural area, has an estimated $350M agricultural opportunity cost, and overlaps 95,000 km² of mapped conflict zones.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="sidebar-footer">
+            <button class="btn btn-primary">
+                <i class="fas fa-file-lines"></i> View Full Report
+            </button>
+            <div class="btn-group">
+                <button class="btn btn-secondary">
+                    <i class="fas fa-code-compare"></i> Compare
+                </button>
+                <button class="btn btn-secondary">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

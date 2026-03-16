@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solution Overview Panel — v3</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!--
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  CONTENT CONTRACT — Solution Overview Panel                     ║
+    ║  All theme variants (v1, v2, v3…) MUST include these elements: ║
+    ║                                                                  ║
+    ║  HEADER:  Scenario name, match badge, date                      ║
+    ║  HERO:    #1 Conservation Goals Met, #17 National Contribution  ║
+    ║  SPATIAL: Priority area km², zone count, avg size               ║
+    ║  GAINS:   #2 Species Groups, #3 Threatened Species,            ║
+    ║           #4 Ecosystem Coverage, #5 Carbon Storage,             ║
+    ║           #6 Water Regulation (Conditional)                     ║
+    ║           + Gains insight callout                               ║
+    ║  COSTS:   #9 Affected Ag Area, #8 Ag Opp Cost (Conditional),   ║
+    ║           #13 Conflict Overlap (Conditional)                    ║
+    ║           + Costs insight callout                               ║
+    ║  ANCHOR:  National Contribution progress bar w/ 30×30 target    ║
+    ║  DETAIL:  Optimization Parameters (collapsed)                   ║
+    ║  ACTIONS: View Full Report, Compare, Export                     ║
+    ╚══════════════════════════════════════════════════════════════════╝
+    -->
+    <style>
+        :root {
+            --emerald-600: #059669;
+            --emerald-500: #10b981;
+            --emerald-100: #d1fae5;
+            --emerald-50:  #ecfdf5;
+
+            --blue-600: #2563eb;
+            --blue-500: #3b82f6;
+            --blue-100: #dbeafe;
+            --blue-50:  #eff6ff;
+
+            --amber-600: #d97706;
+            --amber-500: #f59e0b;
+            --amber-100: #fef3c7;
+            --amber-50:  #fffbeb;
+
+            --slate-900: #0f172a;
+            --slate-700: #334155;
+            --slate-500: #64748b;
+            --slate-400: #94a3b8;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50:  #f8fafc;
+
+            --radius: 10px;
+            --radius-sm: 6px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--slate-900);
+            background: var(--slate-200);
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Panel Shell ── */
+        .panel {
+            width: 420px;
+            max-height: 92vh;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Overlay auto-hiding scrollbar ── */
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+        }
+        .panel-body:hover { scrollbar-color: var(--slate-300) transparent; }
+        .panel-body::-webkit-scrollbar { width: 6px; }
+        .panel-body::-webkit-scrollbar-track { background: transparent; }
+        .panel-body::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 3px;
+        }
+        .panel-body:hover::-webkit-scrollbar-thumb { background: var(--slate-300); }
+
+        /* ── Header ── */
+        .panel-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--slate-200);
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .match-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--emerald-100);
+            color: var(--emerald-600);
+        }
+        .match-badge i { font-size: 10px; }
+        .header-date {
+            font-size: 12px;
+            color: var(--slate-400);
+        }
+        .scenario-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--slate-900);
+            line-height: 1.3;
+        }
+
+        /* ── Hero Scorecard ── */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .hero-card {
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--slate-200);
+        }
+        .hero-card--goals {
+            background: var(--emerald-50);
+            border-color: #a7f3d0;
+        }
+        .hero-card--national {
+            background: var(--blue-50);
+            border-color: #bfdbfe;
+        }
+        .hero-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--slate-500);
+            margin-bottom: 4px;
+        }
+        .hero-value {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .hero-card--goals .hero-value { color: var(--emerald-600); }
+        .hero-card--national .hero-value { color: var(--blue-600); }
+        .hero-value small {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--slate-400);
+        }
+        .hero-bar {
+            height: 5px;
+            background: var(--slate-200);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 6px;
+            display: flex;
+        }
+        .hero-bar__fill--green { height: 100%; background: var(--emerald-500); }
+        .hero-bar__fill--blue-existing { height: 100%; background: #93c5fd; }
+        .hero-bar__fill--blue-added { height: 100%; background: var(--blue-600); }
+        .hero-sub {
+            font-size: 11px;
+            color: var(--slate-400);
+        }
+        .hero-sub strong { color: var(--slate-700); font-weight: 600; }
+
+        /* ── Spatial Context ── */
+        .spatial {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--slate-500);
+            flex-wrap: wrap;
+        }
+        .spatial i { color: var(--slate-400); }
+        .spatial b { color: var(--slate-700); font-weight: 600; }
+        .spatial-sep {
+            width: 1px;
+            height: 12px;
+            background: var(--slate-300);
+        }
+
+        /* ── Section ── */
+        .section { }
+        .section-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            margin-bottom: 2px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .section-head:hover .section-label { opacity: 0.75; }
+        .section-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .section-dot--gains { background: var(--emerald-500); }
+        .section-dot--costs { background: var(--amber-500); }
+        .section-label {
+            flex: 1;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--slate-500);
+        }
+        .section-chevron {
+            font-size: 10px;
+            color: var(--slate-400);
+            transition: transform 0.2s;
+        }
+        .section-chevron.collapsed { transform: rotate(-90deg); }
+
+        /* ── Metric Table ── */
+        .metric-table {
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .metric-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--slate-100);
+            transition: background 0.1s;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-row:hover { background: var(--slate-50); }
+        .m-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .m-icon--green { background: var(--emerald-100); color: var(--emerald-600); }
+        .m-icon--amber { background: var(--amber-100); color: var(--amber-600); }
+        .m-icon--muted { background: var(--slate-100); color: var(--slate-400); }
+        .m-body { flex: 1; min-width: 0; }
+        .m-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--slate-700);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .m-desc {
+            font-size: 11px;
+            color: var(--slate-400);
+            margin-top: 1px;
+        }
+        .m-val {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--slate-900);
+            white-space: nowrap;
+            text-align: right;
+        }
+        .m-unit {
+            font-size: 10px;
+            color: var(--slate-400);
+            text-align: right;
+            margin-top: 1px;
+        }
+        .tag {
+            font-size: 9px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        .tag--conditional {
+            background: var(--slate-100);
+            color: var(--slate-400);
+            border: 1px dashed var(--slate-300);
+        }
+
+        /* ── Insight Callout ── */
+        .insight {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--slate-700);
+            margin-top: 8px;
+        }
+        .insight--gains {
+            background: var(--emerald-50);
+            border-left: 3px solid var(--emerald-500);
+        }
+        .insight--costs {
+            background: var(--amber-50);
+            border-left: 3px solid var(--amber-500);
+        }
+
+        /* ── National Contribution Anchor ── */
+        .nc-anchor {
+            padding: 14px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-sm);
+        }
+        .nc-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--slate-500);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nc-title i { color: var(--blue-500); }
+        .nc-text {
+            font-size: 13px;
+            color: var(--slate-700);
+            margin-bottom: 10px;
+        }
+        .nc-text strong { color: var(--blue-600); font-weight: 700; }
+        .nc-track {
+            height: 8px;
+            background: var(--slate-200);
+            border-radius: 4px;
+            overflow: visible;
+            position: relative;
+            margin-bottom: 4px;
+        }
+        .nc-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #60a5fa, var(--blue-600));
+            transition: width 0.5s ease;
+        }
+        .nc-marker {
+            position: absolute;
+            top: -3px;
+            width: 2px;
+            height: 14px;
+            background: var(--slate-700);
+            border-radius: 1px;
+        }
+        .nc-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--slate-400);
+        }
+        .nc-footnote {
+            font-size: 11px;
+            color: var(--slate-400);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        /* ── Optimization Parameters ── */
+        .opt-section { }
+        .opt-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+            transition: background 0.1s;
+        }
+        .opt-toggle:hover { background: var(--slate-100); }
+        .opt-toggle i { font-size: 10px; color: var(--slate-400); transition: transform 0.2s; }
+        .opt-toggle-text {
+            flex: 1;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--slate-500);
+        }
+        .opt-count {
+            font-size: 11px;
+            color: var(--slate-400);
+        }
+        .opt-list {
+            border: 1px solid var(--slate-200);
+            border-top: none;
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            overflow: hidden;
+        }
+        .opt-list.hidden { display: none; }
+        .opt-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--slate-100);
+        }
+        .opt-row:last-child { border-bottom: none; }
+        .opt-dot {
+            width: 7px; height: 7px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .opt-dot--met { background: var(--emerald-500); }
+        .opt-dot--partial { background: var(--amber-500); }
+        .opt-dot--unmet { background: #ef4444; }
+        .opt-label { flex: 1; color: var(--slate-700); }
+        .opt-val { color: var(--slate-400); font-weight: 500; white-space: nowrap; }
+        .opt-more {
+            padding: 7px 12px;
+            font-size: 12px;
+            color: var(--blue-500);
+            cursor: pointer;
+            background: var(--slate-50);
+        }
+        .opt-more:hover { text-decoration: underline; }
+
+        /* ── Footer ── */
+        .panel-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--slate-200);
+            background: var(--slate-50);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: none;
+        }
+        .btn--primary {
+            background: var(--emerald-600);
+            color: #fff;
+        }
+        .btn--primary:hover { background: #047857; }
+        .btn-group { display: flex; gap: 8px; }
+        .btn--secondary {
+            flex: 1;
+            background: #fff;
+            color: var(--slate-700);
+            border: 1px solid var(--slate-200);
+        }
+        .btn--secondary:hover { background: var(--slate-50); border-color: var(--slate-300); }
+        .btn--secondary i { color: var(--slate-400); font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div id="solution-overview-panel" class="panel">
+
+    <!-- ═══ HEADER ═══ -->
+    <header id="panel-header" class="panel-header">
+        <div class="header-top">
+            <span class="match-badge"><i class="fas fa-check-circle"></i> 95% Match</span>
+            <span class="header-date">Nov 2024</span>
+        </div>
+        <h1 class="scenario-name">Cloud Forest Protection — 30% Target</h1>
+    </header>
+
+    <!-- ═══ SCROLLABLE BODY ═══ -->
+    <div id="panel-body" class="panel-body">
+
+        <!-- Hero Scorecard: #1 + #17 -->
+        <section id="hero-scorecard" class="hero">
+            <div class="hero-card hero-card--goals">
+                <div class="hero-label">Goals Met</div>
+                <div class="hero-value">8<small>/10</small></div>
+                <div class="hero-bar">
+                    <div class="hero-bar__fill--green" style="width:80%"></div>
+                </div>
+                <div class="hero-sub">Conservation themes achieved</div>
+            </div>
+            <div class="hero-card hero-card--national">
+                <div class="hero-label">Nat'l Contribution</div>
+                <div class="hero-value">12<small>%</small></div>
+                <div class="hero-bar">
+                    <div class="hero-bar__fill--blue-existing" style="width:8%" title="Existing protection (8%)"></div>
+                    <div class="hero-bar__fill--blue-added" style="width:4%" title="Added by solution (4%)"></div>
+                </div>
+                <div class="hero-sub">Adds <strong>4%</strong> to existing 8%</div>
+            </div>
+        </section>
+
+        <!-- Spatial Context -->
+        <div id="spatial-context" class="spatial">
+            <i class="fas fa-map-marked-alt"></i>
+            <span><b>125,000 km²</b> priority area</span>
+            <span class="spatial-sep"></span>
+            <span><b>342</b> zones</span>
+            <span class="spatial-sep"></span>
+            <span>Avg <b>365 km²</b></span>
+        </div>
+
+        <!-- ═══ CONSERVATION GAINS ═══ -->
+        <section id="gains-section" class="section">
+            <div class="section-head" onclick="toggle('gains')">
+                <div class="section-dot section-dot--gains"></div>
+                <span class="section-label">Conservation Gains</span>
+                <i id="gains-chevron" class="fas fa-chevron-down section-chevron"></i>
+            </div>
+            <div id="gains-body">
+                <div class="metric-table">
+                    <!-- #2 Species Groups Protected -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--green"><i class="fas fa-paw"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Species Groups Protected</div>
+                            <div class="m-desc">Adequate habitat protection</div>
+                        </div>
+                        <div>
+                            <div class="m-val">45 / 50</div>
+                            <div class="m-unit">90% of total</div>
+                        </div>
+                    </div>
+                    <!-- #3 Threatened Species Secured -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--green"><i class="fas fa-shield-heart"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Threatened Species Secured</div>
+                            <div class="m-desc">IUCN habitat targets met</div>
+                        </div>
+                        <div>
+                            <div class="m-val">28 / 32</div>
+                            <div class="m-unit">88% secured</div>
+                        </div>
+                    </div>
+                    <!-- #4 Ecosystem Coverage -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--green"><i class="fas fa-tree"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Ecosystem Coverage</div>
+                            <div class="m-desc">Key ecosystems within solution</div>
+                        </div>
+                        <div>
+                            <div class="m-val">125,000 km²</div>
+                            <div class="m-unit">85% of target</div>
+                        </div>
+                    </div>
+                    <!-- #5 Carbon Storage Capacity -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--green"><i class="fas fa-leaf"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Carbon Storage Capacity</div>
+                            <div class="m-desc">Total biomass in priority areas</div>
+                        </div>
+                        <div>
+                            <div class="m-val">2.3B</div>
+                            <div class="m-unit">tCO₂e</div>
+                        </div>
+                    </div>
+                    <!-- #6 Water Regulation (Conditional) -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--muted"><i class="fas fa-droplet"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Water Regulation <span class="tag tag--conditional">Conditional</span></div>
+                            <div class="m-desc">Hydrological regulation capacity</div>
+                        </div>
+                        <div>
+                            <div class="m-val">450M</div>
+                            <div class="m-unit">m³ index</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="insight-gains" class="insight insight--gains">
+                    This scenario secures 45/50 species groups, includes 125,000 km² of ecosystem coverage, and stores 2.3 billion tCO₂e.
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ COSTS & TRADE-OFFS ═══ -->
+        <section id="costs-section" class="section">
+            <div class="section-head" onclick="toggle('costs')">
+                <div class="section-dot section-dot--costs"></div>
+                <span class="section-label">Costs & Trade-offs</span>
+                <i id="costs-chevron" class="fas fa-chevron-down section-chevron"></i>
+            </div>
+            <div id="costs-body">
+                <div class="metric-table">
+                    <!-- #9 Affected Agricultural Area -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--amber"><i class="fas fa-tractor"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Affected Agricultural Area</div>
+                            <div class="m-desc">Agricultural land within priorities</div>
+                        </div>
+                        <div>
+                            <div class="m-val">8,500 km²</div>
+                            <div class="m-unit">15% overlap</div>
+                        </div>
+                    </div>
+                    <!-- #8 Agricultural Opportunity Cost (Conditional) -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--muted"><i class="fas fa-coins"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Ag. Opportunity Cost <span class="tag tag--conditional">Conditional</span></div>
+                            <div class="m-desc">Production foregone</div>
+                        </div>
+                        <div>
+                            <div class="m-val">$350M</div>
+                            <div class="m-unit">USD</div>
+                        </div>
+                    </div>
+                    <!-- #13 Conflict Zone Overlap (Conditional) -->
+                    <div class="metric-row">
+                        <div class="m-icon m-icon--muted"><i class="fas fa-triangle-exclamation"></i></div>
+                        <div class="m-body">
+                            <div class="m-name">Conflict Zone Overlap <span class="tag tag--conditional">Conditional</span></div>
+                            <div class="m-desc">Historical conflict zones</div>
+                        </div>
+                        <div>
+                            <div class="m-val">95,000 km²</div>
+                            <div class="m-unit">Area affected</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="insight-costs" class="insight insight--costs">
+                    This scenario affects 8,500 km² of agricultural area, has an estimated $350M agricultural opportunity cost, and overlaps 95,000 km² of mapped conflict zones.
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ NATIONAL CONTRIBUTION ANCHOR ═══ -->
+        <section id="national-contribution" class="nc-anchor">
+            <div class="nc-title"><i class="fas fa-flag"></i> National Contribution</div>
+            <div class="nc-text">
+                Contributing <strong>40%</strong> toward Colombia's 30×30 conservation target
+            </div>
+            <div class="nc-track">
+                <div class="nc-fill" style="width:40%"></div>
+                <div class="nc-marker" style="left:30%" title="30% target"></div>
+            </div>
+            <div class="nc-labels">
+                <span>0%</span>
+                <span>30% target ↑</span>
+                <span>100%</span>
+            </div>
+            <div class="nc-footnote">This solution protects 12% of Colombia's total territory</div>
+        </section>
+
+        <!-- ═══ OPTIMIZATION PARAMETERS ═══ -->
+        <div id="opt-section" class="opt-section">
+            <button class="opt-toggle" onclick="toggleOpt()">
+                <i id="opt-chevron" class="fas fa-chevron-right"></i>
+                <span class="opt-toggle-text">Optimization Parameters</span>
+                <span class="opt-count">12 groups</span>
+            </button>
+            <div id="opt-list" class="opt-list hidden">
+                <div class="opt-row">
+                    <div class="opt-dot opt-dot--met"></div>
+                    <span class="opt-label">Mammal Species</span>
+                    <span class="opt-val">30% (15/50)</span>
+                </div>
+                <div class="opt-row">
+                    <div class="opt-dot opt-dot--met"></div>
+                    <span class="opt-label">Cloud Forest Ecosystems</span>
+                    <span class="opt-val">32% (Goal: 30%)</span>
+                </div>
+                <div class="opt-row">
+                    <div class="opt-dot opt-dot--partial"></div>
+                    <span class="opt-label">Threatened Amphibians</span>
+                    <span class="opt-val">25% (8/32)</span>
+                </div>
+                <div class="opt-row">
+                    <div class="opt-dot opt-dot--met"></div>
+                    <span class="opt-label">Bird Species</span>
+                    <span class="opt-val">35% (42/120)</span>
+                </div>
+                <div class="opt-row">
+                    <div class="opt-dot opt-dot--met"></div>
+                    <span class="opt-label">Reptile Species</span>
+                    <span class="opt-val">31% (22/71)</span>
+                </div>
+                <div class="opt-row">
+                    <div class="opt-dot opt-dot--met"></div>
+                    <span class="opt-label">Páramo Ecosystems</span>
+                    <span class="opt-val">40% (Goal: 30%)</span>
+                </div>
+                <div class="opt-row">
+                    <div class="opt-dot opt-dot--unmet"></div>
+                    <span class="opt-label">Dry Forest</span>
+                    <span class="opt-val">18% (Goal: 30%)</span>
+                </div>
+                <div class="opt-more" onclick="alert('Show all 12 groups')">
+                    <i class="fas fa-ellipsis"></i> Show all 12 groups
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══ PINNED FOOTER ═══ -->
+    <footer id="panel-footer" class="panel-footer">
+        <button class="btn btn--primary">
+            <i class="fas fa-file-lines"></i> View Full Report
+        </button>
+        <div class="btn-group">
+            <button class="btn btn--secondary">
+                <i class="fas fa-code-compare"></i> Compare
+            </button>
+            <button class="btn btn--secondary">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </footer>
+
+</div>
+
+<script>
+function toggle(id) {
+    const body = document.getElementById(id + '-body');
+    const chevron = document.getElementById(id + '-chevron');
+    const hidden = body.style.display === 'none';
+    body.style.display = hidden ? '' : 'none';
+    chevron.classList.toggle('collapsed', !hidden);
+}
+
+function toggleOpt() {
+    const list = document.getElementById('opt-list');
+    const chevron = document.getElementById('opt-chevron');
+    list.classList.toggle('hidden');
+    chevron.classList.toggle('fa-chevron-right');
+    chevron.classList.toggle('fa-chevron-down');
+}
+</script>
+
+</body>
+</html>

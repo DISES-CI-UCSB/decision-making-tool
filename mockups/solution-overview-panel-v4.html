@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html id="page-root" lang="en">
+<head id="page-head">
+  <meta id="meta-charset" charset="UTF-8">
+  <meta id="meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">Solution Overview Panel - v4 (Impact Ledger)</title>
+  <link id="fontawesome-link" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link id="inter-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style id="page-styles">
+    :root {
+      --bg-app: #d6dbe7;
+      --bg-panel: #f6f8fc;
+      --ink-900: #0f172a;
+      --ink-700: #334155;
+      --ink-500: #64748b;
+      --ink-300: #cbd5e1;
+      --line: #dbe3f0;
+      --white: #ffffff;
+      --green-700: #0f766e;
+      --green-100: #ccfbf1;
+      --blue-700: #1d4ed8;
+      --blue-100: #dbeafe;
+      --amber-700: #b45309;
+      --amber-100: #fef3c7;
+      --violet-700: #6d28d9;
+      --violet-100: #ede9fe;
+      --rose-700: #be123c;
+      --rose-100: #ffe4e6;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-app);
+      color: var(--ink-900);
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+      line-height: 1.45;
+    }
+
+    .panel {
+      width: 420px;
+      max-width: 100%;
+      max-height: 94vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 30px rgba(15, 23, 42, 0.10);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 16px 14px;
+      background: linear-gradient(135deg, #0b2447 0%, #0f3a66 100%);
+      color: #e8f1ff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+
+    .match-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(45, 212, 191, 0.24);
+      color: #ccfbf1;
+      border: 1px solid rgba(153, 246, 228, 0.45);
+    }
+
+    .header-date {
+      font-size: 11px;
+      color: #c2d7f8;
+      white-space: nowrap;
+    }
+
+    .scenario-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .scenario-subtitle {
+      font-size: 12px;
+      color: #d6e8ff;
+    }
+
+    .panel-body {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .panel-body::-webkit-scrollbar { width: 7px; }
+    .panel-body::-webkit-scrollbar-thumb { background: #bfcee4; border-radius: 4px; }
+
+    .kpi-strip {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(246, 248, 252, 0.92);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .kpi-chip {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-500);
+      font-weight: 700;
+    }
+
+    .kpi-value {
+      font-size: 19px;
+      line-height: 1;
+      font-weight: 800;
+      color: var(--ink-900);
+    }
+
+    .kpi-meta {
+      font-size: 11px;
+      color: var(--ink-500);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .kpi-track {
+      height: 5px;
+      border-radius: 999px;
+      background: #e7eef9;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .kpi-fill-goals { height: 100%; width: 80%; background: var(--green-700); }
+    .kpi-fill-existing { height: 100%; width: 8%; background: #93c5fd; }
+    .kpi-fill-added { height: 100%; width: 4%; background: var(--blue-700); }
+
+    .spatial-card,
+    .anchor-card,
+    .metric-group,
+    .parameters-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-500);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .spatial-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .spatial-item {
+      background: #f8fbff;
+      border: 1px solid #e8eef8;
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .spatial-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink-900);
+      margin-bottom: 2px;
+    }
+
+    .spatial-label {
+      font-size: 11px;
+      color: var(--ink-500);
+    }
+
+    .group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .group-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .group-title--gains { color: var(--green-700); }
+    .group-title--services { color: var(--violet-700); }
+    .group-title--costs { color: var(--amber-700); }
+
+    .group-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink-500);
+      background: #f1f5fb;
+      border: 1px solid var(--line);
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
+    .tiles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-tile {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdff;
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .metric-tile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .metric-name {
+      font-size: 11px;
+      color: var(--ink-700);
+      font-weight: 600;
+      line-height: 1.2;
+      max-width: 85%;
+    }
+
+    .metric-state {
+      font-size: 9px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 1px 6px;
+      white-space: nowrap;
+    }
+
+    .state-met { background: var(--green-100); color: var(--green-700); }
+    .state-conditional { background: #eef2f7; color: #64748b; border: 1px dashed #cbd5e1; }
+    .state-watch { background: var(--rose-100); color: var(--rose-700); }
+
+    .metric-main {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.05;
+      color: var(--ink-900);
+      margin-bottom: 1px;
+    }
+
+    .metric-sub {
+      font-size: 10px;
+      color: var(--ink-500);
+    }
+
+    .insight-callout {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .insight-callout--gains {
+      background: #f0fdfa;
+      border: 1px solid #ccfbf1;
+      color: #115e59;
+    }
+
+    .insight-callout--costs {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    .anchor-statement {
+      font-size: 13px;
+      color: var(--ink-700);
+      margin-bottom: 8px;
+    }
+
+    .anchor-statement strong {
+      color: var(--blue-700);
+      font-weight: 800;
+    }
+
+    .anchor-track {
+      height: 10px;
+      background: #dbe7fa;
+      border-radius: 999px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .anchor-fill {
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, #60a5fa, #1d4ed8);
+    }
+
+    .anchor-marker {
+      position: absolute;
+      left: 30%;
+      top: -3px;
+      width: 2px;
+      height: 16px;
+      background: #1e293b;
+      border-radius: 2px;
+    }
+
+    .anchor-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--ink-500);
+      margin-top: 5px;
+    }
+
+    .parameters-toggle {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-700);
+      cursor: pointer;
+    }
+
+    .parameters-list {
+      margin-top: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .parameters-list.visible { display: flex; }
+
+    .parameter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid #e8eef8;
+      border-radius: 8px;
+      padding: 7px;
+      background: #fbfdff;
+      font-size: 11px;
+    }
+
+    .parameter-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink-700);
+    }
+
+    .parameter-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .dot-met { background: var(--green-700); }
+    .dot-partial { background: #ca8a04; }
+    .dot-unmet { background: #dc2626; }
+
+    .parameter-right {
+      color: var(--ink-500);
+      white-space: nowrap;
+    }
+
+    .panel-footer {
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--line);
+      background: #f8fbff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .button-primary,
+    .button-secondary {
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .button-primary {
+      background: #0f766e;
+      color: #ffffff;
+    }
+
+    .button-secondary-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .button-secondary {
+      background: #ffffff;
+      color: var(--ink-700);
+      border-color: var(--line);
+    }
+  </style>
+</head>
+<body id="page-body">
+  <main id="solution-overview-panel-v4" class="panel">
+    <header id="panel-header" class="panel-header">
+      <div id="panel-header-row" class="header-row">
+        <span id="match-badge" class="match-badge"><i id="match-badge-icon" class="fas fa-bolt"></i> 95% Match</span>
+        <span id="panel-header-date" class="header-date">Generated Mar 2026</span>
+      </div>
+      <h1 id="scenario-title" class="scenario-title">Cloud Forest Protection - 30% Target</h1>
+      <p id="scenario-subtitle" class="scenario-subtitle">Impact Ledger view for rapid scan across biodiversity, services, and costs.</p>
+    </header>
+
+    <section id="panel-body" class="panel-body">
+      <div id="kpi-strip" class="kpi-strip">
+        <article id="kpi-goals-met" class="kpi-chip">
+          <p id="kpi-goals-label" class="kpi-label">#1 Conservation Goals Met</p>
+          <p id="kpi-goals-value" class="kpi-value">8 / 10</p>
+          <div id="kpi-goals-track" class="kpi-track"><span id="kpi-goals-fill" class="kpi-fill-goals"></span></div>
+          <p id="kpi-goals-meta" class="kpi-meta">80% of goals hit target</p>
+        </article>
+        <article id="kpi-national-contribution" class="kpi-chip">
+          <p id="kpi-national-label" class="kpi-label">#17 National Contribution</p>
+          <p id="kpi-national-value" class="kpi-value">12%</p>
+          <div id="kpi-national-track" class="kpi-track">
+            <span id="kpi-national-fill-existing" class="kpi-fill-existing"></span>
+            <span id="kpi-national-fill-added" class="kpi-fill-added"></span>
+          </div>
+          <p id="kpi-national-meta" class="kpi-meta">+4% over existing 8%</p>
+        </article>
+      </div>
+
+      <article id="spatial-context-card" class="spatial-card">
+        <h2 id="spatial-card-title" class="section-title"><i id="spatial-card-icon" class="fas fa-map-location-dot"></i>Spatial Context</h2>
+        <div id="spatial-grid" class="spatial-grid">
+          <div id="spatial-priority-item" class="spatial-item">
+            <p id="spatial-priority-value" class="spatial-value">125,000 km2</p>
+            <p id="spatial-priority-label" class="spatial-label">Priority area</p>
+          </div>
+          <div id="spatial-zones-item" class="spatial-item">
+            <p id="spatial-zones-value" class="spatial-value">342</p>
+            <p id="spatial-zones-label" class="spatial-label">Conservation zones</p>
+          </div>
+          <div id="spatial-average-item" class="spatial-item">
+            <p id="spatial-average-value" class="spatial-value">365 km2</p>
+            <p id="spatial-average-label" class="spatial-label">Average zone size</p>
+          </div>
+        </div>
+      </article>
+
+      <article id="gains-group" class="metric-group">
+        <div id="gains-group-head" class="group-head">
+          <h2 id="gains-group-title" class="group-title group-title--gains"><i id="gains-group-icon" class="fas fa-seedling"></i>Conservation Gains</h2>
+          <span id="gains-group-tag" class="group-tag">Always On</span>
+        </div>
+        <div id="gains-tiles" class="tiles">
+          <article id="tile-species-groups" class="metric-tile">
+            <div id="tile-species-groups-header" class="metric-tile-header">
+              <p id="tile-species-groups-name" class="metric-name">#2 Species Groups</p>
+              <span id="tile-species-groups-state" class="metric-state state-met">Met</span>
+            </div>
+            <p id="tile-species-groups-main" class="metric-main">45 / 50</p>
+            <p id="tile-species-groups-sub" class="metric-sub">90% of groups covered</p>
+          </article>
+          <article id="tile-threatened-species" class="metric-tile">
+            <div id="tile-threatened-species-header" class="metric-tile-header">
+              <p id="tile-threatened-species-name" class="metric-name">#3 Threatened Species</p>
+              <span id="tile-threatened-species-state" class="metric-state state-met">Strong</span>
+            </div>
+            <p id="tile-threatened-species-main" class="metric-main">28 / 32</p>
+            <p id="tile-threatened-species-sub" class="metric-sub">88% secured</p>
+          </article>
+          <article id="tile-ecosystem-coverage" class="metric-tile">
+            <div id="tile-ecosystem-coverage-header" class="metric-tile-header">
+              <p id="tile-ecosystem-coverage-name" class="metric-name">#4 Ecosystem Coverage</p>
+              <span id="tile-ecosystem-coverage-state" class="metric-state state-met">Met</span>
+            </div>
+            <p id="tile-ecosystem-coverage-main" class="metric-main">125,000</p>
+            <p id="tile-ecosystem-coverage-sub" class="metric-sub">km2 represented</p>
+          </article>
+          <article id="tile-carbon-storage" class="metric-tile">
+            <div id="tile-carbon-storage-header" class="metric-tile-header">
+              <p id="tile-carbon-storage-name" class="metric-name">#5 Carbon</p>
+              <span id="tile-carbon-storage-state" class="metric-state state-met">High</span>
+            </div>
+            <p id="tile-carbon-storage-main" class="metric-main">2.3B</p>
+            <p id="tile-carbon-storage-sub" class="metric-sub">tCO2e stored</p>
+          </article>
+        </div>
+        <p id="gains-insight-callout" class="insight-callout insight-callout--gains">Insight: Biodiversity and carbon outcomes trend strongly positive, with 8 of 10 conservation goals currently met.</p>
+      </article>
+
+      <article id="services-group" class="metric-group">
+        <div id="services-group-head" class="group-head">
+          <h2 id="services-group-title" class="group-title group-title--services"><i id="services-group-icon" class="fas fa-droplet"></i>Conditional Services</h2>
+          <span id="services-group-tag" class="group-tag">Data Optional</span>
+        </div>
+        <div id="services-tiles" class="tiles">
+          <article id="tile-water-regulation" class="metric-tile">
+            <div id="tile-water-regulation-header" class="metric-tile-header">
+              <p id="tile-water-regulation-name" class="metric-name">#6 Water Regulation</p>
+              <span id="tile-water-regulation-state" class="metric-state state-conditional">Conditional</span>
+            </div>
+            <p id="tile-water-regulation-main" class="metric-main">450M</p>
+            <p id="tile-water-regulation-sub" class="metric-sub">m3 service index</p>
+          </article>
+        </div>
+      </article>
+
+      <article id="costs-group" class="metric-group">
+        <div id="costs-group-head" class="group-head">
+          <h2 id="costs-group-title" class="group-title group-title--costs"><i id="costs-group-icon" class="fas fa-scale-balanced"></i>Costs and Trade-offs</h2>
+          <span id="costs-group-tag" class="group-tag">Watch List</span>
+        </div>
+        <div id="costs-tiles" class="tiles">
+          <article id="tile-affected-ag-area" class="metric-tile">
+            <div id="tile-affected-ag-area-header" class="metric-tile-header">
+              <p id="tile-affected-ag-area-name" class="metric-name">#9 Affected Ag Area</p>
+              <span id="tile-affected-ag-area-state" class="metric-state state-watch">Watch</span>
+            </div>
+            <p id="tile-affected-ag-area-main" class="metric-main">8,500</p>
+            <p id="tile-affected-ag-area-sub" class="metric-sub">km2 (15% overlap)</p>
+          </article>
+          <article id="tile-ag-opportunity-cost" class="metric-tile">
+            <div id="tile-ag-opportunity-cost-header" class="metric-tile-header">
+              <p id="tile-ag-opportunity-cost-name" class="metric-name">#8 Ag Opportunity Cost</p>
+              <span id="tile-ag-opportunity-cost-state" class="metric-state state-conditional">Conditional</span>
+            </div>
+            <p id="tile-ag-opportunity-cost-main" class="metric-main">$350M</p>
+            <p id="tile-ag-opportunity-cost-sub" class="metric-sub">USD foregone</p>
+          </article>
+          <article id="tile-conflict-overlap" class="metric-tile">
+            <div id="tile-conflict-overlap-header" class="metric-tile-header">
+              <p id="tile-conflict-overlap-name" class="metric-name">#13 Conflict Overlap</p>
+              <span id="tile-conflict-overlap-state" class="metric-state state-conditional">Conditional</span>
+            </div>
+            <p id="tile-conflict-overlap-main" class="metric-main">95,000</p>
+            <p id="tile-conflict-overlap-sub" class="metric-sub">km2 mapped overlap</p>
+          </article>
+        </div>
+        <p id="costs-insight-callout" class="insight-callout insight-callout--costs">Insight: Agriculture and conflict risks are concentrated in a smaller set of zones, creating actionable hotspots for mitigation.</p>
+      </article>
+
+      <article id="national-anchor-card" class="anchor-card">
+        <h2 id="national-anchor-title" class="section-title"><i id="national-anchor-icon" class="fas fa-flag"></i>National Contribution Anchor</h2>
+        <p id="national-anchor-statement" class="anchor-statement">This solution contributes <strong>40%</strong> toward Colombia's 30x30 target.</p>
+        <div id="national-anchor-track" class="anchor-track">
+          <span id="national-anchor-fill" class="anchor-fill"></span>
+          <span id="national-anchor-marker" class="anchor-marker" title="30x30 target"></span>
+        </div>
+        <div id="national-anchor-labels" class="anchor-labels">
+          <span id="national-anchor-label-start">0%</span>
+          <span id="national-anchor-label-target">30% target</span>
+          <span id="national-anchor-label-end">100%</span>
+        </div>
+      </article>
+
+      <article id="optimization-parameters-card" class="parameters-card">
+        <button id="optimization-parameters-toggle" class="parameters-toggle" type="button" aria-expanded="false" aria-controls="optimization-parameters-list">
+          <span id="optimization-parameters-toggle-left"><i id="optimization-parameters-toggle-icon" class="fas fa-sliders"></i> Optimization Parameters</span>
+          <span id="optimization-parameters-toggle-right"><i id="optimization-parameters-chevron" class="fas fa-chevron-right"></i> 12 groups</span>
+        </button>
+        <div id="optimization-parameters-list" class="parameters-list">
+          <div id="parameter-row-mammals" class="parameter-row">
+            <span id="parameter-row-mammals-left" class="parameter-left"><span id="parameter-dot-mammals" class="parameter-dot dot-met"></span>Mammal Species</span>
+            <span id="parameter-row-mammals-right" class="parameter-right">30% (15/50)</span>
+          </div>
+          <div id="parameter-row-cloud-forest" class="parameter-row">
+            <span id="parameter-row-cloud-forest-left" class="parameter-left"><span id="parameter-dot-cloud-forest" class="parameter-dot dot-met"></span>Cloud Forest Ecosystems</span>
+            <span id="parameter-row-cloud-forest-right" class="parameter-right">32% (goal 30%)</span>
+          </div>
+          <div id="parameter-row-amphibians" class="parameter-row">
+            <span id="parameter-row-amphibians-left" class="parameter-left"><span id="parameter-dot-amphibians" class="parameter-dot dot-partial"></span>Threatened Amphibians</span>
+            <span id="parameter-row-amphibians-right" class="parameter-right">25% (8/32)</span>
+          </div>
+          <div id="parameter-row-dry-forest" class="parameter-row">
+            <span id="parameter-row-dry-forest-left" class="parameter-left"><span id="parameter-dot-dry-forest" class="parameter-dot dot-unmet"></span>Dry Forest</span>
+            <span id="parameter-row-dry-forest-right" class="parameter-right">18% (goal 30%)</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <footer id="panel-footer" class="panel-footer">
+      <button id="button-view-report" class="button-primary" type="button"><i id="button-view-report-icon" class="fas fa-file-lines"></i> View Full Report</button>
+      <div id="button-secondary-row" class="button-secondary-row">
+        <button id="button-compare" class="button-secondary" type="button"><i id="button-compare-icon" class="fas fa-code-compare"></i> Compare</button>
+        <button id="button-export" class="button-secondary" type="button"><i id="button-export-icon" class="fas fa-download"></i> Export</button>
+      </div>
+    </footer>
+  </main>
+
+  <script id="panel-script">
+    const toggleButton = document.getElementById('optimization-parameters-toggle');
+    const toggleChevron = document.getElementById('optimization-parameters-chevron');
+    const parametersList = document.getElementById('optimization-parameters-list');
+
+    toggleButton.addEventListener('click', () => {
+      const isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
+      toggleButton.setAttribute('aria-expanded', String(!isExpanded));
+      parametersList.classList.toggle('visible', !isExpanded);
+      toggleChevron.classList.toggle('fa-chevron-right', isExpanded);
+      toggleChevron.classList.toggle('fa-chevron-down', !isExpanded);
+    });
+  </script>
+</body>
+</html>
