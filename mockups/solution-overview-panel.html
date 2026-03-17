@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solution Overview Panel — Mockup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #212121;
+            background: #E0E0E0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        /* ── Sidebar Container ── */
+        .sidebar-panel {
+            width: 420px;
+            max-width: 100%;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: 96vh;
+        }
+        .sidebar-panel::-webkit-scrollbar { width: 6px; }
+        .sidebar-panel::-webkit-scrollbar-thumb {
+            background: #BDBDBD; border-radius: 3px;
+        }
+
+        .panel-content { padding: 24px; }
+
+        /* ── Header ── */
+        .panel-header { margin-bottom: 20px; }
+        .panel-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #757575;
+            margin-bottom: 6px;
+        }
+        .scenario-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #212121;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .match-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #E8F5E9;
+            color: #2E7D32;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 999px;
+        }
+        .match-badge i { font-size: 10px; }
+        .header-timestamp {
+            font-size: 12px;
+            color: #9E9E9E;
+        }
+
+        /* ── Hero Scorecard ── */
+        .hero-scorecard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .hero-card {
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .hero-card--goals {
+            background: #E8F5E9;
+            border: 1px solid #C8E6C9;
+        }
+        .hero-card--national {
+            background: #E3F2FD;
+            border: 1px solid #BBDEFB;
+        }
+        .hero-value {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+        .hero-card--goals .hero-value { color: #2E7D32; }
+        .hero-card--national .hero-value { color: #1565C0; }
+        .hero-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #616161;
+            margin-bottom: 8px;
+        }
+        .hero-progress {
+            height: 6px;
+            background: rgba(0,0,0,0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .hero-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+        .hero-card--goals .hero-progress-fill { background: #2E7D32; }
+        .hero-card--national .hero-progress-fill { background: #1565C0; }
+        .hero-subtext {
+            font-size: 11px;
+            color: #9E9E9E;
+        }
+
+        /* ── Spatial Context Bar ── */
+        .spatial-context {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: #FAFAFA;
+            border: 1px solid #EEEEEE;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #616161;
+            flex-wrap: wrap;
+        }
+        .spatial-context i { color: #9E9E9E; font-size: 13px; }
+        .spatial-stat {
+            font-weight: 600;
+            color: #424242;
+        }
+        .spatial-divider {
+            width: 1px;
+            height: 14px;
+            background: #E0E0E0;
+        }
+
+        /* ── Section: Gains / Losses ── */
+        .metric-section { margin-bottom: 16px; }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            margin-bottom: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .section-header:hover .section-title { opacity: 0.8; }
+        .section-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .section-icon--gains { background: #C8E6C9; color: #2E7D32; }
+        .section-icon--losses { background: #FFE0B2; color: #E65100; }
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex: 1;
+        }
+        .section-title--gains { color: #2E7D32; }
+        .section-title--losses { color: #E65100; }
+        .section-chevron {
+            font-size: 11px;
+            color: #9E9E9E;
+            transition: transform 0.2s;
+        }
+        .section-chevron.collapsed { transform: rotate(-90deg); }
+
+        /* ── Metric Rows ── */
+        .metric-list {
+            border: 1px solid #EEEEEE;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .metric-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #F5F5F5;
+            transition: background 0.15s;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-row:hover { background: #FAFAFA; }
+        .metric-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .metric-icon--green { background: #E8F5E9; color: #2E7D32; }
+        .metric-icon--orange { background: #FFF3E0; color: #E65100; }
+        .metric-icon--blue { background: #E3F2FD; color: #1565C0; }
+        .metric-icon--conditional { background: #F5F5F5; color: #9E9E9E; }
+        .metric-label {
+            flex: 1;
+            font-size: 13px;
+            color: #424242;
+            min-width: 0;
+        }
+        .metric-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #212121;
+            white-space: nowrap;
+        }
+        .metric-chip {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .chip--met { background: #E8F5E9; color: #2E7D32; }
+        .chip--partial { background: #FFF8E1; color: #F57F17; }
+        .chip--high { background: #E8F5E9; color: #2E7D32; }
+        .chip--moderate { background: #FFF3E0; color: #E65100; }
+        .chip--conditional {
+            background: #F5F5F5; color: #9E9E9E;
+            border: 1px dashed #E0E0E0;
+        }
+
+        /* ── Narrative Box ── */
+        .narrative-box {
+            padding: 12px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #424242;
+            margin-bottom: 4px;
+        }
+        .narrative-box--gains {
+            background: #F1F8E9;
+            border-left: 3px solid #66BB6A;
+        }
+        .narrative-box--losses {
+            background: #FFF8E1;
+            border-left: 3px solid #FFA726;
+        }
+        .narrative-box strong {
+            font-weight: 700;
+        }
+        .narrative-box--gains strong { color: #2E7D32; }
+        .narrative-box--losses strong { color: #E65100; }
+
+        /* ── National Contribution Anchor ── */
+        .national-contribution {
+            padding: 16px;
+            background: #FAFAFA;
+            border: 1px solid #EEEEEE;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .nc-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .nc-header i { color: #1565C0; font-size: 15px; }
+        .nc-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #424242;
+        }
+        .nc-statement {
+            font-size: 13px;
+            color: #616161;
+            margin-bottom: 10px;
+        }
+        .nc-statement strong { color: #1565C0; }
+        .nc-progress-track {
+            height: 10px;
+            background: #E0E0E0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 6px;
+            position: relative;
+        }
+        .nc-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #42A5F5, #1565C0);
+            border-radius: 5px;
+            transition: width 0.6s ease;
+        }
+        .nc-progress-target {
+            position: absolute;
+            top: -4px;
+            width: 2px;
+            height: 18px;
+            background: #424242;
+            border-radius: 1px;
+        }
+        .nc-progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #9E9E9E;
+        }
+        .nc-subtext {
+            font-size: 11px;
+            color: #9E9E9E;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        /* ── Optimization Parameters (Collapsible) ── */
+        .opt-params { margin-bottom: 20px; }
+        .opt-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #FAFAFA;
+            border: 1px solid #EEEEEE;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+            width: 100%;
+            text-align: left;
+        }
+        .opt-toggle:hover { background: #F5F5F5; }
+        .opt-toggle i { color: #757575; font-size: 12px; }
+        .opt-toggle-label {
+            flex: 1;
+            font-size: 12px;
+            font-weight: 600;
+            color: #616161;
+        }
+        .opt-count {
+            font-size: 11px;
+            color: #9E9E9E;
+        }
+        .opt-body {
+            border: 1px solid #EEEEEE;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+        }
+        .opt-body.hidden { display: none; }
+        .opt-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
+            border-bottom: 1px solid #F5F5F5;
+        }
+        .opt-row:last-child { border-bottom: none; }
+        .opt-status {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            flex-shrink: 0;
+        }
+        .opt-status--met { background: #E8F5E9; color: #2E7D32; }
+        .opt-status--partial { background: #FFF8E1; color: #F57F17; }
+        .opt-status--unmet { background: #FFEBEE; color: #C62828; }
+        .opt-name { flex: 1; color: #424242; }
+        .opt-value { color: #757575; font-weight: 500; white-space: nowrap; }
+        .opt-show-more {
+            padding: 8px 14px;
+            font-size: 12px;
+            color: #1976D2;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #FAFAFA;
+        }
+        .opt-show-more:hover { text-decoration: underline; }
+
+        /* ── Action Buttons ── */
+        .actions { margin-top: 20px; }
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: #2E7D32;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .btn-primary:hover {
+            background: #1B5E20;
+            box-shadow: 0 4px 12px rgba(46,125,50,0.3);
+            transform: translateY(-1px);
+        }
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .btn-secondary {
+            padding: 10px;
+            background: #fff;
+            color: #424242;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-secondary:hover {
+            background: #F5F5F5;
+            border-color: #BDBDBD;
+        }
+        .btn-secondary i { font-size: 12px; color: #757575; }
+
+        /* ── Divider ── */
+        .divider {
+            height: 1px;
+            background: #EEEEEE;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="solution-overview-panel" class="sidebar-panel">
+  <div class="panel-content">
+
+    <!-- ═══ HEADER ═══ -->
+    <header id="solution-overview-header" class="panel-header">
+      <div class="panel-title">Conservation Scenario Overview</div>
+      <h1 class="scenario-name">Cloud Forest Protection — 30% Target</h1>
+      <div class="header-meta">
+        <span class="match-badge">
+          <i class="fas fa-check-circle"></i> 95% Match
+        </span>
+        <span class="header-timestamp">Last updated: Nov 2024</span>
+      </div>
+    </header>
+
+    <!-- ═══ HERO SCORECARD ═══ -->
+    <section id="hero-scorecard" class="hero-scorecard">
+      <div class="hero-card hero-card--goals">
+        <div class="hero-value">8 / 10</div>
+        <div class="hero-label">Goals Met</div>
+        <div class="hero-progress">
+          <div class="hero-progress-fill" style="width: 80%"></div>
+        </div>
+        <div class="hero-subtext">Conservation themes achieved</div>
+      </div>
+      <div class="hero-card hero-card--national">
+        <div class="hero-value">12%</div>
+        <div class="hero-label">of Colombia</div>
+        <div class="hero-progress">
+          <div class="hero-progress-fill" style="width: 40%"></div>
+        </div>
+        <div class="hero-subtext">Contributing 40% toward 30×30</div>
+      </div>
+    </section>
+
+    <!-- ═══ SPATIAL CONTEXT BAR ═══ -->
+    <div id="spatial-context" class="spatial-context">
+      <i class="fas fa-map-marked-alt"></i>
+      <span><span class="spatial-stat">125,000 km²</span> priority area</span>
+      <span class="spatial-divider"></span>
+      <span><span class="spatial-stat">342</span> zones</span>
+      <span class="spatial-divider"></span>
+      <span>Avg <span class="spatial-stat">365 km²</span></span>
+    </div>
+
+    <!-- ═══ GAINS SECTION ═══ -->
+    <section id="gains-section" class="metric-section">
+      <div class="section-header" onclick="toggleSection('gains')">
+        <div class="section-icon section-icon--gains">
+          <i class="fas fa-check"></i>
+        </div>
+        <span class="section-title section-title--gains">Gains — What You Get</span>
+        <i id="gains-chevron" class="fas fa-chevron-down section-chevron"></i>
+      </div>
+
+      <div id="gains-body">
+        <div class="metric-list">
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--green">
+              <i class="fas fa-paw"></i>
+            </div>
+            <span class="metric-label">Species Groups Protected</span>
+            <span class="metric-value">45 / 50</span>
+            <span class="metric-chip chip--met">Met</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--green">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <span class="metric-label">Threatened Species</span>
+            <span class="metric-value">28 / 32</span>
+            <span class="metric-chip chip--partial">88%</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--green">
+              <i class="fas fa-tree"></i>
+            </div>
+            <span class="metric-label">Ecosystem Coverage</span>
+            <span class="metric-value">85%</span>
+            <span class="metric-chip chip--met">Met</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--green">
+              <i class="fas fa-leaf"></i>
+            </div>
+            <span class="metric-label">Carbon Storage</span>
+            <span class="metric-value">2.3B tCO₂e</span>
+            <span class="metric-chip chip--high">High</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--conditional">
+              <i class="fas fa-droplet"></i>
+            </div>
+            <span class="metric-label" style="color:#9E9E9E">Water Regulation</span>
+            <span class="metric-value" style="color:#BDBDBD">—</span>
+            <span class="metric-chip chip--conditional">Pending</span>
+          </div>
+        </div>
+
+        <div class="narrative-box narrative-box--gains">
+          This scenario achieves <strong>HIGH</strong> biodiversity protection with
+          45 species groups meeting conservation targets and
+          <strong>EXCELLENT</strong> ecosystem service provision with
+          2.3 billion tCO₂e carbon storage secured.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ COSTS SECTION ═══ -->
+    <section id="costs-section" class="metric-section">
+      <div class="section-header" onclick="toggleSection('costs')">
+        <div class="section-icon section-icon--losses">
+          <i class="fas fa-exclamation"></i>
+        </div>
+        <span class="section-title section-title--losses">Costs — What It Requires</span>
+        <i id="costs-chevron" class="fas fa-chevron-down section-chevron"></i>
+      </div>
+
+      <div id="costs-body">
+        <div class="metric-list">
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--orange">
+              <i class="fas fa-wheat-awn"></i>
+            </div>
+            <span class="metric-label">Affected Agricultural Area</span>
+            <span class="metric-value">8,500 km²</span>
+            <span class="metric-chip chip--moderate">Moderate</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--orange">
+              <i class="fas fa-dollar-sign"></i>
+            </div>
+            <span class="metric-label">Ag Opportunity Cost</span>
+            <span class="metric-value">$350M USD</span>
+            <span class="metric-chip chip--conditional">Conditional</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric-icon metric-icon--orange">
+              <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <span class="metric-label">Conflict Zone Overlap</span>
+            <span class="metric-value">95,000 km²</span>
+            <span class="metric-chip chip--conditional">Conditional</span>
+          </div>
+        </div>
+
+        <div class="narrative-box narrative-box--losses">
+          This scenario incurs <strong>MODERATE</strong> economic impact with
+          8,500 km² of agricultural land affected and $350M in opportunity cost.
+          Conflict zone overlap covers 95,000 km² of priority areas.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ NATIONAL CONTRIBUTION ANCHOR ═══ -->
+    <section id="national-contribution" class="national-contribution">
+      <div class="nc-header">
+        <i class="fas fa-flag"></i>
+        <span class="nc-title">National Contribution</span>
+      </div>
+      <div class="nc-statement">
+        Contributing <strong>40%</strong> toward Colombia's 30×30 conservation target
+      </div>
+      <div class="nc-progress-track">
+        <div class="nc-progress-fill" style="width: 40%"></div>
+        <div class="nc-progress-target" style="left: 30%" title="30% target"></div>
+      </div>
+      <div class="nc-progress-labels">
+        <span>0%</span>
+        <span>30% target ↑</span>
+        <span>100%</span>
+      </div>
+      <div class="nc-subtext">
+        This solution protects 12% of Colombia's total territory
+      </div>
+    </section>
+
+    <!-- ═══ OPTIMIZATION PARAMETERS (Collapsible) ═══ -->
+    <div id="opt-params" class="opt-params">
+      <button class="opt-toggle" onclick="toggleOptParams()">
+        <i id="opt-chevron" class="fas fa-chevron-right"></i>
+        <span class="opt-toggle-label">Optimization Parameters</span>
+        <span class="opt-count">12 groups</span>
+      </button>
+      <div id="opt-body" class="opt-body hidden">
+        <div class="opt-row">
+          <div class="opt-status opt-status--met"><i class="fas fa-check"></i></div>
+          <span class="opt-name">Mammal Species</span>
+          <span class="opt-value">30% (15/50)</span>
+        </div>
+        <div class="opt-row">
+          <div class="opt-status opt-status--met"><i class="fas fa-check"></i></div>
+          <span class="opt-name">Cloud Forest Ecosystems</span>
+          <span class="opt-value">32% (Goal: 30%)</span>
+        </div>
+        <div class="opt-row">
+          <div class="opt-status opt-status--partial"><i class="fas fa-minus"></i></div>
+          <span class="opt-name">Threatened Amphibians</span>
+          <span class="opt-value">25% (8/32)</span>
+        </div>
+        <div class="opt-row">
+          <div class="opt-status opt-status--met"><i class="fas fa-check"></i></div>
+          <span class="opt-name">Bird Species</span>
+          <span class="opt-value">35% (42/120)</span>
+        </div>
+        <div class="opt-row">
+          <div class="opt-status opt-status--met"><i class="fas fa-check"></i></div>
+          <span class="opt-name">Reptile Species</span>
+          <span class="opt-value">31% (22/71)</span>
+        </div>
+        <div class="opt-row">
+          <div class="opt-status opt-status--met"><i class="fas fa-check"></i></div>
+          <span class="opt-name">Páramo Ecosystems</span>
+          <span class="opt-value">40% (Goal: 30%)</span>
+        </div>
+        <div class="opt-row">
+          <div class="opt-status opt-status--unmet"><i class="fas fa-xmark"></i></div>
+          <span class="opt-name">Dry Forest</span>
+          <span class="opt-value">18% (Goal: 30%)</span>
+        </div>
+        <div class="opt-show-more" onclick="alert('Expand to show all 12 groups')">
+          <i class="fas fa-ellipsis"></i> Show all 12 groups
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ACTION BUTTONS ═══ -->
+    <div id="action-buttons" class="actions">
+      <button class="btn-primary">
+        <i class="fas fa-file-lines"></i>
+        See Full Summary Report
+      </button>
+      <div class="btn-row">
+        <button class="btn-secondary">
+          <i class="fas fa-columns"></i>
+          Compare Scenarios
+        </button>
+        <button class="btn-secondary">
+          <i class="fas fa-download"></i>
+          Download Data
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function toggleSection(id) {
+    const body = document.getElementById(id + '-body');
+    const chevron = document.getElementById(id + '-chevron');
+    if (body.style.display === 'none') {
+        body.style.display = '';
+        chevron.classList.remove('collapsed');
+    } else {
+        body.style.display = 'none';
+        chevron.classList.add('collapsed');
+    }
+}
+
+function toggleOptParams() {
+    const body = document.getElementById('opt-body');
+    const chevron = document.getElementById('opt-chevron');
+    body.classList.toggle('hidden');
+    chevron.classList.toggle('fa-chevron-right');
+    chevron.classList.toggle('fa-chevron-down');
+}
+</script>
+
+</body>
+</html>
