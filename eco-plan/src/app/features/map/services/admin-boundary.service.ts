@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import Graphic from '@arcgis/core/Graphic';
+import type Point from '@arcgis/core/geometry/Point';
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
 import type ArcGISMap from '@arcgis/core/Map';
@@ -28,7 +28,6 @@ interface BoundaryConfig {
 interface HitTestCandidate {
   config: BoundaryConfig;
   attributes: Record<string, unknown>;
-  graphic: Graphic;
 }
 
 const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
@@ -108,6 +107,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
 export class AdminBoundaryService {
   private readonly appState = inject(AppStateService);
   private map: InstanceType<typeof ArcGISMap> | null = null;
+  private view: InstanceType<typeof ArcGISMapView> | null = null;
   private boundaryLayers: (FeatureLayer | GeoJSONLayer)[] = [];
   private viewClickHandle: { remove: () => void } | null = null;
   private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
@@ -116,6 +116,7 @@ export class AdminBoundaryService {
     municipality: false,
   };
   readonly layerVisibilityByType$ = signal<Record<AoiType, boolean>>(this.defaultVisibilityByType);
+  readonly popupEnabled$ = signal(false);
 
   initialize(map: InstanceType<typeof ArcGISMap>, view: InstanceType<typeof ArcGISMapView>): void {
     if (this.boundaryLayers.length > 0) {
@@ -123,6 +124,10 @@ export class AdminBoundaryService {
     }
 
     this.map = map;
+    this.view = view;
+    // Always false — we open popups manually via openPopup() so the
+    // built-in click handler doesn't race with ours.
+    this.view.popupEnabled = false;
     this.boundaryLayers = COLOMBIA_BOUNDARY_CONFIGS.map((config) => this.buildLayer(config));
     map.addMany(this.boundaryLayers);
     for (const layer of this.boundaryLayers) {
@@ -131,7 +136,7 @@ export class AdminBoundaryService {
       });
     }
     this.viewClickHandle = view.on('click', (event) => {
-      void this.handleMapClick(view, event.x, event.y);
+      void this.handleMapClick(view, event.mapPoint, event.x, event.y);
     });
   }
 
@@ -144,6 +149,7 @@ export class AdminBoundaryService {
     }
 
     this.map = null;
+    this.view = null;
     this.boundaryLayers = [];
   }
 
@@ -158,6 +164,17 @@ export class AdminBoundaryService {
   toggleLayerVisibility(type: AoiType): void {
     const current = this.layerVisibilityByType$()[type];
     this.setLayerVisibility(type, !current);
+  }
+
+  setPopupEnabled(enabled: boolean): void {
+    this.popupEnabled$.set(enabled);
+    if (!enabled) {
+      this.view?.closePopup();
+    }
+  }
+
+  togglePopupEnabled(): void {
+    this.setPopupEnabled(!this.popupEnabled$());
   }
 
   private buildLayer(config: BoundaryConfig): FeatureLayer | GeoJSONLayer {
@@ -191,15 +208,16 @@ export class AdminBoundaryService {
 
   private async handleMapClick(
     view: InstanceType<typeof ArcGISMapView>,
-    x: number,
-    y: number,
+    mapPoint: InstanceType<typeof Point>,
+    screenX: number,
+    screenY: number,
   ): Promise<void> {
     const interactiveLayers = this.boundaryLayers.filter((layer) => layer.visible);
     if (interactiveLayers.length === 0) {
       return;
     }
 
-    const hit = await view.hitTest({ x, y }, { include: interactiveLayers });
+    const hit = await view.hitTest({ x: screenX, y: screenY }, { include: interactiveLayers });
     if (!hit.results.length) {
       return;
     }
@@ -211,19 +229,22 @@ export class AdminBoundaryService {
 
     const aoiName = this.readFirstText(candidate.attributes, candidate.config.nameFields);
     const rawId = this.readFirstText(candidate.attributes, candidate.config.idFields);
+    const displayName = aoiName ?? 'Unnamed feature';
+
+    if (this.popupEnabled$()) {
+      try {
+        await view.openPopup({
+          title: `${candidate.config.type.toUpperCase()}: ${displayName}`,
+          content: this.buildPopupMetadataHtml(candidate.attributes),
+          location: mapPoint,
+        });
+      } catch (error: unknown) {
+        console.error('[AdminBoundaryService] openPopup failed:', error);
+      }
+    }
 
     if (!aoiName || !rawId) {
       return;
-    }
-
-    if (candidate.config.type === 'sirap') {
-      const popupLocation = view.toMap({ x, y });
-      view.openPopup({
-        title: aoiName,
-        content: `SIRAP region: ${aoiName}`,
-        location: popupLocation ?? undefined,
-        features: [candidate.graphic],
-      });
     }
 
     this.appState.selectAOI({
@@ -252,7 +273,7 @@ export class AdminBoundaryService {
       }
 
       const attributes = (result.graphic.attributes ?? {}) as Record<string, unknown>;
-      return { config, attributes, graphic: result.graphic };
+      return { config, attributes };
     }
 
     return null;
@@ -276,6 +297,36 @@ export class AdminBoundaryService {
     }
 
     return null;
+  }
+
+  private buildPopupMetadataHtml(attributes: Record<string, unknown>): string {
+    const rows = Object.entries(attributes)
+      .filter(([key, value]) => {
+        if (value === null || value === undefined) return false;
+        const lowered = key.toLowerCase();
+        return lowered !== 'shape' && lowered !== 'geometry' && lowered !== 'st_area(shape)';
+      })
+      .slice(0, 10)
+      .map(
+        ([key, value]) =>
+          `<tr><td style="padding:2px 8px 2px 0;font-weight:600;">${this.escapeHtml(key)}</td><td style="padding:2px 0;">${this.escapeHtml(String(value))}</td></tr>`,
+      )
+      .join('');
+
+    if (!rows) {
+      return 'No metadata available for this feature.';
+    }
+
+    return `<table style="font-size:12px;border-collapse:collapse;">${rows}</table>`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
   }
 
   private applyVisibilityToMapLayers(type: AoiType, visible: boolean): void {
