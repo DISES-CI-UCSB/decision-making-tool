@@ -16,6 +16,7 @@ import Attribution from '@arcgis/core/widgets/Attribution';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
 import { AppStateService } from '@core/services/app-state.service';
+import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
@@ -45,6 +46,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private coordinateConversionWidget: InstanceType<typeof CoordinateConversion> | null = null;
   private isCoordinateToolEnabled = false;
   private readonly basemapService = inject(MapBasemapService);
+  private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly layerRenderer = inject(LayerRendererService);
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly appState = inject(AppStateService);
@@ -84,6 +86,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     console.info(`[MapView][${this.debugMarker}] ngOnDestroy`);
     this.removeMapWidgets();
+    this.adminBoundaries.destroy(this.map);
     this.view?.destroy();
     this.view = null;
     this.map = null;
@@ -189,6 +192,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       });
 
       this.addMapWidgets();
+      this.adminBoundaries.initialize(this.map, this.view);
 
       this.view.when(
         () => console.info(`[MapView][${this.debugMarker}] ready`),

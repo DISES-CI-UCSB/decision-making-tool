@@ -27,36 +27,39 @@
         ></app-dev-tools-panel>
 
         <section
-          id="foundation-map-demo-legend-card"
+          id="foundation-map-boundary-legend-card"
           class="rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm"
         >
           <h2
-            id="foundation-map-demo-legend-title"
+            id="foundation-map-boundary-legend-title"
             class="text-xs font-semibold uppercase tracking-wide text-slate-500"
           >
-            Demo Layers
+            Boundary Layers
           </h2>
-          <ul id="foundation-map-demo-legend-list" class="mt-2 space-y-1.5 text-xs text-slate-700">
-            <li id="foundation-map-demo-legend-biodiversity-item" class="flex items-center gap-2">
+          <ul
+            id="foundation-map-boundary-legend-list"
+            class="mt-2 space-y-1.5 text-xs text-slate-700"
+          >
+            <li id="foundation-map-boundary-legend-sirap-item" class="flex items-center gap-2">
               <span
-                id="foundation-map-demo-legend-biodiversity-dot"
-                class="h-2 w-2 rounded-full bg-emerald-500"
+                id="foundation-map-boundary-legend-sirap-line"
+                class="h-0 w-5 border-t-2 border-dashed border-black"
               ></span>
-              Biodiversity Priority
+              SIRAP Regions
             </li>
-            <li id="foundation-map-demo-legend-carbon-item" class="flex items-center gap-2">
+            <li id="foundation-map-boundary-legend-adm1-item" class="flex items-center gap-2">
               <span
-                id="foundation-map-demo-legend-carbon-dot"
-                class="h-2 w-2 rounded-full bg-sky-500"
+                id="foundation-map-boundary-legend-adm1-line"
+                class="h-0 w-5 border-t border-[#4c0073]"
               ></span>
-              Carbon Storage
+              ADM1 Departments
             </li>
-            <li id="foundation-map-demo-legend-cost-item" class="flex items-center gap-2">
+            <li id="foundation-map-boundary-legend-adm2-item" class="flex items-center gap-2">
               <span
-                id="foundation-map-demo-legend-cost-dot"
-                class="h-2 w-2 rounded-full bg-amber-500"
+                id="foundation-map-boundary-legend-adm2-line"
+                class="h-0 w-5 border-t border-slate-500"
               ></span>
-              Implementation Cost
+              ADM2 Municipalities
             </li>
           </ul>
         </section>
