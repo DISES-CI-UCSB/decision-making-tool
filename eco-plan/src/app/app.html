@@ -13,40 +13,53 @@
       <app-map-view
         id="foundation-map-view-component"
         class="block h-full w-full min-w-0"
+        [coordinateToolEnabled]="coordinateToolEnabled"
       ></app-map-view>
       <section
-        id="foundation-map-demo-legend-card"
-        class="pointer-events-none absolute left-3 top-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm"
+        id="foundation-map-overlay-stack"
+        class="pointer-events-none absolute bottom-7 right-3 z-20 flex flex-col items-end gap-2"
       >
-        <h2
-          id="foundation-map-demo-legend-title"
-          class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+        <app-dev-tools-panel
+          id="foundation-map-dev-tools-panel"
+          class="pointer-events-auto"
+          [coordinateToolEnabled]="coordinateToolEnabled"
+          (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
+        ></app-dev-tools-panel>
+
+        <section
+          id="foundation-map-demo-legend-card"
+          class="rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm"
         >
-          Demo Layers
-        </h2>
-        <ul id="foundation-map-demo-legend-list" class="mt-2 space-y-1.5 text-xs text-slate-700">
-          <li id="foundation-map-demo-legend-biodiversity-item" class="flex items-center gap-2">
-            <span
-              id="foundation-map-demo-legend-biodiversity-dot"
-              class="h-2 w-2 rounded-full bg-emerald-500"
-            ></span>
-            Biodiversity Priority
-          </li>
-          <li id="foundation-map-demo-legend-carbon-item" class="flex items-center gap-2">
-            <span
-              id="foundation-map-demo-legend-carbon-dot"
-              class="h-2 w-2 rounded-full bg-sky-500"
-            ></span>
-            Carbon Storage
-          </li>
-          <li id="foundation-map-demo-legend-cost-item" class="flex items-center gap-2">
-            <span
-              id="foundation-map-demo-legend-cost-dot"
-              class="h-2 w-2 rounded-full bg-amber-500"
-            ></span>
-            Implementation Cost
-          </li>
-        </ul>
+          <h2
+            id="foundation-map-demo-legend-title"
+            class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
+            Demo Layers
+          </h2>
+          <ul id="foundation-map-demo-legend-list" class="mt-2 space-y-1.5 text-xs text-slate-700">
+            <li id="foundation-map-demo-legend-biodiversity-item" class="flex items-center gap-2">
+              <span
+                id="foundation-map-demo-legend-biodiversity-dot"
+                class="h-2 w-2 rounded-full bg-emerald-500"
+              ></span>
+              Biodiversity Priority
+            </li>
+            <li id="foundation-map-demo-legend-carbon-item" class="flex items-center gap-2">
+              <span
+                id="foundation-map-demo-legend-carbon-dot"
+                class="h-2 w-2 rounded-full bg-sky-500"
+              ></span>
+              Carbon Storage
+            </li>
+            <li id="foundation-map-demo-legend-cost-item" class="flex items-center gap-2">
+              <span
+                id="foundation-map-demo-legend-cost-dot"
+                class="h-2 w-2 rounded-full bg-amber-500"
+              ></span>
+              Implementation Cost
+            </li>
+          </ul>
+        </section>
       </section>
     </div>
   </section>
