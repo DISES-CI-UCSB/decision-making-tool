@@ -6,6 +6,7 @@ import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { PanelSwitcherComponent } from '@features/analysis/panel-switcher/panel-switcher';
 import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-container/sidebar-container';
 import { MapViewComponent } from '@features/map/map-view/map-view';
+import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
 import { FinderModalComponent } from '@features/solution-finder/finder-modal/finder-modal';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -20,6 +21,7 @@ import { TranslatePipe } from '@ngx-translate/core';
     RouterOutlet,
     SidebarContainerComponent,
     FinderModalComponent,
+    DevToolsPanelComponent,
     TranslatePipe,
   ],
   templateUrl: './app.html',
@@ -29,6 +31,7 @@ export class App implements OnInit {
   private readonly debugMarker = 'UCS-39-map-debug-v1';
   protected solutionFinderModalOpen = false;
   protected perspectiveModalOpen = false;
+  protected coordinateToolEnabled = false;
 
   ngOnInit(): void {
     const runtimePort = window.location.port || '(default)';
@@ -54,5 +57,9 @@ export class App implements OnInit {
 
   protected onScenarioApplied(): void {
     this.closeSolutionFinderModal();
+  }
+
+  protected onCoordinateToolEnabledChange(isEnabled: boolean): void {
+    this.coordinateToolEnabled = isEnabled;
   }
 }

@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  Input,
   OnDestroy,
   ViewChild,
   effect,
@@ -12,13 +13,13 @@ import ArcGISMap from '@arcgis/core/Map';
 import ArcGISMapView from '@arcgis/core/views/MapView';
 import Point from '@arcgis/core/geometry/Point';
 import Attribution from '@arcgis/core/widgets/Attribution';
+import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
 import { AppStateService } from '@core/services/app-state.service';
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { SolutionLegendComponent } from '@features/map/components/solution-legend/solution-legend';
-import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
@@ -26,7 +27,7 @@ const COLOMBIA_ZOOM = 6;
 @Component({
   selector: 'app-map-view',
   standalone: true,
-  imports: [SolutionLegendComponent, DevToolsPanelComponent],
+  imports: [SolutionLegendComponent],
   templateUrl: './map-view.html',
   styleUrl: './map-view.scss',
   host: {
@@ -41,6 +42,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private view: InstanceType<typeof ArcGISMapView> | null = null;
   private scaleBarWidget: InstanceType<typeof ScaleBar> | null = null;
   private attributionWidget: InstanceType<typeof Attribution> | null = null;
+  private coordinateConversionWidget: InstanceType<typeof CoordinateConversion> | null = null;
+  private isCoordinateToolEnabled = false;
   private readonly basemapService = inject(MapBasemapService);
   private readonly layerRenderer = inject(LayerRendererService);
   private readonly solutionLayer = inject(SolutionLayerService);
@@ -48,6 +51,12 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly debugMarker = 'UCS-40-layer-infra-v1';
   protected mapErrorMessage = '';
+
+  @Input()
+  set coordinateToolEnabled(value: boolean) {
+    this.isCoordinateToolEnabled = value;
+    this.syncCoordinateToolVisibility();
+  }
 
   constructor() {
     console.info(`[MapView][${this.debugMarker}] constructor`);
@@ -212,7 +221,14 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       view: this.view,
     });
 
+    this.coordinateConversionWidget = new CoordinateConversion({
+      id: 'map-view-coordinate-conversion-widget',
+      view: this.view,
+      multipleConversions: false,
+    });
+
     this.view.ui.add(this.scaleBarWidget, 'bottom-left');
+    this.syncCoordinateToolVisibility();
     this.view.ui.add(this.attributionWidget, 'bottom-right');
   }
 
@@ -231,6 +247,12 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.view.ui.remove(this.attributionWidget);
       this.attributionWidget.destroy();
       this.attributionWidget = null;
+    }
+
+    if (this.coordinateConversionWidget) {
+      this.view.ui.remove(this.coordinateConversionWidget);
+      this.coordinateConversionWidget.destroy();
+      this.coordinateConversionWidget = null;
     }
   }
 
@@ -254,5 +276,19 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         `[MapView][${this.debugMarker}] hierarchy[${index}] id=${node.id || '(none)'} tag=${node.tagName.toLowerCase()} display=${computedStyle.display} size=${Math.round(rect.width)}x${Math.round(rect.height)}`,
       );
     });
+  }
+
+  private syncCoordinateToolVisibility(): void {
+    if (!this.view || !this.coordinateConversionWidget) {
+      return;
+    }
+
+    if (this.isCoordinateToolEnabled) {
+      this.view.ui.remove(this.coordinateConversionWidget);
+      this.view.ui.add(this.coordinateConversionWidget, { position: 'top-left', index: 0 });
+      return;
+    }
+
+    this.view.ui.remove(this.coordinateConversionWidget);
   }
 }
