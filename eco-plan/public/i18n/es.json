@@ -190,6 +190,26 @@
       "targetsLabel": "metas",
       "constraintsLabel": "restricciones",
       "loading": "Buscando escenarios de mejor ajuste...",
+      "stepLabels": {
+        "step1": "Paso 1: Metas",
+        "step2": "Paso 2: Restricciones",
+        "step3": "Paso 3: Resultados"
+      },
+      "stepState": {
+        "inProgress": "En progreso",
+        "complete": "Completado",
+        "locked": "Bloqueado",
+        "unlocked": "Desbloqueado",
+        "ready": "Listo"
+      },
+      "helpers": {
+        "constraints": "Activa restricciones despues de seleccionar al menos una meta.",
+        "results": "Revisa las mejores coincidencias y luego aplica un escenario."
+      },
+      "locked": {
+        "constraints": "Completa el Paso 1 para desbloquear restricciones.",
+        "results": "Ejecuta Buscar coincidencias despues del Paso 1 para desbloquear resultados."
+      },
       "sections": {
         "targets": "Metas de conservacion",
         "constraints": "Incluye y Excluye",
@@ -207,7 +227,7 @@
       },
       "empty": {
         "title": "Ejecuta la busqueda para ver escenarios",
-        "description": "Elige al menos una meta o restriccion y luego haz clic en Buscar coincidencias."
+        "description": "Elige al menos una meta y luego haz clic en Buscar coincidencias."
       },
       "preview": {
         "title": "Vista previa del mapa",

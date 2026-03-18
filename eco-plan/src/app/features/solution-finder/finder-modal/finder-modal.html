@@ -44,11 +44,53 @@
         </p>
       </article>
     </div>
+    <div id="solution-finder-modal-step-status-row" class="mt-4 grid gap-2 text-xs md:grid-cols-12">
+      <div
+        id="solution-finder-modal-step-chip-1"
+        class="rounded-lg border px-3 py-2 font-semibold md:col-span-5"
+        [class.border-emerald-200]="isStep1Complete()"
+        [class.bg-emerald-50]="isStep1Complete()"
+        [class.text-emerald-700]="isStep1Complete()"
+        [class.border-sky-200]="!isStep1Complete()"
+        [class.bg-sky-50]="!isStep1Complete()"
+        [class.text-sky-700]="!isStep1Complete()"
+      >
+        {{ 'solutionControls.finder.stepLabels.step1' | translate }} -
+        {{ getStep1StateKey() | translate }}
+      </div>
+      <div
+        id="solution-finder-modal-step-chip-2"
+        class="rounded-lg border px-3 py-2 font-semibold md:col-span-3"
+        [class.border-sky-200]="isStep2Unlocked()"
+        [class.bg-sky-50]="isStep2Unlocked()"
+        [class.text-sky-700]="isStep2Unlocked()"
+        [class.border-slate-300]="!isStep2Unlocked()"
+        [class.bg-slate-100]="!isStep2Unlocked()"
+        [class.text-slate-600]="!isStep2Unlocked()"
+      >
+        {{ 'solutionControls.finder.stepLabels.step2' | translate }} -
+        {{ getStep2StateKey() | translate }}
+      </div>
+      <div
+        id="solution-finder-modal-step-chip-3"
+        class="rounded-lg border px-3 py-2 font-semibold md:col-span-4"
+        [class.border-indigo-200]="isStep3Unlocked()"
+        [class.bg-indigo-50]="isStep3Unlocked()"
+        [class.text-indigo-700]="isStep3Unlocked()"
+        [class.border-slate-300]="!isStep3Unlocked()"
+        [class.bg-slate-100]="!isStep3Unlocked()"
+        [class.text-slate-600]="!isStep3Unlocked()"
+      >
+        {{ 'solutionControls.finder.stepLabels.step3' | translate }} -
+        {{ getStep3StateKey() | translate }}
+      </div>
+    </div>
   </header>
 
   <section
     id="solution-finder-modal-workflow-body"
-    class="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"
+    [style.--solution-finder-targets-group-height.px]="targetsGroupHeight"
+    class="grid min-h-0 flex-1 items-stretch gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"
   >
     <section
       id="solution-finder-modal-targets-column"
@@ -62,58 +104,60 @@
         {{ 'solutionControls.finder.sections.targets' | translate }}
       </h4>
 
-      @for (targetGroup of targetGroups; track targetGroup.id) {
-        <article
-          [id]="'solution-finder-modal-target-card-' + targetGroup.id"
-          class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-        >
-          <div
-            [id]="'solution-finder-modal-target-card-header-' + targetGroup.id"
-            class="flex items-center justify-between gap-3"
+      <div id="solution-finder-modal-targets-cards-group" #targetsCardsGroup class="space-y-3">
+        @for (targetGroup of targetGroups; track targetGroup.id) {
+          <article
+            [id]="'solution-finder-modal-target-card-' + targetGroup.id"
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <h5
-              [id]="'solution-finder-modal-target-card-title-' + targetGroup.id"
-              class="text-base font-semibold text-slate-900"
+            <div
+              [id]="'solution-finder-modal-target-card-header-' + targetGroup.id"
+              class="flex items-center justify-between gap-3"
             >
-              {{ targetGroup.labelKey | translate }}
-            </h5>
-            <span
-              [id]="'solution-finder-modal-target-card-badge-' + targetGroup.id"
-              class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"
-            >
-              {{ targetGroup.badgeText }}
-            </span>
-          </div>
-
-          <div
-            [id]="'solution-finder-modal-target-card-options-' + targetGroup.id"
-            class="mt-3 flex flex-wrap gap-2"
-          >
-            @for (option of targetGroup.options; track option.id) {
-              <button
-                [id]="'solution-finder-modal-target-option-' + targetGroup.id + '-' + option.id"
-                type="button"
-                class="rounded-full border px-3 py-1.5 text-sm font-medium transition"
-                [class.border-sky-500]="targetGroup.selectedOptionId === option.id"
-                [class.bg-sky-500]="targetGroup.selectedOptionId === option.id"
-                [class.text-white]="targetGroup.selectedOptionId === option.id"
-                [class.border-slate-200]="targetGroup.selectedOptionId !== option.id"
-                [class.bg-white]="targetGroup.selectedOptionId !== option.id"
-                [class.text-slate-700]="targetGroup.selectedOptionId !== option.id"
-                [attr.aria-pressed]="targetGroup.selectedOptionId === option.id"
-                (click)="selectTargetOption(targetGroup.id, option.id)"
+              <h5
+                [id]="'solution-finder-modal-target-card-title-' + targetGroup.id"
+                class="text-base font-semibold text-slate-900"
               >
-                {{ option.label }}
-              </button>
-            }
-          </div>
-        </article>
-      }
+                {{ targetGroup.labelKey | translate }}
+              </h5>
+              <span
+                [id]="'solution-finder-modal-target-card-badge-' + targetGroup.id"
+                class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+              >
+                {{ targetGroup.badgeText }}
+              </span>
+            </div>
+
+            <div
+              [id]="'solution-finder-modal-target-card-options-' + targetGroup.id"
+              class="mt-3 flex flex-wrap gap-2"
+            >
+              @for (option of targetGroup.options; track option.id) {
+                <button
+                  [id]="'solution-finder-modal-target-option-' + targetGroup.id + '-' + option.id"
+                  type="button"
+                  class="rounded-full border px-3 py-1.5 text-sm font-medium transition"
+                  [class.border-sky-500]="targetGroup.selectedOptionId === option.id"
+                  [class.bg-sky-500]="targetGroup.selectedOptionId === option.id"
+                  [class.text-white]="targetGroup.selectedOptionId === option.id"
+                  [class.border-slate-200]="targetGroup.selectedOptionId !== option.id"
+                  [class.bg-white]="targetGroup.selectedOptionId !== option.id"
+                  [class.text-slate-700]="targetGroup.selectedOptionId !== option.id"
+                  [attr.aria-pressed]="targetGroup.selectedOptionId === option.id"
+                  (click)="selectTargetOption(targetGroup.id, option.id)"
+                >
+                  {{ option.label }}
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
     </section>
 
     <section
       id="solution-finder-modal-constraints-column"
-      class="space-y-3 lg:col-span-3"
+      class="flex min-h-0 flex-col gap-3 lg:col-span-3"
       aria-labelledby="solution-finder-modal-constraints-heading"
     >
       <h4
@@ -122,60 +166,81 @@
       >
         {{ 'solutionControls.finder.sections.constraints' | translate }}
       </h4>
-
-      <article
-        id="solution-finder-modal-constraints-list-card"
-        class="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-      >
-        @for (toggle of constraintToggles; track toggle.id) {
-          <div
-            [id]="'solution-finder-modal-constraint-row-' + toggle.id"
-            class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2"
-          >
+      <div id="solution-finder-modal-constraints-card-wrapper" class="relative min-h-0 flex-1">
+        <article
+          id="solution-finder-modal-constraints-list-card"
+          class="h-full space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          @for (toggle of constraintToggles; track toggle.id) {
             <div
-              [id]="'solution-finder-modal-constraint-row-copy-' + toggle.id"
-              class="min-w-0 space-y-1"
+              [id]="'solution-finder-modal-constraint-row-' + toggle.id"
+              class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2"
             >
-              <p
-                [id]="'solution-finder-modal-constraint-row-label-' + toggle.id"
-                class="truncate text-sm font-medium text-slate-900"
+              <div
+                [id]="'solution-finder-modal-constraint-row-copy-' + toggle.id"
+                class="min-w-0 space-y-1"
               >
-                {{ toggle.labelKey | translate }}
-              </p>
-              <p
-                [id]="'solution-finder-modal-constraint-row-mode-' + toggle.id"
-                class="text-xs uppercase tracking-wide text-slate-500"
-              >
-                {{ getToggleModeLabelKey(toggle) | translate }}
-              </p>
-            </div>
+                <p
+                  [id]="'solution-finder-modal-constraint-row-label-' + toggle.id"
+                  class="truncate text-sm font-medium text-slate-900"
+                >
+                  {{ toggle.labelKey | translate }}
+                </p>
+                <p
+                  [id]="'solution-finder-modal-constraint-row-mode-' + toggle.id"
+                  class="text-xs uppercase tracking-wide text-slate-500"
+                >
+                  {{ getToggleModeLabelKey(toggle) | translate }}
+                </p>
+              </div>
 
-            <button
-              [id]="'solution-finder-modal-constraint-toggle-' + toggle.id"
-              type="button"
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition"
-              [class.bg-emerald-500]="isToggleEnabled(toggle)"
-              [class.bg-slate-300]="!isToggleEnabled(toggle)"
-              role="switch"
-              [attr.aria-checked]="isToggleEnabled(toggle)"
-              [attr.aria-label]="toggle.labelKey | translate"
-              (click)="toggleConstraint(toggle.id)"
+              <button
+                [id]="'solution-finder-modal-constraint-toggle-' + toggle.id"
+                type="button"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition"
+                [class.cursor-not-allowed]="!isStep2Unlocked()"
+                [class.opacity-60]="!isStep2Unlocked()"
+                [class.bg-emerald-500]="isToggleEnabled(toggle)"
+                [class.bg-slate-300]="!isToggleEnabled(toggle)"
+                role="switch"
+                [disabled]="!isStep2Unlocked()"
+                [attr.aria-checked]="isToggleEnabled(toggle)"
+                [attr.aria-label]="toggle.labelKey | translate"
+                (click)="toggleConstraint(toggle.id)"
+              >
+                <span
+                  [id]="'solution-finder-modal-constraint-toggle-knob-' + toggle.id"
+                  class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                  [class.translate-x-6]="isToggleEnabled(toggle)"
+                  [class.translate-x-1]="!isToggleEnabled(toggle)"
+                ></span>
+              </button>
+            </div>
+          }
+        </article>
+        <div
+          id="solution-finder-modal-constraints-lock-overlay"
+          class="absolute inset-0 z-10 rounded-2xl bg-slate-100/85 p-3"
+          [class.hidden]="isStep2Unlocked()"
+        >
+          <div
+            id="solution-finder-modal-constraints-lock-overlay-content"
+            class="flex h-full items-center justify-center text-center"
+          >
+            <p
+              id="solution-finder-modal-constraints-lock-overlay-message"
+              class="max-w-[220px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700"
             >
-              <span
-                [id]="'solution-finder-modal-constraint-toggle-knob-' + toggle.id"
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-                [class.translate-x-6]="isToggleEnabled(toggle)"
-                [class.translate-x-1]="!isToggleEnabled(toggle)"
-              ></span>
-            </button>
+              {{ 'solutionControls.finder.locked.constraints' | translate }}
+            </p>
           </div>
-        }
-      </article>
+        </div>
+      </div>
     </section>
 
     <section
       id="solution-finder-modal-results-column"
-      class="space-y-3 lg:col-span-4"
+      class="flex min-h-0 flex-col gap-3 lg:col-span-4"
       aria-labelledby="solution-finder-modal-results-heading"
     >
       <h4
@@ -184,128 +249,124 @@
       >
         {{ 'solutionControls.finder.sections.results' | translate }}
       </h4>
-
-      <article
-        id="solution-finder-modal-results-card"
-        class="flex min-h-56 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-      >
-        @switch (matchState) {
-          @case ('empty') {
-            <div
-              id="solution-finder-modal-results-empty-state"
-              class="flex h-full min-h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center"
-            >
-              <p
-                id="solution-finder-modal-results-empty-title"
-                class="text-sm font-semibold text-slate-900"
-              >
-                {{ 'solutionControls.finder.empty.title' | translate }}
-              </p>
-              <p
-                id="solution-finder-modal-results-empty-description"
-                class="text-sm text-slate-600"
-              >
-                {{ 'solutionControls.finder.empty.description' | translate }}
-              </p>
-            </div>
-          }
-          @case ('loading') {
-            <div
-              id="solution-finder-modal-results-loading-state"
-              class="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-xl border border-slate-100 bg-slate-50"
-            >
-              <span
-                id="solution-finder-modal-results-loading-spinner"
-                class="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500"
-              ></span>
-              <p id="solution-finder-modal-results-loading-text" class="text-sm text-slate-600">
-                {{ 'solutionControls.finder.loading' | translate }}
-              </p>
-            </div>
-          }
-          @case ('ready') {
-            <div
-              id="solution-finder-modal-results-ready-layout"
-              class="flex min-h-0 flex-1 flex-col gap-3"
-            >
+      <div id="solution-finder-modal-results-card-wrapper" class="relative min-h-0 flex-1">
+        <article
+          id="solution-finder-modal-results-card"
+          class="flex h-full min-h-56 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          @switch (matchState) {
+            @case ('empty') {
               <div
-                id="solution-finder-modal-results-list"
-                class="max-h-60 space-y-2 overflow-y-auto pr-1"
+                id="solution-finder-modal-results-empty-state"
+                class="flex h-full min-h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center"
               >
-                @for (match of matchResults; track match.id) {
-                  <button
-                    [id]="'solution-finder-modal-result-row-' + match.id"
-                    type="button"
-                    class="w-full rounded-xl border px-3 py-3 text-left transition"
-                    [class.border-sky-500]="selectedMatchId === match.id"
-                    [class.bg-sky-50]="selectedMatchId === match.id"
-                    [class.border-slate-200]="selectedMatchId !== match.id"
-                    [class.bg-white]="selectedMatchId !== match.id"
-                    (click)="selectMatch(match.id)"
-                  >
-                    <div
-                      [id]="'solution-finder-modal-result-row-header-' + match.id"
-                      class="flex items-center justify-between gap-3"
-                    >
-                      <p
-                        [id]="'solution-finder-modal-result-row-name-' + match.id"
-                        class="text-sm font-semibold text-slate-900"
-                      >
-                        {{ match.name }}
-                      </p>
-                      <span
-                        [id]="'solution-finder-modal-result-row-match-' + match.id"
-                        class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700"
-                      >
-                        {{ match.matchPercentage }}%
-                      </span>
-                    </div>
-                    <p
-                      [id]="'solution-finder-modal-result-row-description-' + match.id"
-                      class="mt-2 text-xs text-slate-600"
-                    >
-                      {{ match.description }}
-                    </p>
-                  </button>
-                }
+                <p
+                  id="solution-finder-modal-results-empty-title"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  {{ 'solutionControls.finder.empty.title' | translate }}
+                </p>
+                <p
+                  id="solution-finder-modal-results-empty-description"
+                  class="text-sm text-slate-600"
+                >
+                  {{ 'solutionControls.finder.empty.description' | translate }}
+                </p>
               </div>
-
-              @if (selectedMatch) {
-                <article
-                  id="solution-finder-modal-preview-card"
-                  class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+            }
+            @case ('loading') {
+              <div
+                id="solution-finder-modal-results-loading-state"
+                class="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-xl border border-slate-100 bg-slate-50"
+              >
+                <span
+                  id="solution-finder-modal-results-loading-spinner"
+                  class="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500"
+                ></span>
+                <p id="solution-finder-modal-results-loading-text" class="text-sm text-slate-600">
+                  {{ 'solutionControls.finder.loading' | translate }}
+                </p>
+              </div>
+            }
+            @case ('ready') {
+              <div
+                id="solution-finder-modal-results-ready-layout"
+                class="flex min-h-0 flex-1 flex-col gap-3"
+              >
+                <div
+                  id="solution-finder-modal-results-scroll-wrapper"
+                  class="relative min-h-0 flex-1"
+                  (mouseenter)="onResultsMouseEnter()"
+                  (mouseleave)="onResultsMouseLeave()"
                 >
                   <div
-                    id="solution-finder-modal-preview-header"
-                    class="flex items-center justify-between gap-3"
+                    id="solution-finder-modal-results-list"
+                    #resultsScrollContainer
+                    class="finder-results-scrollbar absolute inset-0 grid grid-cols-1 gap-0 overflow-y-auto border border-slate-300"
+                    (scroll)="onResultsScroll()"
                   >
-                    <p
-                      id="solution-finder-modal-preview-title"
-                      class="text-sm font-semibold text-slate-900"
-                    >
-                      {{ 'solutionControls.finder.preview.title' | translate }}
-                    </p>
-                    <span
-                      id="solution-finder-modal-preview-match-chip"
-                      class="rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-700"
-                    >
-                      {{ selectedMatch.matchPercentage }}%
-                    </span>
+                    @for (match of matchResults; track match.id) {
+                      <button
+                        [id]="'solution-finder-modal-result-row-' + match.id"
+                        type="button"
+                        class="finder-result-row relative w-full px-3 py-2.5 text-left transition"
+                        [class.is-selected]="selectedMatchId === match.id"
+                        (click)="selectMatch(match.id)"
+                      >
+                        <div
+                          [id]="'solution-finder-modal-result-row-header-' + match.id"
+                          class="flex items-center justify-between gap-3"
+                        >
+                          <p
+                            [id]="'solution-finder-modal-result-row-name-' + match.id"
+                            class="text-sm font-semibold text-slate-900"
+                          >
+                            {{ match.name }}
+                          </p>
+                          <span
+                            [id]="'solution-finder-modal-result-row-match-' + match.id"
+                            class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700"
+                          >
+                            {{ match.matchPercentage }}%
+                          </span>
+                        </div>
+                        <p
+                          [id]="'solution-finder-modal-result-row-description-' + match.id"
+                          class="mt-2 text-xs text-slate-600"
+                        >
+                          {{ match.description }}
+                        </p>
+                      </button>
+                    }
                   </div>
                   <div
-                    id="solution-finder-modal-preview-map"
-                    class="h-24 rounded-lg border border-slate-200 bg-gradient-to-r from-emerald-100 via-sky-100 to-indigo-100"
+                    id="solution-finder-modal-results-scroll-thumb"
+                    #resultsScrollThumb
+                    class="pointer-events-none absolute right-[3px] z-10 w-1.5 rounded-full bg-slate-500/50 opacity-0 transition-opacity duration-300"
                   ></div>
-                  <p id="solution-finder-modal-preview-map-label" class="text-xs text-slate-600">
-                    {{ 'solutionControls.finder.preview.mapLabel' | translate }}:
-                    {{ selectedMatch.mapLabel }}
-                  </p>
-                </article>
-              }
-            </div>
+                </div>
+              </div>
+            }
           }
-        }
-      </article>
+        </article>
+        <div
+          id="solution-finder-modal-results-lock-overlay"
+          class="absolute inset-0 z-10 rounded-2xl bg-slate-100/85 p-3"
+          [class.hidden]="!isStep3Locked()"
+        >
+          <div
+            id="solution-finder-modal-results-lock-overlay-content"
+            class="flex h-full items-center justify-center text-center"
+          >
+            <p
+              id="solution-finder-modal-results-lock-overlay-message"
+              class="max-w-[240px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700"
+            >
+              {{ 'solutionControls.finder.locked.results' | translate }}
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
   </section>
 

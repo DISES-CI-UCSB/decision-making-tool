@@ -190,6 +190,26 @@
       "targetsLabel": "targets",
       "constraintsLabel": "constraints",
       "loading": "Finding best-fit scenarios...",
+      "stepLabels": {
+        "step1": "Step 1: Targets",
+        "step2": "Step 2: Constraints",
+        "step3": "Step 3: Results"
+      },
+      "stepState": {
+        "inProgress": "In Progress",
+        "complete": "Complete",
+        "locked": "Locked",
+        "unlocked": "Unlocked",
+        "ready": "Ready"
+      },
+      "helpers": {
+        "constraints": "Toggle constraints after selecting at least one target.",
+        "results": "Review best matches, then apply one scenario."
+      },
+      "locked": {
+        "constraints": "Complete Step 1 to unlock constraints.",
+        "results": "Run Find matches after Step 1 to unlock results."
+      },
       "sections": {
         "targets": "Conservation Targets",
         "constraints": "Includes and Excludes",
@@ -207,7 +227,7 @@
       },
       "empty": {
         "title": "Run matching to view scenarios",
-        "description": "Choose at least one target or constraint, then click Find matches."
+        "description": "Choose at least one target, then click Find matches."
       },
       "preview": {
         "title": "Preview map",
