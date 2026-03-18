@@ -35,6 +35,7 @@ describe('AppStateService', () => {
     expect(service.activeSolution$()).toEqual(solution);
     expect(service.selectedAOI$()).toEqual(aoi);
     expect(service.hasActiveSolution()).toBe(true);
+    expect(service.rightSidebarMode$()).toBe('overview');
 
     service.clearAOI();
     service.clearSolution();
@@ -42,6 +43,7 @@ describe('AppStateService', () => {
     expect(service.selectedAOI$()).toBe(null);
     expect(service.activeSolution$()).toBe(null);
     expect(service.hasActiveSolution()).toBe(false);
+    expect(service.rightSidebarMode$()).toBe('welcome');
   });
 
   it('toggles layer visibility and updates sidebar mode', () => {
@@ -49,7 +51,7 @@ describe('AppStateService', () => {
       {
         id: 'layer-a',
         name: 'Habitat',
-        type: 'vector',
+        arcgisType: 'feature',
         category: 'ecology',
         visible: true,
         opacity: 1,
@@ -57,7 +59,7 @@ describe('AppStateService', () => {
       {
         id: 'layer-b',
         name: 'Communities',
-        type: 'raster',
+        arcgisType: 'imagery-tile',
         category: 'social',
         visible: false,
         opacity: 0.7,

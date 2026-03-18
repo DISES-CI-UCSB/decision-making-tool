@@ -5,6 +5,9 @@ import ImageElement from '@arcgis/core/layers/support/ImageElement';
 import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
 
 import type ArcGISMap from '@arcgis/core/Map';
+import type { Solution } from '@core/models';
+import { AppStateService } from '@core/services/app-state.service';
+import { MockDataService } from '@core/services/mock-data.service';
 import type { LoadedSolution } from '@core/models/solution-scenario.model';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
 
@@ -13,6 +16,8 @@ const SOLUTION_LAYER_ID = 'solution-raster-layer';
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
   private readonly loader = inject(GeoTiffLoaderService);
+  private readonly appState = inject(AppStateService);
+  private readonly mockData = inject(MockDataService);
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private currentLayer: InstanceType<typeof MediaLayer> | null = null;
 
@@ -61,6 +66,7 @@ export class SolutionLayerService {
 
       this.map.add(this.currentLayer);
       this.loadedSolution$.set(loaded);
+      this.appState.loadSolution(this.toSidebarSolution(loaded));
 
       console.info(
         `[SolutionLayerService] rendered "${loaded.scenario.id}" in ${loaded.loadTimeMs}ms ` +
@@ -83,11 +89,38 @@ export class SolutionLayerService {
       this.currentLayer = null;
     }
     this.loadedSolution$.set(null);
+    this.appState.clearSolution();
   }
 
   setOpacity(opacity: number): void {
     if (this.currentLayer) {
       this.currentLayer.opacity = Math.max(0, Math.min(1, opacity));
     }
+  }
+
+  private toSidebarSolution(loaded: LoadedSolution): Solution {
+    const mockSolution = this.getMockSolutionForScenario(loaded.scenario.id);
+    const matchPercentage = Math.round(
+      Math.max(65, Math.min(98, 100 - loaded.rasterMeta.selectedPct / 4)),
+    );
+
+    return {
+      id: mockSolution.id,
+      name: loaded.scenario.name,
+      description: loaded.scenario.description,
+      matchPercentage,
+      geometryUrl: loaded.scenario.filename,
+      metadata: {
+        scenarioId: loaded.scenario.id,
+      },
+      metrics: mockSolution.metrics,
+    };
+  }
+
+  private getMockSolutionForScenario(scenarioId: string): Solution {
+    const mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'] as const;
+    const hash = Array.from(scenarioId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const fallbackId = mockSolutionIds[hash % mockSolutionIds.length];
+    return this.mockData.getSolutionById(fallbackId) ?? this.mockData.getSolutionById('sol-001')!;
   }
 }

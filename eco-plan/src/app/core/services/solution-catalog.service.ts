@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import type { SolutionScenario } from '@core/models/solution-scenario.model';
 
-const BASE_PATH = 'data/solutions';
+const BASE_PATH = '/data/solutions';
 
 /**
  * Catalog of real prioritizr solution scenarios derived from

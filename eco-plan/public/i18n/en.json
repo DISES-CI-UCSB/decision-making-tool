@@ -95,7 +95,52 @@
       "matchLabel": "Match score",
       "sectionsLabel": "Metric groups",
       "emptyTitle": "No active solution yet",
-      "emptyDescription": "Load a solution to replace the welcome panel with overview metrics."
+      "emptyDescription": "Load a solution to replace the welcome panel with overview metrics.",
+      "matchBadge": "{{percent}}% Match",
+      "goalsMet": "Goals Met",
+      "goalsMetSub": "Conservation themes achieved",
+      "nationalContribution": "Nat'l Contribution",
+      "addsToExisting": "Adds {{added}}% to existing {{existing}}%",
+      "spatial": {
+        "priorityArea": "priority area",
+        "zones": "zones",
+        "avg": "Avg"
+      },
+      "sections": {
+        "conservationGains": "Conservation Gains",
+        "costsAndTradeoffs": "Costs & Trade-offs"
+      },
+      "conditional": "Conditional",
+      "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
+      "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
+      "nationalAnchor": {
+        "title": "National Contribution",
+        "contributing": "Contributing {{percent}}% toward Colombia's 30x30 conservation target",
+        "targetLabel": "30% target"
+      },
+      "actions": {
+        "viewFullReport": "View Full Report",
+        "compare": "Compare",
+        "export": "Export"
+      },
+      "metrics": {
+        "speciesGroupsProtected": "Species Groups Protected",
+        "speciesGroupsProtectedDesc": "Adequate habitat protection",
+        "threatenedSpeciesSecured": "Threatened Species Secured",
+        "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
+        "ecosystemCoverage": "Ecosystem Coverage",
+        "ecosystemCoverageDesc": "Key ecosystems within solution",
+        "carbonStorageCapacity": "Carbon Storage Capacity",
+        "carbonStorageCapacityDesc": "Total biomass in priority areas",
+        "waterRegulationServices": "Water Regulation Services",
+        "waterRegulationServicesDesc": "Hydrological regulation capacity",
+        "affectedAgriculturalArea": "Affected Agricultural Area",
+        "affectedAgriculturalAreaDesc": "Agricultural land within priorities",
+        "agriculturalOpportunityCost": "Agricultural Opportunity Cost",
+        "agriculturalOpportunityCostDesc": "Production foregone",
+        "conflictZoneOverlap": "Conflict Zone Overlap",
+        "conflictZoneOverlapDesc": "Historical conflict zones"
+      }
     },
     "aoi": {
       "kicker": "AOI detail",

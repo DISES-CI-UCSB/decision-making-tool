@@ -33,35 +33,6 @@
     </div>
   </nav>
 
-  <header id="right-sidebar-panel-switcher-header" class="px-5 py-4">
-    <div
-      id="right-sidebar-panel-switcher-header-content"
-      class="flex items-center justify-between gap-3"
-    >
-      <div id="right-sidebar-panel-switcher-header-copy" class="space-y-1">
-        <p
-          id="right-sidebar-panel-switcher-kicker"
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-        >
-          {{ 'layout.rightSidebarTitle' | translate }}
-        </p>
-        <h2
-          id="right-sidebar-panel-switcher-title"
-          class="text-base font-semibold tracking-tight text-slate-900"
-        >
-          {{ getModeLabelKey(rightSidebarMode()) | translate }}
-        </h2>
-      </div>
-
-      <span
-        id="right-sidebar-panel-switcher-mode-badge"
-        class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-      >
-        {{ getModeLabelKey(rightSidebarMode()) | translate }}
-      </span>
-    </div>
-  </header>
-
   <div id="right-sidebar-panel-switcher-content-shell" class="min-h-0 flex-1">
     @switch (rightSidebarMode()) {
       @case ('welcome') {
@@ -165,195 +136,368 @@
       }
 
       @case ('overview') {
-        <section
-          id="right-sidebar-overview-panel"
-          class="panel-enter flex h-full min-h-0 flex-col gap-5 overflow-y-auto p-5"
-        >
-          <header id="right-sidebar-overview-header" class="space-y-2">
-            <p
-              id="right-sidebar-overview-kicker"
-              class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
-            >
-              {{ 'analysis.overview.kicker' | translate }}
-            </p>
-            <h3
-              id="right-sidebar-overview-title"
-              class="text-xl font-semibold tracking-tight text-slate-900"
-            >
-              {{ 'analysis.overview.title' | translate }}
-            </h3>
-            <p id="right-sidebar-overview-description" class="text-sm leading-6 text-slate-600">
-              {{ 'analysis.overview.description' | translate }}
-            </p>
-          </header>
-
-          @if (activeSolution(); as solution) {
-            <section
-              id="right-sidebar-overview-solution-card"
-              class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-            >
-              <div id="right-sidebar-overview-solution-card-header" class="space-y-1">
-                <p
-                  id="right-sidebar-overview-solution-label"
-                  class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"
-                >
-                  {{ 'analysis.overview.solutionLabel' | translate }}
-                </p>
-                <h4
-                  id="right-sidebar-overview-solution-name"
-                  class="text-lg font-semibold text-slate-900"
-                >
-                  {{ solution.name }}
-                </h4>
+        @if (activeSolution(); as solution) {
+          <section id="solution-overview-panel" class="panel-enter v3-panel">
+            <header id="right-sidebar-v3-overview-header" class="v3-panel-header">
+              <div id="right-sidebar-v3-overview-header-top" class="v3-header-top">
+                <span id="right-sidebar-v3-overview-match-badge" class="v3-match-badge">
+                  {{
+                    'analysis.overview.matchBadge'
+                      | translate: { percent: solution.matchPercentage }
+                  }}
+                </span>
+                <span id="right-sidebar-v3-overview-date" class="v3-header-date">Nov 2024</span>
               </div>
+              <h3 id="right-sidebar-overview-solution-name" class="v3-scenario-name">
+                {{ solution.name }}
+              </h3>
+            </header>
 
-              <p
-                id="right-sidebar-overview-solution-description"
-                class="text-sm leading-6 text-slate-600"
-              >
-                {{ solution.description || ('analysis.overview.noDescription' | translate) }}
-              </p>
-
-              <div id="right-sidebar-overview-solution-stats" class="grid grid-cols-2 gap-3">
+            <div id="right-sidebar-v3-overview-body" class="v3-panel-body">
+              <section id="right-sidebar-v3-overview-hero" class="v3-hero">
                 <article
-                  id="right-sidebar-overview-match-card"
-                  class="rounded-xl border border-slate-200 bg-white px-3 py-3"
+                  id="right-sidebar-v3-overview-hero-goals"
+                  class="v3-hero-card v3-hero-card-goals"
                 >
-                  <p
-                    id="right-sidebar-overview-match-label"
-                    class="text-xs font-medium uppercase tracking-[0.12em] text-slate-500"
-                  >
-                    {{ 'analysis.overview.matchLabel' | translate }}
+                  <p id="right-sidebar-v3-overview-hero-goals-label" class="v3-hero-label">
+                    {{ 'analysis.overview.goalsMet' | translate }}
                   </p>
-                  <p
-                    id="right-sidebar-overview-match-value"
-                    class="mt-2 text-xl font-semibold text-slate-900"
-                  >
-                    {{ solution.matchPercentage }}%
-                  </p>
-                </article>
-
-                <article
-                  id="right-sidebar-overview-sections-card"
-                  class="rounded-xl border border-slate-200 bg-white px-3 py-3"
-                >
-                  <p
-                    id="right-sidebar-overview-sections-label"
-                    class="text-xs font-medium uppercase tracking-[0.12em] text-slate-500"
-                  >
-                    {{ 'analysis.overview.sectionsLabel' | translate }}
-                  </p>
-                  <p
-                    id="right-sidebar-overview-sections-value"
-                    class="mt-2 text-xl font-semibold text-slate-900"
-                  >
-                    {{ overviewSections().length }}
-                  </p>
-                </article>
-              </div>
-            </section>
-
-            <section id="right-sidebar-overview-metrics-section" class="space-y-4">
-              @for (section of overviewSections(); track section.sectionId) {
-                <article
-                  [id]="'right-sidebar-overview-metric-section-' + section.sectionId"
-                  class="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
-                >
-                  <div
-                    [id]="'right-sidebar-overview-metric-section-header-' + section.sectionId"
-                    class="mb-3 flex items-center justify-between gap-3"
-                  >
-                    <h4
-                      [id]="'right-sidebar-overview-metric-section-title-' + section.sectionId"
-                      class="text-sm font-semibold text-slate-900"
+                  <p id="right-sidebar-v3-overview-hero-goals-value" class="v3-hero-value">
+                    {{ getGoalsMetCount(solution.matchPercentage)
+                    }}<span
+                      id="right-sidebar-v3-overview-hero-goals-value-total"
+                      class="v3-hero-value-small"
+                      >/10</span
                     >
-                      {{ section.sectionLabelKey | translate }}
-                    </h4>
+                  </p>
+                  <div id="right-sidebar-v3-overview-hero-goals-bar" class="v3-hero-bar">
                     <span
-                      [id]="'right-sidebar-overview-metric-section-count-' + section.sectionId"
-                      class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
-                    >
-                      {{ section.metrics.length }}
-                    </span>
+                      id="right-sidebar-v3-overview-hero-goals-fill"
+                      class="v3-hero-fill-green"
+                      [style.width.%]="solution.matchPercentage / 1.2"
+                    ></span>
                   </div>
+                  <p id="right-sidebar-v3-overview-hero-goals-sub" class="v3-hero-sub">
+                    {{ 'analysis.overview.goalsMetSub' | translate }}
+                  </p>
+                </article>
+                <article
+                  id="right-sidebar-v3-overview-hero-national"
+                  class="v3-hero-card v3-hero-card-national"
+                >
+                  <p id="right-sidebar-v3-overview-hero-national-label" class="v3-hero-label">
+                    {{ 'analysis.overview.nationalContribution' | translate }}
+                  </p>
+                  <p id="right-sidebar-v3-overview-hero-national-value" class="v3-hero-value">
+                    {{ getContributionPercent(solution.matchPercentage)
+                    }}<span
+                      id="right-sidebar-v3-overview-hero-national-value-unit"
+                      class="v3-hero-value-small"
+                      >%</span
+                    >
+                  </p>
+                  <div id="right-sidebar-v3-overview-hero-national-bar" class="v3-hero-bar">
+                    <span
+                      id="right-sidebar-v3-overview-hero-national-fill-existing"
+                      class="v3-hero-fill-blue-existing"
+                      [style.width.%]="
+                        getContributionPercent(solution.matchPercentage) -
+                        getContributionAddedPercent(solution.matchPercentage)
+                      "
+                    ></span>
+                    <span
+                      id="right-sidebar-v3-overview-hero-national-fill-added"
+                      class="v3-hero-fill-blue-added"
+                      [style.width.%]="getContributionAddedPercent(solution.matchPercentage)"
+                    ></span>
+                  </div>
+                  <p id="right-sidebar-v3-overview-hero-national-sub" class="v3-hero-sub">
+                    {{
+                      'analysis.overview.addsToExisting'
+                        | translate
+                          : {
+                              added: getContributionAddedPercent(solution.matchPercentage),
+                              existing:
+                                getContributionPercent(solution.matchPercentage) -
+                                getContributionAddedPercent(solution.matchPercentage),
+                            }
+                    }}
+                  </p>
+                </article>
+              </section>
 
-                  <div
-                    [id]="'right-sidebar-overview-metric-list-' + section.sectionId"
-                    class="space-y-3"
+              <section id="right-sidebar-v3-overview-spatial" class="v3-spatial">
+                <i
+                  id="right-sidebar-v3-overview-spatial-icon"
+                  class="fas fa-map-marked-alt"
+                  aria-hidden="true"
+                ></i>
+                <span id="right-sidebar-v3-overview-spatial-area"
+                  ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
+                  {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
+                >
+                <span id="right-sidebar-v3-overview-spatial-sep-1" class="v3-spatial-sep"></span>
+                <span id="right-sidebar-v3-overview-spatial-zones"
+                  ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
+                  {{ 'analysis.overview.spatial.zones' | translate }}</span
+                >
+                <span id="right-sidebar-v3-overview-spatial-sep-2" class="v3-spatial-sep"></span>
+                <span id="right-sidebar-v3-overview-spatial-avg"
+                  >{{ 'analysis.overview.spatial.avg' | translate }}
+                  <b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b></span
+                >
+              </section>
+
+              @if (isOverviewLoading()) {
+                <section
+                  id="right-sidebar-v3-overview-loading"
+                  class="space-y-3"
+                  aria-live="polite"
+                >
+                  @for (card of [1, 2, 3]; track card) {
+                    <div
+                      [id]="'right-sidebar-v3-overview-loading-card-' + card"
+                      class="h-24 animate-pulse rounded-md border border-slate-200 bg-slate-50"
+                    ></div>
+                  }
+                </section>
+              } @else if (overviewLoadFailed()) {
+                <section
+                  id="right-sidebar-v3-overview-error"
+                  class="rounded-md border border-rose-200 bg-rose-50 px-3 py-3"
+                >
+                  <p
+                    id="right-sidebar-v3-overview-error-title"
+                    class="text-sm font-semibold text-rose-900"
                   >
-                    @for (metric of section.metrics; track metric.metricId) {
+                    {{ 'analysis.overview.emptyTitle' | translate }}
+                  </p>
+                  <p id="right-sidebar-v3-overview-error-desc" class="mt-1 text-sm text-rose-700">
+                    {{ 'analysis.overview.emptyDescription' | translate }}
+                  </p>
+                </section>
+              } @else {
+                <section id="right-sidebar-v3-overview-gains-section" class="v3-section">
+                  <header id="right-sidebar-v3-overview-gains-head" class="v3-section-head">
+                    <span
+                      id="right-sidebar-v3-overview-gains-dot"
+                      class="v3-section-dot v3-section-dot-gains"
+                    ></span>
+                    <span id="right-sidebar-v3-overview-gains-label" class="v3-section-label">{{
+                      'analysis.overview.sections.conservationGains' | translate
+                    }}</span>
+                  </header>
+                  <div id="right-sidebar-v3-overview-gains-table" class="v3-metric-table">
+                    @for (entry of overviewGainMetrics(); track entry.id) {
                       <article
-                        [id]="'right-sidebar-overview-metric-row-' + metric.metricId"
-                        class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
+                        [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
+                        class="v3-metric-row"
                       >
-                        <div
-                          [id]="'right-sidebar-overview-metric-row-header-' + metric.metricId"
-                          class="flex items-start justify-between gap-3"
+                        <span
+                          [id]="'right-sidebar-v3-overview-gain-icon-' + entry.id"
+                          class="v3-m-icon"
+                          [class.v3-m-icon-green]="!entry.unavailable"
+                          [class.v3-m-icon-muted]="entry.unavailable"
+                          >●</span
                         >
-                          <div
-                            [id]="'right-sidebar-overview-metric-copy-' + metric.metricId"
-                            class="space-y-1"
-                          >
-                            <p
-                              [id]="'right-sidebar-overview-metric-label-' + metric.metricId"
-                              class="text-sm font-medium text-slate-900"
-                            >
-                              {{ metric.labelKey | translate }}
-                            </p>
-                            <p
-                              [id]="'right-sidebar-overview-metric-value-' + metric.metricId"
-                              class="text-lg font-semibold text-slate-900"
-                            >
-                              {{ formatMetricValue(metric) }}
-                            </p>
-                          </div>
-
-                          <span
-                            [id]="'right-sidebar-overview-metric-status-' + metric.metricId"
-                            class="rounded-full px-2.5 py-1 text-xs font-medium"
-                            [class.bg-emerald-100]="isMetricReady(metric)"
-                            [class.text-emerald-700]="isMetricReady(metric)"
-                            [class.bg-amber-100]="!isMetricReady(metric)"
-                            [class.text-amber-700]="!isMetricReady(metric)"
-                          >
-                            {{ getStatusKey(metric.status) | translate }}
-                          </span>
-                        </div>
-
-                        @if (metric.notes) {
+                        <div
+                          [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
+                          class="v3-m-body"
+                        >
                           <p
-                            [id]="'right-sidebar-overview-metric-notes-' + metric.metricId"
-                            class="mt-2 text-sm leading-6 text-slate-600"
+                            [id]="'right-sidebar-v3-overview-gain-name-' + entry.id"
+                            class="v3-m-name"
                           >
-                            {{ metric.notes }}
+                            {{ entry.labelKey | translate }}
+                            @if (entry.conditional) {
+                              <span
+                                [id]="'right-sidebar-v3-overview-gain-tag-' + entry.id"
+                                class="v3-tag-conditional"
+                                >{{ 'analysis.overview.conditional' | translate }}</span
+                              >
+                            }
                           </p>
-                        }
+                          <p
+                            [id]="'right-sidebar-v3-overview-gain-desc-' + entry.id"
+                            class="v3-m-desc"
+                          >
+                            {{ entry.descriptionKey | translate }}
+                          </p>
+                        </div>
+                        <div [id]="'right-sidebar-v3-overview-gain-value-shell-' + entry.id">
+                          <p
+                            [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
+                            class="v3-m-val"
+                          >
+                            {{ entry.value }}
+                          </p>
+                          <p
+                            [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
+                            class="v3-m-unit"
+                          >
+                            {{ entry.unit }}
+                          </p>
+                        </div>
                       </article>
                     }
                   </div>
-                </article>
+                  <p
+                    id="right-sidebar-v3-overview-gains-insight"
+                    class="v3-insight v3-insight-gains"
+                  >
+                    {{ 'analysis.overview.insightGains' | translate }}
+                  </p>
+                </section>
+
+                <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
+                  <header id="right-sidebar-v3-overview-costs-head" class="v3-section-head">
+                    <span
+                      id="right-sidebar-v3-overview-costs-dot"
+                      class="v3-section-dot v3-section-dot-costs"
+                    ></span>
+                    <span id="right-sidebar-v3-overview-costs-label" class="v3-section-label">{{
+                      'analysis.overview.sections.costsAndTradeoffs' | translate
+                    }}</span>
+                  </header>
+                  <div id="right-sidebar-v3-overview-costs-table" class="v3-metric-table">
+                    @for (entry of overviewCostMetrics(); track entry.id) {
+                      <article
+                        [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
+                        class="v3-metric-row"
+                      >
+                        <span
+                          [id]="'right-sidebar-v3-overview-cost-icon-' + entry.id"
+                          class="v3-m-icon"
+                          [class.v3-m-icon-amber]="!entry.unavailable"
+                          [class.v3-m-icon-muted]="entry.unavailable"
+                          >●</span
+                        >
+                        <div
+                          [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
+                          class="v3-m-body"
+                        >
+                          <p
+                            [id]="'right-sidebar-v3-overview-cost-name-' + entry.id"
+                            class="v3-m-name"
+                          >
+                            {{ entry.labelKey | translate }}
+                            @if (entry.conditional) {
+                              <span
+                                [id]="'right-sidebar-v3-overview-cost-tag-' + entry.id"
+                                class="v3-tag-conditional"
+                                >{{ 'analysis.overview.conditional' | translate }}</span
+                              >
+                            }
+                          </p>
+                          <p
+                            [id]="'right-sidebar-v3-overview-cost-desc-' + entry.id"
+                            class="v3-m-desc"
+                          >
+                            {{ entry.descriptionKey | translate }}
+                          </p>
+                        </div>
+                        <div [id]="'right-sidebar-v3-overview-cost-value-shell-' + entry.id">
+                          <p
+                            [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
+                            class="v3-m-val"
+                          >
+                            {{ entry.value }}
+                          </p>
+                          <p
+                            [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
+                            class="v3-m-unit"
+                          >
+                            {{ entry.unit }}
+                          </p>
+                        </div>
+                      </article>
+                    }
+                  </div>
+                  <p
+                    id="right-sidebar-v3-overview-costs-insight"
+                    class="v3-insight v3-insight-costs"
+                  >
+                    {{ 'analysis.overview.insightCosts' | translate }}
+                  </p>
+                </section>
+
+                <section id="right-sidebar-v3-overview-national-anchor" class="v3-nc-anchor">
+                  <p id="right-sidebar-v3-overview-national-title" class="v3-nc-title">
+                    {{ 'analysis.overview.nationalAnchor.title' | translate }}
+                  </p>
+                  <p id="right-sidebar-v3-overview-national-text" class="v3-nc-text">
+                    {{
+                      'analysis.overview.nationalAnchor.contributing'
+                        | translate: { percent: getContributionPercent(solution.matchPercentage) }
+                    }}
+                  </p>
+                  <div id="right-sidebar-v3-overview-national-track" class="v3-nc-track">
+                    <span
+                      id="right-sidebar-v3-overview-national-fill"
+                      class="v3-nc-fill"
+                      [style.width.%]="getContributionPercent(solution.matchPercentage)"
+                    ></span>
+                    <span
+                      id="right-sidebar-v3-overview-national-marker"
+                      class="v3-nc-marker"
+                    ></span>
+                  </div>
+                  <div id="right-sidebar-v3-overview-national-labels" class="v3-nc-labels">
+                    <span id="right-sidebar-v3-overview-national-label-min">0%</span>
+                    <span id="right-sidebar-v3-overview-national-label-target">{{
+                      'analysis.overview.nationalAnchor.targetLabel' | translate
+                    }}</span>
+                    <span id="right-sidebar-v3-overview-national-label-max">100%</span>
+                  </div>
+                </section>
               }
-            </section>
-          } @else {
-            <section
-              id="right-sidebar-overview-empty-state"
-              class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
+            </div>
+
+            <footer id="right-sidebar-v3-overview-footer" class="v3-panel-footer">
+              <button
+                id="right-sidebar-v3-overview-btn-report"
+                type="button"
+                class="v3-btn v3-btn-primary"
+              >
+                {{ 'analysis.overview.actions.viewFullReport' | translate }}
+              </button>
+              <div id="right-sidebar-v3-overview-btn-group" class="v3-btn-group">
+                <button
+                  id="right-sidebar-v3-overview-btn-compare"
+                  type="button"
+                  class="v3-btn v3-btn-secondary"
+                >
+                  {{ 'analysis.overview.actions.compare' | translate }}
+                </button>
+                <button
+                  id="right-sidebar-v3-overview-btn-export"
+                  type="button"
+                  class="v3-btn v3-btn-secondary"
+                >
+                  {{ 'analysis.overview.actions.export' | translate }}
+                </button>
+              </div>
+            </footer>
+          </section>
+        } @else {
+          <section
+            id="right-sidebar-overview-empty-state"
+            class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
+          >
+            <h4
+              id="right-sidebar-overview-empty-state-title"
+              class="text-sm font-semibold text-slate-900"
             >
-              <h4
-                id="right-sidebar-overview-empty-state-title"
-                class="text-sm font-semibold text-slate-900"
-              >
-                {{ 'analysis.overview.emptyTitle' | translate }}
-              </h4>
-              <p
-                id="right-sidebar-overview-empty-state-description"
-                class="mt-2 text-sm leading-6 text-slate-600"
-              >
-                {{ 'analysis.overview.emptyDescription' | translate }}
-              </p>
-            </section>
-          }
-        </section>
+              {{ 'analysis.overview.emptyTitle' | translate }}
+            </h4>
+            <p
+              id="right-sidebar-overview-empty-state-description"
+              class="mt-2 text-sm leading-6 text-slate-600"
+            >
+              {{ 'analysis.overview.emptyDescription' | translate }}
+            </p>
+          </section>
+        }
       }
 
       @case ('aoi') {

@@ -8,6 +8,7 @@ import {
   Output,
   signal,
 } from '@angular/core';
+import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 
@@ -91,6 +92,23 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                 (click)="toggleCoordinateTool()"
               >
                 {{ coordinateToolEnabled ? 'Hide long/lat' : 'Show long/lat' }}
+              </button>
+            </div>
+
+            <div
+              id="dev-tools-overview-dummy-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <p id="dev-tools-overview-dummy-toggle-label" class="text-[11px] text-slate-600">
+                Fill missing overview metrics
+              </p>
+              <button
+                id="dev-tools-overview-dummy-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleOverviewMetricFill()"
+              >
+                {{ fillDummyOverviewMetrics() ? 'ON' : 'OFF' }}
               </button>
             </div>
           </section>
@@ -199,12 +217,14 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 export class DevToolsPanelComponent {
   protected readonly solutionLayer = inject(SolutionLayerService);
   private readonly catalog = inject(SolutionCatalogService);
+  private readonly appState = inject(AppStateService);
 
   readonly scenarios = this.catalog.getAll();
   readonly selectedScenarioId = signal('');
   readonly isOpen = signal(false);
 
   readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
+  readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
 
   @Input() coordinateToolEnabled = false;
   @Output() readonly coordinateToolEnabledChange = new EventEmitter<boolean>();
@@ -238,6 +258,10 @@ export class DevToolsPanelComponent {
 
   toggleCoordinateTool(): void {
     this.coordinateToolEnabledChange.emit(!this.coordinateToolEnabled);
+  }
+
+  toggleOverviewMetricFill(): void {
+    this.appState.setFillDummyOverviewMetrics(!this.fillDummyOverviewMetrics());
   }
 
   formatRes(res: [number, number]): string {

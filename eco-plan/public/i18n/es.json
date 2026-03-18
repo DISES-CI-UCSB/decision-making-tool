@@ -95,7 +95,52 @@
       "matchLabel": "Puntaje de ajuste",
       "sectionsLabel": "Grupos de metricas",
       "emptyTitle": "Todavia no hay una solucion activa",
-      "emptyDescription": "Carga una solucion para reemplazar el panel de bienvenida con metricas de resumen."
+      "emptyDescription": "Carga una solucion para reemplazar el panel de bienvenida con metricas de resumen.",
+      "matchBadge": "{{percent}}% Coincidencia",
+      "goalsMet": "Metas cumplidas",
+      "goalsMetSub": "Temas de conservacion logrados",
+      "nationalContribution": "Contribucion nacional",
+      "addsToExisting": "Suma {{added}}% al {{existing}}% existente",
+      "spatial": {
+        "priorityArea": "area prioritaria",
+        "zones": "zonas",
+        "avg": "Prom"
+      },
+      "sections": {
+        "conservationGains": "Ganancias de conservacion",
+        "costsAndTradeoffs": "Costos y compensaciones"
+      },
+      "conditional": "Condicional",
+      "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climaticos.",
+      "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
+      "nationalAnchor": {
+        "title": "Contribucion nacional",
+        "contributing": "Contribuyendo {{percent}}% hacia la meta de conservacion 30x30 de Colombia",
+        "targetLabel": "Meta 30%"
+      },
+      "actions": {
+        "viewFullReport": "Ver informe completo",
+        "compare": "Comparar",
+        "export": "Exportar"
+      },
+      "metrics": {
+        "speciesGroupsProtected": "Grupos de especies protegidos",
+        "speciesGroupsProtectedDesc": "Proteccion adecuada del habitat",
+        "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
+        "threatenedSpeciesSecuredDesc": "Metas de habitat UICN cumplidas",
+        "ecosystemCoverage": "Cobertura de ecosistemas",
+        "ecosystemCoverageDesc": "Ecosistemas clave dentro de la solucion",
+        "carbonStorageCapacity": "Capacidad de almacenamiento de carbono",
+        "carbonStorageCapacityDesc": "Biomasa total en areas prioritarias",
+        "waterRegulationServices": "Servicios de regulacion hidrica",
+        "waterRegulationServicesDesc": "Capacidad de regulacion hidrologica",
+        "affectedAgriculturalArea": "Area agricola afectada",
+        "affectedAgriculturalAreaDesc": "Tierra agricola dentro de prioridades",
+        "agriculturalOpportunityCost": "Costo de oportunidad agricola",
+        "agriculturalOpportunityCostDesc": "Produccion sacrificada",
+        "conflictZoneOverlap": "Superposicion con zonas de conflicto",
+        "conflictZoneOverlapDesc": "Zonas de conflicto historicas"
+      }
     },
     "aoi": {
       "kicker": "Detalle de AOI",

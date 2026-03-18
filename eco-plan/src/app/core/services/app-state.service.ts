@@ -13,6 +13,7 @@ export class AppStateService {
   readonly visibleLayers$ = signal<LayerConfig[]>([]);
   readonly comparisonSolution$ = signal<Solution | null>(null);
   readonly rightSidebarMode$ = signal<RightSidebarMode>('welcome');
+  readonly fillDummyOverviewMetrics$ = signal(true);
   readonly userTier$ = signal<UserTier>(UserTier.Public);
   readonly mapExtent$ = signal<Extent | null>(null);
 
@@ -22,10 +23,14 @@ export class AppStateService {
 
   loadSolution(solution: Solution): void {
     this.activeSolution$.set(solution);
+    this.rightSidebarMode$.set('overview');
   }
 
   clearSolution(): void {
     this.activeSolution$.set(null);
+    this.selectedAOI$.set(null);
+    this.comparisonSolution$.set(null);
+    this.rightSidebarMode$.set('welcome');
   }
 
   selectAOI(aoi: AOI): void {
@@ -44,5 +49,9 @@ export class AppStateService {
 
   setRightSidebarMode(mode: RightSidebarMode): void {
     this.rightSidebarMode$.set(mode);
+  }
+
+  setFillDummyOverviewMetrics(enabled: boolean): void {
+    this.fillDummyOverviewMetrics$.set(enabled);
   }
 }
