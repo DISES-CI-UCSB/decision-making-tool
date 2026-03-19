@@ -15,7 +15,7 @@ import { AppStateService } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 
-type AdminBoundaryOption = 'national' | AoiType;
+type AdminBoundaryOption = 'national' | AoiType | 'custom';
 
 interface LayerControlRow {
   id: string;
@@ -62,6 +62,13 @@ interface LayerGroup {
   rows: LayerControlRow[];
 }
 
+interface SelectedLayerRow {
+  id: string;
+  name: string;
+  sourceLabel: string;
+  sourceType: 'overlay' | 'group';
+}
+
 const SPECIES_VISIBLE_LIMIT = 6;
 
 @Component({
@@ -84,11 +91,17 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly adminBoundary = signal<AdminBoundaryOption>('national');
   protected readonly customBoundaryRequested = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
+  protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
+  protected readonly selectedLayerOrder = signal<string[]>([]);
+  protected readonly selectedLayers = computed<SelectedLayerRow[]>(() =>
+    this.buildSelectedLayers(),
+  );
 
   constructor() {
     this.onAdminBoundaryChange('national');
+    this.selectedLayerOrder.set(this.computeSelectedLayerOrder(this.overlays(), this.groups()));
 
     effect(() => {
       const solution = this.appState.activeSolution$();
@@ -115,16 +128,22 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     this.adminBoundary.set(value);
+    const isCustomBoundary = value === 'custom';
+    this.customBoundaryRequested.set(isCustomBoundary);
     this.adminBoundaryService.setLayerVisibility('sirap', value === 'sirap');
     this.adminBoundaryService.setLayerVisibility('department', value === 'department');
     this.adminBoundaryService.setLayerVisibility('municipality', value === 'municipality');
   }
 
   protected requestCustomBoundary(): void {
+    this.adminBoundary.set('custom');
     this.customBoundaryRequested.set(true);
   }
 
   protected dismissCustomBoundary(): void {
+    if (this.adminBoundary() === 'custom') {
+      this.adminBoundary.set('national');
+    }
     this.customBoundaryRequested.set(false);
   }
 
@@ -137,10 +156,26 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected toggleOverlayVisibility(rowId: string): void {
+    let nextVisible = false;
     this.overlays.update((rows) =>
-      rows.map((row) => (row.id === rowId ? { ...row, visible: !row.visible } : row)),
+      rows.map((row) => {
+        if (row.id !== rowId) {
+          return row;
+        }
+        nextVisible = !row.visible;
+        return { ...row, visible: nextVisible };
+      }),
     );
+    this.updateSelectedLayerOrder(rowId, nextVisible);
     this.syncOverlayById(rowId);
+  }
+
+  protected toggleOverlaySelected(rowId: string): void {
+    this.toggleOverlayVisibility(rowId);
+  }
+
+  protected toggleOverlaysCollapsed(): void {
+    this.overlaysCollapsed.update((collapsed) => !collapsed);
   }
 
   protected toggleOverlayExpanded(rowId: string): void {
@@ -166,6 +201,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected toggleLayerVisibility(groupId: string, rowId: string): void {
+    let nextVisible = false;
     this.groups.update((groups) =>
       groups.map((group) => {
         if (group.id !== groupId) {
@@ -175,12 +211,22 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...group,
           rows: group.rows.map((row) =>
-            row.id === rowId ? { ...row, visible: !row.visible } : row,
+            row.id === rowId
+              ? (() => {
+                  nextVisible = !row.visible;
+                  return { ...row, visible: nextVisible };
+                })()
+              : row,
           ),
         };
       }),
     );
+    this.updateSelectedLayerOrder(rowId, nextVisible);
     this.syncGroupRowById(groupId, rowId);
+  }
+
+  protected toggleLayerSelected(groupId: string, rowId: string): void {
+    this.toggleLayerVisibility(groupId, rowId);
   }
 
   protected toggleLayerExpanded(groupId: string, rowId: string): void {
@@ -299,10 +345,107 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
+    this.selectedLayerOrder.set(this.computeSelectedLayerOrder(this.overlays(), this.groups()));
     this.adminBoundaryService.setLayerVisibility('sirap', false);
     this.adminBoundaryService.setLayerVisibility('department', false);
     this.adminBoundaryService.setLayerVisibility('municipality', false);
     this.syncAllRowsToMap();
+  }
+
+  protected moveSelectedLayer(rowId: string, direction: 'up' | 'down'): void {
+    this.selectedLayerOrder.update((order) => this.reorderRowsById(order, rowId, direction));
+  }
+
+  protected removeSelectedLayer(rowId: string): void {
+    if (rowId.startsWith('overlay-')) {
+      this.toggleOverlaySelected(rowId);
+      return;
+    }
+
+    const groupId = this.findGroupIdByRowId(rowId);
+    if (!groupId) {
+      return;
+    }
+
+    this.toggleLayerSelected(groupId, rowId);
+  }
+
+  protected isSelectedLayerVisible(rowId: string): boolean {
+    const overlay = this.overlays().find((row) => row.id === rowId);
+    if (overlay) {
+      return overlay.visible;
+    }
+
+    const groupRowMatch = this.findGroupRowById(rowId);
+    if (!groupRowMatch) {
+      return false;
+    }
+    return groupRowMatch.row.visible;
+  }
+
+  protected isSelectedLayerExpanded(rowId: string): boolean {
+    const overlay = this.overlays().find((row) => row.id === rowId);
+    if (overlay) {
+      return overlay.expanded;
+    }
+
+    const groupRowMatch = this.findGroupRowById(rowId);
+    if (!groupRowMatch) {
+      return false;
+    }
+    return groupRowMatch.row.expanded;
+  }
+
+  protected toggleSelectedLayerVisibility(rowId: string): void {
+    if (rowId.startsWith('overlay-')) {
+      this.toggleOverlayVisibility(rowId);
+      return;
+    }
+
+    const groupId = this.findGroupIdByRowId(rowId);
+    if (!groupId) {
+      return;
+    }
+    this.toggleLayerVisibility(groupId, rowId);
+  }
+
+  protected toggleSelectedLayerExpanded(rowId: string): void {
+    if (rowId.startsWith('overlay-')) {
+      this.toggleOverlayExpanded(rowId);
+      return;
+    }
+
+    const groupId = this.findGroupIdByRowId(rowId);
+    if (!groupId) {
+      return;
+    }
+    this.toggleLayerExpanded(groupId, rowId);
+  }
+
+  protected selectedLayerOpacity(rowId: string): number {
+    const overlay = this.overlays().find((row) => row.id === rowId);
+    if (overlay) {
+      return overlay.opacity;
+    }
+
+    const groupRowMatch = this.findGroupRowById(rowId);
+    if (!groupRowMatch) {
+      return 0;
+    }
+    return groupRowMatch.row.opacity;
+  }
+
+  protected updateSelectedLayerOpacity(rowId: string, opacityText: string): void {
+    if (rowId.startsWith('overlay-')) {
+      this.updateOverlayOpacity(rowId, opacityText);
+      return;
+    }
+
+    const groupId = this.findGroupIdByRowId(rowId);
+    if (!groupId) {
+      return;
+    }
+    this.updateLayerOpacity(groupId, rowId, opacityText);
   }
 
   private syncAllRowsToMap(): void {
@@ -403,6 +546,23 @@ export class MapLayersPanelComponent implements OnDestroy {
     return nextRows;
   }
 
+  private reorderRowsById(rows: string[], rowId: string, direction: 'up' | 'down'): string[] {
+    const index = rows.findIndex((id) => id === rowId);
+    if (index < 0) {
+      return rows;
+    }
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= rows.length) {
+      return rows;
+    }
+
+    const nextRows = [...rows];
+    const [row] = nextRows.splice(index, 1);
+    nextRows.splice(targetIndex, 0, row);
+    return nextRows;
+  }
+
   private parsePercent(rawValue: string): number {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed)) {
@@ -414,10 +574,98 @@ export class MapLayersPanelComponent implements OnDestroy {
   private isAdminBoundaryOption(value: string): value is AdminBoundaryOption {
     return (
       value === 'national' ||
+      value === 'custom' ||
       value === 'sirap' ||
       value === 'department' ||
       value === 'municipality'
     );
+  }
+
+  private updateSelectedLayerOrder(rowId: string, visible: boolean): void {
+    this.selectedLayerOrder.update((order) => {
+      const exists = order.includes(rowId);
+      if (visible && !exists) {
+        return [...order, rowId];
+      }
+      if (!visible && exists) {
+        return order.filter((id) => id !== rowId);
+      }
+      return order;
+    });
+  }
+
+  private computeSelectedLayerOrder(overlays: LayerControlRow[], groups: LayerGroup[]): string[] {
+    const selectedOverlayIds = overlays.filter((row) => row.visible).map((row) => row.id);
+    const selectedGroupRowIds = groups
+      .flatMap((group) => group.rows)
+      .filter((row) => row.visible)
+      .map((row) => row.id);
+    return [...selectedOverlayIds, ...selectedGroupRowIds];
+  }
+
+  private buildSelectedLayers(): SelectedLayerRow[] {
+    const overlays = this.overlays();
+    const groups = this.groups();
+    const order = this.selectedLayerOrder();
+    const rowLookup = new Map<string, SelectedLayerRow>();
+
+    for (const overlay of overlays) {
+      if (!overlay.visible) {
+        continue;
+      }
+      rowLookup.set(overlay.id, {
+        id: overlay.id,
+        name: overlay.name,
+        sourceLabel:
+          overlay.id === 'overlay-conservation-solution' ? 'Selected Solution' : 'Available Layers',
+        sourceType: 'overlay',
+      });
+    }
+
+    for (const group of groups) {
+      for (const row of group.rows) {
+        if (!row.visible) {
+          continue;
+        }
+        rowLookup.set(row.id, {
+          id: row.id,
+          name: row.name,
+          sourceLabel: group.title,
+          sourceType: 'group',
+        });
+      }
+    }
+
+    const orderedSelectedRows: SelectedLayerRow[] = [];
+    for (const rowId of order) {
+      const row = rowLookup.get(rowId);
+      if (!row) {
+        continue;
+      }
+      orderedSelectedRows.push(row);
+      rowLookup.delete(rowId);
+    }
+
+    for (const row of rowLookup.values()) {
+      orderedSelectedRows.push(row);
+    }
+
+    return orderedSelectedRows;
+  }
+
+  private findGroupIdByRowId(rowId: string): string | undefined {
+    const group = this.groups().find((item) => item.rows.some((row) => row.id === rowId));
+    return group?.id;
+  }
+
+  private findGroupRowById(rowId: string): { groupId: string; row: LayerControlRow } | undefined {
+    for (const group of this.groups()) {
+      const row = group.rows.find((candidate) => candidate.id === rowId);
+      if (row) {
+        return { groupId: group.id, row };
+      }
+    }
+    return undefined;
   }
 
   private createDefaultOverlays(): LayerControlRow[] {
