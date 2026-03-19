@@ -20,6 +20,7 @@ type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type OverviewMetricSection = 'gains' | 'costs';
 type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'socio' | 'protection';
 type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
+type AoiSectionId = 'general' | 'bio' | 'eco' | 'land' | 'cultural' | 'marine';
 
 interface OverviewMetricBlueprint {
   id: string;
@@ -374,6 +375,20 @@ export class PanelSwitcherComponent {
 
     return this.mockData.compareSolutions(baselineSolution.id, candidateSolution.id)?.metrics ?? [];
   });
+  protected readonly fillDummyAoiMetrics = this.appState.fillDummyAoiMetrics$;
+  protected readonly aoiSectionExpanded = signal<Record<AoiSectionId, boolean>>({
+    general: true,
+    bio: true,
+    eco: true,
+    land: false,
+    cultural: false,
+    marine: false,
+  });
+  protected readonly aoiDonutGradient = computed(() => {
+    if (!this.fillDummyAoiMetrics()) return '#e2e8f0';
+    return 'conic-gradient(#334155 0 39%, #64748b 39% 62%, #94a3b8 62% 79%, #cbd5e1 79% 91%, #e2e8f0 91% 100%)';
+  });
+
   protected readonly comparisonSectionExpanded = signal<Record<ComparisonSectionId, boolean>>({
     general: true,
     biodiversity: true,
@@ -520,6 +535,25 @@ export class PanelSwitcherComponent {
 
   protected getGoalsMetCount(matchPercentage: number): number {
     return Math.round(matchPercentage / 12);
+  }
+
+  protected toggleAoiSection(sectionId: AoiSectionId): void {
+    this.aoiSectionExpanded.update((state) => ({
+      ...state,
+      [sectionId]: !state[sectionId],
+    }));
+  }
+
+  protected isAoiSectionExpanded(sectionId: AoiSectionId): boolean {
+    return this.aoiSectionExpanded()[sectionId];
+  }
+
+  protected aoiVal(dummyValue: string): string {
+    return this.fillDummyAoiMetrics() ? dummyValue : '--';
+  }
+
+  protected aoiBarWidth(dummyPercent: number): number {
+    return this.fillDummyAoiMetrics() ? dummyPercent : 0;
   }
 
   protected isComparisonSectionExpanded(sectionId: ComparisonSectionId): boolean {
