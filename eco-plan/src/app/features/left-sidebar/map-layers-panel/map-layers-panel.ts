@@ -615,6 +615,57 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
   }
 
+  protected selectedLayerHasColorControl(rowId: string): boolean {
+    const overlay = this.overlays().find((row) => row.id === rowId);
+    if (overlay) {
+      return overlay.hasColorControl;
+    }
+
+    const groupRowMatch = this.findGroupRowById(rowId);
+    if (groupRowMatch) {
+      return groupRowMatch.row.hasColorControl;
+    }
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      return speciesMatch.species.hasColorControl;
+    }
+
+    return false;
+  }
+
+  protected selectedLayerColor(rowId: string): string {
+    const overlay = this.overlays().find((row) => row.id === rowId);
+    if (overlay) {
+      return overlay.color;
+    }
+
+    const groupRowMatch = this.findGroupRowById(rowId);
+    if (groupRowMatch) {
+      return groupRowMatch.row.color;
+    }
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      return speciesMatch.species.color;
+    }
+
+    return '#64748b';
+  }
+
+  protected updateSelectedLayerColor(rowId: string, color: string): void {
+    if (rowId.startsWith('overlay-')) {
+      this.updateOverlayColor(rowId, color);
+      return;
+    }
+
+    const groupId = this.findGroupIdByRowId(rowId);
+    if (groupId) {
+      this.updateLayerColor(groupId, rowId, color);
+      return;
+    }
+  }
+
   private syncAllRowsToMap(): void {
     for (const overlay of this.overlays()) {
       this.syncRowToMap(overlay);
