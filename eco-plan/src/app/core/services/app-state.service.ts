@@ -16,6 +16,7 @@ export class AppStateService {
   readonly rightSidebarMode$ = signal<RightSidebarMode>('welcome');
   readonly fillDummyOverviewMetrics$ = signal(true);
   readonly fillDummyComparisonMetrics$ = signal(true);
+  readonly fillDummyAoiMetrics$ = signal(true);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
   readonly userTier$ = signal<UserTier>(UserTier.Public);
@@ -70,6 +71,10 @@ export class AppStateService {
 
   setFillDummyComparisonMetrics(enabled: boolean): void {
     this.fillDummyComparisonMetrics$.set(enabled);
+  }
+
+  setFillDummyAoiMetrics(enabled: boolean): void {
+    this.fillDummyAoiMetrics$.set(enabled);
   }
 
   openSolutionFinder(context: SolutionFinderContext = 'default'): void {

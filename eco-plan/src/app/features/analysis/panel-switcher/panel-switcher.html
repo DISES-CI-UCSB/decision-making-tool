@@ -501,201 +501,664 @@
       }
 
       @case ('aoi') {
-        <section
-          id="right-sidebar-aoi-panel"
-          class="panel-enter flex h-full min-h-0 flex-col gap-5 overflow-y-auto p-5"
-        >
-          <header id="right-sidebar-aoi-header" class="space-y-2">
-            <p
-              id="right-sidebar-aoi-kicker"
-              class="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700"
-            >
-              {{ 'analysis.aoi.kicker' | translate }}
-            </p>
-            <h3
-              id="right-sidebar-aoi-title"
-              class="text-xl font-semibold tracking-tight text-slate-900"
-            >
-              {{ 'analysis.aoi.title' | translate }}
-            </h3>
-            <p id="right-sidebar-aoi-description" class="text-sm leading-6 text-slate-600">
-              {{ 'analysis.aoi.description' | translate }}
-            </p>
-          </header>
-
-          @if (selectedAoi(); as aoi) {
-            <section
-              id="right-sidebar-aoi-summary-card"
-              class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-            >
-              <p
-                id="right-sidebar-aoi-summary-label"
-                class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"
-              >
-                {{ 'analysis.aoi.selectedLabel' | translate }}
-              </p>
-              <h4
-                id="right-sidebar-aoi-summary-name"
-                class="mt-1 text-lg font-semibold text-slate-900"
-              >
-                {{ aoi.name }}
-              </h4>
-              <p id="right-sidebar-aoi-summary-type" class="mt-2 text-sm text-slate-600">
-                {{ 'analysis.aoi.typeLabel' | translate }}:
-                {{ 'analysis.aoi.types.' + aoi.type | translate }}
-              </p>
-
-              @if (isSirapAoiSelected()) {
-                <section
-                  id="right-sidebar-aoi-sirap-scope-section"
-                  class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-3"
-                >
-                  <div id="right-sidebar-aoi-sirap-scope-header" class="space-y-1">
-                    <p
-                      id="right-sidebar-aoi-sirap-scope-title"
-                      class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600"
-                    >
-                      SIRAP selection scope
-                    </p>
-                    <p
-                      id="right-sidebar-aoi-sirap-scope-description"
-                      class="text-xs text-slate-500"
-                    >
-                      Choose whether AOI selection uses just the clicked polygon or the full SIRAP.
-                    </p>
-                  </div>
-
-                  <div
-                    id="right-sidebar-aoi-sirap-scope-button-row"
-                    class="mt-2 grid grid-cols-2 gap-2"
-                    role="group"
-                    aria-label="SIRAP selection scope"
+        @if (selectedAoi(); as aoi) {
+          <section id="aoi-dashboard-panel" class="panel-enter aoi-panel">
+            <!-- ═══ HEADER ═══ -->
+            <header id="aoi-dashboard-header" class="aoi-panel-header">
+              <div id="aoi-dashboard-header-row" class="aoi-header-row">
+                <div id="aoi-dashboard-header-left" class="aoi-header-left">
+                  <button
+                    id="aoi-dashboard-back-btn"
+                    type="button"
+                    class="aoi-icon-btn"
+                    aria-label="Back to solution overview"
+                    (click)="selectTab('overview')"
                   >
-                    <button
-                      id="right-sidebar-aoi-sirap-scope-part-button"
-                      type="button"
-                      class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition"
-                      [class.border-blue-300]="isSirapScopeSelected('part')"
-                      [class.bg-blue-50]="isSirapScopeSelected('part')"
-                      [class.text-blue-700]="isSirapScopeSelected('part')"
-                      [class.border-slate-300]="!isSirapScopeSelected('part')"
-                      [class.bg-white]="!isSirapScopeSelected('part')"
-                      [class.text-slate-700]="!isSirapScopeSelected('part')"
-                      (click)="setSirapSelectionScope('part')"
-                    >
-                      Clicked polygon
-                    </button>
-
-                    <button
-                      id="right-sidebar-aoi-sirap-scope-whole-button"
-                      type="button"
-                      class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition"
-                      [class.border-blue-300]="isSirapScopeSelected('whole')"
-                      [class.bg-blue-50]="isSirapScopeSelected('whole')"
-                      [class.text-blue-700]="isSirapScopeSelected('whole')"
-                      [class.border-slate-300]="!isSirapScopeSelected('whole')"
-                      [class.bg-white]="!isSirapScopeSelected('whole')"
-                      [class.text-slate-700]="!isSirapScopeSelected('whole')"
-                      (click)="setSirapSelectionScope('whole')"
-                    >
-                      Whole SIRAP
-                    </button>
-                  </div>
-                </section>
-              }
-            </section>
-
-            @if (activeSolution() && aoiMetrics().length > 0) {
-              <section id="right-sidebar-aoi-metrics-section" class="space-y-3">
-                @for (metric of aoiMetrics(); track metric.metricId) {
-                  <article
-                    [id]="'right-sidebar-aoi-metric-row-' + metric.metricId"
-                    class="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
-                  >
-                    <div
-                      [id]="'right-sidebar-aoi-metric-row-header-' + metric.metricId"
-                      class="flex items-start justify-between gap-3"
-                    >
-                      <div
-                        [id]="'right-sidebar-aoi-metric-copy-' + metric.metricId"
-                        class="space-y-1"
-                      >
-                        <p
-                          [id]="'right-sidebar-aoi-metric-label-' + metric.metricId"
-                          class="text-sm font-medium text-slate-900"
-                        >
-                          {{ metric.labelKey | translate }}
-                        </p>
-                        <p
-                          [id]="'right-sidebar-aoi-metric-value-' + metric.metricId"
-                          class="text-lg font-semibold text-slate-900"
-                        >
-                          {{ formatMetricValue(metric) }}
-                        </p>
-                      </div>
-
-                      <span
-                        [id]="'right-sidebar-aoi-metric-status-' + metric.metricId"
-                        class="rounded-full px-2.5 py-1 text-xs font-medium"
-                        [class.bg-emerald-100]="isMetricReady(metric)"
-                        [class.text-emerald-700]="isMetricReady(metric)"
-                        [class.bg-amber-100]="!isMetricReady(metric)"
-                        [class.text-amber-700]="!isMetricReady(metric)"
-                      >
-                        {{ getStatusKey(metric.status) | translate }}
-                      </span>
-                    </div>
-
-                    @if (metric.notes) {
-                      <p
-                        [id]="'right-sidebar-aoi-metric-notes-' + metric.metricId"
-                        class="mt-2 text-sm leading-6 text-slate-600"
-                      >
-                        {{ metric.notes }}
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                  </button>
+                  <div id="aoi-dashboard-title-block" class="aoi-title-block">
+                    <p id="aoi-dashboard-region-kicker" class="aoi-region-kicker">
+                      {{ 'analysis.aoi.types.' + aoi.type | translate }}
+                    </p>
+                    <h3 id="aoi-dashboard-region-name" class="aoi-region-name">{{ aoi.name }}</h3>
+                    @if (fillDummyAoiMetrics()) {
+                      <p id="aoi-dashboard-region-meta" class="aoi-region-meta">
+                        512 km² · Cauca Department
                       </p>
                     }
-                  </article>
+                  </div>
+                </div>
+              </div>
+
+              @if (isSirapAoiSelected()) {
+                <div
+                  id="aoi-dashboard-scope-strip"
+                  class="aoi-scope-strip"
+                  role="group"
+                  aria-label="SIRAP selection scope"
+                >
+                  <button
+                    id="aoi-dashboard-scope-polygon-btn"
+                    type="button"
+                    class="aoi-scope-btn"
+                    [class.aoi-scope-btn-active]="isSirapScopeSelected('part')"
+                    (click)="setSirapSelectionScope('part')"
+                  >
+                    <i class="fas fa-draw-polygon" aria-hidden="true"></i> Polygon
+                  </button>
+                  <button
+                    id="aoi-dashboard-scope-whole-btn"
+                    type="button"
+                    class="aoi-scope-btn"
+                    [class.aoi-scope-btn-active]="isSirapScopeSelected('whole')"
+                    (click)="setSirapSelectionScope('whole')"
+                  >
+                    <i class="fas fa-layer-group" aria-hidden="true"></i> Full SIRAP
+                  </button>
+                </div>
+              }
+            </header>
+
+            <!-- ═══ SCROLLABLE BODY ═══ -->
+            <div id="aoi-dashboard-body" class="aoi-panel-body">
+              <!-- ─── SECTION A: Regional Conservation Summary ─── -->
+              <section id="aoi-section-general">
+                <button
+                  id="aoi-head-general"
+                  type="button"
+                  class="aoi-section-head"
+                  [attr.aria-expanded]="isAoiSectionExpanded('general')"
+                  (click)="toggleAoiSection('general')"
+                >
+                  <span class="aoi-section-dot aoi-section-dot-general"></span>
+                  <span class="aoi-section-label">Regional Conservation Summary</span>
+                  <span
+                    id="aoi-chevron-general"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('general')"
+                    aria-hidden="true"
+                    >▾</span
+                  >
+                </button>
+                @if (isAoiSectionExpanded('general')) {
+                  <div id="aoi-body-general" class="aoi-section-body">
+                    <div id="aoi-hero-grid" class="aoi-hero-grid">
+                      <div id="aoi-hero-priority" class="aoi-hero-card aoi-hero-card-priority">
+                        <div class="aoi-hero-kicker">Priority Area in Region</div>
+                        <div class="aoi-hero-value aoi-hero-value-green">
+                          {{ aoiVal('230') }} <small>km²</small>
+                        </div>
+                        <div class="aoi-hero-bar">
+                          <span
+                            class="aoi-hero-fill-green"
+                            [style.width.%]="aoiBarWidth(45)"
+                          ></span>
+                        </div>
+                        <div class="aoi-hero-sub">
+                          <strong>{{ aoiVal('45%') }}</strong> of this municipality
+                        </div>
+                      </div>
+                      <div id="aoi-hero-national" class="aoi-hero-card aoi-hero-card-national">
+                        <div class="aoi-hero-kicker">30×30 Contribution</div>
+                        <div class="aoi-hero-value aoi-hero-value-blue">
+                          {{ aoiVal('1.9') }}<small>%</small>
+                        </div>
+                        <div class="aoi-hero-bar">
+                          <span
+                            class="aoi-hero-fill-blue-lt"
+                            [style.width.%]="aoiBarWidth(0.9)"
+                          ></span>
+                          <span class="aoi-hero-fill-blue" [style.width.%]="aoiBarWidth(1)"></span>
+                        </div>
+                        <div class="aoi-hero-sub">
+                          Existing <strong>{{ aoiVal('0.9%') }}</strong> + adds
+                          <strong>{{ aoiVal('1.0%') }}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div id="aoi-protect-stats" class="aoi-stat-grid">
+                      <div id="aoi-stat-total-protected" class="aoi-stat-card">
+                        <p class="aoi-stat-label">Total Protected Area</p>
+                        <p class="aoi-stat-value">{{ aoiVal('72 km²') }}</p>
+                        <p class="aoi-stat-unit">{{ aoiVal('31% of AOI under protection') }}</p>
+                      </div>
+                      <div id="aoi-stat-parks-overlap" class="aoi-stat-card">
+                        <p class="aoi-stat-label">Overlap w/ Nat'l Parks</p>
+                        <p class="aoi-stat-value">{{ aoiVal('18%') }}</p>
+                        <p class="aoi-stat-unit">Of AOI priority area</p>
+                      </div>
+                    </div>
+                  </div>
                 }
               </section>
-            } @else {
-              <section
-                id="right-sidebar-aoi-empty-metrics-state"
-                class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
-              >
-                <h4
-                  id="right-sidebar-aoi-empty-metrics-title"
-                  class="text-sm font-semibold text-slate-900"
+
+              <!-- ─── SECTION B: Biodiversity ─── -->
+              <section id="aoi-section-bio">
+                <button
+                  id="aoi-head-bio"
+                  type="button"
+                  class="aoi-section-head"
+                  [attr.aria-expanded]="isAoiSectionExpanded('bio')"
+                  (click)="toggleAoiSection('bio')"
                 >
-                  {{ 'analysis.aoi.emptyMetricsTitle' | translate }}
-                </h4>
-                <p
-                  id="right-sidebar-aoi-empty-metrics-description"
-                  class="mt-2 text-sm leading-6 text-slate-600"
-                >
-                  {{ 'analysis.aoi.emptyMetricsDescription' | translate }}
-                </p>
+                  <span class="aoi-section-dot aoi-section-dot-bio"></span>
+                  <span class="aoi-section-label">Biodiversity</span>
+                  <span
+                    id="aoi-chevron-bio"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('bio')"
+                    aria-hidden="true"
+                    >▾</span
+                  >
+                </button>
+                @if (isAoiSectionExpanded('bio')) {
+                  <div id="aoi-body-bio" class="aoi-section-body">
+                    <div id="aoi-species-chart" class="aoi-bar-chart">
+                      <div id="aoi-bar-mammals" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Mammals</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(32)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('42') }}</span>
+                      </div>
+                      <div id="aoi-bar-birds" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Birds</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(100)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('131') }}</span>
+                      </div>
+                      <div id="aoi-bar-amphibians" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Amphibians</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(34)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('44') }}</span>
+                      </div>
+                      <div id="aoi-bar-reptiles" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Reptiles</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(29)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('38') }}</span>
+                      </div>
+                      <div id="aoi-bar-plants" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Plants</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(21)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('27') }}</span>
+                      </div>
+                    </div>
+
+                    <div id="aoi-bio-stats" class="aoi-stat-grid">
+                      <div id="aoi-stat-threatened" class="aoi-stat-card">
+                        <p class="aoi-stat-label">Threatened Species</p>
+                        <p class="aoi-stat-value">{{ aoiVal('5') }}</p>
+                        <p class="aoi-stat-unit">IUCN CR / EN / VU</p>
+                      </div>
+                      <div id="aoi-stat-endemic" class="aoi-stat-card">
+                        <p class="aoi-stat-label">Endemic Species</p>
+                        <p class="aoi-stat-value">{{ aoiVal('12') }}</p>
+                        <p class="aoi-stat-unit">Colombia endemics</p>
+                      </div>
+                    </div>
+
+                    <div id="aoi-stat-national-species" class="aoi-stat-card">
+                      <p class="aoi-stat-label">% of National Species Total</p>
+                      <p class="aoi-stat-value">{{ aoiVal('7%') }}</p>
+                      <p class="aoi-stat-unit">
+                        Share of Colombia's total species found in this AOI
+                      </p>
+                    </div>
+
+                    @if (fillDummyAoiMetrics()) {
+                      <div id="aoi-bio-alert" class="aoi-alert">
+                        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                        <span>
+                          <strong>5 threatened species</strong> (CR/EN/VU) have habitat within this
+                          AOI's priority areas.
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
               </section>
-            }
-          } @else {
-            <section
-              id="right-sidebar-aoi-empty-state"
-              class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
+
+              <!-- ─── SECTION C: Ecosystems & Carbon ─── -->
+              <section id="aoi-section-eco">
+                <button
+                  id="aoi-head-eco"
+                  type="button"
+                  class="aoi-section-head"
+                  [attr.aria-expanded]="isAoiSectionExpanded('eco')"
+                  (click)="toggleAoiSection('eco')"
+                >
+                  <span class="aoi-section-dot aoi-section-dot-eco"></span>
+                  <span class="aoi-section-label">Ecosystems & Carbon</span>
+                  <span
+                    id="aoi-chevron-eco"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('eco')"
+                    aria-hidden="true"
+                    >▾</span
+                  >
+                </button>
+                @if (isAoiSectionExpanded('eco')) {
+                  <div id="aoi-body-eco" class="aoi-section-body">
+                    <div id="aoi-donut-row" class="aoi-donut-row">
+                      <div
+                        id="aoi-donut"
+                        class="aoi-donut"
+                        [style.background]="aoiDonutGradient()"
+                        aria-label="Ecosystem coverage distribution"
+                      ></div>
+                      <div id="aoi-legend" class="aoi-legend">
+                        <div class="aoi-legend-item">
+                          <span class="aoi-legend-swatch" style="background: #334155"></span>
+                          <span>Cloud Forest</span>
+                          <span class="aoi-legend-pct">{{ aoiVal('39%') }}</span>
+                        </div>
+                        <div class="aoi-legend-item">
+                          <span class="aoi-legend-swatch" style="background: #64748b"></span>
+                          <span>Páramo</span>
+                          <span class="aoi-legend-pct">{{ aoiVal('23%') }}</span>
+                        </div>
+                        <div class="aoi-legend-item">
+                          <span class="aoi-legend-swatch" style="background: #94a3b8"></span>
+                          <span>Dry Forest</span>
+                          <span class="aoi-legend-pct">{{ aoiVal('17%') }}</span>
+                        </div>
+                        <div class="aoi-legend-item">
+                          <span class="aoi-legend-swatch" style="background: #cbd5e1"></span>
+                          <span>Wetlands</span>
+                          <span class="aoi-legend-pct">{{ aoiVal('12%') }}</span>
+                        </div>
+                        <div class="aoi-legend-item">
+                          <span class="aoi-legend-swatch" style="background: #e2e8f0"></span>
+                          <span>Other</span>
+                          <span class="aoi-legend-pct">{{ aoiVal('9%') }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div id="aoi-carbon-stats" class="aoi-stat-grid">
+                      <div id="aoi-stat-total-carbon" class="aoi-stat-card">
+                        <p class="aoi-stat-label">Total Carbon Biomass</p>
+                        <p class="aoi-stat-value">{{ aoiVal('85M') }}</p>
+                        <p class="aoi-stat-unit">tCO₂e</p>
+                      </div>
+                      <div id="aoi-stat-national-carbon" class="aoi-stat-card">
+                        <p class="aoi-stat-label">% of National Carbon</p>
+                        <p class="aoi-stat-value">{{ aoiVal('7%') }}</p>
+                        <p class="aoi-stat-unit">Of Colombian stocks</p>
+                      </div>
+                      <div id="aoi-stat-above-carbon" class="aoi-stat-card">
+                        <p class="aoi-stat-label">Above-ground Carbon</p>
+                        <p class="aoi-stat-value">{{ aoiVal('52M') }}</p>
+                        <p class="aoi-stat-unit">tCO₂e</p>
+                      </div>
+                      <div id="aoi-stat-soil-carbon" class="aoi-stat-card">
+                        <p class="aoi-stat-label">Soil Organic Carbon</p>
+                        <p class="aoi-stat-value">{{ aoiVal('33M') }}</p>
+                        <p class="aoi-stat-unit">tCO₂e</p>
+                      </div>
+                    </div>
+
+                    <div id="aoi-stat-water" class="aoi-metric-table">
+                      <div class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-droplet" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">Water Regulation Capacity</div>
+                          <div class="aoi-m-desc">
+                            Hydrological service provision for downstream communities
+                          </div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">{{ aoiVal('High') }}</div>
+                          <div class="aoi-m-unit">{{ aoiVal('Index 78 / 100') }}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    @if (fillDummyAoiMetrics()) {
+                      <div id="aoi-eco-narrative" class="aoi-narrative">
+                        This AOI stores <strong>7% of Colombia's carbon stocks</strong> and provides
+                        <strong>above-average water regulation</strong> for the Cauca River basin.
+                        Cloud forest accounts for the largest share of ecosystem coverage.
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
+
+              <!-- ─── SECTION D: Land Use & Socio-Economic ─── -->
+              <section id="aoi-section-land">
+                <button
+                  id="aoi-head-land"
+                  type="button"
+                  class="aoi-section-head"
+                  [attr.aria-expanded]="isAoiSectionExpanded('land')"
+                  (click)="toggleAoiSection('land')"
+                >
+                  <span class="aoi-section-dot aoi-section-dot-land"></span>
+                  <span class="aoi-section-label">Land Use & Socio-Economic</span>
+                  <span
+                    id="aoi-chevron-land"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('land')"
+                    aria-hidden="true"
+                    >▾</span
+                  >
+                </button>
+                @if (isAoiSectionExpanded('land')) {
+                  <div id="aoi-body-land" class="aoi-section-body">
+                    <div id="aoi-landuse-chart" class="aoi-bar-chart">
+                      <div id="aoi-bar-forest" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Natural Forest</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(60)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('60%') }}</span>
+                      </div>
+                      <div id="aoi-bar-pasture" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Pasture</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(25)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('25%') }}</span>
+                      </div>
+                      <div id="aoi-bar-crops" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Crops</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(10)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('10%') }}</span>
+                      </div>
+                      <div id="aoi-bar-other-land" class="aoi-bar-row">
+                        <span class="aoi-bar-label">Other</span>
+                        <div class="aoi-bar-track">
+                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(5)"></span>
+                        </div>
+                        <span class="aoi-bar-val">{{ aoiVal('5%') }}</span>
+                      </div>
+                    </div>
+
+                    <div id="aoi-socio-metrics" class="aoi-metric-table">
+                      <div id="aoi-row-ag-cost" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-coins" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">
+                            Ag. Opportunity Cost
+                            <span class="v3-tag-conditional">Conditional</span>
+                          </div>
+                          <div class="aoi-m-desc">
+                            Economic value of agricultural production foregone
+                          </div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">{{ aoiVal('$125M') }}</div>
+                          <div class="aoi-m-unit">USD equivalent</div>
+                        </div>
+                      </div>
+                      <div id="aoi-row-conflict" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">
+                            Conflict Zone Overlap
+                            <span class="v3-tag-conditional">Conditional</span>
+                          </div>
+                          <div class="aoi-m-desc">
+                            Priority area overlapping historical conflict zones
+                          </div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">{{ aoiVal('38 km²') }}</div>
+                          <div class="aoi-m-unit">Historical zones</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    @if (fillDummyAoiMetrics()) {
+                      <div id="aoi-land-narrative" class="aoi-narrative">
+                        60% of this AOI's priority area is natural forest. Agricultural opportunity
+                        cost is <strong>$125M USD</strong>, with <strong>38 km²</strong> in
+                        historical conflict zones.
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
+
+              <!-- ─── SECTION E: Cultural & Indigenous Territories ─── -->
+              <section id="aoi-section-cultural">
+                <button
+                  id="aoi-head-cultural"
+                  type="button"
+                  class="aoi-section-head"
+                  [attr.aria-expanded]="isAoiSectionExpanded('cultural')"
+                  (click)="toggleAoiSection('cultural')"
+                >
+                  <span class="aoi-section-dot aoi-section-dot-cultural"></span>
+                  <span class="aoi-section-label">Cultural & Indigenous Territories</span>
+                  <span
+                    id="aoi-chevron-cultural"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('cultural')"
+                    aria-hidden="true"
+                    >▾</span
+                  >
+                </button>
+                @if (isAoiSectionExpanded('cultural')) {
+                  <div id="aoi-body-cultural" class="aoi-section-body">
+                    <div id="aoi-cultural-metrics" class="aoi-metric-table">
+                      <div id="aoi-row-indigenous" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-map-pin" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">Indigenous Reservations</div>
+                          <div class="aoi-m-desc">Area within AOI priority zones</div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">{{ aoiVal('41 km²') }}</div>
+                          <div class="aoi-m-unit">Resguardos indígenas</div>
+                        </div>
+                      </div>
+                      <div id="aoi-row-community" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-people-group" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">Community Councils</div>
+                          <div class="aoi-m-desc">Afro-Colombian community council territories</div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">{{ aoiVal('27 km²') }}</div>
+                          <div class="aoi-m-unit">Consejos comunitarios</div>
+                        </div>
+                      </div>
+                      <div id="aoi-row-indigenous-pct" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-percent" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">Overlap w/ Indigenous Territories</div>
+                          <div class="aoi-m-desc">Share of solution in indigenous territories</div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">{{ aoiVal('12%') }}</div>
+                          <div class="aoi-m-unit">Consultation-sensitive</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    @if (fillDummyAoiMetrics()) {
+                      <div id="aoi-cultural-narrative" class="aoi-narrative">
+                        <strong>12%</strong> of this AOI's priority area overlaps indigenous
+                        territories. Prior consultation may be required under ILO Convention 169.
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
+
+              <!-- ─── SECTION F: Marine (all conditional) ─── -->
+              <section id="aoi-section-marine">
+                <button
+                  id="aoi-head-marine"
+                  type="button"
+                  class="aoi-section-head"
+                  [attr.aria-expanded]="isAoiSectionExpanded('marine')"
+                  (click)="toggleAoiSection('marine')"
+                >
+                  <span class="aoi-section-dot aoi-section-dot-marine"></span>
+                  <span class="aoi-section-label">
+                    Marine
+                    <span class="v3-tag-conditional" style="margin-left: 6px">All Conditional</span>
+                  </span>
+                  <span
+                    id="aoi-chevron-marine"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('marine')"
+                    aria-hidden="true"
+                    >▾</span
+                  >
+                </button>
+                @if (isAoiSectionExpanded('marine')) {
+                  <div id="aoi-body-marine" class="aoi-section-body">
+                    <div id="aoi-marine-metrics" class="aoi-metric-table">
+                      <div id="aoi-row-mpa" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-water" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">MPA Overlap</div>
+                          <div class="aoi-m-desc">
+                            Solution overlapping existing Marine Protected Areas
+                          </div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">—</div>
+                          <div class="aoi-m-unit">km² and %</div>
+                        </div>
+                      </div>
+                      <div id="aoi-row-coral" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-fish" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">Coral Reef Coverage</div>
+                          <div class="aoi-m-desc">Coral reef ecosystems within marine solution</div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">—</div>
+                          <div class="aoi-m-unit">km² and %</div>
+                        </div>
+                      </div>
+                      <div id="aoi-row-mangrove" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-seedling" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">Mangrove Coverage</div>
+                          <div class="aoi-m-desc">Mangrove ecosystems within solution</div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">—</div>
+                          <div class="aoi-m-unit">km² and %</div>
+                        </div>
+                      </div>
+                      <div id="aoi-row-seagrass" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-wheat-awn" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">Seagrass Bed Coverage</div>
+                          <div class="aoi-m-desc">Seagrass ecosystems within solution</div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">—</div>
+                          <div class="aoi-m-unit">km² and %</div>
+                        </div>
+                      </div>
+                      <div id="aoi-row-eez" class="aoi-metric-row">
+                        <div class="aoi-m-icon">
+                          <i class="fas fa-anchor" aria-hidden="true"></i>
+                        </div>
+                        <div class="aoi-m-body">
+                          <div class="aoi-m-name">% of Solution in EEZ</div>
+                          <div class="aoi-m-desc">
+                            Solution within Colombia's Exclusive Economic Zone
+                          </div>
+                        </div>
+                        <div>
+                          <div class="aoi-m-val">—</div>
+                          <div class="aoi-m-unit">%</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div id="aoi-marine-narrative" class="aoi-narrative">
+                      Marine metrics are displayed when a marine conservation solution is active.
+                      Currently no marine solution is loaded.
+                    </div>
+                  </div>
+                }
+              </section>
+
+              <!-- ─── National Context Summary ─── -->
+              @if (fillDummyAoiMetrics()) {
+                <div id="aoi-context-narrative" class="aoi-narrative aoi-narrative-blue">
+                  <strong>{{ aoi.name }}</strong> contributes <strong>1.9%</strong> toward
+                  Colombia's 30×30 conservation target. With
+                  <strong>7% of national carbon stocks</strong>,
+                  <strong>7% of national species</strong>, and above-average water regulation, this
+                  municipality is a moderate contributor to national conservation goals.
+                </div>
+              }
+            </div>
+
+            <!-- ═══ FOOTER ═══ -->
+            <footer id="aoi-dashboard-footer" class="aoi-panel-footer">
+              <button id="aoi-btn-report" type="button" class="aoi-btn aoi-btn-primary">
+                <i class="fas fa-file-pdf" aria-hidden="true"></i> Generate Regional Report
+              </button>
+              <div id="aoi-btn-group" class="aoi-btn-group">
+                <button id="aoi-btn-export-data" type="button" class="aoi-btn aoi-btn-secondary">
+                  <i class="fas fa-table" aria-hidden="true"></i> Export Data
+                </button>
+                <button id="aoi-btn-export-map" type="button" class="aoi-btn aoi-btn-secondary">
+                  <i class="fas fa-image" aria-hidden="true"></i> Export Map
+                </button>
+              </div>
+            </footer>
+          </section>
+        } @else {
+          <section
+            id="aoi-dashboard-empty-state"
+            class="panel-enter flex h-full min-h-0 flex-col items-center justify-center gap-3 p-5"
+          >
+            <div
+              id="aoi-dashboard-empty-card"
+              class="w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
             >
-              <h4
-                id="right-sidebar-aoi-empty-state-title"
-                class="text-sm font-semibold text-slate-900"
-              >
+              <h4 id="aoi-dashboard-empty-title" class="text-sm font-semibold text-slate-900">
                 {{ 'analysis.aoi.emptyTitle' | translate }}
               </h4>
-              <p
-                id="right-sidebar-aoi-empty-state-description"
-                class="mt-2 text-sm leading-6 text-slate-600"
-              >
+              <p id="aoi-dashboard-empty-description" class="mt-2 text-sm leading-6 text-slate-600">
                 {{ 'analysis.aoi.emptyDescription' | translate }}
               </p>
-            </section>
-          }
-        </section>
+            </div>
+          </section>
+        }
       }
 
       @case ('comparison') {
