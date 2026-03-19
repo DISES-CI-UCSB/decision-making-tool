@@ -114,6 +114,22 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
               </button>
             </div>
             <div
+              id="dev-tools-comparison-dummy-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <p id="dev-tools-comparison-dummy-toggle-label" class="text-[11px] text-slate-600">
+                Fill missing solution comparison metrics
+              </p>
+              <button
+                id="dev-tools-comparison-dummy-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleComparisonMetricFill()"
+              >
+                {{ fillDummyComparisonMetrics() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+            <div
               id="dev-tools-popup-toggle-row"
               class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
@@ -312,6 +328,7 @@ export class DevToolsPanelComponent {
 
   readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
   readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
+  readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
 
@@ -351,6 +368,10 @@ export class DevToolsPanelComponent {
 
   toggleOverviewMetricFill(): void {
     this.appState.setFillDummyOverviewMetrics(!this.fillDummyOverviewMetrics());
+  }
+
+  toggleComparisonMetricFill(): void {
+    this.appState.setFillDummyComparisonMetrics(!this.fillDummyComparisonMetrics());
   }
 
   toggleBoundary(type: AoiType): void {

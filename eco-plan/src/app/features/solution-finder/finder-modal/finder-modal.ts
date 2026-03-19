@@ -4,12 +4,14 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  Input,
   OnDestroy,
   Output,
   ViewChild,
   inject,
 } from '@angular/core';
 import type { SolutionScenario } from '@core/models/solution-scenario.model';
+import type { SolutionFinderContext } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -57,6 +59,7 @@ interface ScenarioMatch {
 export class FinderModalComponent implements AfterViewInit, OnDestroy {
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
+  @Input() mode: SolutionFinderContext = 'default';
   @Output() readonly closeRequested = new EventEmitter<void>();
   @Output() readonly scenarioApplied = new EventEmitter<ScenarioMatch>();
 
@@ -368,6 +371,30 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return toggle.mode === 'include'
       ? 'solutionControls.finder.labels.include'
       : 'solutionControls.finder.labels.exclude';
+  }
+
+  protected getKickerKey(): string {
+    return this.mode === 'comparison-candidate'
+      ? 'solutionControls.finder.comparison.kicker'
+      : 'solutionControls.finder.kicker';
+  }
+
+  protected getTitleKey(): string {
+    return this.mode === 'comparison-candidate'
+      ? 'solutionControls.finder.comparison.title'
+      : 'solutionControls.finder.title';
+  }
+
+  protected getDescriptionKey(): string {
+    return this.mode === 'comparison-candidate'
+      ? 'solutionControls.finder.comparison.description'
+      : 'solutionControls.finder.description';
+  }
+
+  protected getApplyActionKey(): string {
+    return this.mode === 'comparison-candidate'
+      ? 'solutionControls.finder.actions.loadAsCandidateSolution'
+      : 'solutionControls.finder.actions.apply';
   }
 
   private clearResultsIfNeeded(): void {

@@ -157,6 +157,10 @@ export class MockDataService {
     return this.solutions.find((solution) => solution.id === id) ?? null;
   }
 
+  getSolutions(): Solution[] {
+    return this.solutions;
+  }
+
   getSolutionMetrics(id: string): SolutionMetricsResponse | null {
     const solution = this.getSolutionById(id);
     if (!solution) {

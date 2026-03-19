@@ -82,8 +82,8 @@
   id="solution-finder-modal-shell"
   rootId="solution-finder-modal-shell-root"
   mode="wide"
-  titleKey="solutionControls.modal.solutionFinderTitle"
-  [isOpen]="solutionFinderModalOpen"
+  [titleKey]="getSolutionFinderModalTitleKey()"
+  [isOpen]="solutionFinderModalOpen()"
   [closeOnBackdrop]="true"
   [closeOnEscape]="true"
   [showCloseButton]="true"
@@ -92,6 +92,7 @@
   <section id="solution-finder-modal-content-shell" class="h-full">
     <app-finder-modal
       id="solution-finder-modal-workflow-component"
+      [mode]="solutionFinderContext()"
       (closeRequested)="closeSolutionFinderModal()"
       (scenarioApplied)="onScenarioApplied($event)"
     ></app-finder-modal>

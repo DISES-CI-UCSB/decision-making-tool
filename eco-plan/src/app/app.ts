@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import type { Solution } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
+import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslateService } from '@ngx-translate/core';
 import { RouterOutlet } from '@angular/router';
 import { AppShellComponent } from '@core/layout/app-shell/app-shell';
@@ -35,15 +36,17 @@ import { TranslatePipe } from '@ngx-translate/core';
 export class App implements OnInit, OnDestroy {
   private readonly appState = inject(AppStateService);
   private readonly mockData = inject(MockDataService);
+  private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly debugMarker = 'UCS-39-map-debug-v1';
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
-  protected solutionFinderModalOpen = false;
   protected perspectiveModalOpen = false;
   protected coordinateToolEnabled = false;
   protected solutionLoadedToastVisible = false;
   protected solutionLoadedToastMessage = '';
+  protected readonly solutionFinderModalOpen = this.appState.solutionFinderModalOpen$;
+  protected readonly solutionFinderContext = this.appState.solutionFinderContext$;
 
   ngOnInit(): void {
     const runtimePort = window.location.port || '(default)';
@@ -56,11 +59,11 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected openSolutionFinderModal(): void {
-    this.solutionFinderModalOpen = true;
+    this.appState.openSolutionFinder();
   }
 
   protected closeSolutionFinderModal(): void {
-    this.solutionFinderModalOpen = false;
+    this.appState.closeSolutionFinder();
   }
 
   protected openPerspectiveModal(): void {
@@ -73,12 +76,23 @@ export class App implements OnInit, OnDestroy {
 
   protected onScenarioApplied(match: { solutionId: string; scenarioId: string }): void {
     const selectedSolution = this.mockData.getSolutionById(match.solutionId);
-    if (selectedSolution) {
+    if (selectedSolution && this.solutionFinderContext() === 'comparison-candidate') {
+      this.appState.setComparisonSolution(
+        this.buildCandidateComparisonSolution(selectedSolution, match),
+      );
+      this.appState.setRightSidebarMode('comparison');
+    } else if (selectedSolution) {
       this.applySolution(selectedSolution, match.scenarioId);
     }
 
     this.showSolutionLoadedToast();
     this.closeSolutionFinderModal();
+  }
+
+  protected getSolutionFinderModalTitleKey(): string {
+    return this.solutionFinderContext() === 'comparison-candidate'
+      ? 'solutionControls.modal.solutionFinderComparisonTitle'
+      : 'solutionControls.modal.solutionFinderTitle';
   }
 
   protected onCoordinateToolEnabledChange(isEnabled: boolean): void {
@@ -94,6 +108,24 @@ export class App implements OnInit, OnDestroy {
     this.appState.loadSolution(solution);
     this.appState.setRightSidebarMode('overview');
     void this.solutionLayer.showSolution(scenarioId);
+  }
+
+  private buildCandidateComparisonSolution(
+    selectedSolution: Solution,
+    match: { solutionId: string; scenarioId: string; matchPercentage?: number },
+  ): Solution {
+    const scenario = this.solutionCatalog.getById(match.scenarioId);
+    return {
+      ...selectedSolution,
+      name: scenario?.name ?? selectedSolution.name,
+      description: scenario?.description ?? selectedSolution.description,
+      geometryUrl: scenario?.filename ?? selectedSolution.geometryUrl,
+      matchPercentage: match.matchPercentage ?? selectedSolution.matchPercentage,
+      metadata: {
+        ...selectedSolution.metadata,
+        scenarioId: match.scenarioId,
+      },
+    };
   }
 
   private showSolutionLoadedToast(): void {

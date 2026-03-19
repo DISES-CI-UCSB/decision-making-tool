@@ -3,6 +3,7 @@ import type Extent from '@arcgis/core/geometry/Extent';
 import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
 
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
+export type SolutionFinderContext = 'default' | 'comparison-candidate';
 
 @Injectable({
   providedIn: 'root',
@@ -14,6 +15,9 @@ export class AppStateService {
   readonly comparisonSolution$ = signal<Solution | null>(null);
   readonly rightSidebarMode$ = signal<RightSidebarMode>('welcome');
   readonly fillDummyOverviewMetrics$ = signal(true);
+  readonly fillDummyComparisonMetrics$ = signal(true);
+  readonly solutionFinderModalOpen$ = signal(false);
+  readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
   readonly userTier$ = signal<UserTier>(UserTier.Public);
   readonly mapExtent$ = signal<Extent | null>(null);
 
@@ -51,7 +55,25 @@ export class AppStateService {
     this.rightSidebarMode$.set(mode);
   }
 
+  setComparisonSolution(solution: Solution | null): void {
+    this.comparisonSolution$.set(solution);
+  }
+
   setFillDummyOverviewMetrics(enabled: boolean): void {
     this.fillDummyOverviewMetrics$.set(enabled);
+  }
+
+  setFillDummyComparisonMetrics(enabled: boolean): void {
+    this.fillDummyComparisonMetrics$.set(enabled);
+  }
+
+  openSolutionFinder(context: SolutionFinderContext = 'default'): void {
+    this.solutionFinderContext$.set(context);
+    this.solutionFinderModalOpen$.set(true);
+  }
+
+  closeSolutionFinder(): void {
+    this.solutionFinderModalOpen$.set(false);
+    this.solutionFinderContext$.set('default');
   }
 }

@@ -14,6 +14,8 @@ import { catchError, distinctUntilChanged, finalize, map, of, switchMap } from '
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type OverviewMetricSection = 'gains' | 'costs';
+type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'socio' | 'protection';
+type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
 
 interface OverviewMetricBlueprint {
   id: string;
@@ -34,6 +36,39 @@ interface OverviewMetricDisplayEntry {
   unit: string;
   conditional: boolean;
   unavailable: boolean;
+}
+
+interface ComparisonMetricBlueprint {
+  id: string;
+  section: ComparisonSectionId;
+  label: string;
+  description: string;
+  metricId?: string;
+  dummyBaseline: string;
+  dummyCandidate: string;
+  dummyDelta: string;
+  conditional?: boolean;
+  deltaTone?: ComparisonDeltaTone;
+}
+
+interface ComparisonMetricDisplayEntry {
+  id: string;
+  label: string;
+  description: string;
+  baseline: string;
+  candidate: string;
+  delta: string;
+  conditional: boolean;
+  unavailable: boolean;
+  deltaTone: ComparisonDeltaTone;
+}
+
+interface ComparisonMetricSection {
+  id: ComparisonSectionId;
+  title: string;
+  toneClass: 'general' | 'bio' | 'eco' | 'socio' | 'protect';
+  insight: string;
+  metrics: ComparisonMetricDisplayEntry[];
 }
 
 @Component({
@@ -128,12 +163,180 @@ export class PanelSwitcherComponent {
       conditional: true,
     },
   ];
+  private readonly comparisonSectionMeta: Record<
+    ComparisonSectionId,
+    Pick<ComparisonMetricSection, 'title' | 'toneClass' | 'insight'>
+  > = {
+    general: {
+      title: 'Regional Conservation Summary',
+      toneClass: 'general',
+      insight: '',
+    },
+    biodiversity: {
+      title: 'Biodiversity',
+      toneClass: 'bio',
+      insight:
+        'Species indicators highlight sensitivity shifts between the baseline and candidate configuration.',
+    },
+    ecosystems: {
+      title: 'Ecosystems & Carbon',
+      toneClass: 'eco',
+      insight:
+        'Ecosystem and carbon metrics indicate whether trade-offs preserve climate benefits while improving biodiversity.',
+    },
+    socio: {
+      title: 'Land Use & Socio-Economic',
+      toneClass: 'socio',
+      insight:
+        'Socio-economic cards keep conditional indicators visible to support policy and implementation review.',
+    },
+    protection: {
+      title: 'Cultural & Protection',
+      toneClass: 'protect',
+      insight:
+        'Governance and overlap metrics help flag consultation-sensitive areas before final selection decisions.',
+    },
+  };
+  private readonly comparisonSectionOrder: ComparisonSectionId[] = [
+    'general',
+    'biodiversity',
+    'ecosystems',
+    'socio',
+    'protection',
+  ];
+  private readonly comparisonMetricBlueprints: ComparisonMetricBlueprint[] = [
+    {
+      id: 'comp-priority-area',
+      section: 'general',
+      label: 'Priority Conservation Area',
+      description: 'Estimated protected footprint under each solution.',
+      dummyBaseline: '210 km²',
+      dummyCandidate: '230 km²',
+      dummyDelta: '+20 km²',
+      deltaTone: 'positive',
+    },
+    {
+      id: 'comp-national-target',
+      section: 'general',
+      label: 'Contribution to 30x30 Target',
+      description: 'Relative contribution toward national conservation commitments.',
+      dummyBaseline: '1.3%',
+      dummyCandidate: '1.9%',
+      dummyDelta: '+0.6%',
+      deltaTone: 'positive',
+    },
+    {
+      id: 'comp-biodiversity',
+      section: 'biodiversity',
+      label: 'Biodiversity',
+      description: 'Composite biodiversity performance score.',
+      metricId: 'm-biodiversity',
+      dummyBaseline: '83%',
+      dummyCandidate: '92%',
+      dummyDelta: '+9%',
+    },
+    {
+      id: 'comp-threatened-species',
+      section: 'biodiversity',
+      label: 'Threatened Species Coverage',
+      description: 'CR/EN/VU species with habitat represented in priority zones.',
+      dummyBaseline: '4 species',
+      dummyCandidate: '5 species',
+      dummyDelta: '+1',
+      deltaTone: 'positive',
+    },
+    {
+      id: 'comp-endemic-species',
+      section: 'biodiversity',
+      label: 'Endemic Species Coverage',
+      description: 'Colombia endemic species represented in selected areas.',
+      dummyBaseline: '10 species',
+      dummyCandidate: '12 species',
+      dummyDelta: '+2',
+      deltaTone: 'positive',
+    },
+    {
+      id: 'comp-carbon',
+      section: 'ecosystems',
+      label: 'Carbon Storage',
+      description: 'Estimated carbon storage retained in selected areas.',
+      metricId: 'm-carbon',
+      dummyBaseline: '69 t/ha',
+      dummyCandidate: '74 t/ha',
+      dummyDelta: '+5 t/ha',
+    },
+    {
+      id: 'comp-water-regulation',
+      section: 'ecosystems',
+      label: 'Water Regulation Capacity',
+      description: 'Hydrological service support for downstream communities.',
+      dummyBaseline: '72 / 100',
+      dummyCandidate: '78 / 100',
+      dummyDelta: '+6',
+      deltaTone: 'positive',
+    },
+    {
+      id: 'comp-cost',
+      section: 'socio',
+      label: 'Implementation Cost',
+      description: 'Estimated implementation cost envelope.',
+      metricId: 'm-cost',
+      dummyBaseline: '$1.7M COP',
+      dummyCandidate: '$2.1M COP',
+      dummyDelta: '+$0.4M COP',
+      conditional: true,
+    },
+    {
+      id: 'comp-ag-opportunity',
+      section: 'socio',
+      label: 'Agricultural Opportunity Cost',
+      description: 'Estimated agricultural trade-off in affected zones.',
+      dummyBaseline: '$108M USD',
+      dummyCandidate: '$125M USD',
+      dummyDelta: '+$17M USD',
+      conditional: true,
+      deltaTone: 'negative',
+    },
+    {
+      id: 'comp-conflict-overlap',
+      section: 'socio',
+      label: 'Conflict Zone Overlap',
+      description: 'Overlap with historically conflict-affected areas.',
+      dummyBaseline: '31 km²',
+      dummyCandidate: '38 km²',
+      dummyDelta: '+7 km²',
+      conditional: true,
+      deltaTone: 'negative',
+    },
+    {
+      id: 'comp-protected-overlap',
+      section: 'protection',
+      label: 'Overlap with National Parks',
+      description: 'Candidate overlap with existing formal protected areas.',
+      dummyBaseline: '14%',
+      dummyCandidate: '18%',
+      dummyDelta: '+4%',
+      deltaTone: 'positive',
+    },
+    {
+      id: 'comp-indigenous-overlap',
+      section: 'protection',
+      label: 'Overlap with Indigenous Territories',
+      description: 'Consultation-sensitive overlap across indigenous territories.',
+      dummyBaseline: '10%',
+      dummyCandidate: '12%',
+      dummyDelta: '+2%',
+      conditional: true,
+      deltaTone: 'neutral',
+    },
+  ];
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
   protected readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
+  protected readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
   protected readonly isOverviewLoading = signal(false);
@@ -164,6 +367,16 @@ export class PanelSwitcherComponent {
 
     return this.mockData.compareSolutions(baselineSolution.id, candidateSolution.id)?.metrics ?? [];
   });
+  protected readonly comparisonSectionExpanded = signal<Record<ComparisonSectionId, boolean>>({
+    general: true,
+    biodiversity: true,
+    ecosystems: true,
+    socio: false,
+    protection: false,
+  });
+  protected readonly comparisonSections = computed<ComparisonMetricSection[]>(() =>
+    this.buildComparisonSections(),
+  );
 
   constructor() {
     toObservable(this.activeSolution)
@@ -294,6 +507,26 @@ export class PanelSwitcherComponent {
     return Math.round(matchPercentage / 12);
   }
 
+  protected isComparisonSectionExpanded(sectionId: ComparisonSectionId): boolean {
+    return this.comparisonSectionExpanded()[sectionId];
+  }
+
+  protected toggleComparisonSection(sectionId: ComparisonSectionId): void {
+    this.comparisonSectionExpanded.update((state) => ({
+      ...state,
+      [sectionId]: !state[sectionId],
+    }));
+  }
+
+  protected openComparisonSolutionFinder(): void {
+    this.appState.openSolutionFinder('comparison-candidate');
+    this.appState.setRightSidebarMode('comparison');
+  }
+
+  protected getComparisonActionLabel(): string {
+    return this.comparisonSolution() ? 'Change' : 'Select';
+  }
+
   private formatNumber(
     value: number,
     minimumFractionDigits: number,
@@ -389,5 +622,106 @@ export class PanelSwitcherComponent {
           unavailable: true,
         };
       });
+  }
+
+  private buildComparisonSections(): ComparisonMetricSection[] {
+    const metricsById = new Map(
+      this.comparisonMetrics().map((metric) => [metric.metricId, metric] as const),
+    );
+    const shouldFillDummy = this.fillDummyComparisonMetrics();
+
+    return this.comparisonSectionOrder.map((sectionId) => {
+      const sectionMeta = this.comparisonSectionMeta[sectionId];
+      const metrics = this.comparisonMetricBlueprints
+        .filter((metric) => metric.section === sectionId)
+        .map((metric) =>
+          this.buildComparisonMetricDisplayEntry(metric, metricsById, shouldFillDummy),
+        );
+
+      return {
+        id: sectionId,
+        title: sectionMeta.title,
+        toneClass: sectionMeta.toneClass,
+        insight: sectionMeta.insight,
+        metrics,
+      };
+    });
+  }
+
+  private buildComparisonMetricDisplayEntry(
+    blueprint: ComparisonMetricBlueprint,
+    metricsById: Map<string, MetricComparisonValue>,
+    shouldFillDummy: boolean,
+  ): ComparisonMetricDisplayEntry {
+    const realMetric = blueprint.metricId ? metricsById.get(blueprint.metricId) : undefined;
+
+    if (realMetric && this.isComparisonMetricReady(realMetric)) {
+      return {
+        id: blueprint.id,
+        label: blueprint.label,
+        description: blueprint.description,
+        baseline: this.formatMetricValue(realMetric.baseline),
+        candidate: this.formatMetricValue(realMetric.candidate),
+        delta: this.formatDelta(realMetric),
+        conditional: Boolean(blueprint.conditional),
+        unavailable: false,
+        deltaTone:
+          realMetric.delta === null || realMetric.delta === 0
+            ? 'neutral'
+            : realMetric.delta > 0
+              ? 'positive'
+              : 'negative',
+      };
+    }
+
+    if (shouldFillDummy) {
+      return {
+        id: blueprint.id,
+        label: blueprint.label,
+        description: blueprint.description,
+        baseline: blueprint.dummyBaseline,
+        candidate: blueprint.dummyCandidate,
+        delta: blueprint.dummyDelta,
+        conditional: Boolean(blueprint.conditional),
+        unavailable: false,
+        deltaTone: blueprint.deltaTone ?? 'positive',
+      };
+    }
+
+    if (realMetric) {
+      return {
+        id: blueprint.id,
+        label: blueprint.label,
+        description: blueprint.description,
+        baseline: this.formatMetricValue(realMetric.baseline),
+        candidate: this.formatMetricValue(realMetric.candidate),
+        delta: this.formatDelta(realMetric),
+        conditional: Boolean(blueprint.conditional),
+        unavailable: true,
+        deltaTone: 'neutral',
+      };
+    }
+
+    return {
+      id: blueprint.id,
+      label: blueprint.label,
+      description: blueprint.description,
+      baseline: '--',
+      candidate: '--',
+      delta: '--',
+      conditional: Boolean(blueprint.conditional),
+      unavailable: true,
+      deltaTone: 'neutral',
+    };
+  }
+
+  private isComparisonMetricReady(metric: MetricComparisonValue): boolean {
+    return (
+      metric.baseline.status === 'ready' &&
+      metric.candidate.status === 'ready' &&
+      metric.baseline.value !== null &&
+      metric.candidate.value !== null &&
+      metric.delta !== null
+    );
   }
 }

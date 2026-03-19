@@ -12,13 +12,13 @@
           id="solution-finder-modal-workflow-kicker"
           class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
         >
-          {{ 'solutionControls.finder.kicker' | translate }}
+          {{ getKickerKey() | translate }}
         </p>
         <h3 id="solution-finder-modal-workflow-title" class="text-xl font-semibold text-slate-900">
-          {{ 'solutionControls.finder.title' | translate }}
+          {{ getTitleKey() | translate }}
         </h3>
         <p id="solution-finder-modal-workflow-description" class="text-sm text-slate-600">
-          {{ 'solutionControls.finder.description' | translate }}
+          {{ getDescriptionKey() | translate }}
         </p>
       </div>
 
@@ -412,7 +412,7 @@
           [disabled]="!canApplyScenario()"
           (click)="applySelectedScenario()"
         >
-          {{ 'solutionControls.finder.actions.apply' | translate }}
+          {{ getApplyActionKey() | translate }}
         </button>
       </div>
     </div>

@@ -223,6 +223,7 @@
       "openSolutionFinder": "Open Solution Finder Modal",
       "openPerspective": "Open Perspective Modal",
       "solutionFinderTitle": "Solution Finder",
+      "solutionFinderComparisonTitle": "Solution Finder (Select Candidate Solution)",
       "perspectiveTitle": "Perspective Selector",
       "perspectiveHeading": "Standard modal shell",
       "perspectiveDescription": "This modal uses the standard shell mode and shares the same close behavior and accessibility features."
@@ -231,6 +232,11 @@
       "kicker": "Conservation scenario search",
       "title": "Find a conservation scenario",
       "description": "Select targets and constraints, then run a match against available scenario templates.",
+      "comparison": {
+        "kicker": "Candidate solution search",
+        "title": "Find a candidate solution",
+        "description": "Use the same guided workflow to choose the candidate solution for side-by-side comparison."
+      },
       "selectionSummary": "Current selections",
       "targetsLabel": "targets",
       "constraintsLabel": "constraints",
@@ -268,7 +274,8 @@
         "reset": "Reset to defaults",
         "cancel": "Cancel",
         "findMatches": "Find matches",
-        "apply": "Apply selected scenario"
+        "apply": "Apply selected scenario",
+        "loadAsCandidateSolution": "Load as candidate solution"
       },
       "empty": {
         "title": "Run matching to view scenarios",

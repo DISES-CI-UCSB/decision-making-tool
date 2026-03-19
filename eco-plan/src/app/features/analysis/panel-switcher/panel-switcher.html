@@ -640,139 +640,213 @@
       }
 
       @case ('comparison') {
-        <section
-          id="right-sidebar-comparison-panel"
-          class="panel-enter flex h-full min-h-0 flex-col gap-5 overflow-y-auto p-5"
-        >
-          <header id="right-sidebar-comparison-header" class="space-y-2">
-            <p
-              id="right-sidebar-comparison-kicker"
-              class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700"
-            >
+        <section id="right-sidebar-comparison-panel" class="panel-enter c2-panel">
+          <header id="right-sidebar-comparison-header" class="c2-panel-header">
+            <p id="right-sidebar-comparison-kicker" class="c2-kicker">
               {{ 'analysis.comparison.kicker' | translate }}
             </p>
-            <h3
-              id="right-sidebar-comparison-title"
-              class="text-xl font-semibold tracking-tight text-slate-900"
-            >
+            <h3 id="right-sidebar-comparison-title" class="c2-title">
               {{ 'analysis.comparison.title' | translate }}
             </h3>
-            <p id="right-sidebar-comparison-description" class="text-sm leading-6 text-slate-600">
+            <p id="right-sidebar-comparison-description" class="c2-description">
               {{ 'analysis.comparison.description' | translate }}
             </p>
           </header>
 
           @if (activeSolution(); as baselineSolution) {
-            @if (comparisonSolution(); as candidateSolution) {
-              <section id="right-sidebar-comparison-summary-grid" class="grid gap-3 md:grid-cols-2">
-                <article
-                  id="right-sidebar-comparison-baseline-card"
-                  class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-                >
-                  <p
-                    id="right-sidebar-comparison-baseline-label"
-                    class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"
-                  >
+            <div id="right-sidebar-comparison-body" class="c2-panel-body">
+              <section id="right-sidebar-comparison-summary-grid" class="c2-summary-grid">
+                <article id="right-sidebar-comparison-baseline-card" class="c2-summary-card">
+                  <p id="right-sidebar-comparison-baseline-label" class="c2-summary-label">
                     {{ 'analysis.comparison.baselineLabel' | translate }}
                   </p>
-                  <h4
-                    id="right-sidebar-comparison-baseline-name"
-                    class="mt-1 text-lg font-semibold text-slate-900"
-                  >
+                  <h4 id="right-sidebar-comparison-baseline-name" class="c2-summary-name">
                     {{ baselineSolution.name }}
                   </h4>
                 </article>
 
-                <article
-                  id="right-sidebar-comparison-candidate-card"
-                  class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-                >
-                  <p
-                    id="right-sidebar-comparison-candidate-label"
-                    class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"
-                  >
-                    {{ 'analysis.comparison.candidateLabel' | translate }}
-                  </p>
-                  <h4
-                    id="right-sidebar-comparison-candidate-name"
-                    class="mt-1 text-lg font-semibold text-slate-900"
-                  >
-                    {{ candidateSolution.name }}
-                  </h4>
+                <article id="right-sidebar-comparison-candidate-card" class="c2-summary-card">
+                  <div id="right-sidebar-comparison-candidate-top" class="c2-summary-top">
+                    <p id="right-sidebar-comparison-candidate-label" class="c2-summary-label">
+                      {{ 'analysis.comparison.candidateLabel' | translate }}
+                    </p>
+                    <button
+                      id="right-sidebar-comparison-candidate-change-btn"
+                      type="button"
+                      class="c2-action-btn"
+                      (click)="openComparisonSolutionFinder()"
+                    >
+                      {{ getComparisonActionLabel() }}
+                    </button>
+                  </div>
+                  @if (comparisonSolution(); as candidateSolution) {
+                    <h4 id="right-sidebar-comparison-candidate-name" class="c2-summary-name">
+                      {{ candidateSolution.name }}
+                    </h4>
+                  } @else {
+                    <h4
+                      id="right-sidebar-comparison-candidate-name-empty"
+                      class="c2-summary-name c2-summary-name-muted"
+                    >
+                      Select scenario
+                    </h4>
+                  }
                 </article>
               </section>
 
-              <section id="right-sidebar-comparison-metrics-section" class="space-y-3">
-                @for (metric of comparisonMetrics(); track metric.metricId) {
-                  <article
-                    [id]="'right-sidebar-comparison-metric-row-' + metric.metricId"
-                    class="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+              @if (comparisonSolution()) {
+                @for (section of comparisonSections(); track section.id) {
+                  <section
+                    [id]="'right-sidebar-comparison-section-' + section.id"
+                    class="c2-section"
                   >
-                    <div
-                      [id]="'right-sidebar-comparison-metric-row-header-' + metric.metricId"
-                      class="flex items-start justify-between gap-3"
+                    <button
+                      [id]="'right-sidebar-comparison-section-header-button-' + section.id"
+                      type="button"
+                      class="c2-section-header-button"
+                      [attr.aria-expanded]="isComparisonSectionExpanded(section.id)"
+                      [attr.aria-controls]="'right-sidebar-comparison-section-body-' + section.id"
+                      (click)="toggleComparisonSection(section.id)"
                     >
                       <div
-                        [id]="'right-sidebar-comparison-metric-copy-' + metric.metricId"
-                        class="space-y-1"
+                        [id]="'right-sidebar-comparison-section-title-group-' + section.id"
+                        class="c2-section-title-group"
                       >
-                        <p
-                          [id]="'right-sidebar-comparison-metric-label-' + metric.metricId"
-                          class="text-sm font-medium text-slate-900"
+                        <span
+                          [id]="'right-sidebar-comparison-section-dot-' + section.id"
+                          class="c2-section-dot"
+                          [class.c2-section-dot-general]="section.toneClass === 'general'"
+                          [class.c2-section-dot-bio]="section.toneClass === 'bio'"
+                          [class.c2-section-dot-eco]="section.toneClass === 'eco'"
+                          [class.c2-section-dot-socio]="section.toneClass === 'socio'"
+                          [class.c2-section-dot-protect]="section.toneClass === 'protect'"
+                        ></span>
+                        <span
+                          [id]="'right-sidebar-comparison-section-title-' + section.id"
+                          class="c2-section-title"
                         >
-                          {{ metric.labelKey | translate }}
-                        </p>
-                        <p
-                          [id]="'right-sidebar-comparison-metric-baseline-' + metric.metricId"
-                          class="text-sm text-slate-600"
-                        >
-                          {{ 'analysis.comparison.baselineShort' | translate }}:
-                          {{ formatMetricValue(metric.baseline) }}
-                        </p>
-                        <p
-                          [id]="'right-sidebar-comparison-metric-candidate-' + metric.metricId"
-                          class="text-sm text-slate-600"
-                        >
-                          {{ 'analysis.comparison.candidateShort' | translate }}:
-                          {{ formatMetricValue(metric.candidate) }}
-                        </p>
+                          {{ section.title }}
+                        </span>
                       </div>
-
                       <span
-                        [id]="'right-sidebar-comparison-metric-delta-' + metric.metricId"
-                        class="rounded-full px-2.5 py-1 text-xs font-medium"
-                        [class.bg-emerald-100]="isPositiveDelta(metric.delta)"
-                        [class.text-emerald-700]="isPositiveDelta(metric.delta)"
-                        [class.bg-rose-100]="isNegativeDelta(metric.delta)"
-                        [class.text-rose-700]="isNegativeDelta(metric.delta)"
-                        [class.bg-slate-100]="metric.delta === null || metric.delta === 0"
-                        [class.text-slate-600]="metric.delta === null || metric.delta === 0"
+                        [id]="'right-sidebar-comparison-section-toggle-caret-' + section.id"
+                        class="c2-toggle-caret"
+                        [class.c2-toggle-caret-expanded]="isComparisonSectionExpanded(section.id)"
+                        aria-hidden="true"
+                        >></span
                       >
-                        {{ formatDelta(metric) }}
-                      </span>
-                    </div>
-                  </article>
+                    </button>
+
+                    @if (isComparisonSectionExpanded(section.id)) {
+                      <div
+                        [id]="'right-sidebar-comparison-section-body-' + section.id"
+                        class="c2-section-body"
+                      >
+                        <div
+                          [id]="'right-sidebar-comparison-section-table-' + section.id"
+                          class="c2-compare-table"
+                        >
+                          <div
+                            [id]="'right-sidebar-comparison-table-head-' + section.id"
+                            class="c2-compare-head"
+                          >
+                            <span [id]="'right-sidebar-comparison-table-col-metric-' + section.id"
+                              >Metric</span
+                            >
+                            <span
+                              [id]="'right-sidebar-comparison-table-col-baseline-' + section.id"
+                              >{{ 'analysis.comparison.baselineShort' | translate }}</span
+                            >
+                            <span
+                              [id]="'right-sidebar-comparison-table-col-candidate-' + section.id"
+                              >{{ 'analysis.comparison.candidateShort' | translate }}</span
+                            >
+                            <span [id]="'right-sidebar-comparison-table-col-diff-' + section.id"
+                              >Difference</span
+                            >
+                          </div>
+
+                          @for (metric of section.metrics; track metric.id) {
+                            <div
+                              [id]="'right-sidebar-comparison-table-row-' + metric.id"
+                              class="c2-compare-row"
+                            >
+                              <div [id]="'right-sidebar-comparison-table-metric-cell-' + metric.id">
+                                <p
+                                  [id]="'right-sidebar-comparison-metric-label-' + metric.id"
+                                  class="c2-compare-metric-name"
+                                >
+                                  {{ metric.label }}
+                                  @if (metric.conditional) {
+                                    <span
+                                      [id]="'right-sidebar-comparison-metric-tag-' + metric.id"
+                                      class="c2-tag-conditional"
+                                    >
+                                      {{ 'analysis.overview.conditional' | translate }}
+                                    </span>
+                                  }
+                                </p>
+                                <p
+                                  [id]="'right-sidebar-comparison-metric-description-' + metric.id"
+                                  class="c2-compare-metric-description"
+                                >
+                                  {{ metric.description }}
+                                </p>
+                              </div>
+                              <span
+                                [id]="'right-sidebar-comparison-table-baseline-cell-' + metric.id"
+                                class="c2-compare-value c2-compare-value-baseline"
+                                >{{ metric.baseline }}</span
+                              >
+                              <span
+                                [id]="'right-sidebar-comparison-table-candidate-cell-' + metric.id"
+                                class="c2-compare-value c2-compare-value-candidate"
+                                >{{ metric.candidate }}</span
+                              >
+                              <span
+                                [id]="'right-sidebar-comparison-metric-delta-' + metric.id"
+                                class="c2-delta-badge"
+                                [class.c2-delta-positive]="
+                                  metric.deltaTone === 'positive' && !metric.unavailable
+                                "
+                                [class.c2-delta-negative]="
+                                  metric.deltaTone === 'negative' && !metric.unavailable
+                                "
+                                [class.c2-delta-neutral]="
+                                  metric.deltaTone === 'neutral' || metric.unavailable
+                                "
+                              >
+                                {{ metric.delta }}
+                              </span>
+                            </div>
+                          }
+                        </div>
+                        @if (section.insight) {
+                          <p
+                            [id]="'right-sidebar-comparison-insight-' + section.id"
+                            class="c2-insight"
+                          >
+                            {{ section.insight }}
+                          </p>
+                        }
+                      </div>
+                    }
+                  </section>
                 }
-              </section>
-            } @else {
-              <section
-                id="right-sidebar-comparison-empty-state"
-                class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
-              >
-                <h4
-                  id="right-sidebar-comparison-empty-state-title"
-                  class="text-sm font-semibold text-slate-900"
-                >
-                  {{ 'analysis.comparison.emptyTitle' | translate }}
-                </h4>
-                <p
-                  id="right-sidebar-comparison-empty-state-description"
-                  class="mt-2 text-sm leading-6 text-slate-600"
-                >
-                  {{ 'analysis.comparison.emptyDescription' | translate }}
-                </p>
-              </section>
-            }
+              } @else {
+                <section id="right-sidebar-comparison-empty-state" class="c2-empty-state">
+                  <h4 id="right-sidebar-comparison-empty-state-title" class="c2-empty-title">
+                    {{ 'analysis.comparison.emptyTitle' | translate }}
+                  </h4>
+                  <p
+                    id="right-sidebar-comparison-empty-state-description"
+                    class="c2-empty-description"
+                  >
+                    {{ 'analysis.comparison.emptyDescription' | translate }}
+                  </p>
+                </section>
+              }
+            </div>
           } @else {
             <section
               id="right-sidebar-comparison-no-baseline-state"
