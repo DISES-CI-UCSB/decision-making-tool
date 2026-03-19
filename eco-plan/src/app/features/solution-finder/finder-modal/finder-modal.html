@@ -24,7 +24,7 @@
 
       <article
         id="solution-finder-modal-workflow-selection-summary"
-        class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+        class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3"
       >
         <p
           id="solution-finder-modal-workflow-selection-summary-label"
@@ -44,47 +44,6 @@
         </p>
       </article>
     </div>
-    <div id="solution-finder-modal-step-status-row" class="mt-4 grid gap-2 text-xs md:grid-cols-12">
-      <div
-        id="solution-finder-modal-step-chip-1"
-        class="rounded-lg border px-3 py-2 font-semibold md:col-span-5"
-        [class.border-emerald-200]="isStep1Complete()"
-        [class.bg-emerald-50]="isStep1Complete()"
-        [class.text-emerald-700]="isStep1Complete()"
-        [class.border-sky-200]="!isStep1Complete()"
-        [class.bg-sky-50]="!isStep1Complete()"
-        [class.text-sky-700]="!isStep1Complete()"
-      >
-        {{ 'solutionControls.finder.stepLabels.step1' | translate }} -
-        {{ getStep1StateKey() | translate }}
-      </div>
-      <div
-        id="solution-finder-modal-step-chip-2"
-        class="rounded-lg border px-3 py-2 font-semibold md:col-span-3"
-        [class.border-sky-200]="isStep2Unlocked()"
-        [class.bg-sky-50]="isStep2Unlocked()"
-        [class.text-sky-700]="isStep2Unlocked()"
-        [class.border-slate-300]="!isStep2Unlocked()"
-        [class.bg-slate-100]="!isStep2Unlocked()"
-        [class.text-slate-600]="!isStep2Unlocked()"
-      >
-        {{ 'solutionControls.finder.stepLabels.step2' | translate }} -
-        {{ getStep2StateKey() | translate }}
-      </div>
-      <div
-        id="solution-finder-modal-step-chip-3"
-        class="rounded-lg border px-3 py-2 font-semibold md:col-span-4"
-        [class.border-indigo-200]="isStep3Unlocked()"
-        [class.bg-indigo-50]="isStep3Unlocked()"
-        [class.text-indigo-700]="isStep3Unlocked()"
-        [class.border-slate-300]="!isStep3Unlocked()"
-        [class.bg-slate-100]="!isStep3Unlocked()"
-        [class.text-slate-600]="!isStep3Unlocked()"
-      >
-        {{ 'solutionControls.finder.stepLabels.step3' | translate }} -
-        {{ getStep3StateKey() | translate }}
-      </div>
-    </div>
   </header>
 
   <section
@@ -97,18 +56,15 @@
       class="space-y-3 lg:col-span-5"
       aria-labelledby="solution-finder-modal-targets-heading"
     >
-      <h4
-        id="solution-finder-modal-targets-heading"
-        class="text-sm font-semibold uppercase tracking-wide text-slate-600"
-      >
-        {{ 'solutionControls.finder.sections.targets' | translate }}
+      <h4 id="solution-finder-modal-targets-heading" class="text-base font-semibold text-slate-800">
+        Step 1: {{ 'solutionControls.finder.sections.targets' | translate }}
       </h4>
 
       <div id="solution-finder-modal-targets-cards-group" #targetsCardsGroup class="space-y-3">
         @for (targetGroup of targetGroups; track targetGroup.id) {
           <article
             [id]="'solution-finder-modal-target-card-' + targetGroup.id"
-            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            class="rounded-md border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div
               [id]="'solution-finder-modal-target-card-header-' + targetGroup.id"
@@ -122,7 +78,7 @@
               </h5>
               <span
                 [id]="'solution-finder-modal-target-card-badge-' + targetGroup.id"
-                class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+                class="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700"
               >
                 {{ targetGroup.badgeText }}
               </span>
@@ -162,19 +118,19 @@
     >
       <h4
         id="solution-finder-modal-constraints-heading"
-        class="text-sm font-semibold uppercase tracking-wide text-slate-600"
+        class="text-base font-semibold text-slate-800"
       >
-        {{ 'solutionControls.finder.sections.constraints' | translate }}
+        Step 2: {{ 'solutionControls.finder.sections.constraints' | translate }}
       </h4>
       <div id="solution-finder-modal-constraints-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-constraints-list-card"
-          class="h-full space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          class="h-full space-y-2 rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           @for (toggle of constraintToggles; track toggle.id) {
             <div
               [id]="'solution-finder-modal-constraint-row-' + toggle.id"
-              class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2"
+              class="flex items-center justify-between gap-3 rounded-md border border-slate-100 px-3 py-2"
             >
               <div
                 [id]="'solution-finder-modal-constraint-row-copy-' + toggle.id"
@@ -200,7 +156,7 @@
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition"
                 [class.cursor-not-allowed]="!isStep2Unlocked()"
                 [class.opacity-60]="!isStep2Unlocked()"
-                [class.bg-emerald-500]="isToggleEnabled(toggle)"
+                [class.bg-sky-600]="isToggleEnabled(toggle)"
                 [class.bg-slate-300]="!isToggleEnabled(toggle)"
                 role="switch"
                 [disabled]="!isStep2Unlocked()"
@@ -220,7 +176,7 @@
         </article>
         <div
           id="solution-finder-modal-constraints-lock-overlay"
-          class="absolute inset-0 z-10 rounded-2xl bg-slate-100/85 p-3"
+          class="absolute inset-0 z-10 rounded-md bg-slate-50/70 p-3"
           [class.hidden]="isStep2Unlocked()"
         >
           <div
@@ -229,7 +185,7 @@
           >
             <p
               id="solution-finder-modal-constraints-lock-overlay-message"
-              class="max-w-[220px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700"
+              class="max-w-[220px] rounded-md border border-slate-200 bg-white/95 px-3 py-2 text-xs font-medium text-slate-700"
             >
               {{ 'solutionControls.finder.locked.constraints' | translate }}
             </p>
@@ -243,22 +199,19 @@
       class="flex min-h-0 flex-col gap-3 lg:col-span-4"
       aria-labelledby="solution-finder-modal-results-heading"
     >
-      <h4
-        id="solution-finder-modal-results-heading"
-        class="text-sm font-semibold uppercase tracking-wide text-slate-600"
-      >
-        {{ 'solutionControls.finder.sections.results' | translate }}
+      <h4 id="solution-finder-modal-results-heading" class="text-base font-semibold text-slate-800">
+        Step 3: {{ 'solutionControls.finder.sections.results' | translate }}
       </h4>
       <div id="solution-finder-modal-results-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-results-card"
-          class="flex h-full min-h-56 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          class="flex h-full min-h-56 flex-col rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           @switch (matchState) {
             @case ('empty') {
               <div
                 id="solution-finder-modal-results-empty-state"
-                class="flex h-full min-h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center"
+                class="flex h-full min-h-40 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-center"
               >
                 <p
                   id="solution-finder-modal-results-empty-title"
@@ -277,7 +230,7 @@
             @case ('loading') {
               <div
                 id="solution-finder-modal-results-loading-state"
-                class="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-xl border border-slate-100 bg-slate-50"
+                class="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-md border border-slate-100 bg-slate-50"
               >
                 <span
                   id="solution-finder-modal-results-loading-spinner"
@@ -325,7 +278,7 @@
                           </p>
                           <span
                             [id]="'solution-finder-modal-result-row-match-' + match.id"
-                            class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700"
+                            class="rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-700"
                           >
                             {{ match.matchPercentage }}%
                           </span>
@@ -351,7 +304,7 @@
         </article>
         <div
           id="solution-finder-modal-results-lock-overlay"
-          class="absolute inset-0 z-10 rounded-2xl bg-slate-100/85 p-3"
+          class="absolute inset-0 z-10 rounded-md bg-slate-50/70 p-3"
           [class.hidden]="!isStep3Locked()"
         >
           <div
@@ -360,7 +313,7 @@
           >
             <p
               id="solution-finder-modal-results-lock-overlay-message"
-              class="max-w-[240px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700"
+              class="max-w-[240px] rounded-md border border-slate-200 bg-white/95 px-3 py-2 text-xs font-medium text-slate-700"
             >
               {{ 'solutionControls.finder.locked.results' | translate }}
             </p>
@@ -381,7 +334,7 @@
       <button
         id="solution-finder-modal-reset-button"
         type="button"
-        class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+        class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
         (click)="resetSelections()"
       >
         {{ 'solutionControls.finder.actions.reset' | translate }}
@@ -391,7 +344,7 @@
         <button
           id="solution-finder-modal-cancel-button"
           type="button"
-          class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
           (click)="requestClose()"
         >
           {{ 'solutionControls.finder.actions.cancel' | translate }}
@@ -399,7 +352,7 @@
         <button
           id="solution-finder-modal-run-match-button"
           type="button"
-          class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           [disabled]="!canRunMatching()"
           (click)="runMatching()"
         >
@@ -408,7 +361,7 @@
         <button
           id="solution-finder-modal-apply-button"
           type="button"
-          class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
+          class="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
           [disabled]="!canApplyScenario()"
           (click)="applySelectedScenario()"
         >
