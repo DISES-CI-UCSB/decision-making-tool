@@ -25,7 +25,7 @@
           <div id="map-layers-active-scenario-info" class="min-w-0">
             <p
               id="map-layers-active-scenario-label"
-              class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500"
+              class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
             >
               Active Scenario
             </p>
@@ -60,7 +60,7 @@
         <label
           id="map-layers-admin-boundary-label"
           for="map-layers-admin-boundary-select"
-          class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500"
+          class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
         >
           Administrative Boundary
         </label>
@@ -111,7 +111,7 @@
       <section id="map-layers-selected-layers-section" class="flex flex-col gap-1.5">
         <span
           id="map-layers-selected-layers-section-title"
-          class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500"
+          class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
         >
           Selected Layers
         </span>
@@ -122,7 +122,7 @@
           @if (selectedLayers().length === 0) {
             <p
               id="map-layers-selected-layers-empty-copy"
-              class="px-3 py-2.5 text-[11px] text-slate-500"
+              class="px-3 py-2.5 text-[11px] text-slate-600"
             >
               No layers selected yet. Add layers from Available Layers to control stack order.
             </p>
@@ -177,7 +177,7 @@
                     </p>
                     <p
                       [id]="'map-layers-selected-layer-row-source-' + selected.id"
-                      class="truncate text-[10px] text-slate-500"
+                      class="truncate text-[10px] text-slate-600"
                     >
                       {{ selected.sourceLabel }}
                     </p>
@@ -186,7 +186,7 @@
                     <button
                       [id]="'map-layers-selected-layer-row-remove-button-' + selected.id"
                       type="button"
-                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-500 transition hover:border-red-300 hover:text-red-500"
+                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:border-red-300 hover:text-red-500"
                       [attr.aria-label]="'Remove ' + selected.name + ' from selected layers'"
                       (click)="removeSelectedLayer(selected.id)"
                     >
@@ -283,7 +283,7 @@
                       <label
                         [id]="'map-layers-selected-layer-row-opacity-label-' + selected.id"
                         [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
-                        class="shrink-0 text-[10px] text-slate-500"
+                        class="shrink-0 text-[10px] text-slate-600"
                       >
                         Opacity
                       </label>
@@ -301,7 +301,7 @@
                       />
                       <span
                         [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
-                        class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-500"
+                        class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
                       >
                         {{ selectedLayerOpacity(selected.id) }}%
                       </span>
@@ -314,7 +314,7 @@
                         <label
                           [id]="'map-layers-selected-layer-row-color-label-' + selected.id"
                           [for]="'map-layers-selected-layer-row-color-input-' + selected.id"
-                          class="text-[10px] text-slate-500"
+                          class="text-[10px] text-slate-600"
                         >
                           Color
                         </label>
@@ -339,7 +339,7 @@
       <section id="map-layers-overlays-section" class="flex flex-col gap-1.5">
         <span
           id="map-layers-overlays-section-title"
-          class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500"
+          class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
         >
           Available Layers
         </span>
@@ -380,7 +380,7 @@
             </span>
             <span
               id="map-layers-overlays-category-count"
-              class="text-[11px] font-semibold text-slate-500"
+              class="text-[11px] font-semibold text-slate-600"
             >
               3 layers
             </span>
@@ -505,7 +505,7 @@
                         <label
                           [id]="'map-layers-overlay-opacity-label-' + overlay.id"
                           [for]="'map-layers-overlay-opacity-slider-' + overlay.id"
-                          class="shrink-0 text-[10px] text-slate-500"
+                          class="shrink-0 text-[10px] text-slate-600"
                         >
                           Opacity
                         </label>
@@ -521,7 +521,7 @@
                         />
                         <span
                           [id]="'map-layers-overlay-opacity-value-' + overlay.id"
-                          class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-500"
+                          class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
                         >
                           {{ overlay.opacity }}%
                         </span>
@@ -533,7 +533,7 @@
                         <label
                           [id]="'map-layers-overlay-color-label-' + overlay.id"
                           [for]="'map-layers-overlay-color-input-' + overlay.id"
-                          class="text-[10px] text-slate-500"
+                          class="text-[10px] text-slate-600"
                         >
                           Color
                         </label>
@@ -590,21 +590,21 @@
               <span
                 [id]="'map-layers-group-title-' + group.id"
                 class="flex-1 text-xs font-bold text-slate-700"
-                [class.text-slate-500]="group.disabled"
+                [class.text-slate-600]="group.disabled"
               >
                 {{ group.title }}
               </span>
               @if (group.comingSoon) {
                 <span
                   [id]="'map-layers-group-coming-soon-badge-' + group.id"
-                  class="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-slate-500"
+                  class="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-slate-600"
                 >
                   Coming soon
                 </span>
               } @else if (group.countLabel) {
                 <span
                   [id]="'map-layers-group-count-' + group.id"
-                  class="text-[11px] font-semibold text-slate-500"
+                  class="text-[11px] font-semibold text-slate-600"
                 >
                   {{ group.countLabel }}
                 </span>
@@ -617,7 +617,7 @@
                   @if (group.note) {
                     <p
                       [id]="'map-layers-group-note-' + group.id"
-                      class="border-b border-slate-100 px-3 py-2 text-[11px] leading-5 text-slate-500"
+                      class="border-b border-slate-100 px-3 py-2 text-[11px] leading-5 text-slate-600"
                     >
                       {{ group.note }}
                     </p>
@@ -643,7 +643,7 @@
                         </button>
                         <span
                           [id]="'map-layers-taxon-count-' + taxon.id"
-                          class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-500"
+                          class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
                         >
                           {{ taxon.countLabel }}
                         </span>
@@ -743,7 +743,7 @@
                           >
                             <span
                               [id]="'map-layers-taxon-search-icon-' + taxon.id"
-                              class="text-[11px] text-slate-500"
+                              class="text-[11px] text-slate-600"
                               aria-hidden="true"
                             >
                               ⌕
@@ -789,7 +789,7 @@
                                     </p>
                                     <p
                                       [id]="'map-layers-species-latin-' + species.id"
-                                      class="truncate text-[10px] italic text-slate-500"
+                                      class="truncate text-[10px] italic text-slate-600"
                                     >
                                       {{ species.latin }}
                                     </p>
@@ -893,7 +893,7 @@
                                       <label
                                         [id]="'map-layers-species-opacity-label-' + species.id"
                                         [for]="'map-layers-species-opacity-slider-' + species.id"
-                                        class="shrink-0 text-[10px] text-slate-500"
+                                        class="shrink-0 text-[10px] text-slate-600"
                                       >
                                         Opacity
                                       </label>
@@ -915,7 +915,7 @@
                                       />
                                       <span
                                         [id]="'map-layers-species-opacity-value-' + species.id"
-                                        class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-500"
+                                        class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
                                       >
                                         {{ species.opacity }}%
                                       </span>
@@ -930,7 +930,7 @@
                             <button
                               [id]="'map-layers-taxon-show-all-button-' + taxon.id"
                               type="button"
-                              class="w-full border-t border-slate-100 px-3 py-1.5 pl-7 text-left text-xs text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                              class="w-full border-t border-slate-100 px-3 py-1.5 pl-7 text-left text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-700"
                               (click)="showAllTaxonSpecies(taxon.id)"
                             >
                               Show all {{ taxon.speciesCount.toLocaleString() }}
@@ -1063,7 +1063,7 @@
                               [for]="
                                 'map-layers-layer-row-opacity-slider-' + group.id + '-' + row.id
                               "
-                              class="shrink-0 text-[10px] text-slate-500"
+                              class="shrink-0 text-[10px] text-slate-600"
                             >
                               Opacity
                             </label>
@@ -1083,7 +1083,7 @@
                             />
                             <span
                               [id]="'map-layers-layer-row-opacity-value-' + group.id + '-' + row.id"
-                              class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-500"
+                              class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
                             >
                               {{ row.opacity }}%
                             </span>
@@ -1095,7 +1095,7 @@
                             <label
                               [id]="'map-layers-layer-row-color-label-' + group.id + '-' + row.id"
                               [for]="'map-layers-layer-row-color-input-' + group.id + '-' + row.id"
-                              class="text-[10px] text-slate-500"
+                              class="text-[10px] text-slate-600"
                             >
                               Color
                             </label>
