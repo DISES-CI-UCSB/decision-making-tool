@@ -92,7 +92,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly appState = inject(AppStateService);
   private readonly adminBoundaryService = inject(AdminBoundaryService);
   private readonly solutionLayerService = inject(SolutionLayerService);
-  private readonly opacitySyncTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly opacitySyncFrames = new Map<string, number>();
 
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
@@ -125,10 +125,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    for (const timer of this.opacitySyncTimers.values()) {
-      clearTimeout(timer);
+    for (const frameId of this.opacitySyncFrames.values()) {
+      cancelAnimationFrame(frameId);
     }
-    this.opacitySyncTimers.clear();
+    this.opacitySyncFrames.clear();
   }
 
   protected requestSolutionFinder(): void {
@@ -706,12 +706,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private scheduleOpacitySync(rowKey: string): void {
-    const previousTimer = this.opacitySyncTimers.get(rowKey);
-    if (previousTimer) {
-      clearTimeout(previousTimer);
+    const previousFrame = this.opacitySyncFrames.get(rowKey);
+    if (previousFrame) {
+      cancelAnimationFrame(previousFrame);
     }
 
-    const timer = setTimeout(() => {
+    const frameId = requestAnimationFrame(() => {
       if (rowKey.includes(':')) {
         const [scopeId, rowId] = rowKey.split(':');
         if (scopeId.startsWith('taxon-')) {
@@ -722,10 +722,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       } else {
         this.syncOverlayById(rowKey);
       }
-      this.opacitySyncTimers.delete(rowKey);
-    }, 180);
+      this.opacitySyncFrames.delete(rowKey);
+    });
 
-    this.opacitySyncTimers.set(rowKey, timer);
+    this.opacitySyncFrames.set(rowKey, frameId);
   }
 
   private syncRowToMap(row: LayerControlRow): void {
