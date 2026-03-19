@@ -107,6 +107,7 @@
         }
       </section>
 
+      <!-- ─── SELECTED LAYERS ─── -->
       <section id="map-layers-selected-layers-section" class="flex flex-col gap-1.5">
         <span
           id="map-layers-selected-layers-section-title"
@@ -135,11 +136,11 @@
               >
                 <div
                   [id]="'map-layers-selected-layer-row-header-' + selected.id"
-                  class="flex min-w-0 items-center gap-2 px-3 py-2.5"
+                  class="flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 py-2.5"
                 >
                   <span
                     [id]="'map-layers-selected-layer-row-drag-handle-' + selected.id"
-                    class="w-4 shrink-0 text-center text-[15px] font-black leading-none text-slate-700"
+                    class="w-3 shrink-0 cursor-grab text-center text-[13px] font-extrabold leading-none text-slate-500"
                     aria-hidden="true"
                   >
                     ⋮⋮
@@ -162,6 +163,25 @@
                       {{ selected.sourceLabel }}
                     </p>
                   </div>
+                  <button
+                    [id]="'map-layers-selected-layer-row-remove-button-' + selected.id"
+                    type="button"
+                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-500 transition hover:border-red-300 hover:text-red-500"
+                    [attr.aria-label]="'Remove ' + selected.name + ' from selected layers'"
+                    (click)="removeSelectedLayer(selected.id)"
+                  >
+                    <svg
+                      class="h-3 w-3"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2 2l8 8M10 2l-8 8" />
+                    </svg>
+                  </button>
                   <button
                     [id]="'map-layers-selected-layer-row-visibility-button-' + selected.id"
                     type="button"
@@ -209,29 +229,31 @@
                   <button
                     [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
                     type="button"
-                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center text-base text-slate-500 transition hover:text-slate-700"
-                    [class.rotate-[-90deg]]="!isSelectedLayerExpanded(selected.id)"
+                    class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                    [class.rotate-180]="!isSelectedLayerExpanded(selected.id)"
                     [attr.aria-label]="'Toggle controls for ' + selected.name"
                     [attr.aria-expanded]="isSelectedLayerExpanded(selected.id)"
                     (click)="toggleSelectedLayerExpanded(selected.id)"
                   >
-                    ⌄
-                  </button>
-                  <button
-                    [id]="'map-layers-selected-layer-row-remove-button-' + selected.id"
-                    type="button"
-                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                    [attr.aria-label]="'Remove ' + selected.name + ' from selected layers'"
-                    (click)="removeSelectedLayer(selected.id)"
-                  >
-                    ✕
+                    <svg
+                      class="h-3 w-3"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
                   </button>
                 </div>
 
                 @if (isSelectedLayerExpanded(selected.id)) {
                   <div
                     [id]="'map-layers-selected-layer-row-controls-' + selected.id"
-                    class="flex items-center gap-2 px-3 pb-2.5 pl-8"
+                    class="flex items-center gap-2 px-3 pb-2.5 pl-6"
                   >
                     <div
                       [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
@@ -289,6 +311,7 @@
         </div>
       </section>
 
+      <!-- ─── AVAILABLE LAYERS ─── -->
       <section id="map-layers-overlays-section" class="flex flex-col gap-1.5">
         <span
           id="map-layers-overlays-section-title"
@@ -309,11 +332,21 @@
           >
             <span
               id="map-layers-overlays-category-chevron"
-              class="w-4 shrink-0 text-center text-base text-slate-500"
-              [class.rotate-[-90deg]]="overlaysCollapsed()"
+              class="inline-flex w-3 shrink-0 items-center justify-center text-slate-400"
+              [class.rotate-180]="overlaysCollapsed()"
               aria-hidden="true"
             >
-              ⌄
+              <svg
+                class="h-3 w-3"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 4.5L6 7.5L9 4.5" />
+              </svg>
             </span>
             <span
               id="map-layers-overlays-category-title"
@@ -340,7 +373,7 @@
                 >
                   <div
                     [id]="'map-layers-overlay-row-header-' + overlay.id"
-                    class="flex items-center gap-2 px-3 py-2.5"
+                    class="flex items-center gap-1.5 px-3 py-2.5"
                   >
                     <button
                       [id]="'map-layers-overlay-name-button-' + overlay.id"
@@ -364,7 +397,7 @@
                       [attr.aria-pressed]="overlay.visible"
                       (click)="toggleOverlaySelected(overlay.id)"
                     >
-                      {{ overlay.visible ? 'Selected' : 'Add' }}
+                      {{ overlay.visible ? 'Added' : 'Add' }}
                     </button>
                     <button
                       [id]="'map-layers-overlay-visibility-button-' + overlay.id"
@@ -415,13 +448,24 @@
                     <button
                       [id]="'map-layers-overlay-expand-button-' + overlay.id"
                       type="button"
-                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center text-base text-slate-500 transition hover:text-slate-700"
-                      [class.rotate-[-90deg]]="!overlay.expanded"
+                      class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                      [class.rotate-180]="!overlay.expanded"
                       [attr.aria-label]="'Toggle controls for ' + overlay.name"
                       [attr.aria-expanded]="overlay.expanded"
                       (click)="toggleOverlayExpanded(overlay.id)"
                     >
-                      ⌄
+                      <svg
+                        class="h-3 w-3"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
                     </button>
                   </div>
 
@@ -485,6 +529,7 @@
         </article>
       </section>
 
+      <!-- ─── CATEGORY GROUPS ─── -->
       <section id="map-layers-groups-section" class="flex flex-col gap-2">
         @for (group of groups(); track group.id) {
           <article
@@ -501,11 +546,21 @@
             >
               <span
                 [id]="'map-layers-group-chevron-' + group.id"
-                class="w-4 shrink-0 text-center text-base text-slate-500"
-                [class.rotate-[-90deg]]="group.collapsed"
+                class="inline-flex w-3 shrink-0 items-center justify-center text-slate-400"
+                [class.rotate-180]="group.collapsed"
                 aria-hidden="true"
               >
-                ⌄
+                <svg
+                  class="h-3 w-3"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 4.5L6 7.5L9 4.5" />
+                </svg>
               </span>
               <span
                 [id]="'map-layers-group-title-' + group.id"
@@ -550,7 +605,7 @@
                     >
                       <div
                         [id]="'map-layers-taxon-row-header-' + taxon.id"
-                        class="flex min-w-0 items-center gap-2 px-3 py-2"
+                        class="flex min-w-0 items-center gap-1.5 px-3 py-2"
                       >
                         <button
                           [id]="'map-layers-taxon-name-button-' + taxon.id"
@@ -568,9 +623,24 @@
                           {{ taxon.countLabel }}
                         </span>
                         <button
+                          [id]="'map-layers-taxon-selected-button-' + taxon.id"
+                          type="button"
+                          class="inline-flex h-7 shrink-0 items-center rounded-md border px-2 text-[10px] font-semibold transition"
+                          [class.border-blue-200]="taxon.visible"
+                          [class.bg-blue-50]="taxon.visible"
+                          [class.text-blue-700]="taxon.visible"
+                          [class.border-slate-200]="!taxon.visible"
+                          [class.bg-white]="!taxon.visible"
+                          [class.text-slate-600]="!taxon.visible"
+                          [attr.aria-pressed]="taxon.visible"
+                          (click)="toggleTaxonVisibility(taxon.id)"
+                        >
+                          {{ taxon.visible ? 'Added' : 'Add' }}
+                        </button>
+                        <button
                           [id]="'map-layers-taxon-visibility-button-' + taxon.id"
                           type="button"
-                          class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-[11px] text-slate-600 transition hover:bg-slate-50"
+                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
                           [attr.aria-label]="'Toggle visibility for ' + taxon.name"
                           [attr.aria-pressed]="taxon.visible"
                           (click)="toggleTaxonVisibility(taxon.id)"
@@ -578,7 +648,7 @@
                           @if (taxon.visible) {
                             <svg
                               [id]="'map-layers-taxon-eye-open-icon-' + taxon.id"
-                              class="h-3.5 w-3.5"
+                              class="h-4 w-4"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -593,7 +663,7 @@
                           } @else {
                             <svg
                               [id]="'map-layers-taxon-eye-closed-icon-' + taxon.id"
-                              class="h-3.5 w-3.5"
+                              class="h-4 w-4"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -616,13 +686,24 @@
                         <button
                           [id]="'map-layers-taxon-expand-button-' + taxon.id"
                           type="button"
-                          class="inline-flex h-6 w-6 shrink-0 items-center justify-center text-base text-slate-500 transition hover:text-slate-700"
-                          [class.rotate-[-90deg]]="!taxon.expanded"
+                          class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                          [class.rotate-180]="!taxon.expanded"
                           [attr.aria-label]="'Toggle species list for ' + taxon.name"
                           [attr.aria-expanded]="taxon.expanded"
                           (click)="toggleTaxonExpanded(taxon.id)"
                         >
-                          ⌄
+                          <svg
+                            class="h-3 w-3"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 4.5L6 7.5L9 4.5" />
+                          </svg>
                         </button>
                       </div>
 
@@ -717,7 +798,7 @@
                     >
                       <div
                         [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
-                        class="flex items-center gap-2 px-3 py-2.5"
+                        class="flex items-center gap-1.5 px-3 py-2.5"
                       >
                         <button
                           [id]="'map-layers-layer-row-name-button-' + group.id + '-' + row.id"
@@ -741,7 +822,7 @@
                           [attr.aria-pressed]="row.visible"
                           (click)="toggleLayerSelected(group.id, row.id)"
                         >
-                          {{ row.visible ? 'Selected' : 'Add' }}
+                          {{ row.visible ? 'Added' : 'Add' }}
                         </button>
                         <button
                           [id]="'map-layers-layer-row-visibility-button-' + group.id + '-' + row.id"
@@ -794,13 +875,24 @@
                         <button
                           [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
                           type="button"
-                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center text-base text-slate-500 transition hover:text-slate-700"
-                          [class.rotate-[-90deg]]="!row.expanded"
+                          class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                          [class.rotate-180]="!row.expanded"
                           [attr.aria-label]="'Toggle controls for ' + row.name"
                           [attr.aria-expanded]="row.expanded"
                           (click)="toggleLayerExpanded(group.id, row.id)"
                         >
-                          ⌄
+                          <svg
+                            class="h-3 w-3"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 4.5L6 7.5L9 4.5" />
+                          </svg>
                         </button>
                       </div>
 
