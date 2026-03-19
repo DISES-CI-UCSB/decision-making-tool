@@ -27,7 +27,6 @@ interface TargetGroup {
   labelKey: string;
   options: TargetOption[];
   selectedOptionId: string | null;
-  badgeText: string;
 }
 
 interface ConstraintToggle {
@@ -67,7 +66,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     {
       id: 'mammal-species',
       labelKey: 'solutionControls.finder.targets.mammalSpecies',
-      badgeText: '30x30',
       selectedOptionId: null,
       options: [
         { id: '17', label: '17%' },
@@ -79,7 +77,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     {
       id: 'cloud-forest',
       labelKey: 'solutionControls.finder.targets.cloudForest',
-      badgeText: '30x30',
       selectedOptionId: null,
       options: [
         { id: '17', label: '17%' },
@@ -91,7 +88,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     {
       id: 'threatened-amphibians',
       labelKey: 'solutionControls.finder.targets.threatenedAmphibians',
-      badgeText: '30x30',
       selectedOptionId: null,
       options: [
         { id: '17', label: '17%' },
@@ -103,7 +99,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     {
       id: 'paramo-ecosystems',
       labelKey: 'solutionControls.finder.targets.paramoEcosystems',
-      badgeText: '30x30',
       selectedOptionId: null,
       options: [
         { id: '17', label: '17%' },
@@ -115,7 +110,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     {
       id: 'wetlands',
       labelKey: 'solutionControls.finder.targets.wetlands',
-      badgeText: '30x30',
       selectedOptionId: null,
       options: [
         { id: '17', label: '17%' },

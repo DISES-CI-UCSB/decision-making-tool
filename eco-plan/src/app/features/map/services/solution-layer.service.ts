@@ -214,6 +214,12 @@ export class SolutionLayerService {
     }
   }
 
+  setVisibility(visible: boolean): void {
+    if (this.currentLayer) {
+      this.currentLayer.visible = visible;
+    }
+  }
+
   private toSidebarSolution(loaded: LoadedSolution): Solution {
     const mockSolution = this.getMockSolutionForScenario(loaded.scenario.id);
     const matchPercentage = Math.round(

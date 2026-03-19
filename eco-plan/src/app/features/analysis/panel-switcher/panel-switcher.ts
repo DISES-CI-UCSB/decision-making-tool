@@ -9,6 +9,10 @@ import {
 import { ApiService } from '@core/services/api.service';
 import { AppStateService, type RightSidebarMode } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
+import {
+  AdminBoundaryService,
+  type SirapSelectionScope,
+} from '@features/map/services/admin-boundary.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, distinctUntilChanged, finalize, map, of, switchMap } from 'rxjs';
 
@@ -82,6 +86,7 @@ export class PanelSwitcherComponent {
   private readonly appState = inject(AppStateService);
   private readonly api = inject(ApiService);
   private readonly mockData = inject(MockDataService);
+  private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -334,6 +339,7 @@ export class PanelSwitcherComponent {
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly selectedAoi = this.appState.selectedAOI$;
+  protected readonly sirapSelectionScope = this.adminBoundaries.sirapSelectionScope$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
   protected readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   protected readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
@@ -357,6 +363,7 @@ export class PanelSwitcherComponent {
 
     return this.mockData.getAoiMetrics(solution.id, aoi.id)?.metrics ?? [];
   });
+  protected readonly isSirapAoiSelected = computed(() => this.selectedAoi()?.type === 'sirap');
 
   protected readonly comparisonMetrics = computed(() => {
     const baselineSolution = this.activeSolution();
@@ -480,6 +487,14 @@ export class PanelSwitcherComponent {
     }
 
     this.appState.setRightSidebarMode(tab);
+  }
+
+  protected isSirapScopeSelected(scope: SirapSelectionScope): boolean {
+    return this.sirapSelectionScope() === scope;
+  }
+
+  protected setSirapSelectionScope(scope: SirapSelectionScope): void {
+    this.adminBoundaries.setSirapSelectionScope(scope);
   }
 
   protected isMetricReady(metric: MetricValue): boolean {

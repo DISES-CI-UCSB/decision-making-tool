@@ -1,0 +1,124 @@
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.map-layers-chevron,
+.map-layers-chevron-button {
+  color: rgb(71 85 105);
+}
+
+.map-layers-chevron-button:hover {
+  color: rgb(30 41 59);
+}
+
+.map-layers-chevron-icon {
+  stroke-width: 1.5;
+}
+
+.map-layers-opacity-slider {
+  --map-layers-slider-progress: 50%;
+  appearance: none;
+  height: 1rem;
+  background: transparent;
+}
+
+.map-layers-opacity-slider::-webkit-slider-runnable-track {
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    rgb(71 85 105) 0%,
+    rgb(71 85 105) var(--map-layers-slider-progress),
+    rgb(203 213 225) var(--map-layers-slider-progress),
+    rgb(203 213 225) 100%
+  );
+}
+
+.map-layers-opacity-slider::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: -0.3125rem;
+  height: 0.875rem;
+  width: 0.875rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(148 163 184);
+  background: rgb(255 255 255);
+}
+
+.map-layers-opacity-slider::-moz-range-track {
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: rgb(203 213 225);
+}
+
+.map-layers-opacity-slider::-moz-range-progress {
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: rgb(71 85 105);
+}
+
+.map-layers-opacity-slider::-moz-range-thumb {
+  height: 0.875rem;
+  width: 0.875rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(148 163 184);
+  background: rgb(255 255 255);
+}
+
+/* Native color input: square rounded swatch (consistent across browsers). */
+.map-layers-color-swatch {
+  appearance: none;
+  -webkit-appearance: none;
+  overflow: hidden;
+  background-color: transparent;
+}
+
+.map-layers-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+  /* Match the <input> border-radius so the painted swatch isn’t more “pill” than the frame */
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.map-layers-color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: inherit;
+}
+
+.map-layers-color-swatch::-moz-color-swatch {
+  border: none;
+  border-radius: inherit;
+}
+
+.map-layers-selected-layer-row {
+  position: relative;
+  transition:
+    background-color 120ms ease,
+    transform 120ms ease,
+    opacity 120ms ease;
+}
+
+.map-layers-selected-layer-row-dragging {
+  opacity: 0.55;
+  transform: scale(0.995);
+}
+
+.map-layers-selected-layer-row-drop-before::before,
+.map-layers-selected-layer-row-drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 2px;
+  border-radius: 9999px;
+  background: rgb(71 85 105);
+}
+
+.map-layers-selected-layer-row-drop-before::before {
+  top: 0;
+}
+
+.map-layers-selected-layer-row-drop-after::after {
+  bottom: 0;
+}

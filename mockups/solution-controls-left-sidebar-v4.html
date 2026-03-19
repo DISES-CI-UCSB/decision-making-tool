@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solution Controls Left Sidebar — v4</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --slate-900: #0f172a; --slate-800: #1e293b; --slate-700: #334155;
+      --slate-600: #475569; --slate-500: #64748b; --slate-400: #94a3b8;
+      --slate-300: #cbd5e1; --slate-200: #e2e8f0; --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --radius: 10px; --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px; line-height: 1.5; color: var(--slate-900);
+      background: var(--slate-200); display: flex; justify-content: center;
+      padding: 2rem; -webkit-font-smoothing: antialiased;
+    }
+
+    .panel {
+      width: 420px; max-height: 92vh; background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .panel-header {
+      padding: 20px 20px 16px; border-bottom: 1px solid var(--slate-200);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .sidebar-title { font-size: 20px; font-weight: 700; color: var(--slate-900); }
+    .active-scenario-card {
+      border: 1px solid var(--slate-200); background: var(--slate-50);
+      border-radius: var(--radius-sm); padding: 10px 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .active-scenario-info { min-width: 0; }
+    .active-scenario-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--slate-500);
+    }
+    .active-scenario-name {
+      font-size: 13px; font-weight: 700; color: var(--slate-800);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .small-btn {
+      border: 1px solid var(--slate-200); background: #fff; color: var(--slate-700);
+      border-radius: var(--radius-sm); font-family: inherit; font-size: 12px;
+      font-weight: 600; padding: 6px 10px; display: inline-flex; align-items: center;
+      gap: 6px; cursor: pointer; flex-shrink: 0; white-space: nowrap;
+    }
+    .small-btn:hover { border-color: var(--slate-300); background: var(--slate-100); }
+
+    /* ── Body ── */
+    .panel-body {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px;
+      scrollbar-width: thin; scrollbar-color: transparent transparent;
+    }
+    .panel-body:hover { scrollbar-color: var(--slate-300) transparent; }
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+    .panel-body:hover::-webkit-scrollbar-thumb { background: var(--slate-300); }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--slate-500);
+    }
+
+    /* ── Admin Boundary ── */
+    .geo-section { display: flex; flex-direction: column; gap: 6px; }
+    .geo-controls { display: flex; gap: 8px; }
+    .geo-select {
+      flex: 1; border: 1px solid var(--slate-200); border-radius: var(--radius-sm);
+      padding: 8px 10px; font-family: inherit; font-size: 13px;
+      color: var(--slate-700); background: #fff;
+    }
+    .geo-select:focus { outline: 2px solid var(--slate-300); border-color: var(--slate-400); }
+    .geo-custom-btn {
+      border: 1px solid var(--slate-200); background: #fff; color: var(--slate-600);
+      border-radius: var(--radius-sm); font-family: inherit; font-size: 12px;
+      font-weight: 600; padding: 8px 10px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    }
+    .geo-custom-btn:hover { border-color: var(--slate-300); background: var(--slate-50); }
+
+    /* ── Layer Card ── */
+    .layer-card {
+      border: 1px solid var(--slate-200); border-radius: var(--radius-sm);
+      overflow: hidden; background: #fff;
+    }
+
+    /* ── Layer Row (shared for all layers) ── */
+    .lr {
+      border-bottom: 1px solid var(--slate-100); background: #fff;
+      transition: background 0.1s;
+    }
+    .lr:last-child { border-bottom: none; }
+    .lr:hover { background: var(--slate-50); }
+
+    .lr-top {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 12px; cursor: move;
+    }
+
+    .lr-drag {
+      color: var(--slate-300); font-size: 11px; width: 14px;
+      text-align: center; flex-shrink: 0; cursor: grab;
+    }
+    .lr-drag:active { cursor: grabbing; }
+
+    .lr-name {
+      flex: 1; font-size: 13px; font-weight: 600; color: var(--slate-800);
+      min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .lr-eye {
+      width: 28px; height: 28px; border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm); background: #fff; color: var(--slate-600);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; font-size: 12px;
+    }
+    .lr-eye:hover { border-color: var(--slate-300); background: var(--slate-50); }
+    .lr-eye--off { color: var(--slate-400); }
+
+    .lr-expand {
+      width: 22px; height: 28px; display: inline-flex; align-items: center;
+      justify-content: center; cursor: pointer; color: var(--slate-400);
+      font-size: 10px; flex-shrink: 0; border: none; background: transparent;
+      transition: transform 0.15s;
+    }
+    .lr-expand:hover { color: var(--slate-600); }
+    .lr-expand.collapsed { transform: rotate(-90deg); }
+
+    .lr-controls {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 12px 9px 33px;
+    }
+    .lr-controls.hidden { display: none; }
+
+    .op-wrap { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+    .op-lbl { font-size: 10px; color: var(--slate-400); flex-shrink: 0; }
+    .op-slider { flex: 1; min-width: 0; accent-color: var(--slate-400); height: 4px; }
+    .op-val { font-size: 10px; color: var(--slate-500); min-width: 28px; text-align: right; font-weight: 600; }
+
+    .clr-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .clr-lbl { font-size: 10px; color: var(--slate-400); }
+    .clr-input {
+      width: 22px; height: 18px; border: 1px solid var(--slate-200);
+      border-radius: 3px; background: #fff; padding: 0; cursor: pointer;
+    }
+
+    .ord-wrap { display: flex; gap: 2px; flex-shrink: 0; }
+    .ord-btn {
+      width: 22px; height: 18px; border: 1px solid var(--slate-200);
+      border-radius: 3px; background: #fff; color: var(--slate-500);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 9px;
+    }
+    .ord-btn:hover { border-color: var(--slate-300); background: var(--slate-50); }
+
+    /* ── Collapsible Group ── */
+    .grp {
+      border: 1px solid var(--slate-200); border-radius: var(--radius-sm);
+      overflow: hidden; background: #fff;
+    }
+    .grp-toggle {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 10px 12px; background: var(--slate-50); border: none;
+      cursor: pointer; font-family: inherit; text-align: left;
+    }
+    .grp-toggle:hover { background: var(--slate-100); }
+    .grp-chev {
+      font-size: 10px; color: var(--slate-400); transition: transform 0.2s;
+      width: 12px; text-align: center;
+    }
+    .grp-chev.collapsed { transform: rotate(-90deg); }
+    .grp-title { flex: 1; font-size: 12px; font-weight: 700; color: var(--slate-700); }
+    .grp-count { font-size: 11px; color: var(--slate-400); font-weight: 600; }
+    .grp-body { border-top: 1px solid var(--slate-200); }
+    .grp-body.hidden { display: none; }
+
+    /* ── Taxon Sub-group ── */
+    .tx-toggle {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px 8px 22px; background: #fff;
+      border-bottom: 1px solid var(--slate-100);
+      font-family: inherit; text-align: left; min-width: 0;
+    }
+    .tx-toggle:hover { background: var(--slate-50); }
+    .tx-name-btn {
+      flex: 1; min-width: 0; border: none; background: transparent; padding: 0;
+      font-size: 13px; font-weight: 600; color: var(--slate-800); cursor: pointer;
+      text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tx-name-btn:hover { color: var(--slate-900); }
+    .tx-count {
+      font-size: 10px; color: var(--slate-400); font-weight: 600;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .tx-eye {
+      width: 26px; height: 26px; border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm); background: #fff; color: var(--slate-600);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 11px; flex-shrink: 0;
+    }
+    .tx-eye:hover { background: var(--slate-50); }
+    .tx-eye--off { color: var(--slate-400); }
+    .tx-body { border-top: 1px solid var(--slate-100); }
+    .tx-body.hidden { display: none; }
+
+    .tx-search-wrap {
+      padding: 8px 12px 8px 34px; border-bottom: 1px solid var(--slate-100);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tx-search-icon { color: var(--slate-400); font-size: 11px; }
+    .tx-search {
+      flex: 1; border: 1px solid var(--slate-200); border-radius: 4px;
+      padding: 5px 8px; font-family: inherit; font-size: 12px; color: var(--slate-700);
+    }
+    .tx-search:focus { outline: 2px solid var(--slate-300); border-color: var(--slate-400); }
+
+    /* ── Species Row ── */
+    .sp {
+      border-bottom: 1px solid var(--slate-100); background: #fff;
+      transition: background 0.1s;
+    }
+    .sp:last-child { border-bottom: none; }
+    .sp:hover { background: var(--slate-50); }
+
+    .sp-top {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px 6px 34px; cursor: pointer;
+    }
+
+    .sp-common {
+      font-size: 12px; font-weight: 500; color: var(--slate-700);
+      min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .sp-latin {
+      font-size: 11px; font-style: italic; color: var(--slate-400);
+      white-space: nowrap; flex-shrink: 0;
+    }
+
+    .sp-spacer { flex: 1; }
+
+    .sp-eye {
+      width: 24px; height: 22px; border: 1px solid var(--slate-200);
+      border-radius: 3px; background: #fff; color: var(--slate-400);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 10px; flex-shrink: 0;
+    }
+    .sp-eye:hover { background: var(--slate-50); color: var(--slate-600); }
+
+    .sp-expand-btn {
+      width: 18px; height: 22px; display: inline-flex; align-items: center;
+      justify-content: center; cursor: pointer; color: var(--slate-400);
+      font-size: 9px; flex-shrink: 0; border: none; background: transparent;
+      transition: transform 0.15s;
+    }
+    .sp-expand-btn:hover { color: var(--slate-600); }
+    .sp-expand-btn.collapsed { transform: rotate(-90deg); }
+
+    .sp-controls {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 12px 6px 46px;
+    }
+    .sp-controls.hidden { display: none; }
+
+    .tx-show-more {
+      padding: 6px 12px 6px 34px; font-size: 12px; color: var(--slate-500);
+      cursor: pointer; border-bottom: 1px solid var(--slate-100);
+    }
+    .tx-show-more:hover { background: var(--slate-50); color: var(--slate-700); }
+
+    .species-note {
+      padding: 8px 12px 8px 22px; font-size: 11px;
+      color: var(--slate-400); line-height: 1.5;
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    /* ── Disabled (Prospective Models) ── */
+    .grp--disabled .grp-toggle { cursor: default; }
+    .grp--disabled .grp-toggle:hover { background: var(--slate-50); }
+    .grp--disabled .grp-title { color: var(--slate-400); }
+    .grp--disabled .grp-chev { color: var(--slate-300); }
+    .coming-soon {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--slate-400); background: var(--slate-100);
+      padding: 2px 6px; border-radius: 3px;
+    }
+
+    /* ── Footer ── */
+    .panel-footer {
+      padding: 14px 20px; border-top: 1px solid var(--slate-200);
+      background: var(--slate-50);
+    }
+    .btn--reset {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 9px 16px; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      background: #fff; color: var(--slate-700); border: 1px solid var(--slate-200);
+    }
+    .btn--reset:hover { background: var(--slate-50); border-color: var(--slate-300); }
+    .btn--reset i { color: var(--slate-400); font-size: 12px; }
+  </style>
+</head>
+<body id="sidebar-page">
+  <div id="sidebar-panel" class="panel">
+
+    <header id="sidebar-header" class="panel-header">
+      <h1 id="sidebar-title" class="sidebar-title">Map Layers</h1>
+      <div id="active-scenario-card" class="active-scenario-card">
+        <div class="active-scenario-info">
+          <div class="active-scenario-label">Active Scenario</div>
+          <div class="active-scenario-name">Ecos30 + RUNAP + OMEC (HF)</div>
+        </div>
+        <button class="small-btn"><i class="fas fa-right-left"></i> Change</button>
+      </div>
+    </header>
+
+    <div id="sidebar-body" class="panel-body">
+
+      <!-- ── Administrative Boundary ── -->
+      <section id="admin-section" class="geo-section">
+        <label class="section-label" for="admin-select">Administrative Boundary</label>
+        <div class="geo-controls">
+          <select id="admin-select" class="geo-select">
+            <option selected>National (Colombia)</option>
+            <option>SIRAP Region</option>
+            <option>Department</option>
+            <option>Municipality</option>
+          </select>
+          <button class="geo-custom-btn"><i class="fas fa-draw-polygon"></i> Custom</button>
+        </div>
+      </section>
+
+      <!-- ── Conservation Overlays (pinned, controls EXPANDED by default) ── -->
+      <section id="overlays-section">
+        <span class="section-label">Conservation Overlays</span>
+        <div class="layer-card" style="margin-top:6px;" id="overlays-card"></div>
+      </section>
+
+      <!-- ── GROUP: Species & Biodiversity ── -->
+      <div id="grp-species" class="grp">
+        <button class="grp-toggle" onclick="toggleGrp('species')">
+          <i id="gc-species" class="fas fa-chevron-down grp-chev"></i>
+          <span class="grp-title">Species & Biodiversity</span>
+          <span class="grp-count">5 taxon groups</span>
+        </button>
+        <div id="gb-species" class="grp-body">
+          <div class="species-note">Showing distributions included in this scenario's calculation.</div>
+        </div>
+      </div>
+
+      <!-- ── GROUP: Ecosystems ── -->
+      <div id="grp-eco" class="grp">
+        <button class="grp-toggle" onclick="toggleGrp('eco')">
+          <i id="gc-eco" class="fas fa-chevron-down grp-chev"></i>
+          <span class="grp-title">Ecosystems</span>
+          <span class="grp-count">5 layers</span>
+        </button>
+        <div id="gb-eco" class="grp-body"></div>
+      </div>
+
+      <!-- ── GROUP: Environmental Services ── -->
+      <div id="grp-env" class="grp">
+        <button class="grp-toggle" onclick="toggleGrp('env')">
+          <i id="gc-env" class="fas fa-chevron-down grp-chev collapsed"></i>
+          <span class="grp-title">Environmental Services</span>
+          <span class="grp-count">2 layers</span>
+        </button>
+        <div id="gb-env" class="grp-body hidden"></div>
+      </div>
+
+      <!-- ── GROUP: Cultural & Ethnic Territories ── -->
+      <div id="grp-cultural" class="grp">
+        <button class="grp-toggle" onclick="toggleGrp('cultural')">
+          <i id="gc-cultural" class="fas fa-chevron-down grp-chev collapsed"></i>
+          <span class="grp-title">Cultural & Ethnic Territories</span>
+          <span class="grp-count">2 layers</span>
+        </button>
+        <div id="gb-cultural" class="grp-body hidden"></div>
+      </div>
+
+      <!-- ── GROUP: Socio-Economic ── -->
+      <div id="grp-socio" class="grp">
+        <button class="grp-toggle" onclick="toggleGrp('socio')">
+          <i id="gc-socio" class="fas fa-chevron-down grp-chev collapsed"></i>
+          <span class="grp-title">Socio-Economic</span>
+          <span class="grp-count">3 layers</span>
+        </button>
+        <div id="gb-socio" class="grp-body hidden"></div>
+      </div>
+
+      <!-- ── GROUP: Conflict & Security ── -->
+      <div id="grp-conflict" class="grp">
+        <button class="grp-toggle" onclick="toggleGrp('conflict')">
+          <i id="gc-conflict" class="fas fa-chevron-down grp-chev collapsed"></i>
+          <span class="grp-title">Conflict & Security</span>
+          <span class="grp-count">1 layer</span>
+        </button>
+        <div id="gb-conflict" class="grp-body hidden"></div>
+      </div>
+
+      <!-- ── GROUP: Prospective Models (disabled) ── -->
+      <div class="grp grp--disabled">
+        <button class="grp-toggle" disabled>
+          <i class="fas fa-chevron-down grp-chev collapsed"></i>
+          <span class="grp-title">Prospective Models</span>
+          <span class="coming-soon">Coming Soon</span>
+        </button>
+      </div>
+    </div>
+
+    <footer class="panel-footer">
+      <button class="btn--reset"><i class="fas fa-rotate-left"></i> Reset Defaults</button>
+    </footer>
+  </div>
+
+  <script>
+    /* ── Toggle group ── */
+    function toggleGrp(id) {
+      const b = document.getElementById("gb-" + id);
+      const c = document.getElementById("gc-" + id);
+      if (!b) return;
+      b.classList.toggle("hidden");
+      c.classList.toggle("collapsed");
+    }
+
+    /* ── Toggle taxon ── */
+    function toggleTaxon(key) {
+      const b = document.getElementById("txb-" + key);
+      const c = document.getElementById("txc-" + key);
+      if (!b) return;
+      b.classList.toggle("hidden");
+      c.classList.toggle("collapsed");
+    }
+
+    /* ── Build a standard layer row with collapsible controls ── */
+    function buildLayerRow(name, color, opacity, controlsExpanded) {
+      const id = "lr-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const collClass = controlsExpanded ? "" : " collapsed";
+      const hiddenClass = controlsExpanded ? "" : " hidden";
+      return `
+        <div class="lr" draggable="true">
+          <div class="lr-top">
+            <i class="fas fa-grip-lines lr-drag"></i>
+            <span class="lr-name" onclick="toggleRowControls(this)">${name}</span>
+            <button class="lr-eye lr-eye--off" title="Toggle visibility" onclick="toggleEye(this)"><i class="fas fa-eye-slash"></i></button>
+            <button class="lr-expand${collClass}" title="Expand controls" onclick="toggleRowControls(this)"><i class="fas fa-chevron-down"></i></button>
+          </div>
+          <div class="lr-controls${hiddenClass}">
+            <div class="op-wrap"><span class="op-lbl">Opacity</span><input class="op-slider" type="range" min="0" max="100" value="${opacity}"><span class="op-val">${opacity}%</span></div>
+            <div class="clr-wrap"><span class="clr-lbl">Color</span><input class="clr-input" type="color" value="${color}"></div>
+            <div class="ord-wrap"><button class="ord-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button><button class="ord-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button></div>
+          </div>
+        </div>`;
+    }
+
+    function buildOverlayRow(name, color, opacity) {
+      return `
+        <div class="lr" draggable="true">
+          <div class="lr-top">
+            <i class="fas fa-grip-lines lr-drag"></i>
+            <span class="lr-name" onclick="toggleRowControls(this)">${name}</span>
+            <button class="lr-eye" title="Toggle visibility" onclick="toggleEye(this)"><i class="fas fa-eye"></i></button>
+            <button class="lr-expand" title="Expand controls" onclick="toggleRowControls(this)"><i class="fas fa-chevron-down"></i></button>
+          </div>
+          <div class="lr-controls">
+            <div class="op-wrap"><span class="op-lbl">Opacity</span><input class="op-slider" type="range" min="0" max="100" value="${opacity}"><span class="op-val">${opacity}%</span></div>
+            <div class="clr-wrap"><span class="clr-lbl">Color</span><input class="clr-input" type="color" value="${color}"></div>
+            <div class="ord-wrap"><button class="ord-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button><button class="ord-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button></div>
+          </div>
+        </div>`;
+    }
+
+    /* ── Toggle controls for a layer row ── */
+    function toggleRowControls(el) {
+      const row = el.closest(".lr");
+      if (!row) return;
+      const controls = row.querySelector(".lr-controls");
+      const chevron = row.querySelector(".lr-expand");
+      if (!controls || !chevron) return;
+      controls.classList.toggle("hidden");
+      chevron.classList.toggle("collapsed");
+    }
+
+    /* ── Toggle eye ── */
+    function toggleEye(btn) {
+      const icon = btn.querySelector("i");
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+      btn.classList.toggle("lr-eye--off");
+    }
+
+    /* ── Build Conservation Overlays (controls EXPANDED) ── */
+    (function buildOverlays() {
+      const card = document.getElementById("overlays-card");
+      card.innerHTML =
+        buildOverlayRow("Conservation Solution", "#16a34a", 70) +
+        buildOverlayRow("Protected Areas (RUNAP)", "#2563eb", 80) +
+        buildOverlayRow("OMECs", "#7c3aed", 75);
+    })();
+
+    /* ── Species Data ── */
+    const TAXA = {
+      mammals: {
+        label: "Mammals", count: 412,
+        species: [
+          { c: "Jaguar", l: "Panthera onca" },
+          { c: "Spectacled Bear", l: "Tremarctos ornatus" },
+          { c: "Mountain Tapir", l: "Tapirus pinchaque" },
+          { c: "Brown Spider Monkey", l: "Ateles hybridus" },
+          { c: "Puma", l: "Puma concolor" },
+          { c: "Ocelot", l: "Leopardus pardalis" },
+          { c: "Red Howler Monkey", l: "Alouatta seniculus" },
+          { c: "Three-toed Sloth", l: "Bradypus variegatus" },
+          { c: "Giant Otter", l: "Pteronura brasiliensis" },
+          { c: "White-lipped Peccary", l: "Tayassu pecari" },
+          { c: "Woolly Monkey", l: "Lagothrix lagothricha" },
+          { c: "Collared Peccary", l: "Pecari tajacu" }
+        ]
+      },
+      birds: {
+        label: "Birds", count: 1932,
+        species: [
+          { c: "Andean Condor", l: "Vultur gryphus" },
+          { c: "Yellow-eared Parrot", l: "Ognorhynchus icterotis" },
+          { c: "Blue-billed Curassow", l: "Crax alberti" },
+          { c: "Gold-ringed Tanager", l: "Bangsia aureocincta" },
+          { c: "Santa Marta Parakeet", l: "Pyrrhura viridicata" },
+          { c: "Multicolored Tanager", l: "Chlorochrysa nitidissima" },
+          { c: "Gorgeted Wood-Quail", l: "Odontophorus strophium" },
+          { c: "Turquoise Dacnis", l: "Dacnis hartlaubi" },
+          { c: "Rusty-faced Parrot", l: "Hapalopsittaca amazonina" },
+          { c: "Tolima Dove", l: "Leptotila conoveri" },
+          { c: "Chestnut-capped Piha", l: "Lipaugus weberi" },
+          { c: "Recurve-billed Bushbird", l: "Clytoctantes alixii" }
+        ]
+      },
+      amphibians: {
+        label: "Amphibians", count: 803,
+        species: [
+          { c: "Golden Poison Frog", l: "Phyllobates terribilis" },
+          { c: "Harlequin Poison Frog", l: "Oophaga histrionica" },
+          { c: "Lehmann's Poison Frog", l: "Oophaga lehmanni" },
+          { c: "Elegant Stubfoot Toad", l: "Atelopus elegans" },
+          { c: "Yellow-striped Poison Frog", l: "Dendrobates truncatus" },
+          { c: "Buckley's Glass Frog", l: "Centrolene buckleyi" },
+          { c: "Cauca Poison Frog", l: "Andinobates bombetes" },
+          { c: "Lynch's Robber Frog", l: "Pristimantis lynchi" },
+          { c: "Condoto Stubfoot Toad", l: "Atelopus spurrelli" },
+          { c: "Santa Marta Treefrog", l: "Hyloscirtus colymba" }
+        ]
+      },
+      reptiles: {
+        label: "Reptiles", count: 590,
+        species: [
+          { c: "Orinoco Crocodile", l: "Crocodylus intermedius" },
+          { c: "Hawksbill Sea Turtle", l: "Eretmochelys imbricata" },
+          { c: "American Crocodile", l: "Crocodylus acutus" },
+          { c: "Red-footed Tortoise", l: "Chelonoidis carbonarius" },
+          { c: "Magdalena River Turtle", l: "Podocnemis lewyana" },
+          { c: "Green Iguana", l: "Iguana iguana" },
+          { c: "Fer-de-lance", l: "Bothrops asper" },
+          { c: "Bushmaster", l: "Lachesis muta" },
+          { c: "Leatherback Sea Turtle", l: "Dermochelys coriacea" },
+          { c: "Spectacled Caiman", l: "Caiman crocodilus" }
+        ]
+      },
+      plants: {
+        label: "Plants", count: 4963,
+        species: [
+          { c: "Quindío Wax Palm", l: "Ceroxylon quindiuense" },
+          { c: "Frailejón", l: "Espeletia grandiflora" },
+          { c: "May Flower Orchid", l: "Cattleya trianae" },
+          { c: "Guayacán", l: "Tabebuia chrysantha" },
+          { c: "Cedro", l: "Cedrela odorata" },
+          { c: "Abarco", l: "Cariniana pyriformis" },
+          { c: "Comino", l: "Aniba perutilis" },
+          { c: "Roble", l: "Quercus humboldtii" },
+          { c: "Heaven Lotus", l: "Gustavia superba" },
+          { c: "Lobster Claw", l: "Heliconia rostrata" }
+        ]
+      }
+    };
+
+    const VISIBLE_SP = 6;
+
+    /* ── Build species sub-groups ── */
+    (function buildSpecies() {
+      const container = document.getElementById("gb-species");
+      Object.entries(TAXA).forEach(([key, taxon]) => {
+        const div = document.createElement("div");
+        div.innerHTML = `
+          <div class="tx-toggle">
+            <button class="tx-name-btn" title="Toggle ${taxon.label}" onclick="toggleTaxon('${key}')">${taxon.label}</button>
+            <span class="tx-count">${taxon.count.toLocaleString()} species</span>
+            <button class="tx-eye tx-eye--off" title="Toggle all ${taxon.label}" onclick="toggleTxEye(this)"><i class="fas fa-eye-slash"></i></button>
+            <button id="txc-${key}" class="sp-expand-btn collapsed" title="Expand ${taxon.label}" onclick="toggleTaxon('${key}')"><i class="fas fa-chevron-down"></i></button>
+          </div>
+          <div id="txb-${key}" class="tx-body hidden">
+            <div class="tx-search-wrap">
+              <i class="fas fa-magnifying-glass tx-search-icon"></i>
+              <input class="tx-search" type="text" placeholder="Search ${taxon.label.toLowerCase()}…" oninput="filterSp('${key}', this.value)">
+            </div>
+            <div id="txsp-${key}"></div>
+            <div id="txmore-${key}" class="tx-show-more" onclick="showAllSp('${key}')">Show all ${taxon.count.toLocaleString()} ${taxon.label.toLowerCase()}…</div>
+          </div>`;
+        container.appendChild(div);
+
+        const spContainer = document.getElementById("txsp-" + key);
+        taxon.species.slice(0, VISIBLE_SP).forEach((sp) => {
+          spContainer.appendChild(makeSpRow(sp));
+        });
+      });
+    })();
+
+    function makeSpRow(sp) {
+      const row = document.createElement("div");
+      row.className = "sp";
+      row.dataset.name = (sp.c + " " + sp.l).toLowerCase();
+      row.innerHTML = `
+        <div class="sp-top" onclick="toggleSpControls(this)">
+          <span class="sp-common">${sp.c}</span>
+          <span class="sp-latin">${sp.l}</span>
+          <span class="sp-spacer"></span>
+          <button class="sp-eye" title="Toggle visibility" onclick="event.stopPropagation(); toggleSpEye(this)"><i class="fas fa-eye-slash"></i></button>
+          <button class="sp-expand-btn collapsed" title="Expand controls" onclick="event.stopPropagation(); toggleSpControls(this)"><i class="fas fa-chevron-down"></i></button>
+        </div>
+        <div class="sp-controls hidden">
+          <div class="op-wrap"><span class="op-lbl">Opacity</span><input class="op-slider" type="range" min="0" max="100" value="60"><span class="op-val">60%</span></div>
+          <div class="clr-wrap"><span class="clr-lbl">Color</span><input class="clr-input" type="color" value="#64748b"></div>
+          <div class="ord-wrap"><button class="ord-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button><button class="ord-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button></div>
+        </div>`;
+      return row;
+    }
+
+    function toggleSpControls(el) {
+      const sp = el.closest(".sp");
+      if (!sp) return;
+      const controls = sp.querySelector(".sp-controls");
+      const chevron = sp.querySelector(".sp-expand-btn");
+      if (!controls || !chevron) return;
+      controls.classList.toggle("hidden");
+      chevron.classList.toggle("collapsed");
+    }
+
+    function toggleSpEye(btn) {
+      const icon = btn.querySelector("i");
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    }
+
+    function toggleTxEye(btn) {
+      const icon = btn.querySelector("i");
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+      btn.classList.toggle("tx-eye--off");
+    }
+
+    function filterSp(key, q) {
+      const rows = document.querySelectorAll("#txsp-" + key + " .sp");
+      q = q.toLowerCase();
+      rows.forEach((r) => { r.style.display = r.dataset.name.includes(q) ? "" : "none"; });
+    }
+
+    function showAllSp(key) {
+      const taxon = TAXA[key];
+      const container = document.getElementById("txsp-" + key);
+      taxon.species.slice(VISIBLE_SP).forEach((sp) => container.appendChild(makeSpRow(sp)));
+      document.getElementById("txmore-" + key).style.display = "none";
+    }
+
+    /* ── Build simple groups ── */
+    const GROUPS = {
+      eco: [
+        { n: "Ecosystem Types", c: "#0d9488", o: 60 },
+        { n: "Páramos", c: "#6d8e7e", o: 55 },
+        { n: "Wetlands", c: "#0284c7", o: 55 },
+        { n: "Dry Forest", c: "#a16207", o: 55 },
+        { n: "Mangroves", c: "#15803d", o: 55 }
+      ],
+      env: [
+        { n: "Carbon Storage", c: "#374151", o: 50 },
+        { n: "Water Regulation", c: "#0369a1", o: 50 }
+      ],
+      cultural: [
+        { n: "Indigenous Reserves", c: "#6366f1", o: 60 },
+        { n: "Afro-Colombian Community Territories", c: "#a855f7", o: 60 }
+      ],
+      socio: [
+        { n: "Human Footprint", c: "#d97706", o: 55 },
+        { n: "Agricultural Opportunity Cost", c: "#ea580c", o: 55 },
+        { n: "Land Use", c: "#78716c", o: 50 }
+      ],
+      conflict: [
+        { n: "Conflict Zones", c: "#dc2626", o: 50 }
+      ]
+    };
+
+    Object.entries(GROUPS).forEach(([gk, layers]) => {
+      const container = document.getElementById("gb-" + gk);
+      if (!container) return;
+      layers.forEach((layer) => {
+        container.insertAdjacentHTML("beforeend", buildLayerRow(layer.n, layer.c, layer.o, false));
+      });
+    });
+
+    /* ── Wire opacity sliders ── */
+    document.querySelectorAll(".op-slider").forEach((slider) => {
+      const val = slider.parentElement.querySelector(".op-val");
+      if (!val) return;
+      slider.addEventListener("input", () => { val.textContent = slider.value + "%"; });
+    });
+
+    /* ── Wire drag-and-drop + order buttons ── */
+    (function wireDragAndOrder() {
+      const body = document.getElementById("sidebar-body");
+
+      body.addEventListener("dragstart", (e) => {
+        const row = e.target.closest(".lr");
+        if (row) row.classList.add("dragging");
+      });
+
+      body.addEventListener("dragend", (e) => {
+        const row = e.target.closest(".lr");
+        if (row) row.classList.remove("dragging");
+        body.querySelectorAll(".drop-target").forEach((t) => t.classList.remove("drop-target"));
+      });
+
+      body.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const row = e.target.closest(".lr");
+        const dragging = body.querySelector(".dragging");
+        if (row && dragging && row !== dragging) row.classList.add("drop-target");
+      });
+
+      body.addEventListener("dragleave", (e) => {
+        const row = e.target.closest(".lr");
+        if (row) row.classList.remove("drop-target");
+      });
+
+      body.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const row = e.target.closest(".lr");
+        const dragging = body.querySelector(".dragging");
+        if (row && dragging && row !== dragging) row.parentNode.insertBefore(dragging, row);
+        if (row) row.classList.remove("drop-target");
+      });
+
+      body.addEventListener("click", (e) => {
+        const btn = e.target.closest(".ord-btn");
+        if (!btn) return;
+        const row = btn.closest(".lr") || btn.closest(".sp");
+        if (!row) return;
+        if (btn.title === "Move layer up") {
+          const prev = row.previousElementSibling;
+          if (prev) row.parentNode.insertBefore(row, prev);
+        } else {
+          const next = row.nextElementSibling;
+          if (next) row.parentNode.insertBefore(next, row);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
