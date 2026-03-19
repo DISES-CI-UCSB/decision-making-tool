@@ -17,6 +17,26 @@
   stroke-width: 1.5;
 }
 
+.map-layers-collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 180ms ease;
+}
+
+.map-layers-collapsible-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-layers-collapsible-content {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .map-layers-opacity-slider {
   --map-layers-slider-progress: 50%;
   appearance: none;
@@ -121,4 +141,11 @@
 
 .map-layers-selected-layer-row-drop-after::after {
   bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-layers-collapsible,
+  .map-layers-selected-layer-row {
+    transition: none;
+  }
 }

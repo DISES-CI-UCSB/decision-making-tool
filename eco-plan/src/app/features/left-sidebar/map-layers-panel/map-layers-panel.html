@@ -271,10 +271,15 @@
                   </button>
                 </div>
 
-                @if (isSelectedLayerExpanded(selected.id)) {
+                <div
+                  [id]="'map-layers-selected-layer-row-controls-' + selected.id"
+                  class="map-layers-collapsible"
+                  [class.map-layers-collapsible-collapsed]="!isSelectedLayerExpanded(selected.id)"
+                  [attr.aria-hidden]="!isSelectedLayerExpanded(selected.id)"
+                >
                   <div
-                    [id]="'map-layers-selected-layer-row-controls-' + selected.id"
-                    class="flex items-center gap-2 px-3 pb-2.5 pl-6"
+                    [id]="'map-layers-selected-layer-row-controls-content-' + selected.id"
+                    class="map-layers-collapsible-content flex items-center gap-2 px-3 pb-2.5 pl-6"
                   >
                     <div
                       [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
@@ -328,7 +333,7 @@
                       </div>
                     }
                   </div>
-                }
+                </div>
               </article>
             }
           }
@@ -386,8 +391,16 @@
             </span>
           </button>
 
-          @if (!overlaysCollapsed()) {
-            <div id="map-layers-overlays-card-body" class="border-t border-slate-200">
+          <div
+            id="map-layers-overlays-card-body"
+            class="map-layers-collapsible"
+            [class.map-layers-collapsible-collapsed]="overlaysCollapsed()"
+            [attr.aria-hidden]="overlaysCollapsed()"
+          >
+            <div
+              id="map-layers-overlays-card-body-content"
+              class="map-layers-collapsible-content border-t border-slate-200"
+            >
               @for (overlay of overlays(); track overlay.id; let isLast = $last) {
                 <article
                   [id]="'map-layers-overlay-row-' + overlay.id"
@@ -493,10 +506,15 @@
                     </button>
                   </div>
 
-                  @if (overlay.expanded) {
+                  <div
+                    [id]="'map-layers-overlay-controls-' + overlay.id"
+                    class="map-layers-collapsible"
+                    [class.map-layers-collapsible-collapsed]="!overlay.expanded"
+                    [attr.aria-hidden]="!overlay.expanded"
+                  >
                     <div
-                      [id]="'map-layers-overlay-controls-' + overlay.id"
-                      class="flex items-center gap-2 px-3 pb-2.5"
+                      [id]="'map-layers-overlay-controls-content-' + overlay.id"
+                      class="map-layers-collapsible-content flex items-center gap-2 px-3 pb-2.5"
                     >
                       <div
                         [id]="'map-layers-overlay-opacity-group-' + overlay.id"
@@ -546,11 +564,11 @@
                         />
                       </div>
                     </div>
-                  }
+                  </div>
                 </article>
               }
             </div>
-          }
+          </div>
         </article>
       </section>
 
@@ -611,8 +629,16 @@
               }
             </button>
 
-            @if (!group.collapsed && !group.disabled) {
-              <div [id]="'map-layers-group-body-' + group.id" class="border-t border-slate-200">
+            <div
+              [id]="'map-layers-group-body-' + group.id"
+              class="map-layers-collapsible"
+              [class.map-layers-collapsible-collapsed]="group.collapsed || !!group.disabled"
+              [attr.aria-hidden]="group.collapsed || !!group.disabled"
+            >
+              <div
+                [id]="'map-layers-group-body-content-' + group.id"
+                class="map-layers-collapsible-content border-t border-slate-200"
+              >
                 @if (group.id === 'group-species-biodiversity') {
                   @if (group.note) {
                     <p
@@ -732,10 +758,15 @@
                         </button>
                       </div>
 
-                      @if (taxon.expanded) {
+                      <div
+                        [id]="'map-layers-taxon-body-' + taxon.id"
+                        class="map-layers-collapsible"
+                        [class.map-layers-collapsible-collapsed]="!taxon.expanded"
+                        [attr.aria-hidden]="!taxon.expanded"
+                      >
                         <div
-                          [id]="'map-layers-taxon-body-' + taxon.id"
-                          class="border-t border-slate-100"
+                          [id]="'map-layers-taxon-body-content-' + taxon.id"
+                          class="map-layers-collapsible-content border-t border-slate-100"
                         >
                           <div
                             [id]="'map-layers-taxon-search-wrap-' + taxon.id"
@@ -881,10 +912,15 @@
                                   </button>
                                 </div>
 
-                                @if (species.expanded) {
+                                <div
+                                  [id]="'map-layers-species-controls-' + species.id"
+                                  class="map-layers-collapsible"
+                                  [class.map-layers-collapsible-collapsed]="!species.expanded"
+                                  [attr.aria-hidden]="!species.expanded"
+                                >
                                   <div
-                                    [id]="'map-layers-species-controls-' + species.id"
-                                    class="flex items-center gap-2 px-3 pb-2.5 pl-7"
+                                    [id]="'map-layers-species-controls-content-' + species.id"
+                                    class="map-layers-collapsible-content flex items-center gap-2 px-3 pb-2.5 pl-7"
                                   >
                                     <div
                                       [id]="'map-layers-species-opacity-group-' + species.id"
@@ -921,7 +957,7 @@
                                       </span>
                                     </div>
                                   </div>
-                                }
+                                </div>
                               </article>
                             }
                           </div>
@@ -938,7 +974,7 @@
                             </button>
                           }
                         </div>
-                      }
+                      </div>
                     </article>
                   }
                 } @else {
@@ -1049,10 +1085,15 @@
                         </button>
                       </div>
 
-                      @if (row.expanded) {
+                      <div
+                        [id]="'map-layers-layer-row-controls-' + group.id + '-' + row.id"
+                        class="map-layers-collapsible"
+                        [class.map-layers-collapsible-collapsed]="!row.expanded"
+                        [attr.aria-hidden]="!row.expanded"
+                      >
                         <div
-                          [id]="'map-layers-layer-row-controls-' + group.id + '-' + row.id"
-                          class="flex items-center gap-2 px-3 pb-2.5"
+                          [id]="'map-layers-layer-row-controls-content-' + group.id + '-' + row.id"
+                          class="map-layers-collapsible-content flex items-center gap-2 px-3 pb-2.5"
                         >
                           <div
                             [id]="'map-layers-layer-row-opacity-group-' + group.id + '-' + row.id"
@@ -1110,12 +1151,12 @@
                             />
                           </div>
                         </div>
-                      }
+                      </div>
                     </article>
                   }
                 }
               </div>
-            }
+            </div>
           </article>
         }
       </section>
