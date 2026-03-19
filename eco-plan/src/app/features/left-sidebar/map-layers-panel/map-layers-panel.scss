@@ -66,6 +66,31 @@
   background: rgb(255 255 255);
 }
 
+/* Native color input: square rounded swatch (consistent across browsers). */
+.map-layers-color-swatch {
+  appearance: none;
+  -webkit-appearance: none;
+  overflow: hidden;
+  background-color: transparent;
+}
+
+.map-layers-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+  /* Match the <input> border-radius so the painted swatch isn’t more “pill” than the frame */
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.map-layers-color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: inherit;
+}
+
+.map-layers-color-swatch::-moz-color-swatch {
+  border: none;
+  border-radius: inherit;
+}
+
 .map-layers-selected-layer-row {
   position: relative;
   transition:
