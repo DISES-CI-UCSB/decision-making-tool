@@ -544,6 +544,65 @@
                 {{ 'analysis.aoi.typeLabel' | translate }}:
                 {{ 'analysis.aoi.types.' + aoi.type | translate }}
               </p>
+
+              @if (isSirapAoiSelected()) {
+                <section
+                  id="right-sidebar-aoi-sirap-scope-section"
+                  class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-3"
+                >
+                  <div id="right-sidebar-aoi-sirap-scope-header" class="space-y-1">
+                    <p
+                      id="right-sidebar-aoi-sirap-scope-title"
+                      class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600"
+                    >
+                      SIRAP selection scope
+                    </p>
+                    <p
+                      id="right-sidebar-aoi-sirap-scope-description"
+                      class="text-xs text-slate-500"
+                    >
+                      Choose whether AOI selection uses just the clicked polygon or the full SIRAP.
+                    </p>
+                  </div>
+
+                  <div
+                    id="right-sidebar-aoi-sirap-scope-button-row"
+                    class="mt-2 grid grid-cols-2 gap-2"
+                    role="group"
+                    aria-label="SIRAP selection scope"
+                  >
+                    <button
+                      id="right-sidebar-aoi-sirap-scope-part-button"
+                      type="button"
+                      class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition"
+                      [class.border-blue-300]="isSirapScopeSelected('part')"
+                      [class.bg-blue-50]="isSirapScopeSelected('part')"
+                      [class.text-blue-700]="isSirapScopeSelected('part')"
+                      [class.border-slate-300]="!isSirapScopeSelected('part')"
+                      [class.bg-white]="!isSirapScopeSelected('part')"
+                      [class.text-slate-700]="!isSirapScopeSelected('part')"
+                      (click)="setSirapSelectionScope('part')"
+                    >
+                      Clicked polygon
+                    </button>
+
+                    <button
+                      id="right-sidebar-aoi-sirap-scope-whole-button"
+                      type="button"
+                      class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition"
+                      [class.border-blue-300]="isSirapScopeSelected('whole')"
+                      [class.bg-blue-50]="isSirapScopeSelected('whole')"
+                      [class.text-blue-700]="isSirapScopeSelected('whole')"
+                      [class.border-slate-300]="!isSirapScopeSelected('whole')"
+                      [class.bg-white]="!isSirapScopeSelected('whole')"
+                      [class.text-slate-700]="!isSirapScopeSelected('whole')"
+                      (click)="setSirapSelectionScope('whole')"
+                    >
+                      Whole SIRAP
+                    </button>
+                  </div>
+                </section>
+              }
             </section>
 
             @if (activeSolution() && aoiMetrics().length > 0) {

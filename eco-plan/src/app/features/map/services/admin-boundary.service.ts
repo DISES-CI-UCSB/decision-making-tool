@@ -1,7 +1,14 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal } from '@angular/core';
+import Graphic from '@arcgis/core/Graphic';
+import type Geometry from '@arcgis/core/geometry/Geometry';
+import type Multipoint from '@arcgis/core/geometry/Multipoint';
+import Polygon from '@arcgis/core/geometry/Polygon';
 import type Point from '@arcgis/core/geometry/Point';
+import type Polyline from '@arcgis/core/geometry/Polyline';
+import * as geometryEngine from '@arcgis/core/geometry/geometryEngine';
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
+import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import type ArcGISMap from '@arcgis/core/Map';
 import type ArcGISMapView from '@arcgis/core/views/MapView';
 import type { ViewHit } from '@arcgis/core/views/types';
@@ -28,7 +35,10 @@ interface BoundaryConfig {
 interface HitTestCandidate {
   config: BoundaryConfig;
   attributes: Record<string, unknown>;
+  geometry: Geometry | null;
 }
+
+export type SirapSelectionScope = 'part' | 'whole';
 
 const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
@@ -109,7 +119,10 @@ export class AdminBoundaryService {
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private view: InstanceType<typeof ArcGISMapView> | null = null;
   private boundaryLayers: (FeatureLayer | GeoJSONLayer)[] = [];
+  private aoiHighlightLayer: GraphicsLayer | null = null;
   private viewClickHandle: { remove: () => void } | null = null;
+  private lastSelectionCandidate: HitTestCandidate | null = null;
+  private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
     sirap: true,
     department: false,
@@ -117,6 +130,17 @@ export class AdminBoundaryService {
   };
   readonly layerVisibilityByType$ = signal<Record<AoiType, boolean>>(this.defaultVisibilityByType);
   readonly popupEnabled$ = signal(false);
+  readonly sirapSelectionScope$ = signal<SirapSelectionScope>('part');
+
+  constructor() {
+    effect(() => {
+      if (this.appState.selectedAOI$() === null) {
+        this.lastSelectionCandidate = null;
+        this.lastClickPoint = null;
+        this.clearSelectionHighlight();
+      }
+    });
+  }
 
   initialize(map: InstanceType<typeof ArcGISMap>, view: InstanceType<typeof ArcGISMapView>): void {
     if (this.boundaryLayers.length > 0) {
@@ -130,6 +154,12 @@ export class AdminBoundaryService {
     this.view.popupEnabled = false;
     this.boundaryLayers = COLOMBIA_BOUNDARY_CONFIGS.map((config) => this.buildLayer(config));
     map.addMany(this.boundaryLayers);
+    this.aoiHighlightLayer = new GraphicsLayer({
+      id: 'aoi-selection-highlight-layer',
+      title: 'AOI Selection Highlight',
+      listMode: 'hide',
+    });
+    map.add(this.aoiHighlightLayer);
     for (const layer of this.boundaryLayers) {
       void view.whenLayerView(layer).catch((error: unknown) => {
         console.error(`[AdminBoundaryService] failed to create layerview for "${layer.id}"`, error);
@@ -147,10 +177,14 @@ export class AdminBoundaryService {
     if (map && this.boundaryLayers.length > 0) {
       map.removeMany(this.boundaryLayers);
     }
+    if (map && this.aoiHighlightLayer) {
+      map.remove(this.aoiHighlightLayer);
+    }
 
     this.map = null;
     this.view = null;
     this.boundaryLayers = [];
+    this.aoiHighlightLayer = null;
   }
 
   setLayerVisibility(type: AoiType, visible: boolean): void {
@@ -175,6 +209,15 @@ export class AdminBoundaryService {
 
   togglePopupEnabled(): void {
     this.setPopupEnabled(!this.popupEnabled$());
+  }
+
+  setSirapSelectionScope(scope: SirapSelectionScope): void {
+    if (this.sirapSelectionScope$() === scope) {
+      return;
+    }
+
+    this.sirapSelectionScope$.set(scope);
+    this.refreshSelectionForScope();
   }
 
   private buildLayer(config: BoundaryConfig): FeatureLayer | GeoJSONLayer {
@@ -214,16 +257,19 @@ export class AdminBoundaryService {
   ): Promise<void> {
     const interactiveLayers = this.boundaryLayers.filter((layer) => layer.visible);
     if (interactiveLayers.length === 0) {
+      this.clearSelectionState();
       return;
     }
 
     const hit = await view.hitTest({ x: screenX, y: screenY }, { include: interactiveLayers });
     if (!hit.results.length) {
+      this.clearSelectionState();
       return;
     }
 
     const candidate = this.resolveCandidate(hit.results);
     if (!candidate) {
+      this.clearSelectionState();
       return;
     }
 
@@ -247,6 +293,16 @@ export class AdminBoundaryService {
       return;
     }
 
+    this.lastSelectionCandidate = candidate;
+    this.lastClickPoint = mapPoint;
+    const selectionGeometry = this.resolveSelectionGeometry(
+      candidate.geometry,
+      mapPoint,
+      candidate.config.type,
+    );
+
+    this.setSelectionHighlight(selectionGeometry);
+    await this.zoomToSelection(view, selectionGeometry);
     this.appState.selectAOI({
       id: `${candidate.config.type}:${rawId}`,
       name: aoiName,
@@ -257,13 +313,16 @@ export class AdminBoundaryService {
   }
 
   private resolveCandidate(results: ViewHit[]): HitTestCandidate | null {
+    let bestCandidate: HitTestCandidate | null = null;
+    let bestLayerIndex = -1;
+
     for (const result of results) {
       if (result.type !== 'graphic') {
         continue;
       }
 
       const layerId = result.graphic.layer?.id;
-      if (!layerId) {
+      if (typeof layerId !== 'string') {
         continue;
       }
 
@@ -273,10 +332,14 @@ export class AdminBoundaryService {
       }
 
       const attributes = (result.graphic.attributes ?? {}) as Record<string, unknown>;
-      return { config, attributes };
+      const layerIndex = this.getLayerIndex(layerId);
+      if (layerIndex >= bestLayerIndex) {
+        bestLayerIndex = layerIndex;
+        bestCandidate = { config, attributes, geometry: result.graphic.geometry ?? null };
+      }
     }
 
-    return null;
+    return bestCandidate;
   }
 
   private readFirstText(
@@ -385,5 +448,165 @@ export class AdminBoundaryService {
     }
 
     return null;
+  }
+
+  private setSelectionHighlight(selectionGeometry: Geometry | null): void {
+    if (!this.aoiHighlightLayer || !selectionGeometry) {
+      return;
+    }
+
+    // Keep the selection highlight on top of all map layers so it remains visible
+    // even when AOI base layers use strong outlines.
+    if (this.map) {
+      this.map.reorder(this.aoiHighlightLayer, this.map.layers.length - 1);
+    }
+
+    this.aoiHighlightLayer.removeAll();
+    this.aoiHighlightLayer.add(
+      new Graphic({
+        geometry: selectionGeometry,
+        symbol: this.getHighlightSymbol(selectionGeometry) as never,
+      }),
+    );
+  }
+
+  private clearSelectionHighlight(): void {
+    this.aoiHighlightLayer?.removeAll();
+  }
+
+  private clearSelectionState(): void {
+    this.clearSelectionHighlight();
+    this.appState.clearAOI();
+    this.appState.setRightSidebarMode(this.appState.hasActiveSolution() ? 'overview' : 'welcome');
+  }
+
+  private getLayerIndex(layerId: string): number {
+    return this.map?.layers.findIndex((layer) => layer.id === layerId) ?? -1;
+  }
+
+  private getHighlightSymbol(geometry: Geometry): Record<string, unknown> {
+    if (geometry.type === 'polyline') {
+      return {
+        type: 'simple-line',
+        color: [37, 99, 235, 255],
+        width: 3,
+        style: 'solid',
+      };
+    }
+
+    if (geometry.type === 'point' || geometry.type === 'multipoint') {
+      return {
+        type: 'simple-marker',
+        color: [37, 99, 235, 255],
+        size: 12,
+        outline: {
+          color: [255, 255, 255, 255],
+          width: 1.5,
+        },
+      };
+    }
+
+    return {
+      type: 'simple-fill',
+      color: [59, 130, 246, 0],
+      outline: {
+        color: [37, 99, 235, 255],
+        width: 2,
+        style: 'solid',
+      },
+    };
+  }
+
+  private resolveSelectionGeometry(
+    geometry: Geometry | null,
+    clickedPoint: InstanceType<typeof Point>,
+    aoiType: AoiType,
+  ): Geometry | null {
+    if (!geometry) {
+      return null;
+    }
+
+    const isWholeSirapSelection = aoiType === 'sirap' && this.sirapSelectionScope$() === 'whole';
+    if (geometry.type !== 'polygon' || isWholeSirapSelection) {
+      return geometry;
+    }
+
+    const polygon = geometry as Polygon;
+    if (polygon.rings.length <= 1) {
+      return geometry;
+    }
+
+    for (const ring of polygon.rings) {
+      const ringPolygon = new Polygon({
+        rings: [ring],
+        spatialReference: polygon.spatialReference,
+        hasM: polygon.hasM,
+        hasZ: polygon.hasZ,
+      });
+
+      if (geometryEngine.contains(ringPolygon, clickedPoint)) {
+        return ringPolygon;
+      }
+    }
+
+    return geometry;
+  }
+
+  private async zoomToSelection(
+    view: InstanceType<typeof ArcGISMapView>,
+    selectionGeometry: Geometry | null,
+  ): Promise<void> {
+    if (!selectionGeometry) {
+      return;
+    }
+
+    const target =
+      selectionGeometry.extent?.clone().expand(1.25) ?? this.toGoToGeometry(selectionGeometry);
+    if (!target) {
+      return;
+    }
+
+    try {
+      await view.goTo(target, {
+        animate: true,
+        duration: 450,
+        easing: 'ease-in-out',
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      console.error('[AdminBoundaryService] zoomToSelection failed:', error);
+    }
+  }
+
+  private toGoToGeometry(geometry: Geometry): Point | Polygon | Polyline | Multipoint | null {
+    if (
+      geometry.type === 'point' ||
+      geometry.type === 'polygon' ||
+      geometry.type === 'polyline' ||
+      geometry.type === 'multipoint'
+    ) {
+      return geometry as Point | Polygon | Polyline | Multipoint;
+    }
+
+    return null;
+  }
+
+  private refreshSelectionForScope(): void {
+    const candidate = this.lastSelectionCandidate;
+    const clickedPoint = this.lastClickPoint;
+    const view = this.view;
+    if (!candidate || !candidate.geometry || !clickedPoint || !view) {
+      return;
+    }
+
+    const selectionGeometry = this.resolveSelectionGeometry(
+      candidate.geometry,
+      clickedPoint,
+      candidate.config.type,
+    );
+    this.setSelectionHighlight(selectionGeometry);
+    void this.zoomToSelection(view, selectionGeometry);
   }
 }
