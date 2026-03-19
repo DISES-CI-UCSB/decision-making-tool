@@ -44,11 +44,18 @@ interface SpeciesSample {
   latin: string;
 }
 
+interface SpeciesRow extends LayerControlRow {
+  common: string;
+  latin: string;
+  taxonId: string;
+  slug: string;
+}
+
 interface TaxonRow extends LayerControlRow {
   speciesCount: number;
   searchQuery: string;
   showAll: boolean;
-  species: SpeciesSample[];
+  species: SpeciesRow[];
 }
 
 interface LayerGroup {
@@ -70,6 +77,7 @@ interface SelectedLayerRow {
 }
 
 const SPECIES_VISIBLE_LIMIT = 6;
+type SelectedLayerDropPosition = 'before' | 'after';
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -95,13 +103,18 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
   protected readonly selectedLayerOrder = signal<string[]>([]);
+  protected readonly selectedLayerDragId = signal<string | null>(null);
+  protected readonly selectedLayerDropTargetId = signal<string | null>(null);
+  protected readonly selectedLayerDropPosition = signal<SelectedLayerDropPosition>('before');
   protected readonly selectedLayers = computed<SelectedLayerRow[]>(() =>
     this.buildSelectedLayers(),
   );
 
   constructor() {
     this.onAdminBoundaryChange('national');
-    this.selectedLayerOrder.set(this.computeSelectedLayerOrder(this.overlays(), this.groups()));
+    this.selectedLayerOrder.set(
+      this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+    );
 
     effect(() => {
       const solution = this.appState.activeSolution$();
@@ -317,7 +330,69 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
   }
 
-  protected filteredSpecies(taxon: TaxonRow): SpeciesSample[] {
+  protected toggleSpeciesVisibility(taxonId: string, speciesId: string): void {
+    let nextVisible = false;
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => {
+        if (taxon.id !== taxonId) {
+          return taxon;
+        }
+        return {
+          ...taxon,
+          species: taxon.species.map((species) =>
+            species.id === speciesId
+              ? (() => {
+                  nextVisible = !species.visible;
+                  return { ...species, visible: nextVisible };
+                })()
+              : species,
+          ),
+        };
+      }),
+    );
+    this.updateSelectedLayerOrder(speciesId, nextVisible);
+    this.syncSpeciesById(taxonId, speciesId);
+  }
+
+  protected toggleSpeciesSelected(taxonId: string, speciesId: string): void {
+    this.toggleSpeciesVisibility(taxonId, speciesId);
+  }
+
+  protected toggleSpeciesExpanded(taxonId: string, speciesId: string): void {
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => {
+        if (taxon.id !== taxonId) {
+          return taxon;
+        }
+        return {
+          ...taxon,
+          species: taxon.species.map((species) =>
+            species.id === speciesId ? { ...species, expanded: !species.expanded } : species,
+          ),
+        };
+      }),
+    );
+  }
+
+  protected updateSpeciesOpacity(taxonId: string, speciesId: string, opacityText: string): void {
+    const opacity = this.parsePercent(opacityText);
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => {
+        if (taxon.id !== taxonId) {
+          return taxon;
+        }
+        return {
+          ...taxon,
+          species: taxon.species.map((species) =>
+            species.id === speciesId ? { ...species, opacity } : species,
+          ),
+        };
+      }),
+    );
+    this.scheduleOpacitySync(`${taxonId}:${speciesId}`);
+  }
+
+  protected filteredSpecies(taxon: TaxonRow): SpeciesRow[] {
     const query = taxon.searchQuery.trim().toLowerCase();
     const candidates = taxon.species.filter((species) => {
       const fullName = `${species.common} ${species.latin}`.toLowerCase();
@@ -345,7 +420,9 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
-    this.selectedLayerOrder.set(this.computeSelectedLayerOrder(this.overlays(), this.groups()));
+    this.selectedLayerOrder.set(
+      this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+    );
     this.adminBoundaryService.setLayerVisibility('sirap', false);
     this.adminBoundaryService.setLayerVisibility('department', false);
     this.adminBoundaryService.setLayerVisibility('municipality', false);
@@ -356,6 +433,55 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.selectedLayerOrder.update((order) => this.reorderRowsById(order, rowId, direction));
   }
 
+  protected onSelectedLayerDragStart(event: DragEvent, rowId: string): void {
+    event.stopPropagation();
+    const transfer = event.dataTransfer;
+    if (!transfer) {
+      return;
+    }
+    transfer.effectAllowed = 'move';
+    transfer.setData('text/plain', rowId);
+    this.selectedLayerDragId.set(rowId);
+    this.selectedLayerDropTargetId.set(null);
+    this.selectedLayerDropPosition.set('before');
+  }
+
+  protected onSelectedLayerDragOver(event: DragEvent, targetRowId: string): void {
+    event.preventDefault();
+    if (!this.selectedLayerDragId() || this.selectedLayerDragId() === targetRowId) {
+      this.selectedLayerDropTargetId.set(null);
+      return;
+    }
+
+    const target = event.currentTarget;
+    if (target instanceof HTMLElement) {
+      const rect = target.getBoundingClientRect();
+      const offsetY = event.clientY - rect.top;
+      this.selectedLayerDropPosition.set(offsetY > rect.height / 2 ? 'after' : 'before');
+    }
+
+    this.selectedLayerDropTargetId.set(targetRowId);
+  }
+
+  protected onSelectedLayerDrop(event: DragEvent, targetRowId: string): void {
+    event.preventDefault();
+    const draggedRowId = this.selectedLayerDragId() ?? event.dataTransfer?.getData('text/plain');
+    if (!draggedRowId || draggedRowId === targetRowId) {
+      this.clearSelectedLayerDragState();
+      return;
+    }
+
+    const dropPosition = this.selectedLayerDropPosition();
+    this.selectedLayerOrder.update((order) =>
+      this.reorderRowsByDropTarget(order, draggedRowId, targetRowId, dropPosition),
+    );
+    this.clearSelectedLayerDragState();
+  }
+
+  protected onSelectedLayerDragEnd(): void {
+    this.clearSelectedLayerDragState();
+  }
+
   protected removeSelectedLayer(rowId: string): void {
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlaySelected(rowId);
@@ -363,11 +489,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const groupId = this.findGroupIdByRowId(rowId);
-    if (!groupId) {
+    if (groupId) {
+      this.toggleLayerSelected(groupId, rowId);
       return;
     }
 
-    this.toggleLayerSelected(groupId, rowId);
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.toggleSpeciesSelected(speciesMatch.taxonId, rowId);
+    }
   }
 
   protected isSelectedLayerVisible(rowId: string): boolean {
@@ -377,10 +507,16 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
-    if (!groupRowMatch) {
-      return false;
+    if (groupRowMatch) {
+      return groupRowMatch.row.visible;
     }
-    return groupRowMatch.row.visible;
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      return speciesMatch.species.visible;
+    }
+
+    return false;
   }
 
   protected isSelectedLayerExpanded(rowId: string): boolean {
@@ -390,10 +526,16 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
-    if (!groupRowMatch) {
-      return false;
+    if (groupRowMatch) {
+      return groupRowMatch.row.expanded;
     }
-    return groupRowMatch.row.expanded;
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      return speciesMatch.species.expanded;
+    }
+
+    return false;
   }
 
   protected toggleSelectedLayerVisibility(rowId: string): void {
@@ -403,10 +545,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const groupId = this.findGroupIdByRowId(rowId);
-    if (!groupId) {
+    if (groupId) {
+      this.toggleLayerVisibility(groupId, rowId);
       return;
     }
-    this.toggleLayerVisibility(groupId, rowId);
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.toggleSpeciesVisibility(speciesMatch.taxonId, rowId);
+    }
   }
 
   protected toggleSelectedLayerExpanded(rowId: string): void {
@@ -416,10 +563,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const groupId = this.findGroupIdByRowId(rowId);
-    if (!groupId) {
+    if (groupId) {
+      this.toggleLayerExpanded(groupId, rowId);
       return;
     }
-    this.toggleLayerExpanded(groupId, rowId);
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.toggleSpeciesExpanded(speciesMatch.taxonId, rowId);
+    }
   }
 
   protected selectedLayerOpacity(rowId: string): number {
@@ -429,10 +581,16 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
-    if (!groupRowMatch) {
-      return 0;
+    if (groupRowMatch) {
+      return groupRowMatch.row.opacity;
     }
-    return groupRowMatch.row.opacity;
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      return speciesMatch.species.opacity;
+    }
+
+    return 0;
   }
 
   protected updateSelectedLayerOpacity(rowId: string, opacityText: string): void {
@@ -442,10 +600,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const groupId = this.findGroupIdByRowId(rowId);
-    if (!groupId) {
+    if (groupId) {
+      this.updateLayerOpacity(groupId, rowId, opacityText);
       return;
     }
-    this.updateLayerOpacity(groupId, rowId, opacityText);
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.updateSpeciesOpacity(speciesMatch.taxonId, rowId, opacityText);
+    }
   }
 
   private syncAllRowsToMap(): void {
@@ -455,6 +618,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     for (const group of this.groups()) {
       for (const row of group.rows) {
         this.syncRowToMap(row);
+      }
+    }
+    for (const taxon of this.taxa()) {
+      for (const species of taxon.species) {
+        this.syncRowToMap(species);
       }
     }
   }
@@ -474,6 +642,14 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
   }
 
+  private syncSpeciesById(taxonId: string, speciesId: string): void {
+    const taxon = this.taxa().find((item) => item.id === taxonId);
+    const species = taxon?.species.find((item) => item.id === speciesId);
+    if (species) {
+      this.syncRowToMap(species);
+    }
+  }
+
   private scheduleOpacitySync(rowKey: string): void {
     const previousTimer = this.opacitySyncTimers.get(rowKey);
     if (previousTimer) {
@@ -482,8 +658,12 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     const timer = setTimeout(() => {
       if (rowKey.includes(':')) {
-        const [groupId, rowId] = rowKey.split(':');
-        this.syncGroupRowById(groupId, rowId);
+        const [scopeId, rowId] = rowKey.split(':');
+        if (scopeId.startsWith('taxon-')) {
+          this.syncSpeciesById(scopeId, rowId);
+        } else {
+          this.syncGroupRowById(scopeId, rowId);
+        }
       } else {
         this.syncOverlayById(rowKey);
       }
@@ -563,6 +743,35 @@ export class MapLayersPanelComponent implements OnDestroy {
     return nextRows;
   }
 
+  private reorderRowsByDropTarget(
+    rows: string[],
+    draggedRowId: string,
+    targetRowId: string,
+    dropPosition: SelectedLayerDropPosition,
+  ): string[] {
+    const fromIndex = rows.findIndex((id) => id === draggedRowId);
+    const targetIndex = rows.findIndex((id) => id === targetRowId);
+    if (fromIndex < 0 || targetIndex < 0 || fromIndex === targetIndex) {
+      return rows;
+    }
+
+    const nextRows = [...rows];
+    const [movedRowId] = nextRows.splice(fromIndex, 1);
+    const nextTargetIndex = nextRows.findIndex((id) => id === targetRowId);
+    if (nextTargetIndex < 0) {
+      return rows;
+    }
+    const insertionIndex = dropPosition === 'before' ? nextTargetIndex : nextTargetIndex + 1;
+    nextRows.splice(insertionIndex, 0, movedRowId);
+    return nextRows;
+  }
+
+  private clearSelectedLayerDragState(): void {
+    this.selectedLayerDragId.set(null);
+    this.selectedLayerDropTargetId.set(null);
+    this.selectedLayerDropPosition.set('before');
+  }
+
   private parsePercent(rawValue: string): number {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed)) {
@@ -594,18 +803,27 @@ export class MapLayersPanelComponent implements OnDestroy {
     });
   }
 
-  private computeSelectedLayerOrder(overlays: LayerControlRow[], groups: LayerGroup[]): string[] {
+  private computeSelectedLayerOrder(
+    overlays: LayerControlRow[],
+    groups: LayerGroup[],
+    taxa: TaxonRow[],
+  ): string[] {
     const selectedOverlayIds = overlays.filter((row) => row.visible).map((row) => row.id);
     const selectedGroupRowIds = groups
       .flatMap((group) => group.rows)
       .filter((row) => row.visible)
       .map((row) => row.id);
-    return [...selectedOverlayIds, ...selectedGroupRowIds];
+    const selectedSpeciesIds = taxa
+      .flatMap((taxon) => taxon.species)
+      .filter((species) => species.visible)
+      .map((species) => species.id);
+    return [...selectedOverlayIds, ...selectedGroupRowIds, ...selectedSpeciesIds];
   }
 
   private buildSelectedLayers(): SelectedLayerRow[] {
     const overlays = this.overlays();
     const groups = this.groups();
+    const taxa = this.taxa();
     const order = this.selectedLayerOrder();
     const rowLookup = new Map<string, SelectedLayerRow>();
 
@@ -631,6 +849,20 @@ export class MapLayersPanelComponent implements OnDestroy {
           id: row.id,
           name: row.name,
           sourceLabel: group.title,
+          sourceType: 'group',
+        });
+      }
+    }
+
+    for (const taxon of taxa) {
+      for (const species of taxon.species) {
+        if (!species.visible) {
+          continue;
+        }
+        rowLookup.set(species.id, {
+          id: species.id,
+          name: species.common,
+          sourceLabel: `Species & Biodiversity: ${taxon.name}`,
           sourceType: 'group',
         });
       }
@@ -663,6 +895,18 @@ export class MapLayersPanelComponent implements OnDestroy {
       const row = group.rows.find((candidate) => candidate.id === rowId);
       if (row) {
         return { groupId: group.id, row };
+      }
+    }
+    return undefined;
+  }
+
+  private findSpeciesById(
+    speciesId: string,
+  ): { taxonId: string; taxonName: string; species: SpeciesRow } | undefined {
+    for (const taxon of this.taxa()) {
+      const species = taxon.species.find((candidate) => candidate.id === speciesId);
+      if (species) {
+        return { taxonId: taxon.id, taxonName: taxon.name, species };
       }
     }
     return undefined;
@@ -723,7 +967,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         hasColorControl: false,
         searchQuery: '',
         showAll: false,
-        species: [
+        species: this.createSpeciesRows('taxon-mammals', [
           { common: 'Jaguar', latin: 'Panthera onca' },
           { common: 'Spectacled Bear', latin: 'Tremarctos ornatus' },
           { common: 'Mountain Tapir', latin: 'Tapirus pinchaque' },
@@ -731,7 +975,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           { common: 'Puma', latin: 'Puma concolor' },
           { common: 'Giant Otter', latin: 'Pteronura brasiliensis' },
           { common: 'Woolly Monkey', latin: 'Lagothrix lagothricha' },
-        ],
+        ]),
       },
       {
         id: 'taxon-birds',
@@ -747,7 +991,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         hasColorControl: false,
         searchQuery: '',
         showAll: false,
-        species: [
+        species: this.createSpeciesRows('taxon-birds', [
           { common: 'Andean Condor', latin: 'Vultur gryphus' },
           { common: 'Yellow-eared Parrot', latin: 'Ognorhynchus icterotis' },
           { common: 'Blue-billed Curassow', latin: 'Crax alberti' },
@@ -755,7 +999,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           { common: 'Turquoise Dacnis', latin: 'Dacnis hartlaubi' },
           { common: 'Rusty-faced Parrot', latin: 'Hapalopsittaca amazonina' },
           { common: 'Tolima Dove', latin: 'Leptotila conoveri' },
-        ],
+        ]),
       },
       {
         id: 'taxon-amphibians',
@@ -771,7 +1015,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         hasColorControl: false,
         searchQuery: '',
         showAll: false,
-        species: [
+        species: this.createSpeciesRows('taxon-amphibians', [
           { common: 'Golden Poison Frog', latin: 'Phyllobates terribilis' },
           { common: 'Harlequin Poison Frog', latin: 'Oophaga histrionica' },
           { common: "Lehmann's Poison Frog", latin: 'Oophaga lehmanni' },
@@ -779,7 +1023,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           { common: "Buckley's Glass Frog", latin: 'Centrolene buckleyi' },
           { common: 'Cauca Poison Frog', latin: 'Andinobates bombetes' },
           { common: "Lynch's Robber Frog", latin: 'Pristimantis lynchi' },
-        ],
+        ]),
       },
       {
         id: 'taxon-reptiles',
@@ -795,14 +1039,14 @@ export class MapLayersPanelComponent implements OnDestroy {
         hasColorControl: false,
         searchQuery: '',
         showAll: false,
-        species: [
+        species: this.createSpeciesRows('taxon-reptiles', [
           { common: 'Orinoco Crocodile', latin: 'Crocodylus intermedius' },
           { common: 'Hawksbill Sea Turtle', latin: 'Eretmochelys imbricata' },
           { common: 'Green Iguana', latin: 'Iguana iguana' },
           { common: 'Bushmaster', latin: 'Lachesis muta' },
           { common: 'Leatherback Sea Turtle', latin: 'Dermochelys coriacea' },
           { common: 'Spectacled Caiman', latin: 'Caiman crocodilus' },
-        ],
+        ]),
       },
       {
         id: 'taxon-plants',
@@ -818,7 +1062,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         hasColorControl: false,
         searchQuery: '',
         showAll: false,
-        species: [
+        species: this.createSpeciesRows('taxon-plants', [
           { common: 'Quindio Wax Palm', latin: 'Ceroxylon quindiuense' },
           { common: 'Frailejon', latin: 'Espeletia grandiflora' },
           { common: 'May Flower Orchid', latin: 'Cattleya trianae' },
@@ -826,7 +1070,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           { common: 'Abarco', latin: 'Cariniana pyriformis' },
           { common: 'Heaven Lotus', latin: 'Gustavia superba' },
           { common: 'Lobster Claw', latin: 'Heliconia rostrata' },
-        ],
+        ]),
       },
     ];
   }
@@ -915,5 +1159,36 @@ export class MapLayersPanelComponent implements OnDestroy {
       hasStyleControls: true,
       hasColorControl: true,
     };
+  }
+
+  private createSpeciesRows(taxonId: string, species: SpeciesSample[]): SpeciesRow[] {
+    return species.map((sample) => this.speciesRow(taxonId, sample.common, sample.latin));
+  }
+
+  private speciesRow(taxonId: string, common: string, latin: string): SpeciesRow {
+    const slug = this.toSlug(common);
+    return {
+      id: `species-${taxonId}-${slug}`,
+      name: common,
+      common,
+      latin,
+      taxonId,
+      slug,
+      visible: false,
+      expanded: false,
+      opacity: 65,
+      color: '#475569',
+      canReorder: true,
+      hasStyleControls: true,
+      hasColorControl: false,
+    };
+  }
+
+  private toSlug(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 }

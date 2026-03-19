@@ -130,21 +130,40 @@
             @for (selected of selectedLayers(); track selected.id; let isLast = $last) {
               <article
                 [id]="'map-layers-selected-layer-row-' + selected.id"
-                class="bg-white"
+                class="map-layers-selected-layer-row bg-white"
                 [class.border-b]="!isLast"
                 [class.border-slate-100]="!isLast"
+                [class.bg-slate-50]="selectedLayerDropTargetId() === selected.id"
+                [class.map-layers-selected-layer-row-dragging]="
+                  selectedLayerDragId() === selected.id
+                "
+                [class.map-layers-selected-layer-row-drop-before]="
+                  selectedLayerDropTargetId() === selected.id &&
+                  selectedLayerDropPosition() === 'before'
+                "
+                [class.map-layers-selected-layer-row-drop-after]="
+                  selectedLayerDropTargetId() === selected.id &&
+                  selectedLayerDropPosition() === 'after'
+                "
+                (dragover)="onSelectedLayerDragOver($event, selected.id)"
+                (drop)="onSelectedLayerDrop($event, selected.id)"
               >
                 <div
                   [id]="'map-layers-selected-layer-row-header-' + selected.id"
                   class="flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 py-2.5"
                 >
-                  <span
+                  <button
                     [id]="'map-layers-selected-layer-row-drag-handle-' + selected.id"
+                    type="button"
+                    draggable="true"
+                    data-selected-layer-drag-handle="true"
                     class="w-3 shrink-0 cursor-grab text-center text-[13px] font-extrabold leading-none text-slate-500"
-                    aria-hidden="true"
+                    [attr.aria-label]="'Drag to reorder ' + selected.name"
+                    (dragstart)="onSelectedLayerDragStart($event, selected.id)"
+                    (dragend)="onSelectedLayerDragEnd()"
                   >
                     ⋮⋮
-                  </span>
+                  </button>
                   <div
                     [id]="'map-layers-selected-layer-row-title-wrap-' + selected.id"
                     class="min-w-0 flex-1"
@@ -229,18 +248,18 @@
                   <button
                     [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
                     type="button"
-                    class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                    class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
                     [class.rotate-180]="!isSelectedLayerExpanded(selected.id)"
                     [attr.aria-label]="'Toggle controls for ' + selected.name"
                     [attr.aria-expanded]="isSelectedLayerExpanded(selected.id)"
                     (click)="toggleSelectedLayerExpanded(selected.id)"
                   >
                     <svg
-                      class="h-3 w-3"
+                      class="map-layers-chevron-icon h-3 w-3"
                       viewBox="0 0 12 12"
                       fill="none"
                       stroke="currentColor"
-                      stroke-width="2"
+                      stroke-width="1.5"
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       aria-hidden="true"
@@ -271,7 +290,10 @@
                         type="range"
                         min="0"
                         max="100"
-                        class="w-full accent-slate-400"
+                        class="map-layers-opacity-slider w-full"
+                        [style.--map-layers-slider-progress]="
+                          selectedLayerOpacity(selected.id) + '%'
+                        "
                         [value]="selectedLayerOpacity(selected.id)"
                         (input)="updateSelectedLayerOpacity(selected.id, $any($event.target).value)"
                       />
@@ -332,16 +354,16 @@
           >
             <span
               id="map-layers-overlays-category-chevron"
-              class="inline-flex w-3 shrink-0 items-center justify-center text-slate-400"
+              class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
               [class.rotate-180]="overlaysCollapsed()"
               aria-hidden="true"
             >
               <svg
-                class="h-3 w-3"
+                class="map-layers-chevron-icon h-3 w-3"
                 viewBox="0 0 12 12"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="1.5"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
@@ -448,18 +470,18 @@
                     <button
                       [id]="'map-layers-overlay-expand-button-' + overlay.id"
                       type="button"
-                      class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                      class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
                       [class.rotate-180]="!overlay.expanded"
                       [attr.aria-label]="'Toggle controls for ' + overlay.name"
                       [attr.aria-expanded]="overlay.expanded"
                       (click)="toggleOverlayExpanded(overlay.id)"
                     >
                       <svg
-                        class="h-3 w-3"
+                        class="map-layers-chevron-icon h-3 w-3"
                         viewBox="0 0 12 12"
                         fill="none"
                         stroke="currentColor"
-                        stroke-width="2"
+                        stroke-width="1.5"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         aria-hidden="true"
@@ -490,7 +512,8 @@
                           type="range"
                           min="0"
                           max="100"
-                          class="w-full accent-slate-400"
+                          class="map-layers-opacity-slider w-full"
+                          [style.--map-layers-slider-progress]="overlay.opacity + '%'"
                           [value]="overlay.opacity"
                           (input)="updateOverlayOpacity(overlay.id, $any($event.target).value)"
                         />
@@ -546,16 +569,16 @@
             >
               <span
                 [id]="'map-layers-group-chevron-' + group.id"
-                class="inline-flex w-3 shrink-0 items-center justify-center text-slate-400"
+                class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
                 [class.rotate-180]="group.collapsed"
                 aria-hidden="true"
               >
                 <svg
-                  class="h-3 w-3"
+                  class="map-layers-chevron-icon h-3 w-3"
                   viewBox="0 0 12 12"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.5"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -686,18 +709,18 @@
                         <button
                           [id]="'map-layers-taxon-expand-button-' + taxon.id"
                           type="button"
-                          class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                          class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
                           [class.rotate-180]="!taxon.expanded"
                           [attr.aria-label]="'Toggle species list for ' + taxon.name"
                           [attr.aria-expanded]="taxon.expanded"
                           (click)="toggleTaxonExpanded(taxon.id)"
                         >
                           <svg
-                            class="h-3 w-3"
+                            class="map-layers-chevron-icon h-3 w-3"
                             viewBox="0 0 12 12"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="2"
+                            stroke-width="1.5"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             aria-hidden="true"
@@ -736,40 +759,168 @@
                           <div [id]="'map-layers-taxon-species-list-' + taxon.id">
                             @for (
                               species of filteredSpecies(taxon);
-                              track species.common + species.latin
+                              track species.id;
+                              let isLastSpecies = $last
                             ) {
-                              <div
-                                [id]="
-                                  'map-layers-species-row-' +
-                                  taxon.id +
-                                  '-' +
-                                  species.common.replaceAll(' ', '-')
-                                "
-                                class="flex min-w-0 items-center gap-2 border-b border-slate-100 px-3 py-1.5 pl-7 text-xs last:border-b-0"
+                              <article
+                                [id]="'map-layers-species-row-' + species.id"
+                                class="bg-white"
+                                [class.border-b]="!isLastSpecies"
+                                [class.border-slate-100]="!isLastSpecies"
                               >
-                                <span
-                                  [id]="
-                                    'map-layers-species-common-' +
-                                    taxon.id +
-                                    '-' +
-                                    species.common.replaceAll(' ', '-')
-                                  "
-                                  class="min-w-0 truncate font-medium text-slate-700"
+                                <div
+                                  [id]="'map-layers-species-row-header-' + species.id"
+                                  class="flex min-w-0 items-center gap-1.5 px-3 py-2 pl-7"
                                 >
-                                  {{ species.common }}
-                                </span>
-                                <span
-                                  [id]="
-                                    'map-layers-species-latin-' +
-                                    taxon.id +
-                                    '-' +
-                                    species.common.replaceAll(' ', '-')
-                                  "
-                                  class="shrink-0 italic text-slate-400"
-                                >
-                                  {{ species.latin }}
-                                </span>
-                              </div>
+                                  <button
+                                    [id]="'map-layers-species-name-button-' + species.id"
+                                    type="button"
+                                    class="min-w-0 flex-1 text-left"
+                                    [title]="species.common + ' (' + species.latin + ')'"
+                                    (click)="toggleSpeciesExpanded(taxon.id, species.id)"
+                                  >
+                                    <p
+                                      [id]="'map-layers-species-common-' + species.id"
+                                      class="truncate text-[12px] font-semibold text-slate-800"
+                                    >
+                                      {{ species.common }}
+                                    </p>
+                                    <p
+                                      [id]="'map-layers-species-latin-' + species.id"
+                                      class="truncate text-[10px] italic text-slate-400"
+                                    >
+                                      {{ species.latin }}
+                                    </p>
+                                  </button>
+                                  <button
+                                    [id]="'map-layers-species-selected-button-' + species.id"
+                                    type="button"
+                                    class="inline-flex h-7 shrink-0 items-center rounded-md border px-2 text-[10px] font-semibold transition"
+                                    [class.border-blue-200]="species.visible"
+                                    [class.bg-blue-50]="species.visible"
+                                    [class.text-blue-700]="species.visible"
+                                    [class.border-slate-200]="!species.visible"
+                                    [class.bg-white]="!species.visible"
+                                    [class.text-slate-600]="!species.visible"
+                                    [attr.aria-pressed]="species.visible"
+                                    (click)="toggleSpeciesSelected(taxon.id, species.id)"
+                                  >
+                                    {{ species.visible ? 'Added' : 'Add' }}
+                                  </button>
+                                  <button
+                                    [id]="'map-layers-species-visibility-button-' + species.id"
+                                    type="button"
+                                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
+                                    [attr.aria-label]="'Toggle visibility for ' + species.common"
+                                    [attr.aria-pressed]="species.visible"
+                                    (click)="toggleSpeciesVisibility(taxon.id, species.id)"
+                                  >
+                                    @if (species.visible) {
+                                      <svg
+                                        [id]="'map-layers-species-eye-open-icon-' + species.id"
+                                        class="h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.8"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"
+                                        ></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                      </svg>
+                                    } @else {
+                                      <svg
+                                        [id]="'map-layers-species-eye-closed-icon-' + species.id"
+                                        class="h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.8"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        aria-hidden="true"
+                                      >
+                                        <path d="M3 3l18 18"></path>
+                                        <path
+                                          d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
+                                        ></path>
+                                        <path
+                                          d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
+                                        ></path>
+                                        <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
+                                      </svg>
+                                    }
+                                  </button>
+                                  <button
+                                    [id]="'map-layers-species-expand-button-' + species.id"
+                                    type="button"
+                                    class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
+                                    [class.rotate-180]="!species.expanded"
+                                    [attr.aria-label]="'Toggle controls for ' + species.common"
+                                    [attr.aria-expanded]="species.expanded"
+                                    (click)="toggleSpeciesExpanded(taxon.id, species.id)"
+                                  >
+                                    <svg
+                                      class="map-layers-chevron-icon h-3 w-3"
+                                      viewBox="0 0 12 12"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      stroke-width="1.5"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      aria-hidden="true"
+                                    >
+                                      <path d="M3 4.5L6 7.5L9 4.5" />
+                                    </svg>
+                                  </button>
+                                </div>
+
+                                @if (species.expanded) {
+                                  <div
+                                    [id]="'map-layers-species-controls-' + species.id"
+                                    class="flex items-center gap-2 px-3 pb-2.5 pl-7"
+                                  >
+                                    <div
+                                      [id]="'map-layers-species-opacity-group-' + species.id"
+                                      class="flex min-w-0 flex-1 items-center gap-1.5"
+                                    >
+                                      <label
+                                        [id]="'map-layers-species-opacity-label-' + species.id"
+                                        [for]="'map-layers-species-opacity-slider-' + species.id"
+                                        class="shrink-0 text-[10px] text-slate-400"
+                                      >
+                                        Opacity
+                                      </label>
+                                      <input
+                                        [id]="'map-layers-species-opacity-slider-' + species.id"
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        class="map-layers-opacity-slider w-full"
+                                        [style.--map-layers-slider-progress]="species.opacity + '%'"
+                                        [value]="species.opacity"
+                                        (input)="
+                                          updateSpeciesOpacity(
+                                            taxon.id,
+                                            species.id,
+                                            $any($event.target).value
+                                          )
+                                        "
+                                      />
+                                      <span
+                                        [id]="'map-layers-species-opacity-value-' + species.id"
+                                        class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-500"
+                                      >
+                                        {{ species.opacity }}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                }
+                              </article>
                             }
                           </div>
 
@@ -875,18 +1026,18 @@
                         <button
                           [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
                           type="button"
-                          class="inline-flex h-7 w-5 shrink-0 items-center justify-center text-slate-400 transition hover:text-slate-600"
+                          class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
                           [class.rotate-180]="!row.expanded"
                           [attr.aria-label]="'Toggle controls for ' + row.name"
                           [attr.aria-expanded]="row.expanded"
                           (click)="toggleLayerExpanded(group.id, row.id)"
                         >
                           <svg
-                            class="h-3 w-3"
+                            class="map-layers-chevron-icon h-3 w-3"
                             viewBox="0 0 12 12"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="2"
+                            stroke-width="1.5"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             aria-hidden="true"
@@ -921,7 +1072,8 @@
                               type="range"
                               min="0"
                               max="100"
-                              class="w-full accent-slate-400"
+                              class="map-layers-opacity-slider w-full"
+                              [style.--map-layers-slider-progress]="row.opacity + '%'"
                               [value]="row.opacity"
                               (input)="
                                 updateLayerOpacity(group.id, row.id, $any($event.target).value)
