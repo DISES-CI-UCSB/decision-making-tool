@@ -193,18 +193,26 @@
     /* ── Taxon Sub-group ── */
     .tx-toggle {
       display: flex; align-items: center; gap: 8px; width: 100%;
-      padding: 8px 12px 8px 22px; background: #fff; border: none;
-      border-bottom: 1px solid var(--slate-100); cursor: pointer;
-      font-family: inherit; text-align: left;
+      padding: 8px 12px 8px 22px; background: #fff;
+      border-bottom: 1px solid var(--slate-100);
+      font-family: inherit; text-align: left; min-width: 0;
     }
     .tx-toggle:hover { background: var(--slate-50); }
-    .tx-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--slate-800); }
-    .tx-count { font-size: 10px; color: var(--slate-400); font-weight: 600; }
+    .tx-name-btn {
+      flex: 1; min-width: 0; border: none; background: transparent; padding: 0;
+      font-size: 13px; font-weight: 600; color: var(--slate-800); cursor: pointer;
+      text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tx-name-btn:hover { color: var(--slate-900); }
+    .tx-count {
+      font-size: 10px; color: var(--slate-400); font-weight: 600;
+      white-space: nowrap; flex-shrink: 0;
+    }
     .tx-eye {
       width: 26px; height: 26px; border: 1px solid var(--slate-200);
       border-radius: var(--radius-sm); background: #fff; color: var(--slate-600);
       display: inline-flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 11px;
+      cursor: pointer; font-size: 11px; flex-shrink: 0;
     }
     .tx-eye:hover { background: var(--slate-50); }
     .tx-eye--off { color: var(--slate-400); }
@@ -597,12 +605,12 @@
       Object.entries(TAXA).forEach(([key, taxon]) => {
         const div = document.createElement("div");
         div.innerHTML = `
-          <button class="tx-toggle" onclick="event.stopPropagation(); toggleTaxon('${key}')">
-            <i id="txc-${key}" class="fas fa-chevron-down grp-chev collapsed" style="font-size:9px;"></i>
-            <span class="tx-name">${taxon.label}</span>
-            <span class="tx-count">${taxon.count.toLocaleString()} spp.</span>
-            <button class="tx-eye tx-eye--off" title="Toggle all ${taxon.label}" onclick="event.stopPropagation(); toggleTxEye(this)"><i class="fas fa-eye-slash"></i></button>
-          </button>
+          <div class="tx-toggle">
+            <button class="tx-name-btn" title="Toggle ${taxon.label}" onclick="toggleTaxon('${key}')">${taxon.label}</button>
+            <span class="tx-count">${taxon.count.toLocaleString()} species</span>
+            <button class="tx-eye tx-eye--off" title="Toggle all ${taxon.label}" onclick="toggleTxEye(this)"><i class="fas fa-eye-slash"></i></button>
+            <button id="txc-${key}" class="sp-expand-btn collapsed" title="Expand ${taxon.label}" onclick="toggleTaxon('${key}')"><i class="fas fa-chevron-down"></i></button>
+          </div>
           <div id="txb-${key}" class="tx-body hidden">
             <div class="tx-search-wrap">
               <i class="fas fa-magnifying-glass tx-search-icon"></i>
