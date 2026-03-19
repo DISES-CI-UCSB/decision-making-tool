@@ -9,7 +9,9 @@ import {
   signal,
 } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
+import { type AoiType } from '@core/models';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 
 @Component({
@@ -111,6 +113,90 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                 {{ fillDummyOverviewMetrics() ? 'ON' : 'OFF' }}
               </button>
             </div>
+            <div
+              id="dev-tools-popup-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <p id="dev-tools-popup-toggle-label" class="text-[11px] text-slate-600">
+                Boundary tooltips
+              </p>
+              <button
+                id="dev-tools-popup-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleBoundaryPopups()"
+              >
+                {{ boundaryPopupsEnabled() ? 'Disable tooltips' : 'Enable tooltips' }}
+              </button>
+            </div>
+
+            <section
+              id="dev-tools-admin-boundaries-toggle-section"
+              class="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <h4
+                id="dev-tools-admin-boundaries-toggle-title"
+                class="text-[11px] font-semibold uppercase tracking-wide text-slate-600"
+              >
+                AOI Boundary Toggles
+              </h4>
+
+              <div id="dev-tools-admin-boundaries-toggle-list" class="mt-2 space-y-1.5">
+                <button
+                  id="dev-tools-toggle-sirap-btn"
+                  type="button"
+                  class="flex w-full items-center justify-between rounded-md border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm transition"
+                  [class.border-emerald-300]="isBoundaryVisible('sirap')"
+                  [class.bg-emerald-50]="isBoundaryVisible('sirap')"
+                  [class.text-emerald-700]="isBoundaryVisible('sirap')"
+                  [class.border-slate-300]="!isBoundaryVisible('sirap')"
+                  [class.bg-white]="!isBoundaryVisible('sirap')"
+                  [class.text-slate-700]="!isBoundaryVisible('sirap')"
+                  (click)="toggleBoundary('sirap')"
+                >
+                  <span id="dev-tools-toggle-sirap-label">SIRAP</span>
+                  <span id="dev-tools-toggle-sirap-state">{{
+                    isBoundaryVisible('sirap') ? 'On' : 'Off'
+                  }}</span>
+                </button>
+
+                <button
+                  id="dev-tools-toggle-departments-btn"
+                  type="button"
+                  class="flex w-full items-center justify-between rounded-md border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm transition"
+                  [class.border-emerald-300]="isBoundaryVisible('department')"
+                  [class.bg-emerald-50]="isBoundaryVisible('department')"
+                  [class.text-emerald-700]="isBoundaryVisible('department')"
+                  [class.border-slate-300]="!isBoundaryVisible('department')"
+                  [class.bg-white]="!isBoundaryVisible('department')"
+                  [class.text-slate-700]="!isBoundaryVisible('department')"
+                  (click)="toggleBoundary('department')"
+                >
+                  <span id="dev-tools-toggle-departments-label">ADM1 (Departments)</span>
+                  <span id="dev-tools-toggle-departments-state">{{
+                    isBoundaryVisible('department') ? 'On' : 'Off'
+                  }}</span>
+                </button>
+
+                <button
+                  id="dev-tools-toggle-municipalities-btn"
+                  type="button"
+                  class="flex w-full items-center justify-between rounded-md border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm transition"
+                  [class.border-emerald-300]="isBoundaryVisible('municipality')"
+                  [class.bg-emerald-50]="isBoundaryVisible('municipality')"
+                  [class.text-emerald-700]="isBoundaryVisible('municipality')"
+                  [class.border-slate-300]="!isBoundaryVisible('municipality')"
+                  [class.bg-white]="!isBoundaryVisible('municipality')"
+                  [class.text-slate-700]="!isBoundaryVisible('municipality')"
+                  (click)="toggleBoundary('municipality')"
+                >
+                  <span id="dev-tools-toggle-municipalities-label">ADM2 (Municipalities)</span>
+                  <span id="dev-tools-toggle-municipalities-state">{{
+                    isBoundaryVisible('municipality') ? 'On' : 'Off'
+                  }}</span>
+                </button>
+              </div>
+            </section>
           </section>
 
           @if (solutionLayer.loadError$()) {
@@ -216,6 +302,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 })
 export class DevToolsPanelComponent {
   protected readonly solutionLayer = inject(SolutionLayerService);
+  private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly catalog = inject(SolutionCatalogService);
   private readonly appState = inject(AppStateService);
 
@@ -225,6 +312,8 @@ export class DevToolsPanelComponent {
 
   readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
   readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
+  readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
+  readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
 
   @Input() coordinateToolEnabled = false;
   @Output() readonly coordinateToolEnabledChange = new EventEmitter<boolean>();
@@ -262,6 +351,18 @@ export class DevToolsPanelComponent {
 
   toggleOverviewMetricFill(): void {
     this.appState.setFillDummyOverviewMetrics(!this.fillDummyOverviewMetrics());
+  }
+
+  toggleBoundary(type: AoiType): void {
+    this.adminBoundaries.toggleLayerVisibility(type);
+  }
+
+  toggleBoundaryPopups(): void {
+    this.adminBoundaries.togglePopupEnabled();
+  }
+
+  isBoundaryVisible(type: AoiType): boolean {
+    return this.boundaryVisibility()[type];
   }
 
   formatRes(res: [number, number]): string {

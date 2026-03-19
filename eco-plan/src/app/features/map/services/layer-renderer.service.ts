@@ -9,6 +9,7 @@ import { layerFactory } from '../utils/layer-factory';
 @Injectable({ providedIn: 'root' })
 export class LayerRendererService {
   private map: InstanceType<typeof ArcGISMap> | null = null;
+  private readonly managedLayerIds = new Set<string>();
 
   /** Call once after the ArcGIS Map instance is created. */
   initialize(map: InstanceType<typeof ArcGISMap>): void {
@@ -23,6 +24,7 @@ export class LayerRendererService {
       return;
     }
     this.map.add(layerFactory(config));
+    this.managedLayerIds.add(config.id);
   }
 
   /** Remove a layer from the map by id. No-ops if not found. */
@@ -30,6 +32,7 @@ export class LayerRendererService {
     if (!this.map) return;
     const layer = this.findLayer(id);
     if (layer) this.map.remove(layer);
+    this.managedLayerIds.delete(id);
   }
 
   /**
@@ -65,9 +68,12 @@ export class LayerRendererService {
 
     const configMap = new Map(configs.map((c) => [c.id, c]));
 
-    // Remove layers no longer in config
-    const toRemove = this.map.layers.filter((l) => !configMap.has(l.id)).toArray();
+    // Remove only layers this service manages that are no longer in config.
+    const toRemove = this.map.layers
+      .filter((l) => this.managedLayerIds.has(l.id) && !configMap.has(l.id))
+      .toArray();
     this.map.removeMany(toRemove);
+    toRemove.forEach((layer) => this.managedLayerIds.delete(layer.id));
 
     // Add new layers; update existing ones
     for (const config of configs) {
@@ -75,6 +81,7 @@ export class LayerRendererService {
       if (existing) {
         existing.visible = config.visible;
         existing.opacity = config.opacity;
+        this.managedLayerIds.add(config.id);
       } else {
         this.addLayer(config);
       }
