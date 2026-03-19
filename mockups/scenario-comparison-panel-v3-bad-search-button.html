@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scenario Comparison Panel — v2</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --emerald-600: #059669;
+      --emerald-500: #10b981;
+      --emerald-100: #d1fae5;
+      --emerald-50:  #ecfdf5;
+
+      --blue-700: #1d4ed8;
+      --blue-600: #2563eb;
+      --blue-500: #3b82f6;
+      --blue-100: #dbeafe;
+      --blue-50:  #eff6ff;
+
+      --amber-700: #b45309;
+      --amber-600: #d97706;
+      --amber-500: #f59e0b;
+      --amber-100: #fef3c7;
+      --amber-50:  #fffbeb;
+
+      --purple-600: #7c3aed;
+      --purple-100: #ede9fe;
+      --purple-50:  #f5f3ff;
+
+      --red-600: #dc2626;
+      --red-100: #fee2e2;
+      --red-50: #fef2f2;
+
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50:  #f8fafc;
+
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--slate-900);
+      background: var(--slate-200);
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .panel {
+      width: 420px;
+      max-height: 92vh;
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--slate-200);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--slate-500);
+    }
+
+    .mode-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--blue-50);
+      color: var(--blue-600);
+      border: 1px solid var(--blue-100);
+    }
+
+    .scenario-title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 12px;
+      color: var(--slate-900);
+    }
+
+    .compare-hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .scenario-card {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      background: #fff;
+    }
+
+    .scenario-card--a {
+      background: var(--emerald-50);
+      border-color: #a7f3d0;
+    }
+
+    .scenario-card--b {
+      background: var(--blue-50);
+      border-color: #bfdbfe;
+    }
+
+    .scenario-card__top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .card-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 70px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--slate-200);
+      background: rgba(255,255,255,0.8);
+      color: var(--slate-600);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.01em;
+    }
+
+    .card-action--blue {
+      border-color: #bfdbfe;
+      color: var(--blue-600);
+      background: rgba(255,255,255,0.72);
+    }
+
+    .scenario-kicker {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--slate-500);
+      margin-bottom: 6px;
+    }
+
+    .scenario-card__name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--slate-900);
+      line-height: 1.35;
+      margin-bottom: 8px;
+      min-height: 42px;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .match-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .match-badge--a { background: var(--emerald-100); color: var(--emerald-600); }
+    .match-badge--b { background: var(--blue-100); color: var(--blue-600); }
+
+    .scenario-date {
+      font-size: 12px;
+      color: var(--slate-400);
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+    .panel-body:hover { scrollbar-color: var(--slate-300) transparent; }
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+    .panel-body:hover::-webkit-scrollbar-thumb { background: var(--slate-300); }
+
+    .cta-card {
+      border: 1px dashed var(--slate-300);
+      background: var(--slate-50);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cta-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .cta-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--slate-700);
+      margin-bottom: 2px;
+    }
+
+    .cta-copy {
+      font-size: 12px;
+      color: var(--slate-500);
+    }
+
+    .mini-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      color: var(--slate-700);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .mini-btn:hover { background: var(--slate-50); }
+
+    .mini-btn--ghost {
+      align-self: flex-start;
+      background: transparent;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+
+    .section-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .section-dot--blue { background: var(--blue-500); }
+    .section-dot--emerald { background: var(--emerald-500); }
+    .section-dot--purple { background: var(--purple-600); }
+    .section-dot--amber { background: var(--amber-500); }
+
+    .section-label {
+      flex: 1;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--slate-500);
+    }
+
+    .compare-table {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .table-header,
+    .table-row {
+      display: grid;
+      grid-template-columns: 1.45fr 0.9fr 0.9fr 0.85fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+    }
+
+    .table-header {
+      background: var(--slate-50);
+      border-bottom: 1px solid var(--slate-200);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--slate-500);
+    }
+
+    .table-row {
+      border-bottom: 1px solid var(--slate-100);
+      min-height: 58px;
+    }
+
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: var(--slate-50); }
+
+    .metric-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--slate-700);
+      line-height: 1.35;
+    }
+
+    .metric-sub {
+      font-size: 10px;
+      color: var(--slate-400);
+      margin-top: 2px;
+    }
+
+    .metric-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+
+    .metric-value--a { color: var(--blue-600); }
+    .metric-value--b { color: var(--purple-600); }
+
+    .diff-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 64px;
+    }
+
+    .diff-pill--positive {
+      background: var(--emerald-50);
+      color: var(--emerald-600);
+    }
+
+    .diff-pill--negative {
+      background: var(--red-50);
+      color: var(--red-600);
+    }
+
+    .diff-pill--neutral {
+      background: var(--slate-100);
+      color: var(--slate-600);
+    }
+
+    .theme-table {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .theme-header,
+    .theme-row {
+      display: grid;
+      grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+    }
+
+    .theme-header {
+      background: var(--slate-50);
+      border-bottom: 1px solid var(--slate-200);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--slate-500);
+    }
+
+    .theme-row {
+      border-bottom: 1px solid var(--slate-100);
+      font-size: 12px;
+    }
+
+    .theme-row:last-child { border-bottom: none; }
+    .theme-row--attention { background: #fffdf3; }
+
+    .check,
+    .cross {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    .check { color: var(--emerald-600); }
+    .cross { color: var(--red-600); }
+    .delta-note { color: var(--slate-600); font-weight: 600; }
+
+    .overlap-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .overlap-card {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background: #fff;
+    }
+
+    .overlap-card--agree { background: var(--emerald-50); border-color: #a7f3d0; }
+    .overlap-card--a { background: var(--blue-50); border-color: #bfdbfe; }
+    .overlap-card--b { background: var(--purple-50); border-color: #ddd6fe; }
+    .overlap-card--synergy { background: var(--amber-50); border-color: var(--amber-100); }
+
+    .overlap-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--slate-500);
+      margin-bottom: 4px;
+    }
+
+    .overlap-value {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+      color: var(--slate-900);
+    }
+
+    .overlap-sub {
+      font-size: 11px;
+      color: var(--slate-500);
+      line-height: 1.4;
+    }
+
+    .narrative {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--slate-50);
+      border-left: 3px solid var(--slate-300);
+      color: var(--slate-700);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .narrative strong { color: var(--slate-900); }
+
+    .panel-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--slate-200);
+      background: var(--slate-50);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+
+    .btn--primary {
+      background: var(--emerald-600);
+      color: #fff;
+    }
+    .btn--primary:hover { background: #047857; }
+
+    .btn-group { display: flex; gap: 8px; }
+
+    .btn--secondary {
+      flex: 1;
+      background: #fff;
+      color: var(--slate-700);
+      border: 1px solid var(--slate-200);
+    }
+
+    .btn--secondary:hover { background: var(--slate-50); border-color: var(--slate-300); }
+    .btn--secondary i { color: var(--slate-400); font-size: 12px; }
+
+    .btn--danger {
+      background: transparent;
+      color: #ef4444;
+      border: 1px dashed #fecaca;
+    }
+
+    .btn--danger:hover { background: #fff5f5; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <header class="panel-header">
+      <div class="header-top">
+        <span class="eyebrow">Scenario Comparison</span>
+        <span class="mode-chip"><i class="fas fa-code-compare"></i> Tier 2</span>
+      </div>
+      <h1 class="scenario-title">Compare trade-offs between two pre-calculated conservation scenarios</h1>
+      <div class="compare-hero">
+        <div class="scenario-card scenario-card--a">
+          <div class="scenario-kicker">Scenario A · Current solution</div>
+          <div class="scenario-card__name">Ecos17 RUNAP CO</div>
+          <div class="meta-row">
+            <span class="match-badge match-badge--a"><i class="fas fa-check-circle"></i> 98% Match</span>
+          </div>
+          <div class="scenario-date">Nov 2024</div>
+        </div>
+        <div class="scenario-card scenario-card--b">
+          <div class="scenario-card__top">
+            <div class="scenario-kicker">Scenario B · Comparison</div>
+            <button class="card-action card-action--blue">Change</button>
+          </div>
+          <div class="scenario-card__name">Low-Cost Biodiversity Mix</div>
+          <div class="meta-row">
+            <span class="match-badge match-badge--b"><i class="fas fa-check-circle"></i> 91% Match</span>
+          </div>
+          <div class="scenario-date">Oct 2024</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="panel-body">
+      <section>
+        <div class="section-head">
+          <span class="section-dot section-dot--blue"></span>
+          <span class="section-label">Comparative Statistics</span>
+        </div>
+        <div class="compare-table">
+          <div class="table-header">
+            <div>Metric</div>
+            <div>Scenario A</div>
+            <div>Scenario B</div>
+            <div>Difference</div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <div class="metric-name">Total Priority Area</div>
+              <div class="metric-sub">km² selected as conservation priority</div>
+            </div>
+            <div class="metric-value metric-value--a">125,000</div>
+            <div class="metric-value metric-value--b">98,000</div>
+            <div><span class="diff-pill diff-pill--negative">-27,000</span></div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <div class="metric-name">% of Colombia Protected</div>
+              <div class="metric-sub">National contribution toward 30x30</div>
+            </div>
+            <div class="metric-value metric-value--a">12%</div>
+            <div class="metric-value metric-value--b">9%</div>
+            <div><span class="diff-pill diff-pill--negative">-3%</span></div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <div class="metric-name">Species Goals Met</div>
+              <div class="metric-sub">Themes fully achieved</div>
+            </div>
+            <div class="metric-value metric-value--a">8 of 10</div>
+            <div class="metric-value metric-value--b">9 of 10</div>
+            <div><span class="diff-pill diff-pill--positive">+1</span></div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <div class="metric-name">Carbon Stored</div>
+              <div class="metric-sub">tCO2e protected inside priority areas</div>
+            </div>
+            <div class="metric-value metric-value--a">2.5B</div>
+            <div class="metric-value metric-value--b">2.1B</div>
+            <div><span class="diff-pill diff-pill--negative">-400M</span></div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <div class="metric-name">Opportunity Cost</div>
+              <div class="metric-sub">Million USD equivalent</div>
+            </div>
+            <div class="metric-value metric-value--a">450</div>
+            <div class="metric-value metric-value--b">320</div>
+            <div><span class="diff-pill diff-pill--positive">-$130M</span></div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <div class="metric-name">Average Human Footprint</div>
+              <div class="metric-sub">Average pressure score across selected cells</div>
+            </div>
+            <div class="metric-value metric-value--a">42</div>
+            <div class="metric-value metric-value--b">38</div>
+            <div><span class="diff-pill diff-pill--positive">-4</span></div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <div class="metric-name">Conflict Exposure</div>
+              <div class="metric-sub">km² overlapping conflict-sensitive zones</div>
+            </div>
+            <div class="metric-value metric-value--a">8,200</div>
+            <div class="metric-value metric-value--b">5,100</div>
+            <div><span class="diff-pill diff-pill--positive">-3,100</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <span class="section-dot section-dot--emerald"></span>
+          <span class="section-label">Theme Achievement Comparison</span>
+        </div>
+        <div class="theme-table">
+          <div class="theme-header">
+            <div>Feature</div>
+            <div>Scen A</div>
+            <div>Scen B</div>
+            <div>Status</div>
+          </div>
+          <div class="theme-row">
+            <div>Mammal Species</div>
+            <div class="check"><i class="fas fa-check"></i> 30%</div>
+            <div class="check"><i class="fas fa-check"></i> 34%</div>
+            <div class="delta-note">Both meet target</div>
+          </div>
+          <div class="theme-row">
+            <div>Cloud Forest</div>
+            <div class="check"><i class="fas fa-check"></i> 21%</div>
+            <div class="cross"><i class="fas fa-xmark"></i> 18%</div>
+            <div class="delta-note">A leads</div>
+          </div>
+          <div class="theme-row theme-row--attention">
+            <div>Threatened Amphibians</div>
+            <div class="cross"><i class="fas fa-xmark"></i> 25%</div>
+            <div class="check"><i class="fas fa-check"></i> 30%</div>
+            <div class="delta-note">B gains +1 goal</div>
+          </div>
+          <div class="theme-row theme-row--attention">
+            <div>Wetlands</div>
+            <div class="cross"><i class="fas fa-xmark"></i> 17%</div>
+            <div class="check"><i class="fas fa-check"></i> 30%</div>
+            <div class="delta-note">Largest divergence</div>
+          </div>
+          <div class="theme-row">
+            <div>Páramo Ecosystems</div>
+            <div class="check"><i class="fas fa-check"></i> 30%</div>
+            <div class="check"><i class="fas fa-check"></i> 32%</div>
+            <div class="delta-note">Both meet target</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <span class="section-dot section-dot--purple"></span>
+          <span class="section-label">Spatial Overlap Analysis</span>
+        </div>
+        <div class="overlap-grid">
+          <div class="overlap-card overlap-card--agree">
+            <div class="overlap-label">Agreement</div>
+            <div class="overlap-value">65,000</div>
+            <div class="overlap-sub">km² selected in both scenarios and shown in green on the map.</div>
+          </div>
+          <div class="overlap-card overlap-card--a">
+            <div class="overlap-label">Unique to Scenario A</div>
+            <div class="overlap-value">60,000</div>
+            <div class="overlap-sub">km² selected only by the current solution, shown in blue.</div>
+          </div>
+          <div class="overlap-card overlap-card--b">
+            <div class="overlap-label">Unique to Scenario B</div>
+            <div class="overlap-value">33,000</div>
+            <div class="overlap-sub">km² selected only by the comparison scenario, shown in purple.</div>
+          </div>
+          <div class="overlap-card overlap-card--synergy">
+            <div class="overlap-label">Connectivity / Synergy</div>
+            <div class="overlap-value">12</div>
+            <div class="overlap-sub">Potential corridor zones linking priority areas in both scenarios.</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <span class="section-dot section-dot--amber"></span>
+          <span class="section-label">Trade-off Narrative</span>
+        </div>
+        <div class="narrative">
+          <strong>Scenario A</strong> protects more area <strong>(+27,000 km²)</strong> and stores more carbon <strong>(+400M tCO2e)</strong>, but it also carries a higher opportunity cost <strong>(+$130M)</strong> and more conflict exposure. <strong>Scenario B</strong> achieves one additional species goal while reducing human footprint and overlapping less with conflict-sensitive zones.
+        </div>
+      </section>
+    </div>
+
+    <footer class="panel-footer">
+      <button class="btn btn--primary"><i class="fas fa-file-lines"></i> Generate Comparison Report</button>
+      <div class="btn-group">
+        <button class="btn btn--secondary"><i class="fas fa-download"></i> Export Data</button>
+        <button class="btn btn--secondary"><i class="fas fa-image"></i> Export Map</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn--secondary"><i class="fas fa-plus"></i> Add Third Scenario</button>
+        <button class="btn btn--secondary"><i class="fas fa-right-left"></i> Swap A / B</button>
+      </div>
+      <button class="btn btn--danger"><i class="fas fa-xmark"></i> Exit Comparison Mode</button>
+    </footer>
+  </div>
+</body>
+</html>
