@@ -249,7 +249,7 @@
                   <div
                     id="solution-finder-modal-results-list"
                     #resultsScrollContainer
-                    class="finder-results-scrollbar absolute inset-0 grid grid-cols-1 gap-0 overflow-y-auto border border-slate-300"
+                    class="finder-results-scrollbar absolute inset-0 grid grid-cols-1 gap-0 overflow-y-auto rounded-md border border-slate-300"
                     (scroll)="onResultsScroll()"
                   >
                     @for (match of matchResults; track match.id) {
@@ -257,6 +257,8 @@
                         [id]="'solution-finder-modal-result-row-' + match.id"
                         type="button"
                         class="finder-result-row relative w-full px-3 py-2.5 text-left transition"
+                        [class.rounded-t-md]="$first"
+                        [class.rounded-b-md]="$last"
                         [class.is-selected]="selectedMatchId === match.id"
                         (click)="selectMatch(match.id)"
                       >
