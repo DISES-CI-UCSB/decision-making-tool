@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html id="aoi-html-root" lang="en">
+<head id="aoi-head">
+  <meta id="aoi-meta-charset" charset="UTF-8" />
+  <meta id="aoi-meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="aoi-title">AOI Dashboard Panel - v1</title>
+  <link id="aoi-fontawesome-link" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link id="aoi-fonts-link" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style id="aoi-style">
+    :root {
+      --emerald-600: #059669;
+      --emerald-500: #10b981;
+      --emerald-100: #d1fae5;
+      --emerald-50: #ecfdf5;
+      --blue-700: #1d4ed8;
+      --blue-600: #2563eb;
+      --blue-500: #3b82f6;
+      --blue-100: #dbeafe;
+      --blue-50: #eff6ff;
+      --amber-700: #b45309;
+      --amber-600: #d97706;
+      --amber-500: #f59e0b;
+      --amber-100: #fef3c7;
+      --amber-50: #fffbeb;
+      --red-600: #dc2626;
+      --red-100: #fee2e2;
+      --red-50: #fef2f2;
+      --teal-600: #0f766e;
+      --teal-100: #ccfbf1;
+      --purple-600: #7c3aed;
+      --purple-100: #ede9fe;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--slate-900);
+      background: var(--slate-200);
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .panel {
+      width: 420px;
+      max-height: 92vh;
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      border-bottom: 1px solid var(--slate-200);
+      padding: 16px 16px 0;
+      background: #fff;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .icon-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--slate-500);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover { background: var(--slate-100); }
+
+    .title-wrap {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .title {
+      font-size: 21px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--slate-800);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--slate-500);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 12px;
+      border-bottom: 1px solid var(--slate-200);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 0 2px;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      color: var(--slate-500);
+      font-weight: 600;
+      font-size: 12px;
+      padding: 10px 0 9px;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:hover { color: var(--slate-700); }
+
+    .tab-btn.active {
+      color: var(--blue-600);
+      border-color: var(--blue-500);
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+    .panel-body:hover { scrollbar-color: var(--slate-300) transparent; }
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+    .panel-body:hover::-webkit-scrollbar-thumb { background: var(--slate-300); }
+
+    .section {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .section-btn {
+      width: 100%;
+      border: none;
+      background: #fff;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .section-btn:hover { background: var(--slate-50); }
+
+    .section-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .section-dot.general { background: var(--blue-500); }
+    .section-dot.bio { background: var(--emerald-500); }
+    .section-dot.eco { background: var(--teal-600); }
+    .section-dot.socio { background: var(--amber-600); }
+    .section-dot.protect { background: var(--purple-600); }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--slate-600);
+      flex: 1;
+    }
+
+    .section-chevron {
+      color: var(--slate-400);
+      font-size: 11px;
+      transition: transform 0.15s;
+    }
+    .section-chevron.collapsed { transform: rotate(-90deg); }
+
+    .section-content {
+      border-top: 1px solid var(--slate-200);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .section-content.hidden { display: none; }
+
+    .headline-card {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background: var(--slate-50);
+    }
+
+    .small-kicker {
+      font-size: 11px;
+      color: var(--slate-500);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .headline-value {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--emerald-600);
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .headline-value .value-unit {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: var(--slate-200);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 5px;
+      display: flex;
+    }
+
+    .progress-fill {
+      background: var(--emerald-500);
+      height: 100%;
+    }
+
+    .progress-fill-existing {
+      background: #93c5fd;
+      height: 100%;
+    }
+
+    .progress-fill-added {
+      background: var(--blue-600);
+      height: 100%;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--slate-500);
+    }
+
+    .metric-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      background: #fff;
+      min-width: 0;
+    }
+
+    .metric-title {
+      font-size: 11px;
+      color: var(--slate-500);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .metric-value {
+      font-size: 20px;
+      line-height: 1.1;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin-bottom: 2px;
+      letter-spacing: -0.01em;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--slate-500);
+      line-height: 1.3;
+    }
+
+    .tag-conditional {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--amber-100);
+      background: var(--amber-50);
+      color: var(--amber-700);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-left: 6px;
+      vertical-align: middle;
+      line-height: 1.2;
+    }
+
+    .bar-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 84px 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar-label {
+      font-size: 11px;
+      color: var(--slate-600);
+    }
+
+    .bar-track {
+      height: 10px;
+      background: var(--slate-100);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill { height: 100%; border-radius: 999px; }
+
+    .bar-val {
+      font-size: 11px;
+      color: var(--slate-500);
+      font-weight: 600;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .alert-badge {
+      border: 1px solid var(--red-100);
+      background: var(--red-50);
+      color: var(--red-600);
+      border-radius: var(--radius-sm);
+      padding: 7px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .donut-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .donut {
+      width: 102px;
+      height: 102px;
+      border-radius: 50%;
+      background: conic-gradient(
+        #0d9488 0 39%,
+        #7c3aed 39% 62%,
+        #f59e0b 62% 79%,
+        #0284c7 79% 91%,
+        #94a3b8 91% 100%
+      );
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .donut::after {
+      content: "";
+      position: absolute;
+      inset: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px var(--slate-100);
+    }
+
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--slate-600);
+      line-height: 1.3;
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .footer {
+      border-top: 1px solid var(--slate-200);
+      padding: 10px 12px 12px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      height: 34px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: var(--blue-600);
+      color: #fff;
+    }
+
+    .btn.secondary {
+      background: #fff;
+      border-color: var(--slate-200);
+      color: var(--slate-700);
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body id="aoi-body">
+  <aside id="aoi-panel" class="panel">
+    <header id="aoi-panel-header" class="panel-header">
+      <div id="aoi-header-row" class="header-row">
+        <div id="aoi-header-left" class="header-left">
+          <button id="aoi-back-button" class="icon-btn" type="button" aria-label="Back to solution overview">
+            <i id="aoi-back-icon" class="fas fa-arrow-left"></i>
+          </button>
+          <div id="aoi-title-wrap" class="title-wrap">
+            <h1 id="aoi-region-title" class="title">Municipality of Popayan</h1>
+            <p id="aoi-region-subtitle" class="subtitle">Municipality | 512 km2 | Cauca Dept.</p>
+          </div>
+        </div>
+        <button id="aoi-close-button" class="icon-btn" type="button" aria-label="Close panel">
+          <i id="aoi-close-icon" class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <nav id="aoi-tabs-nav" class="tabs" aria-label="AOI section tabs">
+        <button id="aoi-tab-overview" class="tab-btn active" type="button">Overview</button>
+        <button id="aoi-tab-biodiversity" class="tab-btn" type="button">Biodiversity</button>
+        <button id="aoi-tab-ecosystems" class="tab-btn" type="button">Ecosystems</button>
+        <button id="aoi-tab-landuse" class="tab-btn" type="button">Land Use</button>
+        <button id="aoi-tab-protection" class="tab-btn" type="button">Protection</button>
+      </nav>
+    </header>
+
+    <main id="aoi-panel-body" class="panel-body">
+      <section id="aoi-section-general" class="section">
+        <button id="aoi-section-general-button" class="section-btn" type="button" onclick="toggleSection('general')">
+          <span id="aoi-dot-general" class="section-dot general"></span>
+          <span id="aoi-label-general" class="section-label">Regional Conservation Summary</span>
+          <i id="aoi-chevron-general" class="fas fa-chevron-down section-chevron"></i>
+        </button>
+        <div id="aoi-content-general" class="section-content">
+          <article id="aoi-card-priority-area" class="headline-card">
+            <p id="aoi-priority-kicker" class="small-kicker">Priority Area in Region</p>
+            <p id="aoi-priority-value" class="headline-value">230 <span id="aoi-priority-value-unit" class="value-unit">km2</span> <span id="aoi-priority-percent">(45%)</span></p>
+            <div id="aoi-priority-track" class="progress-track">
+              <span id="aoi-priority-fill" class="progress-fill" style="width: 45%;"></span>
+            </div>
+            <div id="aoi-priority-meta" class="progress-meta">
+              <span id="aoi-priority-meta-left">Metric #18 and #19</span>
+              <span id="aoi-priority-meta-right">Regional target: 50%</span>
+            </div>
+          </article>
+
+          <article id="aoi-card-national-contribution" class="headline-card">
+            <p id="aoi-national-kicker" class="small-kicker">National Contribution (from AOI priorities)</p>
+            <p id="aoi-national-value" class="metric-value">1.9% of Colombia 30x30 target</p>
+            <div id="aoi-national-track" class="progress-track">
+              <span id="aoi-national-fill-existing" class="progress-fill-existing" style="width: 0.9%;"></span>
+              <span id="aoi-national-fill-added" class="progress-fill-added" style="width: 1%;"></span>
+            </div>
+            <div id="aoi-national-meta" class="progress-meta">
+              <span id="aoi-national-meta-left">Existing 0.9% + solution 1.0%</span>
+              <span id="aoi-national-meta-right">Metric #17</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="aoi-section-biodiversity" class="section">
+        <button id="aoi-section-biodiversity-button" class="section-btn" type="button" onclick="toggleSection('biodiversity')">
+          <span id="aoi-dot-biodiversity" class="section-dot bio"></span>
+          <span id="aoi-label-biodiversity" class="section-label">Biodiversity Metrics</span>
+          <i id="aoi-chevron-biodiversity" class="fas fa-chevron-down section-chevron"></i>
+        </button>
+        <div id="aoi-content-biodiversity" class="section-content">
+          <article id="aoi-card-richness-bars" class="metric-card">
+            <p id="aoi-richness-title" class="metric-title">Species Richness by Group (Metrics #21-#25)</p>
+            <div id="aoi-richness-list" class="bar-list">
+              <div id="aoi-richness-row-mammals" class="bar-row">
+                <span id="aoi-richness-label-mammals" class="bar-label">Mammals</span>
+                <div id="aoi-richness-track-mammals" class="bar-track"><span id="aoi-richness-fill-mammals" class="bar-fill" style="width: 43%; background:#8d6e63;"></span></div>
+                <span id="aoi-richness-val-mammals" class="bar-val">42</span>
+              </div>
+              <div id="aoi-richness-row-birds" class="bar-row">
+                <span id="aoi-richness-label-birds" class="bar-label">Birds</span>
+                <div id="aoi-richness-track-birds" class="bar-track"><span id="aoi-richness-fill-birds" class="bar-fill" style="width: 100%; background:#0284c7;"></span></div>
+                <span id="aoi-richness-val-birds" class="bar-val">131</span>
+              </div>
+              <div id="aoi-richness-row-amphibians" class="bar-row">
+                <span id="aoi-richness-label-amphibians" class="bar-label">Amphibians</span>
+                <div id="aoi-richness-track-amphibians" class="bar-track"><span id="aoi-richness-fill-amphibians" class="bar-fill" style="width: 33%; background:#f59e0b;"></span></div>
+                <span id="aoi-richness-val-amphibians" class="bar-val">44</span>
+              </div>
+              <div id="aoi-richness-row-reptiles" class="bar-row">
+                <span id="aoi-richness-label-reptiles" class="bar-label">Reptiles</span>
+                <div id="aoi-richness-track-reptiles" class="bar-track"><span id="aoi-richness-fill-reptiles" class="bar-fill" style="width: 29%; background:#4caf50;"></span></div>
+                <span id="aoi-richness-val-reptiles" class="bar-val">38</span>
+              </div>
+              <div id="aoi-richness-row-plants" class="bar-row">
+                <span id="aoi-richness-label-plants" class="bar-label">Plants</span>
+                <div id="aoi-richness-track-plants" class="bar-track"><span id="aoi-richness-fill-plants" class="bar-fill" style="width: 21%; background:#8bc34a;"></span></div>
+                <span id="aoi-richness-val-plants" class="bar-val">27</span>
+              </div>
+            </div>
+          </article>
+
+          <div id="aoi-bio-grid" class="metric-grid-2">
+            <article id="aoi-card-threatened" class="metric-card">
+              <p id="aoi-threatened-title" class="metric-title">Threatened Species Count (Metric #26)</p>
+              <p id="aoi-threatened-value" class="metric-value">5</p>
+              <p id="aoi-threatened-sub" class="metric-sub">IUCN CR/EN/VU in this AOI</p>
+            </article>
+            <article id="aoi-card-endemic" class="metric-card">
+              <p id="aoi-endemic-title" class="metric-title">Endemic Species Count (Metric #27)</p>
+              <p id="aoi-endemic-value" class="metric-value">12</p>
+              <p id="aoi-endemic-sub" class="metric-sub">Species endemic to Colombia</p>
+            </article>
+          </div>
+
+          <article id="aoi-card-national-species" class="metric-card">
+            <p id="aoi-national-species-title" class="metric-title">% of National Species Total (Metric #28)</p>
+            <p id="aoi-national-species-value" class="metric-value">7%</p>
+            <p id="aoi-national-species-sub" class="metric-sub">AOI species represented vs national baseline</p>
+          </article>
+
+          <div id="aoi-threatened-alert" class="alert-badge">
+            <span id="aoi-threatened-alert-icon"><i id="aoi-threatened-alert-icon-i" class="fas fa-triangle-exclamation"></i></span>
+            <span id="aoi-threatened-alert-text"> 5 critically important threatened species are present in the selected AOI.</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="aoi-section-ecosystems" class="section">
+        <button id="aoi-section-ecosystems-button" class="section-btn" type="button" onclick="toggleSection('ecosystems')">
+          <span id="aoi-dot-ecosystems" class="section-dot eco"></span>
+          <span id="aoi-label-ecosystems" class="section-label">Ecosystems and Carbon Services</span>
+          <i id="aoi-chevron-ecosystems" class="fas fa-chevron-down section-chevron"></i>
+        </button>
+        <div id="aoi-content-ecosystems" class="section-content">
+          <article id="aoi-card-ecosystem-donut" class="donut-wrap">
+            <div id="aoi-donut-chart" class="donut" aria-label="Ecosystem distribution donut"></div>
+            <div id="aoi-legend" class="legend">
+              <div id="aoi-legend-row-cloud" class="legend-row"><span id="aoi-legend-swatch-cloud" class="legend-swatch" style="background:#0d9488;"></span><span id="aoi-legend-text-cloud">Cloud Forest 39%</span></div>
+              <div id="aoi-legend-row-paramo" class="legend-row"><span id="aoi-legend-swatch-paramo" class="legend-swatch" style="background:#7c3aed;"></span><span id="aoi-legend-text-paramo">Paramo 23%</span></div>
+              <div id="aoi-legend-row-dry" class="legend-row"><span id="aoi-legend-swatch-dry" class="legend-swatch" style="background:#f59e0b;"></span><span id="aoi-legend-text-dry">Dry Forest 17%</span></div>
+              <div id="aoi-legend-row-wetlands" class="legend-row"><span id="aoi-legend-swatch-wetlands" class="legend-swatch" style="background:#0284c7;"></span><span id="aoi-legend-text-wetlands">Wetlands 12%</span></div>
+              <div id="aoi-legend-row-other" class="legend-row"><span id="aoi-legend-swatch-other" class="legend-swatch" style="background:#94a3b8;"></span><span id="aoi-legend-text-other">Other 9%</span></div>
+            </div>
+          </article>
+
+          <div id="aoi-carbon-grid" class="metric-grid-2">
+            <article id="aoi-card-total-carbon" class="metric-card">
+              <p id="aoi-total-carbon-title" class="metric-title">Total Carbon Biomass (Metric #39)</p>
+              <p id="aoi-total-carbon-value" class="metric-value">85M tCO2e</p>
+              <p id="aoi-total-carbon-sub" class="metric-sub">Priority areas in this AOI</p>
+            </article>
+            <article id="aoi-card-national-carbon" class="metric-card">
+              <p id="aoi-national-carbon-title" class="metric-title">% of National Carbon (Metric #43)</p>
+              <p id="aoi-national-carbon-value" class="metric-value">7%</p>
+              <p id="aoi-national-carbon-sub" class="metric-sub">Share of Colombian carbon stocks</p>
+            </article>
+            <article id="aoi-card-above-ground-carbon" class="metric-card">
+              <p id="aoi-above-ground-carbon-title" class="metric-title">Above-ground Carbon (Metric #40)</p>
+              <p id="aoi-above-ground-carbon-value" class="metric-value">52M tCO2e</p>
+              <p id="aoi-above-ground-carbon-sub" class="metric-sub">Vegetation biomass carbon pool</p>
+            </article>
+            <article id="aoi-card-soil-carbon" class="metric-card">
+              <p id="aoi-soil-carbon-title" class="metric-title">Soil Organic Carbon (Metric #41)</p>
+              <p id="aoi-soil-carbon-value" class="metric-value">33M tCO2e</p>
+              <p id="aoi-soil-carbon-sub" class="metric-sub">Below-ground carbon storage</p>
+            </article>
+          </div>
+
+          <article id="aoi-card-water-regulation" class="metric-card">
+            <p id="aoi-water-title" class="metric-title">Water Regulation Capacity (Metric #44)</p>
+            <p id="aoi-water-value" class="metric-value">High (Index 78/100)</p>
+            <p id="aoi-water-sub" class="metric-sub">Hydrological service capacity for downstream communities</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="aoi-section-socio" class="section">
+        <button id="aoi-section-socio-button" class="section-btn" type="button" onclick="toggleSection('socio')">
+          <span id="aoi-dot-socio" class="section-dot socio"></span>
+          <span id="aoi-label-socio" class="section-label">Land Use and Socio-Economic Context</span>
+          <i id="aoi-chevron-socio" class="fas fa-chevron-down section-chevron"></i>
+        </button>
+        <div id="aoi-content-socio" class="section-content hidden">
+          <article id="aoi-card-land-use-breakdown" class="metric-card">
+            <p id="aoi-land-use-title" class="metric-title">Land Use Breakdown (Metrics #51-#54)</p>
+            <div id="aoi-land-use-list" class="bar-list">
+              <div id="aoi-land-use-row-forest" class="bar-row">
+                <span id="aoi-land-use-label-forest" class="bar-label">Natural Forest</span>
+                <div id="aoi-land-use-track-forest" class="bar-track"><span id="aoi-land-use-fill-forest" class="bar-fill" style="width: 60%; background:#16a34a;"></span></div>
+                <span id="aoi-land-use-val-forest" class="bar-val">60%</span>
+              </div>
+              <div id="aoi-land-use-row-pasture" class="bar-row">
+                <span id="aoi-land-use-label-pasture" class="bar-label">Pasture</span>
+                <div id="aoi-land-use-track-pasture" class="bar-track"><span id="aoi-land-use-fill-pasture" class="bar-fill" style="width: 25%; background:#f59e0b;"></span></div>
+                <span id="aoi-land-use-val-pasture" class="bar-val">25%</span>
+              </div>
+              <div id="aoi-land-use-row-crops" class="bar-row">
+                <span id="aoi-land-use-label-crops" class="bar-label">Crop Agriculture</span>
+                <div id="aoi-land-use-track-crops" class="bar-track"><span id="aoi-land-use-fill-crops" class="bar-fill" style="width: 10%; background:#0284c7;"></span></div>
+                <span id="aoi-land-use-val-crops" class="bar-val">10%</span>
+              </div>
+              <div id="aoi-land-use-row-other" class="bar-row">
+                <span id="aoi-land-use-label-other" class="bar-label">Other</span>
+                <div id="aoi-land-use-track-other" class="bar-track"><span id="aoi-land-use-fill-other" class="bar-fill" style="width: 5%; background:#94a3b8;"></span></div>
+                <span id="aoi-land-use-val-other" class="bar-val">5%</span>
+              </div>
+            </div>
+          </article>
+
+          <div id="aoi-socio-grid" class="metric-grid-2">
+            <article id="aoi-card-agricultural-opportunity-cost" class="metric-card">
+              <p id="aoi-aoc-title" class="metric-title">Agricultural Opportunity Cost (Metric #55)<span id="aoi-aoc-conditional-tag" class="tag-conditional">Conditional</span></p>
+              <p id="aoi-aoc-value" class="metric-value">$125M</p>
+              <p id="aoi-aoc-sub" class="metric-sub">USD equivalent; COP shown in detailed report</p>
+            </article>
+            <article id="aoi-card-conflict-overlap" class="metric-card">
+              <p id="aoi-conflict-title" class="metric-title">Historical Conflict Zone Overlap (Metric #57)<span id="aoi-conflict-conditional-tag" class="tag-conditional">Conditional</span></p>
+              <p id="aoi-conflict-value" class="metric-value">38 km2</p>
+              <p id="aoi-conflict-sub" class="metric-sub">Intersecting AOI priority area</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="aoi-section-protection" class="section">
+        <button id="aoi-section-protection-button" class="section-btn" type="button" onclick="toggleSection('protection')">
+          <span id="aoi-dot-protection" class="section-dot protect"></span>
+          <span id="aoi-label-protection" class="section-label">Cultural and Protection Status</span>
+          <i id="aoi-chevron-protection" class="fas fa-chevron-down section-chevron"></i>
+        </button>
+        <div id="aoi-content-protection" class="section-content hidden">
+          <div id="aoi-protection-grid" class="metric-grid-2">
+            <article id="aoi-card-indigenous-area" class="metric-card">
+              <p id="aoi-indigenous-title" class="metric-title">Indigenous Reservations Area (Metric #59)</p>
+              <p id="aoi-indigenous-value" class="metric-value">41 km2</p>
+              <p id="aoi-indigenous-sub" class="metric-sub">Within selected AOI priorities</p>
+            </article>
+            <article id="aoi-card-community-area" class="metric-card">
+              <p id="aoi-community-title" class="metric-title">Community Councils Area (Metric #60)</p>
+              <p id="aoi-community-value" class="metric-value">27 km2</p>
+              <p id="aoi-community-sub" class="metric-sub">Afro-Colombian territories overlap</p>
+            </article>
+            <article id="aoi-card-total-protected" class="metric-card">
+              <p id="aoi-total-protected-title" class="metric-title">Total Protected Area in AOI (Metric #63)</p>
+              <p id="aoi-total-protected-value" class="metric-value">72 km2 (31%)</p>
+              <p id="aoi-total-protected-sub" class="metric-sub">Current formal protection baseline</p>
+            </article>
+            <article id="aoi-card-overlap-parks" class="metric-card">
+              <p id="aoi-overlap-parks-title" class="metric-title">% Overlap with National Parks (Metric #64)</p>
+              <p id="aoi-overlap-parks-value" class="metric-value">18%</p>
+              <p id="aoi-overlap-parks-sub" class="metric-sub">Share of AOI priorities in national parks</p>
+            </article>
+            <article id="aoi-card-overlap-indigenous" class="metric-card">
+              <p id="aoi-overlap-indigenous-title" class="metric-title">% Overlap with Indigenous Territories (Metric #66)</p>
+              <p id="aoi-overlap-indigenous-value" class="metric-value">12%</p>
+              <p id="aoi-overlap-indigenous-sub" class="metric-sub">Consultation-sensitive overlap</p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer id="aoi-panel-footer" class="footer">
+      <button id="aoi-btn-generate-report" class="btn primary" type="button">
+        <i id="aoi-btn-generate-report-icon" class="fas fa-file-pdf"></i>
+        <span id="aoi-btn-generate-report-text">Generate Regional Report (PDF)</span>
+      </button>
+      <div id="aoi-btn-row-secondary" class="btn-row">
+        <button id="aoi-btn-export-data" class="btn secondary" type="button">
+          <i id="aoi-btn-export-data-icon" class="fas fa-table"></i>
+          <span id="aoi-btn-export-data-text">Export Data</span>
+        </button>
+        <button id="aoi-btn-export-map" class="btn secondary" type="button">
+          <i id="aoi-btn-export-map-icon" class="fas fa-image"></i>
+          <span id="aoi-btn-export-map-text">Export Map</span>
+        </button>
+      </div>
+    </footer>
+  </aside>
+
+  <script id="aoi-script">
+    function toggleSection(sectionId) {
+      const content = document.getElementById("aoi-content-" + sectionId);
+      const chevron = document.getElementById("aoi-chevron-" + sectionId);
+      const isHidden = content.classList.contains("hidden");
+
+      if (isHidden) {
+        content.classList.remove("hidden");
+        chevron.classList.remove("collapsed");
+      } else {
+        content.classList.add("hidden");
+        chevron.classList.add("collapsed");
+      }
+    }
+
+    function setActiveTab(buttonId) {
+      const tabButtons = document.querySelectorAll("#aoi-tabs-nav .tab-btn");
+      tabButtons.forEach(function (btn) {
+        btn.classList.remove("active");
+      });
+
+      const clickedButton = document.getElementById(buttonId);
+      if (clickedButton) {
+        clickedButton.classList.add("active");
+      }
+    }
+
+    document.getElementById("aoi-tab-overview").addEventListener("click", function () { setActiveTab("aoi-tab-overview"); });
+    document.getElementById("aoi-tab-biodiversity").addEventListener("click", function () { setActiveTab("aoi-tab-biodiversity"); });
+    document.getElementById("aoi-tab-ecosystems").addEventListener("click", function () { setActiveTab("aoi-tab-ecosystems"); });
+    document.getElementById("aoi-tab-landuse").addEventListener("click", function () { setActiveTab("aoi-tab-landuse"); });
+    document.getElementById("aoi-tab-protection").addEventListener("click", function () { setActiveTab("aoi-tab-protection"); });
+  </script>
+</body>
+</html>

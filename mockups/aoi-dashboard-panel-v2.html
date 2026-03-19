@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html id="aoi-v2-root" lang="en">
+<head id="aoi-v2-head">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AOI Dashboard Panel — v2</title>
+  <link id="aoi-v2-fa-link" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link id="aoi-v2-fonts-link" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!--
+  ╔══════════════════════════════════════════════════════════════════╗
+  ║  AOI DASHBOARD — v2 (Production Design-System Aligned)         ║
+  ║                                                                 ║
+  ║  Uses conservation palette (canopy/ocean/earth) from            ║
+  ║  eco-plan/src/styles.scss, rounded-panel (1rem) cards,          ║
+  ║  shadow-sm depth, earth-300 borders, and pill-shaped badges.    ║
+  ║                                                                 ║
+  ║  METRICS (from Finalized Metrics CSV — AOI-only):               ║
+  ║  #18 Priority Area in Region    #19 Priority Area % of Region   ║
+  ║  #17 National Contribution      #21-#25 Species Richness        ║
+  ║  #26 Threatened Species Count   #27 Endemic Species Count       ║
+  ║  #28 % of National Species      #29-#33 Ecosystem Coverage      ║
+  ║  #39 Total Carbon Biomass       #40 Above-ground Carbon         ║
+  ║  #41 Soil Organic Carbon        #43 % of National Carbon        ║
+  ║  #44 Water Regulation           #51-#54 Land Use Breakdown      ║
+  ║  #55 Ag Opportunity Cost (cond) #57 Conflict Overlap (cond)     ║
+  ║  #59 Indigenous Reservations    #60 Community Councils Area     ║
+  ║  #63 Total Protected Area       #64 % Overlap Nat'l Parks       ║
+  ║  #66 % Overlap Indigenous Terr.                                 ║
+  ╚══════════════════════════════════════════════════════════════════╝
+  -->
+  <style id="aoi-v2-style">
+    :root {
+      /* Conservation palette (from styles.scss @theme) */
+      --canopy-50: #edf7f0;
+      --canopy-300: #8fc89a;
+      --canopy-500: #2f7d3d;
+      --canopy-600: #257332;
+      --canopy-700: #1b5e27;
+      --ocean-50: #e9f3fb;
+      --ocean-300: #8ebfe3;
+      --ocean-500: #1e6fa8;
+      --earth-100: #f5efe6;
+      --earth-300: #d7c3a5;  /* kept for reference; borders below use --border */
+      --border: #e2e8f0;    /* slate-200: clean neutral gray */
+      --earth-700: #6b4e2e;
+      --ink-900: #1f2933;
+
+      /* Slate system (supplementary neutrals) */
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+
+      /* Semantic accents */
+      --emerald-50: #ecfdf5;
+      --emerald-100: #d1fae5;
+      --emerald-200: #a7f3d0;
+      --emerald-700: #047857;
+      --emerald-800: #065f46;
+      --amber-50: #fffbeb;
+      --amber-100: #fef3c7;
+      --amber-600: #d97706;
+      --amber-700: #b45309;
+      --teal-50: #f0fdfa;
+      --teal-100: #ccfbf1;
+      --teal-600: #0d9488;
+      --teal-700: #0f766e;
+      --violet-50: #f5f3ff;
+      --violet-100: #ede9fe;
+      --violet-600: #7c3aed;
+      --violet-700: #6d28d9;
+      --rose-50: #fff1f2;
+      --rose-100: #ffe4e6;
+      --rose-600: #e11d48;
+      --rose-700: #be123c;
+      --blue-50: #eff6ff;
+      --blue-100: #dbeafe;
+      --blue-600: #2563eb;
+
+      /* Radii (from styles.scss) */
+      --radius-panel: 1rem;
+      --radius-chip: 9999px;
+      --radius-card: 0.75rem;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--ink-900);
+      background: var(--slate-200);
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Panel Shell ── */
+    .panel {
+      width: 420px;
+      height: 92vh;
+      background: #fff;
+      border-radius: var(--radius-panel);
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.04);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .panel-header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 16px 16px 12px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-chip);
+      background: #fff;
+      color: var(--slate-600);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      flex-shrink: 0;
+      transition: background .15s, border-color .15s;
+    }
+    .icon-btn:hover {
+      background: var(--slate-100);
+      border-color: var(--slate-300);
+    }
+
+    .title-block { min-width: 0; }
+    .region-kicker {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: var(--canopy-500);
+      margin-bottom: 2px;
+    }
+    .region-name {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--ink-900);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .region-meta {
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--slate-500);
+    }
+
+    /* ── Tabs (matches right-sidebar tab grid) ── */
+    .tab-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      height: 42px;
+    }
+
+    .tab-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      border-bottom: 2px solid var(--slate-200);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--slate-500);
+      cursor: pointer;
+      white-space: nowrap;
+      padding: 0 4px;
+      transition: color .15s, background .15s, border-color .15s;
+    }
+    .tab-btn:hover {
+      background: rgba(248,250,252,.8);
+      color: var(--slate-700);
+    }
+    .tab-btn.active {
+      color: var(--ink-900);
+      border-color: var(--ink-900);
+      background: var(--slate-100);
+    }
+
+    /* ── Scrollable Body ── */
+    .panel-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+    .panel-body:hover { scrollbar-color: var(--slate-300) transparent; }
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+    .panel-body:hover::-webkit-scrollbar-thumb { background: var(--slate-300); }
+
+    /* ── Section Containers (panel-container pattern) ── */
+    .section {
+      border-radius: var(--radius-panel);
+      border: 1px solid var(--border);
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .section-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .section-dot.general { background: var(--ocean-500); }
+    .section-dot.bio { background: var(--canopy-500); }
+    .section-dot.eco { background: var(--teal-600); }
+    .section-dot.socio { background: var(--amber-600); }
+    .section-dot.protect { background: var(--violet-600); }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-900);
+    }
+
+    .toggle-pill {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: var(--radius-chip);
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--slate-600);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .toggle-pill:hover { background: var(--slate-50); }
+
+    .section-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .section-body.hidden { display: none; }
+
+    /* ── Hero / Headline Cards ── */
+    .hero-card {
+      border-radius: var(--radius-card);
+      padding: 14px;
+      border: 1px solid var(--slate-200);
+    }
+    .hero-card.priority {
+      background: var(--emerald-50);
+      border-color: var(--emerald-200);
+    }
+    .hero-card.national {
+      background: var(--ocean-50);
+      border-color: var(--ocean-300);
+    }
+
+    .hero-kicker {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--slate-500);
+      margin-bottom: 4px;
+    }
+
+    .hero-value {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 6px;
+      letter-spacing: -.02em;
+    }
+    .hero-card.priority .hero-value { color: var(--canopy-500); }
+    .hero-card.national .hero-value { color: var(--ocean-500); }
+
+    .hero-value .unit {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: var(--slate-200);
+      border-radius: var(--radius-chip);
+      overflow: hidden;
+      margin-bottom: 5px;
+      display: flex;
+    }
+    .progress-fill { height: 100%; }
+    .fill-canopy { background: var(--canopy-500); }
+    .fill-ocean-light { background: var(--ocean-300); }
+    .fill-ocean { background: var(--ocean-500); }
+
+    .hero-sub {
+      font-size: 11px;
+      color: var(--slate-400);
+    }
+    .hero-sub strong { color: var(--slate-700); font-weight: 600; }
+
+    /* ── Stat Cards (mirrors app stat-card) ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      border-radius: var(--radius-panel);
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--slate-500);
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink-900);
+      line-height: 1.1;
+      letter-spacing: -.01em;
+    }
+
+    .stat-unit {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--slate-400);
+    }
+
+    /* ── Bar Chart ── */
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 38px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar-label {
+      font-size: 11px;
+      color: var(--slate-600);
+    }
+
+    .bar-track {
+      height: 10px;
+      background: var(--slate-100);
+      border-radius: var(--radius-chip);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: var(--radius-chip);
+      transition: width .3s ease;
+    }
+
+    .bar-val {
+      font-size: 11px;
+      color: var(--slate-600);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* ── Donut + Legend ── */
+    .donut-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-radius: var(--radius-panel);
+      border: 1px solid var(--border);
+      padding: 14px;
+      background: #fff;
+    }
+
+    .donut {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: conic-gradient(
+        var(--teal-600) 0 39%,
+        var(--violet-600) 39% 62%,
+        var(--amber-600) 62% 79%,
+        var(--ocean-500) 79% 91%,
+        var(--slate-400) 91% 100%
+      );
+      position: relative;
+      flex-shrink: 0;
+    }
+    .donut::after {
+      content: "";
+      position: absolute;
+      inset: 20px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--slate-600);
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ── Alert Badge ── */
+    .alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--rose-100);
+      background: var(--rose-50);
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--rose-700);
+    }
+    .alert i { margin-top: 2px; flex-shrink: 0; }
+
+    /* ── Conditional Tag ── */
+    .tag-cond {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      border-radius: var(--radius-chip);
+      border: 1px dashed var(--slate-300);
+      background: var(--slate-100);
+      padding: 2px 8px;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--slate-400);
+      vertical-align: middle;
+      margin-left: 4px;
+      letter-spacing: .02em;
+    }
+
+    /* ── Insight Callout ── */
+    .insight {
+      border-radius: var(--radius-card);
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--slate-700);
+    }
+    .insight.canopy {
+      background: var(--canopy-50);
+      border-left: 3px solid var(--canopy-500);
+    }
+    .insight.amber {
+      background: var(--amber-50);
+      border-left: 3px solid var(--amber-600);
+    }
+
+    /* ── Footer ── */
+    .panel-footer {
+      border-top: 1px solid var(--border);
+      background: var(--slate-50);
+      padding: 12px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: var(--radius-card);
+      height: 36px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background .15s;
+    }
+    .btn.primary {
+      background: var(--canopy-500);
+      color: #fff;
+    }
+    .btn.primary:hover { background: var(--canopy-700); }
+
+    .btn.secondary {
+      background: #fff;
+      border: 1px solid var(--border);
+      color: var(--slate-700);
+    }
+    .btn.secondary:hover {
+      background: var(--slate-50);
+      border-color: var(--slate-300);
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body id="aoi-v2-body">
+  <aside id="aoi-v2-panel" class="panel">
+
+    <!-- ═══ HEADER ═══ -->
+    <header id="aoi-v2-panel-header" class="panel-header">
+      <div id="aoi-v2-header-top" class="header-top">
+        <div id="aoi-v2-header-left" class="header-left">
+          <button id="aoi-v2-back-btn" class="icon-btn" type="button" aria-label="Back to solution overview">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div id="aoi-v2-title-block" class="title-block">
+            <p id="aoi-v2-region-kicker" class="region-kicker">Municipality</p>
+            <h1 id="aoi-v2-region-name" class="region-name">Popayan</h1>
+            <p id="aoi-v2-region-meta" class="region-meta">512 km&sup2; &middot; Cauca Department</p>
+          </div>
+        </div>
+        <button id="aoi-v2-close-btn" class="icon-btn" type="button" aria-label="Close panel">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <nav id="aoi-v2-tab-bar" class="tab-bar" aria-label="AOI section tabs">
+        <button id="aoi-v2-tab-overview" class="tab-btn active" type="button">Overview</button>
+        <button id="aoi-v2-tab-biodiversity" class="tab-btn" type="button">Biodiversity</button>
+        <button id="aoi-v2-tab-ecosystems" class="tab-btn" type="button">Ecosystems</button>
+        <button id="aoi-v2-tab-landuse" class="tab-btn" type="button">Land Use</button>
+        <button id="aoi-v2-tab-protection" class="tab-btn" type="button">Protection</button>
+      </nav>
+    </header>
+
+    <!-- ═══ BODY ═══ -->
+    <main id="aoi-v2-panel-body" class="panel-body">
+
+      <!-- ── Section A: Regional Conservation Summary ── -->
+      <section id="aoi-v2-section-general" class="section">
+        <div id="aoi-v2-section-general-header" class="section-header">
+          <div id="aoi-v2-section-general-title-group" class="section-title-group">
+            <span id="aoi-v2-dot-general" class="section-dot general"></span>
+            <span id="aoi-v2-title-general" class="section-title">Regional Conservation Summary</span>
+          </div>
+          <button id="aoi-v2-toggle-general" class="toggle-pill" type="button" onclick="toggle('general')">Collapse</button>
+        </div>
+        <div id="aoi-v2-body-general" class="section-body">
+          <!-- #18 + #19: Priority Area -->
+          <article id="aoi-v2-hero-priority" class="hero-card priority">
+            <p id="aoi-v2-hero-priority-kicker" class="hero-kicker">Priority Conservation Area</p>
+            <p id="aoi-v2-hero-priority-value" class="hero-value">230 <span class="unit">km&sup2;</span></p>
+            <div id="aoi-v2-hero-priority-track" class="progress-track">
+              <span id="aoi-v2-hero-priority-fill" class="progress-fill fill-canopy" style="width:45%"></span>
+            </div>
+            <p id="aoi-v2-hero-priority-sub" class="hero-sub"><strong>45%</strong> of this region &middot; 12 priority zones identified</p>
+          </article>
+
+          <!-- #17: National Contribution (AOI context) -->
+          <article id="aoi-v2-hero-national" class="hero-card national">
+            <p id="aoi-v2-hero-national-kicker" class="hero-kicker">AOI Contribution to 30&times;30 Target</p>
+            <p id="aoi-v2-hero-national-value" class="hero-value">1.9<span class="unit">%</span></p>
+            <div id="aoi-v2-hero-national-track" class="progress-track">
+              <span id="aoi-v2-hero-national-fill-existing" class="progress-fill fill-ocean-light" style="width:0.9%"></span>
+              <span id="aoi-v2-hero-national-fill-added" class="progress-fill fill-ocean" style="width:1%"></span>
+            </div>
+            <p id="aoi-v2-hero-national-sub" class="hero-sub">Existing <strong>0.9%</strong> + solution adds <strong>1.0%</strong></p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ── Section B: Biodiversity Metrics ── -->
+      <section id="aoi-v2-section-bio" class="section">
+        <div id="aoi-v2-section-bio-header" class="section-header">
+          <div id="aoi-v2-section-bio-title-group" class="section-title-group">
+            <span id="aoi-v2-dot-bio" class="section-dot bio"></span>
+            <span id="aoi-v2-title-bio" class="section-title">Biodiversity</span>
+          </div>
+          <button id="aoi-v2-toggle-bio" class="toggle-pill" type="button" onclick="toggle('bio')">Collapse</button>
+        </div>
+        <div id="aoi-v2-body-bio" class="section-body">
+          <!-- #21-#25: Species Richness -->
+          <div id="aoi-v2-bar-richness" class="bar-chart">
+            <div id="aoi-v2-bar-mammals" class="bar-row">
+              <span class="bar-label">Mammals</span>
+              <div class="bar-track"><span class="bar-fill" style="width:32%;background:var(--earth-700)"></span></div>
+              <span class="bar-val">42</span>
+            </div>
+            <div id="aoi-v2-bar-birds" class="bar-row">
+              <span class="bar-label">Birds</span>
+              <div class="bar-track"><span class="bar-fill" style="width:100%;background:var(--ocean-500)"></span></div>
+              <span class="bar-val">131</span>
+            </div>
+            <div id="aoi-v2-bar-amphibians" class="bar-row">
+              <span class="bar-label">Amphibians</span>
+              <div class="bar-track"><span class="bar-fill" style="width:34%;background:var(--amber-600)"></span></div>
+              <span class="bar-val">44</span>
+            </div>
+            <div id="aoi-v2-bar-reptiles" class="bar-row">
+              <span class="bar-label">Reptiles</span>
+              <div class="bar-track"><span class="bar-fill" style="width:29%;background:var(--canopy-500)"></span></div>
+              <span class="bar-val">38</span>
+            </div>
+            <div id="aoi-v2-bar-plants" class="bar-row">
+              <span class="bar-label">Plants</span>
+              <div class="bar-track"><span class="bar-fill" style="width:21%;background:var(--canopy-300)"></span></div>
+              <span class="bar-val">27</span>
+            </div>
+          </div>
+
+          <!-- #26, #27, #28 -->
+          <div id="aoi-v2-bio-stats" class="stat-grid">
+            <article id="aoi-v2-stat-threatened" class="stat-card">
+              <p class="stat-label">Threatened Species</p>
+              <p class="stat-value">5</p>
+              <p class="stat-unit">IUCN CR / EN / VU</p>
+            </article>
+            <article id="aoi-v2-stat-endemic" class="stat-card">
+              <p class="stat-label">Endemic Species</p>
+              <p class="stat-value">12</p>
+              <p class="stat-unit">Colombia endemics</p>
+            </article>
+            <article id="aoi-v2-stat-national-species" class="stat-card">
+              <p class="stat-label">% of National Species</p>
+              <p class="stat-value">7%</p>
+              <p class="stat-unit">AOI share of national total</p>
+            </article>
+          </div>
+
+          <div id="aoi-v2-bio-alert" class="alert">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span><strong>5 threatened species</strong> (CR/EN/VU) have habitat within this AOI's priority areas.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section C: Ecosystems & Carbon ── -->
+      <section id="aoi-v2-section-eco" class="section">
+        <div id="aoi-v2-section-eco-header" class="section-header">
+          <div id="aoi-v2-section-eco-title-group" class="section-title-group">
+            <span id="aoi-v2-dot-eco" class="section-dot eco"></span>
+            <span id="aoi-v2-title-eco" class="section-title">Ecosystems &amp; Carbon</span>
+          </div>
+          <button id="aoi-v2-toggle-eco" class="toggle-pill" type="button" onclick="toggle('eco')">Collapse</button>
+        </div>
+        <div id="aoi-v2-body-eco" class="section-body">
+          <!-- #29-#33: Donut -->
+          <article id="aoi-v2-donut-card" class="donut-card">
+            <div id="aoi-v2-donut" class="donut" aria-label="Ecosystem distribution"></div>
+            <div id="aoi-v2-legend" class="legend">
+              <div class="legend-row"><span class="swatch" style="background:var(--teal-600)"></span> Cloud Forest &mdash; 39%</div>
+              <div class="legend-row"><span class="swatch" style="background:var(--violet-600)"></span> P&aacute;ramo &mdash; 23%</div>
+              <div class="legend-row"><span class="swatch" style="background:var(--amber-600)"></span> Dry Forest &mdash; 17%</div>
+              <div class="legend-row"><span class="swatch" style="background:var(--ocean-500)"></span> Wetlands &mdash; 12%</div>
+              <div class="legend-row"><span class="swatch" style="background:var(--slate-400)"></span> Other &mdash; 9%</div>
+            </div>
+          </article>
+
+          <!-- #39, #43, #40, #41 -->
+          <div id="aoi-v2-carbon-stats" class="stat-grid">
+            <article id="aoi-v2-stat-total-carbon" class="stat-card">
+              <p class="stat-label">Total Carbon Biomass</p>
+              <p class="stat-value">85M</p>
+              <p class="stat-unit">tCO&sub2;e</p>
+            </article>
+            <article id="aoi-v2-stat-national-carbon" class="stat-card">
+              <p class="stat-label">% of National Carbon</p>
+              <p class="stat-value">7%</p>
+              <p class="stat-unit">Of Colombian stocks</p>
+            </article>
+            <article id="aoi-v2-stat-above-carbon" class="stat-card">
+              <p class="stat-label">Above-ground Carbon</p>
+              <p class="stat-value">52M</p>
+              <p class="stat-unit">tCO&sub2;e</p>
+            </article>
+            <article id="aoi-v2-stat-soil-carbon" class="stat-card">
+              <p class="stat-label">Soil Organic Carbon</p>
+              <p class="stat-value">33M</p>
+              <p class="stat-unit">tCO&sub2;e</p>
+            </article>
+          </div>
+
+          <!-- #44: Water Regulation -->
+          <article id="aoi-v2-stat-water" class="stat-card">
+            <p class="stat-label">Water Regulation Capacity</p>
+            <p class="stat-value">High <span style="font-size:14px;font-weight:500;color:var(--slate-400)">(Index 78 / 100)</span></p>
+            <p class="stat-unit">Hydrological service provision for downstream communities</p>
+          </article>
+
+          <div id="aoi-v2-eco-insight" class="insight canopy">
+            This AOI stores <strong>7% of Colombia's carbon stocks</strong> and provides <strong>above-average water regulation</strong> for the Cauca River basin.
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section D: Land Use & Socio-Economic ── -->
+      <section id="aoi-v2-section-socio" class="section">
+        <div id="aoi-v2-section-socio-header" class="section-header">
+          <div id="aoi-v2-section-socio-title-group" class="section-title-group">
+            <span id="aoi-v2-dot-socio" class="section-dot socio"></span>
+            <span id="aoi-v2-title-socio" class="section-title">Land Use &amp; Socio-Economic</span>
+          </div>
+          <button id="aoi-v2-toggle-socio" class="toggle-pill" type="button" onclick="toggle('socio')">Expand</button>
+        </div>
+        <div id="aoi-v2-body-socio" class="section-body hidden">
+          <!-- #51-#54 -->
+          <div id="aoi-v2-landuse-bars" class="bar-chart">
+            <div class="bar-row">
+              <span class="bar-label">Natural Forest</span>
+              <div class="bar-track"><span class="bar-fill" style="width:60%;background:var(--canopy-500)"></span></div>
+              <span class="bar-val">60%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Pasture</span>
+              <div class="bar-track"><span class="bar-fill" style="width:25%;background:var(--amber-600)"></span></div>
+              <span class="bar-val">25%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Crops</span>
+              <div class="bar-track"><span class="bar-fill" style="width:10%;background:var(--ocean-500)"></span></div>
+              <span class="bar-val">10%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Other</span>
+              <div class="bar-track"><span class="bar-fill" style="width:5%;background:var(--slate-400)"></span></div>
+              <span class="bar-val">5%</span>
+            </div>
+          </div>
+
+          <!-- #55 (Conditional), #57 (Conditional) -->
+          <div id="aoi-v2-socio-stats" class="stat-grid">
+            <article id="aoi-v2-stat-ag-cost" class="stat-card">
+              <p class="stat-label">Ag. Opportunity Cost <span class="tag-cond">Conditional</span></p>
+              <p class="stat-value">$125M</p>
+              <p class="stat-unit">USD equivalent</p>
+            </article>
+            <article id="aoi-v2-stat-conflict" class="stat-card">
+              <p class="stat-label">Conflict Zone Overlap <span class="tag-cond">Conditional</span></p>
+              <p class="stat-value">38 km&sup2;</p>
+              <p class="stat-unit">Historical conflict area</p>
+            </article>
+          </div>
+
+          <div id="aoi-v2-socio-insight" class="insight amber">
+            60% of this AOI's priority area is natural forest. Agricultural opportunity cost is <strong>$125M USD</strong>, with <strong>38 km&sup2;</strong> in historical conflict zones.
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section E: Cultural & Protection Status ── -->
+      <section id="aoi-v2-section-protect" class="section">
+        <div id="aoi-v2-section-protect-header" class="section-header">
+          <div id="aoi-v2-section-protect-title-group" class="section-title-group">
+            <span id="aoi-v2-dot-protect" class="section-dot protect"></span>
+            <span id="aoi-v2-title-protect" class="section-title">Cultural &amp; Protection</span>
+          </div>
+          <button id="aoi-v2-toggle-protect" class="toggle-pill" type="button" onclick="toggle('protect')">Expand</button>
+        </div>
+        <div id="aoi-v2-body-protect" class="section-body hidden">
+          <!-- #59, #60, #63, #64, #66 -->
+          <div id="aoi-v2-protect-stats" class="stat-grid">
+            <article id="aoi-v2-stat-indigenous" class="stat-card">
+              <p class="stat-label">Indigenous Reservations</p>
+              <p class="stat-value">41 km&sup2;</p>
+              <p class="stat-unit">Within AOI priorities</p>
+            </article>
+            <article id="aoi-v2-stat-community" class="stat-card">
+              <p class="stat-label">Community Councils</p>
+              <p class="stat-value">27 km&sup2;</p>
+              <p class="stat-unit">Afro-Colombian territories</p>
+            </article>
+            <article id="aoi-v2-stat-total-protected" class="stat-card">
+              <p class="stat-label">Total Protected Area</p>
+              <p class="stat-value">72 km&sup2;</p>
+              <p class="stat-unit">31% of AOI under protection</p>
+            </article>
+            <article id="aoi-v2-stat-parks-overlap" class="stat-card">
+              <p class="stat-label">Overlap w/ Nat'l Parks</p>
+              <p class="stat-value">18%</p>
+              <p class="stat-unit">Of AOI priority area</p>
+            </article>
+            <article id="aoi-v2-stat-indigenous-overlap" class="stat-card">
+              <p class="stat-label">Overlap w/ Indigenous Terr.</p>
+              <p class="stat-value">12%</p>
+              <p class="stat-unit">Consultation-sensitive</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer id="aoi-v2-panel-footer" class="panel-footer">
+      <button id="aoi-v2-btn-report" class="btn primary" type="button" style="width:100%">
+        <i class="fas fa-file-pdf"></i> Generate Regional Report (PDF)
+      </button>
+      <div id="aoi-v2-btn-row" class="btn-row">
+        <button id="aoi-v2-btn-export-data" class="btn secondary" type="button">
+          <i class="fas fa-table"></i> Export Data
+        </button>
+        <button id="aoi-v2-btn-export-map" class="btn secondary" type="button">
+          <i class="fas fa-image"></i> Export Map
+        </button>
+      </div>
+    </footer>
+  </aside>
+
+  <script id="aoi-v2-script">
+    function toggle(sectionId) {
+      var body = document.getElementById("aoi-v2-body-" + sectionId);
+      var pill = document.getElementById("aoi-v2-toggle-" + sectionId);
+      var isHidden = body.classList.contains("hidden");
+      if (isHidden) {
+        body.classList.remove("hidden");
+        pill.textContent = "Collapse";
+      } else {
+        body.classList.add("hidden");
+        pill.textContent = "Expand";
+      }
+    }
+
+    document.querySelectorAll("#aoi-v2-tab-bar .tab-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        document.querySelectorAll("#aoi-v2-tab-bar .tab-btn").forEach(function(b) {
+          b.classList.remove("active");
+        });
+        btn.classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>
