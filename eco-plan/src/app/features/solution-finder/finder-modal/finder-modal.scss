@@ -2,3 +2,73 @@
   display: block;
   height: 100%;
 }
+
+@media (min-width: 1024px) {
+  #solution-finder-modal-constraints-card-wrapper,
+  #solution-finder-modal-results-card-wrapper {
+    height: var(--solution-finder-targets-group-height, auto);
+    max-height: var(--solution-finder-targets-group-height, auto);
+  }
+}
+
+.finder-results-scrollbar {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+}
+
+.finder-result-row {
+  z-index: 0;
+  background-color: #ffffff;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #cbd5e1;
+  }
+
+  &:first-child::before {
+    display: none;
+  }
+
+  &:hover:not(.is-selected),
+  &:focus-visible:not(.is-selected) {
+    z-index: 10;
+    background-color: #e2e8f0;
+    box-shadow: inset 0 0 0 2px #64748b;
+  }
+
+  &.is-selected {
+    z-index: 20;
+    background-color: #e0f2fe;
+    box-shadow: inset 0 0 0 2px #0284c7;
+  }
+
+  &.is-selected:hover,
+  &.is-selected:focus-visible {
+    background-color: #e0f2fe;
+    box-shadow: inset 0 0 0 2px #0284c7;
+  }
+
+  &:hover:not(.is-selected)::before,
+  &:focus-visible:not(.is-selected)::before,
+  &.is-selected::before {
+    opacity: 0;
+  }
+
+  &:hover:not(.is-selected) + .finder-result-row::before,
+  &:focus-visible:not(.is-selected) + .finder-result-row::before,
+  &.is-selected + .finder-result-row::before {
+    opacity: 0;
+  }
+}

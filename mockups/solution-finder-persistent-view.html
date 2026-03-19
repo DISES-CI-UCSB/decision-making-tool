@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html id="solution-finder-mockup-html-root" lang="en">
+  <head id="solution-finder-mockup-head">
+    <meta id="solution-finder-mockup-meta-charset" charset="UTF-8" />
+    <meta
+      id="solution-finder-mockup-meta-viewport"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title id="solution-finder-mockup-title">Solution Finder - Persistent View Mockup</title>
+    <script id="solution-finder-mockup-tailwind-cdn-script" src="https://cdn.tailwindcss.com"></script>
+    <style id="solution-finder-mockup-style">
+      :root {
+        color-scheme: light;
+      }
+
+      #solution-finder-mockup-body {
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+    </style>
+  </head>
+  <body
+    id="solution-finder-mockup-body"
+    class="min-h-screen bg-slate-200 p-4 md:p-8"
+  >
+    <main
+      id="solution-finder-mockup-main"
+      class="mx-auto max-w-[1500px]"
+    >
+      <section
+        id="solution-finder-mockup-modal-shell"
+        class="rounded-2xl border border-slate-300 bg-white shadow-2xl"
+        aria-labelledby="solution-finder-mockup-modal-title"
+      >
+        <header
+          id="solution-finder-mockup-modal-header"
+          class="border-b border-slate-200 px-5 py-4 md:px-8"
+        >
+          <div
+            id="solution-finder-mockup-modal-header-row"
+            class="flex flex-wrap items-start justify-between gap-4"
+          >
+            <div id="solution-finder-mockup-modal-header-copy" class="space-y-1">
+              <p
+                id="solution-finder-mockup-kicker"
+                class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700"
+              >
+                Solution Finder Mockup
+              </p>
+              <h1
+                id="solution-finder-mockup-modal-title"
+                class="text-xl font-semibold text-slate-900 md:text-2xl"
+              >
+                One Persistent View with Progressive Unlock
+              </h1>
+              <p id="solution-finder-mockup-modal-description" class="text-sm text-slate-600">
+                Select at least one target to unlock constraints. Run matches to unlock results.
+              </p>
+            </div>
+            <button
+              id="solution-finder-mockup-close-button"
+              type="button"
+              class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Close
+            </button>
+          </div>
+          <div
+            id="solution-finder-mockup-step-status-row"
+            class="mt-4 grid gap-2 text-xs md:grid-cols-12"
+          >
+            <div
+              id="solution-finder-mockup-step-chip-1"
+              class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 font-semibold text-emerald-700 md:col-span-5"
+            >
+              Step 1: Targets - <span id="solution-finder-mockup-step-chip-1-state">In Progress</span>
+            </div>
+            <div
+              id="solution-finder-mockup-step-chip-2"
+              class="rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 font-semibold text-slate-600 md:col-span-3"
+            >
+              Step 2: Constraints - <span id="solution-finder-mockup-step-chip-2-state">Locked</span>
+            </div>
+            <div
+              id="solution-finder-mockup-step-chip-3"
+              class="rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 font-semibold text-slate-600 md:col-span-4"
+            >
+              Step 3: Results - <span id="solution-finder-mockup-step-chip-3-state">Locked</span>
+            </div>
+          </div>
+        </header>
+
+        <section
+          id="solution-finder-mockup-body-grid"
+          class="grid gap-4 p-4 md:grid-cols-12 md:gap-5 md:p-6"
+        >
+          <section
+            id="solution-finder-mockup-step1-column"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-5"
+            aria-labelledby="solution-finder-mockup-step1-title"
+          >
+            <div id="solution-finder-mockup-step1-header" class="mb-3">
+              <h2 id="solution-finder-mockup-step1-title" class="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                Step 1 - Select Targets (Required)
+              </h2>
+              <p id="solution-finder-mockup-step1-helper" class="mt-1 text-xs text-slate-500">
+                Pick one value per theme. You only need one target to unlock Step 2.
+              </p>
+            </div>
+
+            <article id="solution-finder-mockup-target-card-mammals" class="mb-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div id="solution-finder-mockup-target-card-mammals-header" class="mb-2 flex items-center justify-between gap-2">
+                <h3 id="solution-finder-mockup-target-card-mammals-title" class="text-sm font-semibold text-slate-900">
+                  Mammal Species
+                </h3>
+                <span id="solution-finder-mockup-target-card-mammals-badge" class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  30x30
+                </span>
+              </div>
+              <div id="solution-finder-mockup-target-card-mammals-options" class="flex flex-wrap gap-2">
+                <button id="solution-finder-mockup-target-mammals-17" data-target-group="mammals" data-target-value="17" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">17%</button>
+                <button id="solution-finder-mockup-target-mammals-30" data-target-group="mammals" data-target-value="30" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">30%</button>
+                <button id="solution-finder-mockup-target-mammals-34" data-target-group="mammals" data-target-value="34" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">34%</button>
+                <button id="solution-finder-mockup-target-mammals-custom" data-target-group="mammals" data-target-value="custom" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">Custom</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-target-card-cloud-forest" class="mb-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div id="solution-finder-mockup-target-card-cloud-forest-header" class="mb-2 flex items-center justify-between gap-2">
+                <h3 id="solution-finder-mockup-target-card-cloud-forest-title" class="text-sm font-semibold text-slate-900">
+                  Cloud Forest
+                </h3>
+                <span id="solution-finder-mockup-target-card-cloud-forest-badge" class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  30x30
+                </span>
+              </div>
+              <div id="solution-finder-mockup-target-card-cloud-forest-options" class="flex flex-wrap gap-2">
+                <button id="solution-finder-mockup-target-cloud-forest-17" data-target-group="cloud-forest" data-target-value="17" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">17%</button>
+                <button id="solution-finder-mockup-target-cloud-forest-21" data-target-group="cloud-forest" data-target-value="21" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">21%</button>
+                <button id="solution-finder-mockup-target-cloud-forest-30" data-target-group="cloud-forest" data-target-value="30" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">30%</button>
+                <button id="solution-finder-mockup-target-cloud-forest-custom" data-target-group="cloud-forest" data-target-value="custom" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">Custom</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-target-card-amphibians" class="mb-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div id="solution-finder-mockup-target-card-amphibians-header" class="mb-2 flex items-center justify-between gap-2">
+                <h3 id="solution-finder-mockup-target-card-amphibians-title" class="text-sm font-semibold text-slate-900">
+                  Threatened Amphibians
+                </h3>
+                <span id="solution-finder-mockup-target-card-amphibians-badge" class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  30x30
+                </span>
+              </div>
+              <div id="solution-finder-mockup-target-card-amphibians-options" class="flex flex-wrap gap-2">
+                <button id="solution-finder-mockup-target-amphibians-17" data-target-group="amphibians" data-target-value="17" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">17%</button>
+                <button id="solution-finder-mockup-target-amphibians-25" data-target-group="amphibians" data-target-value="25" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">25%</button>
+                <button id="solution-finder-mockup-target-amphibians-30" data-target-group="amphibians" data-target-value="30" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">30%</button>
+                <button id="solution-finder-mockup-target-amphibians-custom" data-target-group="amphibians" data-target-value="custom" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">Custom</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-target-card-paramo" class="mb-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div id="solution-finder-mockup-target-card-paramo-header" class="mb-2 flex items-center justify-between gap-2">
+                <h3 id="solution-finder-mockup-target-card-paramo-title" class="text-sm font-semibold text-slate-900">
+                  Paramo Ecosystems
+                </h3>
+                <span id="solution-finder-mockup-target-card-paramo-badge" class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  30x30
+                </span>
+              </div>
+              <div id="solution-finder-mockup-target-card-paramo-options" class="flex flex-wrap gap-2">
+                <button id="solution-finder-mockup-target-paramo-17" data-target-group="paramo" data-target-value="17" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">17%</button>
+                <button id="solution-finder-mockup-target-paramo-30" data-target-group="paramo" data-target-value="30" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">30%</button>
+                <button id="solution-finder-mockup-target-paramo-50" data-target-group="paramo" data-target-value="50" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">50%</button>
+                <button id="solution-finder-mockup-target-paramo-custom" data-target-group="paramo" data-target-value="custom" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">Custom</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-target-card-wetlands" class="rounded-xl border border-slate-200 bg-white p-3">
+              <div id="solution-finder-mockup-target-card-wetlands-header" class="mb-2 flex items-center justify-between gap-2">
+                <h3 id="solution-finder-mockup-target-card-wetlands-title" class="text-sm font-semibold text-slate-900">
+                  Wetlands
+                </h3>
+                <span id="solution-finder-mockup-target-card-wetlands-badge" class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  30x30
+                </span>
+              </div>
+              <div id="solution-finder-mockup-target-card-wetlands-options" class="flex flex-wrap gap-2">
+                <button id="solution-finder-mockup-target-wetlands-17" data-target-group="wetlands" data-target-value="17" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">17%</button>
+                <button id="solution-finder-mockup-target-wetlands-30" data-target-group="wetlands" data-target-value="30" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">30%</button>
+                <button id="solution-finder-mockup-target-wetlands-custom" data-target-group="wetlands" data-target-value="custom" type="button" class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">Custom</button>
+              </div>
+            </article>
+          </section>
+
+          <section
+            id="solution-finder-mockup-step2-column"
+            class="relative rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-3"
+            aria-labelledby="solution-finder-mockup-step2-title"
+          >
+            <div
+              id="solution-finder-mockup-step2-overlay"
+              class="absolute inset-0 z-10 hidden rounded-xl bg-slate-100/85 p-3"
+            >
+              <div id="solution-finder-mockup-step2-overlay-content" class="flex h-full items-center justify-center text-center">
+                <p id="solution-finder-mockup-step2-overlay-message" class="max-w-[220px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+                  Complete Step 1 to unlock constraints.
+                </p>
+              </div>
+            </div>
+
+            <div id="solution-finder-mockup-step2-header" class="mb-3">
+              <h2 id="solution-finder-mockup-step2-title" class="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                Step 2 - Includes/Excludes (Optional)
+              </h2>
+              <p id="solution-finder-mockup-step2-helper" class="mt-1 text-xs text-slate-500">
+                Toggle constraints after selecting at least one target.
+              </p>
+            </div>
+
+            <article id="solution-finder-mockup-constraint-card-national-parks" class="mb-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div id="solution-finder-mockup-constraint-card-national-parks-row" class="flex items-center justify-between gap-2">
+                <div id="solution-finder-mockup-constraint-card-national-parks-copy">
+                  <p id="solution-finder-mockup-constraint-card-national-parks-title" class="text-xs font-medium text-slate-900">Include National Parks</p>
+                  <p id="solution-finder-mockup-constraint-card-national-parks-type" class="text-[11px] uppercase text-slate-500">Include</p>
+                </div>
+                <button id="solution-finder-mockup-constraint-toggle-national-parks" data-constraint-id="national-parks" type="button" class="rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">OFF</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-constraint-card-urban-centers" class="mb-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div id="solution-finder-mockup-constraint-card-urban-centers-row" class="flex items-center justify-between gap-2">
+                <div id="solution-finder-mockup-constraint-card-urban-centers-copy">
+                  <p id="solution-finder-mockup-constraint-card-urban-centers-title" class="text-xs font-medium text-slate-900">Exclude Urban Centers</p>
+                  <p id="solution-finder-mockup-constraint-card-urban-centers-type" class="text-[11px] uppercase text-slate-500">Exclude</p>
+                </div>
+                <button id="solution-finder-mockup-constraint-toggle-urban-centers" data-constraint-id="urban-centers" type="button" class="rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">OFF</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-constraint-card-connectivity" class="mb-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div id="solution-finder-mockup-constraint-card-connectivity-row" class="flex items-center justify-between gap-2">
+                <div id="solution-finder-mockup-constraint-card-connectivity-copy">
+                  <p id="solution-finder-mockup-constraint-card-connectivity-title" class="text-xs font-medium text-slate-900">Connect Protected Areas</p>
+                  <p id="solution-finder-mockup-constraint-card-connectivity-type" class="text-[11px] uppercase text-slate-500">Include</p>
+                </div>
+                <button id="solution-finder-mockup-constraint-toggle-connectivity" data-constraint-id="connectivity" type="button" class="rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">OFF</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-constraint-card-mining" class="mb-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div id="solution-finder-mockup-constraint-card-mining-row" class="flex items-center justify-between gap-2">
+                <div id="solution-finder-mockup-constraint-card-mining-copy">
+                  <p id="solution-finder-mockup-constraint-card-mining-title" class="text-xs font-medium text-slate-900">Exclude Mining Zones</p>
+                  <p id="solution-finder-mockup-constraint-card-mining-type" class="text-[11px] uppercase text-slate-500">Exclude</p>
+                </div>
+                <button id="solution-finder-mockup-constraint-toggle-mining" data-constraint-id="mining" type="button" class="rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">OFF</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-constraint-card-indigenous" class="mb-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div id="solution-finder-mockup-constraint-card-indigenous-row" class="flex items-center justify-between gap-2">
+                <div id="solution-finder-mockup-constraint-card-indigenous-copy">
+                  <p id="solution-finder-mockup-constraint-card-indigenous-title" class="text-xs font-medium text-slate-900">Include Indigenous Territories</p>
+                  <p id="solution-finder-mockup-constraint-card-indigenous-type" class="text-[11px] uppercase text-slate-500">Include</p>
+                </div>
+                <button id="solution-finder-mockup-constraint-toggle-indigenous" data-constraint-id="indigenous" type="button" class="rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">OFF</button>
+              </div>
+            </article>
+
+            <article id="solution-finder-mockup-constraint-card-conflict" class="rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div id="solution-finder-mockup-constraint-card-conflict-row" class="flex items-center justify-between gap-2">
+                <div id="solution-finder-mockup-constraint-card-conflict-copy">
+                  <p id="solution-finder-mockup-constraint-card-conflict-title" class="text-xs font-medium text-slate-900">Exclude Conflict Zones</p>
+                  <p id="solution-finder-mockup-constraint-card-conflict-type" class="text-[11px] uppercase text-slate-500">Exclude</p>
+                </div>
+                <button id="solution-finder-mockup-constraint-toggle-conflict" data-constraint-id="conflict" type="button" class="rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">OFF</button>
+              </div>
+            </article>
+          </section>
+
+          <section
+            id="solution-finder-mockup-step3-column"
+            class="relative rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-4"
+            aria-labelledby="solution-finder-mockup-step3-title"
+          >
+            <div
+              id="solution-finder-mockup-step3-overlay"
+              class="absolute inset-0 z-10 rounded-xl bg-slate-100/85 p-3"
+            >
+              <div id="solution-finder-mockup-step3-overlay-content" class="flex h-full items-center justify-center text-center">
+                <p id="solution-finder-mockup-step3-overlay-message" class="max-w-[240px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+                  Run "Find Matches" after Step 1 to unlock results.
+                </p>
+              </div>
+            </div>
+
+            <div id="solution-finder-mockup-step3-header" class="mb-3">
+              <h2 id="solution-finder-mockup-step3-title" class="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                Step 3 - Results
+              </h2>
+              <p id="solution-finder-mockup-step3-helper" class="mt-1 text-xs text-slate-500">
+                Review best matches, then apply one scenario.
+              </p>
+            </div>
+
+            <div id="solution-finder-mockup-results-list" class="mb-3 max-h-48 space-y-2 overflow-y-auto pr-1"></div>
+
+            <article id="solution-finder-mockup-preview-card" class="rounded-xl border border-slate-200 bg-white p-3">
+              <div id="solution-finder-mockup-preview-header" class="mb-2 flex items-center justify-between">
+                <h3 id="solution-finder-mockup-preview-title" class="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Preview
+                </h3>
+                <span id="solution-finder-mockup-preview-match-chip" class="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                  --
+                </span>
+              </div>
+              <div id="solution-finder-mockup-preview-map" class="mb-2 h-28 rounded-lg border border-slate-200 bg-gradient-to-r from-emerald-100 via-sky-100 to-indigo-100"></div>
+              <p id="solution-finder-mockup-preview-name" class="text-sm font-semibold text-slate-900">
+                Select a result
+              </p>
+              <p id="solution-finder-mockup-preview-description" class="mt-1 text-xs text-slate-600">
+                The selected scenario details appear here.
+              </p>
+            </article>
+          </section>
+        </section>
+
+        <footer
+          id="solution-finder-mockup-modal-footer"
+          class="rounded-b-2xl border-t border-slate-200 bg-slate-50 px-5 py-4 md:px-8"
+        >
+          <div
+            id="solution-finder-mockup-modal-footer-row"
+            class="flex flex-wrap items-center justify-between gap-3"
+          >
+            <p id="solution-finder-mockup-selection-summary" class="text-xs text-slate-600">
+              0 targets selected, 0 constraints enabled.
+            </p>
+            <div id="solution-finder-mockup-footer-actions" class="flex flex-wrap items-center gap-2">
+              <button id="solution-finder-mockup-reset-button" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                Reset
+              </button>
+              <button id="solution-finder-mockup-cancel-button" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                Cancel
+              </button>
+              <button id="solution-finder-mockup-find-matches-button" type="button" class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300" disabled>
+                Find Matches
+              </button>
+              <button id="solution-finder-mockup-apply-button" type="button" class="rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-sky-300" disabled>
+                Apply Scenario
+              </button>
+            </div>
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <script id="solution-finder-mockup-script">
+      const targetSelections = {
+        mammals: null,
+        "cloud-forest": null,
+        amphibians: null,
+        paramo: null,
+        wetlands: null,
+      };
+
+      const constraints = {
+        "national-parks": false,
+        "urban-centers": false,
+        connectivity: false,
+        mining: false,
+        indigenous: false,
+        conflict: false,
+      };
+
+      const scenarioLibrary = [
+        {
+          id: "corridor-forward",
+          name: "Corridor-Forward 30x30",
+          description: "High connectivity with moderate socio-economic friction.",
+          mapLabel: "Cloud Forest + Corridor Bias",
+        },
+        {
+          id: "equity-balanced",
+          name: "Biodiversity + Equity Mix",
+          description: "Balances species goals with indigenous territory inclusion.",
+          mapLabel: "Balanced Species + Equity",
+        },
+        {
+          id: "low-conflict",
+          name: "Low-Conflict Expansion",
+          description: "Reduces conflict overlap while maintaining core targets.",
+          mapLabel: "Conflict-Aware Priorities",
+        },
+        {
+          id: "water-priority",
+          name: "Water-Service Priority",
+          description: "Elevates paramo and watershed outcomes for resilience.",
+          mapLabel: "Hydrology-Led Outcome",
+        },
+      ];
+
+      let selectedResultId = null;
+      let currentResults = [];
+
+      const resultsListElement = document.getElementById("solution-finder-mockup-results-list");
+      const selectionSummaryElement = document.getElementById("solution-finder-mockup-selection-summary");
+      const step2OverlayElement = document.getElementById("solution-finder-mockup-step2-overlay");
+      const step3OverlayElement = document.getElementById("solution-finder-mockup-step3-overlay");
+      const findMatchesButtonElement = document.getElementById("solution-finder-mockup-find-matches-button");
+      const applyButtonElement = document.getElementById("solution-finder-mockup-apply-button");
+      const stepChip1Element = document.getElementById("solution-finder-mockup-step-chip-1");
+      const stepChip2Element = document.getElementById("solution-finder-mockup-step-chip-2");
+      const stepChip3Element = document.getElementById("solution-finder-mockup-step-chip-3");
+      const stepChip1StateElement = document.getElementById("solution-finder-mockup-step-chip-1-state");
+      const stepChip2StateElement = document.getElementById("solution-finder-mockup-step-chip-2-state");
+      const stepChip3StateElement = document.getElementById("solution-finder-mockup-step-chip-3-state");
+      const previewNameElement = document.getElementById("solution-finder-mockup-preview-name");
+      const previewDescriptionElement = document.getElementById("solution-finder-mockup-preview-description");
+      const previewMatchChipElement = document.getElementById("solution-finder-mockup-preview-match-chip");
+      const previewMapElement = document.getElementById("solution-finder-mockup-preview-map");
+
+      function getSelectedTargetCount() {
+        return Object.values(targetSelections).filter((value) => value !== null).length;
+      }
+
+      function getEnabledConstraintCount() {
+        return Object.values(constraints).filter(Boolean).length;
+      }
+
+      function isStep1Complete() {
+        return getSelectedTargetCount() > 0;
+      }
+
+      function isStep3Unlocked() {
+        return currentResults.length > 0;
+      }
+
+      function clearResultsState() {
+        currentResults = [];
+        selectedResultId = null;
+        renderResults();
+        updatePreviewCard();
+      }
+
+      function setActiveTargetButton(group, value) {
+        const groupButtons = document.querySelectorAll(
+          '#solution-finder-mockup-main button[data-target-group="' + group + '"]',
+        );
+        groupButtons.forEach((buttonElement) => {
+          if (buttonElement.getAttribute("data-target-value") === value) {
+            buttonElement.className =
+              "rounded-full border border-sky-600 bg-sky-600 px-3 py-1 text-xs font-medium text-white";
+          } else {
+            buttonElement.className =
+              "rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700";
+          }
+        });
+      }
+
+      function updateConstraintButtonVisual(constraintId) {
+        const buttonElement = document.querySelector(
+          '#solution-finder-mockup-main button[data-constraint-id="' + constraintId + '"]',
+        );
+        if (!buttonElement) {
+          return;
+        }
+
+        const isOn = constraints[constraintId];
+        buttonElement.textContent = isOn ? "ON" : "OFF";
+        buttonElement.className = isOn
+          ? "rounded-full border border-emerald-600 bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white"
+          : "rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700";
+      }
+
+      function scoreScenario(scenarioIndex) {
+        const selectedTargetCount = getSelectedTargetCount();
+        const enabledConstraintCount = getEnabledConstraintCount();
+        const baseScore = 68 + selectedTargetCount * 4 + enabledConstraintCount * 2;
+        return Math.max(58, Math.min(99, baseScore - scenarioIndex * 3));
+      }
+
+      function runMatches() {
+        currentResults = scenarioLibrary.map((scenario, index) => ({
+          ...scenario,
+          matchPercentage: scoreScenario(index),
+        }));
+        selectedResultId = currentResults[0]?.id ?? null;
+        renderResults();
+        updatePreviewCard();
+      }
+
+      function renderResults() {
+        resultsListElement.innerHTML = "";
+
+        if (!currentResults.length) {
+          const emptyElement = document.createElement("p");
+          emptyElement.id = "solution-finder-mockup-results-empty-text";
+          emptyElement.className =
+            "rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-xs text-slate-500";
+          emptyElement.textContent = "No matches yet. Use Find Matches to generate results.";
+          resultsListElement.appendChild(emptyElement);
+          return;
+        }
+
+        currentResults.forEach((result) => {
+          const buttonElement = document.createElement("button");
+          buttonElement.id = "solution-finder-mockup-result-row-" + result.id;
+          buttonElement.type = "button";
+          buttonElement.className =
+            selectedResultId === result.id
+              ? "w-full rounded-lg border border-sky-500 bg-sky-50 px-3 py-2 text-left"
+              : "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left";
+
+          const headerElement = document.createElement("div");
+          headerElement.id = "solution-finder-mockup-result-row-header-" + result.id;
+          headerElement.className = "flex items-center justify-between gap-2";
+
+          const nameElement = document.createElement("p");
+          nameElement.id = "solution-finder-mockup-result-row-name-" + result.id;
+          nameElement.className = "text-xs font-semibold text-slate-900";
+          nameElement.textContent = result.name;
+
+          const matchElement = document.createElement("span");
+          matchElement.id = "solution-finder-mockup-result-row-match-" + result.id;
+          matchElement.className =
+            "rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700";
+          matchElement.textContent = result.matchPercentage + "%";
+
+          const descriptionElement = document.createElement("p");
+          descriptionElement.id = "solution-finder-mockup-result-row-description-" + result.id;
+          descriptionElement.className = "mt-1 text-[11px] text-slate-600";
+          descriptionElement.textContent = result.description;
+
+          headerElement.appendChild(nameElement);
+          headerElement.appendChild(matchElement);
+          buttonElement.appendChild(headerElement);
+          buttonElement.appendChild(descriptionElement);
+          buttonElement.addEventListener("click", () => {
+            selectedResultId = result.id;
+            renderResults();
+            updatePreviewCard();
+            syncUi();
+          });
+          resultsListElement.appendChild(buttonElement);
+        });
+      }
+
+      function updatePreviewCard() {
+        const selectedResult = currentResults.find((result) => result.id === selectedResultId);
+        if (!selectedResult) {
+          previewNameElement.textContent = "Select a result";
+          previewDescriptionElement.textContent = "The selected scenario details appear here.";
+          previewMatchChipElement.textContent = "--";
+          previewMapElement.className =
+            "mb-2 h-28 rounded-lg border border-slate-200 bg-gradient-to-r from-emerald-100 via-sky-100 to-indigo-100";
+          return;
+        }
+
+        previewNameElement.textContent = selectedResult.name;
+        previewDescriptionElement.textContent =
+          selectedResult.description + " Layer profile: " + selectedResult.mapLabel + ".";
+        previewMatchChipElement.textContent = selectedResult.matchPercentage + "%";
+        previewMapElement.className =
+          "mb-2 h-28 rounded-lg border border-slate-200 bg-gradient-to-r from-emerald-200 via-cyan-100 to-indigo-200";
+      }
+
+      function syncUi() {
+        const selectedTargetCount = getSelectedTargetCount();
+        const enabledConstraintCount = getEnabledConstraintCount();
+        const step1Complete = isStep1Complete();
+        const step3Unlocked = isStep3Unlocked();
+
+        selectionSummaryElement.textContent =
+          selectedTargetCount +
+          " targets selected, " +
+          enabledConstraintCount +
+          " constraints enabled.";
+
+        step2OverlayElement.classList.toggle("hidden", step1Complete);
+        step3OverlayElement.classList.toggle("hidden", step3Unlocked);
+        findMatchesButtonElement.disabled = !step1Complete;
+        applyButtonElement.disabled = !step3Unlocked || !selectedResultId;
+
+        stepChip1Element.className =
+          "rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 font-semibold text-emerald-700 md:col-span-5";
+        stepChip1StateElement.textContent = step1Complete ? "Complete" : "In Progress";
+
+        if (step1Complete) {
+          stepChip2Element.className =
+            "rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 font-semibold text-sky-700 md:col-span-3";
+          stepChip2StateElement.textContent = "Unlocked";
+        } else {
+          stepChip2Element.className =
+            "rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 font-semibold text-slate-600 md:col-span-3";
+          stepChip2StateElement.textContent = "Locked";
+        }
+
+        if (step3Unlocked) {
+          stepChip3Element.className =
+            "rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 font-semibold text-indigo-700 md:col-span-4";
+          stepChip3StateElement.textContent = "Ready";
+        } else {
+          stepChip3Element.className =
+            "rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 font-semibold text-slate-600 md:col-span-4";
+          stepChip3StateElement.textContent = "Locked";
+        }
+      }
+
+      document
+        .querySelectorAll('#solution-finder-mockup-main button[data-target-group]')
+        .forEach((buttonElement) => {
+          buttonElement.addEventListener("click", () => {
+            const group = buttonElement.getAttribute("data-target-group");
+            const value = buttonElement.getAttribute("data-target-value");
+            if (!group || !value) {
+              return;
+            }
+
+            targetSelections[group] = value;
+            setActiveTargetButton(group, value);
+            clearResultsState();
+            syncUi();
+          });
+        });
+
+      document
+        .querySelectorAll('#solution-finder-mockup-main button[data-constraint-id]')
+        .forEach((buttonElement) => {
+          buttonElement.addEventListener("click", () => {
+            if (!isStep1Complete()) {
+              return;
+            }
+
+            const constraintId = buttonElement.getAttribute("data-constraint-id");
+            if (!constraintId) {
+              return;
+            }
+
+            constraints[constraintId] = !constraints[constraintId];
+            updateConstraintButtonVisual(constraintId);
+            clearResultsState();
+            syncUi();
+          });
+        });
+
+      document
+        .getElementById("solution-finder-mockup-find-matches-button")
+        .addEventListener("click", () => {
+          if (!isStep1Complete()) {
+            return;
+          }
+          runMatches();
+          syncUi();
+        });
+
+      document.getElementById("solution-finder-mockup-reset-button").addEventListener("click", () => {
+        Object.keys(targetSelections).forEach((key) => {
+          targetSelections[key] = null;
+        });
+        Object.keys(constraints).forEach((key) => {
+          constraints[key] = false;
+          updateConstraintButtonVisual(key);
+        });
+        document
+          .querySelectorAll('#solution-finder-mockup-main button[data-target-group]')
+          .forEach((buttonElement) => {
+            buttonElement.className =
+              "rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700";
+          });
+        clearResultsState();
+        syncUi();
+      });
+
+      document
+        .getElementById("solution-finder-mockup-apply-button")
+        .addEventListener("click", () => {
+          if (!selectedResultId) {
+            return;
+          }
+
+          const selectedResult = currentResults.find((result) => result.id === selectedResultId);
+          if (!selectedResult) {
+            return;
+          }
+
+          window.alert(
+            "Mock action: Applying '" +
+              selectedResult.name +
+              "' (" +
+              selectedResult.matchPercentage +
+              "% match).",
+          );
+        });
+
+      document
+        .getElementById("solution-finder-mockup-cancel-button")
+        .addEventListener("click", () => {
+          window.alert("Mock action: Modal closed.");
+        });
+
+      document
+        .getElementById("solution-finder-mockup-close-button")
+        .addEventListener("click", () => {
+          window.alert("Mock action: Modal closed.");
+        });
+
+      Object.keys(constraints).forEach((constraintId) => {
+        updateConstraintButtonVisual(constraintId);
+      });
+      renderResults();
+      updatePreviewCard();
+      syncUi();
+    </script>
+  </body>
+</html>

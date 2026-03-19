@@ -93,7 +93,7 @@
     <app-finder-modal
       id="solution-finder-modal-workflow-component"
       (closeRequested)="closeSolutionFinderModal()"
-      (scenarioApplied)="onScenarioApplied()"
+      (scenarioApplied)="onScenarioApplied($event)"
     ></app-finder-modal>
   </section>
 </app-modal-shell>
@@ -126,5 +126,26 @@
     </button>
   </section>
 </app-modal-shell>
+
+@if (solutionLoadedToastVisible) {
+  <section
+    id="solution-loaded-toast"
+    class="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+    role="status"
+    aria-live="polite"
+  >
+    <div id="solution-loaded-toast-content" class="flex items-center gap-3">
+      <p id="solution-loaded-toast-message">{{ solutionLoadedToastMessage }}</p>
+      <button
+        id="solution-loaded-toast-dismiss-button"
+        type="button"
+        class="rounded-md bg-emerald-800/70 px-2 py-0.5 text-xs font-semibold text-white transition hover:bg-emerald-900"
+        (click)="dismissSolutionLoadedToast()"
+      >
+        {{ 'common.close' | translate }}
+      </button>
+    </div>
+  </section>
+}
 
 <router-outlet id="app-router-outlet"></router-outlet>
