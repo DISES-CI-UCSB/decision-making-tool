@@ -1,4 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import type { Solution } from '@core/models';
+import { AppStateService } from '@core/services/app-state.service';
+import { MockDataService } from '@core/services/mock-data.service';
+import { TranslateService } from '@ngx-translate/core';
 import { RouterOutlet } from '@angular/router';
 import { AppShellComponent } from '@core/layout/app-shell/app-shell';
 import { HeaderComponent } from '@core/layout/header/header';
@@ -7,6 +11,7 @@ import { PanelSwitcherComponent } from '@features/analysis/panel-switcher/panel-
 import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-container/sidebar-container';
 import { MapViewComponent } from '@features/map/map-view/map-view';
 import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
+import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FinderModalComponent } from '@features/solution-finder/finder-modal/finder-modal';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -27,16 +32,27 @@ import { TranslatePipe } from '@ngx-translate/core';
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
+  private readonly appState = inject(AppStateService);
+  private readonly mockData = inject(MockDataService);
+  private readonly solutionLayer = inject(SolutionLayerService);
+  private readonly translate = inject(TranslateService);
   private readonly debugMarker = 'UCS-39-map-debug-v1';
+  private toastTimer: ReturnType<typeof setTimeout> | null = null;
   protected solutionFinderModalOpen = false;
   protected perspectiveModalOpen = false;
   protected coordinateToolEnabled = false;
+  protected solutionLoadedToastVisible = false;
+  protected solutionLoadedToastMessage = '';
 
   ngOnInit(): void {
     const runtimePort = window.location.port || '(default)';
     console.info(`[App][${this.debugMarker}] ngOnInit on port ${runtimePort}`);
     (window as Window & { __ecoPlanDebugMarker?: string }).__ecoPlanDebugMarker = this.debugMarker;
+  }
+
+  ngOnDestroy(): void {
+    this.clearToastTimer();
   }
 
   protected openSolutionFinderModal(): void {
@@ -55,11 +71,49 @@ export class App implements OnInit {
     this.perspectiveModalOpen = false;
   }
 
-  protected onScenarioApplied(): void {
+  protected onScenarioApplied(match: { solutionId: string; scenarioId: string }): void {
+    const selectedSolution = this.mockData.getSolutionById(match.solutionId);
+    if (selectedSolution) {
+      this.applySolution(selectedSolution, match.scenarioId);
+    }
+
+    this.showSolutionLoadedToast();
     this.closeSolutionFinderModal();
   }
 
   protected onCoordinateToolEnabledChange(isEnabled: boolean): void {
     this.coordinateToolEnabled = isEnabled;
+  }
+
+  protected dismissSolutionLoadedToast(): void {
+    this.solutionLoadedToastVisible = false;
+    this.clearToastTimer();
+  }
+
+  private applySolution(solution: Solution, scenarioId: string): void {
+    this.appState.loadSolution(solution);
+    this.appState.setRightSidebarMode('overview');
+    void this.solutionLayer.showSolution(scenarioId);
+  }
+
+  private showSolutionLoadedToast(): void {
+    this.solutionLoadedToastMessage = this.translate.instant(
+      'solutionControls.finder.toast.solutionLoaded',
+    );
+    this.solutionLoadedToastVisible = true;
+    this.clearToastTimer();
+    this.toastTimer = setTimeout(() => {
+      this.solutionLoadedToastVisible = false;
+      this.toastTimer = null;
+    }, 3200);
+  }
+
+  private clearToastTimer(): void {
+    if (!this.toastTimer) {
+      return;
+    }
+
+    clearTimeout(this.toastTimer);
+    this.toastTimer = null;
   }
 }
