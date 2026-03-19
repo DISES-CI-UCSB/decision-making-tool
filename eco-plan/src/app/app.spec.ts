@@ -4,6 +4,8 @@ import {
   provideTranslateService,
   TranslateNoOpLoader,
 } from '@ngx-translate/core';
+import { AppStateService } from '@core/services/app-state.service';
+import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { App } from './app';
 
 describe('App', () => {
@@ -31,5 +33,29 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('#map-panel-title')?.textContent).toContain('app.mapTitle');
+  });
+
+  it('loads solution, switches sidebar mode, and shows toast when applying a scenario', () => {
+    const fixture = TestBed.createComponent(App);
+    const component = fixture.componentInstance;
+    const appState = TestBed.inject(AppStateService);
+    const solutionLayer = TestBed.inject(SolutionLayerService);
+    const showSolutionSpy = vi.spyOn(solutionLayer, 'showSolution').mockResolvedValue(undefined);
+
+    (
+      component as unknown as {
+        onScenarioApplied: (match: { solutionId: string; scenarioId: string }) => void;
+      }
+    ).onScenarioApplied({
+      solutionId: 'sol-001',
+      scenarioId: 'Ecos30+RUNAP_HF',
+    });
+
+    expect(appState.activeSolution$()?.id).toBe('sol-001');
+    expect(appState.rightSidebarMode$()).toBe('overview');
+    expect(showSolutionSpy).toHaveBeenCalledWith('Ecos30+RUNAP_HF');
+    expect(
+      (component as unknown as { solutionLoadedToastVisible: boolean }).solutionLoadedToastVisible,
+    ).toBe(true);
   });
 });
