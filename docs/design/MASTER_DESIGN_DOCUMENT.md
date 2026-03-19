@@ -483,6 +483,14 @@ The interface follows a three-pane layout with a prominent modal workflow for so
         *   Pan, zoom, and navigate the map
         *   Click on features to identify details
         *   Click on administrative regions (Municipality, Department, SIRAP) to trigger the AOI Dashboard in the Right Sidebar
+        *   **AOI Definition (working standard):**
+            *   **AOI = selectable analysis geography**, currently: Municipality, Department, SIRAP
+            *   **Management overlays (Protected Areas, OMECs)** are contextual/conservation-status layers by default, not AOI drivers unless explicitly configured as AOI-selectable in a future requirement
+            *   This keeps AOI analytics tied to stable administrative units while still allowing management overlays to be visible and interactive for inspection
+        *   **AOI Click Resolution Rule (overlap behavior):**
+            *   If multiple AOI-selectable layers overlap at a clicked pixel, selection resolves to the **top-most visible AOI layer** (map stack order)
+            *   No implicit drill-through to lower layers on a single click
+            *   Users can change layer order to change which AOI receives click focus in overlap zones
         *   **Search for locations by name** (geocoding support)
         *   **Filter by location layers:** Apply spatial filters to show only data within specific administrative boundaries or user-defined areas
         *   **Draw Area of Interest:** Interactive drawing tools to create custom polygons for analysis
