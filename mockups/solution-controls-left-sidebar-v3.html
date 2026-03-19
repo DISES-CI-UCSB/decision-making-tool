@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solution Controls Left Sidebar — v3</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--slate-900);
+      background: var(--slate-200);
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .panel {
+      width: 420px;
+      max-height: 92vh;
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .panel-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--slate-200);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-title { font-size: 20px; font-weight: 700; color: var(--slate-900); }
+
+    .active-scenario-card {
+      border: 1px solid var(--slate-200);
+      background: var(--slate-50);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .active-scenario-info { min-width: 0; }
+
+    .active-scenario-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--slate-500);
+    }
+
+    .active-scenario-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--slate-800);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .small-btn {
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      color: var(--slate-700);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .small-btn:hover { border-color: var(--slate-300); background: var(--slate-100); }
+
+    /* ── Body ── */
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+
+    .panel-body:hover { scrollbar-color: var(--slate-300) transparent; }
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+    .panel-body:hover::-webkit-scrollbar-thumb { background: var(--slate-300); }
+
+    /* ── Section Labels ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--slate-500);
+    }
+
+    /* ── Admin Boundary ── */
+    .geo-section { display: flex; flex-direction: column; gap: 6px; }
+
+    .geo-controls { display: flex; gap: 8px; }
+
+    .geo-select {
+      flex: 1;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--slate-700);
+      background: #fff;
+    }
+
+    .geo-select:focus { outline: 2px solid var(--slate-300); border-color: var(--slate-400); }
+
+    .geo-custom-btn {
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      color: var(--slate-600);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .geo-custom-btn:hover { border-color: var(--slate-300); background: var(--slate-50); }
+
+    /* ── Layer Card (shared) ── */
+    .layer-card {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* ── Single Layer Row ── */
+    .layer-row {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--slate-100);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: move;
+      background: #fff;
+      transition: background 0.1s;
+    }
+
+    .layer-row:last-child { border-bottom: none; }
+    .layer-row:hover { background: var(--slate-50); }
+    .layer-row.dragging { opacity: 0.5; }
+    .layer-row.drop-target { outline: 2px dashed var(--slate-400); outline-offset: -2px; }
+
+    .layer-top { display: flex; align-items: center; gap: 8px; }
+
+    .drag-handle {
+      color: var(--slate-300);
+      font-size: 11px;
+      width: 14px;
+      text-align: center;
+      flex-shrink: 0;
+      cursor: grab;
+    }
+
+    .drag-handle:active { cursor: grabbing; }
+
+    .layer-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--slate-800);
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .eye-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      color: var(--slate-600);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .eye-btn:hover { border-color: var(--slate-300); background: var(--slate-50); }
+    .eye-btn--off { color: var(--slate-400); }
+
+    .layer-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 22px;
+    }
+
+    .opacity-wrap { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+    .opacity-label { font-size: 10px; color: var(--slate-400); flex-shrink: 0; }
+    .opacity-slider { flex: 1; min-width: 0; accent-color: var(--slate-400); height: 4px; }
+    .opacity-value { font-size: 10px; color: var(--slate-500); min-width: 28px; text-align: right; font-weight: 600; }
+
+    .color-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .color-label { font-size: 10px; color: var(--slate-400); }
+    .color-input { width: 22px; height: 18px; border: 1px solid var(--slate-200); border-radius: 3px; background: #fff; padding: 0; cursor: pointer; }
+
+    .order-wrap { display: flex; gap: 2px; flex-shrink: 0; }
+    .order-btn {
+      width: 22px;
+      height: 18px;
+      border: 1px solid var(--slate-200);
+      border-radius: 3px;
+      background: #fff;
+      color: var(--slate-500);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 9px;
+    }
+
+    .order-btn:hover { border-color: var(--slate-300); background: var(--slate-50); }
+
+    /* ── Collapsible Group ── */
+    .group {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .group-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--slate-50);
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      transition: background 0.1s;
+    }
+
+    .group-toggle:hover { background: var(--slate-100); }
+
+    .group-chevron {
+      font-size: 10px;
+      color: var(--slate-400);
+      transition: transform 0.2s;
+      width: 12px;
+      text-align: center;
+    }
+
+    .group-chevron.collapsed { transform: rotate(-90deg); }
+
+    .group-title {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--slate-700);
+    }
+
+    .group-count {
+      font-size: 11px;
+      color: var(--slate-400);
+      font-weight: 600;
+    }
+
+    .group-body { border-top: 1px solid var(--slate-200); }
+    .group-body.hidden { display: none; }
+
+    /* ── Taxon Sub-group ── */
+    .taxon-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px 8px 22px;
+      background: #fff;
+      border: none;
+      border-bottom: 1px solid var(--slate-100);
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+    }
+
+    .taxon-toggle:hover { background: var(--slate-50); }
+
+    .taxon-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--slate-800);
+    }
+
+    .taxon-count {
+      font-size: 10px;
+      color: var(--slate-400);
+      font-weight: 600;
+    }
+
+    .taxon-eye {
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      color: var(--slate-600);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .taxon-eye:hover { background: var(--slate-50); }
+    .taxon-eye--off { color: var(--slate-400); }
+
+    .taxon-body { border-top: 1px solid var(--slate-100); }
+    .taxon-body.hidden { display: none; }
+
+    .taxon-search-wrap {
+      padding: 8px 12px 8px 34px;
+      border-bottom: 1px solid var(--slate-100);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .taxon-search-icon { color: var(--slate-400); font-size: 11px; }
+
+    .taxon-search {
+      flex: 1;
+      border: 1px solid var(--slate-200);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--slate-700);
+    }
+
+    .taxon-search:focus { outline: 2px solid var(--slate-300); border-color: var(--slate-400); }
+
+    .species-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px 6px 34px;
+      border-bottom: 1px solid var(--slate-100);
+      font-size: 12px;
+      transition: background 0.1s;
+    }
+
+    .species-row:last-child { border-bottom: none; }
+    .species-row:hover { background: var(--slate-50); }
+
+    .species-common { flex: 1; color: var(--slate-700); font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .species-latin { font-style: italic; color: var(--slate-400); font-size: 11px; white-space: nowrap; }
+
+    .species-eye {
+      width: 24px;
+      height: 22px;
+      border: 1px solid var(--slate-200);
+      border-radius: 3px;
+      background: #fff;
+      color: var(--slate-400);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    .species-eye:hover { background: var(--slate-50); color: var(--slate-600); }
+
+    .taxon-show-more {
+      padding: 6px 12px 6px 34px;
+      font-size: 12px;
+      color: var(--slate-500);
+      cursor: pointer;
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    .taxon-show-more:hover { background: var(--slate-50); color: var(--slate-700); }
+
+    .species-note {
+      padding: 8px 12px 8px 22px;
+      font-size: 11px;
+      color: var(--slate-400);
+      line-height: 1.5;
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    /* ── Disabled Group (Prospective Models) ── */
+    .group--disabled .group-toggle { cursor: default; }
+    .group--disabled .group-toggle:hover { background: var(--slate-50); }
+    .group--disabled .group-title { color: var(--slate-400); }
+    .group--disabled .group-chevron { color: var(--slate-300); }
+
+    .coming-soon-tag {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--slate-400);
+      background: var(--slate-100);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    /* ── Footer ── */
+    .panel-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--slate-200);
+      background: var(--slate-50);
+    }
+
+    .btn--reset {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #fff;
+      color: var(--slate-700);
+      border: 1px solid var(--slate-200);
+    }
+
+    .btn--reset:hover { background: var(--slate-50); border-color: var(--slate-300); }
+    .btn--reset i { color: var(--slate-400); font-size: 12px; }
+  </style>
+</head>
+<body id="sidebar-page">
+  <div id="sidebar-panel" class="panel">
+
+    <!-- ═══ HEADER ═══ -->
+    <header id="sidebar-header" class="panel-header">
+      <h1 id="sidebar-title" class="sidebar-title">Map Layers</h1>
+      <div id="active-scenario-card" class="active-scenario-card">
+        <div id="active-scenario-info" class="active-scenario-info">
+          <div id="active-scenario-label" class="active-scenario-label">Active Scenario</div>
+          <div id="active-scenario-name" class="active-scenario-name">Ecos30 + RUNAP + OMEC (HF)</div>
+        </div>
+        <button id="active-scenario-change-btn" class="small-btn"><i class="fas fa-right-left"></i> Change</button>
+      </div>
+    </header>
+
+    <!-- ═══ BODY ═══ -->
+    <div id="sidebar-body" class="panel-body">
+
+      <!-- ── Administrative Boundary ── -->
+      <section id="admin-boundary-section" class="geo-section">
+        <label id="admin-boundary-label" class="section-label" for="admin-boundary-select">Administrative Boundary</label>
+        <div id="admin-boundary-controls" class="geo-controls">
+          <select id="admin-boundary-select" class="geo-select">
+            <option id="geo-national" selected>National (Colombia)</option>
+            <option id="geo-sirap">SIRAP Region</option>
+            <option id="geo-department">Department</option>
+            <option id="geo-municipality">Municipality</option>
+          </select>
+          <button id="geo-custom-btn" class="geo-custom-btn"><i class="fas fa-draw-polygon"></i> Custom</button>
+        </div>
+      </section>
+
+      <!-- ── Pinned: Conservation Overlays ── -->
+      <section id="overlays-section">
+        <span id="overlays-label" class="section-label">Conservation Overlays</span>
+        <div id="overlays-card" class="layer-card" style="margin-top:6px;">
+          <div id="overlays-list">
+
+            <div id="layer-solution" class="layer-row" draggable="true">
+              <div class="layer-top">
+                <i class="fas fa-grip-lines drag-handle"></i>
+                <span class="layer-name">Conservation Solution</span>
+                <button class="eye-btn" title="Toggle visibility"><i class="fas fa-eye"></i></button>
+              </div>
+              <div class="layer-controls">
+                <div class="opacity-wrap"><span class="opacity-label">Opacity</span><input class="opacity-slider" type="range" min="0" max="100" value="70"><span class="opacity-value">70%</span></div>
+                <div class="color-wrap"><span class="color-label">Color</span><input class="color-input" type="color" value="#16a34a"></div>
+                <div class="order-wrap"><button class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button><button class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button></div>
+              </div>
+            </div>
+
+            <div id="layer-runap" class="layer-row" draggable="true">
+              <div class="layer-top">
+                <i class="fas fa-grip-lines drag-handle"></i>
+                <span class="layer-name">Protected Areas (RUNAP)</span>
+                <button class="eye-btn" title="Toggle visibility"><i class="fas fa-eye"></i></button>
+              </div>
+              <div class="layer-controls">
+                <div class="opacity-wrap"><span class="opacity-label">Opacity</span><input class="opacity-slider" type="range" min="0" max="100" value="80"><span class="opacity-value">80%</span></div>
+                <div class="color-wrap"><span class="color-label">Color</span><input class="color-input" type="color" value="#2563eb"></div>
+                <div class="order-wrap"><button class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button><button class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button></div>
+              </div>
+            </div>
+
+            <div id="layer-omec" class="layer-row" draggable="true">
+              <div class="layer-top">
+                <i class="fas fa-grip-lines drag-handle"></i>
+                <span class="layer-name">OMECs</span>
+                <button class="eye-btn" title="Toggle visibility"><i class="fas fa-eye"></i></button>
+              </div>
+              <div class="layer-controls">
+                <div class="opacity-wrap"><span class="opacity-label">Opacity</span><input class="opacity-slider" type="range" min="0" max="100" value="75"><span class="opacity-value">75%</span></div>
+                <div class="color-wrap"><span class="color-label">Color</span><input class="color-input" type="color" value="#7c3aed"></div>
+                <div class="order-wrap"><button class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button><button class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ GROUP 1: Species & Biodiversity ═══ -->
+      <div id="group-species" class="group">
+        <button class="group-toggle" onclick="toggleGroup('species')">
+          <i id="chevron-species" class="fas fa-chevron-down group-chevron"></i>
+          <span class="group-title">Species & Biodiversity</span>
+          <span class="group-count">5 taxon groups</span>
+        </button>
+        <div id="body-species" class="group-body">
+          <div class="species-note">Showing distributions included in this scenario's calculation. Individual species drill-down is available where the solution was computed at species level.</div>
+          <!-- Taxon sub-groups are populated by JS below -->
+        </div>
+      </div>
+
+      <!-- ═══ GROUP 2: Ecosystems ═══ -->
+      <div id="group-ecosystems" class="group">
+        <button class="group-toggle" onclick="toggleGroup('ecosystems')">
+          <i id="chevron-ecosystems" class="fas fa-chevron-down group-chevron"></i>
+          <span class="group-title">Ecosystems</span>
+          <span class="group-count">5 layers</span>
+        </button>
+        <div id="body-ecosystems" class="group-body">
+          <div id="eco-layers"></div>
+        </div>
+      </div>
+
+      <!-- ═══ GROUP 3: Environmental Services ═══ -->
+      <div id="group-env-services" class="group">
+        <button class="group-toggle" onclick="toggleGroup('env-services')">
+          <i id="chevron-env-services" class="fas fa-chevron-down group-chevron collapsed"></i>
+          <span class="group-title">Environmental Services</span>
+          <span class="group-count">2 layers</span>
+        </button>
+        <div id="body-env-services" class="group-body hidden">
+          <div id="env-layers"></div>
+        </div>
+      </div>
+
+      <!-- ═══ GROUP 4: Cultural & Ethnic Territories ═══ -->
+      <div id="group-cultural" class="group">
+        <button class="group-toggle" onclick="toggleGroup('cultural')">
+          <i id="chevron-cultural" class="fas fa-chevron-down group-chevron collapsed"></i>
+          <span class="group-title">Cultural & Ethnic Territories</span>
+          <span class="group-count">2 layers</span>
+        </button>
+        <div id="body-cultural" class="group-body hidden">
+          <div id="cultural-layers"></div>
+        </div>
+      </div>
+
+      <!-- ═══ GROUP 5: Socio-Economic ═══ -->
+      <div id="group-socio" class="group">
+        <button class="group-toggle" onclick="toggleGroup('socio')">
+          <i id="chevron-socio" class="fas fa-chevron-down group-chevron collapsed"></i>
+          <span class="group-title">Socio-Economic</span>
+          <span class="group-count">3 layers</span>
+        </button>
+        <div id="body-socio" class="group-body hidden">
+          <div id="socio-layers"></div>
+        </div>
+      </div>
+
+      <!-- ═══ GROUP 6: Conflict & Security ═══ -->
+      <div id="group-conflict" class="group">
+        <button class="group-toggle" onclick="toggleGroup('conflict')">
+          <i id="chevron-conflict" class="fas fa-chevron-down group-chevron collapsed"></i>
+          <span class="group-title">Conflict & Security</span>
+          <span class="group-count">1 layer</span>
+        </button>
+        <div id="body-conflict" class="group-body hidden">
+          <div id="conflict-layers"></div>
+        </div>
+      </div>
+
+      <!-- ═══ GROUP 7: Prospective Models (disabled) ═══ -->
+      <div id="group-prospective" class="group group--disabled">
+        <button class="group-toggle" disabled>
+          <i class="fas fa-chevron-down group-chevron collapsed"></i>
+          <span class="group-title">Prospective Models</span>
+          <span class="coming-soon-tag">Coming Soon</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer id="sidebar-footer" class="panel-footer">
+      <button id="reset-defaults-btn" class="btn--reset"><i class="fas fa-rotate-left"></i> Reset Defaults</button>
+    </footer>
+  </div>
+
+  <script>
+    /* ── Group collapse/expand ── */
+    function toggleGroup(id) {
+      const body = document.getElementById("body-" + id);
+      const chevron = document.getElementById("chevron-" + id);
+      if (!body) return;
+      body.classList.toggle("hidden");
+      chevron.classList.toggle("collapsed");
+    }
+
+    /* ── Taxon collapse/expand ── */
+    function toggleTaxon(key) {
+      const body = document.getElementById("taxon-body-" + key);
+      const chevron = document.getElementById("taxon-chevron-" + key);
+      if (!body) return;
+      body.classList.toggle("hidden");
+      chevron.classList.toggle("collapsed");
+    }
+
+    /* ── Species data ── */
+    const TAXA = {
+      mammals: {
+        label: "Mammals",
+        count: 412,
+        species: [
+          { common: "Jaguar", latin: "Panthera onca" },
+          { common: "Spectacled Bear", latin: "Tremarctos ornatus" },
+          { common: "Mountain Tapir", latin: "Tapirus pinchaque" },
+          { common: "Brown Spider Monkey", latin: "Ateles hybridus" },
+          { common: "Woolly Monkey", latin: "Lagothrix lagothricha" },
+          { common: "Puma", latin: "Puma concolor" },
+          { common: "Ocelot", latin: "Leopardus pardalis" },
+          { common: "Red Howler Monkey", latin: "Alouatta seniculus" },
+          { common: "Three-toed Sloth", latin: "Bradypus variegatus" },
+          { common: "Collared Peccary", latin: "Pecari tajacu" },
+          { common: "Giant Otter", latin: "Pteronura brasiliensis" },
+          { common: "White-lipped Peccary", latin: "Tayassu pecari" }
+        ]
+      },
+      birds: {
+        label: "Birds",
+        count: 1932,
+        species: [
+          { common: "Andean Condor", latin: "Vultur gryphus" },
+          { common: "Yellow-eared Parrot", latin: "Ognorhynchus icterotis" },
+          { common: "Blue-billed Curassow", latin: "Crax alberti" },
+          { common: "Gold-ringed Tanager", latin: "Bangsia aureocincta" },
+          { common: "Santa Marta Parakeet", latin: "Pyrrhura viridicata" },
+          { common: "Multicolored Tanager", latin: "Chlorochrysa nitidissima" },
+          { common: "Chestnut-capped Piha", latin: "Lipaugus weberi" },
+          { common: "Recurve-billed Bushbird", latin: "Clytoctantes alixii" },
+          { common: "Gorgeted Wood-Quail", latin: "Odontophorus strophium" },
+          { common: "Turquoise Dacnis", latin: "Dacnis hartlaubi" },
+          { common: "Rusty-faced Parrot", latin: "Hapalopsittaca amazonina" },
+          { common: "Tolima Dove", latin: "Leptotila conoveri" }
+        ]
+      },
+      amphibians: {
+        label: "Amphibians",
+        count: 803,
+        species: [
+          { common: "Elegant Stubfoot Toad", latin: "Atelopus elegans" },
+          { common: "Harlequin Poison Frog", latin: "Oophaga histrionica" },
+          { common: "Yellow-striped Poison Frog", latin: "Dendrobates truncatus" },
+          { common: "Buckley's Glass Frog", latin: "Centrolene buckleyi" },
+          { common: "Lehmann's Poison Frog", latin: "Oophaga lehmanni" },
+          { common: "Golden Poison Frog", latin: "Phyllobates terribilis" },
+          { common: "Lynch's Robber Frog", latin: "Pristimantis lynchi" },
+          { common: "Cauca Poison Frog", latin: "Andinobates bombetes" },
+          { common: "Condoto Stubfoot Toad", latin: "Atelopus spurrelli" },
+          { common: "Santa Marta Treefrog", latin: "Hyloscirtus colymba" }
+        ]
+      },
+      reptiles: {
+        label: "Reptiles",
+        count: 590,
+        species: [
+          { common: "Orinoco Crocodile", latin: "Crocodylus intermedius" },
+          { common: "Hawksbill Sea Turtle", latin: "Eretmochelys imbricata" },
+          { common: "Red-footed Tortoise", latin: "Chelonoidis carbonarius" },
+          { common: "Green Iguana", latin: "Iguana iguana" },
+          { common: "Fer-de-lance", latin: "Bothrops asper" },
+          { common: "Leatherback Sea Turtle", latin: "Dermochelys coriacea" },
+          { common: "Spectacled Caiman", latin: "Caiman crocodilus" },
+          { common: "American Crocodile", latin: "Crocodylus acutus" },
+          { common: "Magdalena River Turtle", latin: "Podocnemis lewyana" },
+          { common: "Bushmaster", latin: "Lachesis muta" }
+        ]
+      },
+      plants: {
+        label: "Plants",
+        count: 4963,
+        species: [
+          { common: "Quindío Wax Palm", latin: "Ceroxylon quindiuense" },
+          { common: "Frailejón", latin: "Espeletia grandiflora" },
+          { common: "May Flower Orchid", latin: "Cattleya trianae" },
+          { common: "Heaven Lotus", latin: "Gustavia superba" },
+          { common: "Lobster Claw", latin: "Heliconia rostrata" },
+          { common: "Guayacán", latin: "Tabebuia chrysantha" },
+          { common: "Cedro", latin: "Cedrela odorata" },
+          { common: "Abarco", latin: "Cariniana pyriformis" },
+          { common: "Comino", latin: "Aniba perutilis" },
+          { common: "Roble", latin: "Quercus humboldtii" }
+        ]
+      }
+    };
+
+    const VISIBLE_SPECIES = 6;
+
+    /* ── Build taxon sub-groups inside Species & Biodiversity ── */
+    (function buildSpeciesGroup() {
+      const container = document.getElementById("body-species");
+
+      Object.entries(TAXA).forEach(([key, taxon]) => {
+        const wrapper = document.createElement("div");
+        wrapper.id = "taxon-" + key;
+
+        wrapper.innerHTML = `
+          <button class="taxon-toggle" onclick="event.stopPropagation(); toggleTaxon('${key}')">
+            <i id="taxon-chevron-${key}" class="fas fa-chevron-down group-chevron collapsed" style="font-size:9px;"></i>
+            <span class="taxon-name">${taxon.label}</span>
+            <span class="taxon-count">${taxon.count.toLocaleString()} spp.</span>
+            <button class="taxon-eye taxon-eye--off" title="Toggle all ${taxon.label}" onclick="event.stopPropagation(); toggleTaxonEye(this)"><i class="fas fa-eye-slash"></i></button>
+          </button>
+          <div id="taxon-body-${key}" class="taxon-body hidden">
+            <div class="taxon-search-wrap">
+              <i class="fas fa-magnifying-glass taxon-search-icon"></i>
+              <input class="taxon-search" type="text" placeholder="Search ${taxon.label.toLowerCase()} by name…" oninput="filterSpecies('${key}', this.value)">
+            </div>
+            <div id="taxon-species-${key}"></div>
+            <div id="taxon-more-${key}" class="taxon-show-more" onclick="showAllSpecies('${key}')">Show all ${taxon.count.toLocaleString()} ${taxon.label.toLowerCase()}…</div>
+          </div>
+        `;
+
+        container.appendChild(wrapper);
+
+        const speciesContainer = document.getElementById("taxon-species-" + key);
+        taxon.species.slice(0, VISIBLE_SPECIES).forEach((sp) => {
+          speciesContainer.appendChild(makeSpeciesRow(sp));
+        });
+      });
+    })();
+
+    function makeSpeciesRow(sp) {
+      const row = document.createElement("div");
+      row.className = "species-row";
+      row.dataset.name = (sp.common + " " + sp.latin).toLowerCase();
+      row.innerHTML = `
+        <span class="species-common">${sp.common}</span>
+        <span class="species-latin">${sp.latin}</span>
+        <button class="species-eye" title="Toggle visibility" onclick="toggleSpeciesEye(this)"><i class="fas fa-eye-slash"></i></button>
+      `;
+      return row;
+    }
+
+    function filterSpecies(key, query) {
+      const rows = document.querySelectorAll("#taxon-species-" + key + " .species-row");
+      const q = query.toLowerCase();
+      rows.forEach((row) => {
+        row.style.display = row.dataset.name.includes(q) ? "" : "none";
+      });
+    }
+
+    function showAllSpecies(key) {
+      const taxon = TAXA[key];
+      const container = document.getElementById("taxon-species-" + key);
+      const moreBtn = document.getElementById("taxon-more-" + key);
+      taxon.species.slice(VISIBLE_SPECIES).forEach((sp) => {
+        container.appendChild(makeSpeciesRow(sp));
+      });
+      moreBtn.style.display = "none";
+    }
+
+    function toggleTaxonEye(btn) {
+      const icon = btn.querySelector("i");
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+      btn.classList.toggle("taxon-eye--off");
+    }
+
+    function toggleSpeciesEye(btn) {
+      const icon = btn.querySelector("i");
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    }
+
+    /* ── Build simple layer groups ── */
+    const LAYER_GROUPS = {
+      ecosystems: [
+        { name: "Ecosystem Types", color: "#0d9488", opacity: 60 },
+        { name: "Páramos", color: "#6d8e7e", opacity: 55 },
+        { name: "Wetlands", color: "#0284c7", opacity: 55 },
+        { name: "Dry Forest", color: "#a16207", opacity: 55 },
+        { name: "Mangroves", color: "#15803d", opacity: 55 }
+      ],
+      "env-services": [
+        { name: "Carbon Storage", color: "#374151", opacity: 50 },
+        { name: "Water Regulation", color: "#0369a1", opacity: 50 }
+      ],
+      cultural: [
+        { name: "Indigenous Reserves", color: "#6366f1", opacity: 60 },
+        { name: "Afro-Colombian Community Territories", color: "#a855f7", opacity: 60 }
+      ],
+      socio: [
+        { name: "Human Footprint", color: "#d97706", opacity: 55 },
+        { name: "Agricultural Opportunity Cost", color: "#ea580c", opacity: 55 },
+        { name: "Land Use", color: "#78716c", opacity: 50 }
+      ],
+      conflict: [
+        { name: "Conflict Zones", color: "#dc2626", opacity: 50 }
+      ]
+    };
+
+    Object.entries(LAYER_GROUPS).forEach(([groupKey, layers]) => {
+      const container = document.getElementById(groupKey.replace("env-services", "env") + "-layers")
+        || document.getElementById(groupKey + "-layers");
+      if (!container) return;
+      layers.forEach((layer, i) => {
+        const row = document.createElement("div");
+        row.className = "layer-row";
+        row.draggable = true;
+        row.innerHTML = `
+          <div class="layer-top">
+            <i class="fas fa-grip-lines drag-handle"></i>
+            <span class="layer-name">${layer.name}</span>
+            <button class="eye-btn eye-btn--off" title="Toggle visibility"><i class="fas fa-eye-slash"></i></button>
+          </div>
+          <div class="layer-controls">
+            <div class="opacity-wrap"><span class="opacity-label">Opacity</span><input class="opacity-slider" type="range" min="0" max="100" value="${layer.opacity}"><span class="opacity-value">${layer.opacity}%</span></div>
+            <div class="color-wrap"><span class="color-label">Color</span><input class="color-input" type="color" value="${layer.color}"></div>
+            <div class="order-wrap"><button class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button><button class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    });
+
+    /* ── Wire up interactions (eye, opacity, drag, order) ── */
+    (function wireInteractions() {
+      const body = document.getElementById("sidebar-body");
+
+      body.querySelectorAll(".eye-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const icon = btn.querySelector("i");
+          icon.classList.toggle("fa-eye");
+          icon.classList.toggle("fa-eye-slash");
+          btn.classList.toggle("eye-btn--off");
+        });
+      });
+
+      body.querySelectorAll(".opacity-slider").forEach((slider) => {
+        const val = slider.parentElement.querySelector(".opacity-value");
+        if (!val) return;
+        slider.addEventListener("input", () => { val.textContent = slider.value + "%"; });
+      });
+
+      const rows = body.querySelectorAll(".layer-row");
+      rows.forEach((row) => {
+        row.addEventListener("dragstart", () => row.classList.add("dragging"));
+        row.addEventListener("dragend", () => {
+          row.classList.remove("dragging");
+          body.querySelectorAll(".drop-target").forEach((t) => t.classList.remove("drop-target"));
+        });
+        row.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          const d = body.querySelector(".dragging");
+          if (d && d !== row) row.classList.add("drop-target");
+        });
+        row.addEventListener("dragleave", () => row.classList.remove("drop-target"));
+        row.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const d = body.querySelector(".dragging");
+          if (d && d !== row) row.parentNode.insertBefore(d, row);
+          row.classList.remove("drop-target");
+        });
+      });
+
+      body.querySelectorAll(".order-btn[title='Move layer up']").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const row = btn.closest(".layer-row");
+          const prev = row.previousElementSibling;
+          if (prev) row.parentNode.insertBefore(row, prev);
+        });
+      });
+
+      body.querySelectorAll(".order-btn[title='Move layer down']").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const row = btn.closest(".layer-row");
+          const next = row.nextElementSibling;
+          if (next) row.parentNode.insertBefore(next, row);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solution Controls Left Sidebar — v2</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--slate-900);
+      background: var(--slate-200);
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .panel {
+      width: 420px;
+      max-height: 92vh;
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .panel-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--slate-200);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-title {
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+
+    .active-scenario-card {
+      border: 1px solid var(--slate-200);
+      background: var(--slate-50);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .active-scenario-info {
+      min-width: 0;
+    }
+
+    .active-scenario-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--slate-500);
+    }
+
+    .active-scenario-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--slate-800);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .small-btn {
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      color: var(--slate-700);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .small-btn:hover {
+      border-color: var(--slate-300);
+      background: var(--slate-100);
+    }
+
+    /* ── Scrollable Body ── */
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+
+    .panel-body:hover { scrollbar-color: var(--slate-300) transparent; }
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+    .panel-body:hover::-webkit-scrollbar-thumb { background: var(--slate-300); }
+
+    /* ── Geographic Level ── */
+    .geo-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--slate-500);
+    }
+
+    .geo-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .geo-select {
+      flex: 1;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--slate-700);
+      background: #fff;
+    }
+
+    .geo-select:focus {
+      outline: 2px solid var(--slate-300);
+      border-color: var(--slate-400);
+    }
+
+    .geo-custom-btn {
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      color: var(--slate-600);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .geo-custom-btn:hover {
+      border-color: var(--slate-300);
+      background: var(--slate-50);
+    }
+
+    /* ── Layers Section ── */
+    .layers-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .layers-hint {
+      font-size: 12px;
+      color: var(--slate-500);
+      line-height: 1.5;
+    }
+
+    .layer-card {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .layer-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .layer-row {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--slate-100);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      cursor: move;
+      background: #fff;
+      transition: background 0.1s;
+    }
+
+    .layer-row:last-child { border-bottom: none; }
+    .layer-row:hover { background: var(--slate-50); }
+    .layer-row.dragging { opacity: 0.5; }
+    .layer-row.drop-target { outline: 2px dashed var(--slate-400); outline-offset: -2px; }
+
+    .layer-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .drag-handle {
+      color: var(--slate-300);
+      font-size: 12px;
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      cursor: grab;
+    }
+
+    .drag-handle:active { cursor: grabbing; }
+
+    .layer-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--slate-800);
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .eye-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      color: var(--slate-600);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+
+    .eye-btn:hover {
+      border-color: var(--slate-300);
+      background: var(--slate-50);
+    }
+
+    .eye-btn--off {
+      color: var(--slate-400);
+    }
+
+    /* ── Layer Controls Row ── */
+    .layer-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 24px;
+    }
+
+    .opacity-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .opacity-label {
+      font-size: 11px;
+      color: var(--slate-400);
+      flex-shrink: 0;
+    }
+
+    .opacity-slider {
+      flex: 1;
+      min-width: 0;
+      accent-color: var(--slate-400);
+      height: 4px;
+    }
+
+    .opacity-value {
+      font-size: 11px;
+      color: var(--slate-500);
+      min-width: 30px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .color-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .color-label {
+      font-size: 11px;
+      color: var(--slate-400);
+    }
+
+    .color-input {
+      width: 24px;
+      height: 20px;
+      border: 1px solid var(--slate-200);
+      border-radius: 3px;
+      background: #fff;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .order-wrap {
+      display: flex;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .order-btn {
+      width: 24px;
+      height: 20px;
+      border: 1px solid var(--slate-200);
+      border-radius: 3px;
+      background: #fff;
+      color: var(--slate-500);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .order-btn:hover {
+      border-color: var(--slate-300);
+      background: var(--slate-50);
+    }
+
+    /* ── Footer ── */
+    .panel-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--slate-200);
+      background: var(--slate-50);
+    }
+
+    .btn--reset {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #fff;
+      color: var(--slate-700);
+      border: 1px solid var(--slate-200);
+      transition: all 0.15s;
+    }
+
+    .btn--reset:hover {
+      background: var(--slate-50);
+      border-color: var(--slate-300);
+    }
+
+    .btn--reset i {
+      color: var(--slate-400);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body id="solution-controls-sidebar-page">
+  <div id="solution-controls-sidebar-panel" class="panel">
+
+    <!-- ═══ HEADER ═══ -->
+    <header id="sidebar-header" class="panel-header">
+      <h1 id="sidebar-title" class="sidebar-title">Map Layers</h1>
+      <div id="active-scenario-card" class="active-scenario-card">
+        <div id="active-scenario-info" class="active-scenario-info">
+          <div id="active-scenario-label" class="active-scenario-label">Active Scenario</div>
+          <div id="active-scenario-name" class="active-scenario-name">Ecos30 + RUNAP + OMEC (HF)</div>
+        </div>
+        <button id="active-scenario-change-btn" class="small-btn"><i id="active-scenario-change-icon" class="fas fa-right-left"></i> Change</button>
+      </div>
+    </header>
+
+    <!-- ═══ SCROLLABLE BODY ═══ -->
+    <div id="sidebar-body" class="panel-body">
+
+      <!-- Geographic Level -->
+      <section id="geo-level-section" class="geo-section">
+        <label id="geo-level-label" class="section-label" for="geo-level-select">Geographic Level</label>
+        <div id="geo-level-controls" class="geo-controls">
+          <select id="geo-level-select" class="geo-select">
+            <option id="geo-option-national" selected>National (Colombia)</option>
+            <option id="geo-option-sirap">SIRAP Region</option>
+            <option id="geo-option-department">Department</option>
+            <option id="geo-option-municipality">Municipality</option>
+          </select>
+          <button id="geo-custom-btn" class="geo-custom-btn"><i id="geo-custom-icon" class="fas fa-draw-polygon"></i> Custom</button>
+        </div>
+      </section>
+
+      <!-- Relevant Layers -->
+      <section id="layers-section" class="layers-section">
+        <div id="layers-header-row" style="display:flex; align-items:center; justify-content:space-between;">
+          <span id="layers-label" class="section-label">Relevant Layers</span>
+          <span id="layers-hint" class="layers-hint">Toggle visibility per layer</span>
+        </div>
+        <div id="layers-card" class="layer-card">
+          <div id="layers-list" class="layer-list">
+
+            <!-- 1. Conservation Solution -->
+            <div id="layer-solution" class="layer-row" draggable="true">
+              <div id="layer-solution-top" class="layer-top">
+                <i id="layer-solution-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-solution-name" class="layer-name">Conservation Solution</span>
+                <button id="layer-solution-eye" class="eye-btn" title="Toggle visibility"><i id="layer-solution-eye-icon" class="fas fa-eye"></i></button>
+              </div>
+              <div id="layer-solution-controls" class="layer-controls">
+                <div id="layer-solution-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-solution-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="70">
+                  <span id="layer-solution-opacity-value" class="opacity-value">70%</span>
+                </div>
+                <div id="layer-solution-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-solution-color-input" class="color-input" type="color" value="#16a34a">
+                </div>
+                <div id="layer-solution-order" class="order-wrap">
+                  <button id="layer-solution-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-solution-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Protected Areas (RUNAP) -->
+            <div id="layer-runap" class="layer-row" draggable="true">
+              <div id="layer-runap-top" class="layer-top">
+                <i id="layer-runap-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-runap-name" class="layer-name">Protected Areas (RUNAP)</span>
+                <button id="layer-runap-eye" class="eye-btn" title="Toggle visibility"><i id="layer-runap-eye-icon" class="fas fa-eye"></i></button>
+              </div>
+              <div id="layer-runap-controls" class="layer-controls">
+                <div id="layer-runap-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-runap-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="80">
+                  <span id="layer-runap-opacity-value" class="opacity-value">80%</span>
+                </div>
+                <div id="layer-runap-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-runap-color-input" class="color-input" type="color" value="#2563eb">
+                </div>
+                <div id="layer-runap-order" class="order-wrap">
+                  <button id="layer-runap-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-runap-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. OMECs -->
+            <div id="layer-omec" class="layer-row" draggable="true">
+              <div id="layer-omec-top" class="layer-top">
+                <i id="layer-omec-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-omec-name" class="layer-name">OMECs</span>
+                <button id="layer-omec-eye" class="eye-btn" title="Toggle visibility"><i id="layer-omec-eye-icon" class="fas fa-eye"></i></button>
+              </div>
+              <div id="layer-omec-controls" class="layer-controls">
+                <div id="layer-omec-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-omec-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="75">
+                  <span id="layer-omec-opacity-value" class="opacity-value">75%</span>
+                </div>
+                <div id="layer-omec-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-omec-color-input" class="color-input" type="color" value="#7c3aed">
+                </div>
+                <div id="layer-omec-order" class="order-wrap">
+                  <button id="layer-omec-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-omec-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Ecosystem Types -->
+            <div id="layer-ecosystems" class="layer-row" draggable="true">
+              <div id="layer-ecosystems-top" class="layer-top">
+                <i id="layer-ecosystems-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-ecosystems-name" class="layer-name">Ecosystem Types</span>
+                <button id="layer-ecosystems-eye" class="eye-btn eye-btn--off" title="Toggle visibility"><i id="layer-ecosystems-eye-icon" class="fas fa-eye-slash"></i></button>
+              </div>
+              <div id="layer-ecosystems-controls" class="layer-controls">
+                <div id="layer-ecosystems-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-ecosystems-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="60">
+                  <span id="layer-ecosystems-opacity-value" class="opacity-value">60%</span>
+                </div>
+                <div id="layer-ecosystems-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-ecosystems-color-input" class="color-input" type="color" value="#0d9488">
+                </div>
+                <div id="layer-ecosystems-order" class="order-wrap">
+                  <button id="layer-ecosystems-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-ecosystems-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. Human Footprint -->
+            <div id="layer-hf" class="layer-row" draggable="true">
+              <div id="layer-hf-top" class="layer-top">
+                <i id="layer-hf-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-hf-name" class="layer-name">Human Footprint</span>
+                <button id="layer-hf-eye" class="eye-btn eye-btn--off" title="Toggle visibility"><i id="layer-hf-eye-icon" class="fas fa-eye-slash"></i></button>
+              </div>
+              <div id="layer-hf-controls" class="layer-controls">
+                <div id="layer-hf-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-hf-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="55">
+                  <span id="layer-hf-opacity-value" class="opacity-value">55%</span>
+                </div>
+                <div id="layer-hf-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-hf-color-input" class="color-input" type="color" value="#d97706">
+                </div>
+                <div id="layer-hf-order" class="order-wrap">
+                  <button id="layer-hf-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-hf-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. Agricultural Opportunity Cost -->
+            <div id="layer-ag-cost" class="layer-row" draggable="true">
+              <div id="layer-ag-cost-top" class="layer-top">
+                <i id="layer-ag-cost-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-ag-cost-name" class="layer-name">Agricultural Opportunity Cost</span>
+                <button id="layer-ag-cost-eye" class="eye-btn eye-btn--off" title="Toggle visibility"><i id="layer-ag-cost-eye-icon" class="fas fa-eye-slash"></i></button>
+              </div>
+              <div id="layer-ag-cost-controls" class="layer-controls">
+                <div id="layer-ag-cost-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-ag-cost-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="55">
+                  <span id="layer-ag-cost-opacity-value" class="opacity-value">55%</span>
+                </div>
+                <div id="layer-ag-cost-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-ag-cost-color-input" class="color-input" type="color" value="#ea580c">
+                </div>
+                <div id="layer-ag-cost-order" class="order-wrap">
+                  <button id="layer-ag-cost-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-ag-cost-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 7. Conflict Zones -->
+            <div id="layer-conflict" class="layer-row" draggable="true">
+              <div id="layer-conflict-top" class="layer-top">
+                <i id="layer-conflict-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-conflict-name" class="layer-name">Conflict Zones</span>
+                <button id="layer-conflict-eye" class="eye-btn eye-btn--off" title="Toggle visibility"><i id="layer-conflict-eye-icon" class="fas fa-eye-slash"></i></button>
+              </div>
+              <div id="layer-conflict-controls" class="layer-controls">
+                <div id="layer-conflict-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-conflict-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="50">
+                  <span id="layer-conflict-opacity-value" class="opacity-value">50%</span>
+                </div>
+                <div id="layer-conflict-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-conflict-color-input" class="color-input" type="color" value="#dc2626">
+                </div>
+                <div id="layer-conflict-order" class="order-wrap">
+                  <button id="layer-conflict-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-conflict-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 8. Community Territories -->
+            <div id="layer-comunidades" class="layer-row" draggable="true">
+              <div id="layer-comunidades-top" class="layer-top">
+                <i id="layer-comunidades-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-comunidades-name" class="layer-name">Afro-Colombian Community Territories</span>
+                <button id="layer-comunidades-eye" class="eye-btn eye-btn--off" title="Toggle visibility"><i id="layer-comunidades-eye-icon" class="fas fa-eye-slash"></i></button>
+              </div>
+              <div id="layer-comunidades-controls" class="layer-controls">
+                <div id="layer-comunidades-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-comunidades-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="60">
+                  <span id="layer-comunidades-opacity-value" class="opacity-value">60%</span>
+                </div>
+                <div id="layer-comunidades-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-comunidades-color-input" class="color-input" type="color" value="#a855f7">
+                </div>
+                <div id="layer-comunidades-order" class="order-wrap">
+                  <button id="layer-comunidades-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-comunidades-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 9. Indigenous Reserves -->
+            <div id="layer-resguardos" class="layer-row" draggable="true">
+              <div id="layer-resguardos-top" class="layer-top">
+                <i id="layer-resguardos-handle" class="fas fa-grip-lines drag-handle"></i>
+                <span id="layer-resguardos-name" class="layer-name">Indigenous Reserves</span>
+                <button id="layer-resguardos-eye" class="eye-btn eye-btn--off" title="Toggle visibility"><i id="layer-resguardos-eye-icon" class="fas fa-eye-slash"></i></button>
+              </div>
+              <div id="layer-resguardos-controls" class="layer-controls">
+                <div id="layer-resguardos-opacity" class="opacity-wrap">
+                  <span class="opacity-label">Opacity</span>
+                  <input id="layer-resguardos-opacity-slider" class="opacity-slider" type="range" min="0" max="100" value="60">
+                  <span id="layer-resguardos-opacity-value" class="opacity-value">60%</span>
+                </div>
+                <div id="layer-resguardos-color" class="color-wrap">
+                  <span class="color-label">Color</span>
+                  <input id="layer-resguardos-color-input" class="color-input" type="color" value="#6366f1">
+                </div>
+                <div id="layer-resguardos-order" class="order-wrap">
+                  <button id="layer-resguardos-up" class="order-btn" title="Move layer up"><i class="fas fa-arrow-up"></i></button>
+                  <button id="layer-resguardos-down" class="order-btn" title="Move layer down"><i class="fas fa-arrow-down"></i></button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer id="sidebar-footer" class="panel-footer">
+      <button id="reset-defaults-btn" class="btn--reset"><i class="fas fa-rotate-left"></i> Reset Defaults</button>
+    </footer>
+  </div>
+
+  <script>
+    (function initSidebarInteractions() {
+      const body = document.getElementById("sidebar-body");
+      const rows = body.querySelectorAll(".layer-row");
+
+      rows.forEach((row) => {
+        row.addEventListener("dragstart", () => row.classList.add("dragging"));
+        row.addEventListener("dragend", () => {
+          row.classList.remove("dragging");
+          body.querySelectorAll(".drop-target").forEach((t) => t.classList.remove("drop-target"));
+        });
+        row.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          const d = body.querySelector(".dragging");
+          if (d && d !== row) row.classList.add("drop-target");
+        });
+        row.addEventListener("dragleave", () => row.classList.remove("drop-target"));
+        row.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const d = body.querySelector(".dragging");
+          if (d && d !== row) row.parentNode.insertBefore(d, row);
+          row.classList.remove("drop-target");
+        });
+      });
+
+      body.querySelectorAll(".opacity-slider").forEach((slider) => {
+        const val = slider.parentElement.querySelector(".opacity-value");
+        if (!val) return;
+        slider.addEventListener("input", () => { val.textContent = slider.value + "%"; });
+      });
+
+      body.querySelectorAll(".eye-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const icon = btn.querySelector("i");
+          icon.classList.toggle("fa-eye");
+          icon.classList.toggle("fa-eye-slash");
+          btn.classList.toggle("eye-btn--off");
+        });
+      });
+
+      body.querySelectorAll(".order-btn[title='Move layer up']").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const row = btn.closest(".layer-row");
+          const prev = row.previousElementSibling;
+          if (prev) row.parentNode.insertBefore(row, prev);
+        });
+      });
+
+      body.querySelectorAll(".order-btn[title='Move layer down']").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const row = btn.closest(".layer-row");
+          const next = row.nextElementSibling;
+          if (next) row.parentNode.insertBefore(next, row);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
