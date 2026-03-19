@@ -54,8 +54,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private attributionWidget: InstanceType<typeof Attribution> | null = null;
   private coordinateConversionWidget: InstanceType<typeof CoordinateConversion> | null = null;
   private comparisonSwipeWidget: SwipeInstance | null = null;
+  private comparisonSwipeHostEl: HTMLDivElement | null = null;
   private swipeConstructor: SwipeConstructor | null = null;
   private comparisonSyncRequestId = 0;
+  private lastComparisonKey = '';
   private isCoordinateToolEnabled = false;
   private readonly basemapService = inject(MapBasemapService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
@@ -311,56 +313,80 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.teardownComparisonSwipeWidget();
       if (activeScenarioId && this.solutionLayer.isComparisonModeActive()) {
         await this.solutionLayer.showSolution(activeScenarioId, { syncAppState: false });
+        if (requestId !== this.comparisonSyncRequestId) {
+          return;
+        }
       } else {
         this.solutionLayer.exitComparisonMode();
       }
       return;
     }
 
+    const comparisonKey = `${activeScenarioId}::${comparisonScenarioId}`;
+    if (comparisonKey === this.lastComparisonKey && this.comparisonSwipeWidget) {
+      return;
+    }
+
+    const previousPosition =
+      this.comparisonSwipeWidget && 'position' in this.comparisonSwipeWidget
+        ? (this.comparisonSwipeWidget as unknown as { position: number }).position
+        : 50;
+
+    this.teardownComparisonSwipeWidget();
     await this.solutionLayer.showComparison(activeScenarioId, comparisonScenarioId);
     if (requestId !== this.comparisonSyncRequestId) {
       return;
     }
 
+    this.lastComparisonKey = comparisonKey;
+
     try {
-      await this.setupComparisonSwipeWidget();
+      await this.setupComparisonSwipeWidget(previousPosition);
     } catch (error) {
       console.error(`[MapView][${this.debugMarker}] failed to attach Swipe widget:`, error);
     }
   }
 
-  private async setupComparisonSwipeWidget(): Promise<void> {
-    if (!this.view || !this.comparisonSwipeContainerRef?.nativeElement) {
+  private async setupComparisonSwipeWidget(position = 50): Promise<void> {
+    const parentEl = this.comparisonSwipeContainerRef?.nativeElement;
+    if (!this.view || !parentEl) {
       return;
     }
 
     const comparisonLayers = this.solutionLayer.getComparisonLayers();
     if (!comparisonLayers) {
-      this.teardownComparisonSwipeWidget();
       return;
     }
 
-    this.teardownComparisonSwipeWidget();
+    const hostEl = document.createElement('div');
+    hostEl.id = 'map-view-comparison-swipe-host';
+    hostEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
+    parentEl.appendChild(hostEl);
+    this.comparisonSwipeHostEl = hostEl;
+
     const Swipe = await this.getSwipeConstructor();
     this.comparisonSwipeWidget = new Swipe({
       id: 'map-view-comparison-swipe-widget',
-      container: this.comparisonSwipeContainerRef.nativeElement,
+      container: hostEl,
       view: this.view,
       leadingLayers: [comparisonLayers.baselineLayer],
       trailingLayers: [comparisonLayers.candidateLayer],
       direction: 'horizontal',
-      position: 50,
+      position,
     });
-    console.info(`[MapView][${this.debugMarker}] Swipe widget created`);
+    console.info(`[MapView][${this.debugMarker}] Swipe widget created (position=${position})`);
   }
 
   private teardownComparisonSwipeWidget(): void {
-    if (!this.comparisonSwipeWidget) {
-      return;
+    if (this.comparisonSwipeWidget) {
+      this.comparisonSwipeWidget.destroy();
+      this.comparisonSwipeWidget = null;
     }
-
-    this.comparisonSwipeWidget.destroy();
-    this.comparisonSwipeWidget = null;
+    if (this.comparisonSwipeHostEl) {
+      this.comparisonSwipeHostEl.remove();
+      this.comparisonSwipeHostEl = null;
+    }
+    this.lastComparisonKey = '';
   }
 
   private async getSwipeConstructor(): Promise<SwipeConstructor> {
