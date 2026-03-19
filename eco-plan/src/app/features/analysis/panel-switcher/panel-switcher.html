@@ -665,7 +665,12 @@
                   </h4>
                 </article>
 
-                <article id="right-sidebar-comparison-candidate-card" class="c2-summary-card">
+                <article
+                  id="right-sidebar-comparison-candidate-card"
+                  class="c2-summary-card"
+                  [class.c2-summary-card-candidate-selected]="comparisonSolution()"
+                  [class.c2-summary-card-candidate-empty]="!comparisonSolution()"
+                >
                   <div id="right-sidebar-comparison-candidate-top" class="c2-summary-top">
                     <p id="right-sidebar-comparison-candidate-label" class="c2-summary-label">
                       {{ 'analysis.comparison.candidateLabel' | translate }}
@@ -713,15 +718,6 @@
                         class="c2-section-title-group"
                       >
                         <span
-                          [id]="'right-sidebar-comparison-section-dot-' + section.id"
-                          class="c2-section-dot"
-                          [class.c2-section-dot-general]="section.toneClass === 'general'"
-                          [class.c2-section-dot-bio]="section.toneClass === 'bio'"
-                          [class.c2-section-dot-eco]="section.toneClass === 'eco'"
-                          [class.c2-section-dot-socio]="section.toneClass === 'socio'"
-                          [class.c2-section-dot-protect]="section.toneClass === 'protect'"
-                        ></span>
-                        <span
                           [id]="'right-sidebar-comparison-section-title-' + section.id"
                           class="c2-section-title"
                         >
@@ -733,7 +729,7 @@
                         class="c2-toggle-caret"
                         [class.c2-toggle-caret-expanded]="isComparisonSectionExpanded(section.id)"
                         aria-hidden="true"
-                        >></span
+                        >▾</span
                       >
                     </button>
 

@@ -580,6 +580,22 @@
   padding: 10px 12px;
 }
 
+/* Match table baseline / candidate value hues (see .c2-compare-value-*). */
+#right-sidebar-comparison-baseline-card {
+  border-color: #1e6fa8;
+  background: #e8f2fa;
+}
+
+#right-sidebar-comparison-candidate-card.c2-summary-card-candidate-selected {
+  border-color: #7c3aed;
+  background: #f3edff;
+}
+
+#right-sidebar-comparison-candidate-card.c2-summary-card-candidate-empty {
+  border-color: #475569;
+  background: #f1f5f9;
+}
+
 .c2-summary-label {
   font-size: 10px;
   font-weight: 700;
@@ -628,6 +644,15 @@
 .c2-action-btn:hover {
   border-color: #cbd5e1;
   background: #f1f5f9;
+}
+
+/* Stronger contrast for comparison candidate action control. */
+#right-sidebar-comparison-candidate-change-btn {
+  border-color: #94a3b8;
+}
+
+#right-sidebar-comparison-candidate-change-btn:hover {
+  border-color: #64748b;
 }
 
 .c2-action-btn-wide {
@@ -746,7 +771,7 @@
   gap: 8px;
   border-bottom: 1px solid #e2e8f0;
   padding: 10px 14px;
-  background: #fff;
+  background: #f1f5f9;
   border-left: 0;
   border-right: 0;
   border-top: 0;
@@ -755,41 +780,14 @@
 }
 
 .c2-section-header-button:hover {
-  background: #f8fafc;
+  background: #e8edf4;
 }
 
 .c2-section-title-group {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 8px;
-}
-
-.c2-section-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.c2-section-dot-general {
-  background: #1e6fa8;
-}
-
-.c2-section-dot-bio {
-  background: #2f7d3d;
-}
-
-.c2-section-dot-eco {
-  background: #0d9488;
-}
-
-.c2-section-dot-socio {
-  background: #d97706;
-}
-
-.c2-section-dot-protect {
-  background: #7c3aed;
+  gap: 0;
 }
 
 .c2-section-title {
@@ -801,16 +799,16 @@
 .c2-toggle-caret {
   min-width: 16px;
   text-align: right;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1;
   color: #64748b;
-  transform: rotate(90deg);
+  transform: rotate(0deg);
   transition: transform 0.15s ease;
 }
 
 .c2-toggle-caret-expanded {
-  transform: rotate(270deg);
+  transform: rotate(180deg);
 }
 
 .c2-section-body {
@@ -888,26 +886,19 @@
 
 .c2-delta-badge {
   white-space: nowrap;
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 700;
+  padding: 0;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.2;
 }
 
-.c2-delta-positive {
-  background: #d1fae5;
-  color: #047857;
-}
-
-.c2-delta-negative {
-  background: #ffe4e6;
-  color: #be123c;
-}
-
+/* Difference column: plain text, off-black (no tinted pill). */
+.c2-delta-positive,
+.c2-delta-negative,
 .c2-delta-neutral {
-  background: #f1f5f9;
-  color: #64748b;
+  background: transparent;
+  color: #111827;
 }
 
 .c2-tag-conditional {
@@ -922,9 +913,9 @@
 }
 
 .c2-insight {
-  border-left: 3px solid #2f7d3d;
+  border-left: 3px solid #cbd5e1;
   border-radius: 6px;
-  background: #edf7f0;
+  background: #f8fafc;
   padding: 10px 12px;
   font-size: 12px;
   line-height: 1.5;
