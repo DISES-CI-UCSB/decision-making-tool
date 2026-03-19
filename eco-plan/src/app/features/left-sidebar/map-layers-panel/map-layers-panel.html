@@ -177,30 +177,32 @@
                     </p>
                     <p
                       [id]="'map-layers-selected-layer-row-source-' + selected.id"
-                      class="truncate text-[10px] text-slate-400"
+                      class="truncate text-[10px] text-slate-500"
                     >
                       {{ selected.sourceLabel }}
                     </p>
                   </div>
-                  <button
-                    [id]="'map-layers-selected-layer-row-remove-button-' + selected.id"
-                    type="button"
-                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-500 transition hover:border-red-300 hover:text-red-500"
-                    [attr.aria-label]="'Remove ' + selected.name + ' from selected layers'"
-                    (click)="removeSelectedLayer(selected.id)"
-                  >
-                    <svg
-                      class="h-3 w-3"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      aria-hidden="true"
+                  @if (selected.id !== 'overlay-conservation-solution') {
+                    <button
+                      [id]="'map-layers-selected-layer-row-remove-button-' + selected.id"
+                      type="button"
+                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-500 transition hover:border-red-300 hover:text-red-500"
+                      [attr.aria-label]="'Remove ' + selected.name + ' from selected layers'"
+                      (click)="removeSelectedLayer(selected.id)"
                     >
-                      <path d="M2 2l8 8M10 2l-8 8" />
-                    </svg>
-                  </button>
+                      <svg
+                        class="h-3 w-3"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M2 2l8 8M10 2l-8 8" />
+                      </svg>
+                    </button>
+                  }
                   <button
                     [id]="'map-layers-selected-layer-row-visibility-button-' + selected.id"
                     type="button"
@@ -281,7 +283,7 @@
                       <label
                         [id]="'map-layers-selected-layer-row-opacity-label-' + selected.id"
                         [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
-                        class="shrink-0 text-[10px] text-slate-400"
+                        class="shrink-0 text-[10px] text-slate-500"
                       >
                         Opacity
                       </label>
@@ -378,7 +380,7 @@
             </span>
             <span
               id="map-layers-overlays-category-count"
-              class="text-[11px] font-semibold text-slate-400"
+              class="text-[11px] font-semibold text-slate-500"
             >
               3 layers
             </span>
@@ -503,7 +505,7 @@
                         <label
                           [id]="'map-layers-overlay-opacity-label-' + overlay.id"
                           [for]="'map-layers-overlay-opacity-slider-' + overlay.id"
-                          class="shrink-0 text-[10px] text-slate-400"
+                          class="shrink-0 text-[10px] text-slate-500"
                         >
                           Opacity
                         </label>
@@ -531,7 +533,7 @@
                         <label
                           [id]="'map-layers-overlay-color-label-' + overlay.id"
                           [for]="'map-layers-overlay-color-input-' + overlay.id"
-                          class="text-[10px] text-slate-400"
+                          class="text-[10px] text-slate-500"
                         >
                           Color
                         </label>
@@ -588,21 +590,21 @@
               <span
                 [id]="'map-layers-group-title-' + group.id"
                 class="flex-1 text-xs font-bold text-slate-700"
-                [class.text-slate-400]="group.disabled"
+                [class.text-slate-500]="group.disabled"
               >
                 {{ group.title }}
               </span>
               @if (group.comingSoon) {
                 <span
                   [id]="'map-layers-group-coming-soon-badge-' + group.id"
-                  class="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-slate-400"
+                  class="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-slate-500"
                 >
                   Coming soon
                 </span>
               } @else if (group.countLabel) {
                 <span
                   [id]="'map-layers-group-count-' + group.id"
-                  class="text-[11px] font-semibold text-slate-400"
+                  class="text-[11px] font-semibold text-slate-500"
                 >
                   {{ group.countLabel }}
                 </span>
@@ -641,7 +643,7 @@
                         </button>
                         <span
                           [id]="'map-layers-taxon-count-' + taxon.id"
-                          class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-400"
+                          class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-500"
                         >
                           {{ taxon.countLabel }}
                         </span>
@@ -741,7 +743,7 @@
                           >
                             <span
                               [id]="'map-layers-taxon-search-icon-' + taxon.id"
-                              class="text-[11px] text-slate-400"
+                              class="text-[11px] text-slate-500"
                               aria-hidden="true"
                             >
                               ⌕
@@ -787,7 +789,7 @@
                                     </p>
                                     <p
                                       [id]="'map-layers-species-latin-' + species.id"
-                                      class="truncate text-[10px] italic text-slate-400"
+                                      class="truncate text-[10px] italic text-slate-500"
                                     >
                                       {{ species.latin }}
                                     </p>
@@ -891,7 +893,7 @@
                                       <label
                                         [id]="'map-layers-species-opacity-label-' + species.id"
                                         [for]="'map-layers-species-opacity-slider-' + species.id"
-                                        class="shrink-0 text-[10px] text-slate-400"
+                                        class="shrink-0 text-[10px] text-slate-500"
                                       >
                                         Opacity
                                       </label>
@@ -1061,7 +1063,7 @@
                               [for]="
                                 'map-layers-layer-row-opacity-slider-' + group.id + '-' + row.id
                               "
-                              class="shrink-0 text-[10px] text-slate-400"
+                              class="shrink-0 text-[10px] text-slate-500"
                             >
                               Opacity
                             </label>
@@ -1093,7 +1095,7 @@
                             <label
                               [id]="'map-layers-layer-row-color-label-' + group.id + '-' + row.id"
                               [for]="'map-layers-layer-row-color-input-' + group.id + '-' + row.id"
-                              class="text-[10px] text-slate-400"
+                              class="text-[10px] text-slate-500"
                             >
                               Color
                             </label>

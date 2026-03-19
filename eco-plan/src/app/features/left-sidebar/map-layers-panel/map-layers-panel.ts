@@ -483,6 +483,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected removeSelectedLayer(rowId: string): void {
+    if (rowId === 'overlay-conservation-solution') {
+      return;
+    }
+
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlaySelected(rowId);
       return;
