@@ -9,7 +9,8 @@ import {
   signal,
 } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
-import { type AoiType } from '@core/models';
+import { type AoiType, type Solution } from '@core/models';
+import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
@@ -79,6 +80,40 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                 Clear
               </button>
             </div>
+
+            <section
+              id="dev-tools-candidate-scenario-picker"
+              class="mt-3 border-t border-slate-200 pt-3"
+            >
+              <label
+                id="dev-tools-candidate-scenario-label"
+                for="dev-tools-candidate-scenario-select"
+                class="block text-slate-500 mb-1"
+                >Load Candidate Scenario</label
+              >
+              <select
+                id="dev-tools-candidate-scenario-select"
+                class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                [value]="selectedCandidateScenarioId()"
+                (change)="onCandidateScenarioChange($event)"
+              >
+                <option value="">-- select --</option>
+                @for (s of scenarios; track s.id) {
+                  <option [value]="s.id">{{ s.id }}</option>
+                }
+              </select>
+              <div id="dev-tools-candidate-scenario-actions" class="mt-1.5 flex gap-1.5">
+                <button
+                  id="dev-tools-load-candidate-btn"
+                  type="button"
+                  class="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
+                  [disabled]="!selectedCandidateScenarioId()"
+                  (click)="loadCandidateScenario()"
+                >
+                  Load in Comparison
+                </button>
+              </div>
+            </section>
 
             <div
               id="dev-tools-coordinate-picker-toggle-row"
@@ -321,9 +356,11 @@ export class DevToolsPanelComponent {
   private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly catalog = inject(SolutionCatalogService);
   private readonly appState = inject(AppStateService);
+  private readonly mockData = inject(MockDataService);
 
   readonly scenarios = this.catalog.getAll();
   readonly selectedScenarioId = signal('');
+  readonly selectedCandidateScenarioId = signal('');
   readonly isOpen = signal(false);
 
   readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
@@ -353,9 +390,28 @@ export class DevToolsPanelComponent {
     this.selectedScenarioId.set((event.target as HTMLSelectElement).value);
   }
 
+  onCandidateScenarioChange(event: Event): void {
+    this.selectedCandidateScenarioId.set((event.target as HTMLSelectElement).value);
+  }
+
   loadScenario(): void {
     const id = this.selectedScenarioId();
     if (id) void this.solutionLayer.showSolution(id);
+  }
+
+  loadCandidateScenario(): void {
+    const scenarioId = this.selectedCandidateScenarioId();
+    if (!scenarioId) {
+      return;
+    }
+
+    const scenario = this.catalog.getById(scenarioId);
+    if (!scenario) {
+      return;
+    }
+
+    this.appState.setComparisonSolution(this.buildCandidateComparisonSolution(scenarioId));
+    this.appState.setRightSidebarMode('comparison');
   }
 
   clearSolution(): void {
@@ -392,6 +448,32 @@ export class DevToolsPanelComponent {
 
   formatBbox(bbox: [number, number, number, number]): string {
     return `[${bbox.map((v) => v.toFixed(2)).join(', ')}]`;
+  }
+
+  private buildCandidateComparisonSolution(scenarioId: string): Solution {
+    const scenario = this.catalog.getById(scenarioId);
+    const mockSolution = this.getMockSolutionForScenario(scenarioId);
+    const hash = Array.from(scenarioId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const matchPercentage = 70 + (hash % 29);
+
+    return {
+      ...mockSolution,
+      name: scenario?.name ?? mockSolution.name,
+      description: scenario?.description ?? mockSolution.description,
+      geometryUrl: scenario?.filename ?? mockSolution.geometryUrl,
+      matchPercentage,
+      metadata: {
+        ...mockSolution.metadata,
+        scenarioId,
+      },
+    };
+  }
+
+  private getMockSolutionForScenario(scenarioId: string): Solution {
+    const mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'] as const;
+    const hash = Array.from(scenarioId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const fallbackId = mockSolutionIds[hash % mockSolutionIds.length];
+    return this.mockData.getSolutionById(fallbackId) ?? this.mockData.getSolutionById('sol-001')!;
   }
 
   private drawPreview(source: HTMLCanvasElement): void {
