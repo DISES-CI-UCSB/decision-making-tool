@@ -38,6 +38,8 @@ interface HitTestCandidate {
   geometry: Geometry | null;
 }
 
+export type SirapSelectionScope = 'part' | 'whole';
+
 const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-departments-colombia',
@@ -119,6 +121,8 @@ export class AdminBoundaryService {
   private boundaryLayers: (FeatureLayer | GeoJSONLayer)[] = [];
   private aoiHighlightLayer: GraphicsLayer | null = null;
   private viewClickHandle: { remove: () => void } | null = null;
+  private lastSelectionCandidate: HitTestCandidate | null = null;
+  private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
     sirap: true,
     department: false,
@@ -126,10 +130,13 @@ export class AdminBoundaryService {
   };
   readonly layerVisibilityByType$ = signal<Record<AoiType, boolean>>(this.defaultVisibilityByType);
   readonly popupEnabled$ = signal(false);
+  readonly sirapSelectionScope$ = signal<SirapSelectionScope>('part');
 
   constructor() {
     effect(() => {
       if (this.appState.selectedAOI$() === null) {
+        this.lastSelectionCandidate = null;
+        this.lastClickPoint = null;
         this.clearSelectionHighlight();
       }
     });
@@ -202,6 +209,15 @@ export class AdminBoundaryService {
 
   togglePopupEnabled(): void {
     this.setPopupEnabled(!this.popupEnabled$());
+  }
+
+  setSirapSelectionScope(scope: SirapSelectionScope): void {
+    if (this.sirapSelectionScope$() === scope) {
+      return;
+    }
+
+    this.sirapSelectionScope$.set(scope);
+    this.refreshSelectionForScope();
   }
 
   private buildLayer(config: BoundaryConfig): FeatureLayer | GeoJSONLayer {
@@ -277,8 +293,16 @@ export class AdminBoundaryService {
       return;
     }
 
-    this.setSelectionHighlight(candidate, mapPoint);
-    await this.zoomToSelection(view, candidate);
+    this.lastSelectionCandidate = candidate;
+    this.lastClickPoint = mapPoint;
+    const selectionGeometry = this.resolveSelectionGeometry(
+      candidate.geometry,
+      mapPoint,
+      candidate.config.type,
+    );
+
+    this.setSelectionHighlight(selectionGeometry);
+    await this.zoomToSelection(view, selectionGeometry);
     this.appState.selectAOI({
       id: `${candidate.config.type}:${rawId}`,
       name: aoiName,
@@ -426,11 +450,8 @@ export class AdminBoundaryService {
     return null;
   }
 
-  private setSelectionHighlight(
-    candidate: HitTestCandidate,
-    clickedPoint: InstanceType<typeof Point>,
-  ): void {
-    if (!this.aoiHighlightLayer || !candidate.geometry) {
+  private setSelectionHighlight(selectionGeometry: Geometry | null): void {
+    if (!this.aoiHighlightLayer || !selectionGeometry) {
       return;
     }
 
@@ -440,7 +461,6 @@ export class AdminBoundaryService {
       this.map.reorder(this.aoiHighlightLayer, this.map.layers.length - 1);
     }
 
-    const selectionGeometry = this.resolveSelectionGeometry(candidate.geometry, clickedPoint);
     this.aoiHighlightLayer.removeAll();
     this.aoiHighlightLayer.add(
       new Graphic({
@@ -498,10 +518,16 @@ export class AdminBoundaryService {
   }
 
   private resolveSelectionGeometry(
-    geometry: Geometry,
+    geometry: Geometry | null,
     clickedPoint: InstanceType<typeof Point>,
-  ): Geometry {
-    if (geometry.type !== 'polygon') {
+    aoiType: AoiType,
+  ): Geometry | null {
+    if (!geometry) {
+      return null;
+    }
+
+    const isWholeSirapSelection = aoiType === 'sirap' && this.sirapSelectionScope$() === 'whole';
+    if (geometry.type !== 'polygon' || isWholeSirapSelection) {
       return geometry;
     }
 
@@ -528,14 +554,14 @@ export class AdminBoundaryService {
 
   private async zoomToSelection(
     view: InstanceType<typeof ArcGISMapView>,
-    candidate: HitTestCandidate,
+    selectionGeometry: Geometry | null,
   ): Promise<void> {
-    const geometry = candidate.geometry;
-    if (!geometry) {
+    if (!selectionGeometry) {
       return;
     }
 
-    const target = geometry.extent?.clone().expand(1.25) ?? this.toGoToGeometry(geometry);
+    const target =
+      selectionGeometry.extent?.clone().expand(1.25) ?? this.toGoToGeometry(selectionGeometry);
     if (!target) {
       return;
     }
@@ -565,5 +591,22 @@ export class AdminBoundaryService {
     }
 
     return null;
+  }
+
+  private refreshSelectionForScope(): void {
+    const candidate = this.lastSelectionCandidate;
+    const clickedPoint = this.lastClickPoint;
+    const view = this.view;
+    if (!candidate || !candidate.geometry || !clickedPoint || !view) {
+      return;
+    }
+
+    const selectionGeometry = this.resolveSelectionGeometry(
+      candidate.geometry,
+      clickedPoint,
+      candidate.config.type,
+    );
+    this.setSelectionHighlight(selectionGeometry);
+    void this.zoomToSelection(view, selectionGeometry);
   }
 }
