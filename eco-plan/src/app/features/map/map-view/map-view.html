@@ -1,5 +1,11 @@
 <section id="map-view-root" class="relative h-full w-full min-w-0 min-h-[320px]">
   <div id="map-view-container" #mapViewContainer class="h-full w-full"></div>
+  <div
+    id="map-view-comparison-swipe-container"
+    #comparisonSwipeContainer
+    class="absolute inset-0 z-[9]"
+    aria-hidden="true"
+  ></div>
 
   <section
     id="map-view-custom-zoom-controls"
@@ -27,6 +33,27 @@
   </section>
 
   <app-solution-legend id="map-view-solution-legend"></app-solution-legend>
+
+  @if (isComparisonOverlayVisible()) {
+    <section
+      id="map-view-comparison-badges"
+      class="pointer-events-none absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2"
+      aria-label="Comparison scenario labels"
+    >
+      <span
+        id="map-view-comparison-baseline-badge"
+        class="rounded-full border border-sky-300 bg-sky-100/95 px-3 py-1 text-[11px] font-semibold tracking-wide text-sky-800 shadow-sm"
+      >
+        Scenario A: {{ activeSolution()?.name ?? 'Baseline' }}
+      </span>
+      <span
+        id="map-view-comparison-candidate-badge"
+        class="rounded-full border border-violet-300 bg-violet-100/95 px-3 py-1 text-[11px] font-semibold tracking-wide text-violet-800 shadow-sm"
+      >
+        Scenario B: {{ comparisonSolution()?.name ?? 'Candidate' }}
+      </span>
+    </section>
+  }
 
   @if (mapErrorMessage) {
     <div

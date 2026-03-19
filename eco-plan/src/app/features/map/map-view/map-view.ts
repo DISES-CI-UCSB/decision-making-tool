@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   Component,
+  computed,
   ElementRef,
   Input,
   OnDestroy,
@@ -15,6 +16,8 @@ import Point from '@arcgis/core/geometry/Point';
 import Attribution from '@arcgis/core/widgets/Attribution';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
+import type Widget from '@arcgis/core/widgets/Widget';
+import type { Solution } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
@@ -24,6 +27,10 @@ import { SolutionLegendComponent } from '@features/map/components/solution-legen
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
+type SwipeInstance = {
+  destroy: () => void;
+} & Widget;
+type SwipeConstructor = new (properties: Record<string, unknown>) => SwipeInstance;
 
 @Component({
   selector: 'app-map-view',
@@ -38,12 +45,17 @@ const COLOMBIA_ZOOM = 6;
 export class MapViewComponent implements AfterViewInit, OnDestroy {
   @ViewChild('mapViewContainer')
   private mapViewContainerRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('comparisonSwipeContainer')
+  private comparisonSwipeContainerRef!: ElementRef<HTMLDivElement>;
 
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private view: InstanceType<typeof ArcGISMapView> | null = null;
   private scaleBarWidget: InstanceType<typeof ScaleBar> | null = null;
   private attributionWidget: InstanceType<typeof Attribution> | null = null;
   private coordinateConversionWidget: InstanceType<typeof CoordinateConversion> | null = null;
+  private comparisonSwipeWidget: SwipeInstance | null = null;
+  private swipeConstructor: SwipeConstructor | null = null;
+  private comparisonSyncRequestId = 0;
   private isCoordinateToolEnabled = false;
   private readonly basemapService = inject(MapBasemapService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
@@ -53,6 +65,15 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly debugMarker = 'UCS-40-layer-infra-v1';
   protected mapErrorMessage = '';
+  protected readonly activeSolution = this.appState.activeSolution$;
+  protected readonly comparisonSolution = this.appState.comparisonSolution$;
+  protected readonly isComparisonOverlayVisible = computed(() => {
+    return (
+      this.appState.rightSidebarMode$() === 'comparison' &&
+      this.activeSolution() !== null &&
+      this.comparisonSolution() !== null
+    );
+  });
 
   @Input()
   set coordinateToolEnabled(value: boolean) {
@@ -76,6 +97,13 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       console.info(`[MapView][${this.debugMarker}] visibleLayers$ -> ${layers.length} layer(s)`);
       this.layerRenderer.syncLayers(layers);
     });
+
+    effect(() => {
+      this.appState.activeSolution$();
+      this.appState.comparisonSolution$();
+      this.appState.rightSidebarMode$();
+      void this.syncComparisonMode();
+    });
   }
 
   ngAfterViewInit(): void {
@@ -85,6 +113,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     console.info(`[MapView][${this.debugMarker}] ngOnDestroy`);
+    this.teardownComparisonSwipeWidget();
     this.removeMapWidgets();
     this.adminBoundaries.destroy(this.map);
     this.view?.destroy();
@@ -193,6 +222,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
       this.addMapWidgets();
       this.adminBoundaries.initialize(this.map, this.view);
+      void this.syncComparisonMode();
 
       this.view.when(
         () => console.info(`[MapView][${this.debugMarker}] ready`),
@@ -258,6 +288,96 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.coordinateConversionWidget.destroy();
       this.coordinateConversionWidget = null;
     }
+  }
+
+  private async syncComparisonMode(): Promise<void> {
+    if (!this.map || !this.view) {
+      return;
+    }
+
+    const activeScenarioId = this.getScenarioId(this.appState.activeSolution$());
+    const comparisonScenarioId = this.getScenarioId(this.appState.comparisonSolution$());
+    const shouldShowComparison =
+      this.appState.rightSidebarMode$() === 'comparison' &&
+      !!activeScenarioId &&
+      !!comparisonScenarioId;
+    console.info(
+      `[MapView][${this.debugMarker}] comparison check mode=${this.appState.rightSidebarMode$()} active=${activeScenarioId ?? 'none'} candidate=${comparisonScenarioId ?? 'none'} enabled=${shouldShowComparison}`,
+    );
+    // Ignore stale async layer loads when users switch scenarios quickly.
+    const requestId = ++this.comparisonSyncRequestId;
+
+    if (!shouldShowComparison) {
+      this.teardownComparisonSwipeWidget();
+      if (activeScenarioId && this.solutionLayer.isComparisonModeActive()) {
+        await this.solutionLayer.showSolution(activeScenarioId, { syncAppState: false });
+      } else {
+        this.solutionLayer.exitComparisonMode();
+      }
+      return;
+    }
+
+    await this.solutionLayer.showComparison(activeScenarioId, comparisonScenarioId);
+    if (requestId !== this.comparisonSyncRequestId) {
+      return;
+    }
+
+    try {
+      await this.setupComparisonSwipeWidget();
+    } catch (error) {
+      console.error(`[MapView][${this.debugMarker}] failed to attach Swipe widget:`, error);
+    }
+  }
+
+  private async setupComparisonSwipeWidget(): Promise<void> {
+    if (!this.view || !this.comparisonSwipeContainerRef?.nativeElement) {
+      return;
+    }
+
+    const comparisonLayers = this.solutionLayer.getComparisonLayers();
+    if (!comparisonLayers) {
+      this.teardownComparisonSwipeWidget();
+      return;
+    }
+
+    this.teardownComparisonSwipeWidget();
+    const Swipe = await this.getSwipeConstructor();
+    this.comparisonSwipeWidget = new Swipe({
+      id: 'map-view-comparison-swipe-widget',
+      container: this.comparisonSwipeContainerRef.nativeElement,
+      view: this.view,
+      leadingLayers: [comparisonLayers.baselineLayer],
+      trailingLayers: [comparisonLayers.candidateLayer],
+      direction: 'horizontal',
+      position: 50,
+    });
+    console.info(`[MapView][${this.debugMarker}] Swipe widget created`);
+  }
+
+  private teardownComparisonSwipeWidget(): void {
+    if (!this.comparisonSwipeWidget) {
+      return;
+    }
+
+    this.comparisonSwipeWidget.destroy();
+    this.comparisonSwipeWidget = null;
+  }
+
+  private async getSwipeConstructor(): Promise<SwipeConstructor> {
+    if (this.swipeConstructor) {
+      return this.swipeConstructor;
+    }
+
+    // Lazy import prevents ArcGIS CSS side-effects during unit-test bootstrap.
+    const swipeModule = await import('@arcgis/core/widgets/Swipe');
+    this.swipeConstructor = swipeModule.default as unknown as SwipeConstructor;
+    return this.swipeConstructor;
+  }
+
+  private getScenarioId(solution: Solution | null): string | null {
+    const metadata = solution?.metadata;
+    const scenarioId = metadata ? metadata['scenarioId'] : null;
+    return typeof scenarioId === 'string' && scenarioId.length > 0 ? scenarioId : null;
   }
 
   private logContainerHierarchy(el: HTMLDivElement): void {

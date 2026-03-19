@@ -27,7 +27,9 @@ export class AppStateService {
 
   loadSolution(solution: Solution): void {
     this.activeSolution$.set(solution);
-    this.rightSidebarMode$.set('overview');
+    if (this.rightSidebarMode$() !== 'comparison') {
+      this.rightSidebarMode$.set('overview');
+    }
   }
 
   clearSolution(): void {

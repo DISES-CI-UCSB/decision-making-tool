@@ -9,6 +9,18 @@
   width: 100%;
 }
 
+#map-view-comparison-swipe-container {
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
+}
+
+:host ::ng-deep #map-view-comparison-swipe-container .esri-swipe {
+  height: 100%;
+  width: 100%;
+  pointer-events: auto;
+}
+
 :host ::ng-deep #map-view-root .esri-ui-top-left .esri-coordinate-conversion {
   margin-top: 0;
   margin-left: 0;
@@ -25,4 +37,31 @@
   .esri-coordinate-conversion__conversions-view {
   border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.95);
+}
+
+:host ::ng-deep .esri-swipe__handle {
+  background-color: rgba(100, 116, 139, 0.85);
+  outline: none !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+:host ::ng-deep .esri-swipe__handle:focus,
+:host ::ng-deep .esri-swipe__handle:focus-visible {
+  outline: none !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+:host ::ng-deep .esri-swipe__divider {
+  background-color: rgba(100, 116, 139, 0.55);
+}
+
+:host ::ng-deep .esri-swipe,
+:host ::ng-deep .esri-swipe:focus,
+:host ::ng-deep .esri-swipe:focus-visible,
+:host ::ng-deep .esri-swipe:focus-within,
+:host ::ng-deep .esri-swipe__divider:focus,
+:host ::ng-deep .esri-swipe__divider:focus-visible,
+:host ::ng-deep .esri-swipe__divider:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
 }
