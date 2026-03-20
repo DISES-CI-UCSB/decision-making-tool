@@ -40,8 +40,11 @@
 /*
   Rainforest reveal: proximity-driven opacity, no :hover switch.
   JS sets --select-solution-proximity-opacity (0-1) based on distance from cursor to button.
-  Mask goes black (opaque=forest shows) at center, transparent at edge.
-  Button's own bg-white is the base; no ::after veil needed.
+  Mask luminance: black = image visible, transparent = image hidden (shows button white).
+  Tuning (edit both -webkit-mask-image and mask-image the same way):
+  - circle Npx — outer radius of the vignette (spotlight size).
+  - Avoid two consecutive #000 stops at 0% + N% — that flat disk reads as a “pinhole”; use one soft peak + smooth ramp.
+  - Slightly below 1 alpha at 0% (e.g. 0.97) removes a harsh single-pixel “hole” in the haze.
 */
 .map-layers-select-solution-button--rainforest-reveal::before {
   content: '';
@@ -61,35 +64,29 @@
     filter 0.25s ease;
   -webkit-mask-image: radial-gradient(
     circle 80px at var(--select-solution-spotlight-x, 50%) var(--select-solution-spotlight-y, 50%),
-    #000 0%,
-    #000 8%,
-    rgb(0 0 0 / 0.97) 16%,
-    rgb(0 0 0 / 0.92) 24%,
-    rgb(0 0 0 / 0.86) 32%,
-    rgb(0 0 0 / 0.78) 40%,
-    rgb(0 0 0 / 0.69) 48%,
-    rgb(0 0 0 / 0.58) 56%,
-    rgb(0 0 0 / 0.46) 64%,
-    rgb(0 0 0 / 0.33) 72%,
-    rgb(0 0 0 / 0.2) 80%,
-    rgb(0 0 0 / 0.09) 88%,
-    transparent 96%
+    rgb(0 0 0 / 0.97) 0%,
+    rgb(0 0 0 / 0.91) 7%,
+    rgb(0 0 0 / 0.82) 16%,
+    rgb(0 0 0 / 0.7) 28%,
+    rgb(0 0 0 / 0.54) 42%,
+    rgb(0 0 0 / 0.36) 56%,
+    rgb(0 0 0 / 0.2) 70%,
+    rgb(0 0 0 / 0.09) 82%,
+    rgb(0 0 0 / 0.03) 90%,
+    transparent 95%
   );
   mask-image: radial-gradient(
     circle 80px at var(--select-solution-spotlight-x, 50%) var(--select-solution-spotlight-y, 50%),
-    #000 0%,
-    #000 8%,
-    rgb(0 0 0 / 0.97) 16%,
-    rgb(0 0 0 / 0.92) 24%,
-    rgb(0 0 0 / 0.86) 32%,
-    rgb(0 0 0 / 0.78) 40%,
-    rgb(0 0 0 / 0.69) 48%,
-    rgb(0 0 0 / 0.58) 56%,
-    rgb(0 0 0 / 0.46) 64%,
-    rgb(0 0 0 / 0.33) 72%,
-    rgb(0 0 0 / 0.2) 80%,
-    rgb(0 0 0 / 0.09) 88%,
-    transparent 96%
+    rgb(0 0 0 / 0.97) 0%,
+    rgb(0 0 0 / 0.91) 7%,
+    rgb(0 0 0 / 0.82) 16%,
+    rgb(0 0 0 / 0.7) 28%,
+    rgb(0 0 0 / 0.54) 42%,
+    rgb(0 0 0 / 0.36) 56%,
+    rgb(0 0 0 / 0.2) 70%,
+    rgb(0 0 0 / 0.09) 82%,
+    rgb(0 0 0 / 0.03) 90%,
+    transparent 95%
   );
 }
 
