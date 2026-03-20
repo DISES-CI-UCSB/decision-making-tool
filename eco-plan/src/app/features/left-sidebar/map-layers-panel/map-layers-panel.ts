@@ -96,7 +96,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
-  protected readonly adminBoundary = signal<AdminBoundaryOption>('national');
+  protected readonly adminBoundary = signal<AdminBoundaryOption>('sirap');
   protected readonly customBoundaryRequested = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly overlaysCollapsed = signal(false);
@@ -111,7 +111,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   );
 
   constructor() {
-    this.onAdminBoundaryChange('national');
+    this.onAdminBoundaryChange('sirap');
     this.selectedLayerOrder.set(
       this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
     );
@@ -155,7 +155,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected dismissCustomBoundary(): void {
     if (this.adminBoundary() === 'custom') {
-      this.adminBoundary.set('national');
+      this.onAdminBoundaryChange('sirap');
     }
     this.customBoundaryRequested.set(false);
   }
@@ -415,17 +415,13 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected resetDefaults(): void {
-    this.adminBoundary.set('national');
-    this.customBoundaryRequested.set(false);
+    this.onAdminBoundaryChange('sirap');
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
     this.selectedLayerOrder.set(
       this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
     );
-    this.adminBoundaryService.setLayerVisibility('sirap', false);
-    this.adminBoundaryService.setLayerVisibility('department', false);
-    this.adminBoundaryService.setLayerVisibility('municipality', false);
     this.syncAllRowsToMap();
   }
 
