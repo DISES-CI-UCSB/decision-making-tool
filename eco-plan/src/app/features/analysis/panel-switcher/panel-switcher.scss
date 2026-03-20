@@ -591,6 +591,17 @@
   color: #2f7d3d;
 }
 
+/* Comparison panel: one green section title (all-caps header at .c2-title size). */
+#right-sidebar-comparison-kicker {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2f7d3d;
+}
+
 .c2-title {
   font-size: 18px;
   font-weight: 700;

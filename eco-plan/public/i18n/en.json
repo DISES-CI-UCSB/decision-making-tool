@@ -159,8 +159,7 @@
       "emptyMetricsDescription": "AOI metrics appear here once both a solution and an area of interest are available."
     },
     "comparison": {
-      "kicker": "Compare solutions",
-      "title": "Side-by-side comparison",
+      "kicker": "Compare Solutions",
       "description": "Review baseline and candidate solution metrics in one place before making a recommendation.",
       "baselineLabel": "Baseline solution",
       "candidateLabel": "Candidate solution",

@@ -160,7 +160,6 @@
     },
     "comparison": {
       "kicker": "Comparar soluciones",
-      "title": "Comparacion lado a lado",
       "description": "Revisa metricas de una solucion base y una candidata en un solo lugar antes de hacer una recomendacion.",
       "baselineLabel": "Solucion base",
       "candidateLabel": "Solucion candidata",

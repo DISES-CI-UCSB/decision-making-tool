@@ -1212,11 +1212,8 @@
       @case ('comparison') {
         <section id="right-sidebar-comparison-panel" class="panel-enter c2-panel">
           <header id="right-sidebar-comparison-header" class="c2-panel-header">
-            <p id="right-sidebar-comparison-kicker" class="c2-kicker">
+            <h3 id="right-sidebar-comparison-kicker">
               {{ 'analysis.comparison.kicker' | translate }}
-            </p>
-            <h3 id="right-sidebar-comparison-title" class="c2-title">
-              {{ 'analysis.comparison.title' | translate }}
             </h3>
             <p id="right-sidebar-comparison-description" class="c2-description">
               {{ 'analysis.comparison.description' | translate }}
@@ -1414,23 +1411,25 @@
               }
             </div>
           } @else {
-            <section
-              id="right-sidebar-comparison-no-baseline-state"
-              class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
-            >
-              <h4
-                id="right-sidebar-comparison-no-baseline-title"
-                class="text-sm font-semibold text-slate-900"
+            <div id="right-sidebar-comparison-no-baseline-wrap" class="c2-panel-body">
+              <section
+                id="right-sidebar-comparison-no-baseline-state"
+                class="rounded-lg border border-slate-300 bg-slate-50 px-4 py-5"
               >
-                {{ 'analysis.comparison.noBaselineTitle' | translate }}
-              </h4>
-              <p
-                id="right-sidebar-comparison-no-baseline-description"
-                class="mt-2 text-sm leading-6 text-slate-600"
-              >
-                {{ 'analysis.comparison.noBaselineDescription' | translate }}
-              </p>
-            </section>
+                <h4
+                  id="right-sidebar-comparison-no-baseline-title"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  {{ 'analysis.comparison.noBaselineTitle' | translate }}
+                </h4>
+                <p
+                  id="right-sidebar-comparison-no-baseline-description"
+                  class="mt-2 text-sm leading-6 text-slate-600"
+                >
+                  {{ 'analysis.comparison.noBaselineDescription' | translate }}
+                </p>
+              </section>
+            </div>
           }
         </section>
       }
