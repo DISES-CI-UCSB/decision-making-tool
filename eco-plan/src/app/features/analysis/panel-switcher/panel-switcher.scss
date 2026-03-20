@@ -26,8 +26,49 @@
   }
 }
 
+/* Tabs: thin shared baseline; active indicator is an ::after line that scales from center on select. */
+.right-sidebar-panel-tab-button {
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: transparent;
+}
+
+.right-sidebar-panel-tab-button[aria-selected='true'] {
+  border-bottom-color: transparent;
+}
+
+.right-sidebar-panel-tab-button[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background-color: #0f172a;
+  transform: scaleX(0);
+  transform-origin: center;
+  animation: right-sidebar-tab-underline-expand 280ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .right-sidebar-panel-tab-button[aria-selected='true']::after {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes right-sidebar-tab-underline-expand {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .right-sidebar-panel-tab-button[aria-selected='false']:hover {
-  background-color: rgb(248 250 252 / 80%);
+  color: #0f172a;
 }
 
 #solution-overview-panel {
