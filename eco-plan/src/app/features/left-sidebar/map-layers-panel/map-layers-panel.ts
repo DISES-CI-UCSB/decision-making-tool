@@ -984,8 +984,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'overlay-runap',
         name: 'Protected Areas (RUNAP)',
-        visible: true,
-        expanded: true,
+        visible: false,
+        expanded: false,
         opacity: 80,
         color: '#2563eb',
         canReorder: true,
@@ -995,8 +995,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'overlay-omecs',
         name: 'OMECs',
-        visible: true,
-        expanded: true,
+        visible: false,
+        expanded: false,
         opacity: 75,
         color: '#7c3aed',
         canReorder: true,
