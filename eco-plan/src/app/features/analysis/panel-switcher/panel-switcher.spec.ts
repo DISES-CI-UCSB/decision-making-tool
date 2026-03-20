@@ -94,7 +94,7 @@ describe('PanelSwitcherComponent', () => {
     aoiTabButton.click();
     fixture.detectChanges();
 
-    expect(compiled.querySelector('#right-sidebar-aoi-panel')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-empty-state')).not.toBeNull();
     expect(compiled.querySelector('#right-sidebar-welcome-panel')).toBeNull();
   });
 });

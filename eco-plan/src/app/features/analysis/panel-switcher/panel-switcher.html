@@ -505,29 +505,16 @@
           <section id="aoi-dashboard-panel" class="panel-enter aoi-panel">
             <!-- ═══ HEADER ═══ -->
             <header id="aoi-dashboard-header" class="aoi-panel-header">
-              <div id="aoi-dashboard-header-row" class="aoi-header-row">
-                <div id="aoi-dashboard-header-left" class="aoi-header-left">
-                  <button
-                    id="aoi-dashboard-back-btn"
-                    type="button"
-                    class="aoi-icon-btn"
-                    aria-label="Back to solution overview"
-                    (click)="selectTab('overview')"
-                  >
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                  </button>
-                  <div id="aoi-dashboard-title-block" class="aoi-title-block">
-                    <p id="aoi-dashboard-region-kicker" class="aoi-region-kicker">
-                      {{ 'analysis.aoi.types.' + aoi.type | translate }}
-                    </p>
-                    <h3 id="aoi-dashboard-region-name" class="aoi-region-name">{{ aoi.name }}</h3>
-                    @if (fillDummyAoiMetrics()) {
-                      <p id="aoi-dashboard-region-meta" class="aoi-region-meta">
-                        512 km² · Cauca Department
-                      </p>
-                    }
-                  </div>
-                </div>
+              <div id="aoi-dashboard-title-block" class="aoi-title-block">
+                <p id="aoi-dashboard-region-kicker" class="aoi-region-kicker">
+                  {{ 'analysis.aoi.types.' + aoi.type | translate }}
+                </p>
+                <h3 id="aoi-dashboard-region-name" class="aoi-region-name">{{ aoi.name }}</h3>
+                @if (fillDummyAoiMetrics()) {
+                  <p id="aoi-dashboard-region-meta" class="aoi-region-meta">
+                    512 km² · Cauca Department
+                  </p>
+                }
               </div>
 
               @if (isSirapAoiSelected()) {
