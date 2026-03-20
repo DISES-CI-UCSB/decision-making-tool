@@ -133,6 +133,34 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
             </div>
 
             <div
+              id="dev-tools-select-solution-hover-row"
+              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <div id="dev-tools-select-solution-hover-copy" class="min-w-0 pr-2">
+                <p
+                  id="dev-tools-select-solution-hover-label"
+                  class="text-[11px] font-semibold text-slate-700"
+                >
+                  Select solution hover
+                </p>
+                <p
+                  id="dev-tools-select-solution-hover-hint"
+                  class="text-[10px] leading-4 text-slate-500"
+                >
+                  Cycles: slate wash → mint spotlight → rainforest photo reveal (localStorage).
+                </p>
+              </div>
+              <button
+                id="dev-tools-select-solution-hover-toggle-btn"
+                type="button"
+                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleSelectSolutionButtonHoverFx()"
+              >
+                {{ selectSolutionHoverFxButtonLabel() }}
+              </button>
+            </div>
+
+            <div
               id="dev-tools-overview-dummy-toggle-row"
               class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
@@ -383,6 +411,7 @@ export class DevToolsPanelComponent {
   readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
   readonly fillDummyAoiMetrics = this.appState.fillDummyAoiMetrics$;
+  readonly selectSolutionButtonHoverFx = this.appState.selectSolutionButtonHoverFx$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
 
@@ -437,6 +466,21 @@ export class DevToolsPanelComponent {
 
   toggleCoordinateTool(): void {
     this.coordinateToolEnabledChange.emit(!this.coordinateToolEnabled);
+  }
+
+  toggleSelectSolutionButtonHoverFx(): void {
+    this.appState.toggleSelectSolutionButtonHoverFx();
+  }
+
+  selectSolutionHoverFxButtonLabel(): string {
+    switch (this.selectSolutionButtonHoverFx()) {
+      case 'cursorFollowGreen':
+        return 'Cursor spotlight';
+      case 'rainforestReveal':
+        return 'Rainforest reveal';
+      default:
+        return 'Professional';
+    }
   }
 
   toggleOverviewMetricFill(): void {

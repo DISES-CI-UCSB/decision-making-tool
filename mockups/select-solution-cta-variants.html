@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Select solution CTA — six style options</title>
+    <script id="select-solution-cta-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="select-solution-cta-fonts"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: Inter, system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body id="select-solution-cta-variants-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <div id="select-solution-cta-variants-shell" class="mx-auto max-w-5xl px-6 py-10">
+      <header id="select-solution-cta-variants-header" class="mb-10 space-y-3">
+        <h1 id="select-solution-cta-variants-title" class="text-2xl font-bold tracking-tight text-slate-900">
+          “Select solution” — CTA style exploration
+        </h1>
+        <p id="select-solution-cta-variants-lede" class="max-w-3xl text-sm leading-6 text-slate-600">
+          Six reasonable directions: <strong class="font-semibold text-slate-800">three without gradients</strong> (crisp,
+          editorial) and <strong class="font-semibold text-slate-800">three with gradients</strong> (depth without
+          “bootstrap flat blue”). All aim to echo the right sidebar: light surfaces, slate borders, strong type—not a
+          saturated fill block.
+        </p>
+      </header>
+
+      <section
+        id="select-solution-cta-reference-block"
+        aria-label="Right-sidebar visual reference"
+        class="mb-12 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h2 id="select-solution-cta-reference-title" class="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+          Reference — right sidebar card language
+        </h2>
+        <div class="grid gap-6 md:grid-cols-2">
+          <div
+            id="select-solution-cta-reference-card"
+            class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+          >
+            <p class="text-sm font-semibold text-slate-900">Overview metrics</p>
+            <p class="mt-1 text-sm leading-6 text-slate-600">
+              Same rounded-2xl, <code class="rounded bg-white px-1 text-xs">border-slate-200</code>,
+              <code class="rounded bg-white px-1 text-xs">bg-slate-50</code>, slate type scale.
+            </p>
+          </div>
+          <div class="flex flex-col justify-center text-sm text-slate-600">
+            <p class="leading-6">
+              The left column below mimics <span class="font-medium text-slate-800">sidebar width</span> (~280px) so you
+              can judge density next to a fake “Map Layers” title.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div id="select-solution-cta-variant-grid" class="space-y-14">
+        <!-- No gradient -->
+        <div id="select-solution-cta-section-solid">
+          <h2 class="mb-6 text-lg font-bold text-slate-900">No gradient (three options)</h2>
+          <div class="grid gap-10 md:grid-cols-3">
+            <!-- 1 -->
+            <article
+              id="select-solution-cta-variant-outline-emphasis"
+              class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">1 · Outline emphasis</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-600">
+                White surface, <strong class="text-slate-800">dark border</strong>, near-black label. High prominence
+                without a paint bucket fill.
+              </p>
+              <div class="mt-4 w-[280px] shrink-0 rounded-lg border border-slate-200 bg-white p-4">
+                <p class="text-sm font-bold text-slate-900">Map Layers</p>
+                <button
+                  id="select-solution-cta-variant-outline-emphasis-btn"
+                  type="button"
+                  class="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-slate-900 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50"
+                >
+                  Select solution
+                </button>
+              </div>
+            </article>
+
+            <!-- 2 -->
+            <article
+              id="select-solution-cta-variant-soft-elevated"
+              class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">2 · Soft elevated</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-600">
+                Matches the welcome <strong class="text-slate-800">hero card</strong>: slate-50 fill, light border,
+                readable gray body nearby if needed.
+              </p>
+              <div class="mt-4 w-[280px] shrink-0 rounded-lg border border-slate-200 bg-white p-4">
+                <p class="text-sm font-bold text-slate-900">Map Layers</p>
+                <button
+                  id="select-solution-cta-variant-soft-elevated-btn"
+                  type="button"
+                  class="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-100/90"
+                >
+                  Select solution
+                </button>
+              </div>
+            </article>
+
+            <!-- 3 -->
+            <article
+              id="select-solution-cta-variant-inverse-pill"
+              class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">3 · Inverse (slate block)</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-600">
+                Still “modern app” primary: <strong class="text-slate-800">dark slab + white type</strong>. Reads as CTA
+                but drops the 2015 saturated accent color.
+              </p>
+              <div class="mt-4 w-[280px] shrink-0 rounded-lg border border-slate-200 bg-white p-4">
+                <p class="text-sm font-bold text-slate-900">Map Layers</p>
+                <button
+                  id="select-solution-cta-variant-inverse-pill-btn"
+                  type="button"
+                  class="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                >
+                  Select solution
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Gradients -->
+        <div id="select-solution-cta-section-gradient">
+          <h2 class="mb-6 text-lg font-bold text-slate-900">With gradient (three options)</h2>
+          <div class="grid gap-10 md:grid-cols-3">
+            <!-- 4 -->
+            <article
+              id="select-solution-cta-variant-grad-neutral-depth"
+              class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">4 · Neutral depth</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-600">
+                Very subtle <strong class="text-slate-800">light-to-light slate</strong> gradient—reads as “finish,” not
+                neon.
+              </p>
+              <div class="mt-4 w-[280px] shrink-0 rounded-lg border border-slate-200 bg-white p-4">
+                <p class="text-sm font-bold text-slate-900">Map Layers</p>
+                <button
+                  id="select-solution-cta-variant-grad-neutral-depth-btn"
+                  type="button"
+                  class="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-100 px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300"
+                >
+                  Select solution
+                </button>
+              </div>
+            </article>
+
+            <!-- 5 -->
+            <article
+              id="select-solution-cta-variant-grad-sky-wash"
+              class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">5 · Cool wash (brand-adjacent)</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-600">
+                Soft sky tint—<strong class="text-slate-800">ties to maps/analysis</strong> without flat
+                <code class="rounded bg-slate-100 px-1 text-[10px]">bg-sky-500</code> Bootstrap energy.
+              </p>
+              <div class="mt-4 w-[280px] shrink-0 rounded-lg border border-slate-200 bg-white p-4">
+                <p class="text-sm font-bold text-slate-900">Map Layers</p>
+                <button
+                  id="select-solution-cta-variant-grad-sky-wash-btn"
+                  type="button"
+                  class="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-slate-50 px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-sky-300"
+                >
+                  Select solution
+                </button>
+              </div>
+            </article>
+
+            <!-- 6 -->
+            <article
+              id="select-solution-cta-variant-grad-border-frame"
+              class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">6 · Gradient frame</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-600">
+                1px “chamfer” ring (slate gradient) with <strong class="text-slate-800">white interior</strong>—common in
+                polished marketing UIs.
+              </p>
+              <div class="mt-4 w-[280px] shrink-0 rounded-lg border border-slate-200 bg-white p-4">
+                <p class="text-sm font-bold text-slate-900">Map Layers</p>
+                <div
+                  id="select-solution-cta-variant-grad-border-frame-wrap"
+                  class="mt-3 rounded-xl bg-gradient-to-r from-slate-400 via-slate-600 to-slate-800 p-px shadow-sm"
+                >
+                  <button
+                    id="select-solution-cta-variant-grad-border-frame-btn"
+                    type="button"
+                    class="flex min-h-[42px] w-full items-center justify-center rounded-[11px] bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                  >
+                    Select solution
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <footer id="select-solution-cta-variants-footer" class="mt-14 border-t border-slate-200 pt-8 text-xs text-slate-500">
+        <p id="select-solution-cta-variants-footer-note">
+          Pick a number, then mirror its classes into
+          <code class="rounded bg-slate-200/60 px-1.5 py-0.5">map-layers-panel.html</code> (or extract to SCSS). If you
+          want one recommendation to try first: <strong class="text-slate-700">1</strong> (cleanest match to analysis
+          cards) or <strong class="text-slate-700">5</strong> (prominent but still airy).
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

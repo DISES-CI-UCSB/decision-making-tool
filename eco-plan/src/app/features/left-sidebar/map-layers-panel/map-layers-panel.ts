@@ -93,6 +93,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly adminBoundaryService = inject(AdminBoundaryService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly opacitySyncFrames = new Map<string, number>();
+  /** Stable bound reference so we can removeEventListener exactly. */
+  private readonly rainforestProximityHandler = (e: PointerEvent): void =>
+    this.onSidebarProximityMove(e);
 
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
@@ -109,6 +112,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectedLayers = computed<SelectedLayerRow[]>(() =>
     this.buildSelectedLayers(),
   );
+  protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
 
   constructor() {
     this.onAdminBoundaryChange('national');
@@ -122,9 +126,22 @@ export class MapLayersPanelComponent implements OnDestroy {
         this.activeScenarioName.set(solution.name);
       }
     });
+
+    // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
+    effect(() => {
+      if (this.selectSolutionHoverFx() === 'rainforestReveal') {
+        document.addEventListener('pointermove', this.rainforestProximityHandler, {
+          passive: true,
+        });
+      } else {
+        document.removeEventListener('pointermove', this.rainforestProximityHandler);
+        this.resetRainforestProximity();
+      }
+    });
   }
 
   ngOnDestroy(): void {
+    document.removeEventListener('pointermove', this.rainforestProximityHandler);
     for (const frameId of this.opacitySyncFrames.values()) {
       cancelAnimationFrame(frameId);
     }
@@ -133,6 +150,68 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
+  }
+
+  /** Updates --select-solution-spotlight-* for cursor-follow green and rainforest mask. */
+  protected onSelectSolutionSpotlightEnter(event: PointerEvent): void {
+    if (!this.selectSolutionHoverUsesPointerTracking()) {
+      return;
+    }
+    this.onSelectSolutionSpotlightMove(event);
+  }
+
+  protected onSelectSolutionSpotlightMove(event: PointerEvent): void {
+    if (!this.selectSolutionHoverUsesPointerTracking()) {
+      return;
+    }
+    const el = event.currentTarget;
+    if (!(el instanceof HTMLButtonElement)) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const w = rect.width || 1;
+    const h = rect.height || 1;
+    const x = ((event.clientX - rect.left) / w) * 100;
+    const y = ((event.clientY - rect.top) / h) * 100;
+    el.style.setProperty('--select-solution-spotlight-x', `${x}%`);
+    el.style.setProperty('--select-solution-spotlight-y', `${y}%`);
+  }
+
+  /** Called by the viewport-wide document listener; drives ::before opacity for rainforest mode. */
+  private onSidebarProximityMove(event: PointerEvent): void {
+    if (this.selectSolutionHoverFx() !== 'rainforestReveal') return;
+    const btn = document.getElementById('map-layers-select-solution-button');
+    if (!(btn instanceof HTMLButtonElement)) return;
+
+    const rect = btn.getBoundingClientRect();
+    // Distance from pointer to the nearest point ON the button rect.
+    const dx = Math.max(rect.left - event.clientX, 0, event.clientX - rect.right);
+    const dy = Math.max(rect.top - event.clientY, 0, event.clientY - rect.bottom);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const THRESHOLD = 80; // matches mask radius
+    const opacity = dist >= THRESHOLD ? 0 : 1 - dist / THRESHOLD;
+
+    // Position relative to button dimensions (can go outside 0-100% when cursor is outside button).
+    const w = rect.width || 1;
+    const h = rect.height || 1;
+    const x = ((event.clientX - rect.left) / w) * 100;
+    const y = ((event.clientY - rect.top) / h) * 100;
+
+    btn.style.setProperty('--select-solution-spotlight-x', `${x}%`);
+    btn.style.setProperty('--select-solution-spotlight-y', `${y}%`);
+    btn.style.setProperty('--select-solution-proximity-opacity', `${opacity}`);
+  }
+
+  private resetRainforestProximity(): void {
+    const btn = document.getElementById('map-layers-select-solution-button');
+    if (btn instanceof HTMLButtonElement) {
+      btn.style.setProperty('--select-solution-proximity-opacity', '0');
+    }
+  }
+
+  private selectSolutionHoverUsesPointerTracking(): boolean {
+    const m = this.selectSolutionHoverFx();
+    return m === 'cursorFollowGreen' || m === 'rainforestReveal';
   }
 
   protected onAdminBoundaryChange(value: string): void {

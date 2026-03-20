@@ -4,6 +4,116 @@
   min-height: 0;
 }
 
+/* Cursor-follow radial wash — opt-in via DevTools; only while :hover. */
+.map-layers-select-solution-button--cursor-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  /* Multi-stop falloff so alpha eases out smoothly toward the rim (no hard “edge”). */
+  background: radial-gradient(
+    circle 70px at var(--select-solution-spotlight-x, 50%) var(--select-solution-spotlight-y, 50%),
+    rgb(74 222 128 / 0.5) 0%,
+    rgb(74 222 128 / 0.36) 24%,
+    rgb(74 222 128 / 0.22) 44%,
+    rgb(74 222 128 / 0.12) 60%,
+    rgb(74 222 128 / 0.05) 76%,
+    rgb(74 222 128 / 0.015) 90%,
+    transparent 100%
+  );
+}
+
+.map-layers-select-solution-button--cursor-spotlight:hover::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-layers-select-solution-button--cursor-spotlight::before {
+    transition: none;
+  }
+}
+
+/*
+  Rainforest reveal: proximity-driven opacity, no :hover switch.
+  JS sets --select-solution-proximity-opacity (0-1) based on distance from cursor to button.
+  Mask goes black (opaque=forest shows) at center, transparent at edge.
+  Button's own bg-white is the base; no ::after veil needed.
+*/
+.map-layers-select-solution-button--rainforest-reveal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url('/data/leaves-in-columbian-rain-forest.jpg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  filter: saturate(1.16) contrast(1.08) brightness(1.04);
+  opacity: var(--select-solution-proximity-opacity, 0);
+  transition:
+    opacity 0.12s ease,
+    filter 0.25s ease;
+  -webkit-mask-image: radial-gradient(
+    circle 80px at var(--select-solution-spotlight-x, 50%) var(--select-solution-spotlight-y, 50%),
+    #000 0%,
+    #000 8%,
+    rgb(0 0 0 / 0.97) 16%,
+    rgb(0 0 0 / 0.92) 24%,
+    rgb(0 0 0 / 0.86) 32%,
+    rgb(0 0 0 / 0.78) 40%,
+    rgb(0 0 0 / 0.69) 48%,
+    rgb(0 0 0 / 0.58) 56%,
+    rgb(0 0 0 / 0.46) 64%,
+    rgb(0 0 0 / 0.33) 72%,
+    rgb(0 0 0 / 0.2) 80%,
+    rgb(0 0 0 / 0.09) 88%,
+    transparent 96%
+  );
+  mask-image: radial-gradient(
+    circle 80px at var(--select-solution-spotlight-x, 50%) var(--select-solution-spotlight-y, 50%),
+    #000 0%,
+    #000 8%,
+    rgb(0 0 0 / 0.97) 16%,
+    rgb(0 0 0 / 0.92) 24%,
+    rgb(0 0 0 / 0.86) 32%,
+    rgb(0 0 0 / 0.78) 40%,
+    rgb(0 0 0 / 0.69) 48%,
+    rgb(0 0 0 / 0.58) 56%,
+    rgb(0 0 0 / 0.46) 64%,
+    rgb(0 0 0 / 0.33) 72%,
+    rgb(0 0 0 / 0.2) 80%,
+    rgb(0 0 0 / 0.09) 88%,
+    transparent 96%
+  );
+}
+
+/* Label chip: invisible on white, frosted when forest shows. */
+.map-layers-select-solution-button--rainforest-reveal span {
+  position: relative;
+  z-index: 2;
+  border-radius: 4px;
+  padding: 2px 8px;
+  background-color: rgb(255 255 255 / 0.5);
+  backdrop-filter: blur(2px);
+  transition: background-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-layers-select-solution-button--rainforest-reveal::before {
+    transition: none;
+  }
+
+  .map-layers-select-solution-button--rainforest-reveal span {
+    transition: none;
+  }
+}
+
 .map-layers-chevron,
 .map-layers-chevron-button {
   color: rgb(71 85 105);

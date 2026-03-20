@@ -5,6 +5,28 @@ import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/model
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
 
+/** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */
+export type SelectSolutionButtonHoverFxMode =
+  | 'professional'
+  | 'cursorFollowGreen'
+  | 'rainforestReveal';
+
+const SELECT_SOLUTION_HOVER_FX_STORAGE_KEY = 'eco-plan:dev:selectSolutionButtonHoverFx';
+
+function readStoredSelectSolutionHoverFx(): SelectSolutionButtonHoverFxMode {
+  if (typeof localStorage === 'undefined') {
+    return 'professional';
+  }
+  const raw = localStorage.getItem(SELECT_SOLUTION_HOVER_FX_STORAGE_KEY);
+  if (raw === 'cursorFollowGreen') {
+    return 'cursorFollowGreen';
+  }
+  if (raw === 'rainforestReveal') {
+    return 'rainforestReveal';
+  }
+  return 'professional';
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -21,6 +43,9 @@ export class AppStateService {
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
   readonly userTier$ = signal<UserTier>(UserTier.Public);
   readonly mapExtent$ = signal<Extent | null>(null);
+  readonly selectSolutionButtonHoverFx$ = signal<SelectSolutionButtonHoverFxMode>(
+    readStoredSelectSolutionHoverFx(),
+  );
 
   readonly hasActiveSolution = computed(() => this.activeSolution$() !== null);
   readonly isComparing = computed(() => this.comparisonSolution$() !== null);
@@ -75,6 +100,25 @@ export class AppStateService {
 
   setFillDummyAoiMetrics(enabled: boolean): void {
     this.fillDummyAoiMetrics$.set(enabled);
+  }
+
+  setSelectSolutionButtonHoverFx(mode: SelectSolutionButtonHoverFxMode): void {
+    this.selectSolutionButtonHoverFx$.set(mode);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(SELECT_SOLUTION_HOVER_FX_STORAGE_KEY, mode);
+    }
+  }
+
+  toggleSelectSolutionButtonHoverFx(): void {
+    const order: SelectSolutionButtonHoverFxMode[] = [
+      'professional',
+      'cursorFollowGreen',
+      'rainforestReveal',
+    ];
+    const cur = this.selectSolutionButtonHoverFx$();
+    const i = order.indexOf(cur);
+    const next = order[(i === -1 ? 0 : i + 1) % order.length];
+    this.setSelectSolutionButtonHoverFx(next);
   }
 
   openSolutionFinder(context: SolutionFinderContext = 'default'): void {
