@@ -18,8 +18,8 @@
       tabindex="-1"
       class="w-full overflow-hidden bg-white shadow-xl transition-all duration-200 ease-out focus:outline-none"
       [ngClass]="{
-        'max-h-[85vh] max-w-3xl rounded-2xl border border-slate-200': mode === 'standard',
-        'max-h-[92vh] max-w-[92vw] rounded-2xl border border-slate-200': mode === 'wide',
+        'max-h-[85vh] max-w-3xl rounded-md border border-slate-200': mode === 'standard',
+        'max-h-[92vh] max-w-[92vw] rounded-md border border-slate-200': mode === 'wide',
         'h-full max-h-full max-w-full rounded-none border-0': mode === 'full-screen',
         'translate-y-0 opacity-100': isActive,
         'translate-y-4 opacity-0': !isActive,
@@ -44,7 +44,7 @@
             <button
               [id]="rootId + '-close-button'"
               type="button"
-              class="rounded-chip border border-earth-300 bg-white px-3 py-1 text-sm transition hover:bg-earth-100"
+              class="rounded-md border border-earth-300 bg-white px-3 py-1 text-sm transition hover:bg-earth-100"
               (click)="onCloseButtonClick()"
             >
               {{ 'common.close' | translate }}

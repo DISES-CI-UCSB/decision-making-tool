@@ -12,7 +12,7 @@
         <button
           [id]="action.id"
           type="button"
-          class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
+          class="rounded-md border border-earth-300 px-2 py-1 text-xs"
           (click)="onActionClick(action.id)"
         >
           {{ action.labelKey | translate }}
@@ -23,7 +23,7 @@
         <button
           id="panel-container-collapse-toggle"
           type="button"
-          class="rounded-chip border border-earth-300 px-2 py-1 text-xs"
+          class="rounded-md border border-earth-300 px-2 py-1 text-xs"
           (click)="onToggleCollapse()"
         >
           {{

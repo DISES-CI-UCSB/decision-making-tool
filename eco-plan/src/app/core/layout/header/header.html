@@ -9,7 +9,7 @@
   <button
     id="foundation-header-language-toggle-button"
     type="button"
-    class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+    class="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
     (click)="toggleLanguage()"
   >
     {{ 'header.languageToggleLabel' | translate: { lang: activeLanguage === 'es' ? 'EN' : 'ES' } }}

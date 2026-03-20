@@ -11,12 +11,12 @@
       @if (!hasActiveSolution()) {
         <div
           id="map-layers-select-solution-button-frame"
-          class="w-full rounded-lg bg-linear-to-r from-slate-400 via-slate-600 to-slate-800 p-px shadow-sm"
+          class="w-full rounded-md bg-linear-to-r from-slate-400 via-slate-600 to-slate-800 p-px shadow-sm"
         >
           <button
             id="map-layers-select-solution-button"
             type="button"
-            class="map-layers-select-solution-button relative flex min-h-[42px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-[7px] bg-white px-4 text-sm font-semibold text-slate-900 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            class="map-layers-select-solution-button relative flex min-h-[42px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-md bg-white px-4 text-sm font-semibold text-slate-900 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             [class.map-layers-select-solution-button--cursor-spotlight]="
               selectSolutionHoverFx() === 'cursorFollowGreen'
             "
