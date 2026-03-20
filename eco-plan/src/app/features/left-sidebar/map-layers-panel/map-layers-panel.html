@@ -425,16 +425,16 @@
                       [id]="'map-layers-overlay-selected-button-' + overlay.id"
                       type="button"
                       class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                      [class.border-blue-200]="overlay.visible"
-                      [class.bg-blue-50]="overlay.visible"
-                      [class.text-blue-700]="overlay.visible"
-                      [class.border-slate-200]="!overlay.visible"
-                      [class.bg-white]="!overlay.visible"
-                      [class.text-slate-600]="!overlay.visible"
-                      [attr.aria-pressed]="overlay.visible"
+                      [class.border-blue-200]="overlay.selected"
+                      [class.bg-blue-50]="overlay.selected"
+                      [class.text-blue-700]="overlay.selected"
+                      [class.border-slate-200]="!overlay.selected"
+                      [class.bg-white]="!overlay.selected"
+                      [class.text-slate-600]="!overlay.selected"
+                      [attr.aria-pressed]="overlay.selected"
                       (click)="toggleOverlaySelected(overlay.id)"
                     >
-                      {{ overlay.visible ? 'Added' : 'Add' }}
+                      {{ overlay.selected ? 'Added' : 'Add' }}
                     </button>
                     <button
                       [id]="'map-layers-overlay-visibility-button-' + overlay.id"
@@ -829,16 +829,16 @@
                                     [id]="'map-layers-species-selected-button-' + species.id"
                                     type="button"
                                     class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                                    [class.border-blue-200]="species.visible"
-                                    [class.bg-blue-50]="species.visible"
-                                    [class.text-blue-700]="species.visible"
-                                    [class.border-slate-200]="!species.visible"
-                                    [class.bg-white]="!species.visible"
-                                    [class.text-slate-600]="!species.visible"
-                                    [attr.aria-pressed]="species.visible"
+                                    [class.border-blue-200]="species.selected"
+                                    [class.bg-blue-50]="species.selected"
+                                    [class.text-blue-700]="species.selected"
+                                    [class.border-slate-200]="!species.selected"
+                                    [class.bg-white]="!species.selected"
+                                    [class.text-slate-600]="!species.selected"
+                                    [attr.aria-pressed]="species.selected"
                                     (click)="toggleSpeciesSelected(taxon.id, species.id)"
                                   >
-                                    {{ species.visible ? 'Added' : 'Add' }}
+                                    {{ species.selected ? 'Added' : 'Add' }}
                                   </button>
                                   <button
                                     [id]="'map-layers-species-visibility-button-' + species.id"
@@ -1002,16 +1002,16 @@
                           [id]="'map-layers-layer-row-selected-button-' + group.id + '-' + row.id"
                           type="button"
                           class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                          [class.border-blue-200]="row.visible"
-                          [class.bg-blue-50]="row.visible"
-                          [class.text-blue-700]="row.visible"
-                          [class.border-slate-200]="!row.visible"
-                          [class.bg-white]="!row.visible"
-                          [class.text-slate-600]="!row.visible"
-                          [attr.aria-pressed]="row.visible"
+                          [class.border-blue-200]="row.selected"
+                          [class.bg-blue-50]="row.selected"
+                          [class.text-blue-700]="row.selected"
+                          [class.border-slate-200]="!row.selected"
+                          [class.bg-white]="!row.selected"
+                          [class.text-slate-600]="!row.selected"
+                          [attr.aria-pressed]="row.selected"
                           (click)="toggleLayerSelected(group.id, row.id)"
                         >
-                          {{ row.visible ? 'Added' : 'Add' }}
+                          {{ row.selected ? 'Added' : 'Add' }}
                         </button>
                         <button
                           [id]="'map-layers-layer-row-visibility-button-' + group.id + '-' + row.id"

@@ -21,6 +21,7 @@ interface LayerControlRow {
   id: string;
   name: string;
   countLabel?: string;
+  selected: boolean;
   visible: boolean;
   expanded: boolean;
   opacity: number;
@@ -170,21 +171,39 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected toggleOverlayVisibility(rowId: string): void {
     let nextVisible = false;
+    let nextSelected = false;
     this.overlays.update((rows) =>
       rows.map((row) => {
         if (row.id !== rowId) {
           return row;
         }
         nextVisible = !row.visible;
-        return { ...row, visible: nextVisible };
+        nextSelected = row.selected || nextVisible;
+        return { ...row, selected: nextSelected, visible: nextVisible };
       }),
     );
-    this.updateSelectedLayerOrder(rowId, nextVisible);
+    this.updateSelectedLayerOrder(rowId, nextSelected);
     this.syncOverlayById(rowId);
   }
 
   protected toggleOverlaySelected(rowId: string): void {
-    this.toggleOverlayVisibility(rowId);
+    let nextSelected = false;
+    this.overlays.update((rows) =>
+      rows.map((row) => {
+        if (row.id !== rowId) {
+          return row;
+        }
+        nextSelected = !row.selected;
+        return {
+          ...row,
+          selected: nextSelected,
+          // Removing a layer from selected should also remove it from the map.
+          visible: nextSelected ? row.visible : false,
+        };
+      }),
+    );
+    this.updateSelectedLayerOrder(rowId, nextSelected);
+    this.syncOverlayById(rowId);
   }
 
   protected toggleOverlaysCollapsed(): void {
@@ -215,6 +234,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected toggleLayerVisibility(groupId: string, rowId: string): void {
     let nextVisible = false;
+    let nextSelected = false;
     this.groups.update((groups) =>
       groups.map((group) => {
         if (group.id !== groupId) {
@@ -227,19 +247,44 @@ export class MapLayersPanelComponent implements OnDestroy {
             row.id === rowId
               ? (() => {
                   nextVisible = !row.visible;
-                  return { ...row, visible: nextVisible };
+                  nextSelected = row.selected || nextVisible;
+                  return { ...row, selected: nextSelected, visible: nextVisible };
                 })()
               : row,
           ),
         };
       }),
     );
-    this.updateSelectedLayerOrder(rowId, nextVisible);
+    this.updateSelectedLayerOrder(rowId, nextSelected);
     this.syncGroupRowById(groupId, rowId);
   }
 
   protected toggleLayerSelected(groupId: string, rowId: string): void {
-    this.toggleLayerVisibility(groupId, rowId);
+    let nextSelected = false;
+    this.groups.update((groups) =>
+      groups.map((group) => {
+        if (group.id !== groupId) {
+          return group;
+        }
+        return {
+          ...group,
+          rows: group.rows.map((row) => {
+            if (row.id !== rowId) {
+              return row;
+            }
+            nextSelected = !row.selected;
+            return {
+              ...row,
+              selected: nextSelected,
+              // Removing a layer from selected should also remove it from the map.
+              visible: nextSelected ? row.visible : false,
+            };
+          }),
+        };
+      }),
+    );
+    this.updateSelectedLayerOrder(rowId, nextSelected);
+    this.syncGroupRowById(groupId, rowId);
   }
 
   protected toggleLayerExpanded(groupId: string, rowId: string): void {
@@ -332,6 +377,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected toggleSpeciesVisibility(taxonId: string, speciesId: string): void {
     let nextVisible = false;
+    let nextSelected = false;
     this.taxa.update((taxa) =>
       taxa.map((taxon) => {
         if (taxon.id !== taxonId) {
@@ -343,19 +389,44 @@ export class MapLayersPanelComponent implements OnDestroy {
             species.id === speciesId
               ? (() => {
                   nextVisible = !species.visible;
-                  return { ...species, visible: nextVisible };
+                  nextSelected = species.selected || nextVisible;
+                  return { ...species, selected: nextSelected, visible: nextVisible };
                 })()
               : species,
           ),
         };
       }),
     );
-    this.updateSelectedLayerOrder(speciesId, nextVisible);
+    this.updateSelectedLayerOrder(speciesId, nextSelected);
     this.syncSpeciesById(taxonId, speciesId);
   }
 
   protected toggleSpeciesSelected(taxonId: string, speciesId: string): void {
-    this.toggleSpeciesVisibility(taxonId, speciesId);
+    let nextSelected = false;
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => {
+        if (taxon.id !== taxonId) {
+          return taxon;
+        }
+        return {
+          ...taxon,
+          species: taxon.species.map((species) => {
+            if (species.id !== speciesId) {
+              return species;
+            }
+            nextSelected = !species.selected;
+            return {
+              ...species,
+              selected: nextSelected,
+              // Removing a layer from selected should also remove it from the map.
+              visible: nextSelected ? species.visible : false,
+            };
+          }),
+        };
+      }),
+    );
+    this.updateSelectedLayerOrder(speciesId, nextSelected);
+    this.syncSpeciesById(taxonId, speciesId);
   }
 
   protected toggleSpeciesExpanded(taxonId: string, speciesId: string): void {
@@ -845,13 +916,13 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
   }
 
-  private updateSelectedLayerOrder(rowId: string, visible: boolean): void {
+  private updateSelectedLayerOrder(rowId: string, selected: boolean): void {
     this.selectedLayerOrder.update((order) => {
       const exists = order.includes(rowId);
-      if (visible && !exists) {
+      if (selected && !exists) {
         return [...order, rowId];
       }
-      if (!visible && exists) {
+      if (!selected && exists) {
         return order.filter((id) => id !== rowId);
       }
       return order;
@@ -863,14 +934,14 @@ export class MapLayersPanelComponent implements OnDestroy {
     groups: LayerGroup[],
     taxa: TaxonRow[],
   ): string[] {
-    const selectedOverlayIds = overlays.filter((row) => row.visible).map((row) => row.id);
+    const selectedOverlayIds = overlays.filter((row) => row.selected).map((row) => row.id);
     const selectedGroupRowIds = groups
       .flatMap((group) => group.rows)
-      .filter((row) => row.visible)
+      .filter((row) => row.selected)
       .map((row) => row.id);
     const selectedSpeciesIds = taxa
       .flatMap((taxon) => taxon.species)
-      .filter((species) => species.visible)
+      .filter((species) => species.selected)
       .map((species) => species.id);
     return [...selectedOverlayIds, ...selectedGroupRowIds, ...selectedSpeciesIds];
   }
@@ -883,7 +954,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const rowLookup = new Map<string, SelectedLayerRow>();
 
     for (const overlay of overlays) {
-      if (!overlay.visible) {
+      if (!overlay.selected) {
         continue;
       }
       rowLookup.set(overlay.id, {
@@ -897,7 +968,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     for (const group of groups) {
       for (const row of group.rows) {
-        if (!row.visible) {
+        if (!row.selected) {
           continue;
         }
         rowLookup.set(row.id, {
@@ -911,7 +982,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     for (const taxon of taxa) {
       for (const species of taxon.species) {
-        if (!species.visible) {
+        if (!species.selected) {
           continue;
         }
         rowLookup.set(species.id, {
@@ -972,6 +1043,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'overlay-conservation-solution',
         name: 'Conservation Solution',
+        selected: true,
         visible: true,
         expanded: true,
         opacity: 70,
@@ -984,6 +1056,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'overlay-runap',
         name: 'Protected Areas (RUNAP)',
+        selected: false,
         visible: false,
         expanded: false,
         opacity: 80,
@@ -995,6 +1068,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'overlay-omecs',
         name: 'OMECs',
+        selected: false,
         visible: false,
         expanded: false,
         opacity: 75,
@@ -1013,6 +1087,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: 'Mammals',
         countLabel: '412 species',
         speciesCount: 412,
+        selected: false,
         visible: false,
         expanded: false,
         opacity: 60,
@@ -1037,6 +1112,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: 'Birds',
         countLabel: '1,932 species',
         speciesCount: 1932,
+        selected: false,
         visible: false,
         expanded: false,
         opacity: 60,
@@ -1061,6 +1137,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: 'Amphibians',
         countLabel: '803 species',
         speciesCount: 803,
+        selected: false,
         visible: false,
         expanded: false,
         opacity: 60,
@@ -1085,6 +1162,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: 'Reptiles',
         countLabel: '590 species',
         speciesCount: 590,
+        selected: false,
         visible: false,
         expanded: false,
         opacity: 60,
@@ -1108,6 +1186,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: 'Plants',
         countLabel: '4,963 species',
         speciesCount: 4963,
+        selected: false,
         visible: false,
         expanded: false,
         opacity: 60,
@@ -1206,6 +1285,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     return {
       id: `layer-${id}`,
       name,
+      selected: false,
       visible: false,
       expanded: false,
       opacity,
@@ -1229,6 +1309,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       latin,
       taxonId,
       slug,
+      selected: false,
       visible: false,
       expanded: false,
       opacity: 65,
