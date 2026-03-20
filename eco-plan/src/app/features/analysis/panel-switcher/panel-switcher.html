@@ -570,15 +570,26 @@
                   [attr.aria-expanded]="isAoiSectionExpanded('general')"
                   (click)="toggleAoiSection('general')"
                 >
-                  <span class="aoi-section-dot aoi-section-dot-general"></span>
+                  <span class="aoi-section-dot"></span>
                   <span class="aoi-section-label">Regional Conservation Summary</span>
                   <span
                     id="aoi-chevron-general"
                     class="aoi-section-chevron"
                     [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('general')"
                     aria-hidden="true"
-                    >▾</span
                   >
+                    <svg
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
                 </button>
                 @if (isAoiSectionExpanded('general')) {
                   <div id="aoi-body-general" class="aoi-section-body">
@@ -642,15 +653,26 @@
                   [attr.aria-expanded]="isAoiSectionExpanded('bio')"
                   (click)="toggleAoiSection('bio')"
                 >
-                  <span class="aoi-section-dot aoi-section-dot-bio"></span>
+                  <span class="aoi-section-dot"></span>
                   <span class="aoi-section-label">Biodiversity</span>
                   <span
                     id="aoi-chevron-bio"
                     class="aoi-section-chevron"
                     [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('bio')"
                     aria-hidden="true"
-                    >▾</span
                   >
+                    <svg
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
                 </button>
                 @if (isAoiSectionExpanded('bio')) {
                   <div id="aoi-body-bio" class="aoi-section-body">
@@ -735,15 +757,26 @@
                   [attr.aria-expanded]="isAoiSectionExpanded('eco')"
                   (click)="toggleAoiSection('eco')"
                 >
-                  <span class="aoi-section-dot aoi-section-dot-eco"></span>
+                  <span class="aoi-section-dot"></span>
                   <span class="aoi-section-label">Ecosystems & Carbon</span>
                   <span
                     id="aoi-chevron-eco"
                     class="aoi-section-chevron"
                     [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('eco')"
                     aria-hidden="true"
-                    >▾</span
                   >
+                    <svg
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
                 </button>
                 @if (isAoiSectionExpanded('eco')) {
                   <div id="aoi-body-eco" class="aoi-section-body">
@@ -844,15 +877,26 @@
                   [attr.aria-expanded]="isAoiSectionExpanded('land')"
                   (click)="toggleAoiSection('land')"
                 >
-                  <span class="aoi-section-dot aoi-section-dot-land"></span>
+                  <span class="aoi-section-dot"></span>
                   <span class="aoi-section-label">Land Use & Socio-Economic</span>
                   <span
                     id="aoi-chevron-land"
                     class="aoi-section-chevron"
                     [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('land')"
                     aria-hidden="true"
-                    >▾</span
                   >
+                    <svg
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
                 </button>
                 @if (isAoiSectionExpanded('land')) {
                   <div id="aoi-body-land" class="aoi-section-body">
@@ -946,15 +990,26 @@
                   [attr.aria-expanded]="isAoiSectionExpanded('cultural')"
                   (click)="toggleAoiSection('cultural')"
                 >
-                  <span class="aoi-section-dot aoi-section-dot-cultural"></span>
+                  <span class="aoi-section-dot"></span>
                   <span class="aoi-section-label">Cultural & Indigenous Territories</span>
                   <span
                     id="aoi-chevron-cultural"
                     class="aoi-section-chevron"
                     [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('cultural')"
                     aria-hidden="true"
-                    >▾</span
                   >
+                    <svg
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
                 </button>
                 @if (isAoiSectionExpanded('cultural')) {
                   <div id="aoi-body-cultural" class="aoi-section-body">
@@ -1019,7 +1074,7 @@
                   [attr.aria-expanded]="isAoiSectionExpanded('marine')"
                   (click)="toggleAoiSection('marine')"
                 >
-                  <span class="aoi-section-dot aoi-section-dot-marine"></span>
+                  <span class="aoi-section-dot"></span>
                   <span class="aoi-section-label">
                     Marine
                     <span class="v3-tag-conditional" style="margin-left: 6px">All Conditional</span>
@@ -1029,8 +1084,19 @@
                     class="aoi-section-chevron"
                     [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('marine')"
                     aria-hidden="true"
-                    >▾</span
                   >
+                    <svg
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
                 </button>
                 @if (isAoiSectionExpanded('marine')) {
                   <div id="aoi-body-marine" class="aoi-section-body">
