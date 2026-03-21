@@ -13,9 +13,11 @@
         <button
           [id]="'right-sidebar-panel-tab-' + tab"
           type="button"
-          class="right-sidebar-panel-tab-button relative flex h-full w-full items-center justify-center px-2 text-center text-sm font-semibold leading-tight transition-colors duration-150 ease-out focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-          [class.text-black]="isTabActive(tab)"
-          [class.text-slate-500]="!isTabActive(tab)"
+          class="right-sidebar-panel-tab-button relative flex h-full w-full items-center justify-center px-2 text-center text-sm font-semibold leading-tight transition-colors duration-150 ease-out focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+          [disabled]="isSidebarTabDisabled(tab)"
+          [class.text-slate-400]="isSidebarTabDisabled(tab)"
+          [class.text-black]="isTabActive(tab) && !isSidebarTabDisabled(tab)"
+          [class.text-slate-500]="!isTabActive(tab) && !isSidebarTabDisabled(tab)"
           [attr.aria-current]="isTabActive(tab) ? 'page' : null"
           role="tab"
           [attr.aria-selected]="isTabActive(tab)"
@@ -33,100 +35,22 @@
       @case ('welcome') {
         <section
           id="right-sidebar-welcome-panel"
-          class="panel-enter flex h-full min-h-0 flex-col gap-5 overflow-y-auto p-5"
+          class="panel-enter flex h-full min-h-0 flex-col items-center justify-center overflow-y-auto px-6 py-8 text-center"
         >
-          <header id="right-sidebar-welcome-header" class="space-y-3">
-            <p
-              id="right-sidebar-welcome-kicker"
-              class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+          <div id="right-sidebar-welcome-copy" class="max-w-xs space-y-2">
+            <h3
+              id="right-sidebar-welcome-title"
+              class="text-lg font-semibold leading-snug tracking-tight text-slate-900"
             >
-              {{ 'analysis.empty.kicker' | translate }}
+              {{ 'analysis.empty.title' | translate }}
+            </h3>
+            <p
+              id="right-sidebar-welcome-description"
+              class="text-sm leading-relaxed text-slate-600"
+            >
+              {{ 'analysis.empty.description' | translate }}
             </p>
-            <div id="right-sidebar-welcome-copy" class="space-y-3">
-              <h3
-                id="right-sidebar-welcome-title"
-                class="text-2xl font-semibold tracking-tight text-slate-900"
-              >
-                {{ 'analysis.empty.title' | translate }}
-              </h3>
-              <p id="right-sidebar-welcome-description" class="text-sm leading-6 text-slate-600">
-                {{ 'analysis.empty.description' | translate }}
-              </p>
-            </div>
-          </header>
-
-          <section
-            id="right-sidebar-welcome-hero-card"
-            class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-          >
-            <div id="right-sidebar-welcome-hero-card-content" class="space-y-3">
-              <p id="right-sidebar-welcome-hero-title" class="text-sm font-semibold text-slate-900">
-                {{ 'analysis.empty.heroTitle' | translate }}
-              </p>
-              <p
-                id="right-sidebar-welcome-hero-description"
-                class="text-sm leading-6 text-slate-600"
-              >
-                {{ 'analysis.empty.heroDescription' | translate }}
-              </p>
-            </div>
-          </section>
-
-          <section id="right-sidebar-welcome-steps-section" class="space-y-3">
-            <div id="right-sidebar-welcome-steps-header" class="space-y-1">
-              <h4
-                id="right-sidebar-welcome-steps-title"
-                class="text-sm font-semibold text-slate-900"
-              >
-                {{ 'analysis.empty.stepsTitle' | translate }}
-              </h4>
-              <p id="right-sidebar-welcome-steps-description" class="text-sm text-slate-600">
-                {{ 'analysis.empty.stepsDescription' | translate }}
-              </p>
-            </div>
-
-            <div id="right-sidebar-welcome-steps-grid" class="grid gap-3">
-              <article
-                id="right-sidebar-welcome-step-card-left"
-                class="rounded-2xl border border-slate-200 bg-white px-4 py-4"
-              >
-                <div id="right-sidebar-welcome-step-card-content-left" class="space-y-1">
-                  <h5
-                    id="right-sidebar-welcome-step-title-left"
-                    class="text-sm font-semibold text-slate-900"
-                  >
-                    {{ 'analysis.empty.stepOneTitle' | translate }}
-                  </h5>
-                  <p
-                    id="right-sidebar-welcome-step-description-left"
-                    class="text-sm leading-6 text-slate-600"
-                  >
-                    {{ 'analysis.empty.stepOneDescription' | translate }}
-                  </p>
-                </div>
-              </article>
-
-              <article
-                id="right-sidebar-welcome-step-card-right"
-                class="rounded-2xl border border-slate-200 bg-white px-4 py-4"
-              >
-                <div id="right-sidebar-welcome-step-card-content-right" class="space-y-1">
-                  <h5
-                    id="right-sidebar-welcome-step-title-right"
-                    class="text-sm font-semibold text-slate-900"
-                  >
-                    {{ 'analysis.empty.stepTwoTitle' | translate }}
-                  </h5>
-                  <p
-                    id="right-sidebar-welcome-step-description-right"
-                    class="text-sm leading-6 text-slate-600"
-                  >
-                    {{ 'analysis.empty.stepTwoDescription' | translate }}
-                  </p>
-                </div>
-              </article>
-            </div>
-          </section>
+          </div>
         </section>
       }
 
@@ -265,10 +189,10 @@
                     id="right-sidebar-v3-overview-error-title"
                     class="text-sm font-semibold text-rose-900"
                   >
-                    {{ 'analysis.overview.emptyTitle' | translate }}
+                    {{ 'analysis.overview.loadErrorTitle' | translate }}
                   </p>
                   <p id="right-sidebar-v3-overview-error-desc" class="mt-1 text-sm text-rose-700">
-                    {{ 'analysis.overview.emptyDescription' | translate }}
+                    {{ 'analysis.overview.loadErrorDescription' | translate }}
                   </p>
                 </section>
               } @else {

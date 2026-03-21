@@ -494,7 +494,19 @@ export class PanelSwitcherComponent {
     return mode === tab;
   }
 
+  /** AOI and comparison require an active solution; overview is always available. */
+  protected isSidebarTabDisabled(tab: SidebarTab): boolean {
+    if (tab === 'overview') {
+      return false;
+    }
+    return this.activeSolution() === null;
+  }
+
   protected selectTab(tab: SidebarTab): void {
+    if (this.isSidebarTabDisabled(tab)) {
+      return;
+    }
+
     if (tab === 'overview') {
       const hasSolution = this.activeSolution() !== null;
       this.appState.setRightSidebarMode(hasSolution ? 'overview' : 'welcome');

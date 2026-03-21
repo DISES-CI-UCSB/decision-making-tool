@@ -59,9 +59,10 @@ describe('PanelSwitcherComponent', () => {
 
     expect(compiled.querySelector('#right-sidebar-welcome-panel')).not.toBeNull();
     expect(compiled.querySelector('#right-sidebar-welcome-get-started-button')).toBeNull();
-    expect(compiled.querySelector('#right-sidebar-welcome-hero-title')?.textContent).toContain(
-      'analysis.empty.heroTitle',
+    expect(compiled.querySelector('#right-sidebar-welcome-title')?.textContent).toContain(
+      'analysis.empty.title',
     );
+    expect(compiled.querySelector('#right-sidebar-welcome-hero-card')).toBeNull();
   });
 
   it('renders overview content for an active solution', () => {
@@ -81,7 +82,26 @@ describe('PanelSwitcherComponent', () => {
     );
   });
 
-  it('switches tabs from overview to aoi when clicked', () => {
+  it('disables AOI and comparison tabs when no solution is active', () => {
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const aoiTab = compiled.querySelector('#right-sidebar-panel-tab-aoi') as HTMLButtonElement;
+    const comparisonTab = compiled.querySelector(
+      '#right-sidebar-panel-tab-comparison',
+    ) as HTMLButtonElement;
+
+    expect(aoiTab.disabled).toBe(true);
+    expect(comparisonTab.disabled).toBe(true);
+  });
+
+  it('switches tabs from overview to aoi when clicked and a solution is active', () => {
+    const solution = mockData.getSolutionById('sol-001');
+    expect(solution).not.toBeNull();
+    appState.activeSolution$.set(solution!);
+    appState.setRightSidebarMode('overview');
+
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
 
@@ -90,6 +110,7 @@ describe('PanelSwitcherComponent', () => {
       '#right-sidebar-panel-tab-aoi',
     ) as HTMLButtonElement;
     expect(aoiTabButton).not.toBeNull();
+    expect(aoiTabButton.disabled).toBe(false);
 
     aoiTabButton.click();
     fixture.detectChanges();

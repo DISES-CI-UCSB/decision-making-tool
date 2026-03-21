@@ -50,17 +50,8 @@
       "deltaUnavailable": "Sin delta"
     },
     "empty": {
-      "kicker": "Panel de analisis",
-      "title": "Selecciona una solucion para inspeccionar su analisis.",
-      "description": "La barra lateral derecha esta reservada para revisar la solucion actual, los detalles del area y las comparaciones.",
-      "heroTitle": "Todavia no hay nada seleccionado.",
-      "heroDescription": "Usa los controles de la barra lateral izquierda para iniciar una busqueda de soluciones o cambiar a una solucion existente.",
-      "stepsTitle": "Lo que aparecera aqui despues",
-      "stepsDescription": "Cuando se cargue una solucion, este panel se actualizara automaticamente.",
-      "stepOneTitle": "Metricas de resumen",
-      "stepOneDescription": "Consulta metricas principales e indicadores agrupados para la solucion actual.",
-      "stepTwoTitle": "Detalles de AOI y comparacion",
-      "stepTwoDescription": "Inspecciona cambios locales del AOI o compara la solucion base con otra candidata."
+      "title": "Selecciona una solucion",
+      "description": "Carga un escenario desde la barra izquierda."
     },
     "welcome": {
       "kicker": "Espacio de analisis",
@@ -94,8 +85,10 @@
       "noDescription": "Todavia no hay una descripcion disponible para esta solucion.",
       "matchLabel": "Puntaje de ajuste",
       "sectionsLabel": "Grupos de metricas",
-      "emptyTitle": "Todavia no hay una solucion activa",
-      "emptyDescription": "Carga una solucion para reemplazar el panel de bienvenida con metricas de resumen.",
+      "emptyTitle": "Selecciona una solucion",
+      "emptyDescription": "Carga un escenario desde la barra izquierda.",
+      "loadErrorTitle": "No se pudo cargar el resumen",
+      "loadErrorDescription": "Intenta seleccionar la solucion otra vez u otra distinta.",
       "matchBadge": "{{percent}}% Coincidencia",
       "goalsMet": "Metas cumplidas",
       "goalsMetSub": "Temas de conservacion logrados",
