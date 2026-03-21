@@ -50,17 +50,8 @@
       "deltaUnavailable": "No delta"
     },
     "empty": {
-      "kicker": "Analysis panel",
-      "title": "Select a solution to inspect its analysis.",
-      "description": "The right sidebar is reserved for reading the currently selected solution, area details, and comparisons.",
-      "heroTitle": "Nothing is selected yet.",
-      "heroDescription": "Use the controls in the left sidebar to start a solution search or switch to an existing solution.",
-      "stepsTitle": "What appears here next",
-      "stepsDescription": "Once a solution is loaded, this panel updates automatically.",
-      "stepOneTitle": "Overview metrics",
-      "stepOneDescription": "See headline metrics and grouped indicators for the current solution.",
-      "stepTwoTitle": "AOI and comparison details",
-      "stepTwoDescription": "Inspect local AOI changes or compare the baseline against another candidate."
+      "title": "Select a solution",
+      "description": "Load a scenario from the left sidebar."
     },
     "welcome": {
       "kicker": "Analysis workspace",
@@ -94,8 +85,10 @@
       "noDescription": "No description is available for this solution yet.",
       "matchLabel": "Match score",
       "sectionsLabel": "Metric groups",
-      "emptyTitle": "No active solution yet",
-      "emptyDescription": "Load a solution to replace the welcome panel with overview metrics.",
+      "emptyTitle": "Select a solution",
+      "emptyDescription": "Load a scenario from the left sidebar.",
+      "loadErrorTitle": "Couldn't load overview",
+      "loadErrorDescription": "Try selecting the solution again, or choose a different one.",
       "matchBadge": "{{percent}}% Match",
       "goalsMet": "Goals Met",
       "goalsMetSub": "Conservation themes achieved",

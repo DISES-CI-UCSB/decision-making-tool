@@ -71,8 +71,12 @@
   }
 }
 
-.right-sidebar-panel-tab-button[aria-selected='false']:hover {
+.right-sidebar-panel-tab-button[aria-selected='false']:hover:not(:disabled) {
   color: #0f172a;
+}
+
+.right-sidebar-panel-tab-button:disabled {
+  cursor: not-allowed;
 }
 
 #solution-overview-panel {
