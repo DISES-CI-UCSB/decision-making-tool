@@ -1,0 +1,28 @@
+{
+  "dataset": "eco-plan-solutions",
+  "allowedExtensions": [".tif", ".csv"],
+  "limits": {
+    "maxSingleFileBytes": 50000000,
+    "maxTotalBytes": 80000000
+  },
+  "requiredFiles": [
+    "ESTR30+RUNAP_HF.tif",
+    "Ecos17+RUNAP+OMEC_CO.tif",
+    "Ecos17+RUNAP+OMEC_HF.tif",
+    "Ecos17+RUNAP_CO.tif",
+    "Ecos17+RUNAP_CONFLICTO.tif",
+    "Ecos17+RUNAP_HF.tif",
+    "Ecos17+RUNAP_HF_comunidades.tif",
+    "Ecos17+RUNAP_comunidades_CO.tif",
+    "Ecos30+RUNAP+OMEC_CO.tif",
+    "Ecos30+RUNAP+OMEC_HF.tif",
+    "Ecos30+RUNAP_CO.tif",
+    "Ecos30+RUNAP_CONFLICTO.tif",
+    "Ecos30+RUNAP_HF.tif",
+    "Ecos30+RUNAP_HF_comunidades.tif",
+    "Ecos30_RUNAP_HF_comunidades_eval_summary.csv",
+    "Ecos30_RUNAP_HF_comunidades_target_coverage.csv",
+    "master_eval_summary.csv",
+    "master_target_coverage.csv"
+  ]
+}

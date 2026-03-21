@@ -5,9 +5,12 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:vercel": "npm run sync:solutions && npm run validate:deploy-assets && ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
+    "sync:solutions": "node ../data/deploy/eco-plan/scripts/sync-solutions.mjs",
+    "validate:deploy-assets": "node ../data/deploy/eco-plan/scripts/validate-deploy-assets.mjs",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css,json,md}\"",
     "prepare": "cd .. && husky .husky"
   },

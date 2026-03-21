@@ -34,7 +34,16 @@ Cambio_Global/**/*.sbx
 Cambio_Global/**/*.sbn
 Cambio_Global/**/*.tfw
 Cambio_Global/**/*.lock
-/data/*
+# Data policy: ignore everything by default, allow curated deploy assets only.
+/data/**
+!/data/deploy/
+!/data/deploy/eco-plan/
+!/data/deploy/eco-plan/solutions/
+!/data/deploy/eco-plan/solutions/*.tif
+!/data/deploy/eco-plan/solutions/*.csv
+!/data/deploy/eco-plan/scripts/
+!/data/deploy/eco-plan/scripts/*.mjs
+!/data/deploy/eco-plan/manifest.json
 /eco-plan/node_modules/
 /eco-plan/dist/
 /eco-plan/.angular/
