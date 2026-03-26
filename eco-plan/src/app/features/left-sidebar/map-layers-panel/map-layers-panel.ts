@@ -103,6 +103,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly adminBoundary = signal<AdminBoundaryOption>('sirap');
   protected readonly customBoundaryRequested = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
+  protected readonly availableOverlays = computed(() =>
+    this.overlays().filter((row) => row.id !== 'overlay-conservation-solution'),
+  );
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
