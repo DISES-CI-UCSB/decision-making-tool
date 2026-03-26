@@ -3,6 +3,7 @@ import Extent from '@arcgis/core/geometry/Extent';
 import MediaLayer from '@arcgis/core/layers/MediaLayer';
 import ImageElement from '@arcgis/core/layers/support/ImageElement';
 import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
+import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaElementSource';
 
 import type ArcGISMap from '@arcgis/core/Map';
 import type { Solution } from '@core/models';
@@ -14,6 +15,8 @@ import { GeoTiffLoaderService } from './geotiff-loader.service';
 const SOLUTION_LAYER_ID = 'solution-raster-layer';
 const BASELINE_LAYER_ID = 'solution-raster-layer-baseline';
 const CANDIDATE_LAYER_ID = 'solution-raster-layer-candidate';
+const DEFAULT_SOLUTION_COLOR_HEX = '#16a34a';
+const SOLUTION_ALPHA = 180;
 
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
@@ -25,6 +28,8 @@ export class SolutionLayerService {
   private baselineComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
   private candidateComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
   private comparisonMode = false;
+  private solutionColorHex = DEFAULT_SOLUTION_COLOR_HEX;
+  private solutionImageElement: InstanceType<typeof ImageElement> | null = null;
 
   readonly loadedSolution$ = signal<LoadedSolution | null>(null);
   readonly isLoading$ = signal(false);
@@ -53,11 +58,13 @@ export class SolutionLayerService {
       this.removeAllLayers();
 
       const loaded = await this.loader.loadSolution(scenarioId);
-      this.currentLayer = this.createLayerFromLoaded(
-        loaded,
-        SOLUTION_LAYER_ID,
-        loaded.scenario.name,
-      );
+      this.solutionImageElement = this.createImageElement(loaded, this.solutionColorHex);
+      this.currentLayer = new MediaLayer({
+        id: SOLUTION_LAYER_ID,
+        source: new LocalMediaElementSource({ elements: [this.solutionImageElement] }),
+        opacity: 0.7,
+        title: loaded.scenario.name,
+      });
       this.comparisonMode = false;
 
       this.map.add(this.currentLayer);
@@ -161,28 +168,39 @@ export class SolutionLayerService {
     }
   }
 
+  setColor(color: string): void {
+    const normalized = this.normalizeHexColor(color);
+    if (!normalized) {
+      return;
+    }
+    this.solutionColorHex = normalized;
+    const loaded = this.loadedSolution$();
+    if (!loaded || !this.currentLayer) {
+      return;
+    }
+
+    const nextImageElement = this.createImageElement(loaded, normalized);
+    this.solutionImageElement = nextImageElement;
+    const source = this.currentLayer.source;
+    if (source instanceof LocalMediaElementSource) {
+      source.elements.removeAll();
+      source.elements.add(nextImageElement);
+      return;
+    }
+    this.currentLayer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
+  }
+
   private createLayerFromLoaded(
     loaded: LoadedSolution,
     layerId: string,
     title: string,
+    colorHex = DEFAULT_SOLUTION_COLOR_HEX,
   ): InstanceType<typeof MediaLayer> {
-    const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
-    const imageElement = new ImageElement({
-      image: loaded.canvas.toDataURL('image/png'),
-      georeference: new ExtentAndRotationGeoreference({
-        extent: new Extent({
-          xmin,
-          ymin,
-          xmax,
-          ymax,
-          spatialReference: { wkid: 4326 },
-        }),
-      }),
-    });
-
     return new MediaLayer({
       id: layerId,
-      source: [imageElement],
+      source: new LocalMediaElementSource({
+        elements: [this.createImageElement(loaded, colorHex)],
+      }),
       opacity: 0.7,
       title,
     });
@@ -199,6 +217,7 @@ export class SolutionLayerService {
       this.currentLayer.destroy();
       this.currentLayer = null;
     }
+    this.solutionImageElement = null;
   }
 
   private removeComparisonLayers(): void {
@@ -244,5 +263,76 @@ export class SolutionLayerService {
     const hash = Array.from(scenarioId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const fallbackId = mockSolutionIds[hash % mockSolutionIds.length];
     return this.mockData.getSolutionById(fallbackId) ?? this.mockData.getSolutionById('sol-001')!;
+  }
+
+  private createImageElement(loaded: LoadedSolution, colorHex: string): ImageElement {
+    const canvas = this.rasterToCanvasWithColor(loaded.rasterData, loaded.rasterMeta, colorHex);
+    const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
+    return new ImageElement({
+      image: canvas,
+      georeference: new ExtentAndRotationGeoreference({
+        extent: new Extent({
+          xmin,
+          ymin,
+          xmax,
+          ymax,
+          spatialReference: { wkid: 4326 },
+        }),
+      }),
+    });
+  }
+
+  private rasterToCanvasWithColor(
+    rasterData: LoadedSolution['rasterData'],
+    rasterMeta: LoadedSolution['rasterMeta'],
+    colorHex: string,
+  ): HTMLCanvasElement {
+    const [r, g, b] = this.hexToRgb(colorHex) ?? [22, 163, 74];
+    const canvas = document.createElement('canvas');
+    canvas.width = rasterMeta.width;
+    canvas.height = rasterMeta.height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return canvas;
+    }
+
+    const imageData = context.createImageData(rasterMeta.width, rasterMeta.height);
+    const pixels = imageData.data;
+    for (let index = 0; index < rasterData.length; index++) {
+      const pixelOffset = index * 4;
+      if (rasterData[index] === 1) {
+        pixels[pixelOffset] = r;
+        pixels[pixelOffset + 1] = g;
+        pixels[pixelOffset + 2] = b;
+        pixels[pixelOffset + 3] = SOLUTION_ALPHA;
+      } else {
+        pixels[pixelOffset] = 0;
+        pixels[pixelOffset + 1] = 0;
+        pixels[pixelOffset + 2] = 0;
+        pixels[pixelOffset + 3] = 0;
+      }
+    }
+    context.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  private normalizeHexColor(color: string): string | null {
+    const trimmed = color.trim();
+    if (!/^#([0-9a-fA-F]{6})$/.test(trimmed)) {
+      return null;
+    }
+    return trimmed.toLowerCase();
+  }
+
+  private hexToRgb(hexColor: string): [number, number, number] | null {
+    const normalized = this.normalizeHexColor(hexColor);
+    if (!normalized) {
+      return null;
+    }
+    return [
+      Number.parseInt(normalized.slice(1, 3), 16),
+      Number.parseInt(normalized.slice(3, 5), 16),
+      Number.parseInt(normalized.slice(5, 7), 16),
+    ];
   }
 }
