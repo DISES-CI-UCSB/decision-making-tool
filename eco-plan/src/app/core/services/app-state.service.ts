@@ -80,9 +80,6 @@ export class AppStateService {
   }
 
   setRightSidebarMode(mode: RightSidebarMode): void {
-    if (this.isComparing() && mode !== 'comparison' && mode !== 'welcome') {
-      return;
-    }
     this.rightSidebarMode$.set(mode);
   }
 

@@ -95,4 +95,21 @@ describe('AppStateService', () => {
     expect(service.isComparing()).toBe(true);
     expect(service.canAccessTier2()).toBe(true);
   });
+
+  it('allows switching sidebar tabs while comparison data is present', () => {
+    const comparisonSolution: Solution = {
+      id: 'solution-2',
+      name: 'Comparison Solution',
+      matchPercentage: 68,
+      geometryUrl: '/geometry/solution-2.json',
+      metrics: [],
+    };
+
+    service.setComparisonSolution(comparisonSolution);
+    service.setRightSidebarMode('comparison');
+    service.setRightSidebarMode('overview');
+
+    expect(service.rightSidebarMode$()).toBe('overview');
+    expect(service.isComparing()).toBe(true);
+  });
 });
