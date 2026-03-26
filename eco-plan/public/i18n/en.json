@@ -258,10 +258,6 @@
         "constraints": "Includes and Excludes",
         "results": "Matching Results"
       },
-      "labels": {
-        "include": "Include",
-        "exclude": "Exclude"
-      },
       "actions": {
         "reset": "Reset to defaults",
         "cancel": "Cancel",
@@ -286,11 +282,11 @@
       },
       "constraints": {
         "includeNationalParks": "Include National Parks",
-        "excludeUrbanCenters": "Exclude Urban Centers",
-        "connectProtectedAreas": "Connect Protected Areas",
-        "excludeMining": "Exclude Mining",
+        "excludeUrbanCenters": "Include Non-Urban Areas",
+        "connectProtectedAreas": "Include Corridor Areas Between Protected Areas",
+        "excludeMining": "Include Non-Mining Areas",
         "includeIndigenousTerritories": "Include Indigenous Territories",
-        "excludeConflictZones": "Exclude Conflict Zones"
+        "excludeConflictZones": "Include Non-Conflict Areas"
       },
       "results": {
         "scenarioJaguarCorridor": "Higher emphasis on species corridor continuity near protected area buffers.",

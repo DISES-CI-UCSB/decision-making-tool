@@ -32,7 +32,6 @@ interface TargetGroup {
 interface ConstraintToggle {
   id: string;
   labelKey: string;
-  mode: 'include' | 'exclude';
   enabled: boolean;
 }
 
@@ -123,37 +122,31 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     {
       id: 'include-national-parks',
       labelKey: 'solutionControls.finder.constraints.includeNationalParks',
-      mode: 'include',
       enabled: false,
     },
     {
       id: 'exclude-urban-centers',
       labelKey: 'solutionControls.finder.constraints.excludeUrbanCenters',
-      mode: 'exclude',
-      enabled: false,
-    },
-    {
-      id: 'connect-protected-areas',
-      labelKey: 'solutionControls.finder.constraints.connectProtectedAreas',
-      mode: 'include',
       enabled: false,
     },
     {
       id: 'exclude-mining',
       labelKey: 'solutionControls.finder.constraints.excludeMining',
-      mode: 'exclude',
       enabled: false,
     },
     {
       id: 'include-indigenous-territories',
       labelKey: 'solutionControls.finder.constraints.includeIndigenousTerritories',
-      mode: 'include',
       enabled: false,
     },
     {
       id: 'exclude-conflict-zones',
       labelKey: 'solutionControls.finder.constraints.excludeConflictZones',
-      mode: 'exclude',
+      enabled: false,
+    },
+    {
+      id: 'connect-protected-areas',
+      labelKey: 'solutionControls.finder.constraints.connectProtectedAreas',
       enabled: false,
     },
   ];
@@ -359,12 +352,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected isToggleEnabled(toggle: ConstraintToggle): boolean {
     return toggle.enabled;
-  }
-
-  protected getToggleModeLabelKey(toggle: ConstraintToggle): string {
-    return toggle.mode === 'include'
-      ? 'solutionControls.finder.labels.include'
-      : 'solutionControls.finder.labels.exclude';
   }
 
   protected getKickerKey(): string {

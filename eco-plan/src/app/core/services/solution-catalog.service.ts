@@ -116,7 +116,7 @@ export class SolutionCatalogService {
       id: filenameBase,
       filename: `${filenameBase}.tif`,
       name: filenameBase.replace(/[+_]/g, ' '),
-      description: `${ecoTargets}% target for ${targetLabel}, ${constraintLabel} locked-in, ${costLayer} cost`,
+      description: `${ecoTargets}% target for ${targetLabel}, includes ${constraintLabel}, ${costLayer} cost`,
       ecosystemTargets: ecoTargets,
       constraints,
       costLayer,

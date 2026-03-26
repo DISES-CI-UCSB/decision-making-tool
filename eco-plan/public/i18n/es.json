@@ -252,10 +252,6 @@
         "constraints": "Incluye y Excluye",
         "results": "Resultados de coincidencia"
       },
-      "labels": {
-        "include": "Incluye",
-        "exclude": "Excluye"
-      },
       "actions": {
         "reset": "Restablecer valores",
         "cancel": "Cancelar",
@@ -279,11 +275,11 @@
       },
       "constraints": {
         "includeNationalParks": "Incluir parques nacionales",
-        "excludeUrbanCenters": "Excluir centros urbanos",
-        "connectProtectedAreas": "Conectar areas protegidas",
-        "excludeMining": "Excluir mineria",
+        "excludeUrbanCenters": "Incluir zonas no urbanas",
+        "connectProtectedAreas": "Incluir corredores entre areas protegidas",
+        "excludeMining": "Incluir zonas sin mineria",
         "includeIndigenousTerritories": "Incluir territorios indigenas",
-        "excludeConflictZones": "Excluir zonas de conflicto"
+        "excludeConflictZones": "Incluir zonas sin conflicto"
       },
       "results": {
         "scenarioJaguarCorridor": "Mayor enfasis en continuidad de corredores de especies cerca de areas protegidas.",
