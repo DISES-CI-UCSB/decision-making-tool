@@ -16,11 +16,16 @@ The Linear MCP is connected. Always use it to look up issues before working on t
 | Label | Branch / Meaning |
 |---|---|
 | `foundation` | Core scaffolding, services, layout — branch: `foundation` |
-| `solution-controls` | Left sidebar, solution finder — branch: `feat/solution-controls` |
+| `solution-finder` | Solution finder modal (scenario selection, targets, includes/excludes) — branch: `feat/solution-controls` |
+| `left-sidebar` | Left sidebar (map layers panel, selected layers, layer controls) — branch: `feat/solution-controls` |
+| ~~`solution-controls`~~ | **Deprecated.** Split into `solution-finder` + `left-sidebar`. Old issues being migrated. |
 | `map-spatial` | ArcGIS map panel — branch: `feat/map-spatial` |
 | `analysis-dashboards` | Right sidebar, metrics, comparison — branch: `feat/analysis-dashboards` |
 | `aoi-dashboard` | Area of Interest panel (right sidebar); use with `analysis-dashboards` when scope is AOI-only |
+| `team-review` | Feedback from team review meetings — action items to implement fixes |
 | `verbal-review` | Flagged during live UI review; descriptions should use **Problem → Location → Fix** (see below) |
+| `discussion-required` | Needs team discussion or consensus before implementation can proceed |
+| `blocked-external` | Blocked on input, data, or deliverable from someone outside the dev team |
 | `backend` | Server/API/data-pipeline work — **only add when work is not the default app/UI stack** |
 | `CP1`–`CP4` | Checkpoint milestone (CP1=High priority, CP2–4=Medium, stretch=Low) |
 | `stretch` | Nice-to-have; defer if time-constrained |
@@ -29,7 +34,7 @@ The Linear MCP is connected. Always use it to look up issues before working on t
 
 ## Issue titles & numbering
 - **Title:** Plain imperative phrase only — **no** `ANL-XX` / `SOL-XX` style prefixes. Linear already provides `UCS-###`.
-- **Branch / area:** Use labels (`analysis-dashboards`, `solution-controls`, etc.), not title prefixes.
+- **Branch / area:** Use labels (`analysis-dashboards`, `solution-finder`, `left-sidebar`, etc.), not title prefixes.
 
 ## Issue description template (especially `verbal-review`)
 
