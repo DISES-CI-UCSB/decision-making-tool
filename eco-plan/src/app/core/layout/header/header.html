@@ -6,12 +6,55 @@
     {{ 'header.appTitle' | translate }}
   </h1>
 
-  <button
-    id="foundation-header-language-toggle-button"
-    type="button"
-    class="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-    (click)="toggleLanguage()"
+  <nav
+    id="foundation-header-language-toggle-nav"
+    aria-label="Language switcher"
+    class="inline-flex items-center text-sm"
   >
-    {{ 'header.languageToggleLabel' | translate: { lang: activeLanguage === 'es' ? 'EN' : 'ES' } }}
-  </button>
+    @if (activeLanguage === 'es') {
+      <button
+        id="foundation-header-language-toggle-link-en"
+        type="button"
+        class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        (click)="toggleLanguage()"
+      >
+        EN
+      </button>
+      <span
+        id="foundation-header-language-toggle-divider-es"
+        class="px-1.5 text-slate-400"
+        aria-hidden="true"
+        >|</span
+      >
+      <span
+        id="foundation-header-language-toggle-current-es"
+        aria-current="page"
+        class="font-semibold text-slate-900"
+      >
+        ES
+      </span>
+    } @else {
+      <span
+        id="foundation-header-language-toggle-current-en"
+        aria-current="page"
+        class="font-semibold text-slate-900"
+      >
+        EN
+      </span>
+      <span
+        id="foundation-header-language-toggle-divider-en"
+        class="px-1.5 text-slate-400"
+        aria-hidden="true"
+        >|</span
+      >
+      <button
+        id="foundation-header-language-toggle-link-es"
+        type="button"
+        class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        (click)="toggleLanguage()"
+      >
+        ES
+      </button>
+    }
+  </nav>
 </header>

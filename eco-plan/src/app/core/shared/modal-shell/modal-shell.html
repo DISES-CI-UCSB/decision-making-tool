@@ -44,10 +44,17 @@
             <button
               [id]="rootId + '-close-button'"
               type="button"
-              class="rounded-md border border-earth-300 bg-white px-3 py-1 text-sm transition hover:bg-earth-100"
+              [attr.aria-label]="'common.close' | translate"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               (click)="onCloseButtonClick()"
             >
-              {{ 'common.close' | translate }}
+              <span
+                [id]="rootId + '-close-icon'"
+                aria-hidden="true"
+                class="text-base font-semibold leading-none"
+              >
+                X
+              </span>
             </button>
           }
         </header>

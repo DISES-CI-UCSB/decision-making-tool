@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html id="language-patterns-html-root" lang="en">
+  <head id="language-patterns-head">
+    <meta id="language-patterns-meta-charset" charset="UTF-8" />
+    <meta id="language-patterns-meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="language-patterns-title">Language switcher patterns in header context</title>
+    <script id="language-patterns-tailwind-cdn-script" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="language-patterns-font-link"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style id="language-patterns-inline-style">
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+    </style>
+  </head>
+  <body id="language-patterns-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <main id="language-patterns-main" class="mx-auto max-w-6xl px-6 py-10">
+      <header id="language-patterns-page-header" class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p id="language-patterns-page-kicker" class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+          Google-derived language toggle patterns
+        </p>
+        <h1 id="language-patterns-page-title" class="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+          Header-context language switcher options
+        </h1>
+        <p id="language-patterns-page-description" class="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
+          Each option is shown in a fake header bar styled to match your app tone (light surfaces, slate borders, subtle
+          accents). Focus patterns included: <strong id="language-patterns-focus-en-es">EN | ES</strong> and
+          <strong id="language-patterns-focus-single-alternate">single alternate language action</strong>.
+        </p>
+      </header>
+
+      <section id="language-patterns-grid" class="grid gap-5 md:grid-cols-2">
+        <article id="language-patterns-card-1" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 id="language-patterns-card-1-title" class="text-xs font-bold uppercase tracking-[0.13em] text-slate-500">
+            1) EN | ES inline toggle (Gov style)
+          </h2>
+          <p id="language-patterns-card-1-copy" class="mt-2 text-sm text-slate-600">
+            Current language is plain text. Alternate language is clickable.
+          </p>
+          <section id="language-patterns-card-1-header-en" class="mt-4 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-1-header-en-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-1-header-en-title" class="text-sm font-semibold text-slate-900">Decision Making Tool</p>
+              <nav id="language-patterns-card-1-header-en-nav" aria-label="Language switcher EN state" class="text-sm">
+                <span id="language-patterns-card-1-header-en-current" aria-current="page" class="font-semibold text-slate-900">EN</span>
+                <span id="language-patterns-card-1-header-en-divider" class="px-1 text-slate-400">|</span>
+                <a
+                  id="language-patterns-card-1-header-en-link"
+                  href="#"
+                  class="font-medium text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline"
+                >
+                  ES
+                </a>
+              </nav>
+            </header>
+          </section>
+          <section id="language-patterns-card-1-header-es" class="mt-3 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-1-header-es-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-1-header-es-title" class="text-sm font-semibold text-slate-900">Decision Making Tool</p>
+              <nav id="language-patterns-card-1-header-es-nav" aria-label="Language switcher ES state" class="text-sm">
+                <a
+                  id="language-patterns-card-1-header-es-link"
+                  href="#"
+                  class="font-medium text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline"
+                >
+                  EN
+                </a>
+                <span id="language-patterns-card-1-header-es-divider" class="px-1 text-slate-400">|</span>
+                <span id="language-patterns-card-1-header-es-current" aria-current="page" class="font-semibold text-slate-900">ES</span>
+              </nav>
+            </header>
+          </section>
+        </article>
+
+        <article id="language-patterns-card-2" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 id="language-patterns-card-2-title" class="text-xs font-bold uppercase tracking-[0.13em] text-slate-500">
+            2) Single alternate action
+          </h2>
+          <p id="language-patterns-card-2-copy" class="mt-2 text-sm text-slate-600">
+            Only show the target language action. Very low visual noise.
+          </p>
+          <section id="language-patterns-card-2-header-en" class="mt-4 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-2-header-en-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-2-header-en-title" class="text-sm font-semibold text-slate-900">Decision Making Tool</p>
+              <button
+                id="language-patterns-card-2-header-en-button"
+                type="button"
+                class="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              >
+                Espanol
+              </button>
+            </header>
+          </section>
+          <section id="language-patterns-card-2-header-es" class="mt-3 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-2-header-es-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-2-header-es-title" class="text-sm font-semibold text-slate-900">Herramienta de Decision</p>
+              <button
+                id="language-patterns-card-2-header-es-button"
+                type="button"
+                class="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              >
+                English
+              </button>
+            </header>
+          </section>
+        </article>
+
+        <article id="language-patterns-card-3" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 id="language-patterns-card-3-title" class="text-xs font-bold uppercase tracking-[0.13em] text-slate-500">
+            3) Segmented EN/ES control
+          </h2>
+          <p id="language-patterns-card-3-copy" class="mt-2 text-sm text-slate-600">
+            Clean two-language state indicator with compact footprint.
+          </p>
+          <section id="language-patterns-card-3-header-en" class="mt-4 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-3-header-en-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-3-header-en-title" class="text-sm font-semibold text-slate-900">Decision Making Tool</p>
+              <div id="language-patterns-card-3-header-en-segmented" class="rounded-full border border-slate-200 bg-slate-50 p-1">
+                <button id="language-patterns-card-3-header-en-active" type="button" class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                  EN
+                </button>
+                <button id="language-patterns-card-3-header-en-inactive" type="button" class="rounded-full px-3 py-1 text-xs font-semibold text-slate-600">
+                  ES
+                </button>
+              </div>
+            </header>
+          </section>
+          <section id="language-patterns-card-3-header-es" class="mt-3 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-3-header-es-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-3-header-es-title" class="text-sm font-semibold text-slate-900">Herramienta de Decision</p>
+              <div id="language-patterns-card-3-header-es-segmented" class="rounded-full border border-slate-200 bg-slate-50 p-1">
+                <button id="language-patterns-card-3-header-es-inactive" type="button" class="rounded-full px-3 py-1 text-xs font-semibold text-slate-600">
+                  EN
+                </button>
+                <button id="language-patterns-card-3-header-es-active" type="button" class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                  ES
+                </button>
+              </div>
+            </header>
+          </section>
+        </article>
+
+        <article id="language-patterns-card-4" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 id="language-patterns-card-4-title" class="text-xs font-bold uppercase tracking-[0.13em] text-slate-500">
+            4) Language label + menu trigger
+          </h2>
+          <p id="language-patterns-card-4-copy" class="mt-2 text-sm text-slate-600">
+            Scales better if you add more languages later.
+          </p>
+          <section id="language-patterns-card-4-header-en" class="mt-4 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-4-header-en-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-4-header-en-title" class="text-sm font-semibold text-slate-900">Decision Making Tool</p>
+              <button
+                id="language-patterns-card-4-header-en-button"
+                type="button"
+                class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              >
+                <span id="language-patterns-card-4-header-en-label">Language: EN</span>
+                <span id="language-patterns-card-4-header-en-chevron" aria-hidden="true">v</span>
+              </button>
+            </header>
+          </section>
+          <section id="language-patterns-card-4-header-es" class="mt-3 overflow-hidden rounded-lg border border-slate-200">
+            <header id="language-patterns-card-4-header-es-inner" class="flex items-center justify-between bg-white px-4 py-3">
+              <p id="language-patterns-card-4-header-es-title" class="text-sm font-semibold text-slate-900">Herramienta de Decision</p>
+              <button
+                id="language-patterns-card-4-header-es-button"
+                type="button"
+                class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              >
+                <span id="language-patterns-card-4-header-es-label">Idioma: ES</span>
+                <span id="language-patterns-card-4-header-es-chevron" aria-hidden="true">v</span>
+              </button>
+            </header>
+          </section>
+        </article>
+      </section>
+
+      <footer id="language-patterns-footer" class="mt-8 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+        <p id="language-patterns-footer-text">
+          Recommended first implementation for your app: <strong id="language-patterns-footer-rec-1">Option 1 (EN | ES inline)</strong>
+          if you want formal/professional tone, or <strong id="language-patterns-footer-rec-2">Option 2 (single alternate)</strong>
+          if you want minimal visual weight in the top-right.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
