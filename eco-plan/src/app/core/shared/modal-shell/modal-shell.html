@@ -48,13 +48,15 @@
               class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               (click)="onCloseButtonClick()"
             >
-              <span
+              <svg
                 [id]="rootId + '-close-icon'"
                 aria-hidden="true"
-                class="text-base font-semibold leading-none"
+                viewBox="0 0 24 24"
+                class="h-5 w-5 fill-none stroke-current"
               >
-                X
-              </span>
+                <path d="M6 6L18 18" stroke-width="2.25" stroke-linecap="square" />
+                <path d="M18 6L6 18" stroke-width="2.25" stroke-linecap="square" />
+              </svg>
             </button>
           }
         </header>
