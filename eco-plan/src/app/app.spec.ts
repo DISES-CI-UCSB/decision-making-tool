@@ -41,6 +41,15 @@ describe('App', () => {
     const appState = TestBed.inject(AppStateService);
     const solutionLayer = TestBed.inject(SolutionLayerService);
     const showSolutionSpy = vi.spyOn(solutionLayer, 'showSolution').mockResolvedValue(undefined);
+    appState.setComparisonSolution({
+      id: 'sol-002',
+      name: 'Comparison Candidate',
+      description: 'Candidate',
+      matchPercentage: 81,
+      geometryUrl: '/geometry/sol-002.json',
+      metrics: [],
+      metadata: { scenarioId: 'candidate-scenario' },
+    });
 
     (
       component as unknown as {
@@ -52,6 +61,7 @@ describe('App', () => {
     });
 
     expect(appState.activeSolution$()?.id).toBe('sol-001');
+    expect(appState.comparisonSolution$()).toBeNull();
     expect(appState.rightSidebarMode$()).toBe('overview');
     expect(showSolutionSpy).toHaveBeenCalledWith('Ecos30+RUNAP_HF');
     expect(

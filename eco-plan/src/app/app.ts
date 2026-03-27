@@ -105,6 +105,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   private applySolution(solution: Solution, scenarioId: string): void {
+    this.appState.setComparisonSolution(null);
     this.appState.loadSolution(solution);
     this.appState.setRightSidebarMode('overview');
     void this.solutionLayer.showSolution(scenarioId);
