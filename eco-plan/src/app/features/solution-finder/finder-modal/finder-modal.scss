@@ -3,8 +3,14 @@
   height: 100%;
 }
 
+.finder-fixed-toggle {
+  min-width: 3.25rem;
+  padding: 0.25rem 0.75rem;
+}
+
 @media (min-width: 1024px) {
-  #solution-finder-modal-constraints-card-wrapper,
+  #solution-finder-modal-step2a-card-wrapper,
+  #solution-finder-modal-step2b-card-wrapper,
   #solution-finder-modal-results-card-wrapper {
     height: var(--solution-finder-targets-group-height, auto);
     max-height: var(--solution-finder-targets-group-height, auto);

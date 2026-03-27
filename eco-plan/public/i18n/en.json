@@ -223,20 +223,20 @@
     "finder": {
       "kicker": "Conservation scenario search",
       "title": "Find a conservation scenario",
-      "description": "Select targets and constraints, then run a match against available scenario templates.",
+      "description": "Choose what to protect, optional area layers, and a trade-off basis, then find the precomputed raster that matches.",
       "comparison": {
         "kicker": "Candidate solution search",
         "title": "Find a candidate solution",
         "description": "Use the same guided workflow to choose the candidate solution for side-by-side comparison."
       },
       "selectionSummary": "Current selections",
-      "targetsLabel": "targets",
-      "constraintsLabel": "constraints",
-      "loading": "Finding best-fit scenarios...",
+      "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
+      "loading": "Finding scenario…",
       "stepLabels": {
-        "step1": "Step 1: Targets",
-        "step2": "Step 2: Constraints",
-        "step3": "Step 3: Results"
+        "step1": "Step 1: What to protect",
+        "step2a": "Step 2: Include / exclude",
+        "step2b": "Step 3: Cost layer",
+        "step3": "Result"
       },
       "stepState": {
         "inProgress": "In Progress",
@@ -246,49 +246,74 @@
         "ready": "Ready"
       },
       "helpers": {
-        "constraints": "Toggle constraints after selecting at least one target.",
-        "results": "Review best matches, then apply one scenario."
+        "constraints": "Choose optional layers after you finish Step 1.",
+        "results": "Run Find matches when targets and trade-off basis are chosen."
       },
       "locked": {
-        "constraints": "Complete Step 1 to unlock constraints.",
-        "results": "Run Find matches after Step 1 to unlock results."
+        "constraints": "Complete Step 1 to unlock includes, excludes, and trade-off options.",
+        "results": "Click Find matches (targets + trade-off basis required) to view the result."
       },
-      "sections": {
-        "targets": "Conservation Targets",
-        "constraints": "Includes and Excludes",
-        "results": "Matching Results"
+      "toggle": {
+        "on": "ON",
+        "off": "OFF"
+      },
+      "step1": {
+        "targetTypeTitle": "Target type",
+        "modelBackedBadge": "Model-backed",
+        "targetTypeIntro": "Pick the primary feature the conservation model optimizes for.",
+        "speciesRichnessLabel": "Species richness (ecosystem pixels)",
+        "speciesRichnessHelp": "Uses the national ecosystem / richness stack summarized as Ecos17 or Ecos30 in scenario names (not individual species maps).",
+        "strategicEcosystemsLabel": "Strategic ecosystems",
+        "strategicEcosystemsHelp": "Uses the strategic ESTR30 surface (e.g. páramo, mangroves, wetlands) instead of the broader Ecos layers.",
+        "targetLevelTitle": "Target level",
+        "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
+        "targetLevelBadgeSpecies": "For species richness",
+        "targetLevelBadgeStrategic": "Strategic only",
+        "strategicLevelFixed": "30% — only level available for strategic ecosystems in the current catalog."
+      },
+      "step2a": {
+        "includeOmecsLabel": "Include OMECs",
+        "includeOmecsHelp": "OMECs (WDPA/WDOECM “other effective conservation measures”) are optional; scenario filenames include +OMEC when on.",
+        "includeComunidadesLabel": "Include comunidades territories",
+        "includeComunidadesHelp": "Afro-Colombian community territories that can be locked into a run when enabled.",
+        "alwaysAppliedHeading": "Always applied",
+        "alwaysRunapLabel": "RUNAP protected areas",
+        "alwaysRunapHelp": "National protected-area network (RUNAP) is included in every precomputed scenario in this catalog.",
+        "alwaysOnChip": "Always on"
+      },
+      "step2b": {
+        "intro": "Choose one cost layer to rank candidate sites (lower values are preferred).",
+        "humanFootprintLabel": "Human pressure",
+        "humanFootprintHelp": "Projected Human Footprint 2030 (HF_2030): lower score means less expected human pressure.",
+        "carbonOpportunityLabel": "Carbon opportunity cost",
+        "carbonOpportunityHelp": "Monetary carbon / opportunity cost surface (CO in filenames): reflects foregone carbon value when conserving.",
+        "conflictLabel": "Conflict exposure",
+        "conflictHelp": "Composite conflict index (CONFLICTO): coca and conflict-related deaths (2016–2022)."
       },
       "actions": {
         "reset": "Reset to defaults",
         "cancel": "Cancel",
-        "findMatches": "Find matches",
+        "findMatches": "Find scenario",
         "apply": "Apply selected scenario",
         "loadAsCandidateSolution": "Load as candidate solution"
       },
       "empty": {
-        "title": "Run matching to view scenarios",
-        "description": "Choose at least one target, then click Find matches."
+        "title": "Run find to view a scenario",
+        "description": "Choose a target type, level (if needed), trade-off basis, then click Find scenario."
+      },
+      "noMatch": {
+        "title": "No matching scenario",
+        "description": "There is no precomputed raster for this exact combination. Change an option and try again."
       },
       "preview": {
         "title": "Preview map",
         "mapLabel": "Primary layer"
       },
-      "targets": {
-        "mammalSpecies": "Mammal Species",
-        "cloudForest": "Cloud Forest",
-        "threatenedAmphibians": "Threatened Amphibians",
-        "paramoEcosystems": "Paramo Ecosystems",
-        "wetlands": "Wetlands"
-      },
-      "constraints": {
-        "includeNationalParks": "Include National Parks",
-        "excludeUrbanCenters": "Include Non-Urban Areas",
-        "connectProtectedAreas": "Include Corridor Areas Between Protected Areas",
-        "excludeMining": "Include Non-Mining Areas",
-        "includeIndigenousTerritories": "Include Indigenous Territories",
-        "excludeConflictZones": "Include Non-Conflict Areas"
-      },
       "results": {
+        "foundExactlyOne": "Found 1 scenario",
+        "foundMany": "Found {{count}} scenarios",
+        "availableChip": "Available",
+        "alternateMatches": "Other matches (rare)",
         "scenarioJaguarCorridor": "Higher emphasis on species corridor continuity near protected area buffers.",
         "scenarioAndesWater": "Balances cloud-forest protection and water regulation targets in upland basins.",
         "scenarioCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."

@@ -442,7 +442,14 @@ export class DevToolsPanelComponent {
 
   loadScenario(): void {
     const id = this.selectedScenarioId();
-    if (id) void this.solutionLayer.showSolution(id);
+    if (!id) {
+      return;
+    }
+
+    // "Load on Map" should display a single scenario, not stay in comparison swipe mode.
+    this.appState.setComparisonSolution(null);
+    this.appState.setRightSidebarMode('overview');
+    void this.solutionLayer.showSolution(id);
   }
 
   loadCandidateScenario(): void {

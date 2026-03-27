@@ -215,6 +215,7 @@
       "openSolutionFinder": "Abrir modal de busqueda de soluciones",
       "openPerspective": "Abrir modal de perspectivas",
       "solutionFinderTitle": "Buscador de Soluciones",
+      "solutionFinderComparisonTitle": "Buscador de soluciones (seleccionar solucion candidata)",
       "perspectiveTitle": "Selector de Perspectiva",
       "perspectiveHeading": "Shell modal estandar",
       "perspectiveDescription": "Este modal usa el modo estandar del shell y comparte el mismo comportamiento de cierre y funciones de accesibilidad."
@@ -222,15 +223,20 @@
     "finder": {
       "kicker": "Busqueda de escenarios de conservacion",
       "title": "Encontrar un escenario de conservacion",
-      "description": "Selecciona metas y restricciones, luego ejecuta una coincidencia con escenarios disponibles.",
+      "description": "Elija que proteger, capas opcionales y la base del compromiso (costo), luego busque el raster precalculado que coincida.",
+      "comparison": {
+        "kicker": "Busqueda de solucion candidata",
+        "title": "Encontrar una solucion candidata",
+        "description": "Use el mismo flujo para elegir la solucion candidata en la comparacion."
+      },
       "selectionSummary": "Selecciones actuales",
-      "targetsLabel": "metas",
-      "constraintsLabel": "restricciones",
-      "loading": "Buscando escenarios de mejor ajuste...",
+      "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
+      "loading": "Buscando escenario…",
       "stepLabels": {
-        "step1": "Paso 1: Metas",
-        "step2": "Paso 2: Restricciones",
-        "step3": "Paso 3: Resultados"
+        "step1": "Paso 1: Que proteger",
+        "step2a": "Paso 2: Incluir / excluir",
+        "step2b": "Paso 3: Capa de costo",
+        "step3": "Resultado"
       },
       "stepState": {
         "inProgress": "En progreso",
@@ -240,48 +246,74 @@
         "ready": "Listo"
       },
       "helpers": {
-        "constraints": "Activa restricciones despues de seleccionar al menos una meta.",
-        "results": "Revisa las mejores coincidencias y luego aplica un escenario."
+        "constraints": "Elija capas opcionales despues de completar el Paso 1.",
+        "results": "Ejecute Buscar cuando la meta y la base del compromiso esten elegidas."
       },
       "locked": {
-        "constraints": "Completa el Paso 1 para desbloquear restricciones.",
-        "results": "Ejecuta Buscar coincidencias despues del Paso 1 para desbloquear resultados."
+        "constraints": "Complete el Paso 1 para desbloquear inclusiones, exclusiones y la base del compromiso.",
+        "results": "Haga clic en Buscar (meta + base del compromiso requeridos) para ver el resultado."
       },
-      "sections": {
-        "targets": "Metas de conservacion",
-        "constraints": "Incluye y Excluye",
-        "results": "Resultados de coincidencia"
+      "toggle": {
+        "on": "ON",
+        "off": "OFF"
+      },
+      "step1": {
+        "targetTypeTitle": "Tipo de meta",
+        "modelBackedBadge": "Respaldado por modelo",
+        "targetTypeIntro": "Elija la representacion principal que el modelo de conservacion optimiza.",
+        "speciesRichnessLabel": "Riqueza de especies (pixeles de ecosistema)",
+        "speciesRichnessHelp": "Usa la pila nacional de ecosistema / riqueza resumida como Ecos17 o Ecos30 en el nombre del escenario (no mapas por especie).",
+        "strategicEcosystemsLabel": "Ecosistemas estratégicos",
+        "strategicEcosystemsHelp": "Usa la superficie estrategica ESTR30 (p.ej. paramo, manglares, humedales) en lugar de las capas Ecos mas amplias.",
+        "targetLevelTitle": "Nivel de meta",
+        "targetLevelIntro": "Meta nacional de representacion como porcentaje (17% o 30%).",
+        "targetLevelBadgeSpecies": "Para riqueza de especies",
+        "targetLevelBadgeStrategic": "Solo estrategico",
+        "strategicLevelFixed": "30% — unico nivel disponible para ecosistemas estrategicos en el catalogo actual."
+      },
+      "step2a": {
+        "includeOmecsLabel": "Incluir OMEC",
+        "includeOmecsHelp": "OMEC (WDPA/WDOECM, otras medidas efectivas) es opcional; los nombres incluyen +OMEC cuando esta activo.",
+        "includeComunidadesLabel": "Incluir territorios de comunidades",
+        "includeComunidadesHelp": "Territorios de comunidades afrocolombianas que pueden fijarse en una corrida si se activa.",
+        "alwaysAppliedHeading": "Siempre aplicado",
+        "alwaysRunapLabel": "Areas protegidas RUNAP",
+        "alwaysRunapHelp": "La red nacional de areas protegidas (RUNAP) esta incluida en todos los escenarios precalculados de este catalogo.",
+        "alwaysOnChip": "Siempre activo"
+      },
+      "step2b": {
+        "intro": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
+        "humanFootprintLabel": "Presion humana",
+        "humanFootprintHelp": "Huella humana proyectada 2030 (HF_2030): menor valor implica menor presion humana esperada.",
+        "carbonOpportunityLabel": "Costo de oportunidad del carbono",
+        "carbonOpportunityHelp": "Superficie monetaria de costo de oportunidad / carbono (CO en archivos): refleja el valor de carbono dejado de lado al conservar.",
+        "conflictLabel": "Exposicion al conflicto",
+        "conflictHelp": "Indice compuesto de conflicto (CONFLICTO): coca y muertes relacionadas (2016–2022)."
       },
       "actions": {
         "reset": "Restablecer valores",
         "cancel": "Cancelar",
-        "findMatches": "Buscar coincidencias",
-        "apply": "Aplicar escenario seleccionado"
+        "findMatches": "Buscar escenario",
+        "apply": "Aplicar escenario seleccionado",
+        "loadAsCandidateSolution": "Cargar como solucion candidata"
       },
       "empty": {
-        "title": "Ejecuta la busqueda para ver escenarios",
-        "description": "Elige al menos una meta y luego haz clic en Buscar coincidencias."
+        "title": "Ejecute la busqueda para ver un escenario",
+        "description": "Elija tipo de meta, nivel (si aplica), base del compromiso y haga clic en Buscar escenario."
+      },
+      "noMatch": {
+        "title": "Sin escenario coincidente",
+        "description": "No hay raster precalculado para esta combinacion exacta. Cambie una opcion e intente de nuevo."
       },
       "preview": {
         "title": "Vista previa del mapa",
         "mapLabel": "Capa principal"
       },
-      "targets": {
-        "mammalSpecies": "Especies de mamiferos",
-        "cloudForest": "Bosque nublado",
-        "threatenedAmphibians": "Anfibios amenazados",
-        "paramoEcosystems": "Ecosistemas de paramo",
-        "wetlands": "Humedales"
-      },
-      "constraints": {
-        "includeNationalParks": "Incluir parques nacionales",
-        "excludeUrbanCenters": "Incluir zonas no urbanas",
-        "connectProtectedAreas": "Incluir corredores entre areas protegidas",
-        "excludeMining": "Incluir zonas sin mineria",
-        "includeIndigenousTerritories": "Incluir territorios indigenas",
-        "excludeConflictZones": "Incluir zonas sin conflicto"
-      },
       "results": {
+        "foundExactlyOne": "Se encontro 1 escenario",
+        "foundMany": "Se encontraron {{count}} escenarios",
+        "availableChip": "Disponible",
+        "alternateMatches": "Otras coincidencias (raro)",
         "scenarioJaguarCorridor": "Mayor enfasis en continuidad de corredores de especies cerca de areas protegidas.",
         "scenarioAndesWater": "Balancea proteccion de bosque nublado y metas de regulacion hidrica en cuencas altas.",
         "scenarioCarbonShield": "Prioriza densidad de carbono mientras excluye presion minera y bordes urbanos."
