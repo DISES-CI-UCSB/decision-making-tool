@@ -107,7 +107,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                   id="dev-tools-load-candidate-btn"
                   type="button"
                   class="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
-                  [disabled]="!selectedCandidateScenarioId()"
+                  [disabled]="!selectedCandidateScenarioId() || solutionLayer.isLoading$()"
                   (click)="loadCandidateScenario()"
                 >
                   Load in Comparison

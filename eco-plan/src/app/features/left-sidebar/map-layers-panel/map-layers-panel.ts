@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 
 import { type AoiType } from '@core/models';
@@ -37,6 +38,9 @@ interface LayerControlRow {
       }
     | {
         type: 'solution-candidate';
+      }
+    | {
+        type: 'solution-overlap';
       }
     | {
         type: 'app-state-layer';
@@ -86,6 +90,7 @@ const SPECIES_VISIBLE_LIMIT = 6;
 type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
+const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -137,15 +142,24 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       const solution = this.appState.activeSolution$();
-      if (solution?.name) {
-        this.activeScenarioName.set(solution.name);
-      }
-      this.syncPrimarySolutionOverlay(solution?.name ?? null);
+      untracked(() => {
+        if (solution?.name) {
+          this.activeScenarioName.set(solution.name);
+        }
+        this.syncPrimarySolutionOverlay(solution?.name ?? null);
+      });
     });
 
     effect(() => {
       const comparisonSolution = this.appState.comparisonSolution$();
-      this.syncComparisonSolutionOverlay(comparisonSolution?.name ?? null);
+      const vizMode = this.appState.comparisonVisualizationMode$();
+      untracked(() => {
+        this.syncComparisonSolutionOverlay(comparisonSolution?.name ?? null);
+        this.syncComparisonOverlapOverlay(
+          comparisonSolution?.name ?? null,
+          vizMode === 'threeColorOverlay',
+        );
+      });
     });
 
     // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
@@ -1022,6 +1036,13 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
+    if (mapSync.type === 'solution-overlap') {
+      this.solutionLayerService.setOverlapVisibility(row.visible);
+      this.solutionLayerService.setOverlapOpacity(row.opacity / 100);
+      this.solutionLayerService.setOverlapColor(row.color);
+      return;
+    }
+
     if (mapSync.type !== 'app-state-layer') {
       return;
     }
@@ -1182,7 +1203,9 @@ export class MapLayersPanelComponent implements OnDestroy {
             ? 'Selected Solution'
             : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
               ? 'Comparison Solution'
-              : 'Available Layers',
+              : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
+                ? 'Comparison Overlay'
+                : 'Available Layers',
         sourceType: 'overlay',
         mapUnavailable: !!overlay.mapUnavailable,
       });
@@ -1377,6 +1400,55 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     this.updateSelectedLayerOrder(CANDIDATE_SOLUTION_OVERLAY_ID, true);
     this.syncOverlayById(CANDIDATE_SOLUTION_OVERLAY_ID);
+  }
+
+  private syncComparisonOverlapOverlay(
+    solutionName: string | null,
+    shouldShowOverlap: boolean,
+  ): void {
+    if (!solutionName || !shouldShowOverlap) {
+      this.overlays.update((rows) => rows.filter((row) => row.id !== OVERLAP_SOLUTION_OVERLAY_ID));
+      this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, false);
+      return;
+    }
+
+    let hasOverlapOverlay = false;
+    this.overlays.update((rows) => {
+      const nextRows = rows.map((row) => {
+        if (row.id !== OVERLAP_SOLUTION_OVERLAY_ID) {
+          return row;
+        }
+        hasOverlapOverlay = true;
+        return {
+          ...row,
+          selected: true,
+          visible: true,
+        };
+      });
+
+      if (hasOverlapOverlay) {
+        return nextRows;
+      }
+
+      return [
+        ...nextRows,
+        {
+          id: OVERLAP_SOLUTION_OVERLAY_ID,
+          name: 'Agreement / Overlap',
+          selected: true,
+          visible: true,
+          expanded: true,
+          opacity: 80,
+          color: '#ec4899',
+          canReorder: true,
+          hasStyleControls: true,
+          hasColorControl: true,
+          mapSync: { type: 'solution-overlap' },
+        },
+      ];
+    });
+
+    this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, true);
   }
 
   private createDefaultTaxa(): TaxonRow[] {

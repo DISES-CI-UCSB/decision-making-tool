@@ -9,6 +9,7 @@ import {
   ViewChild,
   effect,
   inject,
+  untracked,
 } from '@angular/core';
 import ArcGISMap from '@arcgis/core/Map';
 import ArcGISMapView from '@arcgis/core/views/MapView';
@@ -69,6 +70,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   protected mapErrorMessage = '';
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
+  protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isComparisonOverlayVisible = computed(() => {
     return (
       this.appState.rightSidebarMode$() === 'comparison' &&
@@ -104,7 +106,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.appState.activeSolution$();
       this.appState.comparisonSolution$();
       this.appState.rightSidebarMode$();
-      void this.syncComparisonMode();
+      this.appState.comparisonVisualizationMode$();
+      untracked(() => void this.syncComparisonMode());
     });
   }
 
@@ -303,8 +306,9 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.appState.rightSidebarMode$() === 'comparison' &&
       !!activeScenarioId &&
       !!comparisonScenarioId;
+    const visualizationMode = this.appState.comparisonVisualizationMode$();
     console.info(
-      `[MapView][${this.debugMarker}] comparison check mode=${this.appState.rightSidebarMode$()} active=${activeScenarioId ?? 'none'} candidate=${comparisonScenarioId ?? 'none'} enabled=${shouldShowComparison}`,
+      `[MapView][${this.debugMarker}] comparison check mode=${this.appState.rightSidebarMode$()} viz=${visualizationMode} active=${activeScenarioId ?? 'none'} candidate=${comparisonScenarioId ?? 'none'} enabled=${shouldShowComparison}`,
     );
     // Ignore stale async layer loads when users switch scenarios quickly.
     const requestId = ++this.comparisonSyncRequestId;
@@ -322,28 +326,46 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const comparisonKey = `${activeScenarioId}::${comparisonScenarioId}`;
-    if (comparisonKey === this.lastComparisonKey && this.comparisonSwipeWidget) {
-      return;
-    }
-
     const previousPosition =
       this.comparisonSwipeWidget && 'position' in this.comparisonSwipeWidget
         ? (this.comparisonSwipeWidget as unknown as { position: number }).position
         : 50;
+    const comparisonKey = `${activeScenarioId}::${comparisonScenarioId}::${visualizationMode}`;
+    if (
+      comparisonKey === this.lastComparisonKey &&
+      this.solutionLayer.hasComparisonScenarios(activeScenarioId, comparisonScenarioId)
+    ) {
+      return;
+    }
 
     this.teardownComparisonSwipeWidget();
-    await this.solutionLayer.showComparison(activeScenarioId, comparisonScenarioId);
+    if (!this.solutionLayer.hasComparisonScenarios(activeScenarioId, comparisonScenarioId)) {
+      await this.solutionLayer.showComparison(activeScenarioId, comparisonScenarioId);
+      if (requestId !== this.comparisonSyncRequestId) {
+        return;
+      }
+      if (!this.solutionLayer.hasComparisonScenarios(activeScenarioId, comparisonScenarioId)) {
+        // Comparison load failed (or was interrupted): keep key unset so future attempts can retry.
+        this.lastComparisonKey = '';
+        console.error(
+          `[MapView][${this.debugMarker}] comparison layers unavailable after load attempt`,
+        );
+        return;
+      }
+    }
+    this.solutionLayer.applyComparisonVisualizationMode(visualizationMode);
     if (requestId !== this.comparisonSyncRequestId) {
       return;
     }
 
     this.lastComparisonKey = comparisonKey;
 
-    try {
-      await this.setupComparisonSwipeWidget(previousPosition);
-    } catch (error) {
-      console.error(`[MapView][${this.debugMarker}] failed to attach Swipe widget:`, error);
+    if (visualizationMode === 'swipe') {
+      try {
+        await this.setupComparisonSwipeWidget(previousPosition);
+      } catch (error) {
+        console.error(`[MapView][${this.debugMarker}] failed to attach Swipe widget:`, error);
+      }
     }
   }
 
