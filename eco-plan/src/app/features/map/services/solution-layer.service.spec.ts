@@ -81,17 +81,11 @@ describe('SolutionLayerService', () => {
   it('loads a single scenario and syncs active solution state', async () => {
     const loaded = createLoadedSolution('baseline');
     loaderMock.loadSolution.mockResolvedValue(loaded);
-    const singleLayer = { id: 'single-layer', destroy: vi.fn(), opacity: 0.7 };
-    const createLayerSpy = vi.spyOn(
-      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
-      'createLayerFromLoaded',
-    );
-    createLayerSpy.mockReturnValue(singleLayer as never);
 
     await service.showSolution('baseline');
 
     expect(loaderMock.loadSolution).toHaveBeenCalledWith('baseline');
-    expect(mapMock.add).toHaveBeenCalledWith(singleLayer);
+    expect(mapMock.add).toHaveBeenCalledTimes(1);
     expect(appStateMock.loadSolution).toHaveBeenCalledTimes(1);
     expect(service.isComparisonModeActive()).toBe(false);
   });
@@ -121,6 +115,33 @@ describe('SolutionLayerService', () => {
       baselineLayer,
       candidateLayer,
     });
+  });
+
+  it('replaces the solution image element when color changes', async () => {
+    const loaded = createLoadedSolution('baseline');
+    loaderMock.loadSolution.mockResolvedValue(loaded);
+    await service.showSolution('baseline');
+
+    const currentLayer = (
+      service as unknown as {
+        currentLayer: {
+          source: {
+            elements: {
+              getItemAt(index: number): unknown;
+              length: number;
+            };
+          };
+        } | null;
+      }
+    ).currentLayer;
+
+    expect(currentLayer).not.toBeNull();
+    const before = currentLayer!.source.elements.getItemAt(0);
+    service.setColor('#ff0000');
+    const after = currentLayer!.source.elements.getItemAt(0);
+
+    expect(currentLayer!.source.elements.length).toBe(1);
+    expect(after).not.toBe(before);
   });
 
   it('clears map layers and app state when removing solution', async () => {

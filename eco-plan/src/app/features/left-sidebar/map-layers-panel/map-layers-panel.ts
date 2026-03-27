@@ -94,6 +94,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly adminBoundaryService = inject(AdminBoundaryService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly opacitySyncFrames = new Map<string, number>();
+  private readonly colorSyncFrames = new Map<string, number>();
   /** Stable bound reference so we can removeEventListener exactly. */
   private readonly rainforestProximityHandler = (e: PointerEvent): void =>
     this.onSidebarProximityMove(e);
@@ -103,6 +104,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly adminBoundary = signal<AdminBoundaryOption>('sirap');
   protected readonly customBoundaryRequested = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
+  protected readonly availableOverlays = computed(() =>
+    this.overlays().filter((row) => row.id !== 'overlay-conservation-solution'),
+  );
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
@@ -147,6 +151,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       cancelAnimationFrame(frameId);
     }
     this.opacitySyncFrames.clear();
+    for (const frameId of this.colorSyncFrames.values()) {
+      cancelAnimationFrame(frameId);
+    }
+    this.colorSyncFrames.clear();
   }
 
   protected requestSolutionFinder(): void {
@@ -305,6 +313,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected updateOverlayColor(rowId: string, color: string): void {
     this.overlays.update((rows) => rows.map((row) => (row.id === rowId ? { ...row, color } : row)));
+    this.scheduleColorSync(rowId);
   }
 
   protected moveOverlay(rowId: string, direction: 'up' | 'down'): void {
@@ -413,6 +422,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         };
       }),
     );
+    this.scheduleColorSync(`${groupId}:${rowId}`);
   }
 
   protected moveLayer(groupId: string, rowId: string, direction: 'up' | 'down'): void {
@@ -874,6 +884,29 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.opacitySyncFrames.set(rowKey, frameId);
   }
 
+  private scheduleColorSync(rowKey: string): void {
+    const previous = this.colorSyncFrames.get(rowKey);
+    if (previous) {
+      cancelAnimationFrame(previous);
+    }
+
+    const frameId = requestAnimationFrame(() => {
+      if (rowKey.includes(':')) {
+        const [scopeId, rowId] = rowKey.split(':');
+        if (scopeId.startsWith('taxon-')) {
+          this.syncSpeciesById(scopeId, rowId);
+        } else {
+          this.syncGroupRowById(scopeId, rowId);
+        }
+      } else {
+        this.syncOverlayById(rowKey);
+      }
+      this.colorSyncFrames.delete(rowKey);
+    });
+
+    this.colorSyncFrames.set(rowKey, frameId);
+  }
+
   private syncRowToMap(row: LayerControlRow): void {
     const mapSync = row.mapSync;
     if (!mapSync) {
@@ -883,6 +916,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (mapSync.type === 'solution') {
       this.solutionLayerService.setVisibility(row.visible);
       this.solutionLayerService.setOpacity(row.opacity / 100);
+      this.solutionLayerService.setColor(row.color);
       return;
     }
 

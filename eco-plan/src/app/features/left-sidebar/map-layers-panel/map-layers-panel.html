@@ -409,7 +409,8 @@
               id="map-layers-overlays-category-count"
               class="text-[11px] font-semibold text-slate-600"
             >
-              3 layers
+              {{ availableOverlays().length }}
+              {{ availableOverlays().length === 1 ? 'layer' : 'layers' }}
             </span>
           </button>
 
@@ -423,7 +424,7 @@
               id="map-layers-overlays-card-body-content"
               class="map-layers-collapsible-content border-t border-slate-200"
             >
-              @for (overlay of overlays(); track overlay.id; let isLast = $last) {
+              @for (overlay of availableOverlays(); track overlay.id; let isLast = $last) {
                 <article
                   [id]="'map-layers-overlay-row-' + overlay.id"
                   class="bg-white"
