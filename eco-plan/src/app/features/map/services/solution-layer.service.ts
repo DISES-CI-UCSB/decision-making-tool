@@ -16,6 +16,7 @@ const SOLUTION_LAYER_ID = 'solution-raster-layer';
 const BASELINE_LAYER_ID = 'solution-raster-layer-baseline';
 const CANDIDATE_LAYER_ID = 'solution-raster-layer-candidate';
 const DEFAULT_SOLUTION_COLOR_HEX = '#16a34a';
+const DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX = '#2563eb';
 const SOLUTION_ALPHA = 180;
 
 @Injectable({ providedIn: 'root' })
@@ -27,8 +28,12 @@ export class SolutionLayerService {
   private currentLayer: InstanceType<typeof MediaLayer> | null = null;
   private baselineComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
   private candidateComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
+  private baselineComparisonLoaded: LoadedSolution | null = null;
+  private candidateComparisonLoaded: LoadedSolution | null = null;
   private comparisonMode = false;
   private solutionColorHex = DEFAULT_SOLUTION_COLOR_HEX;
+  private baselineComparisonColorHex = DEFAULT_SOLUTION_COLOR_HEX;
+  private candidateComparisonColorHex = DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX;
   private solutionImageElement: InstanceType<typeof ImageElement> | null = null;
 
   readonly loadedSolution$ = signal<LoadedSolution | null>(null);
@@ -66,6 +71,8 @@ export class SolutionLayerService {
         title: loaded.scenario.name,
       });
       this.comparisonMode = false;
+      this.baselineComparisonLoaded = null;
+      this.candidateComparisonLoaded = null;
 
       this.map.add(this.currentLayer);
       this.loadedSolution$.set(loaded);
@@ -107,12 +114,16 @@ export class SolutionLayerService {
         baselineLoaded,
         BASELINE_LAYER_ID,
         `Scenario A: ${baselineLoaded.scenario.name}`,
+        this.baselineComparisonColorHex,
       );
       this.candidateComparisonLayer = this.createLayerFromLoaded(
         candidateLoaded,
         CANDIDATE_LAYER_ID,
         `Scenario B: ${candidateLoaded.scenario.name}`,
+        this.candidateComparisonColorHex,
       );
+      this.baselineComparisonLoaded = baselineLoaded;
+      this.candidateComparisonLoaded = candidateLoaded;
       this.comparisonMode = true;
       this.map.addMany([this.baselineComparisonLayer, this.candidateComparisonLayer]);
       this.loadedSolution$.set(baselineLoaded);
@@ -168,6 +179,23 @@ export class SolutionLayerService {
     }
   }
 
+  setBaselineOpacity(opacity: number): void {
+    const clampedOpacity = Math.max(0, Math.min(1, opacity));
+    if (this.currentLayer) {
+      this.currentLayer.opacity = clampedOpacity;
+    }
+    if (this.baselineComparisonLayer) {
+      this.baselineComparisonLayer.opacity = clampedOpacity;
+    }
+  }
+
+  setCandidateOpacity(opacity: number): void {
+    const clampedOpacity = Math.max(0, Math.min(1, opacity));
+    if (this.candidateComparisonLayer) {
+      this.candidateComparisonLayer.opacity = clampedOpacity;
+    }
+  }
+
   setColor(color: string): void {
     const normalized = this.normalizeHexColor(color);
     if (!normalized) {
@@ -188,6 +216,42 @@ export class SolutionLayerService {
       return;
     }
     this.currentLayer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
+  }
+
+  setBaselineColor(color: string): void {
+    const normalized = this.normalizeHexColor(color);
+    if (!normalized) {
+      return;
+    }
+    this.solutionColorHex = normalized;
+    this.baselineComparisonColorHex = normalized;
+
+    const loaded = this.loadedSolution$();
+    if (loaded && this.currentLayer) {
+      this.replaceLayerSourceColor(this.currentLayer, loaded, normalized);
+    }
+    if (this.baselineComparisonLayer && this.baselineComparisonLoaded) {
+      this.replaceLayerSourceColor(
+        this.baselineComparisonLayer,
+        this.baselineComparisonLoaded,
+        normalized,
+      );
+    }
+  }
+
+  setCandidateColor(color: string): void {
+    const normalized = this.normalizeHexColor(color);
+    if (!normalized) {
+      return;
+    }
+    this.candidateComparisonColorHex = normalized;
+    if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
+      this.replaceLayerSourceColor(
+        this.candidateComparisonLayer,
+        this.candidateComparisonLoaded,
+        normalized,
+      );
+    }
   }
 
   private createLayerFromLoaded(
@@ -231,11 +295,28 @@ export class SolutionLayerService {
       this.candidateComparisonLayer.destroy();
       this.candidateComparisonLayer = null;
     }
+    this.baselineComparisonLoaded = null;
+    this.candidateComparisonLoaded = null;
   }
 
   setVisibility(visible: boolean): void {
     if (this.currentLayer) {
       this.currentLayer.visible = visible;
+    }
+  }
+
+  setBaselineVisibility(visible: boolean): void {
+    if (this.currentLayer) {
+      this.currentLayer.visible = visible;
+    }
+    if (this.baselineComparisonLayer) {
+      this.baselineComparisonLayer.visible = visible;
+    }
+  }
+
+  setCandidateVisibility(visible: boolean): void {
+    if (this.candidateComparisonLayer) {
+      this.candidateComparisonLayer.visible = visible;
     }
   }
 
@@ -280,6 +361,21 @@ export class SolutionLayerService {
         }),
       }),
     });
+  }
+
+  private replaceLayerSourceColor(
+    layer: InstanceType<typeof MediaLayer>,
+    loaded: LoadedSolution,
+    colorHex: string,
+  ): void {
+    const nextImageElement = this.createImageElement(loaded, colorHex);
+    const source = layer.source;
+    if (source instanceof LocalMediaElementSource) {
+      source.elements.removeAll();
+      source.elements.add(nextImageElement);
+      return;
+    }
+    layer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
   }
 
   private rasterToCanvasWithColor(

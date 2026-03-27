@@ -33,7 +33,10 @@ interface LayerControlRow {
   mapUnavailable?: boolean;
   mapSync?:
     | {
-        type: 'solution';
+        type: 'solution-baseline';
+      }
+    | {
+        type: 'solution-candidate';
       }
     | {
         type: 'app-state-layer';
@@ -81,6 +84,8 @@ interface SelectedLayerRow {
 
 const SPECIES_VISIBLE_LIMIT = 6;
 type SelectedLayerDropPosition = 'before' | 'after';
+const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
+const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -107,7 +112,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly customBoundaryRequested = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly availableOverlays = computed(() =>
-    this.overlays().filter((row) => row.id !== 'overlay-conservation-solution'),
+    this.overlays().filter(
+      (row) => row.id !== BASELINE_SOLUTION_OVERLAY_ID && row.id !== CANDIDATE_SOLUTION_OVERLAY_ID,
+    ),
   );
   /** Management Figures card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
   protected readonly overlaysCollapsed = signal(false);
@@ -133,6 +140,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       if (solution?.name) {
         this.activeScenarioName.set(solution.name);
       }
+      this.syncPrimarySolutionOverlay(solution?.name ?? null);
+    });
+
+    effect(() => {
+      const comparisonSolution = this.appState.comparisonSolution$();
+      this.syncComparisonSolutionOverlay(comparisonSolution?.name ?? null);
     });
 
     // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
@@ -678,7 +691,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected removeSelectedLayer(rowId: string): void {
-    if (rowId === 'overlay-conservation-solution') {
+    if (rowId === BASELINE_SOLUTION_OVERLAY_ID) {
       return;
     }
 
@@ -995,10 +1008,17 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
-    if (mapSync.type === 'solution') {
-      this.solutionLayerService.setVisibility(row.visible);
-      this.solutionLayerService.setOpacity(row.opacity / 100);
-      this.solutionLayerService.setColor(row.color);
+    if (mapSync.type === 'solution-baseline') {
+      this.solutionLayerService.setBaselineVisibility(row.visible);
+      this.solutionLayerService.setBaselineOpacity(row.opacity / 100);
+      this.solutionLayerService.setBaselineColor(row.color);
+      return;
+    }
+
+    if (mapSync.type === 'solution-candidate') {
+      this.solutionLayerService.setCandidateVisibility(row.visible);
+      this.solutionLayerService.setCandidateOpacity(row.opacity / 100);
+      this.solutionLayerService.setCandidateColor(row.color);
       return;
     }
 
@@ -1158,7 +1178,11 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: overlay.id,
         name: overlay.name,
         sourceLabel:
-          overlay.id === 'overlay-conservation-solution' ? 'Selected Solution' : 'Available Layers',
+          overlay.id === BASELINE_SOLUTION_OVERLAY_ID
+            ? 'Selected Solution'
+            : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
+              ? 'Comparison Solution'
+              : 'Available Layers',
         sourceType: 'overlay',
         mapUnavailable: !!overlay.mapUnavailable,
       });
@@ -1254,7 +1278,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private createDefaultOverlays(): LayerControlRow[] {
     return [
       {
-        id: 'overlay-conservation-solution',
+        id: BASELINE_SOLUTION_OVERLAY_ID,
         name: 'Conservation Solution',
         selected: true,
         visible: true,
@@ -1264,7 +1288,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: true,
         hasStyleControls: true,
         hasColorControl: true,
-        mapSync: { type: 'solution' },
+        mapSync: { type: 'solution-baseline' },
       },
       {
         id: 'overlay-runap',
@@ -1293,6 +1317,66 @@ export class MapLayersPanelComponent implements OnDestroy {
         mapUnavailable: true,
       },
     ];
+  }
+
+  private syncPrimarySolutionOverlay(solutionName: string | null): void {
+    this.overlays.update((rows) =>
+      rows.map((row) =>
+        row.id === BASELINE_SOLUTION_OVERLAY_ID && solutionName
+          ? { ...row, name: solutionName }
+          : row,
+      ),
+    );
+  }
+
+  private syncComparisonSolutionOverlay(solutionName: string | null): void {
+    if (!solutionName) {
+      this.overlays.update((rows) =>
+        rows.filter((row) => row.id !== CANDIDATE_SOLUTION_OVERLAY_ID),
+      );
+      this.updateSelectedLayerOrder(CANDIDATE_SOLUTION_OVERLAY_ID, false);
+      return;
+    }
+
+    let hasCandidateOverlay = false;
+    this.overlays.update((rows) => {
+      const nextRows = rows.map((row) => {
+        if (row.id !== CANDIDATE_SOLUTION_OVERLAY_ID) {
+          return row;
+        }
+        hasCandidateOverlay = true;
+        return {
+          ...row,
+          name: solutionName,
+          selected: true,
+          visible: true,
+        };
+      });
+
+      if (hasCandidateOverlay) {
+        return nextRows;
+      }
+
+      return [
+        ...nextRows,
+        {
+          id: CANDIDATE_SOLUTION_OVERLAY_ID,
+          name: solutionName,
+          selected: true,
+          visible: true,
+          expanded: true,
+          opacity: 70,
+          color: '#2563eb',
+          canReorder: true,
+          hasStyleControls: true,
+          hasColorControl: true,
+          mapSync: { type: 'solution-candidate' },
+        },
+      ];
+    });
+
+    this.updateSelectedLayerOrder(CANDIDATE_SOLUTION_OVERLAY_ID, true);
+    this.syncOverlayById(CANDIDATE_SOLUTION_OVERLAY_ID);
   }
 
   private createDefaultTaxa(): TaxonRow[] {
