@@ -109,6 +109,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly availableOverlays = computed(() =>
     this.overlays().filter((row) => row.id !== 'overlay-conservation-solution'),
   );
+  /** Management Figures card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
@@ -263,7 +264,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     let nextSelected = false;
     this.overlays.update((rows) =>
       rows.map((row) => {
-        if (row.id !== rowId) {
+        if (row.id !== rowId || row.mapUnavailable) {
           return row;
         }
         nextVisible = !row.visible;
@@ -287,7 +288,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           ...row,
           selected: nextSelected,
           // Removing a layer from selected should also remove it from the map.
-          visible: nextSelected ? row.visible : false,
+          visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
         };
       }),
     );
@@ -336,6 +337,9 @@ export class MapLayersPanelComponent implements OnDestroy {
           rows: group.rows.map((row) =>
             row.id === rowId
               ? (() => {
+                  if (row.mapUnavailable) {
+                    return row;
+                  }
                   nextVisible = !row.visible;
                   nextSelected = row.selected || nextVisible;
                   return { ...row, selected: nextSelected, visible: nextVisible };
@@ -367,7 +371,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               ...row,
               selected: nextSelected,
               // Removing a layer from selected should also remove it from the map.
-              visible: nextSelected ? row.visible : false,
+              visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
             };
           }),
         };
@@ -508,6 +512,9 @@ export class MapLayersPanelComponent implements OnDestroy {
           species: taxon.species.map((species) =>
             species.id === speciesId
               ? (() => {
+                  if (species.mapUnavailable) {
+                    return species;
+                  }
                   nextVisible = !species.visible;
                   nextSelected = species.selected || nextVisible;
                   return { ...species, selected: nextSelected, visible: nextVisible };
@@ -539,7 +546,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               ...species,
               selected: nextSelected,
               // Removing a layer from selected should also remove it from the map.
-              visible: nextSelected ? species.visible : false,
+              visible: species.mapUnavailable ? false : nextSelected ? species.visible : false,
             };
           }),
         };
@@ -607,6 +614,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected resetDefaults(): void {
     this.onAdminBoundaryChange('sirap');
+    this.overlaysCollapsed.set(false);
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
@@ -1269,6 +1277,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: true,
         hasStyleControls: true,
         hasColorControl: true,
+        mapUnavailable: true,
       },
       {
         id: 'overlay-omecs',
@@ -1281,6 +1290,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: true,
         hasStyleControls: true,
         hasColorControl: true,
+        mapUnavailable: true,
       },
     ];
   }
@@ -1419,13 +1429,17 @@ export class MapLayersPanelComponent implements OnDestroy {
     ];
   }
 
+  /**
+   * Category cards below Management Figures — all start collapsed (UCS-101).
+   * Management Figures itself uses `overlaysCollapsed` (default expanded).
+   */
   private createDefaultGroups(): LayerGroup[] {
     return [
       {
         id: 'group-species-biodiversity',
         title: 'Species & Biodiversity',
         countLabel: '5 taxon groups',
-        collapsed: false,
+        collapsed: true,
         note: "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
         rows: [],
       },
@@ -1433,7 +1447,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: 'group-ecosystems',
         title: 'Ecosystems',
         countLabel: '5 layers',
-        collapsed: false,
+        collapsed: true,
         rows: [
           this.layerRow('eco-types', 'Ecosystem Types', '#0d9488', 60),
           this.layerRow('eco-paramos', 'Paramos', '#6d8e7e', 55),
@@ -1503,6 +1517,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       canReorder: true,
       hasStyleControls: true,
       hasColorControl: true,
+      mapUnavailable: true,
     };
   }
 

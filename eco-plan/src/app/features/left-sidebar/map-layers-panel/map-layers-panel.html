@@ -166,7 +166,7 @@
               >
                 <div
                   [id]="'map-layers-selected-layer-row-header-' + selected.id"
-                  class="flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 py-2.5"
+                  class="flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-2.5 pb-1"
                 >
                   <button
                     [id]="'map-layers-selected-layer-row-drag-handle-' + selected.id"
@@ -297,30 +297,39 @@
                       </svg>
                     }
                   </button>
-                  @if (!selected.mapUnavailable) {
-                    <button
-                      [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
-                      type="button"
-                      class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                      [class.rotate-180]="!isSelectedLayerExpanded(selected.id)"
-                      [attr.aria-label]="'Toggle controls for ' + selected.name"
-                      [attr.aria-expanded]="isSelectedLayerExpanded(selected.id)"
-                      (click)="toggleSelectedLayerExpanded(selected.id)"
+                  <button
+                    [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
+                    type="button"
+                    class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
+                    [class.rotate-180]="
+                      selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)
+                    "
+                    [class.cursor-not-allowed]="selected.mapUnavailable"
+                    [class.opacity-50]="selected.mapUnavailable"
+                    [disabled]="selected.mapUnavailable"
+                    [attr.aria-label]="
+                      selected.mapUnavailable
+                        ? 'Style controls are not available for ' + selected.name
+                        : 'Toggle controls for ' + selected.name
+                    "
+                    [attr.aria-expanded]="
+                      selected.mapUnavailable ? false : isSelectedLayerExpanded(selected.id)
+                    "
+                    (click)="toggleSelectedLayerExpanded(selected.id)"
+                  >
+                    <svg
+                      class="map-layers-chevron-icon h-3 w-3"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
                     >
-                      <svg
-                        class="map-layers-chevron-icon h-3 w-3"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M3 4.5L6 7.5L9 4.5" />
-                      </svg>
-                    </button>
-                  }
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </button>
                 </div>
 
                 @if (!selected.mapUnavailable) {
@@ -500,12 +509,21 @@
                     <button
                       [id]="'map-layers-overlay-visibility-button-' + overlay.id"
                       type="button"
-                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                      [attr.aria-label]="'Toggle visibility for ' + overlay.name"
-                      [attr.aria-pressed]="overlay.visible"
+                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
+                      [class.cursor-not-allowed]="overlay.mapUnavailable"
+                      [class.opacity-50]="overlay.mapUnavailable"
+                      [class.text-slate-400]="overlay.mapUnavailable"
+                      [class.hover:bg-slate-50]="!overlay.mapUnavailable"
+                      [attr.aria-label]="
+                        overlay.mapUnavailable
+                          ? overlay.name + ' does not have a map layer yet'
+                          : 'Toggle visibility for ' + overlay.name
+                      "
+                      [attr.aria-pressed]="overlay.mapUnavailable ? false : overlay.visible"
+                      [disabled]="overlay.mapUnavailable"
                       (click)="toggleOverlayVisibility(overlay.id)"
                     >
-                      @if (overlay.visible) {
+                      @if (!overlay.mapUnavailable && overlay.visible) {
                         <svg
                           [id]="'map-layers-overlay-eye-open-icon-' + overlay.id"
                           class="h-4 w-4"
@@ -754,34 +772,21 @@
                         <button
                           [id]="'map-layers-taxon-visibility-button-' + taxon.id"
                           type="button"
-                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
+                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
                           [class.cursor-not-allowed]="taxon.mapUnavailable"
                           [class.opacity-50]="taxon.mapUnavailable"
+                          [class.text-slate-400]="taxon.mapUnavailable"
+                          [class.hover:bg-slate-50]="!taxon.mapUnavailable"
                           [attr.aria-label]="
                             taxon.mapUnavailable
                               ? taxon.name + ' does not have a map layer yet'
                               : 'Toggle visibility for ' + taxon.name
                           "
-                          [attr.aria-pressed]="taxon.visible"
+                          [attr.aria-pressed]="taxon.mapUnavailable ? false : taxon.visible"
                           [disabled]="taxon.mapUnavailable"
                           (click)="toggleTaxonVisibility(taxon.id)"
                         >
-                          @if (taxon.mapUnavailable) {
-                            <svg
-                              [id]="'map-layers-taxon-no-layer-icon-' + taxon.id"
-                              class="h-4 w-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <circle cx="12" cy="12" r="8"></circle>
-                              <path d="M6.5 17.5L17.5 6.5"></path>
-                            </svg>
-                          } @else if (taxon.visible) {
+                          @if (!taxon.mapUnavailable && taxon.visible) {
                             <svg
                               [id]="'map-layers-taxon-eye-open-icon-' + taxon.id"
                               class="h-4 w-4"
@@ -928,12 +933,23 @@
                                   <button
                                     [id]="'map-layers-species-visibility-button-' + species.id"
                                     type="button"
-                                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                                    [attr.aria-label]="'Toggle visibility for ' + species.common"
-                                    [attr.aria-pressed]="species.visible"
+                                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
+                                    [class.cursor-not-allowed]="species.mapUnavailable"
+                                    [class.opacity-50]="species.mapUnavailable"
+                                    [class.text-slate-400]="species.mapUnavailable"
+                                    [class.hover:bg-slate-50]="!species.mapUnavailable"
+                                    [attr.aria-label]="
+                                      species.mapUnavailable
+                                        ? species.common + ' does not have a map layer yet'
+                                        : 'Toggle visibility for ' + species.common
+                                    "
+                                    [attr.aria-pressed]="
+                                      species.mapUnavailable ? false : species.visible
+                                    "
+                                    [disabled]="species.mapUnavailable"
                                     (click)="toggleSpeciesVisibility(taxon.id, species.id)"
                                   >
-                                    @if (species.visible) {
+                                    @if (!species.mapUnavailable && species.visible) {
                                       <svg
                                         [id]="'map-layers-species-eye-open-icon-' + species.id"
                                         class="h-4 w-4"
@@ -1105,12 +1121,21 @@
                         <button
                           [id]="'map-layers-layer-row-visibility-button-' + group.id + '-' + row.id"
                           type="button"
-                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                          [attr.aria-label]="'Toggle visibility for ' + row.name"
-                          [attr.aria-pressed]="row.visible"
+                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
+                          [class.cursor-not-allowed]="row.mapUnavailable"
+                          [class.opacity-50]="row.mapUnavailable"
+                          [class.text-slate-400]="row.mapUnavailable"
+                          [class.hover:bg-slate-50]="!row.mapUnavailable"
+                          [attr.aria-label]="
+                            row.mapUnavailable
+                              ? row.name + ' does not have a map layer yet'
+                              : 'Toggle visibility for ' + row.name
+                          "
+                          [attr.aria-pressed]="row.mapUnavailable ? false : row.visible"
+                          [disabled]="row.mapUnavailable"
                           (click)="toggleLayerVisibility(group.id, row.id)"
                         >
-                          @if (row.visible) {
+                          @if (!row.mapUnavailable && row.visible) {
                             <svg
                               [id]="'map-layers-layer-row-eye-open-icon-' + group.id + '-' + row.id"
                               class="h-4 w-4"
