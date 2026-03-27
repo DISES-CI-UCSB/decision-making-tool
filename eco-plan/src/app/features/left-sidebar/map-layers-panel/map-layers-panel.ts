@@ -30,6 +30,7 @@ interface LayerControlRow {
   hasStyleControls: boolean;
   hasColorControl: boolean;
   disabled?: boolean;
+  mapUnavailable?: boolean;
   mapSync?:
     | {
         type: 'solution';
@@ -75,6 +76,7 @@ interface SelectedLayerRow {
   name: string;
   sourceLabel: string;
   sourceType: 'overlay' | 'group';
+  mapUnavailable: boolean;
 }
 
 const SPECIES_VISIBLE_LIMIT = 6;
@@ -441,9 +443,38 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected toggleTaxonVisibility(rowId: string): void {
+    let nextVisible = false;
+    let nextSelected = false;
     this.taxa.update((rows) =>
-      rows.map((row) => (row.id === rowId ? { ...row, visible: !row.visible } : row)),
+      rows.map((row) => {
+        if (row.id !== rowId || row.mapUnavailable) {
+          return row;
+        }
+        nextVisible = !row.visible;
+        nextSelected = row.selected || nextVisible;
+        return { ...row, selected: nextSelected, visible: nextVisible };
+      }),
     );
+    this.updateSelectedLayerOrder(rowId, nextSelected);
+  }
+
+  protected toggleTaxonSelected(rowId: string): void {
+    let nextSelected = false;
+    this.taxa.update((rows) =>
+      rows.map((row) => {
+        if (row.id !== rowId) {
+          return row;
+        }
+        nextSelected = !row.selected;
+        return {
+          ...row,
+          selected: nextSelected,
+          // If a row cannot be visualized on the map, keep visibility off.
+          visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
+        };
+      }),
+    );
+    this.updateSelectedLayerOrder(rowId, nextSelected);
   }
 
   protected toggleTaxonExpanded(rowId: string): void {
@@ -648,6 +679,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      this.toggleTaxonSelected(rowId);
+      return;
+    }
+
     const groupId = this.findGroupIdByRowId(rowId);
     if (groupId) {
       this.toggleLayerSelected(groupId, rowId);
@@ -664,6 +701,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.visible;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.visible;
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
@@ -685,6 +727,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       return overlay.expanded;
     }
 
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.expanded;
+    }
+
     const groupRowMatch = this.findGroupRowById(rowId);
     if (groupRowMatch) {
       return groupRowMatch.row.expanded;
@@ -701,6 +748,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected toggleSelectedLayerVisibility(rowId: string): void {
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlayVisibility(rowId);
+      return;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      this.toggleTaxonVisibility(rowId);
       return;
     }
 
@@ -722,6 +775,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      this.toggleTaxonExpanded(rowId);
+      return;
+    }
+
     const groupId = this.findGroupIdByRowId(rowId);
     if (groupId) {
       this.toggleLayerExpanded(groupId, rowId);
@@ -738,6 +797,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.opacity;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.opacity;
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
@@ -777,6 +841,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       return overlay.hasColorControl;
     }
 
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.hasColorControl;
+    }
+
     const groupRowMatch = this.findGroupRowById(rowId);
     if (groupRowMatch) {
       return groupRowMatch.row.hasColorControl;
@@ -794,6 +863,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.color;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.color;
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
@@ -1048,11 +1122,17 @@ export class MapLayersPanelComponent implements OnDestroy {
       .flatMap((group) => group.rows)
       .filter((row) => row.selected)
       .map((row) => row.id);
+    const selectedTaxonIds = taxa.filter((taxon) => taxon.selected).map((taxon) => taxon.id);
     const selectedSpeciesIds = taxa
       .flatMap((taxon) => taxon.species)
       .filter((species) => species.selected)
       .map((species) => species.id);
-    return [...selectedOverlayIds, ...selectedGroupRowIds, ...selectedSpeciesIds];
+    return [
+      ...selectedOverlayIds,
+      ...selectedGroupRowIds,
+      ...selectedTaxonIds,
+      ...selectedSpeciesIds,
+    ];
   }
 
   private buildSelectedLayers(): SelectedLayerRow[] {
@@ -1072,6 +1152,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         sourceLabel:
           overlay.id === 'overlay-conservation-solution' ? 'Selected Solution' : 'Available Layers',
         sourceType: 'overlay',
+        mapUnavailable: !!overlay.mapUnavailable,
       });
     }
 
@@ -1085,11 +1166,21 @@ export class MapLayersPanelComponent implements OnDestroy {
           name: row.name,
           sourceLabel: group.title,
           sourceType: 'group',
+          mapUnavailable: !!row.mapUnavailable,
         });
       }
     }
 
     for (const taxon of taxa) {
+      if (taxon.selected) {
+        rowLookup.set(taxon.id, {
+          id: taxon.id,
+          name: taxon.name,
+          sourceLabel: 'Species & Biodiversity',
+          sourceType: 'group',
+          mapUnavailable: !!taxon.mapUnavailable,
+        });
+      }
       for (const species of taxon.species) {
         if (!species.selected) {
           continue;
@@ -1099,6 +1190,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           name: species.common,
           sourceLabel: `Species & Biodiversity: ${taxon.name}`,
           sourceType: 'group',
+          mapUnavailable: !!species.mapUnavailable,
         });
       }
     }
@@ -1145,6 +1237,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       }
     }
     return undefined;
+  }
+
+  private findTaxonById(taxonId: string): TaxonRow | undefined {
+    return this.taxa().find((taxon) => taxon.id === taxonId);
   }
 
   private createDefaultOverlays(): LayerControlRow[] {
@@ -1204,6 +1300,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-mammals', [
@@ -1229,6 +1326,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-birds', [
@@ -1254,6 +1352,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-amphibians', [
@@ -1279,6 +1378,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-reptiles', [
@@ -1303,6 +1403,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-plants', [
@@ -1426,6 +1527,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       canReorder: true,
       hasStyleControls: true,
       hasColorControl: false,
+      mapUnavailable: true,
     };
   }
 

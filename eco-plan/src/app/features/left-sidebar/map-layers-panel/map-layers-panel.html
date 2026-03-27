@@ -197,6 +197,33 @@
                     >
                       {{ selected.sourceLabel }}
                     </p>
+                    @if (selected.mapUnavailable) {
+                      <div
+                        [id]="'map-layers-selected-layer-row-map-unavailable-wrap-' + selected.id"
+                        class="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500"
+                        title="No map layer is currently available for this selection"
+                      >
+                        <svg
+                          [id]="'map-layers-selected-layer-row-map-unavailable-icon-' + selected.id"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="8"></circle>
+                          <path d="M6.5 17.5L17.5 6.5"></path>
+                        </svg>
+                        <span
+                          [id]="'map-layers-selected-layer-row-map-unavailable-copy-' + selected.id"
+                        >
+                          No map layer available
+                        </span>
+                      </div>
+                    }
                   </div>
                   @if (selected.id !== 'overlay-conservation-solution') {
                     <button
@@ -223,8 +250,15 @@
                     [id]="'map-layers-selected-layer-row-visibility-button-' + selected.id"
                     type="button"
                     class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                    [attr.aria-label]="'Toggle visibility for ' + selected.name"
+                    [class.cursor-not-allowed]="selected.mapUnavailable"
+                    [class.opacity-50]="selected.mapUnavailable"
+                    [attr.aria-label]="
+                      selected.mapUnavailable
+                        ? selected.name + ' does not have a map layer yet'
+                        : 'Toggle visibility for ' + selected.name
+                    "
                     [attr.aria-pressed]="isSelectedLayerVisible(selected.id)"
+                    [disabled]="selected.mapUnavailable"
                     (click)="toggleSelectedLayerVisibility(selected.id)"
                   >
                     @if (isSelectedLayerVisible(selected.id)) {
@@ -263,99 +297,103 @@
                       </svg>
                     }
                   </button>
-                  <button
-                    [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
-                    type="button"
-                    class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                    [class.rotate-180]="!isSelectedLayerExpanded(selected.id)"
-                    [attr.aria-label]="'Toggle controls for ' + selected.name"
-                    [attr.aria-expanded]="isSelectedLayerExpanded(selected.id)"
-                    (click)="toggleSelectedLayerExpanded(selected.id)"
-                  >
-                    <svg
-                      class="map-layers-chevron-icon h-3 w-3"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
+                  @if (!selected.mapUnavailable) {
+                    <button
+                      [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
+                      type="button"
+                      class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
+                      [class.rotate-180]="!isSelectedLayerExpanded(selected.id)"
+                      [attr.aria-label]="'Toggle controls for ' + selected.name"
+                      [attr.aria-expanded]="isSelectedLayerExpanded(selected.id)"
+                      (click)="toggleSelectedLayerExpanded(selected.id)"
                     >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </button>
+                      <svg
+                        class="map-layers-chevron-icon h-3 w-3"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </button>
+                  }
                 </div>
 
-                <div
-                  [id]="'map-layers-selected-layer-row-controls-' + selected.id"
-                  class="map-layers-collapsible"
-                  [class.map-layers-collapsible-collapsed]="!isSelectedLayerExpanded(selected.id)"
-                  [attr.aria-hidden]="!isSelectedLayerExpanded(selected.id)"
-                >
-                  <div class="map-layers-collapsible-content">
-                    <div
-                      [id]="'map-layers-selected-layer-row-controls-content-' + selected.id"
-                      class="flex items-center gap-2 px-3 pb-2.5 pl-6"
-                    >
+                @if (!selected.mapUnavailable) {
+                  <div
+                    [id]="'map-layers-selected-layer-row-controls-' + selected.id"
+                    class="map-layers-collapsible"
+                    [class.map-layers-collapsible-collapsed]="!isSelectedLayerExpanded(selected.id)"
+                    [attr.aria-hidden]="!isSelectedLayerExpanded(selected.id)"
+                  >
+                    <div class="map-layers-collapsible-content">
                       <div
-                        [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
-                        class="flex min-w-0 flex-1 items-center gap-1.5"
+                        [id]="'map-layers-selected-layer-row-controls-content-' + selected.id"
+                        class="flex items-center gap-2 px-3 pb-2.5 pl-6"
                       >
-                        <label
-                          [id]="'map-layers-selected-layer-row-opacity-label-' + selected.id"
-                          [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
-                          class="shrink-0 text-[10px] text-slate-600"
-                        >
-                          Opacity
-                        </label>
-                        <input
-                          [id]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
-                          type="range"
-                          min="0"
-                          max="100"
-                          class="map-layers-opacity-slider w-full"
-                          [style.--map-layers-slider-progress]="
-                            selectedLayerOpacity(selected.id) + '%'
-                          "
-                          [value]="selectedLayerOpacity(selected.id)"
-                          (input)="
-                            updateSelectedLayerOpacity(selected.id, $any($event.target).value)
-                          "
-                        />
-                        <span
-                          [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
-                          class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
-                        >
-                          {{ selectedLayerOpacity(selected.id) }}%
-                        </span>
-                      </div>
-                      @if (selectedLayerHasColorControl(selected.id)) {
                         <div
-                          [id]="'map-layers-selected-layer-row-color-group-' + selected.id"
-                          class="flex shrink-0 items-center gap-1"
+                          [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
+                          class="flex min-w-0 flex-1 items-center gap-1.5"
                         >
                           <label
-                            [id]="'map-layers-selected-layer-row-color-label-' + selected.id"
-                            [for]="'map-layers-selected-layer-row-color-input-' + selected.id"
-                            class="text-[10px] text-slate-600"
+                            [id]="'map-layers-selected-layer-row-opacity-label-' + selected.id"
+                            [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
+                            class="shrink-0 text-[10px] text-slate-600"
                           >
-                            Color
+                            Opacity
                           </label>
                           <input
-                            [id]="'map-layers-selected-layer-row-color-input-' + selected.id"
-                            type="color"
-                            class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                            [value]="selectedLayerColor(selected.id)"
+                            [id]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
+                            type="range"
+                            min="0"
+                            max="100"
+                            class="map-layers-opacity-slider w-full"
+                            [style.--map-layers-slider-progress]="
+                              selectedLayerOpacity(selected.id) + '%'
+                            "
+                            [value]="selectedLayerOpacity(selected.id)"
                             (input)="
-                              updateSelectedLayerColor(selected.id, $any($event.target).value)
+                              updateSelectedLayerOpacity(selected.id, $any($event.target).value)
                             "
                           />
+                          <span
+                            [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
+                            class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
+                          >
+                            {{ selectedLayerOpacity(selected.id) }}%
+                          </span>
                         </div>
-                      }
+                        @if (selectedLayerHasColorControl(selected.id)) {
+                          <div
+                            [id]="'map-layers-selected-layer-row-color-group-' + selected.id"
+                            class="flex shrink-0 items-center gap-1"
+                          >
+                            <label
+                              [id]="'map-layers-selected-layer-row-color-label-' + selected.id"
+                              [for]="'map-layers-selected-layer-row-color-input-' + selected.id"
+                              class="text-[10px] text-slate-600"
+                            >
+                              Color
+                            </label>
+                            <input
+                              [id]="'map-layers-selected-layer-row-color-input-' + selected.id"
+                              type="color"
+                              class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
+                              [value]="selectedLayerColor(selected.id)"
+                              (input)="
+                                updateSelectedLayerColor(selected.id, $any($event.target).value)
+                              "
+                            />
+                          </div>
+                        }
+                      </div>
                     </div>
                   </div>
-                </div>
+                }
               </article>
             }
           }
@@ -702,26 +740,48 @@
                           [id]="'map-layers-taxon-selected-button-' + taxon.id"
                           type="button"
                           class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                          [class.border-blue-200]="taxon.visible"
-                          [class.bg-blue-50]="taxon.visible"
-                          [class.text-blue-700]="taxon.visible"
-                          [class.border-slate-200]="!taxon.visible"
-                          [class.bg-white]="!taxon.visible"
-                          [class.text-slate-600]="!taxon.visible"
-                          [attr.aria-pressed]="taxon.visible"
-                          (click)="toggleTaxonVisibility(taxon.id)"
+                          [class.border-blue-200]="taxon.selected"
+                          [class.bg-blue-50]="taxon.selected"
+                          [class.text-blue-700]="taxon.selected"
+                          [class.border-slate-200]="!taxon.selected"
+                          [class.bg-white]="!taxon.selected"
+                          [class.text-slate-600]="!taxon.selected"
+                          [attr.aria-pressed]="taxon.selected"
+                          (click)="toggleTaxonSelected(taxon.id)"
                         >
-                          {{ taxon.visible ? 'Added' : 'Add' }}
+                          {{ taxon.selected ? 'Added' : 'Add' }}
                         </button>
                         <button
                           [id]="'map-layers-taxon-visibility-button-' + taxon.id"
                           type="button"
                           class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                          [attr.aria-label]="'Toggle visibility for ' + taxon.name"
+                          [class.cursor-not-allowed]="taxon.mapUnavailable"
+                          [class.opacity-50]="taxon.mapUnavailable"
+                          [attr.aria-label]="
+                            taxon.mapUnavailable
+                              ? taxon.name + ' does not have a map layer yet'
+                              : 'Toggle visibility for ' + taxon.name
+                          "
                           [attr.aria-pressed]="taxon.visible"
+                          [disabled]="taxon.mapUnavailable"
                           (click)="toggleTaxonVisibility(taxon.id)"
                         >
-                          @if (taxon.visible) {
+                          @if (taxon.mapUnavailable) {
+                            <svg
+                              [id]="'map-layers-taxon-no-layer-icon-' + taxon.id"
+                              class="h-4 w-4"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <circle cx="12" cy="12" r="8"></circle>
+                              <path d="M6.5 17.5L17.5 6.5"></path>
+                            </svg>
+                          } @else if (taxon.visible) {
                             <svg
                               [id]="'map-layers-taxon-eye-open-icon-' + taxon.id"
                               class="h-4 w-4"
