@@ -17,23 +17,9 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 type FinderMatchState = 'empty' | 'loading' | 'ready';
 
-interface TargetOption {
-  id: string;
-  label: string;
-}
+type FinderTargetType = 'species-richness' | 'strategic-ecosystems';
 
-interface TargetGroup {
-  id: string;
-  labelKey: string;
-  options: TargetOption[];
-  selectedOptionId: string | null;
-}
-
-interface ConstraintToggle {
-  id: string;
-  labelKey: string;
-  enabled: boolean;
-}
+type CostLayerChoice = 'human-footprint' | 'carbon-opportunity' | 'conflict';
 
 interface ScenarioMatch {
   id: string;
@@ -57,102 +43,23 @@ interface ScenarioMatch {
 export class FinderModalComponent implements AfterViewInit, OnDestroy {
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
+
   @Input() mode: SolutionFinderContext = 'default';
   @Output() readonly closeRequested = new EventEmitter<void>();
   @Output() readonly scenarioApplied = new EventEmitter<ScenarioMatch>();
 
-  protected readonly targetGroups: TargetGroup[] = [
-    {
-      id: 'mammal-species',
-      labelKey: 'solutionControls.finder.targets.mammalSpecies',
-      selectedOptionId: null,
-      options: [
-        { id: '17', label: '17%' },
-        { id: '30', label: '30%' },
-        { id: '34', label: '34%' },
-        { id: 'custom', label: 'Custom' },
-      ],
-    },
-    {
-      id: 'cloud-forest',
-      labelKey: 'solutionControls.finder.targets.cloudForest',
-      selectedOptionId: null,
-      options: [
-        { id: '17', label: '17%' },
-        { id: '30', label: '30%' },
-        { id: '21', label: '21%' },
-        { id: 'custom', label: 'Custom' },
-      ],
-    },
-    {
-      id: 'threatened-amphibians',
-      labelKey: 'solutionControls.finder.targets.threatenedAmphibians',
-      selectedOptionId: null,
-      options: [
-        { id: '17', label: '17%' },
-        { id: '25', label: '25%' },
-        { id: '30', label: '30%' },
-        { id: 'custom', label: 'Custom' },
-      ],
-    },
-    {
-      id: 'paramo-ecosystems',
-      labelKey: 'solutionControls.finder.targets.paramoEcosystems',
-      selectedOptionId: null,
-      options: [
-        { id: '17', label: '17%' },
-        { id: '30', label: '30%' },
-        { id: '50', label: '50%' },
-        { id: 'custom', label: 'Custom' },
-      ],
-    },
-    {
-      id: 'wetlands',
-      labelKey: 'solutionControls.finder.targets.wetlands',
-      selectedOptionId: null,
-      options: [
-        { id: '17', label: '17%' },
-        { id: '30', label: '30%' },
-        { id: 'custom', label: 'Custom' },
-      ],
-    },
-  ];
+  protected readonly scenarioLibrary: SolutionScenario[] = this.solutionCatalog.getAll();
 
-  protected readonly constraintToggles: ConstraintToggle[] = [
-    {
-      id: 'include-national-parks',
-      labelKey: 'solutionControls.finder.constraints.includeNationalParks',
-      enabled: false,
-    },
-    {
-      id: 'exclude-urban-centers',
-      labelKey: 'solutionControls.finder.constraints.excludeUrbanCenters',
-      enabled: false,
-    },
-    {
-      id: 'exclude-mining',
-      labelKey: 'solutionControls.finder.constraints.excludeMining',
-      enabled: false,
-    },
-    {
-      id: 'include-indigenous-territories',
-      labelKey: 'solutionControls.finder.constraints.includeIndigenousTerritories',
-      enabled: false,
-    },
-    {
-      id: 'exclude-conflict-zones',
-      labelKey: 'solutionControls.finder.constraints.excludeConflictZones',
-      enabled: false,
-    },
-    {
-      id: 'connect-protected-areas',
-      labelKey: 'solutionControls.finder.constraints.connectProtectedAreas',
-      enabled: false,
-    },
-  ];
+  /** Step 1 */
+  protected targetTypeId: FinderTargetType | null = null;
+  protected targetLevelPct: 17 | 30 | null = null;
 
-  protected readonly scenarioLibrary: Omit<ScenarioMatch, 'matchPercentage'>[] =
-    this.solutionCatalog.getAll().map((scenario, index) => this.toScenarioMatch(scenario, index));
+  /** Step 2A (variable) */
+  protected includeOmecs = false;
+  protected includeComunidades = false;
+
+  /** Step 2B */
+  protected selectedCostLayerId: CostLayerChoice | null = null;
 
   @ViewChild('targetsCardsGroup')
   private readonly targetsCardsGroupRef?: ElementRef<HTMLElement>;
@@ -195,34 +102,50 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.targetsGroupResizeObserver = null;
   }
 
-  protected selectTargetOption(groupId: string, optionId: string): void {
-    const group = this.targetGroups.find((targetGroup) => targetGroup.id === groupId);
-    if (!group) {
+  protected selectTargetType(type: FinderTargetType): void {
+    if (this.targetTypeId === type) {
       return;
     }
-
-    group.selectedOptionId = optionId;
+    this.targetTypeId = type;
+    if (type === 'strategic-ecosystems') {
+      this.targetLevelPct = 30;
+    } else {
+      this.targetLevelPct = null;
+    }
     this.clearResultsIfNeeded();
   }
 
-  protected toggleConstraint(toggleId: string): void {
-    if (!this.isStep1Complete()) {
+  protected selectTargetLevel(pct: 17 | 30): void {
+    if (this.targetTypeId !== 'species-richness') {
       return;
     }
+    this.targetLevelPct = pct;
+    this.clearResultsIfNeeded();
+  }
 
-    const toggle = this.constraintToggles.find(
-      (constraintToggle) => constraintToggle.id === toggleId,
-    );
-    if (!toggle) {
+  protected selectCostLayer(id: CostLayerChoice): void {
+    this.selectedCostLayerId = id;
+    this.clearResultsIfNeeded();
+  }
+
+  protected toggleIncludeOmecs(): void {
+    if (!this.isStep2Unlocked()) {
       return;
     }
+    this.includeOmecs = !this.includeOmecs;
+    this.clearResultsIfNeeded();
+  }
 
-    toggle.enabled = !toggle.enabled;
+  protected toggleIncludeComunidades(): void {
+    if (!this.isStep2Unlocked()) {
+      return;
+    }
+    this.includeComunidades = !this.includeComunidades;
     this.clearResultsIfNeeded();
   }
 
   protected runMatching(): void {
-    if (!this.isStep1Complete()) {
+    if (!this.canRunMatching()) {
       this.matchState = 'empty';
       return;
     }
@@ -232,16 +155,12 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.selectedMatch = null;
     this.clearLoadingTimer();
     this.clearLoadingStartTimer();
-
-    this.loadingStartTimer = setTimeout(() => {
-      this.matchState = 'loading';
-      this.loadingTimer = setTimeout(() => {
-        this.matchResults = this.buildMockMatches();
-        this.selectedMatchId = this.matchResults[0]?.id ?? null;
-        this.selectedMatch = this.matchResults[0] ?? null;
-        this.matchState = 'ready';
-      }, 700);
-    }, 0);
+    this.matchState = 'loading';
+    const filtered = this.scenarioLibrary.filter((s) => this.scenarioMatchesSelection(s));
+    this.matchResults = filtered.map((scenario, index) => this.toScenarioMatch(scenario, index));
+    this.selectedMatchId = this.matchResults[0]?.id ?? null;
+    this.selectedMatch = this.matchResults[0] ?? null;
+    this.matchState = 'ready';
   }
 
   protected selectMatch(matchId: string): void {
@@ -264,14 +183,11 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected resetSelections(): void {
-    for (const group of this.targetGroups) {
-      group.selectedOptionId = null;
-    }
-
-    for (const toggle of this.constraintToggles) {
-      toggle.enabled = false;
-    }
-
+    this.targetTypeId = null;
+    this.targetLevelPct = null;
+    this.includeOmecs = false;
+    this.includeComunidades = false;
+    this.selectedCostLayerId = null;
     this.matchResults = [];
     this.selectedMatchId = null;
     this.selectedMatch = null;
@@ -294,16 +210,38 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.closeRequested.emit();
   }
 
-  protected getSelectedTargetCount(): number {
-    return this.targetGroups.filter((group) => group.selectedOptionId !== null).length;
+  protected getTargetSelectionCount(): number {
+    if (this.targetTypeId === null) {
+      return 0;
+    }
+    if (this.targetTypeId === 'strategic-ecosystems') {
+      return 2;
+    }
+    return this.targetLevelPct !== null ? 2 : 1;
   }
 
-  protected getEnabledConstraintCount(): number {
-    return this.constraintToggles.filter((toggle) => toggle.enabled).length;
+  protected getVariableConstraintCount(): number {
+    let n = 0;
+    if (this.includeOmecs) {
+      n += 1;
+    }
+    if (this.includeComunidades) {
+      n += 1;
+    }
+    return n;
+  }
+
+  protected getTradeoffSelectionCount(): number {
+    return this.selectedCostLayerId !== null ? 1 : 0;
   }
 
   protected canRunMatching(): boolean {
-    return this.isStep1Complete() && this.matchState !== 'loading';
+    return (
+      this.targetTypeId !== null &&
+      this.targetLevelPct !== null &&
+      this.selectedCostLayerId !== null &&
+      this.matchState !== 'loading'
+    );
   }
 
   protected canApplyScenario(): boolean {
@@ -311,47 +249,15 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected isStep1Complete(): boolean {
-    return this.getSelectedTargetCount() > 0;
+    return this.targetTypeId !== null && this.targetLevelPct !== null;
   }
 
   protected isStep2Unlocked(): boolean {
     return this.isStep1Complete();
   }
 
-  protected isStep3Unlocked(): boolean {
-    return this.matchState === 'ready' && this.matchResults.length > 0;
-  }
-
   protected isStep3Locked(): boolean {
     return this.matchState === 'empty';
-  }
-
-  protected getStep1StateKey(): string {
-    return this.isStep1Complete()
-      ? 'solutionControls.finder.stepState.complete'
-      : 'solutionControls.finder.stepState.inProgress';
-  }
-
-  protected getStep2StateKey(): string {
-    return this.isStep2Unlocked()
-      ? 'solutionControls.finder.stepState.unlocked'
-      : 'solutionControls.finder.stepState.locked';
-  }
-
-  protected getStep3StateKey(): string {
-    if (this.isStep3Unlocked()) {
-      return 'solutionControls.finder.stepState.ready';
-    }
-
-    if (this.matchState === 'loading') {
-      return 'solutionControls.finder.stepState.inProgress';
-    }
-
-    return 'solutionControls.finder.stepState.locked';
-  }
-
-  protected isToggleEnabled(toggle: ConstraintToggle): boolean {
-    return toggle.enabled;
   }
 
   protected getKickerKey(): string {
@@ -387,48 +293,49 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.matchState = 'empty';
   }
 
-  private buildMockMatches(): ScenarioMatch[] {
-    const selectedTargets = this.getSelectedTargetValues();
-    const targetAverage =
-      selectedTargets.length > 0
-        ? selectedTargets.reduce((sum, value) => sum + value, 0) / selectedTargets.length
-        : 30;
-    const enabledConstraintCount = this.getEnabledConstraintCount();
+  private scenarioMatchesSelection(scenario: SolutionScenario): boolean {
+    const strategic = scenario.id.startsWith('ESTR');
+    if (this.targetTypeId === 'species-richness' && strategic) {
+      return false;
+    }
+    if (this.targetTypeId === 'strategic-ecosystems' && !strategic) {
+      return false;
+    }
 
-    return this.scenarioLibrary
-      .map((scenario, index) => {
-        const targetDistance = Math.abs(scenario.ecosystemTargets - targetAverage);
-        const targetScore = Math.max(0, 16 - targetDistance * 1.2);
-        const constraintScore = Math.min(12, enabledConstraintCount * 2);
-        const variationScore = Math.max(0, 8 - (index % 8));
-        const coverageScore = Math.min(8, scenario.selectedUnits / 100000);
+    if (scenario.ecosystemTargets !== this.targetLevelPct) {
+      return false;
+    }
 
-        return {
-          ...scenario,
-          matchPercentage: Math.round(
-            Math.min(
-              99,
-              Math.max(58, 62 + targetScore + constraintScore + variationScore + coverageScore),
-            ),
-          ),
-        };
-      })
-      .sort((a, b) => b.matchPercentage - a.matchPercentage);
+    const hasOmec = scenario.constraints.includes('OMECs');
+    if (hasOmec !== this.includeOmecs) {
+      return false;
+    }
+
+    const hasComunidades = scenario.constraints.includes('Comunidades');
+    if (hasComunidades !== this.includeComunidades) {
+      return false;
+    }
+
+    const expectedCost = this.mapCostChoiceToCatalog(this.selectedCostLayerId!);
+    if (scenario.costLayer !== expectedCost) {
+      return false;
+    }
+
+    return true;
   }
 
-  private getSelectedTargetValues(): number[] {
-    return this.targetGroups
-      .map((group) => {
-        const value = Number(group.selectedOptionId);
-        return Number.isFinite(value) ? value : null;
-      })
-      .filter((value): value is number => value !== null);
+  private mapCostChoiceToCatalog(id: CostLayerChoice): string {
+    switch (id) {
+      case 'human-footprint':
+        return 'Human Footprint';
+      case 'carbon-opportunity':
+        return 'Carbon Opportunity';
+      case 'conflict':
+        return 'Conflict (Coca/Deaths)';
+    }
   }
 
-  private toScenarioMatch(
-    scenario: SolutionScenario,
-    index: number,
-  ): Omit<ScenarioMatch, 'matchPercentage'> {
+  private toScenarioMatch(scenario: SolutionScenario, index: number): ScenarioMatch {
     return {
       id: this.toScenarioMatchId(scenario.id),
       solutionId: this.mockSolutionIds[index % this.mockSolutionIds.length],
@@ -438,6 +345,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       mapLabel: scenario.costLayer,
       ecosystemTargets: scenario.ecosystemTargets,
       selectedUnits: scenario.nSelected,
+      matchPercentage: 100,
     };
   }
 

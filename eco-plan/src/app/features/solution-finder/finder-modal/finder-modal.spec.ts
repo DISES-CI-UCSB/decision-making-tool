@@ -20,14 +20,15 @@ describe('FinderModalComponent', () => {
     }).compileComponents();
   });
 
-  it('renders target, constraint, and results sections', () => {
+  it('renders step columns for targets, 2A, 2B, and results', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('#solution-finder-modal-targets-column')).not.toBeNull();
-    expect(compiled.querySelector('#solution-finder-modal-constraints-column')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-step2a-column')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-step2b-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-results-column')).not.toBeNull();
   });
 
@@ -66,15 +67,15 @@ describe('FinderModalComponent', () => {
     const closeRequestedSpy = vi.spyOn(component.closeRequested, 'emit');
 
     const selectedMatch = {
-      id: 'scenario-jaguar-corridor',
+      id: 'scenario-ecos30-runap-hf',
       solutionId: 'sol-001',
       scenarioId: 'Ecos30+RUNAP_HF',
-      name: 'Jaguar Corridor Emphasis',
+      name: 'Ecos30 RUNAP HF',
       description: 'Sample scenario description',
-      mapLabel: 'Corridor Strength',
+      mapLabel: 'Human Footprint',
       ecosystemTargets: 30,
       selectedUnits: 387656,
-      matchPercentage: 91,
+      matchPercentage: 100,
     };
     (
       component as unknown as {

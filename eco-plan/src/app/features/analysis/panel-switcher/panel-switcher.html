@@ -582,41 +582,23 @@
                 </button>
                 @if (isAoiSectionExpanded('bio')) {
                   <div id="aoi-body-bio" class="aoi-section-body">
-                    <div id="aoi-species-chart" class="aoi-bar-chart">
-                      <div id="aoi-bar-mammals" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Mammals</span>
-                        <div class="aoi-bar-track">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(32)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('42') }}</span>
-                      </div>
-                      <div id="aoi-bar-birds" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Birds</span>
-                        <div class="aoi-bar-track">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(100)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('131') }}</span>
-                      </div>
-                      <div id="aoi-bar-amphibians" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Amphibians</span>
-                        <div class="aoi-bar-track">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(34)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('44') }}</span>
-                      </div>
-                      <div id="aoi-bar-reptiles" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Reptiles</span>
-                        <div class="aoi-bar-track">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(29)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('38') }}</span>
-                      </div>
-                      <div id="aoi-bar-plants" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Plants</span>
-                        <div class="aoi-bar-track">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(21)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('27') }}</span>
+                    <div id="aoi-species-chart" class="aoi-bar-chart aoi-species-chart">
+                      <p id="aoi-species-chart-subtitle" class="aoi-species-chart-subtitle">
+                        Values are species counts (not percentages).
+                      </p>
+                      <div
+                        id="aoi-species-chart-canvas-shell"
+                        class="aoi-species-chart-canvas-shell"
+                      >
+                        <canvas
+                          id="aoi-species-chart-canvas"
+                          baseChart
+                          [type]="aoiBiodiversityChartType"
+                          [data]="aoiBiodiversityChartData()"
+                          [options]="aoiBiodiversityChartOptions()"
+                          [plugins]="aoiBiodiversityChartPlugins"
+                          aria-label="AOI biodiversity species richness horizontal bar chart"
+                        ></canvas>
                       </div>
                     </div>
 
