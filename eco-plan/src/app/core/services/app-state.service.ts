@@ -4,6 +4,7 @@ import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/model
 
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
+export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity' | 'swipe';
 
 /** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */
 export type SelectSolutionButtonHoverFxMode =
@@ -35,6 +36,7 @@ export class AppStateService {
   readonly selectedAOI$ = signal<AOI | null>(null);
   readonly visibleLayers$ = signal<LayerConfig[]>([]);
   readonly comparisonSolution$ = signal<Solution | null>(null);
+  readonly comparisonVisualizationMode$ = signal<ComparisonVisualizationMode>('threeColorOverlay');
   readonly rightSidebarMode$ = signal<RightSidebarMode>('welcome');
   readonly fillDummyOverviewMetrics$ = signal(true);
   readonly fillDummyComparisonMetrics$ = signal(true);
@@ -62,6 +64,7 @@ export class AppStateService {
     this.activeSolution$.set(null);
     this.selectedAOI$.set(null);
     this.comparisonSolution$.set(null);
+    this.comparisonVisualizationMode$.set('threeColorOverlay');
     this.rightSidebarMode$.set('welcome');
   }
 
@@ -85,6 +88,10 @@ export class AppStateService {
 
   setComparisonSolution(solution: Solution | null): void {
     this.comparisonSolution$.set(solution);
+  }
+
+  setComparisonVisualizationMode(mode: ComparisonVisualizationMode): void {
+    this.comparisonVisualizationMode$.set(mode);
   }
 
   setFillDummyOverviewMetrics(enabled: boolean): void {

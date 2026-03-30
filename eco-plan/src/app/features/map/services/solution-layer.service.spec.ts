@@ -117,6 +117,34 @@ describe('SolutionLayerService', () => {
     });
   });
 
+  it('updates baseline and candidate layer visibility/opacities independently in comparison mode', async () => {
+    const baselineLoaded = createLoadedSolution('baseline');
+    const candidateLoaded = createLoadedSolution('candidate');
+    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
+      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+    const baselineLayer = { id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7, visible: true };
+    const candidateLayer = { id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7, visible: true };
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce(baselineLayer as never)
+      .mockReturnValueOnce(candidateLayer as never);
+
+    await service.showComparison('baseline', 'candidate');
+    service.setBaselineVisibility(false);
+    service.setCandidateVisibility(true);
+    service.setBaselineOpacity(0.35);
+    service.setCandidateOpacity(0.9);
+
+    expect(baselineLayer.visible).toBe(false);
+    expect(candidateLayer.visible).toBe(true);
+    expect(baselineLayer.opacity).toBe(0.35);
+    expect(candidateLayer.opacity).toBe(0.9);
+  });
+
   it('replaces the solution image element when color changes', async () => {
     const loaded = createLoadedSolution('baseline');
     loaderMock.loadSolution.mockResolvedValue(loaded);

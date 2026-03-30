@@ -7,7 +7,11 @@ import {
   type MetricValue,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
-import { AppStateService, type RightSidebarMode } from '@core/services/app-state.service';
+import {
+  AppStateService,
+  type ComparisonVisualizationMode,
+  type RightSidebarMode,
+} from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import {
   AdminBoundaryService,
@@ -83,6 +87,12 @@ interface AoiBiodiversityBar {
   id: string;
   label: string;
   count: number | null;
+}
+
+interface ComparisonVisualizationOption {
+  id: ComparisonVisualizationMode;
+  label: string;
+  description: string;
 }
 
 @Component({
@@ -362,6 +372,7 @@ export class PanelSwitcherComponent {
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly sirapSelectionScope = this.adminBoundaries.sirapSelectionScope$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
+  protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   protected readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
@@ -574,6 +585,18 @@ export class PanelSwitcherComponent {
   protected readonly comparisonSections = computed<ComparisonMetricSection[]>(() =>
     this.buildComparisonSections(),
   );
+  protected readonly comparisonVisualizationOptions: ComparisonVisualizationOption[] = [
+    {
+      id: 'threeColorOverlay',
+      label: '3-color overlay',
+      description: 'A-only, B-only, and overlap shown as separate colors.',
+    },
+    {
+      id: 'swipe',
+      label: 'Swipe slider',
+      description: 'Compare side-by-side with a draggable divider.',
+    },
+  ];
 
   constructor() {
     toObservable(this.activeSolution)
@@ -761,6 +784,14 @@ export class PanelSwitcherComponent {
 
   protected getComparisonActionLabel(): string {
     return this.comparisonSolution() ? 'Change' : 'Select';
+  }
+
+  protected isComparisonVisualizationModeSelected(mode: ComparisonVisualizationMode): boolean {
+    return this.comparisonVisualizationMode() === mode;
+  }
+
+  protected selectComparisonVisualizationMode(mode: ComparisonVisualizationMode): void {
+    this.appState.setComparisonVisualizationMode(mode);
   }
 
   private formatNumber(

@@ -7,7 +7,10 @@ import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaEleme
 
 import type ArcGISMap from '@arcgis/core/Map';
 import type { Solution } from '@core/models';
-import { AppStateService } from '@core/services/app-state.service';
+import {
+  AppStateService,
+  type ComparisonVisualizationMode,
+} from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import type { LoadedSolution } from '@core/models/solution-scenario.model';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
@@ -15,8 +18,13 @@ import { GeoTiffLoaderService } from './geotiff-loader.service';
 const SOLUTION_LAYER_ID = 'solution-raster-layer';
 const BASELINE_LAYER_ID = 'solution-raster-layer-baseline';
 const CANDIDATE_LAYER_ID = 'solution-raster-layer-candidate';
+const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
 const DEFAULT_SOLUTION_COLOR_HEX = '#16a34a';
+const DEFAULT_COMPARISON_BASELINE_COLOR_HEX = '#1e6fa8';
+const DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX = '#7c3aed';
+const DEFAULT_COMPARISON_OVERLAP_COLOR_HEX = '#ec4899';
 const SOLUTION_ALPHA = 180;
+type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
@@ -27,8 +35,21 @@ export class SolutionLayerService {
   private currentLayer: InstanceType<typeof MediaLayer> | null = null;
   private baselineComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
   private candidateComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
+  private overlapComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
+  private baselineComparisonLoaded: LoadedSolution | null = null;
+  private candidateComparisonLoaded: LoadedSolution | null = null;
   private comparisonMode = false;
   private solutionColorHex = DEFAULT_SOLUTION_COLOR_HEX;
+  private baselineComparisonColorHex = DEFAULT_COMPARISON_BASELINE_COLOR_HEX;
+  private candidateComparisonColorHex = DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX;
+  private overlapComparisonColorHex = DEFAULT_COMPARISON_OVERLAP_COLOR_HEX;
+  private baselineComparisonOpacity = 0.7;
+  private candidateComparisonOpacity = 0.7;
+  private overlapComparisonOpacity = 1;
+  private baselineComparisonVisible = true;
+  private candidateComparisonVisible = true;
+  private overlapComparisonVisible = true;
+  private comparisonVisualizationMode: ComparisonVisualizationMode = 'threeColorOverlay';
   private solutionImageElement: InstanceType<typeof ImageElement> | null = null;
 
   readonly loadedSolution$ = signal<LoadedSolution | null>(null);
@@ -66,6 +87,8 @@ export class SolutionLayerService {
         title: loaded.scenario.name,
       });
       this.comparisonMode = false;
+      this.baselineComparisonLoaded = null;
+      this.candidateComparisonLoaded = null;
 
       this.map.add(this.currentLayer);
       this.loadedSolution$.set(loaded);
@@ -97,22 +120,44 @@ export class SolutionLayerService {
     this.loadError$.set(null);
 
     try {
-      this.removeAllLayers();
-      const [baselineLoaded, candidateLoaded] = await Promise.all([
-        this.loader.loadSolution(baselineScenarioId),
-        this.loader.loadSolution(candidateScenarioId),
-      ]);
+      const currentlyLoaded = this.loadedSolution$();
+      const reuseIfLoaded = (scenarioId: string): LoadedSolution | null => {
+        return currentlyLoaded?.scenario.id === scenarioId ? currentlyLoaded : null;
+      };
 
+      let baselineLoaded: LoadedSolution;
+      let candidateLoaded: LoadedSolution;
+
+      if (baselineScenarioId === candidateScenarioId) {
+        const sharedLoaded =
+          reuseIfLoaded(baselineScenarioId) ?? (await this.loader.loadSolution(baselineScenarioId));
+        baselineLoaded = sharedLoaded;
+        candidateLoaded = sharedLoaded;
+      } else {
+        [baselineLoaded, candidateLoaded] = await Promise.all([
+          reuseIfLoaded(baselineScenarioId) ?? this.loader.loadSolution(baselineScenarioId),
+          reuseIfLoaded(candidateScenarioId) ?? this.loader.loadSolution(candidateScenarioId),
+        ]);
+      }
+
+      // Only clear existing map layers once both scenarios have loaded successfully.
+      this.removeAllLayers();
+      this.baselineComparisonColorHex = DEFAULT_COMPARISON_BASELINE_COLOR_HEX;
+      this.candidateComparisonColorHex = DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX;
       this.baselineComparisonLayer = this.createLayerFromLoaded(
         baselineLoaded,
         BASELINE_LAYER_ID,
         `Scenario A: ${baselineLoaded.scenario.name}`,
+        this.baselineComparisonColorHex,
       );
       this.candidateComparisonLayer = this.createLayerFromLoaded(
         candidateLoaded,
         CANDIDATE_LAYER_ID,
         `Scenario B: ${candidateLoaded.scenario.name}`,
+        this.candidateComparisonColorHex,
       );
+      this.baselineComparisonLoaded = baselineLoaded;
+      this.candidateComparisonLoaded = candidateLoaded;
       this.comparisonMode = true;
       this.map.addMany([this.baselineComparisonLayer, this.candidateComparisonLayer]);
       this.loadedSolution$.set(baselineLoaded);
@@ -155,6 +200,74 @@ export class SolutionLayerService {
     };
   }
 
+  getBaselineColorHex(): string {
+    return this.baselineComparisonColorHex;
+  }
+
+  getCandidateColorHex(): string {
+    return this.candidateComparisonColorHex;
+  }
+
+  getOverlapColorHex(): string {
+    return this.overlapComparisonColorHex;
+  }
+
+  getBaselineOpacity(): number {
+    return this.baselineComparisonOpacity;
+  }
+
+  getCandidateOpacity(): number {
+    return this.candidateComparisonOpacity;
+  }
+
+  getOverlapOpacity(): number {
+    return this.overlapComparisonOpacity;
+  }
+
+  hasComparisonScenarios(baselineScenarioId: string, candidateScenarioId: string): boolean {
+    if (!this.baselineComparisonLoaded || !this.candidateComparisonLoaded) {
+      return false;
+    }
+    return (
+      this.baselineComparisonLoaded.scenario.id === baselineScenarioId &&
+      this.candidateComparisonLoaded.scenario.id === candidateScenarioId
+    );
+  }
+
+  applyComparisonVisualizationMode(mode: ComparisonVisualizationMode): void {
+    this.comparisonVisualizationMode = mode;
+    if (!this.comparisonMode) {
+      return;
+    }
+
+    if (mode === 'threeColorOverlay') {
+      this.ensureOverlapLayer();
+      this.setBaselineVisibility(this.baselineComparisonVisible);
+      this.setCandidateVisibility(this.candidateComparisonVisible);
+      this.setOverlapVisibility(this.overlapComparisonVisible);
+      return;
+    }
+
+    this.setOverlapVisibility(false);
+    this.setBaselineVisibility(this.baselineComparisonVisible);
+    this.setCandidateVisibility(this.candidateComparisonVisible);
+  }
+
+  reorderSolutionLayersBySidebarOrder(orderTopToBottom: SidebarSolutionLayerType[]): void {
+    if (!this.map || orderTopToBottom.length === 0) {
+      return;
+    }
+
+    const resolvedLayers = orderTopToBottom
+      .map((layerType) => this.resolveLayerForSidebarType(layerType))
+      .filter((layer): layer is InstanceType<typeof MediaLayer> => !!layer);
+
+    // ArcGIS draws higher indices on top; move bottom->top so final stack matches sidebar.
+    for (const layer of [...resolvedLayers].reverse()) {
+      this.map.reorder(layer, this.map.layers.length - 1);
+    }
+  }
+
   setOpacity(opacity: number): void {
     const clampedOpacity = Math.max(0, Math.min(1, opacity));
     if (this.currentLayer) {
@@ -165,6 +278,33 @@ export class SolutionLayerService {
     }
     if (this.candidateComparisonLayer) {
       this.candidateComparisonLayer.opacity = clampedOpacity;
+    }
+  }
+
+  setBaselineOpacity(opacity: number): void {
+    const clampedOpacity = Math.max(0, Math.min(1, opacity));
+    this.baselineComparisonOpacity = clampedOpacity;
+    if (this.currentLayer) {
+      this.currentLayer.opacity = clampedOpacity;
+    }
+    if (this.baselineComparisonLayer) {
+      this.baselineComparisonLayer.opacity = clampedOpacity;
+    }
+  }
+
+  setCandidateOpacity(opacity: number): void {
+    const clampedOpacity = Math.max(0, Math.min(1, opacity));
+    this.candidateComparisonOpacity = clampedOpacity;
+    if (this.candidateComparisonLayer) {
+      this.candidateComparisonLayer.opacity = clampedOpacity;
+    }
+  }
+
+  setOverlapOpacity(opacity: number): void {
+    const clampedOpacity = Math.max(0, Math.min(1, opacity));
+    this.overlapComparisonOpacity = clampedOpacity;
+    if (this.overlapComparisonLayer) {
+      this.overlapComparisonLayer.opacity = clampedOpacity;
     }
   }
 
@@ -188,6 +328,68 @@ export class SolutionLayerService {
       return;
     }
     this.currentLayer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
+  }
+
+  setBaselineColor(color: string): void {
+    const normalized = this.normalizeHexColor(color);
+    if (!normalized) {
+      return;
+    }
+    this.solutionColorHex = normalized;
+    this.baselineComparisonColorHex = normalized;
+
+    const loaded = this.loadedSolution$();
+    if (loaded && this.currentLayer) {
+      this.replaceLayerSourceColor(this.currentLayer, loaded, normalized);
+    }
+    if (this.baselineComparisonLayer && this.baselineComparisonLoaded) {
+      this.replaceLayerSourceColor(
+        this.baselineComparisonLayer,
+        this.baselineComparisonLoaded,
+        normalized,
+      );
+    }
+  }
+
+  setCandidateColor(color: string): void {
+    const normalized = this.normalizeHexColor(color);
+    if (!normalized) {
+      return;
+    }
+    this.candidateComparisonColorHex = normalized;
+    if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
+      this.replaceLayerSourceColor(
+        this.candidateComparisonLayer,
+        this.candidateComparisonLoaded,
+        normalized,
+      );
+    }
+  }
+
+  setOverlapColor(color: string): void {
+    const normalized = this.normalizeHexColor(color);
+    if (!normalized) {
+      return;
+    }
+    this.overlapComparisonColorHex = normalized;
+    if (
+      !this.overlapComparisonLayer ||
+      !this.baselineComparisonLoaded ||
+      !this.candidateComparisonLoaded
+    ) {
+      return;
+    }
+
+    const overlapRasterData = this.buildOverlapRasterData(
+      this.baselineComparisonLoaded.rasterData,
+      this.candidateComparisonLoaded.rasterData,
+    );
+    this.replaceLayerSourceWithRaster(
+      this.overlapComparisonLayer,
+      this.baselineComparisonLoaded,
+      overlapRasterData,
+      normalized,
+    );
   }
 
   private createLayerFromLoaded(
@@ -231,11 +433,43 @@ export class SolutionLayerService {
       this.candidateComparisonLayer.destroy();
       this.candidateComparisonLayer = null;
     }
+    if (this.overlapComparisonLayer && this.map) {
+      this.map.remove(this.overlapComparisonLayer);
+      this.overlapComparisonLayer.destroy();
+      this.overlapComparisonLayer = null;
+    }
+    this.baselineComparisonLoaded = null;
+    this.candidateComparisonLoaded = null;
   }
 
   setVisibility(visible: boolean): void {
     if (this.currentLayer) {
       this.currentLayer.visible = visible;
+    }
+  }
+
+  setBaselineVisibility(visible: boolean): void {
+    this.baselineComparisonVisible = visible;
+    if (this.currentLayer) {
+      this.currentLayer.visible = visible;
+    }
+    if (this.baselineComparisonLayer) {
+      this.baselineComparisonLayer.visible = visible;
+    }
+  }
+
+  setCandidateVisibility(visible: boolean): void {
+    this.candidateComparisonVisible = visible;
+    if (this.candidateComparisonLayer) {
+      this.candidateComparisonLayer.visible = visible;
+    }
+  }
+
+  setOverlapVisibility(visible: boolean): void {
+    this.overlapComparisonVisible = visible;
+    if (this.overlapComparisonLayer) {
+      this.overlapComparisonLayer.visible =
+        visible && this.comparisonVisualizationMode === 'threeColorOverlay';
     }
   }
 
@@ -267,6 +501,140 @@ export class SolutionLayerService {
 
   private createImageElement(loaded: LoadedSolution, colorHex: string): ImageElement {
     const canvas = this.rasterToCanvasWithColor(loaded.rasterData, loaded.rasterMeta, colorHex);
+    const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
+    return new ImageElement({
+      image: canvas,
+      georeference: new ExtentAndRotationGeoreference({
+        extent: new Extent({
+          xmin,
+          ymin,
+          xmax,
+          ymax,
+          spatialReference: { wkid: 4326 },
+        }),
+      }),
+    });
+  }
+
+  private replaceLayerSourceColor(
+    layer: InstanceType<typeof MediaLayer>,
+    loaded: LoadedSolution,
+    colorHex: string,
+  ): void {
+    const nextImageElement = this.createImageElement(loaded, colorHex);
+    const source = layer.source;
+    if (source instanceof LocalMediaElementSource) {
+      source.elements.removeAll();
+      source.elements.add(nextImageElement);
+      return;
+    }
+    layer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
+  }
+
+  private replaceLayerSourceWithRaster(
+    layer: InstanceType<typeof MediaLayer>,
+    loaded: LoadedSolution,
+    rasterData: LoadedSolution['rasterData'],
+    colorHex: string,
+  ): void {
+    const canvas = this.rasterToCanvasWithColor(rasterData, loaded.rasterMeta, colorHex);
+    const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
+    const nextImageElement = new ImageElement({
+      image: canvas,
+      georeference: new ExtentAndRotationGeoreference({
+        extent: new Extent({
+          xmin,
+          ymin,
+          xmax,
+          ymax,
+          spatialReference: { wkid: 4326 },
+        }),
+      }),
+    });
+    const source = layer.source;
+    if (source instanceof LocalMediaElementSource) {
+      source.elements.removeAll();
+      source.elements.add(nextImageElement);
+      return;
+    }
+    layer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
+  }
+
+  private ensureOverlapLayer(): void {
+    if (!this.map || !this.baselineComparisonLoaded || !this.candidateComparisonLoaded) {
+      return;
+    }
+
+    const overlapRasterData = this.buildOverlapRasterData(
+      this.baselineComparisonLoaded.rasterData,
+      this.candidateComparisonLoaded.rasterData,
+    );
+
+    if (!this.overlapComparisonLayer) {
+      this.overlapComparisonLayer = new MediaLayer({
+        id: OVERLAP_LAYER_ID,
+        source: new LocalMediaElementSource({
+          elements: [
+            this.createImageElementWithRaster(this.baselineComparisonLoaded, overlapRasterData),
+          ],
+        }),
+        opacity: this.overlapComparisonOpacity,
+        title: 'Overlap',
+      });
+      this.map.add(this.overlapComparisonLayer);
+    } else {
+      this.replaceLayerSourceWithRaster(
+        this.overlapComparisonLayer,
+        this.baselineComparisonLoaded,
+        overlapRasterData,
+        this.overlapComparisonColorHex,
+      );
+    }
+
+    this.overlapComparisonLayer.opacity = this.overlapComparisonOpacity;
+    this.overlapComparisonLayer.visible = this.overlapComparisonVisible;
+    if ('reorder' in this.map && typeof this.map.reorder === 'function') {
+      const topIndex =
+        'layers' in this.map && this.map.layers && 'length' in this.map.layers
+          ? this.map.layers.length - 1
+          : undefined;
+      if (typeof topIndex === 'number' && Number.isFinite(topIndex)) {
+        this.map.reorder(this.overlapComparisonLayer, topIndex);
+      }
+    }
+
+    if (this.baselineComparisonLayer) {
+      this.baselineComparisonLayer.opacity = this.baselineComparisonOpacity;
+      this.baselineComparisonLayer.visible = this.baselineComparisonVisible;
+    }
+    if (this.candidateComparisonLayer) {
+      this.candidateComparisonLayer.opacity = this.candidateComparisonOpacity;
+      this.candidateComparisonLayer.visible = this.candidateComparisonVisible;
+    }
+  }
+
+  private buildOverlapRasterData(
+    baselineRasterData: LoadedSolution['rasterData'],
+    candidateRasterData: LoadedSolution['rasterData'],
+  ): Float64Array {
+    const length = Math.min(baselineRasterData.length, candidateRasterData.length);
+    const overlapRaster = new Float64Array(length);
+    for (let index = 0; index < length; index++) {
+      overlapRaster[index] =
+        baselineRasterData[index] === 1 && candidateRasterData[index] === 1 ? 1 : 0;
+    }
+    return overlapRaster;
+  }
+
+  private createImageElementWithRaster(
+    loaded: LoadedSolution,
+    rasterData: LoadedSolution['rasterData'],
+  ): ImageElement {
+    const canvas = this.rasterToCanvasWithColor(
+      rasterData,
+      loaded.rasterMeta,
+      this.overlapComparisonColorHex,
+    );
     const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
     return new ImageElement({
       image: canvas,
@@ -334,5 +702,17 @@ export class SolutionLayerService {
       Number.parseInt(normalized.slice(3, 5), 16),
       Number.parseInt(normalized.slice(5, 7), 16),
     ];
+  }
+
+  private resolveLayerForSidebarType(
+    layerType: SidebarSolutionLayerType,
+  ): InstanceType<typeof MediaLayer> | null {
+    if (layerType === 'solution-baseline') {
+      return this.comparisonMode ? this.baselineComparisonLayer : this.currentLayer;
+    }
+    if (layerType === 'solution-candidate') {
+      return this.candidateComparisonLayer;
+    }
+    return this.overlapComparisonLayer;
   }
 }

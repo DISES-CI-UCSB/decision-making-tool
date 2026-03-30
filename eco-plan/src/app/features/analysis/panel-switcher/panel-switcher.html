@@ -1173,6 +1173,61 @@
               </section>
 
               @if (comparisonSolution()) {
+                <section
+                  id="right-sidebar-comparison-visualization-section"
+                  class="c2-viz-mode-section"
+                >
+                  <header
+                    id="right-sidebar-comparison-visualization-header"
+                    class="c2-viz-mode-header"
+                  >
+                    <h4 id="right-sidebar-comparison-visualization-title" class="c2-viz-mode-title">
+                      Comparison Visualization
+                    </h4>
+                    <p
+                      id="right-sidebar-comparison-visualization-description"
+                      class="c2-viz-mode-description"
+                    >
+                      Pick how Scenario A and B are visualized on the map.
+                    </p>
+                  </header>
+                  <div
+                    id="right-sidebar-comparison-visualization-options"
+                    class="c2-viz-mode-options"
+                    role="radiogroup"
+                    aria-label="Comparison visualization mode"
+                  >
+                    @for (option of comparisonVisualizationOptions; track option.id) {
+                      <button
+                        [id]="'right-sidebar-comparison-visualization-option-' + option.id"
+                        type="button"
+                        class="c2-viz-mode-option"
+                        [class.c2-viz-mode-option-selected]="
+                          isComparisonVisualizationModeSelected(option.id)
+                        "
+                        role="radio"
+                        [attr.aria-checked]="isComparisonVisualizationModeSelected(option.id)"
+                        (click)="selectComparisonVisualizationMode(option.id)"
+                      >
+                        <span
+                          [id]="'right-sidebar-comparison-visualization-option-label-' + option.id"
+                          class="c2-viz-mode-option-label"
+                        >
+                          {{ option.label }}
+                        </span>
+                        <span
+                          [id]="
+                            'right-sidebar-comparison-visualization-option-description-' + option.id
+                          "
+                          class="c2-viz-mode-option-description"
+                        >
+                          {{ option.description }}
+                        </span>
+                      </button>
+                    }
+                  </div>
+                </section>
+
                 @for (section of comparisonSections(); track section.id) {
                   <section
                     [id]="'right-sidebar-comparison-section-' + section.id"

@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 
 import { type AoiType } from '@core/models';
@@ -30,9 +31,16 @@ interface LayerControlRow {
   hasStyleControls: boolean;
   hasColorControl: boolean;
   disabled?: boolean;
+  mapUnavailable?: boolean;
   mapSync?:
     | {
-        type: 'solution';
+        type: 'solution-baseline';
+      }
+    | {
+        type: 'solution-candidate';
+      }
+    | {
+        type: 'solution-overlap';
       }
     | {
         type: 'app-state-layer';
@@ -75,10 +83,19 @@ interface SelectedLayerRow {
   name: string;
   sourceLabel: string;
   sourceType: 'overlay' | 'group';
+  mapUnavailable: boolean;
 }
 
 const SPECIES_VISIBLE_LIMIT = 6;
 type SelectedLayerDropPosition = 'before' | 'after';
+const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
+const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
+const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
+const SINGLE_SOLUTION_COLOR = '#16a34a';
+const COMPARISON_BASELINE_COLOR = '#1e6fa8';
+const COMPARISON_CANDIDATE_COLOR = '#7c3aed';
+const COMPARISON_OVERLAP_COLOR = '#ec4899';
+type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -105,8 +122,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly customBoundaryRequested = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly availableOverlays = computed(() =>
-    this.overlays().filter((row) => row.id !== 'overlay-conservation-solution'),
+    this.overlays().filter(
+      (row) => row.id !== BASELINE_SOLUTION_OVERLAY_ID && row.id !== CANDIDATE_SOLUTION_OVERLAY_ID,
+    ),
   );
+  /** Management Figures card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
@@ -127,9 +147,34 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       const solution = this.appState.activeSolution$();
-      if (solution?.name) {
-        this.activeScenarioName.set(solution.name);
-      }
+      untracked(() => {
+        if (solution?.name) {
+          this.activeScenarioName.set(solution.name);
+        }
+        this.syncPrimarySolutionOverlay(solution?.name ?? null);
+      });
+    });
+
+    effect(() => {
+      const comparisonSolution = this.appState.comparisonSolution$();
+      const vizMode = this.appState.comparisonVisualizationMode$();
+      untracked(() => {
+        const isComparing = !!comparisonSolution;
+        this.syncBaselineOverlayColor(isComparing);
+        this.syncComparisonSolutionOverlay(comparisonSolution?.name ?? null);
+        this.syncComparisonOverlapOverlay(
+          comparisonSolution?.name ?? null,
+          vizMode === 'threeColorOverlay',
+        );
+      });
+    });
+
+    effect(() => {
+      const order = this.selectedLayerOrder();
+      const overlays = this.overlays();
+      untracked(() => {
+        this.syncSelectedLayerStackingToMap(order, overlays);
+      });
     });
 
     // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
@@ -261,7 +306,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     let nextSelected = false;
     this.overlays.update((rows) =>
       rows.map((row) => {
-        if (row.id !== rowId) {
+        if (row.id !== rowId || row.mapUnavailable) {
           return row;
         }
         nextVisible = !row.visible;
@@ -285,7 +330,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           ...row,
           selected: nextSelected,
           // Removing a layer from selected should also remove it from the map.
-          visible: nextSelected ? row.visible : false,
+          visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
         };
       }),
     );
@@ -334,6 +379,9 @@ export class MapLayersPanelComponent implements OnDestroy {
           rows: group.rows.map((row) =>
             row.id === rowId
               ? (() => {
+                  if (row.mapUnavailable) {
+                    return row;
+                  }
                   nextVisible = !row.visible;
                   nextSelected = row.selected || nextVisible;
                   return { ...row, selected: nextSelected, visible: nextVisible };
@@ -365,7 +413,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               ...row,
               selected: nextSelected,
               // Removing a layer from selected should also remove it from the map.
-              visible: nextSelected ? row.visible : false,
+              visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
             };
           }),
         };
@@ -441,9 +489,38 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected toggleTaxonVisibility(rowId: string): void {
+    let nextVisible = false;
+    let nextSelected = false;
     this.taxa.update((rows) =>
-      rows.map((row) => (row.id === rowId ? { ...row, visible: !row.visible } : row)),
+      rows.map((row) => {
+        if (row.id !== rowId || row.mapUnavailable) {
+          return row;
+        }
+        nextVisible = !row.visible;
+        nextSelected = row.selected || nextVisible;
+        return { ...row, selected: nextSelected, visible: nextVisible };
+      }),
     );
+    this.updateSelectedLayerOrder(rowId, nextSelected);
+  }
+
+  protected toggleTaxonSelected(rowId: string): void {
+    let nextSelected = false;
+    this.taxa.update((rows) =>
+      rows.map((row) => {
+        if (row.id !== rowId) {
+          return row;
+        }
+        nextSelected = !row.selected;
+        return {
+          ...row,
+          selected: nextSelected,
+          // If a row cannot be visualized on the map, keep visibility off.
+          visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
+        };
+      }),
+    );
+    this.updateSelectedLayerOrder(rowId, nextSelected);
   }
 
   protected toggleTaxonExpanded(rowId: string): void {
@@ -477,6 +554,9 @@ export class MapLayersPanelComponent implements OnDestroy {
           species: taxon.species.map((species) =>
             species.id === speciesId
               ? (() => {
+                  if (species.mapUnavailable) {
+                    return species;
+                  }
                   nextVisible = !species.visible;
                   nextSelected = species.selected || nextVisible;
                   return { ...species, selected: nextSelected, visible: nextVisible };
@@ -508,7 +588,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               ...species,
               selected: nextSelected,
               // Removing a layer from selected should also remove it from the map.
-              visible: nextSelected ? species.visible : false,
+              visible: species.mapUnavailable ? false : nextSelected ? species.visible : false,
             };
           }),
         };
@@ -576,6 +656,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected resetDefaults(): void {
     this.onAdminBoundaryChange('sirap');
+    this.overlaysCollapsed.set(false);
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
@@ -639,12 +720,18 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected removeSelectedLayer(rowId: string): void {
-    if (rowId === 'overlay-conservation-solution') {
+    if (rowId === BASELINE_SOLUTION_OVERLAY_ID) {
       return;
     }
 
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlaySelected(rowId);
+      return;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      this.toggleTaxonSelected(rowId);
       return;
     }
 
@@ -666,6 +753,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       return overlay.visible;
     }
 
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.visible;
+    }
+
     const groupRowMatch = this.findGroupRowById(rowId);
     if (groupRowMatch) {
       return groupRowMatch.row.visible;
@@ -683,6 +775,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.expanded;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.expanded;
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
@@ -704,6 +801,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      this.toggleTaxonVisibility(rowId);
+      return;
+    }
+
     const groupId = this.findGroupIdByRowId(rowId);
     if (groupId) {
       this.toggleLayerVisibility(groupId, rowId);
@@ -719,6 +822,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected toggleSelectedLayerExpanded(rowId: string): void {
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlayExpanded(rowId);
+      return;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      this.toggleTaxonExpanded(rowId);
       return;
     }
 
@@ -738,6 +847,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.opacity;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.opacity;
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
@@ -777,6 +891,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       return overlay.hasColorControl;
     }
 
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.hasColorControl;
+    }
+
     const groupRowMatch = this.findGroupRowById(rowId);
     if (groupRowMatch) {
       return groupRowMatch.row.hasColorControl;
@@ -794,6 +913,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.color;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.color;
     }
 
     const groupRowMatch = this.findGroupRowById(rowId);
@@ -907,16 +1031,55 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.colorSyncFrames.set(rowKey, frameId);
   }
 
+  private syncSelectedLayerStackingToMap(order: string[], overlays: LayerControlRow[]): void {
+    const overlaysById = new Map(overlays.map((overlay) => [overlay.id, overlay]));
+    const layerOrderTopToBottom: SidebarSolutionLayerType[] = [];
+
+    for (const rowId of order) {
+      const overlay = overlaysById.get(rowId);
+      const mapSync = overlay?.mapSync;
+      if (!overlay?.selected || !mapSync) {
+        continue;
+      }
+      if (
+        mapSync.type === 'solution-baseline' ||
+        mapSync.type === 'solution-candidate' ||
+        mapSync.type === 'solution-overlap'
+      ) {
+        layerOrderTopToBottom.push(mapSync.type);
+      }
+    }
+
+    if (layerOrderTopToBottom.length === 0) {
+      return;
+    }
+    this.solutionLayerService.reorderSolutionLayersBySidebarOrder(layerOrderTopToBottom);
+  }
+
   private syncRowToMap(row: LayerControlRow): void {
     const mapSync = row.mapSync;
     if (!mapSync) {
       return;
     }
 
-    if (mapSync.type === 'solution') {
-      this.solutionLayerService.setVisibility(row.visible);
-      this.solutionLayerService.setOpacity(row.opacity / 100);
-      this.solutionLayerService.setColor(row.color);
+    if (mapSync.type === 'solution-baseline') {
+      this.solutionLayerService.setBaselineVisibility(row.visible);
+      this.solutionLayerService.setBaselineOpacity(row.opacity / 100);
+      this.solutionLayerService.setBaselineColor(row.color);
+      return;
+    }
+
+    if (mapSync.type === 'solution-candidate') {
+      this.solutionLayerService.setCandidateVisibility(row.visible);
+      this.solutionLayerService.setCandidateOpacity(row.opacity / 100);
+      this.solutionLayerService.setCandidateColor(row.color);
+      return;
+    }
+
+    if (mapSync.type === 'solution-overlap') {
+      this.solutionLayerService.setOverlapVisibility(row.visible);
+      this.solutionLayerService.setOverlapOpacity(row.opacity / 100);
+      this.solutionLayerService.setOverlapColor(row.color);
       return;
     }
 
@@ -1025,11 +1188,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
   }
 
-  private updateSelectedLayerOrder(rowId: string, selected: boolean): void {
+  private updateSelectedLayerOrder(
+    rowId: string,
+    selected: boolean,
+    position: 'start' | 'end' = 'end',
+  ): void {
     this.selectedLayerOrder.update((order) => {
       const exists = order.includes(rowId);
       if (selected && !exists) {
-        return [...order, rowId];
+        return position === 'start' ? [rowId, ...order] : [...order, rowId];
       }
       if (!selected && exists) {
         return order.filter((id) => id !== rowId);
@@ -1048,11 +1215,17 @@ export class MapLayersPanelComponent implements OnDestroy {
       .flatMap((group) => group.rows)
       .filter((row) => row.selected)
       .map((row) => row.id);
+    const selectedTaxonIds = taxa.filter((taxon) => taxon.selected).map((taxon) => taxon.id);
     const selectedSpeciesIds = taxa
       .flatMap((taxon) => taxon.species)
       .filter((species) => species.selected)
       .map((species) => species.id);
-    return [...selectedOverlayIds, ...selectedGroupRowIds, ...selectedSpeciesIds];
+    return [
+      ...selectedOverlayIds,
+      ...selectedGroupRowIds,
+      ...selectedTaxonIds,
+      ...selectedSpeciesIds,
+    ];
   }
 
   private buildSelectedLayers(): SelectedLayerRow[] {
@@ -1070,8 +1243,15 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: overlay.id,
         name: overlay.name,
         sourceLabel:
-          overlay.id === 'overlay-conservation-solution' ? 'Selected Solution' : 'Available Layers',
+          overlay.id === BASELINE_SOLUTION_OVERLAY_ID
+            ? 'Selected Solution'
+            : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
+              ? 'Comparison Solution'
+              : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
+                ? 'Comparison Overlay'
+                : 'Available Layers',
         sourceType: 'overlay',
+        mapUnavailable: !!overlay.mapUnavailable,
       });
     }
 
@@ -1085,11 +1265,21 @@ export class MapLayersPanelComponent implements OnDestroy {
           name: row.name,
           sourceLabel: group.title,
           sourceType: 'group',
+          mapUnavailable: !!row.mapUnavailable,
         });
       }
     }
 
     for (const taxon of taxa) {
+      if (taxon.selected) {
+        rowLookup.set(taxon.id, {
+          id: taxon.id,
+          name: taxon.name,
+          sourceLabel: 'Species & Biodiversity',
+          sourceType: 'group',
+          mapUnavailable: !!taxon.mapUnavailable,
+        });
+      }
       for (const species of taxon.species) {
         if (!species.selected) {
           continue;
@@ -1099,6 +1289,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           name: species.common,
           sourceLabel: `Species & Biodiversity: ${taxon.name}`,
           sourceType: 'group',
+          mapUnavailable: !!species.mapUnavailable,
         });
       }
     }
@@ -1147,20 +1338,24 @@ export class MapLayersPanelComponent implements OnDestroy {
     return undefined;
   }
 
+  private findTaxonById(taxonId: string): TaxonRow | undefined {
+    return this.taxa().find((taxon) => taxon.id === taxonId);
+  }
+
   private createDefaultOverlays(): LayerControlRow[] {
     return [
       {
-        id: 'overlay-conservation-solution',
+        id: BASELINE_SOLUTION_OVERLAY_ID,
         name: 'Conservation Solution',
         selected: true,
         visible: true,
         expanded: true,
         opacity: 70,
-        color: '#16a34a',
+        color: SINGLE_SOLUTION_COLOR,
         canReorder: true,
         hasStyleControls: true,
         hasColorControl: true,
-        mapSync: { type: 'solution' },
+        mapSync: { type: 'solution-baseline' },
       },
       {
         id: 'overlay-runap',
@@ -1173,6 +1368,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: true,
         hasStyleControls: true,
         hasColorControl: true,
+        mapUnavailable: true,
       },
       {
         id: 'overlay-omecs',
@@ -1185,8 +1381,128 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: true,
         hasStyleControls: true,
         hasColorControl: true,
+        mapUnavailable: true,
       },
     ];
+  }
+
+  private syncPrimarySolutionOverlay(solutionName: string | null): void {
+    this.overlays.update((rows) =>
+      rows.map((row) =>
+        row.id === BASELINE_SOLUTION_OVERLAY_ID && solutionName
+          ? { ...row, name: solutionName }
+          : row,
+      ),
+    );
+  }
+
+  private syncBaselineOverlayColor(isComparing: boolean): void {
+    const targetColor = isComparing ? COMPARISON_BASELINE_COLOR : SINGLE_SOLUTION_COLOR;
+    this.overlays.update((rows) =>
+      rows.map((row) =>
+        row.id === BASELINE_SOLUTION_OVERLAY_ID ? { ...row, color: targetColor } : row,
+      ),
+    );
+    this.syncOverlayById(BASELINE_SOLUTION_OVERLAY_ID);
+  }
+
+  private syncComparisonSolutionOverlay(solutionName: string | null): void {
+    if (!solutionName) {
+      this.overlays.update((rows) =>
+        rows.filter((row) => row.id !== CANDIDATE_SOLUTION_OVERLAY_ID),
+      );
+      this.updateSelectedLayerOrder(CANDIDATE_SOLUTION_OVERLAY_ID, false);
+      return;
+    }
+
+    let hasCandidateOverlay = false;
+    this.overlays.update((rows) => {
+      const nextRows = rows.map((row) => {
+        if (row.id !== CANDIDATE_SOLUTION_OVERLAY_ID) {
+          return row;
+        }
+        hasCandidateOverlay = true;
+        return {
+          ...row,
+          name: solutionName,
+          selected: true,
+          visible: true,
+        };
+      });
+
+      if (hasCandidateOverlay) {
+        return nextRows;
+      }
+
+      return [
+        ...nextRows,
+        {
+          id: CANDIDATE_SOLUTION_OVERLAY_ID,
+          name: solutionName,
+          selected: true,
+          visible: true,
+          expanded: true,
+          opacity: 70,
+          color: COMPARISON_CANDIDATE_COLOR,
+          canReorder: true,
+          hasStyleControls: true,
+          hasColorControl: true,
+          mapSync: { type: 'solution-candidate' },
+        },
+      ];
+    });
+
+    this.updateSelectedLayerOrder(CANDIDATE_SOLUTION_OVERLAY_ID, true);
+    this.syncOverlayById(CANDIDATE_SOLUTION_OVERLAY_ID);
+  }
+
+  private syncComparisonOverlapOverlay(
+    solutionName: string | null,
+    shouldShowOverlap: boolean,
+  ): void {
+    if (!solutionName || !shouldShowOverlap) {
+      this.overlays.update((rows) => rows.filter((row) => row.id !== OVERLAP_SOLUTION_OVERLAY_ID));
+      this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, false);
+      return;
+    }
+
+    let hasOverlapOverlay = false;
+    this.overlays.update((rows) => {
+      const nextRows = rows.map((row) => {
+        if (row.id !== OVERLAP_SOLUTION_OVERLAY_ID) {
+          return row;
+        }
+        hasOverlapOverlay = true;
+        return {
+          ...row,
+          selected: true,
+          visible: true,
+        };
+      });
+
+      if (hasOverlapOverlay) {
+        return nextRows;
+      }
+
+      return [
+        ...nextRows,
+        {
+          id: OVERLAP_SOLUTION_OVERLAY_ID,
+          name: 'Agreement / Overlap',
+          selected: true,
+          visible: true,
+          expanded: true,
+          opacity: 100,
+          color: COMPARISON_OVERLAP_COLOR,
+          canReorder: true,
+          hasStyleControls: true,
+          hasColorControl: true,
+          mapSync: { type: 'solution-overlap' },
+        },
+      ];
+    });
+
+    this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, true, 'start');
   }
 
   private createDefaultTaxa(): TaxonRow[] {
@@ -1204,6 +1520,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-mammals', [
@@ -1229,6 +1546,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-birds', [
@@ -1254,6 +1572,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-amphibians', [
@@ -1279,6 +1598,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-reptiles', [
@@ -1303,6 +1623,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         canReorder: false,
         hasStyleControls: false,
         hasColorControl: false,
+        mapUnavailable: true,
         searchQuery: '',
         showAll: false,
         species: this.createSpeciesRows('taxon-plants', [
@@ -1318,13 +1639,17 @@ export class MapLayersPanelComponent implements OnDestroy {
     ];
   }
 
+  /**
+   * Category cards below Management Figures — all start collapsed (UCS-101).
+   * Management Figures itself uses `overlaysCollapsed` (default expanded).
+   */
   private createDefaultGroups(): LayerGroup[] {
     return [
       {
         id: 'group-species-biodiversity',
         title: 'Species & Biodiversity',
         countLabel: '5 taxon groups',
-        collapsed: false,
+        collapsed: true,
         note: "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
         rows: [],
       },
@@ -1332,7 +1657,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: 'group-ecosystems',
         title: 'Ecosystems',
         countLabel: '5 layers',
-        collapsed: false,
+        collapsed: true,
         rows: [
           this.layerRow('eco-types', 'Ecosystem Types', '#0d9488', 60),
           this.layerRow('eco-paramos', 'Paramos', '#6d8e7e', 55),
@@ -1402,6 +1727,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       canReorder: true,
       hasStyleControls: true,
       hasColorControl: true,
+      mapUnavailable: true,
     };
   }
 
@@ -1426,6 +1752,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       canReorder: true,
       hasStyleControls: true,
       hasColorControl: false,
+      mapUnavailable: true,
     };
   }
 
