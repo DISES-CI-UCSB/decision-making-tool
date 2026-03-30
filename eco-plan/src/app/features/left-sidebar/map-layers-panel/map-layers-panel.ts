@@ -91,6 +91,10 @@ type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
+const SINGLE_SOLUTION_COLOR = '#16a34a';
+const COMPARISON_BASELINE_COLOR = '#1e6fa8';
+const COMPARISON_CANDIDATE_COLOR = '#7c3aed';
+const COMPARISON_OVERLAP_COLOR = '#ec4899';
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -154,6 +158,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       const comparisonSolution = this.appState.comparisonSolution$();
       const vizMode = this.appState.comparisonVisualizationMode$();
       untracked(() => {
+        const isComparing = !!comparisonSolution;
+        this.syncBaselineOverlayColor(isComparing);
         this.syncComparisonSolutionOverlay(comparisonSolution?.name ?? null);
         this.syncComparisonOverlapOverlay(
           comparisonSolution?.name ?? null,
@@ -1148,11 +1154,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
   }
 
-  private updateSelectedLayerOrder(rowId: string, selected: boolean): void {
+  private updateSelectedLayerOrder(
+    rowId: string,
+    selected: boolean,
+    position: 'start' | 'end' = 'end',
+  ): void {
     this.selectedLayerOrder.update((order) => {
       const exists = order.includes(rowId);
       if (selected && !exists) {
-        return [...order, rowId];
+        return position === 'start' ? [rowId, ...order] : [...order, rowId];
       }
       if (!selected && exists) {
         return order.filter((id) => id !== rowId);
@@ -1307,7 +1317,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         visible: true,
         expanded: true,
         opacity: 70,
-        color: '#16a34a',
+        color: SINGLE_SOLUTION_COLOR,
         canReorder: true,
         hasStyleControls: true,
         hasColorControl: true,
@@ -1352,6 +1362,16 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
   }
 
+  private syncBaselineOverlayColor(isComparing: boolean): void {
+    const targetColor = isComparing ? COMPARISON_BASELINE_COLOR : SINGLE_SOLUTION_COLOR;
+    this.overlays.update((rows) =>
+      rows.map((row) =>
+        row.id === BASELINE_SOLUTION_OVERLAY_ID ? { ...row, color: targetColor } : row,
+      ),
+    );
+    this.syncOverlayById(BASELINE_SOLUTION_OVERLAY_ID);
+  }
+
   private syncComparisonSolutionOverlay(solutionName: string | null): void {
     if (!solutionName) {
       this.overlays.update((rows) =>
@@ -1389,7 +1409,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           visible: true,
           expanded: true,
           opacity: 70,
-          color: '#2563eb',
+          color: COMPARISON_CANDIDATE_COLOR,
           canReorder: true,
           hasStyleControls: true,
           hasColorControl: true,
@@ -1439,7 +1459,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           visible: true,
           expanded: true,
           opacity: 80,
-          color: '#ec4899',
+          color: COMPARISON_OVERLAP_COLOR,
           canReorder: true,
           hasStyleControls: true,
           hasColorControl: true,
@@ -1448,7 +1468,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       ];
     });
 
-    this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, true);
+    this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, true, 'start');
   }
 
   private createDefaultTaxa(): TaxonRow[] {

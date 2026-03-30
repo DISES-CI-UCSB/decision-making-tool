@@ -20,7 +20,8 @@ const BASELINE_LAYER_ID = 'solution-raster-layer-baseline';
 const CANDIDATE_LAYER_ID = 'solution-raster-layer-candidate';
 const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
 const DEFAULT_SOLUTION_COLOR_HEX = '#16a34a';
-const DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX = '#2563eb';
+const DEFAULT_COMPARISON_BASELINE_COLOR_HEX = '#1e6fa8';
+const DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX = '#7c3aed';
 const DEFAULT_COMPARISON_OVERLAP_COLOR_HEX = '#ec4899';
 const SOLUTION_ALPHA = 180;
 
@@ -38,7 +39,7 @@ export class SolutionLayerService {
   private candidateComparisonLoaded: LoadedSolution | null = null;
   private comparisonMode = false;
   private solutionColorHex = DEFAULT_SOLUTION_COLOR_HEX;
-  private baselineComparisonColorHex = DEFAULT_SOLUTION_COLOR_HEX;
+  private baselineComparisonColorHex = DEFAULT_COMPARISON_BASELINE_COLOR_HEX;
   private candidateComparisonColorHex = DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX;
   private overlapComparisonColorHex = DEFAULT_COMPARISON_OVERLAP_COLOR_HEX;
   private baselineComparisonOpacity = 0.7;
@@ -140,6 +141,8 @@ export class SolutionLayerService {
 
       // Only clear existing map layers once both scenarios have loaded successfully.
       this.removeAllLayers();
+      this.baselineComparisonColorHex = DEFAULT_COMPARISON_BASELINE_COLOR_HEX;
+      this.candidateComparisonColorHex = DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX;
       this.baselineComparisonLayer = this.createLayerFromLoaded(
         baselineLoaded,
         BASELINE_LAYER_ID,
