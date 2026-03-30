@@ -95,6 +95,7 @@ const SINGLE_SOLUTION_COLOR = '#16a34a';
 const COMPARISON_BASELINE_COLOR = '#1e6fa8';
 const COMPARISON_CANDIDATE_COLOR = '#7c3aed';
 const COMPARISON_OVERLAP_COLOR = '#ec4899';
+type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -165,6 +166,14 @@ export class MapLayersPanelComponent implements OnDestroy {
           comparisonSolution?.name ?? null,
           vizMode === 'threeColorOverlay',
         );
+      });
+    });
+
+    effect(() => {
+      const order = this.selectedLayerOrder();
+      const overlays = this.overlays();
+      untracked(() => {
+        this.syncSelectedLayerStackingToMap(order, overlays);
       });
     });
 
@@ -1022,6 +1031,31 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.colorSyncFrames.set(rowKey, frameId);
   }
 
+  private syncSelectedLayerStackingToMap(order: string[], overlays: LayerControlRow[]): void {
+    const overlaysById = new Map(overlays.map((overlay) => [overlay.id, overlay]));
+    const layerOrderTopToBottom: SidebarSolutionLayerType[] = [];
+
+    for (const rowId of order) {
+      const overlay = overlaysById.get(rowId);
+      const mapSync = overlay?.mapSync;
+      if (!overlay?.selected || !mapSync) {
+        continue;
+      }
+      if (
+        mapSync.type === 'solution-baseline' ||
+        mapSync.type === 'solution-candidate' ||
+        mapSync.type === 'solution-overlap'
+      ) {
+        layerOrderTopToBottom.push(mapSync.type);
+      }
+    }
+
+    if (layerOrderTopToBottom.length === 0) {
+      return;
+    }
+    this.solutionLayerService.reorderSolutionLayersBySidebarOrder(layerOrderTopToBottom);
+  }
+
   private syncRowToMap(row: LayerControlRow): void {
     const mapSync = row.mapSync;
     if (!mapSync) {
@@ -1458,7 +1492,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           selected: true,
           visible: true,
           expanded: true,
-          opacity: 80,
+          opacity: 100,
           color: COMPARISON_OVERLAP_COLOR,
           canReorder: true,
           hasStyleControls: true,

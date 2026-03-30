@@ -417,11 +417,6 @@ export class PanelSwitcherComponent {
       description: 'A-only, B-only, and overlap shown as separate colors.',
     },
     {
-      id: 'twoColorOpacity',
-      label: '2-color opacity',
-      description: 'Both scenarios blend with adjustable layer transparency.',
-    },
-    {
       id: 'swipe',
       label: 'Swipe slider',
       description: 'Compare side-by-side with a draggable divider.',

@@ -24,6 +24,7 @@ const DEFAULT_COMPARISON_BASELINE_COLOR_HEX = '#1e6fa8';
 const DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX = '#7c3aed';
 const DEFAULT_COMPARISON_OVERLAP_COLOR_HEX = '#ec4899';
 const SOLUTION_ALPHA = 180;
+type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
@@ -44,7 +45,7 @@ export class SolutionLayerService {
   private overlapComparisonColorHex = DEFAULT_COMPARISON_OVERLAP_COLOR_HEX;
   private baselineComparisonOpacity = 0.7;
   private candidateComparisonOpacity = 0.7;
-  private overlapComparisonOpacity = 0.8;
+  private overlapComparisonOpacity = 1;
   private baselineComparisonVisible = true;
   private candidateComparisonVisible = true;
   private overlapComparisonVisible = true;
@@ -250,6 +251,21 @@ export class SolutionLayerService {
     this.setOverlapVisibility(false);
     this.setBaselineVisibility(this.baselineComparisonVisible);
     this.setCandidateVisibility(this.candidateComparisonVisible);
+  }
+
+  reorderSolutionLayersBySidebarOrder(orderTopToBottom: SidebarSolutionLayerType[]): void {
+    if (!this.map || orderTopToBottom.length === 0) {
+      return;
+    }
+
+    const resolvedLayers = orderTopToBottom
+      .map((layerType) => this.resolveLayerForSidebarType(layerType))
+      .filter((layer): layer is InstanceType<typeof MediaLayer> => !!layer);
+
+    // ArcGIS draws higher indices on top; move bottom->top so final stack matches sidebar.
+    for (const layer of [...resolvedLayers].reverse()) {
+      this.map.reorder(layer, this.map.layers.length - 1);
+    }
   }
 
   setOpacity(opacity: number): void {
@@ -686,5 +702,17 @@ export class SolutionLayerService {
       Number.parseInt(normalized.slice(3, 5), 16),
       Number.parseInt(normalized.slice(5, 7), 16),
     ];
+  }
+
+  private resolveLayerForSidebarType(
+    layerType: SidebarSolutionLayerType,
+  ): InstanceType<typeof MediaLayer> | null {
+    if (layerType === 'solution-baseline') {
+      return this.comparisonMode ? this.baselineComparisonLayer : this.currentLayer;
+    }
+    if (layerType === 'solution-candidate') {
+      return this.candidateComparisonLayer;
+    }
+    return this.overlapComparisonLayer;
   }
 }
