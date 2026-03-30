@@ -329,7 +329,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       case 'human-footprint':
         return 'Human Footprint';
       case 'carbon-opportunity':
-        return 'Carbon Opportunity';
+        return 'Net Benefit (Renta agropecuaria)';
       case 'conflict':
         return 'Conflict (Coca/Deaths)';
     }

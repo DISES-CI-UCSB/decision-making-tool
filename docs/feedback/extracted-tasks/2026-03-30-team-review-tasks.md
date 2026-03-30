@@ -3,25 +3,27 @@
 **Source:** [Meeting notes](../meeting-notes/2026-03-30-team-review.md) + Kevin's email correction
 **Linear project:** Decision Making Tool
 **Linear labels:** `team-review` + branch label + additional tags as noted
+**Tickets filed:** UCS-152 through UCS-157 (6 new issues)
 
 ---
 
 ## Task Summary
 
-| ID | Status | Last Updated | Task | Notes |
-|----|--------|-------------|------|-------|
-| T01 | 🔄 Update existing | 2026-03-30 | Enable multi-select for Step 1 features (update UCS-120) | Currently single-select; team confirmed multi-select required |
-| T02 | 🔄 Update existing | 2026-03-30 | Expand Step 1 to 5 feature categories (update UCS-120) | Was 3 categories; now 5 per Mesa's original decision tree |
-| T03 | 🆕 New | 2026-03-30 | Rename Step 1 header to "What to Protect"; generate label options for Steps 2 & 3 | Only Step 1 label agreed; Steps 2 & 3 need AI-generated options → team review ticket |
-| T04 | ✅ Already done | 2026-03-30 | Drop "exclude" from Step 2 (UCS-121, UCS-122 already Done) | Confirmed: no excludes exist in model; both tickets already completed |
-| T05 | 🆕 New | 2026-03-30 | Fix "CO" cost label → "Net Benefit" (renta agropecuaria) | Kevin's email: CO is NOT carbon cost |
-| T06 | 🔄 Update existing | 2026-03-30 | Update scenario labels from Kevin's markdown (update UCS-126, UCS-127) | Kevin providing AI-generated markdown files. v1 (~70% correct) received; v2 (~90%) incoming. Update incrementally. |
-| T07 | 🆕 New | 2026-03-30 | Add "Always Included" info section to Step 2 | Shows features included in every run (e.g., RUNAP); read-only, no toggles |
-| T08 | 🔄 Low priority / backlog | 2026-03-30 | Design sub-optimal match visualization (update UCS-124, UCS-129) | Kevin proposed gray-out in Steps 1-3 on hover. **Low priority — may not do this.** Depends on how many solutions we end up running. |
-| T09 | 🆕 New | 2026-03-30 | Remove two-color opacity comparison option | Keep only three-color overlay + swipe slider |
-| T10 | ⏳ Waiting on Wenxin | 2026-03-30 | Investigate raster vs vector projection/simplification issue | Wenxin is actively working on this. Check in by Wednesday for status. |
-| T11 | 🆕 New | 2026-03-30 | Deploy live link for team testing | Will to get shareable URL to team |
-| T12 | 🆕 New | 2026-03-30 | Schedule mid-week review session (Will + Kevin + Amy/Nick) | Review Solution Finder changes before Monday Mesa meeting |
+| ID | UCS | Status | Last Updated | Task | Notes |
+|----|-----|--------|-------------|------|-------|
+| T01 | [UCS-120](https://linear.app/ucsb-spatial-center/issue/UCS-120) | 🔄 Update existing | 2026-03-30 | Enable multi-select for Step 1 features | Currently single-select; team confirmed multi-select required |
+| T02 | [UCS-120](https://linear.app/ucsb-spatial-center/issue/UCS-120) | 🔄 Update existing | 2026-03-30 | Expand Step 1 to 5 feature categories | Was 3 categories; now 5 per Mesa's original decision tree |
+| T03a | [UCS-152](https://linear.app/ucsb-spatial-center/issue/UCS-152) | 🆕 Created | 2026-03-30 | Rename Step 1 header to "What to Protect" | Team agreed on this label |
+| T03b | [UCS-153](https://linear.app/ucsb-spatial-center/issue/UCS-153) | 🆕 Created | 2026-03-30 | Generate and review label options for Steps 2 & 3 | `discussion-required` — AI-generate options, team picks |
+| T04 | UCS-121, UCS-122 | ✅ Already done | 2026-03-30 | Drop "exclude" from Step 2 | Confirmed: no excludes exist in model; both tickets already completed |
+| T05 | [UCS-154](https://linear.app/ucsb-spatial-center/issue/UCS-154) | 🆕 Created | 2026-03-30 | Fix "CO" cost label → "Net Benefit" (renta agropecuaria) | Kevin's email: CO is NOT carbon cost |
+| T06 | [UCS-126](https://linear.app/ucsb-spatial-center/issue/UCS-126), [UCS-127](https://linear.app/ucsb-spatial-center/issue/UCS-127) | 🔄 Update existing | 2026-03-30 | Update scenario labels from Kevin's markdown | v1 (~70% correct) received; v2 (~90%) incoming. Update incrementally. |
+| T07 | [UCS-155](https://linear.app/ucsb-spatial-center/issue/UCS-155) | 🆕 Created | 2026-03-30 | Add "Always Included" info section to Step 2 | Shows features included in every run (e.g., RUNAP); read-only |
+| T08 | [UCS-124](https://linear.app/ucsb-spatial-center/issue/UCS-124), [UCS-129](https://linear.app/ucsb-spatial-center/issue/UCS-129) | 🔄 Low priority / backlog | 2026-03-30 | Design sub-optimal match visualization | Kevin proposed gray-out. **Low priority — may not do.** |
+| T09 | [UCS-156](https://linear.app/ucsb-spatial-center/issue/UCS-156) | 🆕 Created | 2026-03-30 | Remove two-color opacity comparison option | Keep only three-color overlay + swipe slider |
+| T10 | [UCS-157](https://linear.app/ucsb-spatial-center/issue/UCS-157) | ⏳ Waiting on Wenxin | 2026-03-30 | Investigate raster vs vector projection issue | Check in by Wednesday for status |
+| T11 | — | 🆕 Action item | 2026-03-30 | Deploy live link for team testing | Not a Linear ticket; personal action item |
+| T12 | — | 🆕 Action item | 2026-03-30 | Schedule mid-week review session | Not a Linear ticket; personal action item |
 
 ---
 
@@ -57,80 +59,42 @@ Cross-reference of this meeting's tasks against existing Linear issues. This pre
 
 ---
 
-## New Tasks (to be created in Linear)
+## New Tasks (Created in Linear)
 
-These are genuinely new and don't overlap with any existing ticket.
+| Task | UCS | Priority | Labels |
+|------|-----|----------|--------|
+| Rename Step 1 header to "What to Protect" | [UCS-152](https://linear.app/ucsb-spatial-center/issue/UCS-152) | High | `solution-finder`, `team-review` |
+| Generate and review label options for Steps 2 & 3 | [UCS-153](https://linear.app/ucsb-spatial-center/issue/UCS-153) | Medium | `solution-finder`, `team-review`, `discussion-required` |
+| Fix "CO" cost label → "Net Benefit" | [UCS-154](https://linear.app/ucsb-spatial-center/issue/UCS-154) | High | `solution-finder`, `team-review` |
+| Add "Always Included" info section to Step 2 | [UCS-155](https://linear.app/ucsb-spatial-center/issue/UCS-155) | Medium | `solution-finder`, `team-review` |
+| Remove two-color opacity comparison option | [UCS-156](https://linear.app/ucsb-spatial-center/issue/UCS-156) | Medium | `analysis-dashboards`, `team-review` |
+| Investigate raster vs vector projection issue | [UCS-157](https://linear.app/ucsb-spatial-center/issue/UCS-157) | Medium | `map-spatial`, `team-review` |
 
-### T03 — Rename Step 1 header; generate label options for Steps 2 & 3
+### Detailed Notes
 
-**Priority:** High (Step 1 rename before Monday demo; Steps 2 & 3 label review is separate)
-**Labels:** `solution-finder`, `team-review`, `discussion-required`
+**T03a / UCS-152 — Rename Step 1 header to "What to Protect"**
+Straightforward rename. Team agreed on this label. Should be done before Monday demo.
 
-**Description:**
-- **Step 1:** "Target Type" → **"What to Protect"** — team agreed on this label.
-- **Steps 2 & 3:** The team did NOT agree on specific labels. "Features to Include" and "Costs" were floated but not confirmed. Create a sub-task to:
-  1. AI-generate 3–5 candidate labels for each step
-  2. Create a `discussion-required` ticket with the options for team review
-  3. Implement the chosen labels after team sign-off
+**T03b / UCS-153 — Generate and review label options for Steps 2 & 3**
+"Features to Include" and "Costs" were floated but NOT confirmed. This ticket covers:
+1. AI-generate 3–5 candidate labels for each step
+2. Present options to team for review
+3. Implement chosen labels after sign-off
 
-### T05 — Fix "CO" cost layer label
+**T05 / UCS-154 — Fix "CO" cost layer label**
+Per Kevin's email: "CO" is actually `Net_Benefit` aka "renta agropecuaria." Update in Step 3 and any scenario descriptions. Should be done before Monday demo.
 
-**Priority:** High (should be done before Monday demo)
-**Labels:** `solution-finder`, `team-review`
+**T07 / UCS-155 — Add "Always Included" info section to Step 2**
+Read-only section showing features in every run (e.g., RUNAP at national level). No toggles — purely informational.
 
-**Description:**
-Per Kevin's email: the cost layer labeled "CO" (or "carbon opportunity cost") is actually `Net_Benefit` aka **"renta agropecuaria"** — the income, profit, or rental value generated from agricultural, livestock, forestry, or fishing activities. Update label in the Solution Finder Step 3 and any scenario descriptions.
+**T08 addendum — Sub-optimal match visualization (NOT a new ticket)**
+Low priority / backlog update to UCS-124 / UCS-129. Kevin's gray-out proposal is a fallback only if we can't pre-run all scenario combos. May never be implemented.
 
-### T07 — Add "Always Included" info section to Step 2
+**T09 / UCS-156 — Remove two-color opacity comparison option**
+Keep only three-color overlay + swipe slider. Users can toggle agreement off within three-color for a de facto two-color view.
 
-**Priority:** Medium
-**Labels:** `solution-finder`, `team-review`
-
-**Description:**
-Add a read-only informational section to Step 2 showing features that are included in **every** run and cannot be toggled off (e.g., RUNAP at the national level). Purpose: help users understand what goes into the solution without implying they can change it.
-
-### T08 addendum — Sub-optimal match visualization (gray-out in steps)
-
-**Priority:** Low / Backlog — may not implement at all. Depends on how many solutions we end up running.
-
-This is an update to UCS-124 / UCS-129, not a standalone ticket. Kevin's proposal:
-- When hovering/selecting a result that isn't a perfect match, dynamically gray out the mismatched options in Steps 1, 2, and 3
-- Visual cue is more scannable than reading a text summary of differences
-- Only needed if not all scenario combinations are pre-run
-- **If we pre-run all combos, this feature is unnecessary**
-
-### T09 — Remove two-color opacity comparison option
-
-**Priority:** Medium
-**Labels:** `analysis-dashboards`, `team-review`
-
-**Description:**
-Remove the two-color opacity comparison visualization. Keep only:
-1. **Three-color overlay** (Solution A + Solution B + Agreement)
-2. **Swipe slider**
-
-Users can toggle the agreement layer off within three-color mode to get a de facto two-color view.
-
-### T10 — Investigate raster vs vector projection/simplification issue
-
-**Priority:** Medium
-**Labels:** `map-spatial`, `team-review`
-**Status:** ⏳ Waiting on Wenxin — check in by Wednesday
-
-**Description:**
-The green raster solution layer appears shifted down and oversimplified relative to the RUNAP vector polygon boundaries on the map. Possible causes:
-1. Projection mismatch between raster and vector layers in the tool
-2. Oversimplified vector boundaries from the Mesa team's rasterization process
-
-Wenxin is actively investigating this. Will should check in with her by **Wednesday** for a status update and determine next steps.
-
-### T11 — Deploy live link for team testing
-
-**Priority:** High (before Monday)
-**Labels:** `foundation`, `team-review`
-
-**Description:**
-Get a shareable URL deployed so team members can interact with the tool and gather feedback independently before the Monday Mesa meeting.
+**T10 / UCS-157 — Investigate projection issue**
+Wenxin is actively investigating. Will to check in by Wednesday. May be a projection mismatch or oversimplified vector boundaries from the Mesa team's rasterization.
 
 ---
 

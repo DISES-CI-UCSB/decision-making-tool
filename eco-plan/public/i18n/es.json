@@ -285,8 +285,8 @@
         "intro": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
         "humanFootprintLabel": "Presion humana",
         "humanFootprintHelp": "Huella humana proyectada 2030 (HF_2030): menor valor implica menor presion humana esperada.",
-        "carbonOpportunityLabel": "Costo de oportunidad del carbono",
-        "carbonOpportunityHelp": "Superficie monetaria de costo de oportunidad / carbono (CO en archivos): refleja el valor de carbono dejado de lado al conservar.",
+        "carbonOpportunityLabel": "Beneficio neto (renta agropecuaria)",
+        "carbonOpportunityHelp": "Superficie monetaria de beneficio neto / renta agropecuaria (CO, Renta_agropecuaria en archivos).",
         "conflictLabel": "Exposicion al conflicto",
         "conflictHelp": "Indice compuesto de conflicto (CONFLICTO): coca y muertes relacionadas (2016–2022)."
       },
