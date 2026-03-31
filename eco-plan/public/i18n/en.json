@@ -260,11 +260,18 @@
       "step1": {
         "targetTypeTitle": "Target type",
         "modelBackedBadge": "Model-backed",
-        "targetTypeIntro": "Pick the primary feature the conservation model optimizes for.",
-        "speciesRichnessLabel": "Species richness (ecosystem pixels)",
-        "speciesRichnessHelp": "Uses the national ecosystem / richness stack summarized as Ecos17 or Ecos30 in scenario names (not individual species maps).",
+        "targetTypeIntro": "Select one or more target groups for what to protect. Items marked in red are expected targets but their input layers are not yet available in the current app catalog.",
+        "ecosystemsLabel": "Ecosystems",
+        "ecosystemsHelp": "Aims to include the full range of Colombia’s different ecosystem types in conservation planning.",
+        "speciesRichnessLabel": "Species (species richness)",
+        "speciesRichnessHelp": "Gives priority to places with the greatest number of different species.",
         "strategicEcosystemsLabel": "Strategic ecosystems",
-        "strategicEcosystemsHelp": "Uses the strategic ESTR30 surface (e.g. páramo, mangroves, wetlands) instead of the broader Ecos layers.",
+        "strategicEcosystemsHelp": "Focuses on a specific subset of ecosystem types that are nationally designated as strategic (paramos, mangroves, wetlands, and tropical dry forest), rather than the full range of ecosystem types.",
+        "ecosystemServicesLabel": "Environmental / ecosystem services",
+        "ecosystemServicesHelp": "Covers benefits people receive from nature, such as water regulation, flood buffering, and pollination.",
+        "otherNaturalCulturalElementsLabel": "Other natural and cultural elements",
+        "otherNaturalCulturalElementsHelp": "Covers additional priorities such as sacred or culturally important landscapes and traditional use areas.",
+        "inputLayerNotFoundBadge": "Input layer not found",
         "targetLevelTitle": "Target level",
         "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
         "targetLevelBadgeSpecies": "For species richness",
@@ -299,7 +306,7 @@
       },
       "empty": {
         "title": "Run find to view a scenario",
-        "description": "Choose a target type, level (if needed), trade-off basis, then click Find scenario."
+        "description": "Choose one or more target types, set target level, choose a trade-off basis, then click Find scenario."
       },
       "noMatch": {
         "title": "No matching scenario",
