@@ -582,9 +582,12 @@
                 </button>
                 @if (isAoiSectionExpanded('bio')) {
                   <div id="aoi-body-bio" class="aoi-section-body">
-                    <div id="aoi-species-chart" class="aoi-bar-chart aoi-species-chart">
-                      <p id="aoi-species-chart-subtitle" class="aoi-species-chart-subtitle">
-                        Values are species counts (not percentages).
+                    <div id="aoi-species-chart" class="flex flex-col">
+                      <p
+                        id="aoi-species-chart-axis-label"
+                        class="m-0 mb-0.5 w-full text-center text-sm font-medium leading-[1.2] tracking-[0.01em] text-slate-500"
+                      >
+                        Species count by taxa
                       </p>
                       <div
                         id="aoi-species-chart-canvas-shell"
