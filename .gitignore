@@ -50,6 +50,8 @@ Cambio_Global/**/*.lock
 !/data/metadata/README_updated_031926.md
 !/data/metadata/RUNAP_categories.csv
 !/data/metadata/cost_constraints_stack_1km.tif
+!/data/**/
+!/data/**/*.md
 /eco-plan/node_modules/
 /eco-plan/dist/
 /eco-plan/.angular/
