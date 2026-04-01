@@ -88,65 +88,65 @@
           </p>
 
           <div id="solution-finder-modal-step1-target-type-options" class="mt-3 space-y-2">
-            <button
-              id="solution-finder-modal-step1-target-type-species-richness"
-              type="button"
-              class="flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left transition"
-              [class.border-sky-500]="targetTypeId === 'species-richness'"
-              [class.bg-sky-500]="targetTypeId === 'species-richness'"
-              [class.text-white]="targetTypeId === 'species-richness'"
-              [class.border-slate-200]="targetTypeId !== 'species-richness'"
-              [class.bg-white]="targetTypeId !== 'species-richness'"
-              [class.text-slate-900]="targetTypeId !== 'species-richness'"
-              [attr.aria-pressed]="targetTypeId === 'species-richness'"
-              (click)="selectTargetType('species-richness')"
-            >
-              <span
-                id="solution-finder-modal-step1-target-type-species-richness-label"
-                class="text-sm font-semibold"
+            @for (option of targetTypeOptions; track option.id) {
+              <button
+                [id]="'solution-finder-modal-step1-target-type-' + option.id"
+                type="button"
+                class="flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left transition"
+                [disabled]="!isTargetTypeAvailable(option.id)"
+                [class.cursor-not-allowed]="!isTargetTypeAvailable(option.id)"
+                [class.border-sky-500]="isTargetTypeSelected(option.id)"
+                [class.bg-sky-500]="isTargetTypeSelected(option.id)"
+                [class.text-white]="isTargetTypeSelected(option.id)"
+                [class.border-slate-200]="
+                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                "
+                [class.bg-white]="
+                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                "
+                [class.text-slate-900]="
+                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                "
+                [class.border-red-300]="!isTargetTypeAvailable(option.id)"
+                [class.bg-red-50]="!isTargetTypeAvailable(option.id)"
+                [class.text-red-900]="!isTargetTypeAvailable(option.id)"
+                [attr.aria-pressed]="isTargetTypeSelected(option.id)"
+                [attr.aria-disabled]="!isTargetTypeAvailable(option.id)"
+                (click)="toggleTargetType(option.id)"
               >
-                {{ 'solutionControls.finder.step1.speciesRichnessLabel' | translate }}
-              </span>
-              <span
-                id="solution-finder-modal-step1-target-type-species-richness-help"
-                class="text-xs font-normal leading-snug"
-                [class.text-white]="targetTypeId === 'species-richness'"
-                [class.opacity-90]="targetTypeId === 'species-richness'"
-                [class.text-slate-600]="targetTypeId !== 'species-richness'"
-              >
-                {{ 'solutionControls.finder.step1.speciesRichnessHelp' | translate }}
-              </span>
-            </button>
-
-            <button
-              id="solution-finder-modal-step1-target-type-strategic-ecosystems"
-              type="button"
-              class="flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left transition"
-              [class.border-sky-500]="targetTypeId === 'strategic-ecosystems'"
-              [class.bg-sky-500]="targetTypeId === 'strategic-ecosystems'"
-              [class.text-white]="targetTypeId === 'strategic-ecosystems'"
-              [class.border-slate-200]="targetTypeId !== 'strategic-ecosystems'"
-              [class.bg-white]="targetTypeId !== 'strategic-ecosystems'"
-              [class.text-slate-900]="targetTypeId !== 'strategic-ecosystems'"
-              [attr.aria-pressed]="targetTypeId === 'strategic-ecosystems'"
-              (click)="selectTargetType('strategic-ecosystems')"
-            >
-              <span
-                id="solution-finder-modal-step1-target-type-strategic-label"
-                class="text-sm font-semibold"
-              >
-                {{ 'solutionControls.finder.step1.strategicEcosystemsLabel' | translate }}
-              </span>
-              <span
-                id="solution-finder-modal-step1-target-type-strategic-help"
-                class="text-xs font-normal leading-snug"
-                [class.text-white]="targetTypeId === 'strategic-ecosystems'"
-                [class.opacity-90]="targetTypeId === 'strategic-ecosystems'"
-                [class.text-slate-600]="targetTypeId !== 'strategic-ecosystems'"
-              >
-                {{ 'solutionControls.finder.step1.strategicEcosystemsHelp' | translate }}
-              </span>
-            </button>
+                <div
+                  [id]="'solution-finder-modal-step1-target-type-label-row-' + option.id"
+                  class="flex items-start justify-between gap-2"
+                >
+                  <span
+                    [id]="'solution-finder-modal-step1-target-type-label-' + option.id"
+                    class="text-sm font-semibold"
+                  >
+                    {{ option.labelKey | translate }}
+                  </span>
+                  @if (!isTargetTypeAvailable(option.id)) {
+                    <span
+                      [id]="'solution-finder-modal-step1-target-type-missing-badge-' + option.id"
+                      class="rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
+                    >
+                      {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
+                    </span>
+                  }
+                </div>
+                <span
+                  [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
+                  class="text-xs font-normal leading-snug"
+                  [class.text-white]="isTargetTypeSelected(option.id)"
+                  [class.opacity-90]="isTargetTypeSelected(option.id)"
+                  [class.text-slate-600]="
+                    !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                  "
+                  [class.text-red-700]="!isTargetTypeAvailable(option.id)"
+                >
+                  {{ option.helpKey | translate }}
+                </span>
+              </button>
+            }
           </div>
         </article>
 
@@ -172,7 +172,7 @@
             {{ 'solutionControls.finder.step1.targetLevelIntro' | translate }}
           </p>
 
-          @if (targetTypeId === 'strategic-ecosystems') {
+          @if (isStrategicOnlyTargetSelection()) {
             <p
               id="solution-finder-modal-step1-target-level-strategic-fixed"
               class="mt-3 rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800"
@@ -188,7 +188,7 @@
                 id="solution-finder-modal-step1-target-level-17"
                 type="button"
                 class="rounded-md border px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
-                [disabled]="targetTypeId === null"
+                [disabled]="selectedTargetTypeIds.length === 0"
                 [class.border-sky-500]="targetLevelPct === 17"
                 [class.bg-sky-500]="targetLevelPct === 17"
                 [class.text-white]="targetLevelPct === 17"
@@ -204,7 +204,7 @@
                 id="solution-finder-modal-step1-target-level-30"
                 type="button"
                 class="rounded-md border px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
-                [disabled]="targetTypeId === null"
+                [disabled]="selectedTargetTypeIds.length === 0"
                 [class.border-sky-500]="targetLevelPct === 30"
                 [class.bg-sky-500]="targetLevelPct === 30"
                 [class.text-white]="targetLevelPct === 30"

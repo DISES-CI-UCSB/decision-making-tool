@@ -17,9 +17,22 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 type FinderMatchState = 'empty' | 'loading' | 'ready';
 
-type FinderTargetType = 'species-richness' | 'strategic-ecosystems';
+type FinderTargetType =
+  | 'species-richness'
+  | 'ecosystems'
+  | 'strategic-ecosystems'
+  | 'ecosystem-services'
+  | 'other-natural-cultural-elements';
 
 type CostLayerChoice = 'human-footprint' | 'carbon-opportunity' | 'conflict';
+
+interface TargetTypeOption {
+  id: FinderTargetType;
+  labelKey: string;
+  helpKey: string;
+  isStrategic: boolean;
+  isAvailable: boolean;
+}
 
 interface ScenarioMatch {
   id: string;
@@ -43,6 +56,43 @@ interface ScenarioMatch {
 export class FinderModalComponent implements AfterViewInit, OnDestroy {
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
+  protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
+    {
+      id: 'ecosystems',
+      labelKey: 'solutionControls.finder.step1.ecosystemsLabel',
+      helpKey: 'solutionControls.finder.step1.ecosystemsHelp',
+      isStrategic: false,
+      isAvailable: true,
+    },
+    {
+      id: 'strategic-ecosystems',
+      labelKey: 'solutionControls.finder.step1.strategicEcosystemsLabel',
+      helpKey: 'solutionControls.finder.step1.strategicEcosystemsHelp',
+      isStrategic: true,
+      isAvailable: true,
+    },
+    {
+      id: 'species-richness',
+      labelKey: 'solutionControls.finder.step1.speciesRichnessLabel',
+      helpKey: 'solutionControls.finder.step1.speciesRichnessHelp',
+      isStrategic: false,
+      isAvailable: true,
+    },
+    {
+      id: 'ecosystem-services',
+      labelKey: 'solutionControls.finder.step1.ecosystemServicesLabel',
+      helpKey: 'solutionControls.finder.step1.ecosystemServicesHelp',
+      isStrategic: false,
+      isAvailable: false,
+    },
+    {
+      id: 'other-natural-cultural-elements',
+      labelKey: 'solutionControls.finder.step1.otherNaturalCulturalElementsLabel',
+      helpKey: 'solutionControls.finder.step1.otherNaturalCulturalElementsHelp',
+      isStrategic: false,
+      isAvailable: false,
+    },
+  ];
 
   @Input() mode: SolutionFinderContext = 'default';
   @Output() readonly closeRequested = new EventEmitter<void>();
@@ -51,7 +101,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   protected readonly scenarioLibrary: SolutionScenario[] = this.solutionCatalog.getAll();
 
   /** Step 1 */
-  protected targetTypeId: FinderTargetType | null = null;
+  protected selectedTargetTypeIds: FinderTargetType[] = [];
   protected targetLevelPct: 17 | 30 | null = null;
 
   /** Step 2A (variable) */
@@ -102,21 +152,29 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.targetsGroupResizeObserver = null;
   }
 
-  protected selectTargetType(type: FinderTargetType): void {
-    if (this.targetTypeId === type) {
+  protected toggleTargetType(type: FinderTargetType): void {
+    const option = this.targetTypeOptions.find((item) => item.id === type);
+    if (!option || !option.isAvailable) {
       return;
     }
-    this.targetTypeId = type;
-    if (type === 'strategic-ecosystems') {
-      this.targetLevelPct = 30;
+    const currentIndex = this.selectedTargetTypeIds.indexOf(type);
+    if (currentIndex >= 0) {
+      this.selectedTargetTypeIds.splice(currentIndex, 1);
     } else {
-      this.targetLevelPct = null;
+      this.selectedTargetTypeIds.push(type);
     }
+
+    if (this.selectedTargetTypeIds.length === 0) {
+      this.targetLevelPct = null;
+    } else if (this.isStrategicOnlyTargetSelection()) {
+      this.targetLevelPct = 30;
+    }
+
     this.clearResultsIfNeeded();
   }
 
   protected selectTargetLevel(pct: 17 | 30): void {
-    if (this.targetTypeId !== 'species-richness') {
+    if (this.selectedTargetTypeIds.length === 0 || this.isStrategicOnlyTargetSelection()) {
       return;
     }
     this.targetLevelPct = pct;
@@ -183,7 +241,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected resetSelections(): void {
-    this.targetTypeId = null;
+    this.selectedTargetTypeIds = [];
     this.targetLevelPct = null;
     this.includeOmecs = false;
     this.includeComunidades = false;
@@ -211,13 +269,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected getTargetSelectionCount(): number {
-    if (this.targetTypeId === null) {
-      return 0;
-    }
-    if (this.targetTypeId === 'strategic-ecosystems') {
-      return 2;
-    }
-    return this.targetLevelPct !== null ? 2 : 1;
+    return this.selectedTargetTypeIds.length + (this.targetLevelPct !== null ? 1 : 0);
   }
 
   protected getVariableConstraintCount(): number {
@@ -237,7 +289,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected canRunMatching(): boolean {
     return (
-      this.targetTypeId !== null &&
+      this.selectedTargetTypeIds.length > 0 &&
       this.targetLevelPct !== null &&
       this.selectedCostLayerId !== null &&
       this.matchState !== 'loading'
@@ -249,7 +301,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected isStep1Complete(): boolean {
-    return this.targetTypeId !== null && this.targetLevelPct !== null;
+    return this.selectedTargetTypeIds.length > 0 && this.targetLevelPct !== null;
   }
 
   protected isStep2Unlocked(): boolean {
@@ -295,10 +347,10 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   private scenarioMatchesSelection(scenario: SolutionScenario): boolean {
     const strategic = scenario.id.startsWith('ESTR');
-    if (this.targetTypeId === 'species-richness' && strategic) {
+    if (strategic && !this.hasStrategicTargetSelected()) {
       return false;
     }
-    if (this.targetTypeId === 'strategic-ecosystems' && !strategic) {
+    if (!strategic && !this.hasNonStrategicTargetSelected()) {
       return false;
     }
 
@@ -322,6 +374,30 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
 
     return true;
+  }
+
+  protected isTargetTypeSelected(id: FinderTargetType): boolean {
+    return this.selectedTargetTypeIds.includes(id);
+  }
+
+  protected isTargetTypeAvailable(id: FinderTargetType): boolean {
+    return this.targetTypeOptions.find((option) => option.id === id)?.isAvailable === true;
+  }
+
+  protected isStrategicOnlyTargetSelection(): boolean {
+    return this.selectedTargetTypeIds.length > 0 && !this.hasNonStrategicTargetSelected();
+  }
+
+  private hasStrategicTargetSelected(): boolean {
+    return this.selectedTargetTypeIds.some((id) => this.isStrategicTarget(id));
+  }
+
+  private hasNonStrategicTargetSelected(): boolean {
+    return this.selectedTargetTypeIds.some((id) => !this.isStrategicTarget(id));
+  }
+
+  private isStrategicTarget(id: FinderTargetType): boolean {
+    return this.targetTypeOptions.find((option) => option.id === id)?.isStrategic === true;
   }
 
   private mapCostChoiceToCatalog(id: CostLayerChoice): string {
