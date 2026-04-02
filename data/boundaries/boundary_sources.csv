@@ -1,0 +1,4 @@
+id,name,source_type,source,repo_path_or_url,status,notes
+ADMIN_SIRAP,SIRAP Regions,local_file,MADS,data/boundaries/sirap_regions.geojson,active,Local GeoJSON used in app AOI selector
+ADMIN_DEPARTMENTS,Colombia Departments,remote_service,IGAC,https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/2,active,Remote ArcGIS FeatureServer endpoint
+ADMIN_MUNICIPALITIES,Colombia Municipalities,remote_service,IGAC,https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/1,active,Remote ArcGIS FeatureServer endpoint

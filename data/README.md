@@ -50,6 +50,13 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 | `omecs.tif` | Other Effective Conservation Measures (raster) | 0–20 categorical |
 | `omecs_vector/` | WDPA/WDOECM Feb 2026 shapefile for Colombia | Polygons |
 
+## Administrative Boundaries (`boundaries/`)
+
+| File | Description |
+|------|-------------|
+| `sirap_regions.geojson` | Local SIRAP regions GeoJSON used by AOI selector |
+| `boundary_sources.csv` | Boundary source registry, including remote IGAC services for departments and municipalities |
+
 ## Solutions (`solutions/`)
 
 | Subfolder | Contents |

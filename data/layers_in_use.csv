@@ -15,4 +15,4 @@ FEAT_DRY_FOREST,Dry Forest (Bosque Seco),feature-strategic,Tropical dry forest. 
 SPECIES_ALL,Individual Species Distributions (~8700),species,Per-species SDM rasters. Binary/continuous thresholded.,Humboldt (BioModelos),GeoTIFF (x8751),data/features/species/,placeholder,left-sidebar (taxon groups),,,All marked mapUnavailable
 ADMIN_DEPARTMENTS,Colombia Departments,admin,Department-level administrative boundaries,IGAC,ArcGIS FeatureServer,(remote),active,map (AOI selector),,,
 ADMIN_MUNICIPALITIES,Colombia Municipalities,admin,Municipality-level administrative boundaries,IGAC,ArcGIS FeatureServer,(remote),active,map (AOI selector),,,
-ADMIN_SIRAP,SIRAP Regions,admin,Regional conservation planning areas,MADS,GeoJSON,frontend/public/data/sirap-regions.geojson,active,map (AOI selector),,,
+ADMIN_SIRAP,SIRAP Regions,admin,Regional conservation planning areas,MADS,GeoJSON,data/boundaries/sirap_regions.geojson,active,map (AOI selector),,,
