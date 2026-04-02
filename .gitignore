@@ -16,42 +16,58 @@ USER_INSTRUCTIONS_SPANISH.md
 ADMIN_FEATURES_GUIDE.md
 ADMIN_FEATURES_GUID E_SPANISH.md
 
-# Cambio_Global data files (keep scripts and docs)
-Cambio_Global/*.Rproj
-Cambio_Global/**/*.tif
-Cambio_Global/**/*.fst
-Cambio_Global/**/*.xlsx
-Cambio_Global/**/*.csv
-Cambio_Global/**/*.xml
-Cambio_Global/**/*.ovr
-Cambio_Global/**/*.zip
-Cambio_Global/**/*.cpg
-Cambio_Global/**/*.dbf
-Cambio_Global/**/*.prj
-Cambio_Global/**/*.shp
-Cambio_Global/**/*.shx
-Cambio_Global/**/*.sbx
-Cambio_Global/**/*.sbn
-Cambio_Global/**/*.tfw
-Cambio_Global/**/*.lock
-# Data policy: ignore everything by default, allow curated deploy assets only.
+# Cambio_Global data files (archived; keep scripts and docs)
+Archive/Cambio_Global/*.Rproj
+Archive/Cambio_Global/**/*.tif
+Archive/Cambio_Global/**/*.fst
+Archive/Cambio_Global/**/*.xlsx
+Archive/Cambio_Global/**/*.csv
+Archive/Cambio_Global/**/*.xml
+Archive/Cambio_Global/**/*.ovr
+Archive/Cambio_Global/**/*.zip
+Archive/Cambio_Global/**/*.cpg
+Archive/Cambio_Global/**/*.dbf
+Archive/Cambio_Global/**/*.prj
+Archive/Cambio_Global/**/*.shp
+Archive/Cambio_Global/**/*.shx
+Archive/Cambio_Global/**/*.sbx
+Archive/Cambio_Global/**/*.sbn
+Archive/Cambio_Global/**/*.tfw
+Archive/Cambio_Global/**/*.lock
+# Data policy: ignore binary/large files by default, track docs + deploy assets + CSVs.
 /data/**
-!/data/deploy/
-!/data/deploy/eco-plan/
-!/data/deploy/eco-plan/solutions/
-!/data/deploy/eco-plan/solutions/*.tif
-!/data/deploy/eco-plan/solutions/*.csv
-!/data/deploy/eco-plan/scripts/
-!/data/deploy/eco-plan/scripts/*.mjs
-!/data/deploy/eco-plan/manifest.json
-!/data/README.md
-!/data/cost_constraints_stack_1km.tif
-!/data/metadata/
-!/data/metadata/README_updated_031926.md
-!/data/metadata/RUNAP_categories.csv
-!/data/metadata/cost_constraints_stack_1km.tif
 !/data/**/
+!/data/README.md
+!/data/layers_in_use.csv
+!/data/layers_required.csv
 !/data/**/*.md
-/eco-plan/node_modules/
-/eco-plan/dist/
-/eco-plan/.angular/
+!/data/**/*.csv
+# Core runtime data used by the app
+!/data/costs/
+!/data/costs/**/*.tif
+!/data/features/
+!/data/features/**/*.tif
+!/data/includes_excludes/
+!/data/includes_excludes/**/*.tif
+!/data/includes_excludes/**/*.csv
+!/data/includes_excludes/**/*.shp
+!/data/includes_excludes/**/*.dbf
+!/data/includes_excludes/**/*.shx
+!/data/includes_excludes/**/*.prj
+!/data/includes_excludes/**/*.cpg
+!/data/solutions/
+!/data/solutions/**/*.tif
+!/data/solutions/**/*.csv
+!/data/solutions/**/*.rds
+!/data/boundaries/
+!/data/boundaries/**
+# Frontend deploy assets (bundled into Vercel build)
+!/data/frontend_deploy/
+!/data/frontend_deploy/**
+!/data/frontend_deploy/**/*.tif
+!/data/frontend_deploy/**/*.csv
+!/data/frontend_deploy/**/*.mjs
+!/data/frontend_deploy/**/*.json
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.angular/

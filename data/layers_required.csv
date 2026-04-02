@@ -1,0 +1,5 @@
+id,name,type,description,source,priority,status,notes
+DISP_ECO_TYPES,Ecosystem Types,env-service,Generic ecosystem type visualization,TBD,medium,unknown,UI placeholder exists in left-sidebar
+DISP_CARBON,Carbon Storage,env-service,Above-ground biomass and soil organic carbon,IDEAM,medium,unknown,No data in repo
+DISP_WATER,Water Regulation,env-service,Water regulation / watershed services,IDEAM,medium,unknown,No data in repo
+DISP_LAND_USE,Land Use,socio-economic,Land use classification,IDEAM / UPRA,medium,unknown,No data in repo

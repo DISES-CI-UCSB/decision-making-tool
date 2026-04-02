@@ -4,5 +4,5 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" --no-use
 
-cd "eco-plan" || exit 1
+cd "frontend" || exit 1
 npx lint-staged
