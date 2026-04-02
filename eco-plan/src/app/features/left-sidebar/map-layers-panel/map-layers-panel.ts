@@ -78,6 +78,12 @@ interface LayerGroup {
   rows: LayerControlRow[];
 }
 
+interface LayerSearchGroupMatch {
+  groupId: string;
+  rowMatches: number;
+  taxonMatches: number;
+}
+
 interface SelectedLayerRow {
   id: string;
   name: string;
@@ -130,6 +136,63 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
+  protected readonly layerSearchQuery = signal('');
+  protected readonly normalizedLayerSearchQuery = computed(() =>
+    this.layerSearchQuery().trim().toLowerCase(),
+  );
+  protected readonly hasLayerSearchQuery = computed(
+    () => this.normalizedLayerSearchQuery().length > 0,
+  );
+  protected readonly filteredAvailableOverlays = computed(() => {
+    const overlays = this.availableOverlays();
+    const query = this.normalizedLayerSearchQuery();
+    if (query.length === 0) {
+      return overlays;
+    }
+    return overlays.filter((row) => this.nameMatchesSearch(row.name, query));
+  });
+  protected readonly filteredTaxa = computed(() => {
+    const taxa = this.taxa();
+    const query = this.normalizedLayerSearchQuery();
+    if (query.length === 0) {
+      return taxa;
+    }
+    return taxa.filter((taxon) => this.taxonMatchesSearch(taxon, query));
+  });
+  protected readonly searchMatchesByGroup = computed(() => {
+    const groups = this.groups();
+    const query = this.normalizedLayerSearchQuery();
+    const taxa = this.filteredTaxa();
+    const matches = new Map<string, LayerSearchGroupMatch>();
+    for (const group of groups) {
+      if (group.id === 'group-species-biodiversity') {
+        matches.set(group.id, { groupId: group.id, rowMatches: 0, taxonMatches: taxa.length });
+        continue;
+      }
+      const rowMatches =
+        query.length === 0
+          ? group.rows.length
+          : group.rows.filter((row) => this.nameMatchesSearch(row.name, query)).length;
+      matches.set(group.id, { groupId: group.id, rowMatches, taxonMatches: 0 });
+    }
+    return matches;
+  });
+  protected readonly hasAnyLayerSearchResults = computed(() => {
+    const overlayMatches = this.filteredAvailableOverlays().length;
+    const groupMatches = Array.from(this.searchMatchesByGroup().values()).reduce(
+      (total, match) => total + match.rowMatches + match.taxonMatches,
+      0,
+    );
+    return overlayMatches + groupMatches > 0;
+  });
+  protected readonly layerSearchResultCount = computed(() => {
+    const overlayMatches = this.filteredAvailableOverlays().length;
+    const groupMatches = Array.from(this.searchMatchesByGroup().values()).reduce(
+      (total, match) => total + match.rowMatches + match.taxonMatches,
+      0,
+    );
+    return overlayMatches + groupMatches;
+  });
   protected readonly selectedLayerOrder = signal<string[]>([]);
   protected readonly selectedLayerDragId = signal<string | null>(null);
   protected readonly selectedLayerDropTargetId = signal<string | null>(null);
@@ -646,7 +709,71 @@ export class MapLayersPanelComponent implements OnDestroy {
     return candidates.slice(0, SPECIES_VISIBLE_LIMIT);
   }
 
+  protected updateLayerSearchQuery(query: string): void {
+    this.layerSearchQuery.set(query);
+  }
+
+  protected clearLayerSearchQuery(): void {
+    this.layerSearchQuery.set('');
+  }
+
+  protected shouldShowGroupInAvailableLayers(group: LayerGroup): boolean {
+    if (!this.hasLayerSearchQuery()) {
+      return true;
+    }
+    if (group.disabled) {
+      return false;
+    }
+    const match = this.searchMatchesByGroup().get(group.id);
+    return !!match && match.rowMatches + match.taxonMatches > 0;
+  }
+
+  protected visibleGroupRows(group: LayerGroup): LayerControlRow[] {
+    if (!this.hasLayerSearchQuery()) {
+      return group.rows;
+    }
+    if (group.id === 'group-species-biodiversity') {
+      return [];
+    }
+    const query = this.normalizedLayerSearchQuery();
+    return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
+  }
+
+  protected visibleSpeciesForTaxon(taxon: TaxonRow): SpeciesRow[] {
+    const query = this.normalizedLayerSearchQuery();
+    if (query.length === 0) {
+      return this.filteredSpecies(taxon);
+    }
+    const speciesMatches = taxon.species.filter((species) =>
+      this.speciesMatchesSearch(species, query),
+    );
+    if (speciesMatches.length > 0) {
+      return speciesMatches;
+    }
+    if (this.nameMatchesSearch(taxon.name, query)) {
+      return this.filteredSpecies(taxon);
+    }
+    return [];
+  }
+
+  protected visibleGroupCountLabel(group: LayerGroup): string | undefined {
+    if (!this.hasLayerSearchQuery()) {
+      return group.countLabel;
+    }
+    const match = this.searchMatchesByGroup().get(group.id);
+    if (!match) {
+      return undefined;
+    }
+    if (group.id === 'group-species-biodiversity') {
+      return `${match.taxonMatches} ${match.taxonMatches === 1 ? 'taxon match' : 'taxon matches'}`;
+    }
+    return `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`;
+  }
+
   protected shouldShowTaxonShowAll(taxon: TaxonRow): boolean {
+    if (this.hasLayerSearchQuery()) {
+      return false;
+    }
     return (
       taxon.searchQuery.trim().length === 0 &&
       !taxon.showAll &&
@@ -657,6 +784,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected resetDefaults(): void {
     this.onAdminBoundaryChange('sirap');
     this.overlaysCollapsed.set(false);
+    this.layerSearchQuery.set('');
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
@@ -1762,5 +1890,21 @@ export class MapLayersPanelComponent implements OnDestroy {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
+    return name.toLowerCase().includes(normalizedQuery);
+  }
+
+  private speciesMatchesSearch(species: SpeciesRow, normalizedQuery: string): boolean {
+    const combinedName = `${species.common} ${species.latin}`.toLowerCase();
+    return combinedName.includes(normalizedQuery);
+  }
+
+  private taxonMatchesSearch(taxon: TaxonRow, normalizedQuery: string): boolean {
+    return (
+      this.nameMatchesSearch(taxon.name, normalizedQuery) ||
+      taxon.species.some((species) => this.speciesMatchesSearch(species, normalizedQuery))
+    );
   }
 }
