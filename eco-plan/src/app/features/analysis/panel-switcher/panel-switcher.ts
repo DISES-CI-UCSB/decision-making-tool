@@ -469,16 +469,14 @@ export class PanelSwitcherComponent {
         borderRadius: 999,
         borderSkipped: false,
         clip: false,
-        barPercentage: 0.86,
-        categoryPercentage: 0.92,
-        maxBarThickness: 10,
+        barPercentage: 1,
+        categoryPercentage: 1,
+        maxBarThickness: 12,
       },
     ],
   }));
   protected readonly aoiBiodiversityChartOptions = computed<ChartOptions<'bar'>>(() => {
     const axisMax = this.aoiBiodiversityAxisMax();
-    const ticks = this.aoiBiodiversityAxisTicks();
-    const stepSize = ticks.length > 1 ? ticks[1] - ticks[0] : 1;
 
     return {
       indexAxis: 'y',
@@ -492,36 +490,17 @@ export class PanelSwitcherComponent {
           left: 4,
           right: 26,
           top: 2,
-          bottom: 0,
+          bottom: 15,
         },
       },
       scales: {
         x: {
+          display: false,
           min: 0,
           max: axisMax,
-          position: 'top',
-          offset: false,
-          grid: {
-            drawOnChartArea: false,
-            drawTicks: true,
-            tickLength: 5,
-            color: '#94a3b8',
-          },
-          border: {
-            display: true,
-            color: '#94a3b8',
-          },
-          ticks: {
-            stepSize,
-            color: '#64748b',
-            font: {
-              size: 9,
-            },
-            padding: 2,
-          },
         },
         y: {
-          offset: true,
+          offset: false,
           afterFit: (axis: Scale) => {
             axis.paddingBottom = 4;
           },
