@@ -1,2 +1,11 @@
 {
+  "csv.enabled": false,
+  "workbench.editorAssociations": {
+    "*.csv": "default",
+    "*.tsv": "default"
+  },
+  "files.associations": {
+    "*.csv": "csv",
+    "*.tsv": "tsv"
+  }
 }

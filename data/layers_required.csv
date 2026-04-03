@@ -1,6 +1,6 @@
-id,name,group,type,scope,region,priority,release_required,status,owner,app_surface,source,format,notes
-DISP_ECO_TYPES,Ecosystem Types,overlay,ecosystem display,nacional,all,medium,false,missing,App Team,left sidebar,TBD,GeoTIFF or feature service,UI row exists but not wired
-DISP_CARBON,Carbon Storage,service,environmental service,nacional,all,medium,false,missing,App Team,left sidebar,IDEAM,GeoTIFF,Needed for environmental service display
-DISP_WATER,Water Regulation,service,environmental service,nacional,all,medium,false,missing,App Team,left sidebar,IDEAM,GeoTIFF,Needed for environmental service display
-DISP_LAND_USE,Land Use,overlay,socio economic,nacional,all,medium,false,missing,App Team,left sidebar,IDEAM or UPRA,GeoTIFF or vector,Needed for contextual overlay
-SIRAP_SOLUTIONS,Regional SIRAP Solutions,solution,regional solution,sirap,all,high,false,missing,App Team and Mesa Nacional,solution finder,TBD,GeoTIFF plus JSON,Future regional scenario library
+layer_id,layer_name,layer_group,layer_subtype,target_scope,target_region,priority,required_for_release,current_status,requested_by,source_org,source_url_or_reference,expected_format,owner,target_app_surface,notes
+DISP_ECO_TYPES,Ecosystem Types,boundaries_or_overlays,ecosystem_display,nacional,all,medium,false,missing,App Team,TBD,,GeoTIFF or Feature Service,App Team,left-sidebar-map-layers,Placeholder row exists in UI but not wired
+DISP_CARBON,Carbon Storage,features_or_services,environmental_service,nacional,all,medium,false,missing,App Team,IDEAM,,GeoTIFF,App Team,left-sidebar-map-layers,Needed for environmental services visualization
+DISP_WATER,Water Regulation,features_or_services,environmental_service,nacional,all,medium,false,missing,App Team,IDEAM,,GeoTIFF,App Team,left-sidebar-map-layers,Needed for environmental services visualization
+DISP_LAND_USE,Land Use,boundaries_or_overlays,socio_economic,nacional,all,medium,false,missing,App Team,IDEAM / UPRA,,GeoTIFF or Vector,App Team,left-sidebar-map-layers,Needed for contextual overlay
+SIRAP_SOLUTIONS,Regional SIRAP Solutions,solutions,regional_solution,sirap,all,high,false,missing,App Team + Mesa Nacional,TBD,,GeoTIFF + JSON sidecar,App Team,solution-finder,Future regional scenario library

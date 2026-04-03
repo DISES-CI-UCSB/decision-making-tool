@@ -1,4 +1,4 @@
-id,name,group,type,scope,region,release_required,active,finder_selectable,source_kind,source_org,source_ref,format,path,verified_utc,owner,notes
+layer_id,layer_name,layer_group,layer_subtype,scope,region_key,required_for_release,active_in_app,selectable_in_finder,source_type,source_org,source_url_or_reference,data_format,repo_path,last_verified_utc,owner,notes
 COST_HF_2030,Human Footprint 2030,cost,cost_surface,nacional,all,true,true,true,local_file,Humboldt (IAvH),,GeoTIFF,data/costs/human_footprint_2030.tif,2026-04-03T00:27:53Z,Mesa Nacional + App Team,Primary cost layer
 COST_NET_BENEFIT,Net Benefit (Renta Agropecuaria),cost,cost_surface,nacional,all,true,true,true,local_file,Humboldt (IAvH),,GeoTIFF,data/costs/net_benefit.tif,2026-04-03T00:27:53Z,Mesa Nacional + App Team,Alternative cost layer
 COST_CONFLICT,Conflict (Coca + Deaths),cost,cost_surface,nacional,all,true,true,true,local_file,UNODC / Government,,GeoTIFF,data/costs/conflict.tif,2026-04-03T00:27:53Z,Mesa Nacional + App Team,Conflict-based cost

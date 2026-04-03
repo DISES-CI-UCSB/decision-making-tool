@@ -23,6 +23,38 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 | `layers_in_use.csv` | All layers we currently have — name, type, path, app status |
 | `layers_required.csv` | Layers we still need but don't have yet |
 
+### Layers In Use Snapshot (synced from `layers_in_use.csv`)
+
+| layer_id | layer_name | layer_group | layer_subtype | scope | active_in_app | selectable_in_finder | repo_path | notes |
+|---|---|---|---|---|---|---|---|---|
+| `COST_HF_2030` | Human Footprint 2030 | cost | cost_surface | nacional | true | true | `data/costs/human_footprint_2030.tif` | Primary cost layer |
+| `COST_NET_BENEFIT` | Net Benefit (Renta Agropecuaria) | cost | cost_surface | nacional | true | true | `data/costs/net_benefit.tif` | Alternative cost layer |
+| `COST_CONFLICT` | Conflict (Coca + Deaths) | cost | cost_surface | nacional | true | true | `data/costs/conflict.tif` | Conflict-based cost |
+| `INCL_RUNAP` | Protected Areas (RUNAP 2023) | includes_excludes | include | nacional | true | true | `data/includes_excludes/runap_protected_areas.tif` | Always applied include |
+| `INCL_COMUNIDADES` | Afro-Colombian Communities | includes_excludes | include | nacional | true | true | `data/includes_excludes/comunidades.tif` | Optional include toggle |
+| `INCL_RESGUARDOS` | Indigenous Reserves (Resguardos) | includes_excludes | include | nacional | false | false | `data/includes_excludes/resguardos.tif` | Data exists but not wired in UI |
+| `INCL_OMECS` | OMECs (raster) | includes_excludes | include | nacional | true | true | `data/includes_excludes/omecs.tif` | Optional include toggle |
+| `INCL_OMECS_VECTOR` | OMECs (vector) | includes_excludes | reference | nacional | false | false | `data/includes_excludes/omecs_vector/` | Vector overlay source |
+| `FEAT_SPECIES_RICHNESS` | Species Richness (Ecosistemas) | features | ecosystems | nacional | true | true | `data/features/ecosystems/ecosistemas.tif` | Primary feature for Ecos17/Ecos30 runs |
+| `FEAT_PARAMOS` | Paramos | features | strategic | nacional | true | true | `data/features/strategic/paramos.tif` | Strategic feature |
+| `FEAT_MANGROVES` | Mangroves (INVEMAR) | features | strategic | nacional | true | true | `data/features/strategic/mangroves.tif` | Strategic feature |
+| `FEAT_WETLANDS` | Wetlands (Humedales) | features | strategic | nacional | true | true | `data/features/strategic/humedales.tif` | Strategic feature |
+| `FEAT_DRY_FOREST` | Dry Forest (Bosque Seco) | features | strategic | nacional | true | true | `data/features/strategic/bosque_seco.tif` | Strategic feature |
+| `SPECIES_ALL` | Individual Species Distributions (~8751) | features | species | nacional | false | false | `data/features/species/` | Repository dataset for species-level future use |
+| `ADMIN_SIRAP` | SIRAP Regions | boundaries | admin | nacional | true | true | `data/boundaries/sirap_regions.geojson` | AOI selector geometry |
+| `ADMIN_DEPARTMENTS` | Colombia Departments | boundaries | admin | nacional | true | true | `(remote)` | AOI selector layer |
+| `ADMIN_MUNICIPALITIES` | Colombia Municipalities | boundaries | admin | nacional | true | true | `(remote)` | AOI selector layer |
+
+### Layers Required Snapshot (synced from `layers_required.csv`)
+
+| layer_id | layer_name | layer_group | layer_subtype | target_scope | priority | current_status | target_app_surface | notes |
+|---|---|---|---|---|---|---|---|---|
+| `DISP_ECO_TYPES` | Ecosystem Types | boundaries_or_overlays | ecosystem_display | nacional | medium | missing | left-sidebar-map-layers | Placeholder row exists in UI but not wired |
+| `DISP_CARBON` | Carbon Storage | features_or_services | environmental_service | nacional | medium | missing | left-sidebar-map-layers | Needed for environmental services visualization |
+| `DISP_WATER` | Water Regulation | features_or_services | environmental_service | nacional | medium | missing | left-sidebar-map-layers | Needed for environmental services visualization |
+| `DISP_LAND_USE` | Land Use | boundaries_or_overlays | socio_economic | nacional | medium | missing | left-sidebar-map-layers | Needed for contextual overlay |
+| `SIRAP_SOLUTIONS` | Regional SIRAP Solutions | solutions | regional_solution | sirap | high | missing | solution-finder | Future regional scenario library |
+
 ## Features (`features/`)
 
 | Subfolder | Contents |
