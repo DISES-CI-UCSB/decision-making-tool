@@ -1,0 +1,23 @@
+{
+  "id": "ecos17_runap_hf_example",
+  "solution_id": "ecos17_runap_hf_example",
+  "run_name": "Ecos17+RUNAP_HF",
+  "scope": "nacional",
+  "sirap_id": null,
+  "raster_file": "Ecos17+RUNAP_HF.tif",
+  "generated_at_utc": "2026-04-03T00:00:00Z",
+  "generated_by": "mesa_nacional_team",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_SPECIES_RICHNESS"
+    ],
+    "costs": [
+      "COST_HF_2030"
+    ],
+    "includes": [
+      "INCL_RUNAP"
+    ],
+    "excludes": []
+  },
+  "notes": "Example metadata sidecar template for nacional solution uploads."
+}

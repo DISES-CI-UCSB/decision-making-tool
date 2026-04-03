@@ -1,0 +1,23 @@
+{
+  "id": "sirap_caribe_ecos17_runap_hf_example",
+  "solution_id": "sirap_caribe_ecos17_runap_hf_example",
+  "run_name": "SIRAP_CARIBE_Ecos17+RUNAP_HF",
+  "scope": "sirap",
+  "sirap_id": "caribe",
+  "raster_file": "SIRAP_CARIBE_Ecos17+RUNAP_HF.tif",
+  "generated_at_utc": "2026-04-03T00:00:00Z",
+  "generated_by": "sirap_caribe_team",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_SPECIES_RICHNESS"
+    ],
+    "costs": [
+      "COST_HF_2030"
+    ],
+    "includes": [
+      "INCL_RUNAP"
+    ],
+    "excludes": []
+  },
+  "notes": "Example metadata sidecar template for SIRAP solution uploads."
+}
