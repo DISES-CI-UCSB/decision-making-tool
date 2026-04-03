@@ -1,0 +1,31 @@
+{
+  "id": "ecos17_runap_co",
+  "run_name": "Ecos17+RUNAP_CO",
+  "scope": "nacional",
+  "raster_file": "Ecos17+RUNAP_CO.tif",
+  "generated_at_utc": "2026-04-02T23:27:14+00:00",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_SPECIES_RICHNESS"
+    ],
+    "cost": "COST_NET_BENEFIT",
+    "includes": [
+      "INCL_RUNAP"
+    ],
+    "excludes": []
+  },
+  "evaluation": {
+    "n_selected": "226225",
+    "cost": "1.51E+12",
+    "pct_targets_met": "100"
+  },
+  "coverage": [
+    {
+      "feature": "ecosistemas",
+      "met": "TRUE",
+      "relative_target": "0.17",
+      "relative_held": "0.17307068",
+      "relative_shortfall": "0"
+    }
+  ]
+}

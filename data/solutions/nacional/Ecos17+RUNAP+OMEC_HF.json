@@ -1,0 +1,32 @@
+{
+  "id": "ecos17_runap_omec_hf",
+  "run_name": "Ecos17+RUNAP+OMEC_HF",
+  "scope": "nacional",
+  "raster_file": "Ecos17+RUNAP+OMEC_HF.tif",
+  "generated_at_utc": "2026-04-02T23:27:14+00:00",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_SPECIES_RICHNESS"
+    ],
+    "cost": "COST_HF_2030",
+    "includes": [
+      "INCL_RUNAP",
+      "INCL_OMECS"
+    ],
+    "excludes": []
+  },
+  "evaluation": {
+    "n_selected": "339883",
+    "cost": "7857664.19",
+    "pct_targets_met": "100"
+  },
+  "coverage": [
+    {
+      "feature": "ecosistemas",
+      "met": "TRUE",
+      "relative_target": "0.17",
+      "relative_held": "0.2560834",
+      "relative_shortfall": "0"
+    }
+  ]
+}

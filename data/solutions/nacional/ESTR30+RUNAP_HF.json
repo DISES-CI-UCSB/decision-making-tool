@@ -1,0 +1,55 @@
+{
+  "id": "estr30_runap_hf",
+  "run_name": "ESTR30+RUNAP_HF",
+  "scope": "nacional",
+  "raster_file": "ESTR30+RUNAP_HF.tif",
+  "generated_at_utc": "2026-04-02T23:27:14+00:00",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_PARAMOS",
+      "FEAT_MANGROVES",
+      "FEAT_WETLANDS",
+      "FEAT_DRY_FOREST"
+    ],
+    "cost": "COST_HF_2030",
+    "includes": [
+      "INCL_RUNAP"
+    ],
+    "excludes": []
+  },
+  "evaluation": {
+    "n_selected": "404519",
+    "cost": "3585849.234",
+    "pct_targets_met": "100"
+  },
+  "coverage": [
+    {
+      "feature": "paramos",
+      "met": "TRUE",
+      "relative_target": "0.3",
+      "relative_held": "0.300056101",
+      "relative_shortfall": "0"
+    },
+    {
+      "feature": "Manglares INVEMAR",
+      "met": "TRUE",
+      "relative_target": "0.3",
+      "relative_held": "0.324944951",
+      "relative_shortfall": "0"
+    },
+    {
+      "feature": "humedales",
+      "met": "TRUE",
+      "relative_target": "0.3",
+      "relative_held": "0.318327785",
+      "relative_shortfall": "0"
+    },
+    {
+      "feature": "bosque_seco",
+      "met": "TRUE",
+      "relative_target": "0.3",
+      "relative_held": "0.300033272",
+      "relative_shortfall": "0"
+    }
+  ]
+}

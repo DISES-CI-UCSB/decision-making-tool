@@ -1,0 +1,23 @@
+{
+  "id": "ecos17_runap_hf",
+  "run_name": "Ecos17+RUNAP_HF",
+  "scope": "nacional",
+  "raster_file": "Ecos17+RUNAP_HF.tif",
+  "generated_at_utc": "2026-04-02T23:27:14+00:00",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_SPECIES_RICHNESS"
+    ],
+    "cost": "COST_HF_2030",
+    "includes": [
+      "INCL_RUNAP"
+    ],
+    "excludes": []
+  },
+  "evaluation": {
+    "n_selected": null,
+    "cost": null,
+    "pct_targets_met": null
+  },
+  "coverage": []
+}

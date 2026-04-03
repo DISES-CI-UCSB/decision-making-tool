@@ -1,0 +1,31 @@
+{
+  "id": "ecos30_runap_conflicto",
+  "run_name": "Ecos30+RUNAP_CONFLICTO",
+  "scope": "nacional",
+  "raster_file": "Ecos30+RUNAP_CONFLICTO.tif",
+  "generated_at_utc": "2026-04-02T23:27:14+00:00",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_SPECIES_RICHNESS"
+    ],
+    "cost": "COST_CONFLICT",
+    "includes": [
+      "INCL_RUNAP"
+    ],
+    "excludes": []
+  },
+  "evaluation": {
+    "n_selected": "437610",
+    "cost": "74278.08419",
+    "pct_targets_met": "100"
+  },
+  "coverage": [
+    {
+      "feature": "ecosistemas",
+      "met": "TRUE",
+      "relative_target": "0.3",
+      "relative_held": "0.300000026",
+      "relative_shortfall": "0"
+    }
+  ]
+}

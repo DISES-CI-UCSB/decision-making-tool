@@ -61,10 +61,17 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 
 | Subfolder | Contents |
 |-----------|----------|
-| `nacional/` | 14 national-level 1km scenarios + evaluation CSVs + species RDS files |
+| `nacional/` | 14 national-level 1km scenarios (`.tif`) + sidecar metadata (`.json`) + manifest (`solution_manifest.csv`) + evaluation CSVs + species RDS files |
 | `sirap/` | Regional SIRAP solutions (empty — future) |
 
 Solution filenames encode scenario parameters. Example: `Ecos17+RUNAP_HF.tif` = 17% ecosystem target, RUNAP locked-in, Human Footprint cost.
+Each solution has a same-name JSON file next to it (for provenance and input IDs), e.g. `Ecos17+RUNAP_HF.tif` + `Ecos17+RUNAP_HF.json`.
+
+To regenerate sidecar metadata and manifest:
+
+```bash
+python3 data/solutions/generate_solution_metadata.py
+```
 
 ## Archive (`archive/`)
 

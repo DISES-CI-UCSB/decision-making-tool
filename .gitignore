@@ -59,8 +59,10 @@ Archive/Cambio_Global/**/*.lock
 !/data/solutions/**/*.tif
 !/data/solutions/**/*.csv
 !/data/solutions/**/*.rds
+!/data/solutions/**/*.json
 !/data/boundaries/
 !/data/boundaries/**
+!/data/**/*.py
 # Frontend deploy assets (bundled into Vercel build)
 !/data/frontend_deploy/
 !/data/frontend_deploy/**
