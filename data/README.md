@@ -6,9 +6,7 @@ All geospatial data layers, solutions, and metadata for the Decision Making Tool
 
 | Folder | What's in it |
 |--------|-------------|
-| `features/` | Conservation targets — what the solver tries to protect |
-| `costs/` | Cost surfaces — what the solver minimizes (soft tradeoff) |
-| `includes_excludes/` | Hard constraints — areas locked in or locked out of solutions |
+| `inputs/` | Solver inputs grouped by role: `features/`, `costs/`, `includes_excludes/` |
 | `boundaries/` | Administrative boundaries for display (not used in optimization) |
 | `solutions/` | PrioritizR outputs, organized by scope (nacional, sirap) |
 | `archive/` | Raw data deliveries, original multi-band stack, zips |
@@ -28,20 +26,20 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 
 | layer_id | layer_name | layer_group | layer_subtype | scope | active_in_app | selectable_in_finder | repo_path | notes |
 |---|---|---|---|---|---|---|---|---|
-| `COST_HF_2030` | Human Footprint 2030 | cost | cost_surface | nacional | true | true | `data/costs/human_footprint_2030.tif` | Primary cost layer |
-| `COST_NET_BENEFIT` | Net Benefit (Renta Agropecuaria) | cost | cost_surface | nacional | true | true | `data/costs/net_benefit.tif` | Alternative cost layer |
-| `COST_CONFLICT` | Conflict (Coca + Deaths) | cost | cost_surface | nacional | true | true | `data/costs/conflict.tif` | Conflict-based cost |
-| `INCL_RUNAP` | Protected Areas (RUNAP 2023) | includes_excludes | include | nacional | true | true | `data/includes_excludes/runap_protected_areas.tif` | Always applied include |
-| `INCL_COMUNIDADES` | Afro-Colombian Communities | includes_excludes | include | nacional | true | true | `data/includes_excludes/comunidades.tif` | Optional include toggle |
-| `INCL_RESGUARDOS` | Indigenous Reserves (Resguardos) | includes_excludes | include | nacional | false | false | `data/includes_excludes/resguardos.tif` | Data exists but not wired in UI |
-| `INCL_OMECS` | OMECs (raster) | includes_excludes | include | nacional | true | true | `data/includes_excludes/omecs.tif` | Optional include toggle |
-| `INCL_OMECS_VECTOR` | OMECs (vector) | includes_excludes | reference | nacional | false | false | `data/includes_excludes/omecs_vector/` | Vector overlay source |
-| `FEAT_SPECIES_RICHNESS` | Species Richness (Ecosistemas) | features | ecosystems | nacional | true | true | `data/features/ecosystems/ecosistemas.tif` | Primary feature for Ecos17/Ecos30 runs |
-| `FEAT_PARAMOS` | Paramos | features | strategic | nacional | true | true | `data/features/strategic/paramos.tif` | Strategic feature |
-| `FEAT_MANGROVES` | Mangroves (INVEMAR) | features | strategic | nacional | true | true | `data/features/strategic/mangroves.tif` | Strategic feature |
-| `FEAT_WETLANDS` | Wetlands (Humedales) | features | strategic | nacional | true | true | `data/features/strategic/humedales.tif` | Strategic feature |
-| `FEAT_DRY_FOREST` | Dry Forest (Bosque Seco) | features | strategic | nacional | true | true | `data/features/strategic/bosque_seco.tif` | Strategic feature |
-| `SPECIES_ALL` | Individual Species Distributions (~8751) | features | species | nacional | false | false | `data/features/species/` | Repository dataset for species-level future use |
+| `COST_HF_2030` | Human Footprint 2030 | cost | cost_surface | nacional | true | true | `data/inputs/costs/human_footprint_2030.tif` | Primary cost layer |
+| `COST_NET_BENEFIT` | Net Benefit (Renta Agropecuaria) | cost | cost_surface | nacional | true | true | `data/inputs/costs/net_benefit.tif` | Alternative cost layer |
+| `COST_CONFLICT` | Conflict (Coca + Deaths) | cost | cost_surface | nacional | true | true | `data/inputs/costs/conflict.tif` | Conflict-based cost |
+| `INCL_RUNAP` | Protected Areas (RUNAP 2023) | includes_excludes | include | nacional | true | true | `data/inputs/includes_excludes/runap_protected_areas.tif` | Always applied include |
+| `INCL_COMUNIDADES` | Afro-Colombian Communities | includes_excludes | include | nacional | true | true | `data/inputs/includes_excludes/comunidades.tif` | Optional include toggle |
+| `INCL_RESGUARDOS` | Indigenous Reserves (Resguardos) | includes_excludes | include | nacional | false | false | `data/inputs/includes_excludes/resguardos.tif` | Data exists but not wired in UI |
+| `INCL_OMECS` | OMECs (raster) | includes_excludes | include | nacional | true | true | `data/inputs/includes_excludes/omecs.tif` | Optional include toggle |
+| `INCL_OMECS_VECTOR` | OMECs (vector) | includes_excludes | reference | nacional | false | false | `data/inputs/includes_excludes/omecs_vector/` | Vector overlay source |
+| `FEAT_SPECIES_RICHNESS` | Species Richness (Ecosistemas) | features | ecosystems | nacional | true | true | `data/inputs/features/ecosystems/ecosistemas.tif` | Primary feature for Ecos17/Ecos30 runs |
+| `FEAT_PARAMOS` | Paramos | features | strategic | nacional | true | true | `data/inputs/features/strategic/paramos.tif` | Strategic feature |
+| `FEAT_MANGROVES` | Mangroves (INVEMAR) | features | strategic | nacional | true | true | `data/inputs/features/strategic/mangroves.tif` | Strategic feature |
+| `FEAT_WETLANDS` | Wetlands (Humedales) | features | strategic | nacional | true | true | `data/inputs/features/strategic/humedales.tif` | Strategic feature |
+| `FEAT_DRY_FOREST` | Dry Forest (Bosque Seco) | features | strategic | nacional | true | true | `data/inputs/features/strategic/bosque_seco.tif` | Strategic feature |
+| `SPECIES_ALL` | Individual Species Distributions (~8751) | features | species | nacional | false | false | `data/inputs/features/species/` | Repository dataset for species-level future use |
 | `ADMIN_SIRAP` | SIRAP Regions | boundaries | admin | nacional | true | true | `data/boundaries/sirap_regions.geojson` | AOI selector geometry |
 | `ADMIN_DEPARTMENTS` | Colombia Departments | boundaries | admin | nacional | true | true | `(remote)` | AOI selector layer |
 | `ADMIN_MUNICIPALITIES` | Colombia Municipalities | boundaries | admin | nacional | true | true | `(remote)` | AOI selector layer |
@@ -89,7 +87,11 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 | `SPECIES_ALL` | Individual Species Distributions (~8751) | nacional | low | false | available_not_wired |
 | `SIRAP_SOLUTIONS` | Regional SIRAP Solutions | sirap | high | false | missing |
 
-## Features (`features/`)
+## Inputs (`inputs/`)
+
+Inputs are grouped by solver role. This reinforces the optimization mental model: these layers are the canonical data that feed scenario generation.
+
+### Features (`inputs/features/`)
 
 | Subfolder | Contents |
 |-----------|----------|
@@ -97,7 +99,7 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 | `strategic/` | 4 nationally strategic ecosystem types (páramos, mangroves, wetlands, dry forest) — ESTR30 targets at 30% each |
 | `species/` | ~8,700 individual species distribution model (SDM) rasters from BioModelos |
 
-## Costs (`costs/`)
+### Costs (`inputs/costs/`)
 
 | File | Description | Values |
 |------|-------------|--------|
@@ -105,7 +107,7 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 | `net_benefit.tif` | Agricultural income / opportunity cost (Renta Agropecuaria) | 0–2.15e9 continuous |
 | `conflict.tif` | Coca cultivation + conflict-related deaths composite, 2016–2022 | 0–265.56 continuous |
 
-## Includes & Excludes (`includes_excludes/`)
+### Includes & Excludes (`inputs/includes_excludes/`)
 
 | File | Description | Values |
 |------|-------------|--------|
@@ -150,12 +152,12 @@ All individual cost and include/exclude TIFs were extracted from the original 9-
 
 | Band | Extracted to | Category |
 |------|-------------|----------|
-| 1 | `costs/human_footprint_2030.tif` | Cost |
-| 2 | `includes_excludes/runap_protected_areas.tif` | Include |
-| 3 | `includes_excludes/comunidades.tif` | Include |
-| 4 | `costs/net_benefit.tif` | Cost |
-| 5 | `includes_excludes/resguardos.tif` | Include |
-| 6 | `includes_excludes/omecs.tif` | Include |
+| 1 | `inputs/costs/human_footprint_2030.tif` | Cost |
+| 2 | `inputs/includes_excludes/runap_protected_areas.tif` | Include |
+| 3 | `inputs/includes_excludes/comunidades.tif` | Include |
+| 4 | `inputs/costs/net_benefit.tif` | Cost |
+| 5 | `inputs/includes_excludes/resguardos.tif` | Include |
+| 6 | `inputs/includes_excludes/omecs.tif` | Include |
 | 7 | `archive/human_footprint_2022.tif` | Unused (archived) |
-| 8 | `costs/conflict.tif` | Cost |
+| 8 | `inputs/costs/conflict.tif` | Cost |
 | 9 | `archive/climate_refugia.tif` | Unused (archived) |
