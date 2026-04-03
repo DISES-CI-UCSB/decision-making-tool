@@ -1,5 +1,6 @@
-id,name,type,description,source,priority,status,notes
-DISP_ECO_TYPES,Ecosystem Types,env-service,Generic ecosystem type visualization,TBD,medium,unknown,UI placeholder exists in left-sidebar
-DISP_CARBON,Carbon Storage,env-service,Above-ground biomass and soil organic carbon,IDEAM,medium,unknown,No data in repo
-DISP_WATER,Water Regulation,env-service,Water regulation / watershed services,IDEAM,medium,unknown,No data in repo
-DISP_LAND_USE,Land Use,socio-economic,Land use classification,IDEAM / UPRA,medium,unknown,No data in repo
+id,name,group,type,scope,region,priority,release_required,status,owner,app_surface,source,format,notes
+DISP_ECO_TYPES,Ecosystem Types,overlay,ecosystem display,nacional,all,medium,false,missing,App Team,left sidebar,TBD,GeoTIFF or feature service,UI row exists but not wired
+DISP_CARBON,Carbon Storage,service,environmental service,nacional,all,medium,false,missing,App Team,left sidebar,IDEAM,GeoTIFF,Needed for environmental service display
+DISP_WATER,Water Regulation,service,environmental service,nacional,all,medium,false,missing,App Team,left sidebar,IDEAM,GeoTIFF,Needed for environmental service display
+DISP_LAND_USE,Land Use,overlay,socio economic,nacional,all,medium,false,missing,App Team,left sidebar,IDEAM or UPRA,GeoTIFF or vector,Needed for contextual overlay
+SIRAP_SOLUTIONS,Regional SIRAP Solutions,solution,regional solution,sirap,all,high,false,missing,App Team and Mesa Nacional,solution finder,TBD,GeoTIFF plus JSON,Future regional scenario library
