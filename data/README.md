@@ -11,7 +11,7 @@ All geospatial data layers, solutions, and metadata for the Decision Making Tool
 | `includes_excludes/` | Hard constraints — areas locked in or locked out of solutions |
 | `boundaries/` | Administrative boundaries for display (not used in optimization) |
 | `solutions/` | PrioritizR outputs, organized by scope (nacional, sirap) |
-| `frontend_deploy/` | Assets bundled into the Vercel build |
+| `frontend_deploy/` | Deploy scripts + manifest used to validate/sync assets into the frontend build |
 | `archive/` | Raw data deliveries, original multi-band stack, zips |
 
 ## Layer Registries
@@ -131,6 +131,7 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 
 Solution filenames encode scenario parameters. Example: `Ecos17+RUNAP_HF.tif` = 17% ecosystem target, RUNAP locked-in, Human Footprint cost.
 Each solution has a same-name JSON file next to it (for provenance and input IDs), e.g. `Ecos17+RUNAP_HF.tif` + `Ecos17+RUNAP_HF.json`.
+`solutions/nacional/` is the canonical source; deploy scripts copy required files from there to `frontend/public/data/solutions/`.
 
 To regenerate sidecar metadata and manifest:
 
