@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const sourceDir = path.resolve(__dirname, '../../solutions/nacional');
-const targetDir = path.resolve(__dirname, '../../../frontend/public/data/solutions');
+const sourceDir = path.resolve(__dirname, '../../../data/solutions/nacional');
+const targetDir = path.resolve(__dirname, '../../public/data/solutions');
 const allowedExtensions = new Set(['.tif', '.csv', '.json']);
 
 const formatMb = (bytes) => `${(bytes / (1024 * 1024)).toFixed(2)} MB`;

@@ -9,9 +9,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "sync:solutions": "node ../data/frontend_deploy/scripts/sync-solutions.mjs",
-    "sync:boundaries": "node ../data/frontend_deploy/scripts/sync-boundaries.mjs",
-    "validate:deploy-assets": "node ../data/frontend_deploy/scripts/validate-deploy-assets.mjs",
+    "sync:solutions": "node ./scripts/data-deploy/sync-solutions.mjs",
+    "sync:boundaries": "node ./scripts/data-deploy/sync-boundaries.mjs",
+    "validate:deploy-assets": "node ./scripts/data-deploy/validate-deploy-assets.mjs",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css,json,md}\"",
     "prepare": "cd .. && husky .husky"
   },

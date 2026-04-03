@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const manifestPath = path.resolve(__dirname, '../manifest.json');
-const sourceDir = path.resolve(__dirname, '../../solutions/nacional');
-const publicDir = path.resolve(__dirname, '../../../frontend/public/data/solutions');
+const manifestPath = path.resolve(__dirname, './manifest.json');
+const sourceDir = path.resolve(__dirname, '../../../data/solutions/nacional');
+const publicDir = path.resolve(__dirname, '../../public/data/solutions');
 
 const toMb = (bytes) => `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 
@@ -61,7 +61,7 @@ async function main() {
   }
 
   const sourceStats = await validateLocation('data/deploy source', sourceDir, requiredFiles, allowedExtensions);
-  const publicStats = await validateLocation('eco-plan/public target', publicDir, requiredFiles, allowedExtensions);
+  const publicStats = await validateLocation('frontend/public target', publicDir, requiredFiles, allowedExtensions);
 
   if (sourceStats.maxFileBytes > maxSingleFileBytes) {
     throw new Error(

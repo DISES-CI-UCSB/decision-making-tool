@@ -11,10 +11,11 @@ All geospatial data layers, solutions, and metadata for the Decision Making Tool
 | `includes_excludes/` | Hard constraints — areas locked in or locked out of solutions |
 | `boundaries/` | Administrative boundaries for display (not used in optimization) |
 | `solutions/` | PrioritizR outputs, organized by scope (nacional, sirap) |
-| `frontend_deploy/` | Deploy scripts + manifest used to validate/sync assets into the frontend build |
 | `archive/` | Raw data deliveries, original multi-band stack, zips |
 
 ## Layer Registries
+
+Deploy automation scripts now live in `frontend/scripts/data-deploy/`. They sync canonical solution and boundary assets from `data/` into `frontend/public/data/` during frontend build/deploy workflows.
 
 Two CSVs at this level track all data layers. These are manually synced with a shared Google Sheet maintained by Kevin.
 

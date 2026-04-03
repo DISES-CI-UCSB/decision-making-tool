@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const sourcePath = path.resolve(__dirname, '../../boundaries/sirap_regions.geojson');
-const targetDir = path.resolve(__dirname, '../../../frontend/public/data');
+const sourcePath = path.resolve(__dirname, '../../../data/boundaries/sirap_regions.geojson');
+const targetDir = path.resolve(__dirname, '../../public/data');
 const targetPath = path.join(targetDir, 'sirap-regions.geojson');
 
 async function main() {
