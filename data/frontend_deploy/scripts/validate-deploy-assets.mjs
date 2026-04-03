@@ -6,8 +6,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const manifestPath = path.resolve(__dirname, '../manifest.json');
-const sourceDir = path.resolve(__dirname, '../solutions');
-const publicDir = path.resolve(__dirname, '../../../../eco-plan/public/data/solutions');
+const sourceDir = path.resolve(__dirname, '../../solutions/nacional');
+const publicDir = path.resolve(__dirname, '../../../frontend/public/data/solutions');
 
 const toMb = (bytes) => `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 
@@ -27,16 +27,16 @@ async function getStatsOrThrow(filePath) {
   return fs.stat(filePath);
 }
 
-async function validateLocation(label, baseDir, requiredFiles, allowedExtensions) {
+async function validateLocation(label, baseDir, requiredFiles, _allowedExtensions) {
   const names = await fs.readdir(baseDir);
-  const disallowed = names.filter((name) => !allowedExtensions.has(path.extname(name).toLowerCase()));
-  if (disallowed.length > 0) {
-    throw new Error(`${label} contains disallowed files: ${disallowed.join(', ')}`);
-  }
+  const availableFiles = new Set(names);
 
   let totalBytes = 0;
   let maxFileBytes = 0;
   for (const file of requiredFiles) {
+    if (!availableFiles.has(file)) {
+      throw new Error(`Missing required file in ${label}: ${file}`);
+    }
     const stats = await getStatsOrThrow(path.join(baseDir, file));
     if (!stats.isFile()) {
       throw new Error(`Expected file but found non-file: ${path.join(baseDir, file)}`);

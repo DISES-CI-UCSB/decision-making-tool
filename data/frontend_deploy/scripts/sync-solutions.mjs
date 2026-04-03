@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const sourceDir = path.resolve(__dirname, '../solutions');
-const targetDir = path.resolve(__dirname, '../../../../eco-plan/public/data/solutions');
-const allowedExtensions = new Set(['.tif', '.csv']);
+const sourceDir = path.resolve(__dirname, '../../solutions/nacional');
+const targetDir = path.resolve(__dirname, '../../../frontend/public/data/solutions');
+const allowedExtensions = new Set(['.tif', '.csv', '.json']);
 
 const formatMb = (bytes) => `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 
@@ -35,7 +35,7 @@ async function main() {
     allowedExtensions.has(path.extname(file).toLowerCase()),
   );
   if (sourceFiles.length === 0) {
-    throw new Error(`No .tif/.csv files found in ${sourceDir}`);
+    throw new Error(`No .tif/.csv/.json files found in ${sourceDir}`);
   }
 
   const sourceSet = new Set(sourceFiles);
