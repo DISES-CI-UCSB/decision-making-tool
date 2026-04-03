@@ -47,13 +47,46 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 
 ### Layers Required Snapshot (synced from `layers_required.csv`)
 
-| layer_id | layer_name | layer_group | layer_subtype | target_scope | priority | current_status | target_app_surface | notes |
-|---|---|---|---|---|---|---|---|---|
-| `DISP_ECO_TYPES` | Ecosystem Types | boundaries_or_overlays | ecosystem_display | nacional | medium | missing | left-sidebar-map-layers | Placeholder row exists in UI but not wired |
-| `DISP_CARBON` | Carbon Storage | features_or_services | environmental_service | nacional | medium | missing | left-sidebar-map-layers | Needed for environmental services visualization |
-| `DISP_WATER` | Water Regulation | features_or_services | environmental_service | nacional | medium | missing | left-sidebar-map-layers | Needed for environmental services visualization |
-| `DISP_LAND_USE` | Land Use | boundaries_or_overlays | socio_economic | nacional | medium | missing | left-sidebar-map-layers | Needed for contextual overlay |
-| `SIRAP_SOLUTIONS` | Regional SIRAP Solutions | solutions | regional_solution | sirap | high | missing | solution-finder | Future regional scenario library |
+| layer_id | layer_name | target_scope | priority | required_for_release | current_status |
+|---|---|---|---|---|---|
+| `COST_HF_2030` | Human Footprint 2030 | nacional | high | true | available |
+| `COST_NET_BENEFIT` | Net Benefit (Renta Agropecuaria) | nacional | high | true | available |
+| `COST_CONFLICT` | Conflict (Coca + Deaths) | nacional | high | true | available |
+| `INCL_RUNAP` | Protected Areas (RUNAP 2023) | nacional | high | true | available |
+| `INCL_COMUNIDADES` | Afro-Colombian Communities | nacional | medium | true | available |
+| `INCL_OMECS` | OMECs (raster) | nacional | medium | true | available |
+| `FEAT_SPECIES_RICHNESS` | Species Richness (Ecosistemas) | nacional | high | true | available |
+| `FEAT_PARAMOS` | Paramos | nacional | high | true | available |
+| `FEAT_MANGROVES` | Mangroves (INVEMAR) | nacional | high | true | available |
+| `FEAT_WETLANDS` | Wetlands (Humedales) | nacional | high | true | available |
+| `FEAT_DRY_FOREST` | Dry Forest (Bosque Seco) | nacional | high | true | available |
+| `ADMIN_SIRAP` | SIRAP Regions | nacional | high | true | available |
+| `ADMIN_DEPARTMENTS` | Colombia Departments | nacional | high | true | available |
+| `ADMIN_MUNICIPALITIES` | Colombia Municipalities | nacional | high | true | available |
+| `SOL_NACIONAL_RASTERS` | Nacional Solution Rasters | nacional | high | true | available |
+| `SOL_NACIONAL_METADATA_JSON` | Nacional Solution Sidecar Metadata | nacional | high | true | available |
+| `SOL_NACIONAL_MANIFEST` | Nacional Solution Manifest | nacional | high | true | available |
+| `SOL_NACIONAL_EVAL_SUMMARY` | Nacional Evaluation Summary | nacional | high | true | available |
+| `SOL_NACIONAL_TARGET_COVERAGE` | Nacional Target Coverage | nacional | medium | true | available |
+| `DISP_ECO_TYPES` | Ecosystem Types Display | nacional | medium | false | missing |
+| `DISP_PARAMOS` | Paramos Display | nacional | medium | false | available_not_wired |
+| `DISP_WETLANDS` | Wetlands Display | nacional | medium | false | available_not_wired |
+| `DISP_DRY_FOREST` | Dry Forest Display | nacional | medium | false | available_not_wired |
+| `DISP_MANGROVES` | Mangroves Display | nacional | medium | false | available_not_wired |
+| `DISP_CARBON` | Carbon Storage Display | nacional | medium | false | missing |
+| `DISP_WATER` | Water Regulation Display | nacional | medium | false | missing |
+| `DISP_INDIGENOUS` | Indigenous Reserves Display | nacional | medium | false | available_not_wired |
+| `DISP_AFRO` | Afro Territories Display | nacional | medium | false | available_not_wired |
+| `DISP_HF` | Human Footprint Display | nacional | medium | false | available_not_wired |
+| `DISP_AG_COST` | Agricultural Opportunity Cost Display | nacional | medium | false | available_not_wired |
+| `DISP_LAND_USE` | Land Use Display | nacional | medium | false | missing |
+| `DISP_CONFLICT` | Conflict Zones Display | nacional | medium | false | available_not_wired |
+| `DISP_RUNAP` | RUNAP Overlay Display | nacional | medium | false | available_not_wired |
+| `DISP_OMECS` | OMECs Overlay Display | nacional | medium | false | available_not_wired |
+| `INCL_RESGUARDOS` | Indigenous Reserves (Resguardos) | nacional | low | false | available_not_wired |
+| `INCL_OMECS_VECTOR` | OMECs (vector) | nacional | low | false | available_not_wired |
+| `SPECIES_ALL` | Individual Species Distributions (~8751) | nacional | low | false | available_not_wired |
+| `SIRAP_SOLUTIONS` | Regional SIRAP Solutions | sirap | high | false | missing |
 
 ## Features (`features/`)
 
