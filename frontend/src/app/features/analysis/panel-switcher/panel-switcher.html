@@ -198,10 +198,7 @@
               } @else {
                 <section id="right-sidebar-v3-overview-gains-section" class="v3-section">
                   <header id="right-sidebar-v3-overview-gains-head" class="v3-section-head">
-                    <span
-                      id="right-sidebar-v3-overview-gains-dot"
-                      class="v3-section-dot v3-section-dot-gains"
-                    ></span>
+                    <span id="right-sidebar-v3-overview-gains-dot" class="v3-section-dot"></span>
                     <span id="right-sidebar-v3-overview-gains-label" class="v3-section-label">{{
                       'analysis.overview.sections.conservationGains' | translate
                     }}</span>
@@ -212,13 +209,6 @@
                         [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
                         class="v3-metric-row"
                       >
-                        <span
-                          [id]="'right-sidebar-v3-overview-gain-icon-' + entry.id"
-                          class="v3-m-icon"
-                          [class.v3-m-icon-green]="!entry.unavailable"
-                          [class.v3-m-icon-muted]="entry.unavailable"
-                          >●</span
-                        >
                         <div
                           [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
                           class="v3-m-body"
@@ -260,20 +250,14 @@
                       </article>
                     }
                   </div>
-                  <p
-                    id="right-sidebar-v3-overview-gains-insight"
-                    class="v3-insight v3-insight-gains"
-                  >
+                  <p id="right-sidebar-v3-overview-gains-insight" class="v3-insight">
                     {{ 'analysis.overview.insightGains' | translate }}
                   </p>
                 </section>
 
                 <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
                   <header id="right-sidebar-v3-overview-costs-head" class="v3-section-head">
-                    <span
-                      id="right-sidebar-v3-overview-costs-dot"
-                      class="v3-section-dot v3-section-dot-costs"
-                    ></span>
+                    <span id="right-sidebar-v3-overview-costs-dot" class="v3-section-dot"></span>
                     <span id="right-sidebar-v3-overview-costs-label" class="v3-section-label">{{
                       'analysis.overview.sections.costsAndTradeoffs' | translate
                     }}</span>
@@ -284,13 +268,6 @@
                         [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
                         class="v3-metric-row"
                       >
-                        <span
-                          [id]="'right-sidebar-v3-overview-cost-icon-' + entry.id"
-                          class="v3-m-icon"
-                          [class.v3-m-icon-amber]="!entry.unavailable"
-                          [class.v3-m-icon-muted]="entry.unavailable"
-                          >●</span
-                        >
                         <div
                           [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
                           class="v3-m-body"
@@ -332,10 +309,7 @@
                       </article>
                     }
                   </div>
-                  <p
-                    id="right-sidebar-v3-overview-costs-insight"
-                    class="v3-insight v3-insight-costs"
-                  >
+                  <p id="right-sidebar-v3-overview-costs-insight" class="v3-insight">
                     {{ 'analysis.overview.insightCosts' | translate }}
                   </p>
                 </section>
