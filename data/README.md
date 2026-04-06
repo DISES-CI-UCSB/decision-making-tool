@@ -23,6 +23,7 @@ Two CSVs at this level track non-solution layers (inputs, boundaries, and displa
 | `layers_required.csv` | Non-solution layers still needed or not fully wired |
 
 `layer_description` in both registries is intended to be user-facing UI copy (plain language). Use `notes` for internal implementation context.
+`layer_group` uses `features`, `cost`, and `includes_excludes` for solution inputs; use `boundaries` and `context_overlays` for non-input context layers.
 
 ### Layers In Use Snapshot (synced from `layers_in_use.csv`)
 
