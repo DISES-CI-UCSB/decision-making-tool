@@ -15,12 +15,14 @@ All geospatial data layers, solutions, and metadata for the Decision Making Tool
 
 Deploy automation scripts now live in `frontend/scripts/data-deploy/`. They sync canonical solution and boundary assets from `data/` into `frontend/public/data/` during frontend build/deploy workflows.
 
-Two CSVs at this level track all data layers. These are manually synced with a shared Google Sheet maintained by Kevin.
+Two CSVs at this level track non-solution layers (inputs, boundaries, and display overlays). These are manually synced with a shared Google Sheet maintained by Kevin.
 
 | File | Purpose |
 |------|---------|
-| `layers_in_use.csv` | All layers we currently have — name, type, path, app status |
-| `layers_required.csv` | Layers we still need but don't have yet |
+| `layers_in_use.csv` | Non-solution layers currently available — name, type, path, app status |
+| `layers_required.csv` | Non-solution layers still needed or not fully wired |
+
+`layer_description` in both registries is intended to be user-facing UI copy (plain language). Use `notes` for internal implementation context.
 
 ### Layers In Use Snapshot (synced from `layers_in_use.csv`)
 
@@ -62,11 +64,6 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 | `ADMIN_SIRAP` | SIRAP Regions | nacional | high | true | available |
 | `ADMIN_DEPARTMENTS` | Colombia Departments | nacional | high | true | available |
 | `ADMIN_MUNICIPALITIES` | Colombia Municipalities | nacional | high | true | available |
-| `SOL_NACIONAL_RASTERS` | Nacional Solution Rasters | nacional | high | true | available |
-| `SOL_NACIONAL_METADATA_JSON` | Nacional Solution Sidecar Metadata | nacional | high | true | available |
-| `SOL_NACIONAL_MANIFEST` | Nacional Solution Manifest | nacional | high | true | available |
-| `SOL_NACIONAL_EVAL_SUMMARY` | Nacional Evaluation Summary | nacional | high | true | available |
-| `SOL_NACIONAL_TARGET_COVERAGE` | Nacional Target Coverage | nacional | medium | true | available |
 | `DISP_ECO_TYPES` | Ecosystem Types Display | nacional | medium | false | missing |
 | `DISP_PARAMOS` | Paramos Display | nacional | medium | false | available_not_wired |
 | `DISP_WETLANDS` | Wetlands Display | nacional | medium | false | available_not_wired |
@@ -85,7 +82,8 @@ Two CSVs at this level track all data layers. These are manually synced with a s
 | `INCL_RESGUARDOS` | Indigenous Reserves (Resguardos) | nacional | low | false | available_not_wired |
 | `INCL_OMECS_VECTOR` | OMECs (vector) | nacional | low | false | available_not_wired |
 | `SPECIES_ALL` | Individual Species Distributions (~8751) | nacional | low | false | available_not_wired |
-| `SIRAP_SOLUTIONS` | Regional SIRAP Solutions | sirap | high | false | missing |
+
+Solution artifacts (`.tif` + same-name `.json`) are tracked in `data/solutions/` and companion collaboration tooling (Drive/Sheet tabs), not in layer registries.
 
 ## Inputs (`inputs/`)
 
@@ -135,12 +133,8 @@ Inputs are grouped by solver role. This reinforces the optimization mental model
 Solution filenames encode scenario parameters. Example: `Ecos17+RUNAP_HF.tif` = 17% ecosystem target, RUNAP locked-in, Human Footprint cost.
 Each solution has a same-name JSON file next to it (for provenance and input IDs), e.g. `Ecos17+RUNAP_HF.tif` + `Ecos17+RUNAP_HF.json`.
 `solutions/nacional/` is the canonical source; deploy scripts copy required files from there to `frontend/public/data/solutions/`.
-
-To regenerate sidecar metadata and manifest:
-
-```bash
-python3 data/solutions/generate_solution_metadata.py
-```
+Canonical solution JSON metadata is provided by collaborators (for now, Kevin/Mesa workflow), not auto-generated in this repo.
+Use `data/solutions/metadata/example_solution_metadata.json` and `data/solutions/metadata/example_solution_metadata_sirap.json` as the upload contract templates.
 
 ## Archive (`archive/`)
 
