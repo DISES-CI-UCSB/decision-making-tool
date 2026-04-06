@@ -64,21 +64,21 @@ Two CSVs at this level track non-solution layers (inputs, boundaries, and displa
 | `ADMIN_SIRAP` | SIRAP Regions | nacional | high | true | available |
 | `ADMIN_DEPARTMENTS` | Colombia Departments | nacional | high | true | available |
 | `ADMIN_MUNICIPALITIES` | Colombia Municipalities | nacional | high | true | available |
-| `DISP_ECO_TYPES` | Ecosystem Types Display | nacional | medium | false | missing |
-| `DISP_PARAMOS` | Paramos Display | nacional | medium | false | available_not_wired |
-| `DISP_WETLANDS` | Wetlands Display | nacional | medium | false | available_not_wired |
-| `DISP_DRY_FOREST` | Dry Forest Display | nacional | medium | false | available_not_wired |
-| `DISP_MANGROVES` | Mangroves Display | nacional | medium | false | available_not_wired |
-| `DISP_CARBON` | Carbon Storage Display | nacional | medium | false | missing |
-| `DISP_WATER` | Water Regulation Display | nacional | medium | false | missing |
-| `DISP_INDIGENOUS` | Indigenous Reserves Display | nacional | medium | false | available_not_wired |
-| `DISP_AFRO` | Afro Territories Display | nacional | medium | false | available_not_wired |
-| `DISP_HF` | Human Footprint Display | nacional | medium | false | available_not_wired |
-| `DISP_AG_COST` | Agricultural Opportunity Cost Display | nacional | medium | false | available_not_wired |
-| `DISP_LAND_USE` | Land Use Display | nacional | medium | false | missing |
-| `DISP_CONFLICT` | Conflict Zones Display | nacional | medium | false | available_not_wired |
-| `DISP_RUNAP` | RUNAP Overlay Display | nacional | medium | false | available_not_wired |
-| `DISP_OMECS` | OMECs Overlay Display | nacional | medium | false | available_not_wired |
+| `DISP_ECO_TYPES` | Ecosystem Types | nacional | medium | false | missing |
+| `DISP_PARAMOS` | Paramos | nacional | medium | false | available_not_wired |
+| `DISP_WETLANDS` | Wetlands | nacional | medium | false | available_not_wired |
+| `DISP_DRY_FOREST` | Dry Forest | nacional | medium | false | available_not_wired |
+| `DISP_MANGROVES` | Mangroves | nacional | medium | false | available_not_wired |
+| `DISP_CARBON` | Carbon Storage | nacional | medium | false | missing |
+| `DISP_WATER` | Water Regulation | nacional | medium | false | missing |
+| `DISP_INDIGENOUS` | Indigenous Reserves | nacional | medium | false | available_not_wired |
+| `DISP_AFRO` | Afro Territories | nacional | medium | false | available_not_wired |
+| `DISP_HF` | Human Footprint | nacional | medium | false | available_not_wired |
+| `DISP_AG_COST` | Agricultural Opportunity Cost | nacional | medium | false | available_not_wired |
+| `DISP_LAND_USE` | Land Use | nacional | medium | false | missing |
+| `DISP_CONFLICT` | Conflict Zones | nacional | medium | false | available_not_wired |
+| `DISP_RUNAP` | RUNAP Overlay | nacional | medium | false | available_not_wired |
+| `DISP_OMECS` | OMECs Overlay | nacional | medium | false | available_not_wired |
 | `INCL_RESGUARDOS` | Indigenous Reserves (Resguardos) | nacional | low | false | available_not_wired |
 | `INCL_OMECS_VECTOR` | OMECs (vector) | nacional | low | false | available_not_wired |
 | `SPECIES_ALL` | Individual Species Distributions (~8751) | nacional | low | false | available_not_wired |
