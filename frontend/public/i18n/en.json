@@ -95,9 +95,9 @@
       "nationalContribution": "Nat'l Contribution",
       "addsToExisting": "Adds {{added}}% to existing {{existing}}%",
       "spatial": {
-        "priorityArea": "priority area",
+        "priorityArea": "area",
         "zones": "zones",
-        "avg": "Avg"
+        "avg": "avg"
       },
       "sections": {
         "conservationGains": "Conservation Gains",

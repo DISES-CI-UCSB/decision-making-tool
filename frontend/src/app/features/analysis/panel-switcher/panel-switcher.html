@@ -151,20 +151,22 @@
                   class="fas fa-map-marked-alt"
                   aria-hidden="true"
                 ></i>
-                <span id="right-sidebar-v3-overview-spatial-area"
-                  ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
-                  {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
-                >
-                <span id="right-sidebar-v3-overview-spatial-sep-1" class="v3-spatial-sep"></span>
-                <span id="right-sidebar-v3-overview-spatial-zones"
-                  ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
-                  {{ 'analysis.overview.spatial.zones' | translate }}</span
-                >
-                <span id="right-sidebar-v3-overview-spatial-sep-2" class="v3-spatial-sep"></span>
-                <span id="right-sidebar-v3-overview-spatial-avg"
-                  >{{ 'analysis.overview.spatial.avg' | translate }}
-                  <b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b></span
-                >
+                <div id="right-sidebar-v3-overview-spatial-metrics" class="v3-spatial-metrics">
+                  <span id="right-sidebar-v3-overview-spatial-area"
+                    ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
+                    {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
+                  >
+                  <span id="right-sidebar-v3-overview-spatial-sep-1" class="v3-spatial-sep"></span>
+                  <span id="right-sidebar-v3-overview-spatial-zones"
+                    ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
+                    {{ 'analysis.overview.spatial.zones' | translate }}</span
+                  >
+                  <span id="right-sidebar-v3-overview-spatial-sep-2" class="v3-spatial-sep"></span>
+                  <span id="right-sidebar-v3-overview-spatial-avg"
+                    ><b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b>
+                    {{ 'analysis.overview.spatial.avg' | translate }}</span
+                  >
+                </div>
               </section>
 
               @if (isOverviewLoading()) {
