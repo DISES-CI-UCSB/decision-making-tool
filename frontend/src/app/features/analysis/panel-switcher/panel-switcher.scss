@@ -138,7 +138,7 @@
 
 .v3-header-date {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-subtext);
 }
 
 .v3-scenario-name {
@@ -239,7 +239,7 @@
 .v3-hero-value-small {
   font-size: 15px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-subtext);
 }
 
 .v3-hero-bar {
@@ -268,7 +268,7 @@
 
 .v3-hero-sub {
   font-size: 11px;
-  color: #3c4148;
+  color: var(--color-subtext);
 }
 
 .v3-hero-sub strong {
@@ -285,7 +285,7 @@
   background: #f8fafc;
   padding: 8px 12px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-subtext);
 }
 
 .v3-spatial i {
@@ -390,7 +390,7 @@
 .v3-m-desc {
   margin-top: 1px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--color-subtext);
 }
 
 .v3-m-val {
@@ -405,7 +405,7 @@
   margin-top: 1px;
   text-align: right;
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--color-subtext);
 }
 
 .v3-tag-conditional {
@@ -416,7 +416,7 @@
   padding: 1px 6px;
   font-size: 9px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-subtext);
 }
 
 .v3-insight {
@@ -486,7 +486,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--color-subtext);
 }
 
 .v3-panel-footer {
