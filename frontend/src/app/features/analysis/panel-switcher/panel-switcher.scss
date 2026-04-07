@@ -1213,9 +1213,11 @@
   flex: 1;
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.05;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
+  transform: translateY(0.5px);
 }
 
 /* Matches map-layers-panel selected-layer row chevron (stroke V, 180° when collapsed). */
