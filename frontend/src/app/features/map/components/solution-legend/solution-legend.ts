@@ -9,7 +9,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
     @if (loaded(); as sol) {
       <section
         id="solution-legend-panel"
-        class="pointer-events-auto absolute right-3 bottom-14 z-10 max-w-72 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm"
+        class="pointer-events-auto absolute right-3 bottom-14 z-10 max-w-72 rounded-md border border-slate-200 bg-white/95 p-3 shadow-sm"
       >
         <h3
           id="solution-legend-title"
@@ -125,7 +125,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
     @if (isLoading()) {
       <div
         id="solution-legend-loading"
-        class="pointer-events-none absolute left-3 bottom-14 z-10 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm"
+        class="pointer-events-none absolute left-3 bottom-14 z-10 rounded-md border border-slate-200 bg-white/95 px-4 py-3 shadow-sm"
       >
         <span id="solution-legend-loading-text" class="text-xs text-slate-500 animate-pulse">
           Loading solution...
