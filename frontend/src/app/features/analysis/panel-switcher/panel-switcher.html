@@ -507,8 +507,10 @@
                         </div>
                         <div class="aoi-hero-bar">
                           <span
+                            id="aoi-hero-fill-priority"
                             class="aoi-hero-fill-green"
                             [style.width.%]="aoiBarWidth(45)"
+                            [style.background-color]="aoiHeroPriorityBarColor()"
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
@@ -522,10 +524,17 @@
                         </div>
                         <div class="aoi-hero-bar">
                           <span
+                            id="aoi-hero-fill-existing"
                             class="aoi-hero-fill-blue-lt"
                             [style.width.%]="aoiBarWidth(0.9)"
+                            [style.background-color]="aoiHeroExistingContributionColor()"
                           ></span>
-                          <span class="aoi-hero-fill-blue" [style.width.%]="aoiBarWidth(1)"></span>
+                          <span
+                            id="aoi-hero-fill-added"
+                            class="aoi-hero-fill-blue"
+                            [style.width.%]="aoiBarWidth(1)"
+                            [style.background-color]="aoiHeroAddedContributionColor()"
+                          ></span>
                         </div>
                         <div class="aoi-hero-sub">
                           Existing <strong>{{ aoiVal('0.9%') }}</strong> + adds
@@ -795,34 +804,24 @@
                 @if (isAoiSectionExpanded('land')) {
                   <div id="aoi-body-land" class="aoi-section-body">
                     <div id="aoi-landuse-chart" class="aoi-bar-chart">
-                      <div id="aoi-bar-forest" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Natural Forest</span>
-                        <div class="aoi-bar-fill-shell">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(60)"></span>
+                      @for (bar of aoiLandUseBars(); track bar.id) {
+                        <div [id]="'aoi-bar-' + bar.id" class="aoi-bar-row">
+                          <span [id]="'aoi-bar-label-' + bar.id" class="aoi-bar-label">
+                            {{ bar.label }}
+                          </span>
+                          <div [id]="'aoi-bar-fill-shell-' + bar.id" class="aoi-bar-fill-shell">
+                            <span
+                              [id]="'aoi-bar-fill-' + bar.id"
+                              class="aoi-bar-fill"
+                              [style.width.%]="aoiBarWidth(bar.percent)"
+                              [style.background-color]="bar.color"
+                            ></span>
+                          </div>
+                          <span [id]="'aoi-bar-val-' + bar.id" class="aoi-bar-val">
+                            {{ aoiVal(bar.percent + '%') }}
+                          </span>
                         </div>
-                        <span class="aoi-bar-val">{{ aoiVal('60%') }}</span>
-                      </div>
-                      <div id="aoi-bar-pasture" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Pasture</span>
-                        <div class="aoi-bar-fill-shell">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(25)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('25%') }}</span>
-                      </div>
-                      <div id="aoi-bar-crops" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Crops</span>
-                        <div class="aoi-bar-fill-shell">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(10)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('10%') }}</span>
-                      </div>
-                      <div id="aoi-bar-other-land" class="aoi-bar-row">
-                        <span class="aoi-bar-label">Other</span>
-                        <div class="aoi-bar-fill-shell">
-                          <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(5)"></span>
-                        </div>
-                        <span class="aoi-bar-val">{{ aoiVal('5%') }}</span>
-                      </div>
+                      }
                     </div>
 
                     <div id="aoi-socio-metrics" class="aoi-metric-table">

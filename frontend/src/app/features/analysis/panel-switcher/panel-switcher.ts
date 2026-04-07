@@ -91,6 +91,13 @@ interface AoiBiodiversityBar {
   count: number | null;
 }
 
+interface AoiLandUseBar {
+  id: string;
+  label: string;
+  percent: number;
+  color: string;
+}
+
 interface ComparisonVisualizationOption {
   id: ComparisonVisualizationMode;
   label: string;
@@ -152,6 +159,12 @@ export class PanelSwitcherComponent {
     { id: 'amphibians', label: 'Amphibians', count: 44 },
     { id: 'reptiles', label: 'Reptiles', count: 38 },
     { id: 'plants', label: 'Plants', count: 27 },
+  ];
+  private readonly aoiLandUseBaseBars: readonly { id: string; label: string; percent: number }[] = [
+    { id: 'forest', label: 'Natural Forest', percent: 60 },
+    { id: 'pasture', label: 'Pasture', percent: 25 },
+    { id: 'crops', label: 'Crops', percent: 10 },
+    { id: 'other-land', label: 'Other', percent: 5 },
   ];
   private readonly appState = inject(AppStateService);
   private readonly api = inject(ApiService);
@@ -492,6 +505,27 @@ export class PanelSwitcherComponent {
       return Math.max(maxValue, item.count);
     }, 0),
   );
+  protected readonly aoiLandUseBars = computed<AoiLandUseBar[]>(() => {
+    const palette = this.chartPalette().colors;
+    const greenSlot = this.getGreenPaletteSlot();
+    const fallbackColor = palette[0] ?? '#64748b';
+    const alternateSlots = [0, 1, 2, 3, 4].filter((slot) => slot !== greenSlot);
+
+    return this.aoiLandUseBaseBars.map((bar, index) => {
+      const slot = index === 0 ? greenSlot : (alternateSlots[index - 1] ?? 0);
+      return {
+        ...bar,
+        color: palette[slot] ?? fallbackColor,
+      };
+    });
+  });
+  protected readonly aoiHeroPriorityBarColor = computed(() =>
+    this.getPaletteColorBySlot(this.getGreenPaletteSlot()),
+  );
+  protected readonly aoiHeroAddedContributionColor = computed(() => this.getPaletteColorBySlot(0));
+  protected readonly aoiHeroExistingContributionColor = computed(() =>
+    this.withAlpha(this.aoiHeroAddedContributionColor(), 0.35),
+  );
 
   protected readonly comparisonSectionExpanded = signal<Record<ComparisonSectionId, boolean>>({
     general: true,
@@ -774,6 +808,39 @@ export class PanelSwitcherComponent {
     }
 
     return `conic-gradient(${slices.join(', ')})`;
+  }
+
+  private getGreenPaletteSlot(): number {
+    return this.aoiSpeciesColorSlotByPalette[this.chartPaletteId()]?.['plants'] ?? 0;
+  }
+
+  private getPaletteColorBySlot(slot: number): string {
+    const palette = this.chartPalette().colors;
+    return palette[slot] ?? palette[0] ?? '#64748b';
+  }
+
+  private withAlpha(hexColor: string, alpha: number): string {
+    const normalized = hexColor.trim();
+    if (!normalized.startsWith('#')) {
+      return hexColor;
+    }
+
+    let hex = normalized.slice(1);
+    if (hex.length === 3) {
+      hex = hex
+        .split('')
+        .map((char) => `${char}${char}`)
+        .join('');
+    }
+
+    if (hex.length !== 6) {
+      return hexColor;
+    }
+
+    const red = Number.parseInt(hex.slice(0, 2), 16);
+    const green = Number.parseInt(hex.slice(2, 4), 16);
+    const blue = Number.parseInt(hex.slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {
