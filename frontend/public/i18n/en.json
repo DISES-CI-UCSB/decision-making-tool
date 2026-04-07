@@ -271,7 +271,7 @@
         "ecosystemServicesHelp": "Covers benefits people receive from nature, such as water regulation, flood buffering, and pollination.",
         "otherNaturalCulturalElementsLabel": "Other natural and cultural elements",
         "otherNaturalCulturalElementsHelp": "Covers additional priorities such as sacred or culturally important landscapes and traditional use areas.",
-        "inputLayerNotFoundBadge": "Input layer not found",
+        "inputLayerNotFoundBadge": "Layer not found",
         "targetLevelTitle": "Target level",
         "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
         "targetLevelBadgeSpecies": "For species richness",

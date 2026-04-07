@@ -25,7 +25,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
           <button
             id="dev-tools-toggle-btn"
             type="button"
-            class="rounded-lg border border-slate-300 bg-white/95 px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+            class="rounded-md border border-slate-300 bg-white/95 px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
             (click)="isOpen.set(!isOpen())"
           >
             {{ isOpen() ? 'Close DevTools' : 'DevTools' }}
@@ -36,7 +36,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
       @if (isOpen()) {
         <div
           id="dev-tools-panel"
-          class="pointer-events-auto absolute bottom-full right-0 mb-2 w-96 max-h-[65vh] overflow-auto rounded-xl border border-slate-200 bg-white/98 p-4 shadow-lg font-mono text-xs"
+          class="pointer-events-auto absolute bottom-full right-0 mb-2 w-96 max-h-[65vh] overflow-auto rounded-md border border-slate-200 bg-white/98 p-4 shadow-lg font-mono text-xs"
         >
           <h3 id="dev-tools-title" class="text-sm font-bold text-slate-800 mb-3">
             Solution Dev Tools
@@ -117,7 +117,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 
             <div
               id="dev-tools-coordinate-picker-toggle-row"
-              class="mt-3 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-3 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
               <p id="dev-tools-coordinate-picker-toggle-label" class="text-[11px] text-slate-600">
                 Coordinate picker
@@ -134,7 +134,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 
             <div
               id="dev-tools-select-solution-hover-row"
-              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
               <div id="dev-tools-select-solution-hover-copy" class="min-w-0 pr-2">
                 <p
@@ -162,7 +162,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 
             <div
               id="dev-tools-overview-dummy-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
               <p id="dev-tools-overview-dummy-toggle-label" class="text-[11px] text-slate-600">
                 Fill missing overview metrics
@@ -178,7 +178,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
             </div>
             <div
               id="dev-tools-comparison-dummy-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
               <p id="dev-tools-comparison-dummy-toggle-label" class="text-[11px] text-slate-600">
                 Fill missing solution comparison metrics
@@ -194,7 +194,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
             </div>
             <div
               id="dev-tools-aoi-dummy-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
               <p id="dev-tools-aoi-dummy-toggle-label" class="text-[11px] text-slate-600">
                 Fill missing AOI dashboard metrics
@@ -227,7 +227,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 
             <section
               id="dev-tools-admin-boundaries-toggle-section"
-              class="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-3 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
               <h4
                 id="dev-tools-admin-boundaries-toggle-title"
