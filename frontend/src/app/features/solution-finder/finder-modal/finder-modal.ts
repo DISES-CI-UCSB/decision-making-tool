@@ -46,6 +46,8 @@ interface ScenarioMatch {
   matchPercentage: number;
 }
 
+type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
+
 @Component({
   selector: 'app-finder-modal',
   standalone: true,
@@ -102,7 +104,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   /** Step 1 */
   protected selectedTargetTypeIds: FinderTargetType[] = [];
-  protected targetLevelPct: 17 | 30 | null = null;
+  protected targetLevelByType: TargetLevelsByType = {};
 
   /** Step 2A (variable) */
   protected includeOmecs = false;
@@ -160,25 +162,35 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     const currentIndex = this.selectedTargetTypeIds.indexOf(type);
     if (currentIndex >= 0) {
       this.selectedTargetTypeIds.splice(currentIndex, 1);
+      delete this.targetLevelByType[type];
     } else {
       this.selectedTargetTypeIds.push(type);
-    }
-
-    if (this.selectedTargetTypeIds.length === 0) {
-      this.targetLevelPct = null;
-    } else if (this.isStrategicOnlyTargetSelection()) {
-      this.targetLevelPct = 30;
+      if (this.isStrategicTarget(type)) {
+        this.targetLevelByType[type] = 30;
+      }
     }
 
     this.clearResultsIfNeeded();
   }
 
-  protected selectTargetLevel(pct: 17 | 30): void {
-    if (this.selectedTargetTypeIds.length === 0 || this.isStrategicOnlyTargetSelection()) {
+  protected selectTargetLevel(type: FinderTargetType, pct: 17 | 30): void {
+    if (!this.isTargetTypeSelected(type) || !this.isTargetTypeAvailable(type)) {
       return;
     }
-    this.targetLevelPct = pct;
+    if (this.isStrategicTarget(type)) {
+      this.targetLevelByType[type] = 30;
+      return;
+    }
+    this.targetLevelByType[type] = pct;
     this.clearResultsIfNeeded();
+  }
+
+  protected getTargetLevel(type: FinderTargetType): 17 | 30 | null {
+    return this.targetLevelByType[type] ?? null;
+  }
+
+  protected hasTargetLevel(type: FinderTargetType): boolean {
+    return this.targetLevelByType[type] !== undefined;
   }
 
   protected selectCostLayer(id: CostLayerChoice): void {
@@ -242,7 +254,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected resetSelections(): void {
     this.selectedTargetTypeIds = [];
-    this.targetLevelPct = null;
+    this.targetLevelByType = {};
     this.includeOmecs = false;
     this.includeComunidades = false;
     this.selectedCostLayerId = null;
@@ -269,7 +281,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected getTargetSelectionCount(): number {
-    return this.selectedTargetTypeIds.length + (this.targetLevelPct !== null ? 1 : 0);
+    return this.selectedTargetTypeIds.length + this.getSelectedTargetLevelCount();
   }
 
   protected getVariableConstraintCount(): number {
@@ -290,7 +302,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   protected canRunMatching(): boolean {
     return (
       this.selectedTargetTypeIds.length > 0 &&
-      this.targetLevelPct !== null &&
+      this.areAllSelectedTargetsLeveled() &&
       this.selectedCostLayerId !== null &&
       this.matchState !== 'loading'
     );
@@ -301,7 +313,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected isStep1Complete(): boolean {
-    return this.selectedTargetTypeIds.length > 0 && this.targetLevelPct !== null;
+    return this.selectedTargetTypeIds.length > 0 && this.areAllSelectedTargetsLeveled();
   }
 
   protected isStep2Unlocked(): boolean {
@@ -354,7 +366,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       return false;
     }
 
-    if (scenario.ecosystemTargets !== this.targetLevelPct) {
+    if (!this.getSelectedTargetLevels().includes(scenario.ecosystemTargets as 17 | 30)) {
       return false;
     }
 
@@ -396,8 +408,28 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return this.selectedTargetTypeIds.some((id) => !this.isStrategicTarget(id));
   }
 
-  private isStrategicTarget(id: FinderTargetType): boolean {
+  protected isStrategicTarget(id: FinderTargetType): boolean {
     return this.targetTypeOptions.find((option) => option.id === id)?.isStrategic === true;
+  }
+
+  private areAllSelectedTargetsLeveled(): boolean {
+    return this.selectedTargetTypeIds.every((type) => this.hasTargetLevel(type));
+  }
+
+  private getSelectedTargetLevelCount(): number {
+    return this.selectedTargetTypeIds.reduce((count, type) => {
+      return this.hasTargetLevel(type) ? count + 1 : count;
+    }, 0);
+  }
+
+  private getSelectedTargetLevels(): (17 | 30)[] {
+    return this.selectedTargetTypeIds.reduce<(17 | 30)[]>((levels, type) => {
+      const targetLevel = this.targetLevelByType[type];
+      if (targetLevel !== undefined) {
+        levels.push(targetLevel);
+      }
+      return levels;
+    }, []);
   }
 
   private mapCostChoiceToCatalog(id: CostLayerChoice): string {
