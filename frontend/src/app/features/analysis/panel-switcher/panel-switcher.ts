@@ -18,9 +18,6 @@ import {
   type SirapSelectionScope,
 } from '@features/map/services/admin-boundary.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { BaseChartDirective } from 'ng2-charts';
-import type { ChartConfiguration, ChartOptions, Scale } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { catchError, distinctUntilChanged, finalize, map, of, switchMap } from 'rxjs';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
@@ -98,7 +95,7 @@ interface ComparisonVisualizationOption {
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
-  imports: [TranslatePipe, BaseChartDirective],
+  imports: [TranslatePipe],
   templateUrl: './panel-switcher.html',
   styleUrl: './panel-switcher.scss',
 })
@@ -437,122 +434,14 @@ export class PanelSwitcherComponent {
       count: Math.max(0, Math.round(item.count * scale)),
     }));
   });
-  protected readonly aoiBiodiversityAxisTicks = computed<number[]>(() => {
-    const maxCount = this.getAoiBiodiversityMaxCount();
-    if (maxCount <= 0) {
-      return [0];
-    }
-
-    const targetTickCount = 5;
-    const step = this.getNiceTickStep(maxCount / targetTickCount);
-    const axisMax = Math.ceil(maxCount / step) * step;
-    const ticks: number[] = [];
-
-    for (let value = 0; value <= axisMax; value += step) {
-      ticks.push(value);
-    }
-
-    return ticks;
-  });
-  protected readonly aoiBiodiversityAxisMax = computed<number>(() => {
-    const ticks = this.aoiBiodiversityAxisTicks();
-    return ticks[ticks.length - 1] ?? 0;
-  });
-  protected readonly aoiBiodiversityChartType = 'bar' as const;
-  protected readonly aoiBiodiversityChartPlugins = [ChartDataLabels];
-  protected readonly aoiBiodiversityChartData = computed<ChartConfiguration<'bar'>['data']>(() => ({
-    labels: this.aoiBiodiversityBars().map((entry) => entry.label),
-    datasets: [
-      {
-        data: this.aoiBiodiversityBars().map((entry) => entry.count ?? 0),
-        backgroundColor: '#334155',
-        borderRadius: 999,
-        borderSkipped: false,
-        clip: false,
-        barPercentage: 1,
-        categoryPercentage: 1,
-        maxBarThickness: 12,
-      },
-    ],
-  }));
-  protected readonly aoiBiodiversityChartOptions = computed<ChartOptions<'bar'>>(() => {
-    const axisMax = this.aoiBiodiversityAxisMax();
-
-    return {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: {
-        duration: 250,
-      },
-      layout: {
-        padding: {
-          left: 4,
-          right: 26,
-          top: 2,
-          bottom: 15,
-        },
-      },
-      scales: {
-        x: {
-          display: false,
-          min: 0,
-          max: axisMax,
-        },
-        y: {
-          offset: false,
-          afterFit: (axis: Scale) => {
-            axis.paddingBottom = 4;
-          },
-          grid: {
-            display: false,
-            drawTicks: false,
-          },
-          border: {
-            display: false,
-          },
-          ticks: {
-            color: '#475569',
-            font: {
-              size: 11,
-              family: "'Inter', sans-serif",
-            },
-            padding: 10,
-          },
-        },
-      },
-      plugins: {
-        legend: {
-          display: false,
-        },
-        tooltip: {
-          enabled: true,
-          callbacks: {
-            label: (context) => `${context.parsed.x} species`,
-          },
-        },
-        datalabels: {
-          anchor: 'end',
-          align: 'right',
-          color: '#334155',
-          offset: 1,
-          formatter: (value: unknown) => {
-            if (typeof value !== 'number') {
-              return '--';
-            }
-            return `${Math.round(value)}`;
-          },
-          font: {
-            weight: 600,
-            size: 11,
-            family: "'Inter', sans-serif",
-          },
-          clip: false,
-          clamp: false,
-        },
-      },
-    };
-  });
+  protected readonly aoiBiodiversityMaxCount = computed<number>(() =>
+    this.aoiBiodiversityBars().reduce((maxValue, item) => {
+      if (item.count === null) {
+        return maxValue;
+      }
+      return Math.max(maxValue, item.count);
+    }, 0),
+  );
 
   protected readonly comparisonSectionExpanded = signal<Record<ComparisonSectionId, boolean>>({
     general: true,
@@ -745,6 +634,19 @@ export class PanelSwitcherComponent {
     return this.fillDummyAoiMetrics() ? dummyPercent : 0;
   }
 
+  protected aoiSpeciesBarWidth(count: number | null): number {
+    if (count === null) {
+      return 0;
+    }
+
+    const maxCount = this.aoiBiodiversityMaxCount();
+    if (maxCount <= 0) {
+      return 0;
+    }
+
+    return (count / maxCount) * 100;
+  }
+
   protected isComparisonSectionExpanded(sectionId: ComparisonSectionId): boolean {
     return this.comparisonSectionExpanded()[sectionId];
   }
@@ -795,30 +697,6 @@ export class PanelSwitcherComponent {
   private getAoiBiodiversityScale(aoiId: string): number {
     const mod = aoiId.length % 4;
     return [0.9, 1, 1.1, 1.2][mod] ?? 1;
-  }
-
-  private getAoiBiodiversityMaxCount(): number {
-    return this.aoiBiodiversityBars().reduce((maxValue, item) => {
-      if (item.count === null) {
-        return maxValue;
-      }
-      return Math.max(maxValue, item.count);
-    }, 0);
-  }
-
-  private getNiceTickStep(rawStep: number): number {
-    if (rawStep <= 0 || !Number.isFinite(rawStep)) {
-      return 1;
-    }
-
-    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-    const normalized = rawStep / magnitude;
-
-    if (normalized <= 1) return magnitude;
-    if (normalized <= 2) return 2 * magnitude;
-    if (normalized <= 2.5) return 2.5 * magnitude;
-    if (normalized <= 5) return 5 * magnitude;
-    return 10 * magnitude;
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {

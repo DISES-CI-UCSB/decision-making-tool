@@ -582,27 +582,41 @@
                 </button>
                 @if (isAoiSectionExpanded('bio')) {
                   <div id="aoi-body-bio" class="aoi-section-body">
-                    <div id="aoi-species-chart" class="flex flex-col">
+                    <div id="aoi-species-chart" class="flex flex-col gap-1">
                       <p
                         id="aoi-species-chart-axis-label"
-                        class="m-0 mb-0.5 w-full text-center text-sm font-medium leading-[1.2] tracking-[0.01em] text-slate-500"
+                        class="m-0 mb-0.5 ml-19 w-full text-start text-[13px] font-medium leading-[1.2] tracking-[0.01em] text-slate-600"
                       >
                         Species count by taxa
                       </p>
-                      <div
-                        id="aoi-species-chart-canvas-shell"
-                        class="aoi-species-chart-canvas-shell"
-                      >
-                        <canvas
-                          id="aoi-species-chart-canvas"
-                          baseChart
-                          [type]="aoiBiodiversityChartType"
-                          [data]="aoiBiodiversityChartData()"
-                          [options]="aoiBiodiversityChartOptions()"
-                          [plugins]="aoiBiodiversityChartPlugins"
-                          aria-label="AOI biodiversity species richness horizontal bar chart"
-                        ></canvas>
-                      </div>
+                      @for (entry of aoiBiodiversityBars(); track entry.id) {
+                        <div
+                          [id]="'aoi-species-row-' + entry.id"
+                          class="grid grid-cols-[70px_minmax(0,1fr)_auto] items-center gap-1.5"
+                        >
+                          <span
+                            [id]="'aoi-species-label-' + entry.id"
+                            class="text-[11px] text-slate-600"
+                            >{{ entry.label }}</span
+                          >
+                          <div
+                            [id]="'aoi-species-bar-shell-' + entry.id"
+                            class="flex h-2.5 min-w-0 items-center"
+                          >
+                            <span
+                              [id]="'aoi-species-fill-' + entry.id"
+                              class="block h-full rounded-full bg-slate-600 transition-[width] duration-300 ease-out"
+                              [style.width.%]="aoiSpeciesBarWidth(entry.count)"
+                              [attr.aria-label]="entry.label + ' species count bar'"
+                            ></span>
+                          </div>
+                          <span
+                            [id]="'aoi-species-value-' + entry.id"
+                            class="text-right text-[11px] font-semibold tabular-nums text-slate-700"
+                            >{{ entry.count === null ? '--' : entry.count }}</span
+                          >
+                        </div>
+                      }
                     </div>
 
                     <div id="aoi-bio-stats" class="aoi-stat-grid">
@@ -794,28 +808,28 @@
                     <div id="aoi-landuse-chart" class="aoi-bar-chart">
                       <div id="aoi-bar-forest" class="aoi-bar-row">
                         <span class="aoi-bar-label">Natural Forest</span>
-                        <div class="aoi-bar-track">
+                        <div class="aoi-bar-fill-shell">
                           <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(60)"></span>
                         </div>
                         <span class="aoi-bar-val">{{ aoiVal('60%') }}</span>
                       </div>
                       <div id="aoi-bar-pasture" class="aoi-bar-row">
                         <span class="aoi-bar-label">Pasture</span>
-                        <div class="aoi-bar-track">
+                        <div class="aoi-bar-fill-shell">
                           <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(25)"></span>
                         </div>
                         <span class="aoi-bar-val">{{ aoiVal('25%') }}</span>
                       </div>
                       <div id="aoi-bar-crops" class="aoi-bar-row">
                         <span class="aoi-bar-label">Crops</span>
-                        <div class="aoi-bar-track">
+                        <div class="aoi-bar-fill-shell">
                           <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(10)"></span>
                         </div>
                         <span class="aoi-bar-val">{{ aoiVal('10%') }}</span>
                       </div>
                       <div id="aoi-bar-other-land" class="aoi-bar-row">
                         <span class="aoi-bar-label">Other</span>
-                        <div class="aoi-bar-track">
+                        <div class="aoi-bar-fill-shell">
                           <span class="aoi-bar-fill" [style.width.%]="aoiBarWidth(5)"></span>
                         </div>
                         <span class="aoi-bar-val">{{ aoiVal('5%') }}</span>
