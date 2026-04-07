@@ -1211,7 +1211,7 @@
 
 .aoi-section-label {
   flex: 1;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1357,7 +1357,8 @@
 
 .aoi-stat-label {
   font-size: 11px;
-  color: var(--color-subtext);
+  font-weight: 600;
+  color: var(--color-small-label);
   line-height: 1.3;
   margin-bottom: 4px;
 }
