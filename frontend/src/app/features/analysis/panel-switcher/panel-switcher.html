@@ -78,17 +78,19 @@
                   id="right-sidebar-v3-overview-hero-goals"
                   class="v3-hero-card v3-hero-card-goals"
                 >
-                  <p id="right-sidebar-v3-overview-hero-goals-label" class="v3-hero-label">
-                    {{ 'analysis.overview.goalsMet' | translate }}
-                  </p>
-                  <p id="right-sidebar-v3-overview-hero-goals-value" class="v3-hero-value">
-                    {{ getGoalsMetCount(solution.matchPercentage)
-                    }}<span
-                      id="right-sidebar-v3-overview-hero-goals-value-total"
-                      class="v3-hero-value-small"
-                      >/10</span
-                    >
-                  </p>
+                  <div id="right-sidebar-v3-overview-hero-goals-top" class="v3-hero-top">
+                    <p id="right-sidebar-v3-overview-hero-goals-label" class="v3-hero-label">
+                      {{ 'analysis.overview.goalsMet' | translate }}
+                    </p>
+                    <p id="right-sidebar-v3-overview-hero-goals-value" class="v3-hero-value">
+                      {{ getGoalsMetCount(solution.matchPercentage)
+                      }}<span
+                        id="right-sidebar-v3-overview-hero-goals-value-total"
+                        class="v3-hero-value-small"
+                        >/10</span
+                      >
+                    </p>
+                  </div>
                   <div id="right-sidebar-v3-overview-hero-goals-bar" class="v3-hero-bar">
                     <span
                       id="right-sidebar-v3-overview-hero-goals-fill"
@@ -104,17 +106,19 @@
                   id="right-sidebar-v3-overview-hero-national"
                   class="v3-hero-card v3-hero-card-national"
                 >
-                  <p id="right-sidebar-v3-overview-hero-national-label" class="v3-hero-label">
-                    {{ 'analysis.overview.nationalContribution' | translate }}
-                  </p>
-                  <p id="right-sidebar-v3-overview-hero-national-value" class="v3-hero-value">
-                    {{ getContributionPercent(solution.matchPercentage)
-                    }}<span
-                      id="right-sidebar-v3-overview-hero-national-value-unit"
-                      class="v3-hero-value-small"
-                      >%</span
-                    >
-                  </p>
+                  <div id="right-sidebar-v3-overview-hero-national-top" class="v3-hero-top">
+                    <p id="right-sidebar-v3-overview-hero-national-label" class="v3-hero-label">
+                      {{ 'analysis.overview.nationalContribution' | translate }}
+                    </p>
+                    <p id="right-sidebar-v3-overview-hero-national-value" class="v3-hero-value">
+                      {{ getContributionPercent(solution.matchPercentage)
+                      }}<span
+                        id="right-sidebar-v3-overview-hero-national-value-unit"
+                        class="v3-hero-value-small"
+                        >%</span
+                      >
+                    </p>
+                  </div>
                   <div id="right-sidebar-v3-overview-hero-national-bar" class="v3-hero-bar">
                     <span
                       id="right-sidebar-v3-overview-hero-national-fill-existing"
@@ -151,20 +155,22 @@
                   class="fas fa-map-marked-alt"
                   aria-hidden="true"
                 ></i>
-                <span id="right-sidebar-v3-overview-spatial-area"
-                  ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
-                  {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
-                >
-                <span id="right-sidebar-v3-overview-spatial-sep-1" class="v3-spatial-sep"></span>
-                <span id="right-sidebar-v3-overview-spatial-zones"
-                  ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
-                  {{ 'analysis.overview.spatial.zones' | translate }}</span
-                >
-                <span id="right-sidebar-v3-overview-spatial-sep-2" class="v3-spatial-sep"></span>
-                <span id="right-sidebar-v3-overview-spatial-avg"
-                  >{{ 'analysis.overview.spatial.avg' | translate }}
-                  <b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b></span
-                >
+                <div id="right-sidebar-v3-overview-spatial-metrics" class="v3-spatial-metrics">
+                  <span id="right-sidebar-v3-overview-spatial-area"
+                    ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
+                    {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
+                  >
+                  <span id="right-sidebar-v3-overview-spatial-sep-1" class="v3-spatial-sep"></span>
+                  <span id="right-sidebar-v3-overview-spatial-zones"
+                    ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
+                    {{ 'analysis.overview.spatial.zones' | translate }}</span
+                  >
+                  <span id="right-sidebar-v3-overview-spatial-sep-2" class="v3-spatial-sep"></span>
+                  <span id="right-sidebar-v3-overview-spatial-avg"
+                    ><b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b>
+                    {{ 'analysis.overview.spatial.avg' | translate }}</span
+                  >
+                </div>
               </section>
 
               @if (isOverviewLoading()) {
@@ -198,10 +204,7 @@
               } @else {
                 <section id="right-sidebar-v3-overview-gains-section" class="v3-section">
                   <header id="right-sidebar-v3-overview-gains-head" class="v3-section-head">
-                    <span
-                      id="right-sidebar-v3-overview-gains-dot"
-                      class="v3-section-dot v3-section-dot-gains"
-                    ></span>
+                    <span id="right-sidebar-v3-overview-gains-dot" class="v3-section-dot"></span>
                     <span id="right-sidebar-v3-overview-gains-label" class="v3-section-label">{{
                       'analysis.overview.sections.conservationGains' | translate
                     }}</span>
@@ -212,13 +215,6 @@
                         [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
                         class="v3-metric-row"
                       >
-                        <span
-                          [id]="'right-sidebar-v3-overview-gain-icon-' + entry.id"
-                          class="v3-m-icon"
-                          [class.v3-m-icon-green]="!entry.unavailable"
-                          [class.v3-m-icon-muted]="entry.unavailable"
-                          >●</span
-                        >
                         <div
                           [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
                           class="v3-m-body"
@@ -260,20 +256,14 @@
                       </article>
                     }
                   </div>
-                  <p
-                    id="right-sidebar-v3-overview-gains-insight"
-                    class="v3-insight v3-insight-gains"
-                  >
+                  <p id="right-sidebar-v3-overview-gains-insight" class="v3-insight">
                     {{ 'analysis.overview.insightGains' | translate }}
                   </p>
                 </section>
 
                 <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
                   <header id="right-sidebar-v3-overview-costs-head" class="v3-section-head">
-                    <span
-                      id="right-sidebar-v3-overview-costs-dot"
-                      class="v3-section-dot v3-section-dot-costs"
-                    ></span>
+                    <span id="right-sidebar-v3-overview-costs-dot" class="v3-section-dot"></span>
                     <span id="right-sidebar-v3-overview-costs-label" class="v3-section-label">{{
                       'analysis.overview.sections.costsAndTradeoffs' | translate
                     }}</span>
@@ -284,13 +274,6 @@
                         [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
                         class="v3-metric-row"
                       >
-                        <span
-                          [id]="'right-sidebar-v3-overview-cost-icon-' + entry.id"
-                          class="v3-m-icon"
-                          [class.v3-m-icon-amber]="!entry.unavailable"
-                          [class.v3-m-icon-muted]="entry.unavailable"
-                          >●</span
-                        >
                         <div
                           [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
                           class="v3-m-body"
@@ -332,10 +315,7 @@
                       </article>
                     }
                   </div>
-                  <p
-                    id="right-sidebar-v3-overview-costs-insight"
-                    class="v3-insight v3-insight-costs"
-                  >
+                  <p id="right-sidebar-v3-overview-costs-insight" class="v3-insight">
                     {{ 'analysis.overview.insightCosts' | translate }}
                   </p>
                 </section>

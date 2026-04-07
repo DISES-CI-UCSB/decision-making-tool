@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "npm run sync:solutions && npm run sync:boundaries && ng serve",
     "build": "ng build",
     "build:vercel": "npm run sync:solutions && npm run sync:boundaries && npm run validate:deploy-assets && ng build",
     "watch": "ng build --watch --configuration development",

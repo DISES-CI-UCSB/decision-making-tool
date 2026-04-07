@@ -92,12 +92,12 @@
       "matchBadge": "{{percent}}% Match",
       "goalsMet": "Goals Met",
       "goalsMetSub": "Conservation themes achieved",
-      "nationalContribution": "Nat'l Contribution",
+      "nationalContribution": "National Contribution",
       "addsToExisting": "Adds {{added}}% to existing {{existing}}%",
       "spatial": {
-        "priorityArea": "priority area",
+        "priorityArea": "area",
         "zones": "zones",
-        "avg": "Avg"
+        "avg": "avg"
       },
       "sections": {
         "conservationGains": "Conservation Gains",
@@ -271,7 +271,7 @@
         "ecosystemServicesHelp": "Covers benefits people receive from nature, such as water regulation, flood buffering, and pollination.",
         "otherNaturalCulturalElementsLabel": "Other natural and cultural elements",
         "otherNaturalCulturalElementsHelp": "Covers additional priorities such as sacred or culturally important landscapes and traditional use areas.",
-        "inputLayerNotFoundBadge": "Input layer not found",
+        "inputLayerNotFoundBadge": "Layer not found",
         "targetLevelTitle": "Target level",
         "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
         "targetLevelBadgeSpecies": "For species richness",

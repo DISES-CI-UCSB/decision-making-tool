@@ -131,6 +131,7 @@ export class AdminBoundaryService {
   readonly layerVisibilityByType$ = signal<Record<AoiType, boolean>>(this.defaultVisibilityByType);
   readonly popupEnabled$ = signal(false);
   readonly sirapSelectionScope$ = signal<SirapSelectionScope>('part');
+  private readonly unavailableBoundaryTypes = new Set<AoiType>();
 
   constructor() {
     effect(() => {
@@ -152,8 +153,14 @@ export class AdminBoundaryService {
     // Always false — we open popups manually via openPopup() so the
     // built-in click handler doesn't race with ours.
     this.view.popupEnabled = false;
-    this.boundaryLayers = COLOMBIA_BOUNDARY_CONFIGS.map((config) => this.buildLayer(config));
-    map.addMany(this.boundaryLayers);
+    // Create only default-visible layers on startup. Remote IGAC FeatureLayers are loaded lazily
+    // when users explicitly toggle them on, which avoids noisy startup CORS errors.
+    this.boundaryLayers = COLOMBIA_BOUNDARY_CONFIGS.filter(
+      (config) => this.layerVisibilityByType$()[config.type] ?? config.visible ?? true,
+    ).map((config) => this.buildLayer(config));
+    if (this.boundaryLayers.length > 0) {
+      map.addMany(this.boundaryLayers);
+    }
     this.aoiHighlightLayer = new GraphicsLayer({
       id: 'aoi-selection-highlight-layer',
       title: 'AOI Selection Highlight',
@@ -188,6 +195,13 @@ export class AdminBoundaryService {
   }
 
   setLayerVisibility(type: AoiType, visible: boolean): void {
+    if (visible) {
+      this.ensureLayersForType(type);
+      if (this.unavailableBoundaryTypes.has(type)) {
+        this.layerVisibilityByType$.update((state) => ({ ...state, [type]: false }));
+        return;
+      }
+    }
     this.layerVisibilityByType$.update((state) => ({ ...state, [type]: visible }));
     this.applyVisibilityToMapLayers(type, visible);
     if (visible) {
@@ -247,6 +261,57 @@ export class AdminBoundaryService {
       definitionExpression: config.definitionExpression,
       renderer: this.getBoundaryRenderer(config.type) as never,
     });
+  }
+
+  private ensureLayersForType(type: AoiType): void {
+    if (!this.map || !this.view) {
+      return;
+    }
+    if (this.unavailableBoundaryTypes.has(type)) {
+      return;
+    }
+
+    const existing = this.boundaryLayers.some((layer) => {
+      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
+      return config?.type === type;
+    });
+    if (existing) {
+      return;
+    }
+
+    const configsForType = COLOMBIA_BOUNDARY_CONFIGS.filter((config) => config.type === type);
+    if (configsForType.length === 0) {
+      return;
+    }
+
+    const newLayers = configsForType.map((config) => this.buildLayer(config));
+    this.boundaryLayers = [...this.boundaryLayers, ...newLayers];
+    this.map.addMany(newLayers);
+
+    for (const layer of newLayers) {
+      void this.view.whenLayerView(layer).catch((error: unknown) => {
+        console.warn(
+          `[AdminBoundaryService] "${layer.id}" unavailable (likely CORS/remote service issue); disabling ${type} boundary.`,
+          error,
+        );
+        this.unavailableBoundaryTypes.add(type);
+        this.removeLayerById(layer.id);
+        this.layerVisibilityByType$.update((state) => ({ ...state, [type]: false }));
+      });
+    }
+  }
+
+  private removeLayerById(layerId: string): void {
+    const index = this.boundaryLayers.findIndex((layer) => layer.id === layerId);
+    if (index < 0) {
+      return;
+    }
+
+    const [layer] = this.boundaryLayers.splice(index, 1);
+    if (this.map) {
+      this.map.remove(layer);
+    }
+    layer.destroy();
   }
 
   private async handleMapClick(
