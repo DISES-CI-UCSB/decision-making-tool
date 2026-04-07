@@ -100,6 +100,13 @@ interface ComparisonVisualizationOption {
   styleUrl: './panel-switcher.scss',
 })
 export class PanelSwitcherComponent {
+  private readonly aoiSpeciesBarShades: readonly string[] = [
+    '#334155',
+    '#475569',
+    '#64748b',
+    '#94a3b8',
+    '#cbd5e1',
+  ];
   private readonly aoiBiodiversityBaseCounts: readonly {
     id: string;
     label: string;
@@ -647,6 +654,10 @@ export class PanelSwitcherComponent {
     // Keep headroom so the largest bar reads as "relative max", not "100% complete".
     const maxVisualFillPercent = 85;
     return (count / maxCount) * maxVisualFillPercent;
+  }
+
+  protected aoiSpeciesBarColor(index: number): string {
+    return this.aoiSpeciesBarShades[index % this.aoiSpeciesBarShades.length] ?? '#64748b';
   }
 
   protected isComparisonSectionExpanded(sectionId: ComparisonSectionId): boolean {

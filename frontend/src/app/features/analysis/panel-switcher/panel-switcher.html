@@ -589,7 +589,7 @@
                       >
                         Species count by taxa
                       </p>
-                      @for (entry of aoiBiodiversityBars(); track entry.id) {
+                      @for (entry of aoiBiodiversityBars(); track entry.id; let index = $index) {
                         <div
                           [id]="'aoi-species-row-' + entry.id"
                           class="grid grid-cols-[70px_minmax(0,1fr)_auto] items-center gap-1.5"
@@ -605,8 +605,9 @@
                           >
                             <span
                               [id]="'aoi-species-fill-' + entry.id"
-                              class="block h-full rounded-full bg-slate-600 transition-[width] duration-300 ease-out"
+                              class="block h-full rounded-full transition-[width] duration-300 ease-out"
                               [style.width.%]="aoiSpeciesBarWidth(entry.count)"
+                              [style.background-color]="aoiSpeciesBarColor(index)"
                               [attr.aria-label]="entry.label + ' species count bar'"
                             ></span>
                           </div>
