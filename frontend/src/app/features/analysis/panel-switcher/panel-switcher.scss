@@ -183,14 +183,22 @@
 
 .v3-hero {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .v3-hero-card {
   border-radius: 6px;
   border: 1px solid #e2e8f0;
   padding: 14px 16px;
+}
+
+.v3-hero-top {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .v3-hero-card-goals {
@@ -204,8 +212,8 @@
 }
 
 .v3-hero-label {
-  margin-bottom: 4px;
-  font-size: 10px;
+  margin-bottom: 0;
+  font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -213,10 +221,11 @@
 }
 
 .v3-hero-value {
-  margin-bottom: 6px;
-  font-size: 26px;
+  margin-bottom: 0;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .v3-hero-card-goals .v3-hero-value {
@@ -228,7 +237,7 @@
 }
 
 .v3-hero-value-small {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: #94a3b8;
 }

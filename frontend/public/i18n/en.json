@@ -92,7 +92,7 @@
       "matchBadge": "{{percent}}% Match",
       "goalsMet": "Goals Met",
       "goalsMetSub": "Conservation themes achieved",
-      "nationalContribution": "Nat'l Contribution",
+      "nationalContribution": "National Contribution",
       "addsToExisting": "Adds {{added}}% to existing {{existing}}%",
       "spatial": {
         "priorityArea": "area",
