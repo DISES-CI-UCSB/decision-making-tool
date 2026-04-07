@@ -107,38 +107,38 @@ interface ComparisonVisualizationOption {
 export class PanelSwitcherComponent {
   private readonly aoiSpeciesColorSlotByPalette: Record<ChartPaletteId, Record<string, number>> = {
     okabeIto: {
-      plants: 0,
+      plants: 2,
       mammals: 1,
-      birds: 2,
+      birds: 0,
       amphibians: 3,
       reptiles: 4,
     },
     tolBright: {
-      plants: 0,
+      plants: 2,
       mammals: 1,
-      birds: 2,
+      birds: 0,
       amphibians: 3,
       reptiles: 4,
     },
     tolMuted: {
-      plants: 1,
+      plants: 2,
       mammals: 0,
-      birds: 2,
+      birds: 1,
       amphibians: 3,
       reptiles: 4,
     },
     viridisBalanced: {
-      plants: 1,
+      plants: 3,
       mammals: 0,
-      birds: 2,
+      birds: 1,
       amphibians: 3,
       reptiles: 4,
     },
     cividisBalanced: {
-      plants: 0,
+      plants: 3,
       mammals: 1,
       birds: 2,
-      amphibians: 3,
+      amphibians: 0,
       reptiles: 4,
     },
   };
