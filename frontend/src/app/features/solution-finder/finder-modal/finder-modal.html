@@ -98,18 +98,9 @@
                 [class.border-sky-500]="isTargetTypeSelected(option.id)"
                 [class.bg-sky-500]="isTargetTypeSelected(option.id)"
                 [class.text-white]="isTargetTypeSelected(option.id)"
-                [class.border-slate-200]="
-                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
-                "
-                [class.bg-white]="
-                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
-                "
-                [class.text-slate-900]="
-                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
-                "
-                [class.border-red-300]="!isTargetTypeAvailable(option.id)"
-                [class.bg-red-50]="!isTargetTypeAvailable(option.id)"
-                [class.text-red-900]="!isTargetTypeAvailable(option.id)"
+                [class.border-slate-200]="!isTargetTypeSelected(option.id)"
+                [class.bg-white]="!isTargetTypeSelected(option.id)"
+                [class.text-slate-900]="!isTargetTypeSelected(option.id)"
                 [attr.aria-pressed]="isTargetTypeSelected(option.id)"
                 [attr.aria-disabled]="!isTargetTypeAvailable(option.id)"
                 (click)="toggleTargetType(option.id)"
@@ -138,10 +129,7 @@
                   class="text-xs font-normal leading-snug"
                   [class.text-white]="isTargetTypeSelected(option.id)"
                   [class.opacity-90]="isTargetTypeSelected(option.id)"
-                  [class.text-slate-600]="
-                    !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
-                  "
-                  [class.text-red-700]="!isTargetTypeAvailable(option.id)"
+                  [class.text-slate-600]="!isTargetTypeSelected(option.id)"
                 >
                   {{ option.helpKey | translate }}
                 </span>
