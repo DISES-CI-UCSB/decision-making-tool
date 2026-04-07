@@ -644,7 +644,9 @@ export class PanelSwitcherComponent {
       return 0;
     }
 
-    return (count / maxCount) * 100;
+    // Keep headroom so the largest bar reads as "relative max", not "100% complete".
+    const maxVisualFillPercent = 85;
+    return (count / maxCount) * maxVisualFillPercent;
   }
 
   protected isComparisonSectionExpanded(sectionId: ComparisonSectionId): boolean {
