@@ -19,6 +19,11 @@ import {
 } from '@features/map/services/admin-boundary.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, distinctUntilChanged, finalize, map, of, switchMap } from 'rxjs';
+import {
+  AOI_ECOSYSTEM_SEGMENTS,
+  CHART_PALETTES,
+  type ChartPaletteId,
+} from '@core/models/chart-palette.model';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type OverviewMetricSection = 'gains' | 'costs';
@@ -100,13 +105,43 @@ interface ComparisonVisualizationOption {
   styleUrl: './panel-switcher.scss',
 })
 export class PanelSwitcherComponent {
-  private readonly aoiSpeciesBarShades: readonly string[] = [
-    '#334155',
-    '#475569',
-    '#64748b',
-    '#94a3b8',
-    '#cbd5e1',
-  ];
+  private readonly aoiSpeciesColorSlotByPalette: Record<ChartPaletteId, Record<string, number>> = {
+    okabeIto: {
+      plants: 0,
+      mammals: 1,
+      birds: 2,
+      amphibians: 3,
+      reptiles: 4,
+    },
+    tolBright: {
+      plants: 0,
+      mammals: 1,
+      birds: 2,
+      amphibians: 3,
+      reptiles: 4,
+    },
+    tolMuted: {
+      plants: 1,
+      mammals: 0,
+      birds: 2,
+      amphibians: 3,
+      reptiles: 4,
+    },
+    viridisBalanced: {
+      plants: 1,
+      mammals: 0,
+      birds: 2,
+      amphibians: 3,
+      reptiles: 4,
+    },
+    cividisBalanced: {
+      plants: 0,
+      mammals: 1,
+      birds: 2,
+      amphibians: 3,
+      reptiles: 4,
+    },
+  };
   private readonly aoiBiodiversityBaseCounts: readonly {
     id: string;
     label: string;
@@ -411,6 +446,14 @@ export class PanelSwitcherComponent {
     return this.mockData.compareSolutions(baselineSolution.id, candidateSolution.id)?.metrics ?? [];
   });
   protected readonly fillDummyAoiMetrics = this.appState.fillDummyAoiMetrics$;
+  protected readonly chartPaletteId = this.appState.chartPaletteId$;
+  protected readonly chartPalette = computed(() => CHART_PALETTES[this.chartPaletteId()]);
+  protected readonly aoiEcosystemLegend = computed(() =>
+    AOI_ECOSYSTEM_SEGMENTS.map((segment, index) => ({
+      ...segment,
+      color: this.chartPalette().colors[index],
+    })),
+  );
   protected readonly aoiSectionExpanded = signal<Record<AoiSectionId, boolean>>({
     general: true,
     bio: true,
@@ -421,7 +464,7 @@ export class PanelSwitcherComponent {
   });
   protected readonly aoiDonutGradient = computed(() => {
     if (!this.fillDummyAoiMetrics()) return '#e2e8f0';
-    return 'conic-gradient(#334155 0 39%, #64748b 39% 62%, #94a3b8 62% 79%, #cbd5e1 79% 91%, #e2e8f0 91% 100%)';
+    return this.buildDonutGradient();
   });
   protected readonly aoiBiodiversityBars = computed<AoiBiodiversityBar[]>(() => {
     if (!this.fillDummyAoiMetrics()) {
@@ -656,8 +699,15 @@ export class PanelSwitcherComponent {
     return (count / maxCount) * maxVisualFillPercent;
   }
 
-  protected aoiSpeciesBarColor(index: number): string {
-    return this.aoiSpeciesBarShades[index % this.aoiSpeciesBarShades.length] ?? '#64748b';
+  protected aoiSpeciesBarColor(speciesId: string): string {
+    const paletteId = this.chartPaletteId();
+    const palette = this.chartPalette().colors;
+    const fallbackColor = palette[0] ?? '#64748b';
+    const slot = this.aoiSpeciesColorSlotByPalette[paletteId]?.[speciesId];
+    if (slot === undefined) {
+      return fallbackColor;
+    }
+    return palette[slot] ?? fallbackColor;
   }
 
   protected isComparisonSectionExpanded(sectionId: ComparisonSectionId): boolean {
@@ -710,6 +760,20 @@ export class PanelSwitcherComponent {
   private getAoiBiodiversityScale(aoiId: string): number {
     const mod = aoiId.length % 4;
     return [0.9, 1, 1.1, 1.2][mod] ?? 1;
+  }
+
+  private buildDonutGradient(): string {
+    const legend = this.aoiEcosystemLegend();
+    const slices: string[] = [];
+    let start = 0;
+
+    for (const segment of legend) {
+      const end = start + segment.percent;
+      slices.push(`${segment.color} ${start}% ${end}%`);
+      start = end;
+    }
+
+    return `conic-gradient(${slices.join(', ')})`;
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {

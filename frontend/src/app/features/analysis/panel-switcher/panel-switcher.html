@@ -589,7 +589,7 @@
                       >
                         Species count by taxa
                       </p>
-                      @for (entry of aoiBiodiversityBars(); track entry.id; let index = $index) {
+                      @for (entry of aoiBiodiversityBars(); track entry.id) {
                         <div
                           [id]="'aoi-species-row-' + entry.id"
                           class="grid grid-cols-[70px_minmax(0,1fr)_auto] items-center gap-1.5"
@@ -607,7 +607,7 @@
                               [id]="'aoi-species-fill-' + entry.id"
                               class="block h-full rounded-full transition-[width] duration-300 ease-out"
                               [style.width.%]="aoiSpeciesBarWidth(entry.count)"
-                              [style.background-color]="aoiSpeciesBarColor(index)"
+                              [style.background-color]="aoiSpeciesBarColor(entry.id)"
                               [attr.aria-label]="entry.label + ' species count bar'"
                             ></span>
                           </div>
@@ -694,31 +694,19 @@
                         aria-label="Ecosystem coverage distribution"
                       ></div>
                       <div id="aoi-legend" class="aoi-legend">
-                        <div class="aoi-legend-item">
-                          <span class="aoi-legend-swatch" style="background: #334155"></span>
-                          <span>Cloud Forest</span>
-                          <span class="aoi-legend-pct">{{ aoiVal('39%') }}</span>
-                        </div>
-                        <div class="aoi-legend-item">
-                          <span class="aoi-legend-swatch" style="background: #64748b"></span>
-                          <span>Páramo</span>
-                          <span class="aoi-legend-pct">{{ aoiVal('23%') }}</span>
-                        </div>
-                        <div class="aoi-legend-item">
-                          <span class="aoi-legend-swatch" style="background: #94a3b8"></span>
-                          <span>Dry Forest</span>
-                          <span class="aoi-legend-pct">{{ aoiVal('17%') }}</span>
-                        </div>
-                        <div class="aoi-legend-item">
-                          <span class="aoi-legend-swatch" style="background: #cbd5e1"></span>
-                          <span>Wetlands</span>
-                          <span class="aoi-legend-pct">{{ aoiVal('12%') }}</span>
-                        </div>
-                        <div class="aoi-legend-item">
-                          <span class="aoi-legend-swatch" style="background: #e2e8f0"></span>
-                          <span>Other</span>
-                          <span class="aoi-legend-pct">{{ aoiVal('9%') }}</span>
-                        </div>
+                        @for (segment of aoiEcosystemLegend(); track segment.id) {
+                          <div [id]="'aoi-legend-item-' + segment.id" class="aoi-legend-item">
+                            <span
+                              [id]="'aoi-legend-swatch-' + segment.id"
+                              class="aoi-legend-swatch"
+                              [style.background]="segment.color"
+                            ></span>
+                            <span [id]="'aoi-legend-label-' + segment.id">{{ segment.label }}</span>
+                            <span [id]="'aoi-legend-pct-' + segment.id" class="aoi-legend-pct">
+                              {{ aoiVal(segment.percent + '%') }}
+                            </span>
+                          </div>
+                        }
                       </div>
                     </div>
 

@@ -1,5 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import type Extent from '@arcgis/core/geometry/Extent';
+import { DEFAULT_CHART_PALETTE_ID, type ChartPaletteId } from '@core/models/chart-palette.model';
 import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
 
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
@@ -41,6 +42,7 @@ export class AppStateService {
   readonly fillDummyOverviewMetrics$ = signal(true);
   readonly fillDummyComparisonMetrics$ = signal(true);
   readonly fillDummyAoiMetrics$ = signal(true);
+  readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
   readonly userTier$ = signal<UserTier>(UserTier.Public);
@@ -104,6 +106,10 @@ export class AppStateService {
 
   setFillDummyAoiMetrics(enabled: boolean): void {
     this.fillDummyAoiMetrics$.set(enabled);
+  }
+
+  setChartPaletteId(paletteId: ChartPaletteId): void {
+    this.chartPaletteId$.set(paletteId);
   }
 
   setSelectSolutionButtonHoverFx(mode: SelectSolutionButtonHoverFxMode): void {

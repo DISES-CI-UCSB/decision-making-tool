@@ -10,6 +10,11 @@ import {
 } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
 import { type AoiType, type Solution } from '@core/models';
+import {
+  CHART_PALETTE_IDS,
+  CHART_PALETTES,
+  type ChartPaletteId,
+} from '@core/models/chart-palette.model';
 import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
@@ -208,6 +213,46 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                 {{ fillDummyAoiMetrics() ? 'ON' : 'OFF' }}
               </button>
             </div>
+            <section
+              id="dev-tools-chart-palette-section"
+              class="mt-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <label
+                id="dev-tools-chart-palette-label"
+                for="dev-tools-chart-palette-select"
+                class="block text-[11px] text-slate-600"
+              >
+                AOI chart color palette
+              </label>
+              <select
+                id="dev-tools-chart-palette-select"
+                class="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-[11px]"
+                [value]="chartPaletteId()"
+                (change)="onChartPaletteChange($event)"
+              >
+                @for (palette of chartPaletteOptions; track palette.id) {
+                  <option [value]="palette.id">{{ palette.name }}</option>
+                }
+              </select>
+              <p id="dev-tools-chart-palette-description" class="mt-1 text-[10px] text-slate-500">
+                {{ selectedChartPalette().description }}
+              </p>
+              <div id="dev-tools-chart-palette-preview-row" class="mt-1 flex items-center gap-1">
+                @for (
+                  color of selectedChartPalette().colors;
+                  track color;
+                  let swatchIndex = $index
+                ) {
+                  <span
+                    [id]="'dev-tools-chart-palette-swatch-' + swatchIndex"
+                    class="inline-block h-4 w-7 rounded border border-slate-300"
+                    [style.background-color]="color"
+                    [title]="color"
+                    [attr.aria-label]="'Palette color ' + (swatchIndex + 1) + ': ' + color"
+                  ></span>
+                }
+              </div>
+            </section>
             <div
               id="dev-tools-popup-toggle-row"
               class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
@@ -411,6 +456,9 @@ export class DevToolsPanelComponent {
   readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
   readonly fillDummyAoiMetrics = this.appState.fillDummyAoiMetrics$;
+  readonly chartPaletteId = this.appState.chartPaletteId$;
+  readonly chartPaletteOptions = CHART_PALETTE_IDS.map((id) => CHART_PALETTES[id]);
+  readonly selectedChartPalette = computed(() => CHART_PALETTES[this.chartPaletteId()]);
   readonly selectSolutionButtonHoverFx = this.appState.selectSolutionButtonHoverFx$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
@@ -502,6 +550,13 @@ export class DevToolsPanelComponent {
     this.appState.setFillDummyAoiMetrics(!this.fillDummyAoiMetrics());
   }
 
+  onChartPaletteChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (this.isChartPaletteId(value)) {
+      this.appState.setChartPaletteId(value);
+    }
+  }
+
   toggleBoundary(type: AoiType): void {
     this.adminBoundaries.toggleLayerVisibility(type);
   }
@@ -555,5 +610,9 @@ export class DevToolsPanelComponent {
     if (!ctx) return;
     ctx.clearRect(0, 0, el.width, el.height);
     ctx.drawImage(source, 0, 0, el.width, el.height);
+  }
+
+  private isChartPaletteId(value: string): value is ChartPaletteId {
+    return CHART_PALETTE_IDS.includes(value as ChartPaletteId);
   }
 }
