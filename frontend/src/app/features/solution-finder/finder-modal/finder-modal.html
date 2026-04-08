@@ -1,4 +1,7 @@
-<section id="solution-finder-modal-root" class="flex h-full min-h-0 flex-col bg-slate-50">
+<section
+  id="solution-finder-modal-root"
+  class="flex h-full min-h-0 flex-col overflow-y-auto bg-slate-50"
+>
   <header
     id="solution-finder-modal-workflow-header"
     class="border-b border-slate-200 bg-white px-6 py-4"
@@ -21,39 +24,13 @@
           {{ getDescriptionKey() | translate }}
         </p>
       </div>
-
-      <article
-        id="solution-finder-modal-workflow-selection-summary"
-        class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3"
-      >
-        <p
-          id="solution-finder-modal-workflow-selection-summary-label"
-          class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
-        >
-          {{ 'solutionControls.finder.selectionSummary' | translate }}
-        </p>
-        <p
-          id="solution-finder-modal-workflow-selection-summary-value"
-          class="mt-1 text-sm text-slate-700"
-        >
-          {{
-            'solutionControls.finder.selectionSummaryPattern'
-              | translate
-                : {
-                    targets: getTargetSelectionCount(),
-                    variables: getVariableConstraintCount(),
-                    tradeoff: getTradeoffSelectionCount(),
-                  }
-          }}
-        </p>
-      </article>
     </div>
   </header>
 
   <section
     id="solution-finder-modal-workflow-body"
     [style.--solution-finder-targets-group-height.px]="targetsGroupHeight"
-    class="grid min-h-0 flex-1 items-stretch gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"
+    class="grid min-h-0 flex-1 items-stretch gap-4 p-4 lg:grid-cols-12 lg:p-6"
   >
     <section
       id="solution-finder-modal-targets-column"
@@ -179,7 +156,7 @@
                   @if (!isTargetTypeAvailable(option.id)) {
                     <span
                       [id]="'solution-finder-modal-step1-target-type-missing-badge-' + option.id"
-                      class="mt-1 inline-flex rounded-full border border-red-300 bg-red-100 whitespace-nowrap px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
+                      class="mt-1 inline-flex w-fit self-end rounded-full border border-red-300 bg-red-100 whitespace-nowrap px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
                     >
                       {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
                     </span>
