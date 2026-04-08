@@ -186,6 +186,36 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return this.targetLevelByType[type] !== undefined;
   }
 
+  protected hasAnyTargetTypeSelected(): boolean {
+    return this.selectedTargetTypeIds.length > 0;
+  }
+
+  protected getIncompleteTargetLevelCount(): number {
+    return this.selectedTargetTypeIds.reduce((count, type) => {
+      return this.hasTargetLevel(type) ? count : count + 1;
+    }, 0);
+  }
+
+  protected isTargetTypeReady(type: FinderTargetType): boolean {
+    return this.isTargetTypeSelected(type) && this.hasTargetLevel(type);
+  }
+
+  protected isTargetTypeLevelMissing(type: FinderTargetType): boolean {
+    return this.isTargetTypeSelected(type) && !this.hasTargetLevel(type);
+  }
+
+  protected getStep2LockReasonKey(): string {
+    if (!this.hasAnyTargetTypeSelected()) {
+      return 'solutionControls.finder.step1.lockReasonSelectTargetType';
+    }
+
+    if (this.getIncompleteTargetLevelCount() > 0) {
+      return 'solutionControls.finder.step1.lockReasonSelectTargetLevel';
+    }
+
+    return 'solutionControls.finder.locked.constraints';
+  }
+
   protected selectCostLayer(id: CostLayerChoice): void {
     this.selectedCostLayerId = id;
     this.clearResultsIfNeeded();

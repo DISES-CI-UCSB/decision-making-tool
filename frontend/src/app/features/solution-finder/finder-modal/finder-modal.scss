@@ -8,6 +8,23 @@
   padding: 0.25rem 0.75rem;
 }
 
+.finder-target-level-panel {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-0.25rem);
+  transition:
+    max-height 220ms ease,
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+
+.finder-target-level-panel-visible {
+  max-height: 8rem;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (min-width: 1024px) {
   #solution-finder-modal-step2a-card-wrapper,
   #solution-finder-modal-step2b-card-wrapper,
