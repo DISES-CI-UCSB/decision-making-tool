@@ -165,9 +165,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       delete this.targetLevelByType[type];
     } else {
       this.selectedTargetTypeIds.push(type);
-      if (this.isStrategicTarget(type)) {
-        this.targetLevelByType[type] = 30;
-      }
     }
 
     this.clearResultsIfNeeded();
@@ -175,10 +172,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected selectTargetLevel(type: FinderTargetType, pct: 17 | 30): void {
     if (!this.isTargetTypeSelected(type) || !this.isTargetTypeAvailable(type)) {
-      return;
-    }
-    if (this.isStrategicTarget(type)) {
-      this.targetLevelByType[type] = 30;
       return;
     }
     this.targetLevelByType[type] = pct;
