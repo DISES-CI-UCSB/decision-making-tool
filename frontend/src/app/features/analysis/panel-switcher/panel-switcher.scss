@@ -336,23 +336,55 @@
   gap: 8px;
   padding: 6px 0;
   margin-bottom: 2px;
+  min-height: 18px;
 }
 
 .v3-section-dot {
-  width: 8px;
-  height: 8px;
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  min-width: 9px;
+  min-height: 9px;
   border-radius: 2px;
-  flex-shrink: 0;
+  flex: 0 0 9px;
+  align-self: center;
   background: #475569;
 }
 
 .v3-section-label {
+  display: inline-flex;
+  align-items: center;
   flex: 1;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #64748b;
+  color: var(--color-subtext);
+  transform: translateY(0.8px);
+}
+
+@supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
+  .v3-section-label {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+  }
+}
+
+#right-sidebar-v3-overview-gains-label {
+  color: #2f7d3d;
+}
+
+#right-sidebar-v3-overview-gains-dot {
+  background: #2f7d3d;
+}
+
+#right-sidebar-v3-overview-costs-label {
+  color: #a16207;
+}
+
+#right-sidebar-v3-overview-costs-dot {
+  background: #a16207;
 }
 
 .v3-metric-table {
