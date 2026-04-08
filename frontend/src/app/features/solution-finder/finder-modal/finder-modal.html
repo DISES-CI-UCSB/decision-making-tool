@@ -75,8 +75,8 @@
               <div
                 [id]="'solution-finder-modal-step1-target-type-card-' + option.id"
                 class="rounded-md border px-3 py-2"
-                [class.border-emerald-300]="isTargetTypeReady(option.id)"
-                [class.bg-emerald-50]="isTargetTypeReady(option.id)"
+                [class.border-sky-300]="isTargetTypeReady(option.id)"
+                [class.bg-sky-50]="isTargetTypeReady(option.id)"
                 [class.border-amber-300]="isTargetTypeLevelMissing(option.id)"
                 [class.bg-amber-50]="isTargetTypeLevelMissing(option.id)"
                 [class.border-sky-400]="
@@ -126,10 +126,12 @@
                     >
                       @if (isTargetTypeReady(option.id)) {
                         <span
-                          [id]="'solution-finder-modal-step1-target-type-ready-badge-' + option.id"
-                          class="inline-flex rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700"
+                          [id]="
+                            'solution-finder-modal-step1-target-type-selected-badge-' + option.id
+                          "
+                          class="inline-flex rounded-full border border-sky-300 bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
                         >
-                          {{ 'solutionControls.finder.step1.readyBadge' | translate }}
+                          {{ 'solutionControls.finder.step1.selectedBadge' | translate }}
                         </span>
                       } @else if (isTargetTypeLevelMissing(option.id)) {
                         <span
@@ -158,7 +160,7 @@
 
                 <p
                   [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
-                  class="mt-2 text-xs font-normal leading-snug text-slate-600"
+                  class="text-xs font-normal leading-snug text-slate-600"
                 >
                   {{ option.helpKey | translate }}
                 </p>
@@ -166,77 +168,94 @@
                 @if (isTargetTypeAvailable(option.id)) {
                   <div
                     [id]="'solution-finder-modal-step1-target-level-panel-' + option.id"
-                    class="finder-target-level-panel mt-2 rounded-md border border-slate-200 bg-white px-2 py-2"
+                    class="finder-target-level-panel mt-1 rounded-md border border-slate-200 bg-white px-2 py-2"
                     [class.finder-target-level-panel-visible]="isTargetTypeSelected(option.id)"
                     [attr.aria-hidden]="!isTargetTypeSelected(option.id)"
                   >
-                    <p
-                      [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
-                      class="text-[11px] font-semibold uppercase tracking-wide text-slate-600"
-                    >
-                      {{ 'solutionControls.finder.step1.targetLevelRequiredTitle' | translate }}
-                    </p>
                     <div
-                      [id]="'solution-finder-modal-step1-target-level-group-' + option.id"
-                      class="mt-2 flex items-center gap-1"
-                      role="radiogroup"
-                      [attr.aria-label]="
-                        'solutionControls.finder.step1.targetLevelRequiredTitle' | translate
-                      "
+                      [id]="'solution-finder-modal-step1-target-level-row-' + option.id"
+                      class="flex flex-wrap items-center justify-between gap-2"
                     >
-                      <button
-                        [id]="'solution-finder-modal-step1-target-level-17-' + option.id"
-                        type="button"
-                        class="rounded border px-2 py-0.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
-                        [attr.aria-label]="
-                          ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 17%'
-                        "
-                        [disabled]="
-                          !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
-                        "
-                        [class.border-sky-500]="getTargetLevel(option.id) === 17"
-                        [class.bg-sky-500]="getTargetLevel(option.id) === 17"
-                        [class.text-white]="getTargetLevel(option.id) === 17"
-                        [class.border-slate-200]="getTargetLevel(option.id) !== 17"
-                        [class.bg-white]="getTargetLevel(option.id) !== 17"
-                        [class.text-slate-700]="getTargetLevel(option.id) !== 17"
-                        [attr.aria-pressed]="getTargetLevel(option.id) === 17"
-                        (click)="$event.stopPropagation(); selectTargetLevel(option.id, 17)"
-                      >
-                        17%
-                      </button>
-                      <button
-                        [id]="'solution-finder-modal-step1-target-level-30-' + option.id"
-                        type="button"
-                        class="rounded border px-2 py-0.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
-                        [attr.aria-label]="
-                          ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 30%'
-                        "
-                        [disabled]="
-                          !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
-                        "
-                        [class.border-sky-500]="getTargetLevel(option.id) === 30"
-                        [class.bg-sky-500]="getTargetLevel(option.id) === 30"
-                        [class.text-white]="getTargetLevel(option.id) === 30"
-                        [class.border-slate-200]="getTargetLevel(option.id) !== 30"
-                        [class.bg-white]="getTargetLevel(option.id) !== 30"
-                        [class.text-slate-700]="getTargetLevel(option.id) !== 30"
-                        [attr.aria-pressed]="getTargetLevel(option.id) === 30"
-                        (click)="$event.stopPropagation(); selectTargetLevel(option.id, 30)"
-                      >
-                        30%
-                      </button>
-                    </div>
-                    @if (isTargetTypeLevelMissing(option.id)) {
                       <p
-                        [id]="
-                          'solution-finder-modal-step1-target-level-required-message-' + option.id
-                        "
-                        class="mt-2 text-xs font-medium text-amber-700"
+                        [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
+                        class="text-[11px] font-semibold uppercase tracking-wide text-slate-600"
                       >
-                        {{ 'solutionControls.finder.step1.selectLevelToContinue' | translate }}
+                        <span
+                          [id]="
+                            'solution-finder-modal-step1-target-level-coverage-label-' + option.id
+                          "
+                        >
+                          {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
+                        </span>
+                        <span
+                          [id]="
+                            'solution-finder-modal-step1-target-level-required-label-' + option.id
+                          "
+                          class="ml-1"
+                          [class.text-red-600]="isTargetTypeLevelMissing(option.id)"
+                          [class.text-slate-500]="!isTargetTypeLevelMissing(option.id)"
+                        >
+                          {{ 'solutionControls.finder.step1.requiredInline' | translate }}
+                        </span>
                       </p>
-                    }
+                      <div
+                        [id]="'solution-finder-modal-step1-target-level-group-' + option.id"
+                        class="flex items-center gap-1"
+                        role="radiogroup"
+                        [attr.aria-label]="
+                          'solutionControls.finder.step1.targetLevelRequiredTitle' | translate
+                        "
+                      >
+                        <button
+                          [id]="'solution-finder-modal-step1-target-level-17-' + option.id"
+                          type="button"
+                          class="rounded border px-2 py-0.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+                          [attr.aria-label]="
+                            ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 17%'
+                          "
+                          [disabled]="
+                            !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
+                          "
+                          [class.border-sky-500]="getTargetLevel(option.id) === 17"
+                          [class.bg-sky-500]="getTargetLevel(option.id) === 17"
+                          [class.text-white]="getTargetLevel(option.id) === 17"
+                          [class.finder-target-level-choice-cue]="
+                            isTargetTypeLevelMissing(option.id) && getTargetLevel(option.id) !== 17
+                          "
+                          [class.border-slate-200]="getTargetLevel(option.id) !== 17"
+                          [class.bg-white]="getTargetLevel(option.id) !== 17"
+                          [class.text-slate-700]="getTargetLevel(option.id) !== 17"
+                          [attr.aria-pressed]="getTargetLevel(option.id) === 17"
+                          (click)="$event.stopPropagation(); selectTargetLevel(option.id, 17)"
+                        >
+                          17%
+                        </button>
+                        <button
+                          [id]="'solution-finder-modal-step1-target-level-30-' + option.id"
+                          type="button"
+                          class="rounded border px-2 py-0.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+                          [attr.aria-label]="
+                            ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 30%'
+                          "
+                          [disabled]="
+                            !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
+                          "
+                          [class.border-sky-500]="getTargetLevel(option.id) === 30"
+                          [class.bg-sky-500]="getTargetLevel(option.id) === 30"
+                          [class.text-white]="getTargetLevel(option.id) === 30"
+                          [class.finder-target-level-choice-cue]="
+                            isTargetTypeLevelMissing(option.id) && getTargetLevel(option.id) !== 30
+                          "
+                          [class.border-slate-200]="getTargetLevel(option.id) !== 30"
+                          [class.bg-white]="getTargetLevel(option.id) !== 30"
+                          [class.text-slate-700]="getTargetLevel(option.id) !== 30"
+                          [attr.aria-pressed]="getTargetLevel(option.id) === 30"
+                          (click)="$event.stopPropagation(); selectTargetLevel(option.id, 30)"
+                        >
+                          30%
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 }
               </div>
