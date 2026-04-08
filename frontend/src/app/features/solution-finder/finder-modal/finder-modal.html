@@ -63,12 +63,6 @@
           >
             {{ 'solutionControls.finder.step1.targetTypeIntro' | translate }}
           </p>
-          <p
-            id="solution-finder-modal-step1-target-type-requirement"
-            class="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-900"
-          >
-            {{ 'solutionControls.finder.step1.targetLevelRequiredHint' | translate }}
-          </p>
 
           <div id="solution-finder-modal-step1-target-type-options" class="mt-3 space-y-2">
             @for (option of targetTypeOptions; track option.id) {
@@ -160,7 +154,7 @@
 
                 <p
                   [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
-                  class="text-xs font-normal leading-snug text-slate-600"
+                  class="mt-1 text-xs font-normal leading-snug text-slate-600"
                 >
                   {{ option.helpKey | translate }}
                 </p>
@@ -168,7 +162,7 @@
                 @if (isTargetTypeAvailable(option.id)) {
                   <div
                     [id]="'solution-finder-modal-step1-target-level-panel-' + option.id"
-                    class="finder-target-level-panel mt-1 rounded-md border border-slate-200 bg-white px-2 py-2"
+                    class="finder-target-level-panel mt-1 rounded-md border border-slate-200 bg-white px-2 py-1.5"
                     [class.finder-target-level-panel-visible]="isTargetTypeSelected(option.id)"
                     [attr.aria-hidden]="!isTargetTypeSelected(option.id)"
                   >
