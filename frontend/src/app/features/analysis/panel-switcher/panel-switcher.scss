@@ -422,7 +422,7 @@
 .v3-insight {
   margin-top: 8px;
   border-left: 3px solid #cbd5e1;
-  border-radius: 6px;
+  border-radius: 0;
   background: #f8fafc;
   padding: 10px 12px;
   font-size: 12px;
@@ -431,7 +431,7 @@
 }
 
 .v3-nc-anchor {
-  border-radius: 6px;
+  border-radius: 0;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   padding: 14px;
@@ -784,7 +784,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-radius: 6px;
+  border-radius: 0;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   padding: 16px;
@@ -803,7 +803,7 @@
 }
 
 .c2-viz-mode-section {
-  border-radius: 6px;
+  border-radius: 0;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   padding: 10px;
@@ -1052,7 +1052,7 @@
 
 .c2-insight {
   border-left: 3px solid #cbd5e1;
-  border-radius: 6px;
+  border-radius: 0;
   background: #f8fafc;
   padding: 10px 12px;
   font-size: 12px;
@@ -1553,7 +1553,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  border-radius: 6px;
+  border-radius: 0;
   border: 1px solid #ffe4e6;
   background: #fff1f2;
   padding: 10px 12px;
