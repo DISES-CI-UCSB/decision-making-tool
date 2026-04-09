@@ -162,8 +162,12 @@
                 @if (isTargetTypeAvailable(option.id)) {
                   <div
                     [id]="'solution-finder-modal-step1-target-level-panel-' + option.id"
-                    class="finder-target-level-panel rounded-md border border-slate-200 bg-white px-2 py-1.5"
+                    class="finder-target-level-panel rounded-md bg-white"
                     [class.mt-1]="isTargetTypeSelected(option.id)"
+                    [class.border]="isTargetTypeSelected(option.id)"
+                    [class.border-slate-200]="isTargetTypeSelected(option.id)"
+                    [class.px-2]="isTargetTypeSelected(option.id)"
+                    [class.py-1.5]="isTargetTypeSelected(option.id)"
                     [class.finder-target-level-panel-visible]="isTargetTypeSelected(option.id)"
                     [attr.aria-hidden]="!isTargetTypeSelected(option.id)"
                   >
