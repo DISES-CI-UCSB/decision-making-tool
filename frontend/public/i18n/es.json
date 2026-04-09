@@ -223,7 +223,7 @@
     "finder": {
       "kicker": "Busqueda de escenarios de conservacion",
       "title": "Encontrar un escenario de conservacion",
-      "description": "Elija que proteger, capas opcionales y la base del compromiso (costo), luego busque el raster precalculado que coincida.",
+      "description": "Elija que proteger, capas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
       "comparison": {
         "kicker": "Busqueda de solucion candidata",
         "title": "Encontrar una solucion candidata",
@@ -247,11 +247,11 @@
       },
       "helpers": {
         "constraints": "Elija capas opcionales despues de completar el Paso 1.",
-        "results": "Ejecute Buscar cuando la meta y la base del compromiso esten elegidas."
+        "results": "Los resultados se actualizan automaticamente cuando la meta y la base del compromiso estan elegidas."
       },
       "locked": {
         "constraints": "Complete el Paso 1 para desbloquear inclusiones, exclusiones y la base del compromiso.",
-        "results": "Haga clic en Buscar (meta + base del compromiso requeridos) para ver el resultado."
+        "results": "Elija la meta y la base del compromiso para ver resultados coincidentes automaticamente."
       },
       "toggle": {
         "on": "ON",
@@ -312,13 +312,13 @@
       "actions": {
         "reset": "Restablecer valores",
         "cancel": "Cancelar",
-        "findMatches": "Buscar escenario",
+        "findMatches": "Actualizar escenarios",
         "apply": "Aplicar escenario seleccionado",
         "loadAsCandidateSolution": "Cargar como solucion candidata"
       },
       "empty": {
-        "title": "Ejecute la busqueda para ver un escenario",
-        "description": "Elija uno o mas tipos de meta, defina nivel de meta, seleccione base del compromiso y haga clic en Buscar escenario."
+        "title": "Defina filtros para ver un escenario",
+        "description": "Elija uno o mas tipos de meta, defina nivel de meta y seleccione base del compromiso. Los resultados se actualizan automaticamente."
       },
       "noMatch": {
         "title": "Sin escenario coincidente",

@@ -16,7 +16,7 @@
       [attr.aria-label]="ariaLabelKey ? (ariaLabelKey | translate) : null"
       [attr.aria-labelledby]="titleKey ? rootId + '-title' : null"
       tabindex="-1"
-      class="w-full overflow-hidden bg-white shadow-xl transition-all duration-200 ease-out focus:outline-none"
+      class="flex min-h-0 w-full flex-col overflow-hidden bg-white shadow-xl transition-all duration-200 ease-out focus:outline-none"
       [ngClass]="{
         'max-h-[85vh] max-w-3xl rounded-md border border-slate-200': mode === 'standard',
         'max-h-[92vh] max-w-[92vw] rounded-md border border-slate-200': mode === 'wide',
@@ -64,7 +64,7 @@
 
       <div
         [id]="rootId + '-content'"
-        class="overflow-auto"
+        class="min-h-0 flex-1 overflow-auto"
         [class.h-[calc(100%-3.5rem)]]="mode === 'full-screen'"
         [class.p-4]="mode === 'standard'"
         [class.p-0]="mode === 'wide' || mode === 'full-screen'"

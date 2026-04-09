@@ -223,7 +223,7 @@
     "finder": {
       "kicker": "Conservation scenario search",
       "title": "Find a conservation scenario",
-      "description": "Choose what to protect, optional area layers, and a trade-off basis, then find the precomputed raster that matches.",
+      "description": "Choose what to protect, optional area layers, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
       "comparison": {
         "kicker": "Candidate solution search",
         "title": "Find a candidate solution",
@@ -247,11 +247,11 @@
       },
       "helpers": {
         "constraints": "Choose optional layers after you finish Step 1.",
-        "results": "Run Find matches when targets and trade-off basis are chosen."
+        "results": "Results refresh automatically when targets and trade-off basis are chosen."
       },
       "locked": {
         "constraints": "Complete Step 1 to unlock includes, excludes, and trade-off options.",
-        "results": "Click Find matches (targets + trade-off basis required) to view the result."
+        "results": "Choose targets and trade-off basis to automatically see matching results."
       },
       "toggle": {
         "on": "ON",
@@ -313,13 +313,13 @@
       "actions": {
         "reset": "Reset to defaults",
         "cancel": "Cancel",
-        "findMatches": "Find scenario",
+        "findMatches": "Refresh scenarios",
         "apply": "Apply selected scenario",
         "loadAsCandidateSolution": "Load as candidate solution"
       },
       "empty": {
-        "title": "Run find to view a scenario",
-        "description": "Choose one or more target types, set target level, choose a trade-off basis, then click Find scenario."
+        "title": "Set filters to view a scenario",
+        "description": "Choose one or more target types, set target level, and choose a trade-off basis. Results update automatically."
       },
       "noMatch": {
         "title": "No matching scenario",

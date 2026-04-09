@@ -50,15 +50,6 @@
   }
 }
 
-@media (min-width: 1024px) {
-  #solution-finder-modal-step2a-card-wrapper,
-  #solution-finder-modal-step2b-card-wrapper,
-  #solution-finder-modal-results-card-wrapper {
-    height: var(--solution-finder-targets-group-height, auto);
-    max-height: var(--solution-finder-targets-group-height, auto);
-  }
-}
-
 .finder-results-scrollbar {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -68,6 +59,54 @@
     width: 0;
     height: 0;
     display: none;
+  }
+}
+
+.finder-modal-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+
+  &::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-color: transparent;
+    background-clip: content-box;
+  }
+
+  &:hover,
+  &:focus-within {
+    scrollbar-color: rgb(100 116 139 / 0.65) transparent;
+  }
+
+  &:hover::-webkit-scrollbar-thumb,
+  &:focus-within::-webkit-scrollbar-thumb {
+    background-color: rgb(100 116 139 / 0.65);
+  }
+}
+
+.finder-loading-bar-indicator {
+  animation: finder-loading-bar-slide 1s ease-in-out infinite;
+}
+
+@keyframes finder-loading-bar-slide {
+  0% {
+    transform: translateX(-115%);
+  }
+  50% {
+    transform: translateX(75%);
+  }
+  100% {
+    transform: translateX(205%);
   }
 }
 

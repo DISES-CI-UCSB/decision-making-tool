@@ -1,6 +1,6 @@
 <section
   id="solution-finder-modal-root"
-  class="flex h-full min-h-0 flex-col overflow-y-auto bg-slate-50"
+  class="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50"
 >
   <header
     id="solution-finder-modal-workflow-header"
@@ -29,22 +29,21 @@
 
   <section
     id="solution-finder-modal-workflow-body"
-    [style.--solution-finder-targets-group-height.px]="targetsGroupHeight"
-    class="grid min-h-0 flex-1 items-stretch gap-4 p-4 lg:grid-cols-12 lg:p-6"
+    class="finder-modal-scrollbar grid min-h-0 flex-1 items-stretch gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"
   >
     <section
       id="solution-finder-modal-targets-column"
-      class="space-y-3 lg:col-span-3"
+      class="flex min-h-0 flex-col gap-3 lg:col-span-3"
       aria-labelledby="solution-finder-modal-targets-heading"
     >
       <h4 id="solution-finder-modal-targets-heading" class="text-base font-semibold text-slate-800">
         {{ 'solutionControls.finder.stepLabels.step1' | translate }}
       </h4>
 
-      <div id="solution-finder-modal-targets-cards-group" #targetsCardsGroup class="space-y-3">
+      <div id="solution-finder-modal-targets-cards-group" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-step1-target-type-card"
-          class="rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div
             id="solution-finder-modal-step1-target-type-header"
@@ -275,7 +274,7 @@
       <div id="solution-finder-modal-step2a-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-step2a-card"
-          class="h-full space-y-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div
             id="solution-finder-modal-step2a-row-omec"
@@ -433,7 +432,7 @@
       <div id="solution-finder-modal-step2b-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-step2b-card"
-          class="h-full space-y-2 rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           <p id="solution-finder-modal-step2b-intro" class="text-xs leading-snug text-black">
             {{ 'solutionControls.finder.step2b.intro' | translate }}
@@ -583,7 +582,7 @@
       <div id="solution-finder-modal-results-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-results-card"
-          class="flex h-full min-h-56 flex-col rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="flex h-full min-h-0 flex-col rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           @switch (matchState) {
             @case ('empty') {
@@ -607,10 +606,15 @@
                 id="solution-finder-modal-results-loading-state"
                 class="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-md border border-slate-100 bg-slate-50"
               >
-                <span
-                  id="solution-finder-modal-results-loading-spinner"
-                  class="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500"
-                ></span>
+                <div
+                  id="solution-finder-modal-results-loading-bar-track"
+                  class="h-1.5 w-44 overflow-hidden rounded-full bg-slate-200"
+                >
+                  <span
+                    id="solution-finder-modal-results-loading-bar-indicator"
+                    class="finder-loading-bar-indicator block h-full w-1/2 rounded-full bg-sky-500"
+                  ></span>
+                </div>
                 <p id="solution-finder-modal-results-loading-text" class="text-sm text-black">
                   {{ 'solutionControls.finder.loading' | translate }}
                 </p>
@@ -769,15 +773,6 @@
           (click)="requestClose()"
         >
           {{ 'solutionControls.finder.actions.cancel' | translate }}
-        </button>
-        <button
-          id="solution-finder-modal-run-match-button"
-          type="button"
-          class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          [disabled]="!canRunMatching()"
-          (click)="runMatching()"
-        >
-          {{ 'solutionControls.finder.actions.findMatches' | translate }}
         </button>
         <button
           id="solution-finder-modal-apply-button"
