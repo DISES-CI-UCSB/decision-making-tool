@@ -330,7 +330,10 @@
   flex-shrink: 0;
 }
 
-.v3-section-head {
+/* Shared toggle heading recipe (dot + all-caps label + caret). */
+.v3-section-head,
+.aoi-section-head,
+.c2-section-header-button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -339,7 +342,9 @@
   min-height: 18px;
 }
 
-.v3-section-dot {
+.v3-section-dot,
+.aoi-section-dot,
+.c2-section-dot {
   display: inline-block;
   width: 9px;
   height: 9px;
@@ -348,10 +353,20 @@
   border-radius: 2px;
   flex: 0 0 9px;
   align-self: center;
+}
+
+.v3-section-dot {
   background: #475569;
 }
 
-.v3-section-label {
+.aoi-section-dot,
+.c2-section-dot {
+  background: #000;
+}
+
+.v3-section-label,
+.aoi-section-label,
+.c2-section-title {
   display: inline-flex;
   align-items: center;
   flex: 1;
@@ -365,7 +380,9 @@
 }
 
 @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
-  .v3-section-label {
+  .v3-section-label,
+  .aoi-section-label,
+  .c2-section-title {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
   }
@@ -915,12 +932,7 @@
 
 .c2-section-header-button {
   width: 100%;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 2px;
-  padding: 6px 0;
   border: 0;
   background: transparent;
   text-align: left;
@@ -936,23 +948,6 @@
   min-width: 0;
   align-items: center;
   gap: 8px;
-}
-
-.c2-section-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-  background: #000;
-}
-
-.c2-section-title {
-  flex: 1;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #64748b;
 }
 
 .c2-toggle-caret {
@@ -1216,12 +1211,7 @@
 
 /* Section headers (collapsible) */
 .aoi-section-head {
-  display: flex;
   width: 100%;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  margin-bottom: 2px;
   cursor: pointer;
   user-select: none;
   border: 0;
@@ -1231,25 +1221,6 @@
 
 .aoi-section-head:hover .aoi-section-label {
   opacity: 0.75;
-}
-
-.aoi-section-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-  background: #000;
-}
-
-.aoi-section-label {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.05;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-subtext);
-  transform: translateY(0.5px);
 }
 
 /* Matches map-layers-panel selected-layer row chevron (stroke V, 180° when collapsed). */
