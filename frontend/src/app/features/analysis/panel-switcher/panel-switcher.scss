@@ -368,27 +368,19 @@
   background: #000;
 }
 
-/* Label — takes remaining space; no nudge needed now that inline-flex
-   is gone and the line-box sits at its natural baseline position. */
+/* Label — line-height matches the 10px swatch so flex centering
+   produces a 0px offset (no sub-pixel rounding across rows).
+   Safe for ALL-CAPS: cap-height ≈ 9px fits inside a 10px line-box. */
 .v3-section-label,
 .aoi-section-label,
 .c2-section-title {
   flex: 1;
   font-size: 13px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
-}
-
-@supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
-  .v3-section-label,
-  .aoi-section-label,
-  .c2-section-title {
-    text-box-trim: trim-both;
-    text-box-edge: cap alphabetic;
-  }
 }
 
 #right-sidebar-v3-overview-gains-label {
