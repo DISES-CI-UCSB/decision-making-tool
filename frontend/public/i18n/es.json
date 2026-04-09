@@ -238,6 +238,12 @@
         "step2b": "Paso 3: Capa de costo",
         "step3": "Resultado"
       },
+      "stepIntros": {
+        "step1": "Seleccione uno o mas tipos de meta y defina un nivel de cobertura para cada meta seleccionada.",
+        "step2a": "Elija capas de area opcionales para incluir junto con las areas protegidas RUNAP siempre activas.",
+        "step2b": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
+        "step3": "Los escenarios coincidentes se actualizan automaticamente al cambiar filtros."
+      },
       "stepState": {
         "inProgress": "En progreso",
         "complete": "Completado",
