@@ -29,6 +29,15 @@
   animation: finder-target-level-choice-pulse 1.1s ease-in-out 1;
 }
 
+/* Optical cap-height alignment against adjacent 17% / 30% buttons. */
+.finder-target-level-title-optical {
+  --finder-target-level-title-line-height: 0.95;
+  --finder-target-level-title-nudge-y: 1px;
+
+  line-height: var(--finder-target-level-title-line-height);
+  transform: translateY(var(--finder-target-level-title-nudge-y));
+}
+
 @keyframes finder-target-level-choice-pulse {
   0%,
   100% {
