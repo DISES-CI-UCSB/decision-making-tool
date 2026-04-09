@@ -25,6 +25,22 @@
   transform: translateY(0);
 }
 
+/* Keep 17% / 30% numerals optically centered by cap height. */
+.finder-target-level-choice-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.5rem;
+}
+
+.finder-target-level-choice-label-optical {
+  --finder-target-level-choice-line-height: 0.95;
+  --finder-target-level-choice-nudge-y: 1px;
+
+  line-height: var(--finder-target-level-choice-line-height);
+  transform: translateY(var(--finder-target-level-choice-nudge-y));
+}
+
 .finder-target-level-choice-cue {
   animation: finder-target-level-choice-pulse 1.1s ease-in-out 1;
 }
