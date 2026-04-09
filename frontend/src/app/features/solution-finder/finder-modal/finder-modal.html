@@ -68,7 +68,7 @@
             @for (option of targetTypeOptions; track option.id) {
               <div
                 [id]="'solution-finder-modal-step1-target-type-card-' + option.id"
-                class="rounded-md border px-3 py-2 outline-none focus:outline-none focus-visible:outline-none"
+                class="rounded-md border px-3 pt-2 pb-1 outline-none focus:outline-none focus-visible:outline-none"
                 [class.border-sky-300]="isTargetTypeReady(option.id)"
                 [class.bg-sky-50]="isTargetTypeReady(option.id)"
                 [class.border-amber-300]="isTargetTypeLevelMissing(option.id)"
