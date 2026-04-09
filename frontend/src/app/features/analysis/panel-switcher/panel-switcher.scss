@@ -361,7 +361,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
-  transform: translateY(0.8px);
+  transform: translateY(1px);
 }
 
 @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
