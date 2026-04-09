@@ -13,7 +13,7 @@
       <div id="solution-finder-modal-workflow-header-copy" class="space-y-1">
         <p
           id="solution-finder-modal-workflow-kicker"
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
+          class="finder-all-caps-optical text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
         >
           {{ getKickerKey() | translate }}
         </p>
@@ -128,7 +128,7 @@
                           [id]="
                             'solution-finder-modal-step1-target-type-selected-badge-' + option.id
                           "
-                          class="inline-flex rounded-md border border-sky-300 bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
+                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-sky-300 bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
                         >
                           {{ 'solutionControls.finder.step1.selectedBadge' | translate }}
                         </span>
@@ -138,7 +138,7 @@
                             'solution-finder-modal-step1-target-type-action-needed-badge-' +
                             option.id
                           "
-                          class="inline-flex rounded-md border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-amber-300 bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
                         >
                           {{ 'solutionControls.finder.step1.actionNeededBadge' | translate }}
                         </span>
@@ -148,7 +148,7 @@
                           [id]="
                             'solution-finder-modal-step1-target-type-missing-badge-' + option.id
                           "
-                          class="inline-flex rounded-md border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
+                          class="finder-all-caps-optical inline-flex rounded-md border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
                         >
                           {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
                         </span>
@@ -182,7 +182,7 @@
                     >
                       <p
                         [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
-                        class="finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide text-slate-600"
+                        class="finder-all-caps-optical finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide text-slate-600"
                       >
                         <span
                           [id]="
@@ -191,16 +191,16 @@
                         >
                           {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
                         </span>
-                        <span
-                          [id]="
-                            'solution-finder-modal-step1-target-level-required-label-' + option.id
-                          "
-                          class="ml-1"
-                          [class.text-red-600]="isTargetTypeLevelMissing(option.id)"
-                          [class.text-slate-500]="!isTargetTypeLevelMissing(option.id)"
-                        >
-                          {{ 'solutionControls.finder.step1.requiredInline' | translate }}
-                        </span>
+                        @if (isTargetTypeLevelMissing(option.id)) {
+                          <span
+                            [id]="
+                              'solution-finder-modal-step1-target-level-required-label-' + option.id
+                            "
+                            class="finder-all-caps-optical ml-1 text-red-600"
+                          >
+                            {{ 'solutionControls.finder.step1.requiredInline' | translate }}
+                          </span>
+                        }
                       </p>
                       <div
                         [id]="'solution-finder-modal-step1-target-level-group-' + option.id"
@@ -224,7 +224,7 @@
                           [class.bg-sky-500]="getTargetLevel(option.id) === 17"
                           [class.text-white]="getTargetLevel(option.id) === 17"
                           [class.finder-target-level-choice-cue]="
-                            isTargetTypeLevelMissing(option.id) && getTargetLevel(option.id) !== 17
+                            isTargetTypeLevelMissing(option.id)
                           "
                           [class.border-slate-200]="getTargetLevel(option.id) !== 17"
                           [class.bg-white]="getTargetLevel(option.id) !== 17"
@@ -253,7 +253,10 @@
                           [class.bg-sky-500]="getTargetLevel(option.id) === 30"
                           [class.text-white]="getTargetLevel(option.id) === 30"
                           [class.finder-target-level-choice-cue]="
-                            isTargetTypeLevelMissing(option.id) && getTargetLevel(option.id) !== 30
+                            isTargetTypeLevelMissing(option.id)
+                          "
+                          [class.finder-target-level-choice-cue-delayed]="
+                            isTargetTypeLevelMissing(option.id)
                           "
                           [class.border-slate-200]="getTargetLevel(option.id) !== 30"
                           [class.bg-white]="getTargetLevel(option.id) !== 30"
@@ -392,7 +395,7 @@
           >
             <p
               id="solution-finder-modal-step2a-always-heading"
-              class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+              class="finder-all-caps-optical text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500"
             >
               {{ 'solutionControls.finder.step2a.alwaysAppliedHeading' | translate }}
             </p>
@@ -733,7 +736,7 @@
                     >
                       <p
                         id="solution-finder-modal-results-multi-hint-label"
-                        class="mb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500"
+                        class="finder-all-caps-optical mb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500"
                       >
                         {{ 'solutionControls.finder.results.alternateMatches' | translate }}
                       </p>
