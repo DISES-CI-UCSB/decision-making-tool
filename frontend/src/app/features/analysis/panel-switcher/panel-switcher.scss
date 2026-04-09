@@ -330,7 +330,12 @@
   flex-shrink: 0;
 }
 
-/* Shared toggle heading recipe (dot + all-caps label + caret). */
+/* ── Shared toggle-heading recipe: swatch + ALL-CAPS label + caret ── */
+
+/* Outer row — provides vertical centering for all direct children.
+   For comparison mode the dot+label sit inside .c2-section-title-group
+   (a nested flex container) so the button itself only aligns that group
+   and the caret. */
 .v3-section-head,
 .aoi-section-head,
 .c2-section-header-button {
@@ -342,17 +347,16 @@
   min-height: 18px;
 }
 
+/* Swatch — an immovable 10×10 square. No transforms, no nudges.
+   Flex parent centres it; flex-shrink: 0 prevents compression. */
 .v3-section-dot,
 .aoi-section-dot,
 .c2-section-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  min-width: 9px;
-  min-height: 9px;
+  display: block;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
   border-radius: 2px;
-  flex: 0 0 9px;
-  align-self: center;
 }
 
 .v3-section-dot {
@@ -364,11 +368,11 @@
   background: #000;
 }
 
+/* Label — takes remaining space; no nudge needed now that inline-flex
+   is gone and the line-box sits at its natural baseline position. */
 .v3-section-label,
 .aoi-section-label,
 .c2-section-title {
-  display: inline-flex;
-  align-items: center;
   flex: 1;
   font-size: 13px;
   font-weight: 700;
@@ -376,7 +380,6 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
-  transform: translateY(1px);
 }
 
 @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
@@ -943,11 +946,13 @@
   opacity: 0.75;
 }
 
+/* Mirrors the shared heading flex recipe so dot+label align identically
+   to the v3/aoi patterns where they are direct flex children. */
 .c2-section-title-group {
   display: flex;
-  min-width: 0;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .c2-toggle-caret {
