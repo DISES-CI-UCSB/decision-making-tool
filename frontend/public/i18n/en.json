@@ -260,7 +260,7 @@
       "step1": {
         "targetTypeTitle": "Target type",
         "modelBackedBadge": "Model-backed",
-        "targetTypeIntro": "Select one or more target groups for what to protect. Items marked in red are expected targets but their input layers are not yet available in the current app catalog.",
+        "targetTypeIntro": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "ecosystemsLabel": "Ecosystems",
         "ecosystemsHelp": "Aims to include the full range of Colombia’s different ecosystem types in conservation planning.",
         "speciesRichnessLabel": "Species (species richness)",
