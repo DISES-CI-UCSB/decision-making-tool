@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import {
-  AfterViewInit,
   Component,
   ElementRef,
   EventEmitter,
@@ -55,7 +54,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
   templateUrl: './finder-modal.html',
   styleUrl: './finder-modal.scss',
 })
-export class FinderModalComponent implements AfterViewInit, OnDestroy {
+export class FinderModalComponent implements OnDestroy {
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
   protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
@@ -113,9 +112,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   /** Step 2B */
   protected selectedCostLayerId: CostLayerChoice | null = null;
 
-  @ViewChild('targetsCardsGroup')
-  private readonly targetsCardsGroupRef?: ElementRef<HTMLElement>;
-
   @ViewChild('resultsScrollContainer')
   private readonly resultsScrollRef?: ElementRef<HTMLElement>;
 
@@ -126,32 +122,13 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   protected matchResults: ScenarioMatch[] = [];
   protected selectedMatchId: string | null = null;
   protected selectedMatch: ScenarioMatch | null = null;
-  protected targetsGroupHeight = 0;
 
   private loadingTimer: ReturnType<typeof setTimeout> | null = null;
-  private loadingStartTimer: ReturnType<typeof setTimeout> | null = null;
   private scrollThumbHideTimer: ReturnType<typeof setTimeout> | null = null;
-  private targetsGroupResizeObserver: ResizeObserver | null = null;
-
-  ngAfterViewInit(): void {
-    this.updateTargetsGroupHeight();
-
-    if (typeof ResizeObserver === 'undefined' || !this.targetsCardsGroupRef) {
-      return;
-    }
-
-    this.targetsGroupResizeObserver = new ResizeObserver(() => {
-      this.updateTargetsGroupHeight();
-    });
-    this.targetsGroupResizeObserver.observe(this.targetsCardsGroupRef.nativeElement);
-  }
 
   ngOnDestroy(): void {
     this.clearLoadingTimer();
-    this.clearLoadingStartTimer();
     this.clearScrollThumbHideTimer();
-    this.targetsGroupResizeObserver?.disconnect();
-    this.targetsGroupResizeObserver = null;
   }
 
   protected toggleTargetType(type: FinderTargetType): void {
@@ -165,9 +142,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       delete this.targetLevelByType[type];
     } else {
       this.selectedTargetTypeIds.push(type);
-      if (this.isStrategicTarget(type)) {
-        this.targetLevelByType[type] = 30;
-      }
     }
 
     this.clearResultsIfNeeded();
@@ -175,10 +149,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected selectTargetLevel(type: FinderTargetType, pct: 17 | 30): void {
     if (!this.isTargetTypeSelected(type) || !this.isTargetTypeAvailable(type)) {
-      return;
-    }
-    if (this.isStrategicTarget(type)) {
-      this.targetLevelByType[type] = 30;
       return;
     }
     this.targetLevelByType[type] = pct;
@@ -191,6 +161,36 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected hasTargetLevel(type: FinderTargetType): boolean {
     return this.targetLevelByType[type] !== undefined;
+  }
+
+  protected hasAnyTargetTypeSelected(): boolean {
+    return this.selectedTargetTypeIds.length > 0;
+  }
+
+  protected getIncompleteTargetLevelCount(): number {
+    return this.selectedTargetTypeIds.reduce((count, type) => {
+      return this.hasTargetLevel(type) ? count : count + 1;
+    }, 0);
+  }
+
+  protected isTargetTypeReady(type: FinderTargetType): boolean {
+    return this.isTargetTypeSelected(type) && this.hasTargetLevel(type);
+  }
+
+  protected isTargetTypeLevelMissing(type: FinderTargetType): boolean {
+    return this.isTargetTypeSelected(type) && !this.hasTargetLevel(type);
+  }
+
+  protected getStep2LockReasonKey(): string {
+    if (!this.hasAnyTargetTypeSelected()) {
+      return 'solutionControls.finder.step1.lockReasonSelectTargetType';
+    }
+
+    if (this.getIncompleteTargetLevelCount() > 0) {
+      return 'solutionControls.finder.step1.lockReasonSelectTargetLevel';
+    }
+
+    return 'solutionControls.finder.locked.constraints';
   }
 
   protected selectCostLayer(id: CostLayerChoice): void {
@@ -215,22 +215,24 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected runMatching(): void {
+    this.clearLoadingTimer();
+
     if (!this.canRunMatching()) {
-      this.matchState = 'empty';
+      this.clearResults();
       return;
     }
 
-    this.matchResults = [];
-    this.selectedMatchId = null;
-    this.selectedMatch = null;
-    this.clearLoadingTimer();
-    this.clearLoadingStartTimer();
     this.matchState = 'loading';
-    const filtered = this.scenarioLibrary.filter((s) => this.scenarioMatchesSelection(s));
-    this.matchResults = filtered.map((scenario, index) => this.toScenarioMatch(scenario, index));
-    this.selectedMatchId = this.matchResults[0]?.id ?? null;
-    this.selectedMatch = this.matchResults[0] ?? null;
-    this.matchState = 'ready';
+    this.loadingTimer = setTimeout(() => {
+      this.loadingTimer = null;
+      const filtered = this.scenarioLibrary.filter((scenario) =>
+        this.scenarioMatchesSelection(scenario),
+      );
+      this.matchResults = filtered.map((scenario, index) => this.toScenarioMatch(scenario, index));
+      this.selectedMatchId = this.matchResults[0]?.id ?? null;
+      this.selectedMatch = this.matchResults[0] ?? null;
+      this.matchState = 'ready';
+    }, 350);
   }
 
   protected selectMatch(matchId: string): void {
@@ -263,7 +265,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.selectedMatch = null;
     this.matchState = 'empty';
     this.clearLoadingTimer();
-    this.clearLoadingStartTimer();
   }
 
   protected requestClose(): void {
@@ -303,8 +304,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return (
       this.selectedTargetTypeIds.length > 0 &&
       this.areAllSelectedTargetsLeveled() &&
-      this.selectedCostLayerId !== null &&
-      this.matchState !== 'loading'
+      this.selectedCostLayerId !== null
     );
   }
 
@@ -349,12 +349,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   private clearResultsIfNeeded(): void {
-    this.clearLoadingTimer();
-    this.clearLoadingStartTimer();
-    this.matchResults = [];
-    this.selectedMatchId = null;
-    this.selectedMatch = null;
-    this.matchState = 'empty';
+    this.runMatching();
   }
 
   private scenarioMatchesSelection(scenario: SolutionScenario): boolean {
@@ -470,22 +465,11 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.loadingTimer = null;
   }
 
-  private clearLoadingStartTimer(): void {
-    if (!this.loadingStartTimer) {
-      return;
-    }
-
-    clearTimeout(this.loadingStartTimer);
-    this.loadingStartTimer = null;
-  }
-
-  private updateTargetsGroupHeight(): void {
-    const targetsCardsGroupElement = this.targetsCardsGroupRef?.nativeElement;
-    if (!targetsCardsGroupElement) {
-      return;
-    }
-
-    this.targetsGroupHeight = Math.ceil(targetsCardsGroupElement.getBoundingClientRect().height);
+  private clearResults(): void {
+    this.matchResults = [];
+    this.selectedMatchId = null;
+    this.selectedMatch = null;
+    this.matchState = 'empty';
   }
 
   private updateScrollThumb(): void {

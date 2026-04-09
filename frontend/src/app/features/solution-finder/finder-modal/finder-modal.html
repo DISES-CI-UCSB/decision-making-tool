@@ -1,4 +1,7 @@
-<section id="solution-finder-modal-root" class="flex h-full min-h-0 flex-col bg-slate-50">
+<section
+  id="solution-finder-modal-root"
+  class="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50"
+>
   <header
     id="solution-finder-modal-workflow-header"
     class="border-b border-slate-200 bg-white px-6 py-4"
@@ -10,7 +13,7 @@
       <div id="solution-finder-modal-workflow-header-copy" class="space-y-1">
         <p
           id="solution-finder-modal-workflow-kicker"
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
+          class="finder-all-caps-optical text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
         >
           {{ getKickerKey() | translate }}
         </p>
@@ -21,53 +24,32 @@
           {{ getDescriptionKey() | translate }}
         </p>
       </div>
-
-      <article
-        id="solution-finder-modal-workflow-selection-summary"
-        class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3"
-      >
-        <p
-          id="solution-finder-modal-workflow-selection-summary-label"
-          class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
-        >
-          {{ 'solutionControls.finder.selectionSummary' | translate }}
-        </p>
-        <p
-          id="solution-finder-modal-workflow-selection-summary-value"
-          class="mt-1 text-sm text-slate-700"
-        >
-          {{
-            'solutionControls.finder.selectionSummaryPattern'
-              | translate
-                : {
-                    targets: getTargetSelectionCount(),
-                    variables: getVariableConstraintCount(),
-                    tradeoff: getTradeoffSelectionCount(),
-                  }
-          }}
-        </p>
-      </article>
     </div>
   </header>
 
   <section
     id="solution-finder-modal-workflow-body"
-    [style.--solution-finder-targets-group-height.px]="targetsGroupHeight"
-    class="grid min-h-0 flex-1 items-stretch gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"
+    class="finder-modal-scrollbar grid min-h-0 flex-1 items-stretch gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"
   >
     <section
       id="solution-finder-modal-targets-column"
-      class="space-y-3 lg:col-span-3"
+      class="flex min-h-0 flex-col gap-3 lg:col-span-3"
       aria-labelledby="solution-finder-modal-targets-heading"
     >
       <h4 id="solution-finder-modal-targets-heading" class="text-base font-semibold text-slate-800">
         {{ 'solutionControls.finder.stepLabels.step1' | translate }}
       </h4>
+      <p
+        id="solution-finder-modal-step1-intro"
+        class="finder-step-intro text-xs leading-snug text-black"
+      >
+        {{ 'solutionControls.finder.stepIntros.step1' | translate }}
+      </p>
 
-      <div id="solution-finder-modal-targets-cards-group" #targetsCardsGroup class="space-y-3">
+      <div id="solution-finder-modal-targets-cards-group" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-step1-target-type-card"
-          class="rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div
             id="solution-finder-modal-step1-target-type-header"
@@ -91,9 +73,21 @@
             @for (option of targetTypeOptions; track option.id) {
               <div
                 [id]="'solution-finder-modal-step1-target-type-card-' + option.id"
-                class="rounded-md border px-3 py-2"
-                [class.border-sky-400]="isTargetTypeSelected(option.id)"
-                [class.bg-sky-50]="isTargetTypeSelected(option.id)"
+                class="rounded-md border px-3 py-2 outline-none focus:outline-none focus-visible:outline-none"
+                [class.border-sky-300]="isTargetTypeReady(option.id)"
+                [class.bg-sky-50]="isTargetTypeReady(option.id)"
+                [class.border-amber-300]="isTargetTypeLevelMissing(option.id)"
+                [class.bg-amber-50]="isTargetTypeLevelMissing(option.id)"
+                [class.border-sky-400]="
+                  isTargetTypeSelected(option.id) &&
+                  !isTargetTypeReady(option.id) &&
+                  !isTargetTypeLevelMissing(option.id)
+                "
+                [class.bg-sky-50]="
+                  isTargetTypeSelected(option.id) &&
+                  !isTargetTypeReady(option.id) &&
+                  !isTargetTypeLevelMissing(option.id)
+                "
                 [class.border-slate-200]="!isTargetTypeSelected(option.id)"
                 [class.bg-white]="!isTargetTypeSelected(option.id)"
                 [class.cursor-pointer]="isTargetTypeAvailable(option.id)"
@@ -119,114 +113,167 @@
                   >
                     <span
                       [id]="'solution-finder-modal-step1-target-type-label-' + option.id"
-                      class="text-sm font-semibold"
+                      class="min-w-0 flex-1 pr-2 text-sm font-semibold"
                       [class.text-sky-900]="isTargetTypeSelected(option.id)"
                       [class.text-slate-900]="!isTargetTypeSelected(option.id)"
                     >
                       {{ option.labelKey | translate }}
                     </span>
-                    @if (!isTargetTypeAvailable(option.id)) {
-                      <span
-                        [id]="'solution-finder-modal-step1-target-type-missing-badge-' + option.id"
-                        class="rounded-full border border-red-300 bg-red-100 whitespace-nowrap px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
-                      >
-                        {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
-                      </span>
-                    }
+                    <div
+                      [id]="'solution-finder-modal-step1-target-type-status-row-' + option.id"
+                      class="flex shrink-0 items-center gap-1"
+                    >
+                      @if (isTargetTypeReady(option.id)) {
+                        <span
+                          [id]="
+                            'solution-finder-modal-step1-target-type-selected-badge-' + option.id
+                          "
+                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-sky-300 bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
+                        >
+                          {{ 'solutionControls.finder.step1.selectedBadge' | translate }}
+                        </span>
+                      } @else if (isTargetTypeLevelMissing(option.id)) {
+                        <span
+                          [id]="
+                            'solution-finder-modal-step1-target-type-action-needed-badge-' +
+                            option.id
+                          "
+                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-amber-300 bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+                        >
+                          {{ 'solutionControls.finder.step1.actionNeededBadge' | translate }}
+                        </span>
+                      }
+                      @if (!isTargetTypeAvailable(option.id)) {
+                        <span
+                          [id]="
+                            'solution-finder-modal-step1-target-type-missing-badge-' + option.id
+                          "
+                          class="finder-all-caps-optical inline-flex rounded-md border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
+                        >
+                          {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
+                        </span>
+                      }
+                    </div>
                   </div>
                 </div>
 
+                <p
+                  [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
+                  class="mt-1 text-xs font-normal leading-snug text-slate-600"
+                >
+                  {{ option.helpKey | translate }}
+                </p>
+
                 @if (isTargetTypeAvailable(option.id)) {
                   <div
-                    [id]="'solution-finder-modal-step1-target-type-details-row-' + option.id"
-                    class="mt-2 flex items-start justify-between gap-3"
+                    [id]="'solution-finder-modal-step1-target-level-panel-' + option.id"
+                    class="finder-target-level-panel rounded-md bg-white"
+                    [class.mt-1]="isTargetTypeSelected(option.id)"
+                    [class.border]="isTargetTypeSelected(option.id)"
+                    [class.border-slate-200]="isTargetTypeSelected(option.id)"
+                    [class.px-2]="isTargetTypeSelected(option.id)"
+                    [class.py-1.5]="isTargetTypeSelected(option.id)"
+                    [class.finder-target-level-panel-visible]="isTargetTypeSelected(option.id)"
+                    [attr.aria-hidden]="!isTargetTypeSelected(option.id)"
                   >
-                    <p
-                      [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
-                      class="min-w-0 flex-1 text-xs font-normal leading-snug text-slate-600"
+                    <div
+                      [id]="'solution-finder-modal-step1-target-level-row-' + option.id"
+                      class="flex flex-wrap items-center justify-between gap-2"
                     >
-                      {{ option.helpKey | translate }}
-                    </p>
-                    @if (isStrategicTarget(option.id)) {
-                      <div
-                        [id]="'solution-finder-modal-step1-target-level-row-' + option.id"
-                        class="flex shrink-0 flex-col items-end gap-1"
-                        [class.opacity-50]="!isTargetTypeSelected(option.id)"
+                      <p
+                        [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
+                        class="finder-all-caps-optical finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide text-slate-600"
                       >
-                        <span
-                          [id]="'solution-finder-modal-step1-target-level-row-label-' + option.id"
-                          class="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600"
-                        >
-                          {{ 'solutionControls.finder.step1.targetLevelTitle' | translate }}
-                        </span>
                         <span
                           [id]="
-                            'solution-finder-modal-step1-target-level-strategic-fixed-' + option.id
+                            'solution-finder-modal-step1-target-level-coverage-label-' + option.id
                           "
-                          class="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700"
                         >
-                          30%
+                          {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
                         </span>
-                      </div>
-                    } @else {
+                        @if (isTargetTypeLevelMissing(option.id)) {
+                          <span
+                            [id]="
+                              'solution-finder-modal-step1-target-level-required-label-' + option.id
+                            "
+                            class="finder-all-caps-optical ml-1 text-red-600"
+                          >
+                            {{ 'solutionControls.finder.step1.requiredInline' | translate }}
+                          </span>
+                        }
+                      </p>
                       <div
-                        [id]="'solution-finder-modal-step1-target-level-row-' + option.id"
-                        class="flex shrink-0 flex-col items-end gap-1"
-                        [class.opacity-50]="!isTargetTypeSelected(option.id)"
+                        [id]="'solution-finder-modal-step1-target-level-group-' + option.id"
+                        class="flex items-center gap-1"
+                        role="radiogroup"
+                        [attr.aria-label]="
+                          'solutionControls.finder.step1.targetLevelRequiredTitle' | translate
+                        "
                       >
-                        <span
-                          [id]="'solution-finder-modal-step1-target-level-row-label-' + option.id"
-                          class="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600"
+                        <button
+                          [id]="'solution-finder-modal-step1-target-level-17-' + option.id"
+                          type="button"
+                          class="finder-target-level-choice-button rounded border px-2 py-0.5 text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          [attr.aria-label]="
+                            ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 17%'
+                          "
+                          [disabled]="
+                            !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
+                          "
+                          [class.border-sky-500]="getTargetLevel(option.id) === 17"
+                          [class.bg-sky-500]="getTargetLevel(option.id) === 17"
+                          [class.text-white]="getTargetLevel(option.id) === 17"
+                          [class.finder-target-level-choice-cue]="
+                            isTargetTypeLevelMissing(option.id)
+                          "
+                          [class.border-slate-200]="getTargetLevel(option.id) !== 17"
+                          [class.bg-white]="getTargetLevel(option.id) !== 17"
+                          [class.text-slate-700]="getTargetLevel(option.id) !== 17"
+                          [attr.aria-pressed]="getTargetLevel(option.id) === 17"
+                          (click)="$event.stopPropagation(); selectTargetLevel(option.id, 17)"
                         >
-                          {{ 'solutionControls.finder.step1.targetLevelTitle' | translate }}
-                        </span>
-                        <div
-                          [id]="'solution-finder-modal-step1-target-level-buttons-' + option.id"
-                          class="flex items-center gap-1"
-                        >
-                          <button
-                            [id]="'solution-finder-modal-step1-target-level-17-' + option.id"
-                            type="button"
-                            class="rounded border px-2 py-0.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
-                            [disabled]="!isTargetTypeSelected(option.id)"
-                            [class.border-sky-500]="getTargetLevel(option.id) === 17"
-                            [class.bg-sky-500]="getTargetLevel(option.id) === 17"
-                            [class.text-white]="getTargetLevel(option.id) === 17"
-                            [class.border-slate-200]="getTargetLevel(option.id) !== 17"
-                            [class.bg-white]="getTargetLevel(option.id) !== 17"
-                            [class.text-slate-700]="getTargetLevel(option.id) !== 17"
-                            [attr.aria-pressed]="getTargetLevel(option.id) === 17"
-                            (click)="$event.stopPropagation(); selectTargetLevel(option.id, 17)"
+                          <span
+                            [id]="'solution-finder-modal-step1-target-level-17-label-' + option.id"
+                            class="finder-target-level-choice-label-optical"
                           >
                             17%
-                          </button>
-                          <button
-                            [id]="'solution-finder-modal-step1-target-level-30-' + option.id"
-                            type="button"
-                            class="rounded border px-2 py-0.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
-                            [disabled]="!isTargetTypeSelected(option.id)"
-                            [class.border-sky-500]="getTargetLevel(option.id) === 30"
-                            [class.bg-sky-500]="getTargetLevel(option.id) === 30"
-                            [class.text-white]="getTargetLevel(option.id) === 30"
-                            [class.border-slate-200]="getTargetLevel(option.id) !== 30"
-                            [class.bg-white]="getTargetLevel(option.id) !== 30"
-                            [class.text-slate-700]="getTargetLevel(option.id) !== 30"
-                            [attr.aria-pressed]="getTargetLevel(option.id) === 30"
-                            (click)="$event.stopPropagation(); selectTargetLevel(option.id, 30)"
+                          </span>
+                        </button>
+                        <button
+                          [id]="'solution-finder-modal-step1-target-level-30-' + option.id"
+                          type="button"
+                          class="finder-target-level-choice-button rounded border px-2 py-0.5 text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          [attr.aria-label]="
+                            ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 30%'
+                          "
+                          [disabled]="
+                            !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
+                          "
+                          [class.border-sky-500]="getTargetLevel(option.id) === 30"
+                          [class.bg-sky-500]="getTargetLevel(option.id) === 30"
+                          [class.text-white]="getTargetLevel(option.id) === 30"
+                          [class.finder-target-level-choice-cue]="
+                            isTargetTypeLevelMissing(option.id)
+                          "
+                          [class.finder-target-level-choice-cue-delayed]="
+                            isTargetTypeLevelMissing(option.id)
+                          "
+                          [class.border-slate-200]="getTargetLevel(option.id) !== 30"
+                          [class.bg-white]="getTargetLevel(option.id) !== 30"
+                          [class.text-slate-700]="getTargetLevel(option.id) !== 30"
+                          [attr.aria-pressed]="getTargetLevel(option.id) === 30"
+                          (click)="$event.stopPropagation(); selectTargetLevel(option.id, 30)"
+                        >
+                          <span
+                            [id]="'solution-finder-modal-step1-target-level-30-label-' + option.id"
+                            class="finder-target-level-choice-label-optical"
                           >
                             30%
-                          </button>
-                        </div>
+                          </span>
+                        </button>
                       </div>
-                    }
+                    </div>
                   </div>
-                } @else {
-                  <p
-                    [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
-                    class="mt-2 text-xs font-normal leading-snug text-slate-600"
-                  >
-                    {{ option.helpKey | translate }}
-                  </p>
                 }
               </div>
             }
@@ -243,10 +290,16 @@
       <h4 id="solution-finder-modal-step2a-heading" class="text-base font-semibold text-slate-800">
         {{ 'solutionControls.finder.stepLabels.step2a' | translate }}
       </h4>
+      <p
+        id="solution-finder-modal-step2a-intro"
+        class="finder-step-intro text-xs leading-snug text-black"
+      >
+        {{ 'solutionControls.finder.stepIntros.step2a' | translate }}
+      </p>
       <div id="solution-finder-modal-step2a-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-step2a-card"
-          class="h-full space-y-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div
             id="solution-finder-modal-step2a-row-omec"
@@ -342,7 +395,7 @@
           >
             <p
               id="solution-finder-modal-step2a-always-heading"
-              class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+              class="finder-all-caps-optical text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500"
             >
               {{ 'solutionControls.finder.step2a.alwaysAppliedHeading' | translate }}
             </p>
@@ -386,7 +439,7 @@
               id="solution-finder-modal-step2a-lock-overlay-message"
               class="max-w-[220px] rounded-md border border-slate-200 bg-white/95 px-3 py-2 text-xs font-medium text-slate-700"
             >
-              {{ 'solutionControls.finder.locked.constraints' | translate }}
+              {{ getStep2LockReasonKey() | translate }}
             </p>
           </div>
         </div>
@@ -401,15 +454,17 @@
       <h4 id="solution-finder-modal-step2b-heading" class="text-base font-semibold text-slate-800">
         {{ 'solutionControls.finder.stepLabels.step2b' | translate }}
       </h4>
+      <p
+        id="solution-finder-modal-step2b-intro"
+        class="finder-step-intro text-xs leading-snug text-black"
+      >
+        {{ 'solutionControls.finder.stepIntros.step2b' | translate }}
+      </p>
       <div id="solution-finder-modal-step2b-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-step2b-card"
-          class="h-full space-y-2 rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
-          <p id="solution-finder-modal-step2b-intro" class="text-xs leading-snug text-black">
-            {{ 'solutionControls.finder.step2b.intro' | translate }}
-          </p>
-
           <div id="solution-finder-modal-step2b-options" class="space-y-2">
             <button
               id="solution-finder-modal-step2b-option-human-footprint"
@@ -536,7 +591,7 @@
               id="solution-finder-modal-step2b-lock-overlay-message"
               class="max-w-[220px] rounded-md border border-slate-200 bg-white/95 px-3 py-2 text-xs font-medium text-slate-700"
             >
-              {{ 'solutionControls.finder.locked.constraints' | translate }}
+              {{ getStep2LockReasonKey() | translate }}
             </p>
           </div>
         </div>
@@ -551,10 +606,16 @@
       <h4 id="solution-finder-modal-results-heading" class="text-base font-semibold text-slate-800">
         {{ 'solutionControls.finder.stepLabels.step3' | translate }}
       </h4>
+      <p
+        id="solution-finder-modal-results-intro"
+        class="finder-step-intro text-xs leading-snug text-black"
+      >
+        {{ 'solutionControls.finder.stepIntros.step3' | translate }}
+      </p>
       <div id="solution-finder-modal-results-card-wrapper" class="relative min-h-0 flex-1">
         <article
           id="solution-finder-modal-results-card"
-          class="flex h-full min-h-56 flex-col rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          class="flex h-full min-h-0 flex-col rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           @switch (matchState) {
             @case ('empty') {
@@ -578,10 +639,15 @@
                 id="solution-finder-modal-results-loading-state"
                 class="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-md border border-slate-100 bg-slate-50"
               >
-                <span
-                  id="solution-finder-modal-results-loading-spinner"
-                  class="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500"
-                ></span>
+                <div
+                  id="solution-finder-modal-results-loading-bar-track"
+                  class="h-1.5 w-44 overflow-hidden rounded-full bg-slate-200"
+                >
+                  <span
+                    id="solution-finder-modal-results-loading-bar-indicator"
+                    class="finder-loading-bar-indicator block h-full w-1/2 rounded-full bg-sky-500"
+                  ></span>
+                </div>
                 <p id="solution-finder-modal-results-loading-text" class="text-sm text-black">
                   {{ 'solutionControls.finder.loading' | translate }}
                 </p>
@@ -670,7 +736,7 @@
                     >
                       <p
                         id="solution-finder-modal-results-multi-hint-label"
-                        class="mb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500"
+                        class="finder-all-caps-optical mb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500"
                       >
                         {{ 'solutionControls.finder.results.alternateMatches' | translate }}
                       </p>
@@ -740,15 +806,6 @@
           (click)="requestClose()"
         >
           {{ 'solutionControls.finder.actions.cancel' | translate }}
-        </button>
-        <button
-          id="solution-finder-modal-run-match-button"
-          type="button"
-          class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          [disabled]="!canRunMatching()"
-          (click)="runMatching()"
-        >
-          {{ 'solutionControls.finder.actions.findMatches' | translate }}
         </button>
         <button
           id="solution-finder-modal-apply-button"

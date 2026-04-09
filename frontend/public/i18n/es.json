@@ -223,7 +223,7 @@
     "finder": {
       "kicker": "Busqueda de escenarios de conservacion",
       "title": "Encontrar un escenario de conservacion",
-      "description": "Elija que proteger, capas opcionales y la base del compromiso (costo), luego busque el raster precalculado que coincida.",
+      "description": "Elija que proteger, capas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
       "comparison": {
         "kicker": "Busqueda de solucion candidata",
         "title": "Encontrar una solucion candidata",
@@ -238,6 +238,12 @@
         "step2b": "Paso 3: Capa de costo",
         "step3": "Resultado"
       },
+      "stepIntros": {
+        "step1": "Seleccione uno o mas tipos de meta y defina un nivel de cobertura para cada meta seleccionada.",
+        "step2a": "Elija capas de area opcionales para incluir junto con las areas protegidas RUNAP siempre activas.",
+        "step2b": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
+        "step3": "Los escenarios coincidentes se actualizan automaticamente al cambiar filtros."
+      },
       "stepState": {
         "inProgress": "En progreso",
         "complete": "Completado",
@@ -247,11 +253,11 @@
       },
       "helpers": {
         "constraints": "Elija capas opcionales despues de completar el Paso 1.",
-        "results": "Ejecute Buscar cuando la meta y la base del compromiso esten elegidas."
+        "results": "Los resultados se actualizan automaticamente cuando la meta y la base del compromiso estan elegidas."
       },
       "locked": {
         "constraints": "Complete el Paso 1 para desbloquear inclusiones, exclusiones y la base del compromiso.",
-        "results": "Haga clic en Buscar (meta + base del compromiso requeridos) para ver el resultado."
+        "results": "Elija la meta y la base del compromiso para ver resultados coincidentes automaticamente."
       },
       "toggle": {
         "on": "ON",
@@ -260,7 +266,7 @@
       "step1": {
         "targetTypeTitle": "Tipo de meta",
         "modelBackedBadge": "Respaldado por modelo",
-        "targetTypeIntro": "Seleccione uno o mas grupos objetivo para definir que proteger. Los elementos en rojo son metas esperadas, pero sus capas de entrada aun no estan disponibles en el catalogo actual de la app.",
+        "targetTypeIntro": "Seleccione uno o mas grupos objetivo para definir que proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
         "ecosystemsLabel": "Ecosistemas",
         "ecosystemsHelp": "Meta amplia: prioriza la representacion de la diversidad de ecosistemas a escala nacional, para cubrir una gama amplia de condiciones ecosistemicas.",
         "speciesRichnessLabel": "Especies (riqueza de especies)",
@@ -273,6 +279,18 @@
         "otherNaturalCulturalElementsHelp": "Cubre prioridades adicionales como paisajes sagrados o culturalmente importantes y areas de uso tradicional.",
         "inputLayerNotFoundBadge": "Capa no encontrada",
         "targetLevelTitle": "Nivel de meta",
+        "targetLevelRequiredTitle": "Nivel de cobertura (obligatorio)",
+        "coverageLevelLabel": "Nivel de cobertura",
+        "requiredInline": "(obligatorio)",
+        "selectLevelToContinue": "Seleccione 17% o 30% para completar este tipo de meta.",
+        "actionNeededBadge": "Accion pendiente",
+        "selectedBadge": "Seleccionado",
+        "readyBadge": "Listo",
+        "summarySelectTarget": "Seleccione uno o mas tipos de meta para continuar.",
+        "summaryNeedsLevel": "{{selected}} seleccionados · {{remaining}} aun requieren nivel de cobertura.",
+        "summaryComplete": "Todos los tipos seleccionados ya estan configurados.",
+        "lockReasonSelectTargetType": "El Paso 2 esta bloqueado. Seleccione uno o mas tipos de meta en el Paso 1.",
+        "lockReasonSelectTargetLevel": "El Paso 2 esta bloqueado. Elija 17% o 30% para cada tipo de meta seleccionado.",
         "targetLevelIntro": "Meta nacional de representacion como porcentaje (17% o 30%).",
         "targetLevelBadgeSpecies": "Para riqueza de especies",
         "targetLevelBadgeStrategic": "Solo estrategico",
@@ -300,13 +318,13 @@
       "actions": {
         "reset": "Restablecer valores",
         "cancel": "Cancelar",
-        "findMatches": "Buscar escenario",
+        "findMatches": "Actualizar escenarios",
         "apply": "Aplicar escenario seleccionado",
         "loadAsCandidateSolution": "Cargar como solucion candidata"
       },
       "empty": {
-        "title": "Ejecute la busqueda para ver un escenario",
-        "description": "Elija uno o mas tipos de meta, defina nivel de meta, seleccione base del compromiso y haga clic en Buscar escenario."
+        "title": "Defina filtros para ver un escenario",
+        "description": "Elija uno o mas tipos de meta, defina nivel de meta y seleccione base del compromiso. Los resultados se actualizan automaticamente."
       },
       "noMatch": {
         "title": "Sin escenario coincidente",

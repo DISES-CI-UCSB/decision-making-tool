@@ -223,7 +223,7 @@
     "finder": {
       "kicker": "Conservation scenario search",
       "title": "Find a conservation scenario",
-      "description": "Choose what to protect, optional area layers, and a trade-off basis, then find the precomputed raster that matches.",
+      "description": "Choose what to protect, optional area layers, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
       "comparison": {
         "kicker": "Candidate solution search",
         "title": "Find a candidate solution",
@@ -238,6 +238,12 @@
         "step2b": "Step 3: Cost layer",
         "step3": "Result"
       },
+      "stepIntros": {
+        "step1": "Select one or more target types and set a coverage level for each selected target.",
+        "step2a": "Choose optional area layers to include alongside the always-on RUNAP protected areas.",
+        "step2b": "Choose one cost layer to rank candidate sites (lower values are preferred).",
+        "step3": "Matching scenarios refresh automatically as you change filters."
+      },
       "stepState": {
         "inProgress": "In Progress",
         "complete": "Complete",
@@ -247,11 +253,11 @@
       },
       "helpers": {
         "constraints": "Choose optional layers after you finish Step 1.",
-        "results": "Run Find matches when targets and trade-off basis are chosen."
+        "results": "Results refresh automatically when targets and trade-off basis are chosen."
       },
       "locked": {
         "constraints": "Complete Step 1 to unlock includes, excludes, and trade-off options.",
-        "results": "Click Find matches (targets + trade-off basis required) to view the result."
+        "results": "Choose targets and trade-off basis to automatically see matching results."
       },
       "toggle": {
         "on": "ON",
@@ -260,7 +266,7 @@
       "step1": {
         "targetTypeTitle": "Target type",
         "modelBackedBadge": "Model-backed",
-        "targetTypeIntro": "Select one or more target groups for what to protect. Items marked in red are expected targets but their input layers are not yet available in the current app catalog.",
+        "targetTypeIntro": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "ecosystemsLabel": "Ecosystems",
         "ecosystemsHelp": "Aims to include the full range of Colombia’s different ecosystem types in conservation planning.",
         "speciesRichnessLabel": "Species (species richness)",
@@ -273,6 +279,19 @@
         "otherNaturalCulturalElementsHelp": "Covers additional priorities such as sacred or culturally important landscapes and traditional use areas.",
         "inputLayerNotFoundBadge": "Layer not found",
         "targetLevelTitle": "Target level",
+        "targetLevelRequiredTitle": "Coverage level (required)",
+        "coverageLevelLabel": "Coverage level",
+        "requiredInline": "(required)",
+        "targetLevelRequiredHint": "Select one or more target types. Each selected target also needs a coverage level (17% or 30%) before Step 2 unlocks.",
+        "selectLevelToContinue": "Select 17% or 30% to complete this target.",
+        "actionNeededBadge": "Action needed",
+        "selectedBadge": "Selected",
+        "readyBadge": "Ready",
+        "summarySelectTarget": "Select one or more target types to continue.",
+        "summaryNeedsLevel": "{{selected}} selected · {{remaining}} still need a coverage level.",
+        "summaryComplete": "All selected targets are configured.",
+        "lockReasonSelectTargetType": "Step 2 is locked. Select one or more target types in Step 1.",
+        "lockReasonSelectTargetLevel": "Step 2 is locked. Choose 17% or 30% for each selected target.",
         "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
         "targetLevelBadgeSpecies": "For species richness",
         "targetLevelBadgeStrategic": "Strategic only",
@@ -300,13 +319,13 @@
       "actions": {
         "reset": "Reset to defaults",
         "cancel": "Cancel",
-        "findMatches": "Find scenario",
+        "findMatches": "Refresh scenarios",
         "apply": "Apply selected scenario",
         "loadAsCandidateSolution": "Load as candidate solution"
       },
       "empty": {
-        "title": "Run find to view a scenario",
-        "description": "Choose one or more target types, set target level, choose a trade-off basis, then click Find scenario."
+        "title": "Set filters to view a scenario",
+        "description": "Choose one or more target types, set target level, and choose a trade-off basis. Results update automatically."
       },
       "noMatch": {
         "title": "No matching scenario",
