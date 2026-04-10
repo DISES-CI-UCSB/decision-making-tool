@@ -203,121 +203,173 @@
                 </section>
               } @else {
                 <section id="right-sidebar-v3-overview-gains-section" class="v3-section">
-                  <header id="right-sidebar-v3-overview-gains-head" class="v3-section-head">
+                  <button
+                    id="right-sidebar-v3-overview-gains-head"
+                    type="button"
+                    class="v3-section-head"
+                    [attr.aria-expanded]="isOverviewSectionExpanded('gains')"
+                    (click)="toggleOverviewSection('gains')"
+                  >
                     <span id="right-sidebar-v3-overview-gains-dot" class="v3-section-dot"></span>
                     <span id="right-sidebar-v3-overview-gains-label" class="v3-section-label">{{
                       'analysis.overview.sections.conservationGains' | translate
                     }}</span>
-                  </header>
-                  <div id="right-sidebar-v3-overview-gains-table" class="v3-metric-table">
-                    @for (entry of overviewGainMetrics(); track entry.id) {
-                      <article
-                        [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
-                        class="v3-metric-row"
+                    <span
+                      id="right-sidebar-v3-overview-gains-chevron"
+                      class="v3-section-chevron"
+                      [class.v3-section-chevron-collapsed]="!isOverviewSectionExpanded('gains')"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        class="v3-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
                       >
-                        <div
-                          [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
-                          class="v3-m-body"
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  @if (isOverviewSectionExpanded('gains')) {
+                    <div id="right-sidebar-v3-overview-gains-table" class="v3-metric-table">
+                      @for (entry of overviewGainMetrics(); track entry.id) {
+                        <article
+                          [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
+                          class="v3-metric-row"
                         >
-                          <p
-                            [id]="'right-sidebar-v3-overview-gain-name-' + entry.id"
-                            class="v3-m-name"
+                          <div
+                            [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
+                            class="v3-m-body"
                           >
-                            {{ entry.labelKey | translate }}
-                            @if (entry.conditional) {
-                              <span
-                                [id]="'right-sidebar-v3-overview-gain-tag-' + entry.id"
-                                class="v3-tag-conditional"
-                                >{{ 'analysis.overview.conditional' | translate }}</span
-                              >
-                            }
-                          </p>
-                          <p
-                            [id]="'right-sidebar-v3-overview-gain-desc-' + entry.id"
-                            class="v3-m-desc"
-                          >
-                            {{ entry.descriptionKey | translate }}
-                          </p>
-                        </div>
-                        <div [id]="'right-sidebar-v3-overview-gain-value-shell-' + entry.id">
-                          <p
-                            [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
-                            class="v3-m-val"
-                          >
-                            {{ entry.value }}
-                          </p>
-                          <p
-                            [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
-                            class="v3-m-unit"
-                          >
-                            {{ entry.unit }}
-                          </p>
-                        </div>
-                      </article>
-                    }
-                  </div>
-                  <p id="right-sidebar-v3-overview-gains-insight" class="v3-insight">
-                    {{ 'analysis.overview.insightGains' | translate }}
-                  </p>
+                            <p
+                              [id]="'right-sidebar-v3-overview-gain-name-' + entry.id"
+                              class="v3-m-name"
+                            >
+                              {{ entry.labelKey | translate }}
+                              @if (entry.conditional) {
+                                <span
+                                  [id]="'right-sidebar-v3-overview-gain-tag-' + entry.id"
+                                  class="v3-tag-conditional"
+                                  >{{ 'analysis.overview.conditional' | translate }}</span
+                                >
+                              }
+                            </p>
+                            <p
+                              [id]="'right-sidebar-v3-overview-gain-desc-' + entry.id"
+                              class="v3-m-desc"
+                            >
+                              {{ entry.descriptionKey | translate }}
+                            </p>
+                          </div>
+                          <div [id]="'right-sidebar-v3-overview-gain-value-shell-' + entry.id">
+                            <p
+                              [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
+                              class="v3-m-val"
+                            >
+                              {{ entry.value }}
+                            </p>
+                            <p
+                              [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
+                              class="v3-m-unit"
+                            >
+                              {{ entry.unit }}
+                            </p>
+                          </div>
+                        </article>
+                      }
+                    </div>
+                    <p id="right-sidebar-v3-overview-gains-insight" class="v3-insight">
+                      {{ 'analysis.overview.insightGains' | translate }}
+                    </p>
+                  }
                 </section>
 
                 <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
-                  <header id="right-sidebar-v3-overview-costs-head" class="v3-section-head">
+                  <button
+                    id="right-sidebar-v3-overview-costs-head"
+                    type="button"
+                    class="v3-section-head"
+                    [attr.aria-expanded]="isOverviewSectionExpanded('costs')"
+                    (click)="toggleOverviewSection('costs')"
+                  >
                     <span id="right-sidebar-v3-overview-costs-dot" class="v3-section-dot"></span>
                     <span id="right-sidebar-v3-overview-costs-label" class="v3-section-label">{{
                       'analysis.overview.sections.costsAndTradeoffs' | translate
                     }}</span>
-                  </header>
-                  <div id="right-sidebar-v3-overview-costs-table" class="v3-metric-table">
-                    @for (entry of overviewCostMetrics(); track entry.id) {
-                      <article
-                        [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
-                        class="v3-metric-row"
+                    <span
+                      id="right-sidebar-v3-overview-costs-chevron"
+                      class="v3-section-chevron"
+                      [class.v3-section-chevron-collapsed]="!isOverviewSectionExpanded('costs')"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        class="v3-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
                       >
-                        <div
-                          [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
-                          class="v3-m-body"
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  @if (isOverviewSectionExpanded('costs')) {
+                    <div id="right-sidebar-v3-overview-costs-table" class="v3-metric-table">
+                      @for (entry of overviewCostMetrics(); track entry.id) {
+                        <article
+                          [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
+                          class="v3-metric-row"
                         >
-                          <p
-                            [id]="'right-sidebar-v3-overview-cost-name-' + entry.id"
-                            class="v3-m-name"
+                          <div
+                            [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
+                            class="v3-m-body"
                           >
-                            {{ entry.labelKey | translate }}
-                            @if (entry.conditional) {
-                              <span
-                                [id]="'right-sidebar-v3-overview-cost-tag-' + entry.id"
-                                class="v3-tag-conditional"
-                                >{{ 'analysis.overview.conditional' | translate }}</span
-                              >
-                            }
-                          </p>
-                          <p
-                            [id]="'right-sidebar-v3-overview-cost-desc-' + entry.id"
-                            class="v3-m-desc"
-                          >
-                            {{ entry.descriptionKey | translate }}
-                          </p>
-                        </div>
-                        <div [id]="'right-sidebar-v3-overview-cost-value-shell-' + entry.id">
-                          <p
-                            [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
-                            class="v3-m-val"
-                          >
-                            {{ entry.value }}
-                          </p>
-                          <p
-                            [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
-                            class="v3-m-unit"
-                          >
-                            {{ entry.unit }}
-                          </p>
-                        </div>
-                      </article>
-                    }
-                  </div>
-                  <p id="right-sidebar-v3-overview-costs-insight" class="v3-insight">
-                    {{ 'analysis.overview.insightCosts' | translate }}
-                  </p>
+                            <p
+                              [id]="'right-sidebar-v3-overview-cost-name-' + entry.id"
+                              class="v3-m-name"
+                            >
+                              {{ entry.labelKey | translate }}
+                              @if (entry.conditional) {
+                                <span
+                                  [id]="'right-sidebar-v3-overview-cost-tag-' + entry.id"
+                                  class="v3-tag-conditional"
+                                  >{{ 'analysis.overview.conditional' | translate }}</span
+                                >
+                              }
+                            </p>
+                            <p
+                              [id]="'right-sidebar-v3-overview-cost-desc-' + entry.id"
+                              class="v3-m-desc"
+                            >
+                              {{ entry.descriptionKey | translate }}
+                            </p>
+                          </div>
+                          <div [id]="'right-sidebar-v3-overview-cost-value-shell-' + entry.id">
+                            <p
+                              [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
+                              class="v3-m-val"
+                            >
+                              {{ entry.value }}
+                            </p>
+                            <p
+                              [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
+                              class="v3-m-unit"
+                            >
+                              {{ entry.unit }}
+                            </p>
+                          </div>
+                        </article>
+                      }
+                    </div>
+                    <p id="right-sidebar-v3-overview-costs-insight" class="v3-insight">
+                      {{ 'analysis.overview.insightCosts' | translate }}
+                    </p>
+                  }
                 </section>
 
                 <section id="right-sidebar-v3-overview-national-anchor" class="v3-nc-anchor">
@@ -948,10 +1000,8 @@
                   (click)="toggleAoiSection('marine')"
                 >
                   <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label">
-                    Marine
-                    <span class="v3-tag-conditional" style="margin-left: 6px">All Conditional</span>
-                  </span>
+                  <span class="aoi-section-label">Marine</span>
+                  <span class="v3-tag-conditional">All Conditional</span>
                   <span
                     id="aoi-chevron-marine"
                     class="aoi-section-chevron"
@@ -1226,28 +1276,36 @@
                       [attr.aria-controls]="'right-sidebar-comparison-section-body-' + section.id"
                       (click)="toggleComparisonSection(section.id)"
                     >
-                      <div
-                        [id]="'right-sidebar-comparison-section-title-group-' + section.id"
-                        class="c2-section-title-group"
-                      >
-                        <span
-                          [id]="'right-sidebar-comparison-section-title-dot-' + section.id"
-                          class="c2-section-dot"
-                        ></span>
-                        <span
-                          [id]="'right-sidebar-comparison-section-title-' + section.id"
-                          class="c2-section-title"
-                        >
-                          {{ section.title }}
-                        </span>
-                      </div>
                       <span
-                        [id]="'right-sidebar-comparison-section-toggle-caret-' + section.id"
-                        class="c2-toggle-caret"
-                        [class.c2-toggle-caret-expanded]="isComparisonSectionExpanded(section.id)"
-                        aria-hidden="true"
-                        >▾</span
+                        [id]="'right-sidebar-comparison-section-title-dot-' + section.id"
+                        class="c2-section-dot"
+                      ></span>
+                      <span
+                        [id]="'right-sidebar-comparison-section-title-' + section.id"
+                        class="c2-section-title"
                       >
+                        {{ section.title }}
+                      </span>
+                      <span
+                        [id]="'right-sidebar-comparison-section-chevron-' + section.id"
+                        class="c2-section-chevron"
+                        [class.c2-section-chevron-collapsed]="
+                          !isComparisonSectionExpanded(section.id)
+                        "
+                        aria-hidden="true"
+                      >
+                        <svg
+                          class="c2-section-chevron-icon"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 4.5L6 7.5L9 4.5" />
+                        </svg>
+                      </span>
                     </button>
 
                     @if (isComparisonSectionExpanded(section.id)) {

@@ -320,7 +320,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   line-height: 1.05;
-  transform: translateY(0.5px);
+  transform: translateY(1px);
 }
 
 .v3-spatial-sep {
@@ -332,10 +332,8 @@
 
 /* ── Shared toggle-heading recipe: swatch + ALL-CAPS label + caret ── */
 
-/* Outer row — provides vertical centering for all direct children.
-   For comparison mode the dot+label sit inside .c2-section-title-group
-   (a nested flex container) so the button itself only aligns that group
-   and the caret. */
+/* Outer row — all three tabs now share the same flat structure:
+   swatch (dot) + label + chevron as direct flex children. */
 .v3-section-head,
 .aoi-section-head,
 .c2-section-header-button {
@@ -368,19 +366,64 @@
   background: #000;
 }
 
-/* Label — line-height matches the 10px swatch so flex centering
-   produces a 0px offset (no sub-pixel rounding across rows).
-   Safe for ALL-CAPS: cap-height ≈ 9px fits inside a 10px line-box. */
+/* Label — cap-height optical centering for ALL-CAPS text.
+   line-height: 1 sets the line box to 1em (= font-size).
+   margin-block collapses the outer box to the cap-height so that
+   flex align-items: center aligns the visible glyphs, not the
+   invisible ascent/descent space.  cap & lh units are supported
+   in all major browsers since late 2023. */
 .v3-section-label,
 .aoi-section-label,
 .c2-section-title {
   flex: 1;
   font-size: 13px;
   font-weight: 700;
-  line-height: 10px;
+  line-height: 1;
+  margin-block: calc(0.5cap - 0.5lh);
+  transform: translateY(1px);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
+}
+
+/* Overview section heads — button reset + interactive states
+   (mirrors .aoi-section-head / .c2-section-header-button). */
+.v3-section-head {
+  width: 100%;
+  cursor: pointer;
+  user-select: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.v3-section-head:hover .v3-section-label {
+  opacity: 0.75;
+}
+
+.v3-section-chevron {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: rgb(71 85 105);
+  transition: transform 0.15s ease;
+}
+
+.v3-section-head:hover .v3-section-chevron {
+  color: rgb(30 41 59);
+}
+
+.v3-section-chevron-icon {
+  height: 0.75rem;
+  width: 0.75rem;
+  stroke-width: 1.5;
+}
+
+.v3-section-chevron-collapsed {
+  transform: rotate(180deg);
 }
 
 #right-sidebar-v3-overview-gains-label {
@@ -927,7 +970,6 @@
 
 .c2-section-header-button {
   width: 100%;
-  justify-content: space-between;
   border: 0;
   background: transparent;
   text-align: left;
@@ -938,36 +980,28 @@
   opacity: 0.75;
 }
 
-/* Mirrors the shared heading flex recipe so dot+label align identically
-   to the v3/aoi patterns where they are direct flex children. */
-.c2-section-title-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.c2-toggle-caret {
+.c2-section-chevron {
   display: inline-flex;
-  width: 1.25rem;
   height: 1.75rem;
+  width: 1.25rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1;
   color: rgb(71 85 105);
-  transform: rotate(0deg);
   transition: transform 0.15s ease;
 }
 
-.c2-section-header-button:hover .c2-toggle-caret {
+.c2-section-header-button:hover .c2-section-chevron {
   color: rgb(30 41 59);
 }
 
-.c2-toggle-caret-expanded {
+.c2-section-chevron-icon {
+  height: 0.75rem;
+  width: 0.75rem;
+  stroke-width: 1.5;
+}
+
+.c2-section-chevron-collapsed {
   transform: rotate(180deg);
 }
 
