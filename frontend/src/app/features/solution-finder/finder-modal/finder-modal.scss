@@ -21,6 +21,19 @@
   --finder-all-caps-nudge-y: 0;
 }
 
+.finder-action-needed-enter {
+  animation: finder-badge-fade-in 160ms ease 140ms both;
+}
+
+@keyframes finder-badge-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .finder-fixed-toggle {
   min-width: 3.25rem;
   padding: 0.25rem 0.75rem;
