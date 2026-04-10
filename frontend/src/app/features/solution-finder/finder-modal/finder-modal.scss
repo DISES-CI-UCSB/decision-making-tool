@@ -28,17 +28,26 @@
 
 .finder-target-level-panel {
   max-height: 0;
+  margin-top: 0;
+  padding: 0 0.5rem;
+  border: 1px solid transparent;
   overflow: hidden;
   opacity: 0;
   transform: translateY(-0.25rem);
   transition:
     max-height 220ms ease,
+    margin-top 220ms ease,
+    padding 220ms ease,
+    border-color 220ms ease,
     opacity 180ms ease,
     transform 220ms ease;
 }
 
 .finder-target-level-panel-visible {
   max-height: 8rem;
+  margin-top: 0.25rem;
+  padding: 0.375rem 0.5rem;
+  border-color: #e2e8f0;
   opacity: 1;
   transform: translateY(0);
 }
