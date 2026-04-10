@@ -239,7 +239,7 @@
         "step3": "Result"
       },
       "stepIntros": {
-        "step1": "Select one or more target types and set a coverage level for each selected target.",
+        "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "step2a": "Choose optional area layers to include alongside the always-on RUNAP protected areas.",
         "step2b": "Choose one cost layer to rank candidate sites (lower values are preferred).",
         "step3": "Matching scenarios refresh automatically as you change filters."
