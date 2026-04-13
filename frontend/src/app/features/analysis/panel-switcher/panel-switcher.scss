@@ -320,7 +320,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   line-height: 1.05;
-  transform: translateY(1px);
+  transform: translateY(1.5px);
 }
 
 .v3-spatial-sep {
@@ -380,10 +380,15 @@
   font-weight: 700;
   line-height: 1;
   margin-block: calc(0.5cap - 0.5lh);
-  transform: translateY(1px);
+  transform: translateY(0.5px);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
+}
+
+/* Per-label subpixel correction — tweak individual values as needed. */
+#aoi-label-bio {
+  transform: translateY(1px);
 }
 
 /* Overview section heads — button reset + interactive states
