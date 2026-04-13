@@ -232,6 +232,12 @@
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
       "loading": "Finding scenario…",
+      "stepPrefixes": {
+        "step1": "Step 1",
+        "step2a": "Step 2",
+        "step2b": "Step 2",
+        "step3": "Step 3"
+      },
       "stepLabels": {
         "step1": "What to protect",
         "step2a": "Area layers (optional)",

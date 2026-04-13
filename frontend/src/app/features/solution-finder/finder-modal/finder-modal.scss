@@ -7,6 +7,24 @@
   min-height: 2.25rem;
 }
 
+.finder-step-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem;
+  line-height: 1.2;
+}
+
+.finder-step-heading-prefix {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.finder-step-heading-label {
+  font-weight: 500;
+  color: #334155;
+}
+
 .finder-subtext-dark {
   color: var(--color-subtext);
 }
@@ -34,6 +52,8 @@
 }
 
 .finder-fixed-toggle {
+  --finder-all-caps-nudge-y: 2px;
+
   min-width: 3.25rem;
   padding: 0.25rem 0.75rem;
 }

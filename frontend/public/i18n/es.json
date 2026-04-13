@@ -232,6 +232,12 @@
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
       "loading": "Buscando escenario…",
+      "stepPrefixes": {
+        "step1": "Paso 1",
+        "step2a": "Paso 2",
+        "step2b": "Paso 2",
+        "step3": "Paso 3"
+      },
       "stepLabels": {
         "step1": "Que proteger",
         "step2a": "Capas de area (opcional)",
