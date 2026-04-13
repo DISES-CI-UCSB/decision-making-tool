@@ -41,7 +41,7 @@
       </h4>
       <p
         id="solution-finder-modal-step1-intro"
-        class="finder-step-intro text-xs leading-snug text-black"
+        class="finder-step-intro finder-subtext-dark text-xs leading-snug"
       >
         {{ 'solutionControls.finder.stepIntros.step1' | translate }}
       </p>
@@ -130,7 +130,7 @@
                           [id]="
                             'solution-finder-modal-step1-target-type-missing-badge-' + option.id
                           "
-                          class="finder-all-caps-optical inline-flex rounded-md border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700"
+                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-red-300 bg-red-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-red-700"
                         >
                           {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
                         </span>
@@ -141,7 +141,7 @@
 
                 <p
                   [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
-                  class="mt-1 text-xs font-normal leading-snug text-slate-600"
+                  class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
                 >
                   {{ option.helpKey | translate }}
                 </p>
@@ -159,7 +159,7 @@
                     >
                       <p
                         [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
-                        class="finder-all-caps-optical finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide text-slate-600"
+                        class="finder-all-caps-optical finder-subtext-dark finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide"
                       >
                         <span
                           [id]="
@@ -269,7 +269,7 @@
       </h4>
       <p
         id="solution-finder-modal-step2a-intro"
-        class="finder-step-intro text-xs leading-snug text-black"
+        class="finder-step-intro finder-subtext-dark text-xs leading-snug"
       >
         {{ 'solutionControls.finder.stepIntros.step2a' | translate }}
       </p>
@@ -291,7 +291,7 @@
               </p>
               <p
                 id="solution-finder-modal-step2a-row-omec-help"
-                class="mt-1 text-xs leading-snug text-black"
+                class="finder-subtext-dark mt-1 text-xs leading-snug"
               >
                 {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
               </p>
@@ -334,7 +334,7 @@
               </p>
               <p
                 id="solution-finder-modal-step2a-row-comunidades-help"
-                class="mt-1 text-xs leading-snug text-black"
+                class="finder-subtext-dark mt-1 text-xs leading-snug"
               >
                 {{ 'solutionControls.finder.step2a.includeComunidadesHelp' | translate }}
               </p>
@@ -372,7 +372,7 @@
           >
             <p
               id="solution-finder-modal-step2a-always-heading"
-              class="finder-all-caps-optical text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+              class="finder-all-caps-optical finder-subtext-dark text-[11px] font-semibold uppercase tracking-[0.12em]"
             >
               {{ 'solutionControls.finder.step2a.alwaysAppliedHeading' | translate }}
             </p>
@@ -389,7 +389,7 @@
                 </p>
                 <p
                   id="solution-finder-modal-step2a-always-runap-help"
-                  class="mt-1 text-xs leading-snug text-black"
+                  class="finder-subtext-dark mt-1 text-xs leading-snug"
                 >
                   {{ 'solutionControls.finder.step2a.alwaysRunapHelp' | translate }}
                 </p>
@@ -433,7 +433,7 @@
       </h4>
       <p
         id="solution-finder-modal-step2b-intro"
-        class="finder-step-intro text-xs leading-snug text-black"
+        class="finder-step-intro finder-subtext-dark text-xs leading-snug"
       >
         {{ 'solutionControls.finder.stepIntros.step2b' | translate }}
       </p>
@@ -473,7 +473,7 @@
                 class="text-[11px] font-normal leading-snug"
                 [class.text-white]="selectedCostLayerId === 'human-footprint'"
                 [class.opacity-90]="selectedCostLayerId === 'human-footprint'"
-                [class.text-slate-600]="selectedCostLayerId !== 'human-footprint'"
+                [class.finder-subtext-dark]="selectedCostLayerId !== 'human-footprint'"
               >
                 {{ 'solutionControls.finder.step2b.humanFootprintHelp' | translate }}
               </span>
@@ -509,7 +509,7 @@
                 class="text-[11px] font-normal leading-snug"
                 [class.text-white]="selectedCostLayerId === 'carbon-opportunity'"
                 [class.opacity-90]="selectedCostLayerId === 'carbon-opportunity'"
-                [class.text-slate-600]="selectedCostLayerId !== 'carbon-opportunity'"
+                [class.finder-subtext-dark]="selectedCostLayerId !== 'carbon-opportunity'"
               >
                 {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
               </span>
@@ -548,7 +548,7 @@
                 class="text-[11px] font-normal leading-snug"
                 [class.text-white]="selectedCostLayerId === 'conflict'"
                 [class.opacity-90]="selectedCostLayerId === 'conflict'"
-                [class.text-slate-600]="selectedCostLayerId !== 'conflict'"
+                [class.finder-subtext-dark]="selectedCostLayerId !== 'conflict'"
               >
                 {{ 'solutionControls.finder.step2b.conflictHelp' | translate }}
               </span>
@@ -585,7 +585,7 @@
       </h4>
       <p
         id="solution-finder-modal-results-intro"
-        class="finder-step-intro text-xs leading-snug text-black"
+        class="finder-step-intro finder-subtext-dark text-xs leading-snug"
       >
         {{ 'solutionControls.finder.stepIntros.step3' | translate }}
       </p>
@@ -606,7 +606,10 @@
                 >
                   {{ 'solutionControls.finder.empty.title' | translate }}
                 </p>
-                <p id="solution-finder-modal-results-empty-description" class="text-sm text-black">
+                <p
+                  id="solution-finder-modal-results-empty-description"
+                  class="finder-subtext-dark text-sm"
+                >
                   {{ 'solutionControls.finder.empty.description' | translate }}
                 </p>
               </div>
@@ -625,7 +628,10 @@
                     class="finder-loading-bar-indicator block h-full w-1/2 rounded-full bg-sky-500"
                   ></span>
                 </div>
-                <p id="solution-finder-modal-results-loading-text" class="text-sm text-black">
+                <p
+                  id="solution-finder-modal-results-loading-text"
+                  class="finder-subtext-dark text-sm"
+                >
                   {{ 'solutionControls.finder.loading' | translate }}
                 </p>
               </div>
@@ -644,7 +650,7 @@
                   </p>
                   <p
                     id="solution-finder-modal-results-no-match-description"
-                    class="text-sm text-black"
+                    class="finder-subtext-dark text-sm"
                   >
                     {{ 'solutionControls.finder.noMatch.description' | translate }}
                   </p>
@@ -692,13 +698,13 @@
                     </p>
                     <p
                       id="solution-finder-modal-results-single-description"
-                      class="mt-1 text-xs leading-snug text-black"
+                      class="finder-subtext-dark mt-1 text-xs leading-snug"
                     >
                       {{ top.description }}
                     </p>
                     <p
                       id="solution-finder-modal-results-single-file"
-                      class="mt-2 font-mono text-[11px] text-black"
+                      class="finder-subtext-dark mt-2 font-mono text-[11px]"
                     >
                       {{ top.scenarioId }}.tif
                     </p>
@@ -713,7 +719,7 @@
                     >
                       <p
                         id="solution-finder-modal-results-multi-hint-label"
-                        class="finder-all-caps-optical mb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500"
+                        class="finder-all-caps-optical finder-subtext-dark mb-1 text-[11px] font-semibold uppercase tracking-widest"
                       >
                         {{ 'solutionControls.finder.results.alternateMatches' | translate }}
                       </p>
