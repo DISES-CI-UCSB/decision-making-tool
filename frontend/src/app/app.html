@@ -96,7 +96,7 @@
   >
     <p
       id="solution-finder-modal-shell-workflow-kicker"
-      class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
+      class="text-xl font-semibold uppercase tracking-[0.08em] text-sky-700"
     >
       {{
         (solutionFinderContext() === 'comparison-candidate'
@@ -105,17 +105,6 @@
         ) | translate
       }}
     </p>
-    <h2
-      id="solution-finder-modal-shell-workflow-title"
-      class="text-xl font-semibold text-slate-900"
-    >
-      {{
-        (solutionFinderContext() === 'comparison-candidate'
-          ? 'solutionControls.finder.comparison.title'
-          : 'solutionControls.finder.title'
-        ) | translate
-      }}
-    </h2>
     <p id="solution-finder-modal-shell-workflow-description" class="text-sm text-black">
       {{
         (solutionFinderContext() === 'comparison-candidate'
