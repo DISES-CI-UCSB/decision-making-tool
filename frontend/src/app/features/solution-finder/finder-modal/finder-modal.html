@@ -126,9 +126,17 @@
                           [id]="
                             'solution-finder-modal-step1-target-type-selected-badge-' + option.id
                           "
-                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-sky-300 bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
+                          class="finder-all-caps-badge inline-flex rounded-md border border-sky-300 bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
                         >
-                          {{ 'solutionControls.finder.step1.selectedBadge' | translate }}
+                          <span
+                            [id]="
+                              'solution-finder-modal-step1-target-type-selected-badge-text-' +
+                              option.id
+                            "
+                            class="finder-selected-badge-text-optical"
+                          >
+                            {{ 'solutionControls.finder.step1.selectedBadge' | translate }}
+                          </span>
                         </span>
                       }
                       @if (!isTargetTypeAvailable(option.id)) {
