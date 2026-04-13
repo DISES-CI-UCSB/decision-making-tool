@@ -437,6 +437,10 @@ export class PanelSwitcherComponent {
   protected readonly overviewCostMetrics = computed<OverviewMetricDisplayEntry[]>(() =>
     this.buildOverviewMetricDisplayEntries('costs'),
   );
+  protected readonly overviewSectionExpanded = signal<Record<OverviewMetricSection, boolean>>({
+    gains: true,
+    costs: true,
+  });
 
   protected readonly aoiMetrics = computed(() => {
     const solution = this.activeSolution();
@@ -697,6 +701,17 @@ export class PanelSwitcherComponent {
 
   protected getGoalsMetCount(matchPercentage: number): number {
     return Math.round(matchPercentage / 12);
+  }
+
+  protected toggleOverviewSection(sectionId: OverviewMetricSection): void {
+    this.overviewSectionExpanded.update((state) => ({
+      ...state,
+      [sectionId]: !state[sectionId],
+    }));
+  }
+
+  protected isOverviewSectionExpanded(sectionId: OverviewMetricSection): boolean {
+    return this.overviewSectionExpanded()[sectionId];
   }
 
   protected toggleAoiSection(sectionId: AoiSectionId): void {
