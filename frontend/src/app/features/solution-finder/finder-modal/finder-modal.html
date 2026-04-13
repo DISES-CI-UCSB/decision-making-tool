@@ -277,17 +277,25 @@
           <div
             id="solution-finder-modal-step2a-row-omec"
             class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
+            [class.border-sky-400]="includeOmecs"
+            [class.bg-sky-100]="includeOmecs"
+            [class.border-slate-200]="!includeOmecs"
+            [class.bg-white]="!includeOmecs"
           >
             <div id="solution-finder-modal-step2a-row-omec-copy" class="min-w-0 flex-1">
               <p
                 id="solution-finder-modal-step2a-row-omec-label"
-                class="text-sm font-medium text-slate-900"
+                class="text-sm font-medium"
+                [class.text-sky-900]="includeOmecs"
+                [class.text-slate-900]="!includeOmecs"
               >
                 {{ 'solutionControls.finder.step2a.includeOmecsLabel' | translate }}
               </p>
               <p
                 id="solution-finder-modal-step2a-row-omec-help"
-                class="finder-subtext-dark mt-1 text-xs leading-snug"
+                class="mt-1 text-xs leading-snug"
+                [class.text-sky-800]="includeOmecs"
+                [class.text-slate-600]="!includeOmecs"
               >
                 {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
               </p>
@@ -320,17 +328,25 @@
           <div
             id="solution-finder-modal-step2a-row-comunidades"
             class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
+            [class.border-sky-400]="includeComunidades"
+            [class.bg-sky-100]="includeComunidades"
+            [class.border-slate-200]="!includeComunidades"
+            [class.bg-white]="!includeComunidades"
           >
             <div id="solution-finder-modal-step2a-row-comunidades-copy" class="min-w-0 flex-1">
               <p
                 id="solution-finder-modal-step2a-row-comunidades-label"
-                class="text-sm font-medium text-slate-900"
+                class="text-sm font-medium"
+                [class.text-sky-900]="includeComunidades"
+                [class.text-slate-900]="!includeComunidades"
               >
                 {{ 'solutionControls.finder.step2a.includeComunidadesLabel' | translate }}
               </p>
               <p
                 id="solution-finder-modal-step2a-row-comunidades-help"
-                class="finder-subtext-dark mt-1 text-xs leading-snug"
+                class="mt-1 text-xs leading-snug"
+                [class.text-sky-800]="includeComunidades"
+                [class.text-slate-600]="!includeComunidades"
               >
                 {{ 'solutionControls.finder.step2a.includeComunidadesHelp' | translate }}
               </p>
@@ -459,9 +475,9 @@
               id="solution-finder-modal-step2b-option-human-footprint"
               type="button"
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.border-sky-500]="selectedCostLayerId === 'human-footprint'"
-              [class.bg-sky-500]="selectedCostLayerId === 'human-footprint'"
-              [class.text-white]="selectedCostLayerId === 'human-footprint'"
+              [class.border-sky-400]="selectedCostLayerId === 'human-footprint'"
+              [class.bg-sky-100]="selectedCostLayerId === 'human-footprint'"
+              [class.text-sky-900]="selectedCostLayerId === 'human-footprint'"
               [class.border-slate-200]="selectedCostLayerId !== 'human-footprint'"
               [class.bg-white]="selectedCostLayerId !== 'human-footprint'"
               [class.text-slate-800]="selectedCostLayerId !== 'human-footprint'"
@@ -482,10 +498,7 @@
               </span>
               <span
                 id="solution-finder-modal-step2b-option-hf-help"
-                class="text-[11px] font-normal leading-snug"
-                [class.text-white]="selectedCostLayerId === 'human-footprint'"
-                [class.opacity-90]="selectedCostLayerId === 'human-footprint'"
-                [class.finder-subtext-dark]="selectedCostLayerId !== 'human-footprint'"
+                class="finder-subtext-dark text-[11px] font-normal leading-snug"
               >
                 {{ 'solutionControls.finder.step2b.humanFootprintHelp' | translate }}
               </span>
@@ -495,9 +508,9 @@
               id="solution-finder-modal-step2b-option-carbon"
               type="button"
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.border-sky-500]="selectedCostLayerId === 'carbon-opportunity'"
-              [class.bg-sky-500]="selectedCostLayerId === 'carbon-opportunity'"
-              [class.text-white]="selectedCostLayerId === 'carbon-opportunity'"
+              [class.border-sky-400]="selectedCostLayerId === 'carbon-opportunity'"
+              [class.bg-sky-100]="selectedCostLayerId === 'carbon-opportunity'"
+              [class.text-sky-900]="selectedCostLayerId === 'carbon-opportunity'"
               [class.border-slate-200]="selectedCostLayerId !== 'carbon-opportunity'"
               [class.bg-white]="selectedCostLayerId !== 'carbon-opportunity'"
               [class.text-slate-800]="selectedCostLayerId !== 'carbon-opportunity'"
@@ -518,10 +531,7 @@
               </span>
               <span
                 id="solution-finder-modal-step2b-option-co-help"
-                class="text-[11px] font-normal leading-snug"
-                [class.text-white]="selectedCostLayerId === 'carbon-opportunity'"
-                [class.opacity-90]="selectedCostLayerId === 'carbon-opportunity'"
-                [class.finder-subtext-dark]="selectedCostLayerId !== 'carbon-opportunity'"
+                class="finder-subtext-dark text-[11px] font-normal leading-snug"
               >
                 {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
               </span>
@@ -531,9 +541,9 @@
               id="solution-finder-modal-step2b-option-conflict"
               type="button"
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.border-sky-500]="selectedCostLayerId === 'conflict'"
-              [class.bg-sky-500]="selectedCostLayerId === 'conflict'"
-              [class.text-white]="selectedCostLayerId === 'conflict'"
+              [class.border-sky-400]="selectedCostLayerId === 'conflict'"
+              [class.bg-sky-100]="selectedCostLayerId === 'conflict'"
+              [class.text-sky-900]="selectedCostLayerId === 'conflict'"
               [class.border-slate-200]="selectedCostLayerId !== 'conflict'"
               [class.bg-white]="selectedCostLayerId !== 'conflict'"
               [class.text-slate-800]="selectedCostLayerId !== 'conflict'"
@@ -557,10 +567,7 @@
               </span>
               <span
                 id="solution-finder-modal-step2b-option-conflict-help"
-                class="text-[11px] font-normal leading-snug"
-                [class.text-white]="selectedCostLayerId === 'conflict'"
-                [class.opacity-90]="selectedCostLayerId === 'conflict'"
-                [class.finder-subtext-dark]="selectedCostLayerId !== 'conflict'"
+                class="finder-subtext-dark text-[11px] font-normal leading-snug"
               >
                 {{ 'solutionControls.finder.step2b.conflictHelp' | translate }}
               </span>

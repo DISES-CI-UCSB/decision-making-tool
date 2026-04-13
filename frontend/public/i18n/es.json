@@ -223,7 +223,7 @@
     "finder": {
       "kicker": "Busqueda de escenarios de conservacion",
       "title": "Encontrar un escenario de conservacion",
-      "description": "Elija que proteger, capas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
+      "description": "Elija que proteger, areas incluidas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
       "comparison": {
         "kicker": "Busqueda de solucion candidata",
         "title": "Encontrar una solucion candidata",
@@ -235,18 +235,18 @@
       "stepPrefixes": {
         "step1": "Paso 1",
         "step2a": "Paso 2",
-        "step2b": "Paso 2",
+        "step2b": "Paso 3",
         "step3": "Paso 3"
       },
       "stepLabels": {
         "step1": "Que proteger",
-        "step2a": "Capas de area (opcional)",
+        "step2a": "Areas incluidas (opcional)",
         "step2b": "Base del compromiso",
         "step3": "Escenario coincidente"
       },
       "stepIntros": {
         "step1": "Seleccione uno o mas grupos objetivo para definir que proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
-        "step2a": "Elija capas de area opcionales para incluir junto con las areas protegidas RUNAP siempre activas.",
+        "step2a": "Elija areas incluidas opcionales para aplicar junto con las areas protegidas RUNAP siempre activas.",
         "step2b": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
         "step3": "Los escenarios coincidentes se actualizan automaticamente al cambiar filtros."
       },

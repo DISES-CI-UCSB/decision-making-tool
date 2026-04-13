@@ -223,7 +223,7 @@
     "finder": {
       "kicker": "Conservation scenario search",
       "title": "Find a conservation scenario",
-      "description": "Choose what to protect, optional area layers, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
+      "description": "Choose what to protect, optional included areas, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
       "comparison": {
         "kicker": "Candidate solution search",
         "title": "Find a candidate solution",
@@ -235,18 +235,18 @@
       "stepPrefixes": {
         "step1": "Step 1",
         "step2a": "Step 2",
-        "step2b": "Step 2",
+        "step2b": "Step 3",
         "step3": "Step 3"
       },
       "stepLabels": {
         "step1": "What to protect",
-        "step2a": "Area layers (optional)",
+        "step2a": "Included areas (optional)",
         "step2b": "Trade-off basis",
         "step3": "Matching scenario"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
-        "step2a": "Choose optional area layers to include alongside the always-on RUNAP protected areas.",
+        "step2a": "Choose optional included areas to apply alongside the always-on RUNAP protected areas.",
         "step2b": "Choose one cost layer to rank candidate sites (lower values are preferred).",
         "step3": "Matching scenarios refresh automatically as you change filters."
       },
@@ -258,7 +258,7 @@
         "ready": "Ready"
       },
       "helpers": {
-        "constraints": "Choose optional layers after you finish Step 1.",
+        "constraints": "Choose optional included areas after you finish Step 1.",
         "results": "Results refresh automatically when targets and trade-off basis are chosen."
       },
       "locked": {
