@@ -107,9 +107,12 @@
       "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
       "nationalAnchor": {
-        "title": "National Contribution",
-        "contributing": "Contributing {{percent}}% toward Colombia's 30x30 conservation target",
-        "targetLabel": "30% target"
+        "title": "National Conservation Footprint",
+        "contributing": "This solution designates {{percent}}% of Colombia for conservation.",
+        "currentContribution": "Solution footprint: {{percent}}%",
+        "targetLabel": "30x30 benchmark (30%)",
+        "minLabel": "0% of Colombia",
+        "maxLabel": "100% of Colombia"
       },
       "actions": {
         "viewFullReport": "View Full Report",
@@ -223,7 +226,7 @@
     "finder": {
       "kicker": "Conservation scenario search",
       "title": "Find a conservation scenario",
-      "description": "Choose what to protect, optional area layers, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
+      "description": "Choose what to protect, optional included areas, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
       "comparison": {
         "kicker": "Candidate solution search",
         "title": "Find a candidate solution",
@@ -232,15 +235,21 @@
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
       "loading": "Finding scenario…",
+      "stepPrefixes": {
+        "step1": "Step 1",
+        "step2a": "Step 2",
+        "step2b": "Step 3",
+        "step3": "Step 3"
+      },
       "stepLabels": {
-        "step1": "Step 1: What to protect",
-        "step2a": "Step 2: Include / exclude",
-        "step2b": "Step 3: Cost layer",
-        "step3": "Result"
+        "step1": "What to protect",
+        "step2a": "Included areas (optional)",
+        "step2b": "Trade-off basis",
+        "step3": "Matching scenario"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
-        "step2a": "Choose optional area layers to include alongside the always-on RUNAP protected areas.",
+        "step2a": "Choose optional included areas to apply alongside the always-on RUNAP protected areas.",
         "step2b": "Choose one cost layer to rank candidate sites (lower values are preferred).",
         "step3": "Matching scenarios refresh automatically as you change filters."
       },
@@ -252,7 +261,7 @@
         "ready": "Ready"
       },
       "helpers": {
-        "constraints": "Choose optional layers after you finish Step 1.",
+        "constraints": "Choose optional included areas after you finish Step 1.",
         "results": "Results refresh automatically when targets and trade-off basis are chosen."
       },
       "locked": {
@@ -284,14 +293,13 @@
         "requiredInline": "(required)",
         "targetLevelRequiredHint": "Select one or more target types. Each selected target also needs a coverage level (17% or 30%) before Step 2 unlocks.",
         "selectLevelToContinue": "Select 17% or 30% to complete this target.",
-        "actionNeededBadge": "Action needed",
         "selectedBadge": "Selected",
         "readyBadge": "Ready",
         "summarySelectTarget": "Select one or more target types to continue.",
         "summaryNeedsLevel": "{{selected}} selected · {{remaining}} still need a coverage level.",
         "summaryComplete": "All selected targets are configured.",
-        "lockReasonSelectTargetType": "Step 2 is locked. Select one or more target types in Step 1.",
-        "lockReasonSelectTargetLevel": "Step 2 is locked. Choose 17% or 30% for each selected target.",
+        "lockReasonSelectTargetType": "Choose at least one target type to continue.",
+        "lockReasonSelectTargetLevel": "Choose 17% or 30% for each selected target type.",
         "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
         "targetLevelBadgeSpecies": "For species richness",
         "targetLevelBadgeStrategic": "Strategic only",

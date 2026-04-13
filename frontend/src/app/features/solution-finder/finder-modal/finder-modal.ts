@@ -341,24 +341,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return this.matchState === 'empty';
   }
 
-  protected getKickerKey(): string {
-    return this.mode === 'comparison-candidate'
-      ? 'solutionControls.finder.comparison.kicker'
-      : 'solutionControls.finder.kicker';
-  }
-
-  protected getTitleKey(): string {
-    return this.mode === 'comparison-candidate'
-      ? 'solutionControls.finder.comparison.title'
-      : 'solutionControls.finder.title';
-  }
-
-  protected getDescriptionKey(): string {
-    return this.mode === 'comparison-candidate'
-      ? 'solutionControls.finder.comparison.description'
-      : 'solutionControls.finder.description';
-  }
-
   protected getApplyActionKey(): string {
     return this.mode === 'comparison-candidate'
       ? 'solutionControls.finder.actions.loadAsCandidateSolution'

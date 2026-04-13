@@ -82,13 +82,38 @@
   id="solution-finder-modal-shell"
   rootId="solution-finder-modal-shell-root"
   mode="wide"
-  [titleKey]="getSolutionFinderModalTitleKey()"
   [isOpen]="solutionFinderModalOpen()"
   [closeOnBackdrop]="true"
   [closeOnEscape]="true"
   [showCloseButton]="true"
+  headerAlign="start"
   (requestClose)="closeSolutionFinderModal()"
 >
+  <section
+    id="solution-finder-modal-shell-header-copy"
+    modal-shell-header-content
+    class="space-y-1"
+  >
+    <p
+      id="solution-finder-modal-shell-workflow-kicker"
+      class="text-xl font-semibold uppercase tracking-[0.08em] text-sky-700"
+    >
+      {{
+        (solutionFinderContext() === 'comparison-candidate'
+          ? 'solutionControls.finder.comparison.kicker'
+          : 'solutionControls.finder.kicker'
+        ) | translate
+      }}
+    </p>
+    <p id="solution-finder-modal-shell-workflow-description" class="text-sm text-black">
+      {{
+        (solutionFinderContext() === 'comparison-candidate'
+          ? 'solutionControls.finder.comparison.description'
+          : 'solutionControls.finder.description'
+        ) | translate
+      }}
+    </p>
+  </section>
   <section id="solution-finder-modal-content-shell" class="h-full">
     <app-finder-modal
       id="solution-finder-modal-workflow-component"

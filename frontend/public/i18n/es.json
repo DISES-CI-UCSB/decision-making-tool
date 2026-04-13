@@ -107,9 +107,12 @@
       "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climaticos.",
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
       "nationalAnchor": {
-        "title": "Contribucion nacional",
-        "contributing": "Contribuyendo {{percent}}% hacia la meta de conservacion 30x30 de Colombia",
-        "targetLabel": "Meta 30%"
+        "title": "Huella nacional de conservacion",
+        "contributing": "Esta solucion destina {{percent}}% de Colombia para conservacion.",
+        "currentContribution": "Huella de la solucion: {{percent}}%",
+        "targetLabel": "Referencia 30x30 (30%)",
+        "minLabel": "0% de Colombia",
+        "maxLabel": "100% de Colombia"
       },
       "actions": {
         "viewFullReport": "Ver informe completo",
@@ -223,7 +226,7 @@
     "finder": {
       "kicker": "Busqueda de escenarios de conservacion",
       "title": "Encontrar un escenario de conservacion",
-      "description": "Elija que proteger, capas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
+      "description": "Elija que proteger, areas incluidas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
       "comparison": {
         "kicker": "Busqueda de solucion candidata",
         "title": "Encontrar una solucion candidata",
@@ -232,15 +235,21 @@
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
       "loading": "Buscando escenario…",
+      "stepPrefixes": {
+        "step1": "Paso 1",
+        "step2a": "Paso 2",
+        "step2b": "Paso 3",
+        "step3": "Paso 3"
+      },
       "stepLabels": {
-        "step1": "Paso 1: Que proteger",
-        "step2a": "Paso 2: Incluir / excluir",
-        "step2b": "Paso 3: Capa de costo",
-        "step3": "Resultado"
+        "step1": "Que proteger",
+        "step2a": "Areas incluidas (opcional)",
+        "step2b": "Base del compromiso",
+        "step3": "Escenario coincidente"
       },
       "stepIntros": {
         "step1": "Seleccione uno o mas grupos objetivo para definir que proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
-        "step2a": "Elija capas de area opcionales para incluir junto con las areas protegidas RUNAP siempre activas.",
+        "step2a": "Elija areas incluidas opcionales para aplicar junto con las areas protegidas RUNAP siempre activas.",
         "step2b": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
         "step3": "Los escenarios coincidentes se actualizan automaticamente al cambiar filtros."
       },
@@ -283,14 +292,13 @@
         "coverageLevelLabel": "Nivel de cobertura",
         "requiredInline": "(obligatorio)",
         "selectLevelToContinue": "Seleccione 17% o 30% para completar este tipo de meta.",
-        "actionNeededBadge": "Accion pendiente",
         "selectedBadge": "Seleccionado",
         "readyBadge": "Listo",
         "summarySelectTarget": "Seleccione uno o mas tipos de meta para continuar.",
         "summaryNeedsLevel": "{{selected}} seleccionados · {{remaining}} aun requieren nivel de cobertura.",
         "summaryComplete": "Todos los tipos seleccionados ya estan configurados.",
-        "lockReasonSelectTargetType": "El Paso 2 esta bloqueado. Seleccione uno o mas tipos de meta en el Paso 1.",
-        "lockReasonSelectTargetLevel": "El Paso 2 esta bloqueado. Elija 17% o 30% para cada tipo de meta seleccionado.",
+        "lockReasonSelectTargetType": "Seleccione al menos un tipo de meta para continuar.",
+        "lockReasonSelectTargetLevel": "Elija 17% o 30% para cada tipo de meta seleccionado.",
         "targetLevelIntro": "Meta nacional de representacion como porcentaje (17% o 30%).",
         "targetLevelBadgeSpecies": "Para riqueza de especies",
         "targetLevelBadgeStrategic": "Solo estrategico",

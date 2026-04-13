@@ -18,6 +18,7 @@ const FOCUSABLE_SELECTOR =
 
 export type ModalShellMode = 'standard' | 'wide' | 'full-screen';
 export type ModalCloseSource = 'backdrop' | 'escape' | 'button';
+export type ModalHeaderAlign = 'center' | 'start';
 
 @Component({
   selector: 'app-modal-shell',
@@ -34,6 +35,7 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   @Input() closeOnBackdrop = true;
   @Input() closeOnEscape = true;
   @Input() showCloseButton = true;
+  @Input() headerAlign: ModalHeaderAlign = 'center';
 
   @Output() readonly requestClose = new EventEmitter<ModalCloseSource>();
 
