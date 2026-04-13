@@ -285,17 +285,13 @@
             <div id="solution-finder-modal-step2a-row-omec-copy" class="min-w-0 flex-1">
               <p
                 id="solution-finder-modal-step2a-row-omec-label"
-                class="text-sm font-medium"
-                [class.text-sky-900]="includeOmecs"
-                [class.text-slate-900]="!includeOmecs"
+                class="text-sm font-medium text-slate-900"
               >
                 {{ 'solutionControls.finder.step2a.includeOmecsLabel' | translate }}
               </p>
               <p
                 id="solution-finder-modal-step2a-row-omec-help"
-                class="mt-1 text-xs leading-snug"
-                [class.text-sky-800]="includeOmecs"
-                [class.text-slate-600]="!includeOmecs"
+                class="finder-subtext-dark mt-1 text-xs leading-snug"
               >
                 {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
               </p>
@@ -336,17 +332,13 @@
             <div id="solution-finder-modal-step2a-row-comunidades-copy" class="min-w-0 flex-1">
               <p
                 id="solution-finder-modal-step2a-row-comunidades-label"
-                class="text-sm font-medium"
-                [class.text-sky-900]="includeComunidades"
-                [class.text-slate-900]="!includeComunidades"
+                class="text-sm font-medium text-slate-900"
               >
                 {{ 'solutionControls.finder.step2a.includeComunidadesLabel' | translate }}
               </p>
               <p
                 id="solution-finder-modal-step2a-row-comunidades-help"
-                class="mt-1 text-xs leading-snug"
-                [class.text-sky-800]="includeComunidades"
-                [class.text-slate-600]="!includeComunidades"
+                class="finder-subtext-dark mt-1 text-xs leading-snug"
               >
                 {{ 'solutionControls.finder.step2a.includeComunidadesHelp' | translate }}
               </p>
@@ -477,17 +469,18 @@
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
               [class.border-sky-400]="selectedCostLayerId === 'human-footprint'"
               [class.bg-sky-100]="selectedCostLayerId === 'human-footprint'"
-              [class.text-sky-900]="selectedCostLayerId === 'human-footprint'"
               [class.border-slate-200]="selectedCostLayerId !== 'human-footprint'"
               [class.bg-white]="selectedCostLayerId !== 'human-footprint'"
-              [class.text-slate-800]="selectedCostLayerId !== 'human-footprint'"
               [class.cursor-not-allowed]="!isStep2Unlocked()"
               [class.opacity-60]="!isStep2Unlocked()"
               [disabled]="!isStep2Unlocked()"
               [attr.aria-pressed]="selectedCostLayerId === 'human-footprint'"
               (click)="selectCostLayer('human-footprint')"
             >
-              <span id="solution-finder-modal-step2b-option-hf-title" class="text-xs font-semibold">
+              <span
+                id="solution-finder-modal-step2b-option-hf-title"
+                class="text-xs font-semibold text-slate-900"
+              >
                 {{ 'solutionControls.finder.step2b.humanFootprintLabel' | translate }}
                 <span
                   id="solution-finder-modal-step2b-option-hf-code"
@@ -510,17 +503,18 @@
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
               [class.border-sky-400]="selectedCostLayerId === 'carbon-opportunity'"
               [class.bg-sky-100]="selectedCostLayerId === 'carbon-opportunity'"
-              [class.text-sky-900]="selectedCostLayerId === 'carbon-opportunity'"
               [class.border-slate-200]="selectedCostLayerId !== 'carbon-opportunity'"
               [class.bg-white]="selectedCostLayerId !== 'carbon-opportunity'"
-              [class.text-slate-800]="selectedCostLayerId !== 'carbon-opportunity'"
               [class.cursor-not-allowed]="!isStep2Unlocked()"
               [class.opacity-60]="!isStep2Unlocked()"
               [disabled]="!isStep2Unlocked()"
               [attr.aria-pressed]="selectedCostLayerId === 'carbon-opportunity'"
               (click)="selectCostLayer('carbon-opportunity')"
             >
-              <span id="solution-finder-modal-step2b-option-co-title" class="text-xs font-semibold">
+              <span
+                id="solution-finder-modal-step2b-option-co-title"
+                class="text-xs font-semibold text-slate-900"
+              >
                 {{ 'solutionControls.finder.step2b.carbonOpportunityLabel' | translate }}
                 <span
                   id="solution-finder-modal-step2b-option-co-code"
@@ -543,10 +537,8 @@
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
               [class.border-sky-400]="selectedCostLayerId === 'conflict'"
               [class.bg-sky-100]="selectedCostLayerId === 'conflict'"
-              [class.text-sky-900]="selectedCostLayerId === 'conflict'"
               [class.border-slate-200]="selectedCostLayerId !== 'conflict'"
               [class.bg-white]="selectedCostLayerId !== 'conflict'"
-              [class.text-slate-800]="selectedCostLayerId !== 'conflict'"
               [class.cursor-not-allowed]="!isStep2Unlocked()"
               [class.opacity-60]="!isStep2Unlocked()"
               [disabled]="!isStep2Unlocked()"
@@ -555,7 +547,7 @@
             >
               <span
                 id="solution-finder-modal-step2b-option-conflict-title"
-                class="text-xs font-semibold"
+                class="text-xs font-semibold text-slate-900"
               >
                 {{ 'solutionControls.finder.step2b.conflictLabel' | translate }}
                 <span
