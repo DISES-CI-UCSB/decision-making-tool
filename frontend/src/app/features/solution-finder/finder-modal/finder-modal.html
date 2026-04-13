@@ -2,31 +2,6 @@
   id="solution-finder-modal-root"
   class="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50"
 >
-  <header
-    id="solution-finder-modal-workflow-header"
-    class="border-b border-slate-200 bg-white px-6 py-4"
-  >
-    <div
-      id="solution-finder-modal-workflow-header-content"
-      class="flex flex-wrap items-center justify-between gap-3"
-    >
-      <div id="solution-finder-modal-workflow-header-copy" class="space-y-1">
-        <p
-          id="solution-finder-modal-workflow-kicker"
-          class="finder-all-caps-optical text-xs font-semibold uppercase tracking-[0.2em] text-sky-700"
-        >
-          {{ getKickerKey() | translate }}
-        </p>
-        <h3 id="solution-finder-modal-workflow-title" class="text-xl font-semibold text-slate-900">
-          {{ getTitleKey() | translate }}
-        </h3>
-        <p id="solution-finder-modal-workflow-description" class="text-sm text-black">
-          {{ getDescriptionKey() | translate }}
-        </p>
-      </div>
-    </div>
-  </header>
-
   <section
     id="solution-finder-modal-workflow-body"
     class="finder-modal-scrollbar grid min-h-0 flex-1 items-stretch gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"

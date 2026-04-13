@@ -30,15 +30,18 @@
       @if (titleKey || showCloseButton) {
         <header
           [id]="rootId + '-header'"
-          class="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3"
+          class="flex justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3"
+          [class.items-center]="headerAlign === 'center'"
+          [class.items-start]="headerAlign === 'start'"
         >
-          @if (titleKey) {
-            <h2 [id]="rootId + '-title'" class="text-base font-semibold text-ink-900">
-              {{ titleKey | translate }}
-            </h2>
-          } @else {
-            <div [id]="rootId + '-title-placeholder'" class="h-6"></div>
-          }
+          <div [id]="rootId + '-header-leading'" class="min-w-0 flex-1">
+            <ng-content select="[modal-shell-header-content]"></ng-content>
+            @if (titleKey) {
+              <h2 [id]="rootId + '-title'" class="text-base font-semibold text-ink-900">
+                {{ titleKey | translate }}
+              </h2>
+            }
+          </div>
 
           @if (showCloseButton) {
             <button
