@@ -58,120 +58,120 @@
         @if (activeSolution(); as solution) {
           <section id="solution-overview-panel" class="panel-enter v3-panel">
             <header id="right-sidebar-v3-overview-header" class="v3-panel-header">
-              <div id="right-sidebar-v3-overview-header-top" class="v3-header-top">
-                <span id="right-sidebar-v3-overview-match-badge" class="v3-match-badge">
-                  {{
-                    'analysis.overview.matchBadge'
-                      | translate: { percent: solution.matchPercentage }
-                  }}
-                </span>
-                <span id="right-sidebar-v3-overview-date" class="v3-header-date">Nov 2024</span>
-              </div>
               <h3 id="right-sidebar-overview-solution-name" class="v3-scenario-name">
                 {{ solution.name }}
               </h3>
+              <span id="right-sidebar-v3-overview-date" class="v3-header-date">Nov 2024</span>
             </header>
 
             <div id="right-sidebar-v3-overview-body" class="v3-panel-body">
-              <section id="right-sidebar-v3-overview-hero" class="v3-hero">
-                <article
-                  id="right-sidebar-v3-overview-hero-goals"
-                  class="v3-hero-card v3-hero-card-goals"
-                >
-                  <div id="right-sidebar-v3-overview-hero-goals-top" class="v3-hero-top">
-                    <p id="right-sidebar-v3-overview-hero-goals-label" class="v3-hero-label">
-                      {{ 'analysis.overview.goalsMet' | translate }}
+              <div id="right-sidebar-v3-overview-kpi-group" class="v3-overview-kpi-group">
+                <section id="right-sidebar-v3-overview-hero" class="v3-hero">
+                  <article
+                    id="right-sidebar-v3-overview-hero-goals"
+                    class="v3-hero-card v3-hero-card-goals"
+                  >
+                    <div id="right-sidebar-v3-overview-hero-goals-top" class="v3-hero-top">
+                      <p id="right-sidebar-v3-overview-hero-goals-label" class="v3-hero-label">
+                        {{ 'analysis.overview.goalsMet' | translate }}
+                      </p>
+                      <p id="right-sidebar-v3-overview-hero-goals-value" class="v3-hero-value">
+                        {{ getGoalsMetCount(solution.matchPercentage)
+                        }}<span
+                          id="right-sidebar-v3-overview-hero-goals-value-total"
+                          class="v3-hero-value-small"
+                          >/10</span
+                        >
+                      </p>
+                    </div>
+                    <div id="right-sidebar-v3-overview-hero-goals-bar" class="v3-hero-bar">
+                      <span
+                        id="right-sidebar-v3-overview-hero-goals-fill"
+                        class="v3-hero-fill-green"
+                        [style.width.%]="solution.matchPercentage / 1.2"
+                      ></span>
+                    </div>
+                    <p id="right-sidebar-v3-overview-hero-goals-sub" class="v3-hero-sub">
+                      {{ 'analysis.overview.goalsMetSub' | translate }}
                     </p>
-                    <p id="right-sidebar-v3-overview-hero-goals-value" class="v3-hero-value">
-                      {{ getGoalsMetCount(solution.matchPercentage)
-                      }}<span
-                        id="right-sidebar-v3-overview-hero-goals-value-total"
-                        class="v3-hero-value-small"
-                        >/10</span
-                      >
+                  </article>
+                  <article
+                    id="right-sidebar-v3-overview-hero-national"
+                    class="v3-hero-card v3-hero-card-national"
+                  >
+                    <div id="right-sidebar-v3-overview-hero-national-top" class="v3-hero-top">
+                      <p id="right-sidebar-v3-overview-hero-national-label" class="v3-hero-label">
+                        {{ 'analysis.overview.nationalContribution' | translate }}
+                      </p>
+                      <p id="right-sidebar-v3-overview-hero-national-value" class="v3-hero-value">
+                        {{ getContributionPercent(solution.matchPercentage)
+                        }}<span
+                          id="right-sidebar-v3-overview-hero-national-value-unit"
+                          class="v3-hero-value-small"
+                          >%</span
+                        >
+                      </p>
+                    </div>
+                    <div id="right-sidebar-v3-overview-hero-national-bar" class="v3-hero-bar">
+                      <span
+                        id="right-sidebar-v3-overview-hero-national-fill-existing"
+                        class="v3-hero-fill-blue-existing"
+                        [style.width.%]="
+                          getContributionPercent(solution.matchPercentage) -
+                          getContributionAddedPercent(solution.matchPercentage)
+                        "
+                      ></span>
+                      <span
+                        id="right-sidebar-v3-overview-hero-national-fill-added"
+                        class="v3-hero-fill-blue-added"
+                        [style.width.%]="getContributionAddedPercent(solution.matchPercentage)"
+                      ></span>
+                    </div>
+                    <p id="right-sidebar-v3-overview-hero-national-sub" class="v3-hero-sub">
+                      {{
+                        'analysis.overview.addsToExisting'
+                          | translate
+                            : {
+                                added: getContributionAddedPercent(solution.matchPercentage),
+                                existing:
+                                  getContributionPercent(solution.matchPercentage) -
+                                  getContributionAddedPercent(solution.matchPercentage),
+                              }
+                      }}
                     </p>
-                  </div>
-                  <div id="right-sidebar-v3-overview-hero-goals-bar" class="v3-hero-bar">
-                    <span
-                      id="right-sidebar-v3-overview-hero-goals-fill"
-                      class="v3-hero-fill-green"
-                      [style.width.%]="solution.matchPercentage / 1.2"
-                    ></span>
-                  </div>
-                  <p id="right-sidebar-v3-overview-hero-goals-sub" class="v3-hero-sub">
-                    {{ 'analysis.overview.goalsMetSub' | translate }}
-                  </p>
-                </article>
-                <article
-                  id="right-sidebar-v3-overview-hero-national"
-                  class="v3-hero-card v3-hero-card-national"
-                >
-                  <div id="right-sidebar-v3-overview-hero-national-top" class="v3-hero-top">
-                    <p id="right-sidebar-v3-overview-hero-national-label" class="v3-hero-label">
-                      {{ 'analysis.overview.nationalContribution' | translate }}
-                    </p>
-                    <p id="right-sidebar-v3-overview-hero-national-value" class="v3-hero-value">
-                      {{ getContributionPercent(solution.matchPercentage)
-                      }}<span
-                        id="right-sidebar-v3-overview-hero-national-value-unit"
-                        class="v3-hero-value-small"
-                        >%</span
-                      >
-                    </p>
-                  </div>
-                  <div id="right-sidebar-v3-overview-hero-national-bar" class="v3-hero-bar">
-                    <span
-                      id="right-sidebar-v3-overview-hero-national-fill-existing"
-                      class="v3-hero-fill-blue-existing"
-                      [style.width.%]="
-                        getContributionPercent(solution.matchPercentage) -
-                        getContributionAddedPercent(solution.matchPercentage)
-                      "
-                    ></span>
-                    <span
-                      id="right-sidebar-v3-overview-hero-national-fill-added"
-                      class="v3-hero-fill-blue-added"
-                      [style.width.%]="getContributionAddedPercent(solution.matchPercentage)"
-                    ></span>
-                  </div>
-                  <p id="right-sidebar-v3-overview-hero-national-sub" class="v3-hero-sub">
-                    {{
-                      'analysis.overview.addsToExisting'
-                        | translate
-                          : {
-                              added: getContributionAddedPercent(solution.matchPercentage),
-                              existing:
-                                getContributionPercent(solution.matchPercentage) -
-                                getContributionAddedPercent(solution.matchPercentage),
-                            }
-                    }}
-                  </p>
-                </article>
-              </section>
+                  </article>
+                </section>
 
-              <section id="right-sidebar-v3-overview-spatial" class="v3-spatial">
-                <i
-                  id="right-sidebar-v3-overview-spatial-icon"
-                  class="fas fa-map-marked-alt"
-                  aria-hidden="true"
-                ></i>
-                <div id="right-sidebar-v3-overview-spatial-metrics" class="v3-spatial-metrics">
-                  <span id="right-sidebar-v3-overview-spatial-area"
-                    ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
-                    {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
-                  >
-                  <span id="right-sidebar-v3-overview-spatial-sep-1" class="v3-spatial-sep"></span>
-                  <span id="right-sidebar-v3-overview-spatial-zones"
-                    ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
-                    {{ 'analysis.overview.spatial.zones' | translate }}</span
-                  >
-                  <span id="right-sidebar-v3-overview-spatial-sep-2" class="v3-spatial-sep"></span>
-                  <span id="right-sidebar-v3-overview-spatial-avg"
-                    ><b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b>
-                    {{ 'analysis.overview.spatial.avg' | translate }}</span
-                  >
-                </div>
-              </section>
+                <section id="right-sidebar-v3-overview-spatial" class="v3-spatial">
+                  <i
+                    id="right-sidebar-v3-overview-spatial-icon"
+                    class="fas fa-map-marked-alt"
+                    aria-hidden="true"
+                  ></i>
+                  <div id="right-sidebar-v3-overview-spatial-metrics" class="v3-spatial-metrics">
+                    <span id="right-sidebar-v3-overview-spatial-area"
+                      ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
+                      {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
+                    >
+                    <span
+                      id="right-sidebar-v3-overview-spatial-sep-1"
+                      class="v3-spatial-sep"
+                    ></span>
+                    <span id="right-sidebar-v3-overview-spatial-zones"
+                      ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
+                      {{ 'analysis.overview.spatial.zones' | translate }}</span
+                    >
+                    <span
+                      id="right-sidebar-v3-overview-spatial-sep-2"
+                      class="v3-spatial-sep"
+                    ></span>
+                    <span id="right-sidebar-v3-overview-spatial-avg"
+                      ><b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b>
+                      {{ 'analysis.overview.spatial.avg' | translate }}</span
+                    >
+                  </div>
+                </section>
+              </div>
 
               @if (isOverviewLoading()) {
                 <section
