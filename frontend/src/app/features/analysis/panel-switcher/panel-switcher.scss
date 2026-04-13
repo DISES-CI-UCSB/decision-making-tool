@@ -144,7 +144,7 @@
 .v3-scenario-name {
   font-size: 18px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 23px;
   color: #0f172a;
 }
 
@@ -319,7 +319,7 @@
   gap: 4px;
   white-space: nowrap;
   flex-shrink: 0;
-  line-height: 1.05;
+  line-height: 13px;
   transform: translateY(1.5px);
 }
 
@@ -376,11 +376,11 @@
 .aoi-section-label,
 .c2-section-title {
   flex: 1;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
   margin-block: calc(0.5cap - 0.5lh);
-  transform: translateY(0.5px);
+  transform: translateY(1px);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
@@ -518,7 +518,7 @@
   background: #f8fafc;
   padding: 10px 12px;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 20px;
   color: #334155;
 }
 
@@ -679,7 +679,7 @@
   margin: 0 0 4px;
   font-size: 18px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 23px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #2f7d3d;
@@ -688,7 +688,7 @@
 .c2-title {
   font-size: 18px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 23px;
   color: #1f2933;
 }
 
@@ -890,7 +890,7 @@
 
 .c2-empty-description {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 20px;
   color: #64748b;
 }
 
@@ -916,7 +916,7 @@
 .c2-viz-mode-description {
   margin-top: 2px;
   font-size: 11px;
-  line-height: 1.35;
+  line-height: 15px;
   color: #64748b;
 }
 
@@ -1066,7 +1066,7 @@
 .c2-compare-metric-description {
   margin-top: 2px;
   font-size: 10px;
-  line-height: 1.35;
+  line-height: 14px;
   color: #94a3b8;
 }
 
@@ -1091,7 +1091,7 @@
   border-radius: 0;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 14px;
 }
 
 /* Difference column: plain text, off-black (no tinted pill). */
@@ -1119,7 +1119,7 @@
   background: #f8fafc;
   padding: 10px 12px;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 18px;
   color: #334155;
 }
 
@@ -1156,7 +1156,7 @@
 .aoi-region-name {
   font-size: 18px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 23px;
   color: #0f172a;
 }
 
@@ -1404,7 +1404,7 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--color-small-label);
-  line-height: 1.3;
+  line-height: 14px;
   margin-bottom: 4px;
 }
 
@@ -1412,7 +1412,7 @@
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
-  line-height: 1.1;
+  line-height: 22px;
 }
 
 .aoi-stat-unit {
@@ -1597,7 +1597,7 @@
   background: #fff1f2;
   padding: 10px 12px;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 18px;
   color: #e11d48;
 }
 
@@ -1618,7 +1618,7 @@
   border-left: 4px solid #94a3b8;
   color: var(--color-subtext);
   font-size: 12px;
-  line-height: 1.65;
+  line-height: 20px;
 
   strong {
     color: #0f172a;
