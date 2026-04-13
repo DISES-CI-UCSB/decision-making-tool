@@ -89,12 +89,6 @@ export class App implements OnInit, OnDestroy {
     this.closeSolutionFinderModal();
   }
 
-  protected getSolutionFinderModalTitleKey(): string {
-    return this.solutionFinderContext() === 'comparison-candidate'
-      ? 'solutionControls.modal.solutionFinderComparisonTitle'
-      : 'solutionControls.modal.solutionFinderTitle';
-  }
-
   protected onCoordinateToolEnabledChange(isEnabled: boolean): void {
     this.coordinateToolEnabled = isEnabled;
   }
