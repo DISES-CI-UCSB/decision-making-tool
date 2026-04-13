@@ -233,10 +233,10 @@
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
       "loading": "Buscando escenario…",
       "stepLabels": {
-        "step1": "Paso 1: Que proteger",
-        "step2a": "Paso 2: Incluir / excluir",
-        "step2b": "Paso 3: Capa de costo",
-        "step3": "Resultado"
+        "step1": "Que proteger",
+        "step2a": "Capas de area (opcional)",
+        "step2b": "Base del compromiso",
+        "step3": "Escenario coincidente"
       },
       "stepIntros": {
         "step1": "Seleccione uno o mas grupos objetivo para definir que proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
@@ -289,8 +289,8 @@
         "summarySelectTarget": "Seleccione uno o mas tipos de meta para continuar.",
         "summaryNeedsLevel": "{{selected}} seleccionados · {{remaining}} aun requieren nivel de cobertura.",
         "summaryComplete": "Todos los tipos seleccionados ya estan configurados.",
-        "lockReasonSelectTargetType": "El Paso 2 esta bloqueado. Seleccione uno o mas tipos de meta en el Paso 1.",
-        "lockReasonSelectTargetLevel": "El Paso 2 esta bloqueado. Elija 17% o 30% para cada tipo de meta seleccionado.",
+        "lockReasonSelectTargetType": "Seleccione al menos un tipo de meta para continuar.",
+        "lockReasonSelectTargetLevel": "Elija 17% o 30% para cada tipo de meta seleccionado.",
         "targetLevelIntro": "Meta nacional de representacion como porcentaje (17% o 30%).",
         "targetLevelBadgeSpecies": "Para riqueza de especies",
         "targetLevelBadgeStrategic": "Solo estrategico",

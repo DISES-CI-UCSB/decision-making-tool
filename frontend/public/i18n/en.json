@@ -233,10 +233,10 @@
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
       "loading": "Finding scenario…",
       "stepLabels": {
-        "step1": "Step 1: What to protect",
-        "step2a": "Step 2: Include / exclude",
-        "step2b": "Step 3: Cost layer",
-        "step3": "Result"
+        "step1": "What to protect",
+        "step2a": "Area layers (optional)",
+        "step2b": "Trade-off basis",
+        "step3": "Matching scenario"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
@@ -290,8 +290,8 @@
         "summarySelectTarget": "Select one or more target types to continue.",
         "summaryNeedsLevel": "{{selected}} selected · {{remaining}} still need a coverage level.",
         "summaryComplete": "All selected targets are configured.",
-        "lockReasonSelectTargetType": "Step 2 is locked. Select one or more target types in Step 1.",
-        "lockReasonSelectTargetLevel": "Step 2 is locked. Choose 17% or 30% for each selected target.",
+        "lockReasonSelectTargetType": "Choose at least one target type to continue.",
+        "lockReasonSelectTargetLevel": "Choose 17% or 30% for each selected target type.",
         "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
         "targetLevelBadgeSpecies": "For species richness",
         "targetLevelBadgeStrategic": "Strategic only",
