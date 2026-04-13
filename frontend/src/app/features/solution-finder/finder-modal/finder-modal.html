@@ -73,7 +73,6 @@
                 [id]="'solution-finder-modal-step1-target-type-card-' + option.id"
                 class="rounded-md border px-3 py-2 outline-none focus:outline-none focus-visible:outline-none"
                 [class.border-sky-300]="isTargetTypeReady(option.id)"
-                [class.bg-sky-50]="isTargetTypeReady(option.id)"
                 [class.border-amber-300]="isTargetTypeLevelMissing(option.id)"
                 [class.bg-amber-50]="isTargetTypeLevelMissing(option.id)"
                 [class.border-sky-400]="
@@ -81,10 +80,8 @@
                   !isTargetTypeReady(option.id) &&
                   !isTargetTypeLevelMissing(option.id)
                 "
-                [class.bg-sky-50]="
-                  isTargetTypeSelected(option.id) &&
-                  !isTargetTypeReady(option.id) &&
-                  !isTargetTypeLevelMissing(option.id)
+                [class.bg-sky-100]="
+                  isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
                 "
                 [class.border-slate-200]="!isTargetTypeSelected(option.id)"
                 [class.bg-white]="!isTargetTypeSelected(option.id)"
@@ -121,24 +118,6 @@
                       [id]="'solution-finder-modal-step1-target-type-status-row-' + option.id"
                       class="flex shrink-0 items-center gap-1"
                     >
-                      @if (isTargetTypeReady(option.id)) {
-                        <span
-                          [id]="
-                            'solution-finder-modal-step1-target-type-selected-badge-' + option.id
-                          "
-                          class="finder-all-caps-badge inline-flex rounded-md border border-sky-300 bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
-                        >
-                          <span
-                            [id]="
-                              'solution-finder-modal-step1-target-type-selected-badge-text-' +
-                              option.id
-                            "
-                            class="finder-selected-badge-text-optical"
-                          >
-                            {{ 'solutionControls.finder.step1.selectedBadge' | translate }}
-                          </span>
-                        </span>
-                      }
                       @if (!isTargetTypeAvailable(option.id)) {
                         <span
                           [id]="
