@@ -1,12 +1,16 @@
 import { CommonModule } from '@angular/common';
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   EventEmitter,
+  HostListener,
   Input,
   OnDestroy,
   Output,
+  QueryList,
   ViewChild,
+  ViewChildren,
   inject,
 } from '@angular/core';
 import type { SolutionScenario } from '@core/models/solution-scenario.model';
@@ -54,7 +58,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
   templateUrl: './finder-modal.html',
   styleUrl: './finder-modal.scss',
 })
-export class FinderModalComponent implements OnDestroy {
+export class FinderModalComponent implements AfterViewInit, OnDestroy {
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
   protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
@@ -118,6 +122,9 @@ export class FinderModalComponent implements OnDestroy {
   @ViewChild('resultsScrollThumb')
   private readonly resultsThumbRef?: ElementRef<HTMLElement>;
 
+  @ViewChildren('finderColumnHeader')
+  private readonly columnHeaderRefs?: QueryList<ElementRef<HTMLElement>>;
+
   protected matchState: FinderMatchState = 'empty';
   protected matchResults: ScenarioMatch[] = [];
   protected selectedMatchId: string | null = null;
@@ -129,6 +136,16 @@ export class FinderModalComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.clearLoadingTimer();
     this.clearScrollThumbHideTimer();
+  }
+
+  ngAfterViewInit(): void {
+    this.syncColumnHeaderHeights();
+    setTimeout(() => this.syncColumnHeaderHeights());
+  }
+
+  @HostListener('window:resize')
+  protected onWindowResize(): void {
+    this.syncColumnHeaderHeights();
   }
 
   protected toggleTargetType(type: FinderTargetType): void {
@@ -522,5 +539,24 @@ export class FinderModalComponent implements OnDestroy {
 
     clearTimeout(this.scrollThumbHideTimer);
     this.scrollThumbHideTimer = null;
+  }
+
+  private syncColumnHeaderHeights(): void {
+    const headerElements = this.columnHeaderRefs?.toArray().map((ref) => ref.nativeElement) ?? [];
+    if (headerElements.length === 0) {
+      return;
+    }
+
+    for (const header of headerElements) {
+      header.style.minHeight = '0px';
+    }
+
+    const maxHeaderHeight = Math.ceil(
+      Math.max(...headerElements.map((header) => header.getBoundingClientRect().height)),
+    );
+
+    for (const header of headerElements) {
+      header.style.minHeight = `${maxHeaderHeight}px`;
+    }
   }
 }
