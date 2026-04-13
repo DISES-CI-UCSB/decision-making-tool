@@ -553,29 +553,40 @@
   color: #2563eb;
 }
 
+.v3-nc-legend {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: #475569;
+}
+
+#right-sidebar-v3-overview-national-legend-value {
+  font-weight: 600;
+  color: #1e40af;
+}
+
+#right-sidebar-v3-overview-national-legend-target {
+  font-weight: 600;
+  color: #334155;
+}
+
 .v3-nc-track {
-  position: relative;
   margin-bottom: 4px;
   height: 8px;
-  overflow: visible;
-  border-radius: 1.5px;
+  overflow: hidden;
+  border-radius: 999px;
   background: #e2e8f0;
 }
 
 .v3-nc-fill {
+  display: block;
   height: 100%;
-  border-radius: 1.5px;
+  border-radius: 999px;
   background: linear-gradient(90deg, #60a5fa, #2563eb);
-}
-
-.v3-nc-marker {
-  position: absolute;
-  left: 30%;
-  top: -3px;
-  width: 2px;
-  height: 14px;
-  border-radius: 1px;
-  background: #334155;
+  transition: width 0.2s ease-out;
 }
 
 .v3-nc-labels {

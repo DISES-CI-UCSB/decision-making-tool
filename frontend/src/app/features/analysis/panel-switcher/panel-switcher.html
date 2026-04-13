@@ -381,23 +381,34 @@
                         | translate: { percent: getContributionPercent(solution.matchPercentage) }
                     }}
                   </p>
+                  <div id="right-sidebar-v3-overview-national-legend" class="v3-nc-legend">
+                    <span id="right-sidebar-v3-overview-national-legend-value">
+                      {{
+                        'analysis.overview.nationalAnchor.currentContribution'
+                          | translate: { percent: getContributionPercent(solution.matchPercentage) }
+                      }}
+                    </span>
+                    <span id="right-sidebar-v3-overview-national-legend-target">{{
+                      'analysis.overview.nationalAnchor.targetLabel' | translate
+                    }}</span>
+                  </div>
                   <div id="right-sidebar-v3-overview-national-track" class="v3-nc-track">
                     <span
                       id="right-sidebar-v3-overview-national-fill"
                       class="v3-nc-fill"
                       [style.width.%]="getContributionPercent(solution.matchPercentage)"
                     ></span>
-                    <span
-                      id="right-sidebar-v3-overview-national-marker"
-                      class="v3-nc-marker"
-                    ></span>
                   </div>
                   <div id="right-sidebar-v3-overview-national-labels" class="v3-nc-labels">
-                    <span id="right-sidebar-v3-overview-national-label-min">0%</span>
+                    <span id="right-sidebar-v3-overview-national-label-min">{{
+                      'analysis.overview.nationalAnchor.minLabel' | translate
+                    }}</span>
                     <span id="right-sidebar-v3-overview-national-label-target">{{
                       'analysis.overview.nationalAnchor.targetLabel' | translate
                     }}</span>
-                    <span id="right-sidebar-v3-overview-national-label-max">100%</span>
+                    <span id="right-sidebar-v3-overview-national-label-max">{{
+                      'analysis.overview.nationalAnchor.maxLabel' | translate
+                    }}</span>
                   </div>
                 </section>
               }

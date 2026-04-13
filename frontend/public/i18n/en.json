@@ -107,9 +107,12 @@
       "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
       "nationalAnchor": {
-        "title": "National Contribution",
-        "contributing": "Contributing {{percent}}% toward Colombia's 30x30 conservation target",
-        "targetLabel": "30% target"
+        "title": "National Conservation Footprint",
+        "contributing": "This solution designates {{percent}}% of Colombia for conservation.",
+        "currentContribution": "Solution footprint: {{percent}}%",
+        "targetLabel": "30x30 benchmark (30%)",
+        "minLabel": "0% of Colombia",
+        "maxLabel": "100% of Colombia"
       },
       "actions": {
         "viewFullReport": "View Full Report",

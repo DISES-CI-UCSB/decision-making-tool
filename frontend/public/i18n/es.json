@@ -107,9 +107,12 @@
       "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climaticos.",
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
       "nationalAnchor": {
-        "title": "Contribucion nacional",
-        "contributing": "Contribuyendo {{percent}}% hacia la meta de conservacion 30x30 de Colombia",
-        "targetLabel": "Meta 30%"
+        "title": "Huella nacional de conservacion",
+        "contributing": "Esta solucion destina {{percent}}% de Colombia para conservacion.",
+        "currentContribution": "Huella de la solucion: {{percent}}%",
+        "targetLabel": "Referencia 30x30 (30%)",
+        "minLabel": "0% de Colombia",
+        "maxLabel": "100% de Colombia"
       },
       "actions": {
         "viewFullReport": "Ver informe completo",
