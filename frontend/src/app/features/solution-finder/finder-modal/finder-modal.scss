@@ -7,6 +7,10 @@
   min-height: 2.25rem;
 }
 
+.finder-subtext-dark {
+  color: var(--color-subtext);
+}
+
 .finder-all-caps-optical {
   --finder-all-caps-line-height: 0.92;
   --finder-all-caps-nudge-y: 1px;
