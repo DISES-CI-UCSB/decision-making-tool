@@ -233,58 +233,68 @@
                       </svg>
                     </span>
                   </button>
-                  @if (isOverviewSectionExpanded('gains')) {
-                    <div id="right-sidebar-v3-overview-gains-table" class="v3-metric-table">
-                      @for (entry of overviewGainMetrics(); track entry.id) {
-                        <article
-                          [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
-                          class="v3-metric-row"
-                        >
-                          <div
-                            [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
-                            class="v3-m-body"
+                  <div
+                    id="right-sidebar-v3-overview-gains-content"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isOverviewSectionExpanded('gains')"
+                    [attr.aria-hidden]="!isOverviewSectionExpanded('gains')"
+                  >
+                    <div
+                      id="right-sidebar-v3-overview-gains-content-inner"
+                      class="collapse-motion-inner"
+                    >
+                      <div id="right-sidebar-v3-overview-gains-table" class="v3-metric-table">
+                        @for (entry of overviewGainMetrics(); track entry.id) {
+                          <article
+                            [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
+                            class="v3-metric-row"
                           >
-                            <p
-                              [id]="'right-sidebar-v3-overview-gain-name-' + entry.id"
-                              class="v3-m-name"
+                            <div
+                              [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
+                              class="v3-m-body"
                             >
-                              {{ entry.labelKey | translate }}
-                              @if (entry.conditional) {
-                                <span
-                                  [id]="'right-sidebar-v3-overview-gain-tag-' + entry.id"
-                                  class="v3-tag-conditional"
-                                  >{{ 'analysis.overview.conditional' | translate }}</span
-                                >
-                              }
-                            </p>
-                            <p
-                              [id]="'right-sidebar-v3-overview-gain-desc-' + entry.id"
-                              class="v3-m-desc"
-                            >
-                              {{ entry.descriptionKey | translate }}
-                            </p>
-                          </div>
-                          <div [id]="'right-sidebar-v3-overview-gain-value-shell-' + entry.id">
-                            <p
-                              [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
-                              class="v3-m-val"
-                            >
-                              {{ entry.value }}
-                            </p>
-                            <p
-                              [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
-                              class="v3-m-unit"
-                            >
-                              {{ entry.unit }}
-                            </p>
-                          </div>
-                        </article>
-                      }
+                              <p
+                                [id]="'right-sidebar-v3-overview-gain-name-' + entry.id"
+                                class="v3-m-name"
+                              >
+                                {{ entry.labelKey | translate }}
+                                @if (entry.conditional) {
+                                  <span
+                                    [id]="'right-sidebar-v3-overview-gain-tag-' + entry.id"
+                                    class="v3-tag-conditional"
+                                    >{{ 'analysis.overview.conditional' | translate }}</span
+                                  >
+                                }
+                              </p>
+                              <p
+                                [id]="'right-sidebar-v3-overview-gain-desc-' + entry.id"
+                                class="v3-m-desc"
+                              >
+                                {{ entry.descriptionKey | translate }}
+                              </p>
+                            </div>
+                            <div [id]="'right-sidebar-v3-overview-gain-value-shell-' + entry.id">
+                              <p
+                                [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
+                                class="v3-m-val"
+                              >
+                                {{ entry.value }}
+                              </p>
+                              <p
+                                [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
+                                class="v3-m-unit"
+                              >
+                                {{ entry.unit }}
+                              </p>
+                            </div>
+                          </article>
+                        }
+                      </div>
+                      <p id="right-sidebar-v3-overview-gains-insight" class="v3-insight">
+                        {{ 'analysis.overview.insightGains' | translate }}
+                      </p>
                     </div>
-                    <p id="right-sidebar-v3-overview-gains-insight" class="v3-insight">
-                      {{ 'analysis.overview.insightGains' | translate }}
-                    </p>
-                  }
+                  </div>
                 </section>
 
                 <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
@@ -318,58 +328,68 @@
                       </svg>
                     </span>
                   </button>
-                  @if (isOverviewSectionExpanded('costs')) {
-                    <div id="right-sidebar-v3-overview-costs-table" class="v3-metric-table">
-                      @for (entry of overviewCostMetrics(); track entry.id) {
-                        <article
-                          [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
-                          class="v3-metric-row"
-                        >
-                          <div
-                            [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
-                            class="v3-m-body"
+                  <div
+                    id="right-sidebar-v3-overview-costs-content"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isOverviewSectionExpanded('costs')"
+                    [attr.aria-hidden]="!isOverviewSectionExpanded('costs')"
+                  >
+                    <div
+                      id="right-sidebar-v3-overview-costs-content-inner"
+                      class="collapse-motion-inner"
+                    >
+                      <div id="right-sidebar-v3-overview-costs-table" class="v3-metric-table">
+                        @for (entry of overviewCostMetrics(); track entry.id) {
+                          <article
+                            [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
+                            class="v3-metric-row"
                           >
-                            <p
-                              [id]="'right-sidebar-v3-overview-cost-name-' + entry.id"
-                              class="v3-m-name"
+                            <div
+                              [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
+                              class="v3-m-body"
                             >
-                              {{ entry.labelKey | translate }}
-                              @if (entry.conditional) {
-                                <span
-                                  [id]="'right-sidebar-v3-overview-cost-tag-' + entry.id"
-                                  class="v3-tag-conditional"
-                                  >{{ 'analysis.overview.conditional' | translate }}</span
-                                >
-                              }
-                            </p>
-                            <p
-                              [id]="'right-sidebar-v3-overview-cost-desc-' + entry.id"
-                              class="v3-m-desc"
-                            >
-                              {{ entry.descriptionKey | translate }}
-                            </p>
-                          </div>
-                          <div [id]="'right-sidebar-v3-overview-cost-value-shell-' + entry.id">
-                            <p
-                              [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
-                              class="v3-m-val"
-                            >
-                              {{ entry.value }}
-                            </p>
-                            <p
-                              [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
-                              class="v3-m-unit"
-                            >
-                              {{ entry.unit }}
-                            </p>
-                          </div>
-                        </article>
-                      }
+                              <p
+                                [id]="'right-sidebar-v3-overview-cost-name-' + entry.id"
+                                class="v3-m-name"
+                              >
+                                {{ entry.labelKey | translate }}
+                                @if (entry.conditional) {
+                                  <span
+                                    [id]="'right-sidebar-v3-overview-cost-tag-' + entry.id"
+                                    class="v3-tag-conditional"
+                                    >{{ 'analysis.overview.conditional' | translate }}</span
+                                  >
+                                }
+                              </p>
+                              <p
+                                [id]="'right-sidebar-v3-overview-cost-desc-' + entry.id"
+                                class="v3-m-desc"
+                              >
+                                {{ entry.descriptionKey | translate }}
+                              </p>
+                            </div>
+                            <div [id]="'right-sidebar-v3-overview-cost-value-shell-' + entry.id">
+                              <p
+                                [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
+                                class="v3-m-val"
+                              >
+                                {{ entry.value }}
+                              </p>
+                              <p
+                                [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
+                                class="v3-m-unit"
+                              >
+                                {{ entry.unit }}
+                              </p>
+                            </div>
+                          </article>
+                        }
+                      </div>
+                      <p id="right-sidebar-v3-overview-costs-insight" class="v3-insight">
+                        {{ 'analysis.overview.insightCosts' | translate }}
+                      </p>
                     </div>
-                    <p id="right-sidebar-v3-overview-costs-insight" class="v3-insight">
-                      {{ 'analysis.overview.insightCosts' | translate }}
-                    </p>
-                  }
+                  </div>
                 </section>
 
                 <section id="right-sidebar-v3-overview-national-anchor" class="v3-nc-anchor">
@@ -529,8 +549,13 @@
                     </svg>
                   </span>
                 </button>
-                @if (isAoiSectionExpanded('general')) {
-                  <div id="aoi-body-general" class="aoi-section-body">
+                <div
+                  id="aoi-body-general"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('general')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('general')"
+                >
+                  <div id="aoi-body-general-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-hero-grid" class="aoi-hero-grid">
                       <div id="aoi-hero-priority" class="aoi-hero-card aoi-hero-card-priority">
                         <div class="aoi-hero-kicker">Priority Area in Region</div>
@@ -588,7 +613,7 @@
                       </div>
                     </div>
                   </div>
-                }
+                </div>
               </section>
 
               <!-- ─── SECTION B: Biodiversity ─── -->
@@ -621,8 +646,13 @@
                     </svg>
                   </span>
                 </button>
-                @if (isAoiSectionExpanded('bio')) {
-                  <div id="aoi-body-bio" class="aoi-section-body">
+                <div
+                  id="aoi-body-bio"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('bio')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('bio')"
+                >
+                  <div id="aoi-body-bio-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-species-chart" class="flex flex-col gap-1">
                       <p
                         id="aoi-species-chart-axis-label"
@@ -692,7 +722,7 @@
                       </div>
                     }
                   </div>
-                }
+                </div>
               </section>
 
               <!-- ─── SECTION C: Ecosystems & Carbon ─── -->
@@ -725,8 +755,13 @@
                     </svg>
                   </span>
                 </button>
-                @if (isAoiSectionExpanded('eco')) {
-                  <div id="aoi-body-eco" class="aoi-section-body">
+                <div
+                  id="aoi-body-eco"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('eco')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('eco')"
+                >
+                  <div id="aoi-body-eco-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-donut-row" class="aoi-donut-row">
                       <div
                         id="aoi-donut"
@@ -800,7 +835,7 @@
                       </div>
                     }
                   </div>
-                }
+                </div>
               </section>
 
               <!-- ─── SECTION D: Land Use & Socio-Economic ─── -->
@@ -833,8 +868,13 @@
                     </svg>
                   </span>
                 </button>
-                @if (isAoiSectionExpanded('land')) {
-                  <div id="aoi-body-land" class="aoi-section-body">
+                <div
+                  id="aoi-body-land"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('land')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('land')"
+                >
+                  <div id="aoi-body-land-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-landuse-chart" class="aoi-bar-chart">
                       @for (bar of aoiLandUseBars(); track bar.id) {
                         <div [id]="'aoi-bar-' + bar.id" class="aoi-bar-row">
@@ -903,7 +943,7 @@
                       </div>
                     }
                   </div>
-                }
+                </div>
               </section>
 
               <!-- ─── SECTION E: Cultural & Indigenous Territories ─── -->
@@ -936,8 +976,13 @@
                     </svg>
                   </span>
                 </button>
-                @if (isAoiSectionExpanded('cultural')) {
-                  <div id="aoi-body-cultural" class="aoi-section-body">
+                <div
+                  id="aoi-body-cultural"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('cultural')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('cultural')"
+                >
+                  <div id="aoi-body-cultural-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-cultural-metrics" class="aoi-metric-table">
                       <div id="aoi-row-indigenous" class="aoi-metric-row">
                         <div class="aoi-m-icon">
@@ -987,7 +1032,7 @@
                       </div>
                     }
                   </div>
-                }
+                </div>
               </section>
 
               <!-- ─── SECTION F: Marine (all conditional) ─── -->
@@ -1021,8 +1066,13 @@
                     </svg>
                   </span>
                 </button>
-                @if (isAoiSectionExpanded('marine')) {
-                  <div id="aoi-body-marine" class="aoi-section-body">
+                <div
+                  id="aoi-body-marine"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('marine')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('marine')"
+                >
+                  <div id="aoi-body-marine-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-marine-metrics" class="aoi-metric-table">
                       <div id="aoi-row-mpa" class="aoi-metric-row">
                         <div class="aoi-m-icon">
@@ -1100,7 +1150,7 @@
                       Currently no marine solution is loaded.
                     </div>
                   </div>
-                }
+                </div>
               </section>
 
               <!-- ─── National Context Summary ─── -->
@@ -1308,10 +1358,15 @@
                       </span>
                     </button>
 
-                    @if (isComparisonSectionExpanded(section.id)) {
+                    <div
+                      [id]="'right-sidebar-comparison-section-body-' + section.id"
+                      class="collapse-motion-shell"
+                      [class.is-collapsed]="!isComparisonSectionExpanded(section.id)"
+                      [attr.aria-hidden]="!isComparisonSectionExpanded(section.id)"
+                    >
                       <div
-                        [id]="'right-sidebar-comparison-section-body-' + section.id"
-                        class="c2-section-body"
+                        [id]="'right-sidebar-comparison-section-body-inner-' + section.id"
+                        class="collapse-motion-inner c2-section-body"
                       >
                         <div
                           [id]="'right-sidebar-comparison-section-table-' + section.id"
@@ -1401,7 +1456,7 @@
                           </p>
                         }
                       </div>
-                    }
+                    </div>
                   </section>
                 }
               } @else {

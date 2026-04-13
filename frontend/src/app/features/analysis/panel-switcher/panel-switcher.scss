@@ -13,6 +13,10 @@
     animation: none;
   }
 
+  .collapse-motion-shell {
+    transition: none;
+  }
+
   .aoi-section-chevron {
     transition: none;
   }
@@ -331,6 +335,34 @@
 }
 
 /* ── Shared toggle-heading recipe: swatch + ALL-CAPS label + caret ── */
+
+/* Smooth collapse/expand for right-sidebar tab sections. */
+.collapse-motion-shell {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 180ms ease,
+    visibility 0s linear 0s;
+}
+
+.collapse-motion-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.collapse-motion-shell.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 140ms ease,
+    visibility 0s linear 220ms;
+  pointer-events: none;
+}
 
 /* Outer row — all three tabs now share the same flat structure:
    swatch (dot) + label + chevron as direct flex children. */
