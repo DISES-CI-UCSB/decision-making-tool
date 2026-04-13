@@ -284,7 +284,6 @@
         "requiredInline": "(required)",
         "targetLevelRequiredHint": "Select one or more target types. Each selected target also needs a coverage level (17% or 30%) before Step 2 unlocks.",
         "selectLevelToContinue": "Select 17% or 30% to complete this target.",
-        "actionNeededBadge": "Action needed",
         "selectedBadge": "Selected",
         "readyBadge": "Ready",
         "summarySelectTarget": "Select one or more target types to continue.",

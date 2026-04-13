@@ -283,7 +283,6 @@
         "coverageLevelLabel": "Nivel de cobertura",
         "requiredInline": "(obligatorio)",
         "selectLevelToContinue": "Seleccione 17% o 30% para completar este tipo de meta.",
-        "actionNeededBadge": "Accion pendiente",
         "selectedBadge": "Seleccionado",
         "readyBadge": "Listo",
         "summarySelectTarget": "Seleccione uno o mas tipos de meta para continuar.",
