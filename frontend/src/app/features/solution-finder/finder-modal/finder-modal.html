@@ -47,13 +47,10 @@
               <div
                 [id]="'solution-finder-modal-step1-target-type-card-' + option.id"
                 class="rounded-md border px-3 py-2 outline-none focus:outline-none focus-visible:outline-none"
-                [class.border-sky-300]="isTargetTypeReady(option.id)"
                 [class.border-amber-300]="isTargetTypeLevelMissing(option.id)"
                 [class.bg-amber-50]="isTargetTypeLevelMissing(option.id)"
-                [class.border-sky-400]="
-                  isTargetTypeSelected(option.id) &&
-                  !isTargetTypeReady(option.id) &&
-                  !isTargetTypeLevelMissing(option.id)
+                [class.finder-selected-card-border]="
+                  isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
                 "
                 [class.bg-sky-100]="
                   isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
@@ -160,7 +157,7 @@
                         <button
                           [id]="'solution-finder-modal-step1-target-level-17-' + option.id"
                           type="button"
-                          class="finder-target-level-choice-button rounded-md border px-2 py-0.5 text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                           [attr.aria-label]="
                             ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 17%'
                           "
@@ -194,7 +191,7 @@
                         <button
                           [id]="'solution-finder-modal-step1-target-level-30-' + option.id"
                           type="button"
-                          class="finder-target-level-choice-button rounded-md border px-2 py-0.5 text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                           [attr.aria-label]="
                             ('solutionControls.finder.step1.targetLevelTitle' | translate) + ' 30%'
                           "
@@ -277,10 +274,19 @@
           <div
             id="solution-finder-modal-step2a-row-omec"
             class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
-            [class.border-sky-400]="includeOmecs"
+            [class.finder-selected-card-border]="includeOmecs"
             [class.bg-sky-100]="includeOmecs"
             [class.border-slate-200]="!includeOmecs"
             [class.bg-white]="!includeOmecs"
+            [class.cursor-pointer]="isStep2Unlocked()"
+            [class.cursor-not-allowed]="!isStep2Unlocked()"
+            [attr.role]="isStep2Unlocked() ? 'button' : null"
+            [attr.tabindex]="isStep2Unlocked() ? 0 : -1"
+            [attr.aria-pressed]="includeOmecs"
+            [attr.aria-disabled]="!isStep2Unlocked()"
+            (click)="isStep2Unlocked() && toggleIncludeOmecs()"
+            (keydown.enter)="isStep2Unlocked() && toggleIncludeOmecs()"
+            (keydown.space)="$event.preventDefault(); isStep2Unlocked() && toggleIncludeOmecs()"
           >
             <div id="solution-finder-modal-step2a-row-omec-copy" class="min-w-0 flex-1">
               <p
@@ -300,7 +306,7 @@
               id="solution-finder-modal-step2a-row-omec-toggle"
               type="button"
               role="switch"
-              class="finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
+              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
               [class.bg-sky-600]="includeOmecs"
               [class.text-white]="includeOmecs"
               [class.bg-slate-300]="!includeOmecs"
@@ -310,7 +316,7 @@
               [disabled]="!isStep2Unlocked()"
               [attr.aria-checked]="includeOmecs"
               [attr.aria-label]="'solutionControls.finder.step2a.includeOmecsLabel' | translate"
-              (click)="toggleIncludeOmecs()"
+              (click)="$event.stopPropagation(); toggleIncludeOmecs()"
             >
               {{
                 (includeOmecs
@@ -324,10 +330,21 @@
           <div
             id="solution-finder-modal-step2a-row-comunidades"
             class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
-            [class.border-sky-400]="includeComunidades"
+            [class.finder-selected-card-border]="includeComunidades"
             [class.bg-sky-100]="includeComunidades"
             [class.border-slate-200]="!includeComunidades"
             [class.bg-white]="!includeComunidades"
+            [class.cursor-pointer]="isStep2Unlocked()"
+            [class.cursor-not-allowed]="!isStep2Unlocked()"
+            [attr.role]="isStep2Unlocked() ? 'button' : null"
+            [attr.tabindex]="isStep2Unlocked() ? 0 : -1"
+            [attr.aria-pressed]="includeComunidades"
+            [attr.aria-disabled]="!isStep2Unlocked()"
+            (click)="isStep2Unlocked() && toggleIncludeComunidades()"
+            (keydown.enter)="isStep2Unlocked() && toggleIncludeComunidades()"
+            (keydown.space)="
+              $event.preventDefault(); isStep2Unlocked() && toggleIncludeComunidades()
+            "
           >
             <div id="solution-finder-modal-step2a-row-comunidades-copy" class="min-w-0 flex-1">
               <p
@@ -347,7 +364,7 @@
               id="solution-finder-modal-step2a-row-comunidades-toggle"
               type="button"
               role="switch"
-              class="finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
+              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
               [class.bg-sky-600]="includeComunidades"
               [class.text-white]="includeComunidades"
               [class.bg-slate-300]="!includeComunidades"
@@ -359,7 +376,7 @@
               [attr.aria-label]="
                 'solutionControls.finder.step2a.includeComunidadesLabel' | translate
               "
-              (click)="toggleIncludeComunidades()"
+              (click)="$event.stopPropagation(); toggleIncludeComunidades()"
             >
               {{
                 (includeComunidades
@@ -400,7 +417,7 @@
               </div>
               <span
                 id="solution-finder-modal-step2a-always-runap-chip"
-                class="shrink-0 rounded-md bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700"
+                class="finder-control-button-padding shrink-0 rounded-md bg-slate-200 text-[11px] font-semibold text-slate-700"
               >
                 {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
               </span>
@@ -467,7 +484,7 @@
               id="solution-finder-modal-step2b-option-human-footprint"
               type="button"
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.border-sky-400]="selectedCostLayerId === 'human-footprint'"
+              [class.finder-selected-card-border]="selectedCostLayerId === 'human-footprint'"
               [class.bg-sky-100]="selectedCostLayerId === 'human-footprint'"
               [class.border-slate-200]="selectedCostLayerId !== 'human-footprint'"
               [class.bg-white]="selectedCostLayerId !== 'human-footprint'"
@@ -501,7 +518,7 @@
               id="solution-finder-modal-step2b-option-carbon"
               type="button"
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.border-sky-400]="selectedCostLayerId === 'carbon-opportunity'"
+              [class.finder-selected-card-border]="selectedCostLayerId === 'carbon-opportunity'"
               [class.bg-sky-100]="selectedCostLayerId === 'carbon-opportunity'"
               [class.border-slate-200]="selectedCostLayerId !== 'carbon-opportunity'"
               [class.bg-white]="selectedCostLayerId !== 'carbon-opportunity'"
@@ -535,7 +552,7 @@
               id="solution-finder-modal-step2b-option-conflict"
               type="button"
               class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.border-sky-400]="selectedCostLayerId === 'conflict'"
+              [class.finder-selected-card-border]="selectedCostLayerId === 'conflict'"
               [class.bg-sky-100]="selectedCostLayerId === 'conflict'"
               [class.border-slate-200]="selectedCostLayerId !== 'conflict'"
               [class.bg-white]="selectedCostLayerId !== 'conflict'"
