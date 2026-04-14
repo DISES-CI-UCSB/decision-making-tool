@@ -164,8 +164,8 @@
                           [disabled]="
                             !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
                           "
-                          [class.border-sky-500]="getTargetLevel(option.id) === 17"
-                          [class.bg-sky-500]="getTargetLevel(option.id) === 17"
+                          [class.border-sky-600]="getTargetLevel(option.id) === 17"
+                          [class.bg-sky-600]="getTargetLevel(option.id) === 17"
                           [class.text-white]="getTargetLevel(option.id) === 17"
                           [class.finder-target-level-choice-cue]="
                             isTargetTypeLevelMissing(option.id)
@@ -198,8 +198,8 @@
                           [disabled]="
                             !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
                           "
-                          [class.border-sky-500]="getTargetLevel(option.id) === 30"
-                          [class.bg-sky-500]="getTargetLevel(option.id) === 30"
+                          [class.border-sky-600]="getTargetLevel(option.id) === 30"
+                          [class.bg-sky-600]="getTargetLevel(option.id) === 30"
                           [class.text-white]="getTargetLevel(option.id) === 30"
                           [class.finder-target-level-choice-cue]="
                             isTargetTypeLevelMissing(option.id)
@@ -399,7 +399,7 @@
             </p>
             <div
               id="solution-finder-modal-step2a-always-runap"
-              class="mt-2 flex items-center justify-between gap-3 rounded-md border border-slate-100 bg-slate-50/80 px-3 py-2"
+              class="mt-2 flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2"
             >
               <div id="solution-finder-modal-step2a-always-runap-copy" class="min-w-0 flex-1">
                 <p
@@ -417,7 +417,7 @@
               </div>
               <span
                 id="solution-finder-modal-step2a-always-runap-chip"
-                class="finder-control-button-padding shrink-0 rounded-md bg-slate-200 text-[11px] font-semibold text-slate-700"
+                class="finder-control-button-padding shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
               >
                 {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
               </span>
