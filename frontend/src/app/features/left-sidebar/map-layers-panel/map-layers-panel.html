@@ -86,6 +86,7 @@
         >
           @if (selectedLayers().length === 0) {
             <p
+              @selectedLayerRow
               id="map-layers-selected-layers-empty-copy"
               class="px-3 py-2.5 text-[11px] text-slate-600"
             >
@@ -94,6 +95,7 @@
           } @else {
             @for (selected of selectedLayers(); track selected.id; let isLast = $last) {
               <article
+                @selectedLayerRow
                 [id]="'map-layers-selected-layer-row-' + selected.id"
                 class="map-layers-selected-layer-row bg-white"
                 [class.border-b]="!isLast"

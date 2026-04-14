@@ -1,3 +1,4 @@
+import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import {
   Component,
@@ -100,6 +101,18 @@ type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'so
   imports: [CommonModule],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
+  animations: [
+    trigger('selectedLayerRow', [
+      transition(':enter', [
+        style({ height: 0, opacity: 0, overflow: 'hidden' }),
+        animate('220ms ease-out', style({ height: '*', opacity: 1 })),
+      ]),
+      transition(':leave', [
+        style({ overflow: 'hidden' }),
+        animate('180ms ease-in', style({ height: 0, opacity: 0 })),
+      ]),
+    ]),
+  ],
 })
 export class MapLayersPanelComponent implements OnDestroy {
   @Output() readonly solutionFinderRequested = new EventEmitter<void>();

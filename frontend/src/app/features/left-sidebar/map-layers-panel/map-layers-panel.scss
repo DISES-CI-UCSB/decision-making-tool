@@ -255,4 +255,9 @@
   .map-layers-selected-layer-row {
     transition: none;
   }
+
+  .map-layers-selected-layer-row.ng-animating {
+    animation: none !important;
+    transition: none !important;
+  }
 }
