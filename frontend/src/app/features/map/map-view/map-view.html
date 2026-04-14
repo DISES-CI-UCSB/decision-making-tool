@@ -31,7 +31,13 @@
     </button>
   </section>
 
-  <app-solution-legend id="map-view-solution-legend"></app-solution-legend>
+  <section
+    id="map-view-legend-stack"
+    class="pointer-events-none absolute right-3 bottom-14 z-10 flex flex-col items-end gap-2"
+  >
+    <app-solution-legend id="map-view-solution-legend"></app-solution-legend>
+    <app-layer-key id="map-view-layer-key"></app-layer-key>
+  </section>
 
   @if (isComparisonOverlayVisible()) {
     <section
@@ -52,6 +58,17 @@
         Scenario B: {{ comparisonSolution()?.name ?? 'Candidate' }}
       </span>
     </section>
+  }
+
+  @if (isSolutionLoading()) {
+    <div
+      id="map-view-solution-loading"
+      class="pointer-events-none absolute left-3 bottom-14 z-10 rounded-md border border-slate-200 bg-white/95 px-4 py-3 shadow-sm"
+    >
+      <span id="map-view-solution-loading-text" class="text-xs text-slate-500 animate-pulse">
+        Loading solution...
+      </span>
+    </div>
   }
 
   @if (mapErrorMessage) {

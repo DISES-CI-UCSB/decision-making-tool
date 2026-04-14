@@ -72,57 +72,6 @@
       id="map-layers-sidebar-body"
       class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-4"
     >
-      <section id="map-layers-admin-boundary-section" class="flex flex-col gap-1.5">
-        <label
-          id="map-layers-admin-boundary-label"
-          for="map-layers-admin-boundary-select"
-          class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
-        >
-          Administrative Boundary
-        </label>
-        <div id="map-layers-admin-boundary-controls" class="flex items-center gap-2">
-          <select
-            id="map-layers-admin-boundary-select"
-            class="min-h-9 flex-1 rounded-md border border-slate-200 bg-white px-2.5 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-            [value]="adminBoundary()"
-            (change)="onAdminBoundaryChange($any($event.target).value)"
-          >
-            <option id="map-layers-admin-boundary-option-national" value="national">
-              National (Colombia)
-            </option>
-            <option id="map-layers-admin-boundary-option-sirap" value="sirap">SIRAP Region</option>
-            <option id="map-layers-admin-boundary-option-department" value="department">
-              Department
-            </option>
-            <option id="map-layers-admin-boundary-option-municipality" value="municipality">
-              Municipality
-            </option>
-            <option id="map-layers-admin-boundary-option-custom" value="custom">
-              Draw custom region
-            </option>
-          </select>
-        </div>
-
-        @if (customBoundaryRequested()) {
-          <div
-            id="map-layers-admin-boundary-custom-placeholder"
-            class="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-600"
-          >
-            <span id="map-layers-admin-boundary-custom-placeholder-copy">
-              Custom boundary drawing is coming soon.
-            </span>
-            <button
-              id="map-layers-admin-boundary-custom-placeholder-dismiss"
-              type="button"
-              class="rounded border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-white"
-              (click)="dismissCustomBoundary()"
-            >
-              Dismiss
-            </button>
-          </div>
-        }
-      </section>
-
       <!-- ─── SELECTED LAYERS ─── -->
       <section id="map-layers-selected-layers-section" class="flex flex-col gap-1.5">
         <span
@@ -487,6 +436,146 @@
             </button>
           </div>
         </div>
+
+        <!-- ─── ADMINISTRATIVE BOUNDARIES (above Management Figures) ─── -->
+        @if (adminBoundaryGroup(); as abGroup) {
+          @if (shouldShowGroupInAvailableLayers(abGroup)) {
+            <article
+              id="map-layers-admin-boundaries-card"
+              class="overflow-hidden rounded-md border border-slate-200 bg-white"
+            >
+              <button
+                id="map-layers-admin-boundaries-toggle"
+                type="button"
+                class="flex w-full items-center gap-2 bg-slate-50 px-3 py-2.5 text-left transition hover:bg-slate-100"
+                [attr.aria-expanded]="!abGroup.collapsed || hasLayerSearchQuery()"
+                (click)="toggleGroup(abGroup.id)"
+              >
+                <span
+                  id="map-layers-admin-boundaries-chevron"
+                  class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
+                  [class.rotate-180]="abGroup.collapsed && !hasLayerSearchQuery()"
+                  aria-hidden="true"
+                >
+                  <svg
+                    class="map-layers-chevron-icon h-3 w-3"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M3 4.5L6 7.5L9 4.5" />
+                  </svg>
+                </span>
+                <span
+                  id="map-layers-admin-boundaries-title"
+                  class="flex-1 text-xs font-bold text-slate-700"
+                >
+                  {{ abGroup.title }}
+                </span>
+                @if (visibleGroupCountLabel(abGroup)) {
+                  <span
+                    id="map-layers-admin-boundaries-count"
+                    class="text-[11px] font-semibold text-slate-600"
+                  >
+                    {{ visibleGroupCountLabel(abGroup) }}
+                  </span>
+                }
+              </button>
+              <div
+                id="map-layers-admin-boundaries-body"
+                class="map-layers-collapsible"
+                [class.map-layers-collapsible-collapsed]="
+                  abGroup.collapsed && !hasLayerSearchQuery()
+                "
+                [attr.aria-hidden]="abGroup.collapsed && !hasLayerSearchQuery()"
+              >
+                <div class="map-layers-collapsible-content border-t border-slate-200">
+                  @for (row of visibleGroupRows(abGroup); track row.id; let isLast = $last) {
+                    <article
+                      [id]="'map-layers-boundary-row-' + row.id"
+                      class="bg-white"
+                      [class.border-b]="!isLast"
+                      [class.border-slate-100]="!isLast"
+                    >
+                      <div class="flex items-center gap-1.5 px-3 py-2.5">
+                        <span
+                          [id]="'map-layers-boundary-name-' + row.id"
+                          class="min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-800"
+                          [title]="row.name"
+                        >
+                          {{ row.name }}
+                        </span>
+                        <button
+                          [id]="'map-layers-boundary-selected-button-' + row.id"
+                          type="button"
+                          class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                          [class.border-blue-200]="row.selected"
+                          [class.bg-blue-50]="row.selected"
+                          [class.text-blue-700]="row.selected"
+                          [class.border-slate-200]="!row.selected"
+                          [class.bg-white]="!row.selected"
+                          [class.text-slate-600]="!row.selected"
+                          [attr.aria-pressed]="row.selected"
+                          (click)="toggleLayerSelected(abGroup.id, row.id)"
+                        >
+                          {{ row.selected ? 'Added' : 'Add' }}
+                        </button>
+                        <button
+                          [id]="'map-layers-boundary-visibility-button-' + row.id"
+                          type="button"
+                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
+                          [attr.aria-label]="'Toggle visibility for ' + row.name"
+                          [attr.aria-pressed]="row.visible"
+                          (click)="toggleLayerVisibility(abGroup.id, row.id)"
+                        >
+                          @if (row.visible) {
+                            <svg
+                              class="h-4 w-4"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          } @else {
+                            <svg
+                              class="h-4 w-4"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M3 3l18 18"></path>
+                              <path
+                                d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
+                              ></path>
+                              <path
+                                d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
+                              ></path>
+                              <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
+                            </svg>
+                          }
+                        </button>
+                      </div>
+                    </article>
+                  }
+                </div>
+              </div>
+            </article>
+          }
+        }
+
         <article
           id="map-layers-overlays-category-card"
           class="overflow-hidden rounded-md border border-slate-200 bg-white"
@@ -726,7 +815,7 @@
       <!-- ─── CATEGORY GROUPS ─── -->
       <section id="map-layers-groups-section" class="flex flex-col gap-2">
         @for (group of groups(); track group.id) {
-          @if (shouldShowGroupInAvailableLayers(group)) {
+          @if (group.id !== 'group-admin-boundaries' && shouldShowGroupInAvailableLayers(group)) {
             <article
               [id]="'map-layers-group-card-' + group.id"
               class="overflow-hidden rounded-md border border-slate-200 bg-white"
@@ -1162,6 +1251,14 @@
                       </article>
                     }
                   } @else {
+                    @if (group.note) {
+                      <p
+                        [id]="'map-layers-group-note-' + group.id"
+                        class="border-b border-slate-100 px-3 py-2 text-[11px] leading-5 text-slate-600"
+                      >
+                        {{ group.note }}
+                      </p>
+                    }
                     @for (row of visibleGroupRows(group); track row.id; let isLastRow = $last) {
                       <article
                         [id]="'map-layers-layer-row-' + group.id + '-' + row.id"
@@ -1182,21 +1279,25 @@
                           >
                             {{ row.name }}
                           </button>
-                          <button
-                            [id]="'map-layers-layer-row-selected-button-' + group.id + '-' + row.id"
-                            type="button"
-                            class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                            [class.border-blue-200]="row.selected"
-                            [class.bg-blue-50]="row.selected"
-                            [class.text-blue-700]="row.selected"
-                            [class.border-slate-200]="!row.selected"
-                            [class.bg-white]="!row.selected"
-                            [class.text-slate-600]="!row.selected"
-                            [attr.aria-pressed]="row.selected"
-                            (click)="toggleLayerSelected(group.id, row.id)"
-                          >
-                            {{ row.selected ? 'Added' : 'Add' }}
-                          </button>
+                          @if (!row.hideAddButton) {
+                            <button
+                              [id]="
+                                'map-layers-layer-row-selected-button-' + group.id + '-' + row.id
+                              "
+                              type="button"
+                              class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                              [class.border-blue-200]="row.selected"
+                              [class.bg-blue-50]="row.selected"
+                              [class.text-blue-700]="row.selected"
+                              [class.border-slate-200]="!row.selected"
+                              [class.bg-white]="!row.selected"
+                              [class.text-slate-600]="!row.selected"
+                              [attr.aria-pressed]="row.selected"
+                              (click)="toggleLayerSelected(group.id, row.id)"
+                            >
+                              {{ row.selected ? 'Added' : 'Add' }}
+                            </button>
+                          }
                           <button
                             [id]="
                               'map-layers-layer-row-visibility-button-' + group.id + '-' + row.id
@@ -1258,113 +1359,135 @@
                               </svg>
                             }
                           </button>
-                          <button
-                            [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
-                            type="button"
-                            class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                            [class.rotate-180]="!row.expanded"
-                            [attr.aria-label]="'Toggle controls for ' + row.name"
-                            [attr.aria-expanded]="row.expanded"
-                            (click)="toggleLayerExpanded(group.id, row.id)"
-                          >
-                            <svg
-                              class="map-layers-chevron-icon h-3 w-3"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="1.5"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
+                          @if (row.hasStyleControls) {
+                            <button
+                              [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
+                              type="button"
+                              class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
+                              [class.rotate-180]="!row.expanded"
+                              [attr.aria-label]="'Toggle controls for ' + row.name"
+                              [attr.aria-expanded]="row.expanded"
+                              (click)="toggleLayerExpanded(group.id, row.id)"
                             >
-                              <path d="M3 4.5L6 7.5L9 4.5" />
-                            </svg>
-                          </button>
+                              <svg
+                                class="map-layers-chevron-icon h-3 w-3"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M3 4.5L6 7.5L9 4.5" />
+                              </svg>
+                            </button>
+                          }
                         </div>
 
-                        <div
-                          [id]="'map-layers-layer-row-controls-' + group.id + '-' + row.id"
-                          class="map-layers-collapsible"
-                          [class.map-layers-collapsible-collapsed]="!row.expanded"
-                          [attr.aria-hidden]="!row.expanded"
-                        >
-                          <div class="map-layers-collapsible-content">
-                            <div
-                              [id]="
-                                'map-layers-layer-row-controls-content-' + group.id + '-' + row.id
-                              "
-                              class="flex items-center gap-2 px-3 pb-2.5"
-                            >
+                        @if (row.hasStyleControls) {
+                          <div
+                            [id]="'map-layers-layer-row-controls-' + group.id + '-' + row.id"
+                            class="map-layers-collapsible"
+                            [class.map-layers-collapsible-collapsed]="!row.expanded"
+                            [attr.aria-hidden]="!row.expanded"
+                          >
+                            <div class="map-layers-collapsible-content">
                               <div
                                 [id]="
-                                  'map-layers-layer-row-opacity-group-' + group.id + '-' + row.id
+                                  'map-layers-layer-row-controls-content-' + group.id + '-' + row.id
                                 "
-                                class="flex min-w-0 flex-1 items-center gap-1.5"
+                                class="flex items-center gap-2 px-3 pb-2.5"
                               >
-                                <label
+                                <div
                                   [id]="
-                                    'map-layers-layer-row-opacity-label-' + group.id + '-' + row.id
+                                    'map-layers-layer-row-opacity-group-' + group.id + '-' + row.id
                                   "
-                                  [for]="
-                                    'map-layers-layer-row-opacity-slider-' + group.id + '-' + row.id
-                                  "
-                                  class="shrink-0 text-[10px] text-slate-600"
+                                  class="flex min-w-0 flex-1 items-center gap-1.5"
                                 >
-                                  Opacity
-                                </label>
-                                <input
+                                  <label
+                                    [id]="
+                                      'map-layers-layer-row-opacity-label-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
+                                    "
+                                    [for]="
+                                      'map-layers-layer-row-opacity-slider-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
+                                    "
+                                    class="shrink-0 text-[10px] text-slate-600"
+                                  >
+                                    Opacity
+                                  </label>
+                                  <input
+                                    [id]="
+                                      'map-layers-layer-row-opacity-slider-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
+                                    "
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    class="map-layers-opacity-slider w-full"
+                                    [style.--map-layers-slider-progress]="row.opacity + '%'"
+                                    [value]="row.opacity"
+                                    (input)="
+                                      updateLayerOpacity(
+                                        group.id,
+                                        row.id,
+                                        $any($event.target).value
+                                      )
+                                    "
+                                  />
+                                  <span
+                                    [id]="
+                                      'map-layers-layer-row-opacity-value-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
+                                    "
+                                    class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
+                                  >
+                                    {{ row.opacity }}%
+                                  </span>
+                                </div>
+                                <div
                                   [id]="
-                                    'map-layers-layer-row-opacity-slider-' + group.id + '-' + row.id
+                                    'map-layers-layer-row-color-group-' + group.id + '-' + row.id
                                   "
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  class="map-layers-opacity-slider w-full"
-                                  [style.--map-layers-slider-progress]="row.opacity + '%'"
-                                  [value]="row.opacity"
-                                  (input)="
-                                    updateLayerOpacity(group.id, row.id, $any($event.target).value)
-                                  "
-                                />
-                                <span
-                                  [id]="
-                                    'map-layers-layer-row-opacity-value-' + group.id + '-' + row.id
-                                  "
-                                  class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
+                                  class="flex shrink-0 items-center gap-1"
                                 >
-                                  {{ row.opacity }}%
-                                </span>
-                              </div>
-                              <div
-                                [id]="'map-layers-layer-row-color-group-' + group.id + '-' + row.id"
-                                class="flex shrink-0 items-center gap-1"
-                              >
-                                <label
-                                  [id]="
-                                    'map-layers-layer-row-color-label-' + group.id + '-' + row.id
-                                  "
-                                  [for]="
-                                    'map-layers-layer-row-color-input-' + group.id + '-' + row.id
-                                  "
-                                  class="text-[10px] text-slate-600"
-                                >
-                                  Color
-                                </label>
-                                <input
-                                  [id]="
-                                    'map-layers-layer-row-color-input-' + group.id + '-' + row.id
-                                  "
-                                  type="color"
-                                  class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                                  [value]="row.color"
-                                  (input)="
-                                    updateLayerColor(group.id, row.id, $any($event.target).value)
-                                  "
-                                />
+                                  <label
+                                    [id]="
+                                      'map-layers-layer-row-color-label-' + group.id + '-' + row.id
+                                    "
+                                    [for]="
+                                      'map-layers-layer-row-color-input-' + group.id + '-' + row.id
+                                    "
+                                    class="text-[10px] text-slate-600"
+                                  >
+                                    Color
+                                  </label>
+                                  <input
+                                    [id]="
+                                      'map-layers-layer-row-color-input-' + group.id + '-' + row.id
+                                    "
+                                    type="color"
+                                    class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
+                                    [value]="row.color"
+                                    (input)="
+                                      updateLayerColor(group.id, row.id, $any($event.target).value)
+                                    "
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        }
                       </article>
                     }
                   }
