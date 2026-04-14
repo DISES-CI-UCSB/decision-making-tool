@@ -402,7 +402,7 @@
    in all major browsers since late 2023. */
 .rs-header-optical-nudge {
   line-height: 1;
-  transform: translateY(var(--right-sidebar-header-nudge-y, 1.5px));
+  transform: translateY(var(--right-sidebar-header-nudge-y, 1px));
 }
 
 .v3-section-label,
