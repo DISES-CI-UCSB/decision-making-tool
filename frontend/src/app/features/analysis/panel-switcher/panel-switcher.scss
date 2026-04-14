@@ -394,15 +394,13 @@
   background: #000;
 }
 
-/* Label — cap-height optical centering for ALL-CAPS text.
-   line-height: 1 sets the line box to 1em (= font-size).
-   margin-block collapses the outer box to the cap-height so that
-   flex align-items: center aligns the visible glyphs, not the
-   invisible ascent/descent space.  cap & lh units are supported
-   in all major browsers since late 2023. */
+/* Header text optical alignment:
+   text-box trims the line box to cap-height (top) and alphabetic
+   baseline (bottom), removing invisible half-leading so flex
+   align-items:center aligns the visible glyphs, not the line box.
+   Chrome 133+, Edge 133+, Safari 18.2+.  Firefox fallback below. */
 .rs-header-optical-nudge {
-  line-height: 1;
-  transform: translateY(var(--right-sidebar-header-nudge-y, 1px));
+  text-box: trim-both cap alphabetic;
 }
 
 .v3-section-label,
@@ -411,8 +409,6 @@
   flex: 1;
   font-size: 14px;
   font-weight: 700;
-  line-height: 1;
-  margin-block: calc(0.5cap - 0.5lh);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
