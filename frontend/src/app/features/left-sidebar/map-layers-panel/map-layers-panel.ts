@@ -1,3 +1,4 @@
+import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import {
   Component,
@@ -16,8 +17,6 @@ import { AppStateService } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 
-type AdminBoundaryOption = 'national' | AoiType | 'custom';
-
 interface LayerControlRow {
   id: string;
   name: string;
@@ -32,20 +31,13 @@ interface LayerControlRow {
   hasColorControl: boolean;
   disabled?: boolean;
   mapUnavailable?: boolean;
+  hideAddButton?: boolean;
   mapSync?:
-    | {
-        type: 'solution-baseline';
-      }
-    | {
-        type: 'solution-candidate';
-      }
-    | {
-        type: 'solution-overlap';
-      }
-    | {
-        type: 'app-state-layer';
-        layerId: string;
-      };
+    | { type: 'solution-baseline' }
+    | { type: 'solution-candidate' }
+    | { type: 'solution-overlap' }
+    | { type: 'app-state-layer'; layerId: string }
+    | { type: 'admin-boundary'; boundaryType: AoiType };
 }
 
 interface SpeciesSample {
@@ -109,6 +101,18 @@ type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'so
   imports: [CommonModule],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
+  animations: [
+    trigger('selectedLayerRow', [
+      transition(':enter', [
+        style({ height: 0, opacity: 0, overflow: 'hidden' }),
+        animate('220ms ease-out', style({ height: '*', opacity: 1 })),
+      ]),
+      transition(':leave', [
+        style({ overflow: 'hidden' }),
+        animate('180ms ease-in', style({ height: 0, opacity: 0 })),
+      ]),
+    ]),
+  ],
 })
 export class MapLayersPanelComponent implements OnDestroy {
   @Output() readonly solutionFinderRequested = new EventEmitter<void>();
@@ -124,8 +128,6 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
-  protected readonly adminBoundary = signal<AdminBoundaryOption>('sirap');
-  protected readonly customBoundaryRequested = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly availableOverlays = computed(() =>
     this.overlays().filter(
@@ -136,6 +138,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
+  protected readonly adminBoundaryGroup = computed(
+    () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
+  );
   protected readonly layerSearchQuery = signal('');
   protected readonly normalizedLayerSearchQuery = computed(() =>
     this.layerSearchQuery().trim().toLowerCase(),
@@ -203,7 +208,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
 
   constructor() {
-    this.onAdminBoundaryChange('sirap');
+    this.syncInitialBoundaryState();
     this.selectedLayerOrder.set(
       this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
     );
@@ -331,31 +336,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     return m === 'cursorFollowGreen' || m === 'rainforestReveal';
   }
 
-  protected onAdminBoundaryChange(value: string): void {
-    if (!this.isAdminBoundaryOption(value)) {
-      return;
-    }
-
-    this.adminBoundary.set(value);
-    const isCustomBoundary = value === 'custom';
-    this.customBoundaryRequested.set(isCustomBoundary);
-    this.adminBoundaryService.setLayerVisibility('sirap', value === 'sirap');
-    this.adminBoundaryService.setLayerVisibility('department', value === 'department');
-    this.adminBoundaryService.setLayerVisibility('municipality', value === 'municipality');
-  }
-
-  protected requestCustomBoundary(): void {
-    this.adminBoundary.set('custom');
-    this.customBoundaryRequested.set(true);
-  }
-
-  protected dismissCustomBoundary(): void {
-    if (this.adminBoundary() === 'custom') {
-      this.onAdminBoundaryChange('sirap');
-    }
-    this.customBoundaryRequested.set(false);
-  }
-
   protected toggleGroup(groupId: string): void {
     this.groups.update((groups) =>
       groups.map((group) =>
@@ -432,14 +412,14 @@ export class MapLayersPanelComponent implements OnDestroy {
     let nextVisible = false;
     let nextSelected = false;
     this.groups.update((groups) =>
-      groups.map((group) => {
-        if (group.id !== groupId) {
-          return group;
+      groups.map((g) => {
+        if (g.id !== groupId) {
+          return g;
         }
 
         return {
-          ...group,
-          rows: group.rows.map((row) =>
+          ...g,
+          rows: g.rows.map((row) =>
             row.id === rowId
               ? (() => {
                   if (row.mapUnavailable) {
@@ -782,7 +762,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected resetDefaults(): void {
-    this.onAdminBoundaryChange('sirap');
     this.overlaysCollapsed.set(false);
     this.layerSearchQuery.set('');
     this.overlays.set(this.createDefaultOverlays());
@@ -1211,6 +1190,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
+    if (mapSync.type === 'admin-boundary') {
+      this.adminBoundaryService.setLayerVisibility(mapSync.boundaryType, row.visible);
+      return;
+    }
+
     if (mapSync.type !== 'app-state-layer') {
       return;
     }
@@ -1306,14 +1290,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     return Math.max(0, Math.min(100, Math.round(parsed)));
   }
 
-  private isAdminBoundaryOption(value: string): value is AdminBoundaryOption {
-    return (
-      value === 'national' ||
-      value === 'custom' ||
-      value === 'sirap' ||
-      value === 'department' ||
-      value === 'municipality'
-    );
+  private syncInitialBoundaryState(): void {
+    const group = this.groups().find((g) => g.id === 'group-admin-boundaries');
+    for (const row of group?.rows ?? []) {
+      this.syncRowToMap(row);
+    }
   }
 
   private updateSelectedLayerOrder(
@@ -1774,6 +1755,17 @@ export class MapLayersPanelComponent implements OnDestroy {
   private createDefaultGroups(): LayerGroup[] {
     return [
       {
+        id: 'group-admin-boundaries',
+        title: 'Administrative Boundaries',
+        countLabel: '3 layers',
+        collapsed: false,
+        rows: [
+          this.boundaryRow('sirap', 'SIRAP Regions', true, true),
+          this.boundaryRow('department', 'Departments', false, false),
+          this.boundaryRow('municipality', 'Municipalities', false, false),
+        ],
+      },
+      {
         id: 'group-species-biodiversity',
         title: 'Species & Biodiversity',
         countLabel: '5 taxon groups',
@@ -1856,6 +1848,27 @@ export class MapLayersPanelComponent implements OnDestroy {
       hasStyleControls: true,
       hasColorControl: true,
       mapUnavailable: true,
+    };
+  }
+
+  private boundaryRow(
+    boundaryType: AoiType,
+    name: string,
+    visible: boolean,
+    selected: boolean,
+  ): LayerControlRow {
+    return {
+      id: `boundary-${boundaryType}`,
+      name,
+      selected,
+      visible,
+      expanded: false,
+      opacity: 100,
+      color: '#000000',
+      canReorder: false,
+      hasStyleControls: false,
+      hasColorControl: false,
+      mapSync: { type: 'admin-boundary', boundaryType },
     };
   }
 

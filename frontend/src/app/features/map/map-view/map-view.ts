@@ -24,6 +24,7 @@ import { AdminBoundaryService } from '@features/map/services/admin-boundary.serv
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { LayerKeyComponent } from '@features/map/components/layer-key/layer-key';
 import { SolutionLegendComponent } from '@features/map/components/solution-legend/solution-legend';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
@@ -36,7 +37,7 @@ type SwipeConstructor = new (properties: Record<string, unknown>) => SwipeInstan
 @Component({
   selector: 'app-map-view',
   standalone: true,
-  imports: [SolutionLegendComponent],
+  imports: [SolutionLegendComponent, LayerKeyComponent],
   templateUrl: './map-view.html',
   styleUrl: './map-view.scss',
   host: {
@@ -71,6 +72,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
+  protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
   protected readonly isComparisonOverlayVisible = computed(() => {
     return (
       this.appState.rightSidebarMode$() === 'comparison' &&
