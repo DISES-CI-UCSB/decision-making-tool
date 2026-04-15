@@ -407,6 +407,7 @@
 .aoi-section-label,
 .c2-section-title {
   flex: 1;
+  font-family: var(--font-header);
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1080,6 +1081,7 @@
 .c2-compare-head {
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
+  font-family: var(--font-header);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
