@@ -245,7 +245,7 @@
         "step1": "Que proteger",
         "step2a": "Areas incluidas (opcional)",
         "step2b": "Base del compromiso",
-        "step3": "Escenario coincidente"
+        "step3": "Resultados coincidentes"
       },
       "stepIntros": {
         "step1": "Seleccione uno o mas grupos objetivo para definir que proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",

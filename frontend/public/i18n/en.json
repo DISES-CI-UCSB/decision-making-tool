@@ -245,7 +245,7 @@
         "step1": "What to protect",
         "step2a": "Included areas (optional)",
         "step2b": "Trade-off basis",
-        "step3": "Matching scenario"
+        "step3": "Matching results"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
