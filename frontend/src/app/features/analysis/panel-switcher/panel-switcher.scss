@@ -394,29 +394,25 @@
   background: #000;
 }
 
-/* Label — cap-height optical centering for ALL-CAPS text.
-   line-height: 1 sets the line box to 1em (= font-size).
-   margin-block collapses the outer box to the cap-height so that
-   flex align-items: center aligns the visible glyphs, not the
-   invisible ascent/descent space.  cap & lh units are supported
-   in all major browsers since late 2023. */
+/* Header text optical alignment:
+   text-box trims the line box to cap-height (top) and alphabetic
+   baseline (bottom), removing invisible half-leading so flex
+   align-items:center aligns the visible glyphs, not the line box.
+   Chrome 133+, Edge 133+, Safari 18.2+.  Firefox fallback below. */
+.rs-header-optical-nudge {
+  text-box: trim-both cap alphabetic;
+}
+
 .v3-section-label,
 .aoi-section-label,
 .c2-section-title {
   flex: 1;
+  font-family: var(--font-header);
   font-size: 14px;
   font-weight: 700;
-  line-height: 1;
-  margin-block: calc(0.5cap - 0.5lh);
-  transform: translateY(1px);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-subtext);
-}
-
-/* Per-label subpixel correction — tweak individual values as needed. */
-#aoi-label-bio {
-  transform: translateY(1px);
 }
 
 /* Overview section heads — button reset + interactive states
@@ -1087,11 +1083,17 @@
 .c2-compare-head {
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
+  font-family: var(--font-header);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #64748b;
+}
+
+/* Integer-pixel optical nudge for compare table column headers. */
+.c2-compare-head > span {
+  display: inline-block;
 }
 
 .c2-compare-row {
