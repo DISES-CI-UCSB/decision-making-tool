@@ -55,8 +55,14 @@
                 [class.bg-sky-100]="
                   isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
                 "
-                [class.border-slate-200]="!isTargetTypeSelected(option.id)"
-                [class.bg-white]="!isTargetTypeSelected(option.id)"
+                [class.border-slate-200]="
+                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                "
+                [class.border-slate-300]="!isTargetTypeAvailable(option.id)"
+                [class.bg-white]="
+                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                "
+                [class.bg-slate-50]="!isTargetTypeAvailable(option.id)"
                 [class.cursor-pointer]="isTargetTypeAvailable(option.id)"
                 [class.cursor-not-allowed]="!isTargetTypeAvailable(option.id)"
                 [attr.role]="isTargetTypeAvailable(option.id) ? 'button' : null"
@@ -82,7 +88,10 @@
                       [id]="'solution-finder-modal-step1-target-type-label-' + option.id"
                       class="min-w-0 flex-1 pr-2 text-sm font-semibold"
                       [class.text-sky-900]="isTargetTypeSelected(option.id)"
-                      [class.text-slate-900]="!isTargetTypeSelected(option.id)"
+                      [class.text-slate-900]="
+                        !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                      "
+                      [class.text-slate-500]="!isTargetTypeAvailable(option.id)"
                     >
                       {{ option.labelKey | translate }}
                     </span>
@@ -95,7 +104,7 @@
                           [id]="
                             'solution-finder-modal-step1-target-type-missing-badge-' + option.id
                           "
-                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-red-300 bg-red-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-red-700"
+                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-slate-400 bg-transparent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
                         >
                           {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
                         </span>
@@ -106,7 +115,9 @@
 
                 <p
                   [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
-                  class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                  class="mt-1 text-xs font-normal leading-snug"
+                  [class.finder-subtext-dark]="isTargetTypeAvailable(option.id)"
+                  [class.text-slate-400]="!isTargetTypeAvailable(option.id)"
                   [class.finder-target-help-clamp]="!isTargetTypeSelected(option.id)"
                   [attr.title]="option.helpKey | translate"
                 >
