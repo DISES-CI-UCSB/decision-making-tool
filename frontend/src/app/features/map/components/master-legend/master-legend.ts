@@ -1,4 +1,14 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { UI_TEXT_TOKENS } from '@core/config/ui-text-tokens';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
@@ -9,14 +19,20 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
   templateUrl: './master-legend.html',
   styleUrl: './master-legend.scss',
 })
-export class MasterLegendComponent implements OnDestroy {
+export class MasterLegendComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('contentInner')
+  private contentInnerRef?: ElementRef<HTMLDivElement>;
+
   private readonly compactViewportMaxWidthPx = 1280;
   private readonly onWindowResize = (): void => this.syncViewportMode();
+  private resizeObserver: ResizeObserver | null = null;
   protected readonly legendText = UI_TEXT_TOKENS.mapLegend;
   private readonly appState = inject(AppStateService);
   private readonly solutionLayer = inject(SolutionLayerService);
 
   readonly collapsed = signal(false);
+  readonly hasMeasuredContentHeight = signal(false);
+  readonly expandedContentHeight = signal(640);
   readonly isCompactViewport = signal(false);
   readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
   readonly comparisonMode = this.appState.comparisonVisualizationMode$;
@@ -55,16 +71,41 @@ export class MasterLegendComponent implements OnDestroy {
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', this.onWindowResize);
     }
+
+    effect(() => {
+      this.loaded();
+      this.selectedLayerEntries();
+      this.isComparing();
+      this.comparisonMode();
+      this.shouldShowActiveScenarioName();
+      this.collapsed();
+
+      // Keep expanded height in sync even when ResizeObserver is unavailable.
+      queueMicrotask(() => this.updateExpandedContentHeight());
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.setupContentResizeObserver();
+    this.updateExpandedContentHeight();
   }
 
   ngOnDestroy(): void {
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', this.onWindowResize);
     }
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
   }
 
   protected toggleCollapsed(): void {
-    this.collapsed.update((value) => !value);
+    this.collapsed.update((value) => {
+      const next = !value;
+      if (!next) {
+        this.updateExpandedContentHeight();
+      }
+      return next;
+    });
   }
 
   private syncViewportMode(): void {
@@ -73,5 +114,33 @@ export class MasterLegendComponent implements OnDestroy {
       return;
     }
     this.isCompactViewport.set(window.innerWidth <= this.compactViewportMaxWidthPx);
+  }
+
+  private setupContentResizeObserver(): void {
+    if (typeof window === 'undefined' || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const contentEl = this.contentInnerRef?.nativeElement;
+    if (!contentEl) {
+      return;
+    }
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = new ResizeObserver(() => {
+      this.updateExpandedContentHeight();
+    });
+    this.resizeObserver.observe(contentEl);
+  }
+
+  private updateExpandedContentHeight(): void {
+    const contentEl = this.contentInnerRef?.nativeElement;
+    if (!contentEl) {
+      return;
+    }
+    const nextHeight = contentEl.scrollHeight;
+    if (nextHeight <= 0) {
+      return;
+    }
+    this.expandedContentHeight.set(nextHeight);
+    this.hasMeasuredContentHeight.set(true);
   }
 }
