@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html id="step0-option-c-html-root" lang="en">
+  <head id="step0-option-c-head">
+    <meta id="step0-option-c-meta-charset" charset="UTF-8" />
+    <meta
+      id="step0-option-c-meta-viewport"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title id="step0-option-c-title">Step 0 — Option C: Two-Phase Flow (Scope Screen → Wizard)</title>
+    <script id="step0-option-c-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <style id="step0-option-c-style">
+      :root { color-scheme: light; }
+      body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      .step0c-scope-card {
+        transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+      }
+      .step0c-scope-card:hover:not(.step0c-scope-card-selected) {
+        border-color: #94a3b8;
+        background-color: #f8fafc;
+      }
+
+      .step0c-target-help-clamp {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+
+  <body id="step0-option-c-body" class="min-h-screen bg-slate-200 p-4 md:p-8">
+    <main id="step0-option-c-main" class="mx-auto max-w-[1460px] space-y-10">
+
+      <!-- ====== DESIGN LABEL ====== -->
+      <div id="step0-option-c-design-label" class="space-y-1">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Mockup</p>
+        <h1 class="text-2xl font-bold text-slate-900">Option C — Two-Phase Flow</h1>
+        <p class="max-w-2xl text-sm text-slate-600">
+          Before showing the step columns, a "Choose your scope" screen appears inside the modal.
+          Once the user picks Nacional or SIRAP, the modal transitions to the current step-based flow.
+          A back-link or scope indicator allows returning to the scope selection.
+        </p>
+      </div>
+
+      <!-- ================================================================ -->
+      <!--  PHASE 1: Scope selection screen                                 -->
+      <!-- ================================================================ -->
+      <section id="step0-option-c-phase1" class="space-y-2">
+        <h2 id="step0-option-c-phase1-label" class="text-sm font-semibold uppercase tracking-widest text-slate-500">
+          Phase 1: Scope selection (initial screen)
+        </h2>
+
+        <div id="step0-option-c-modal-shell-phase1" class="rounded-2xl border border-slate-300 bg-white shadow-2xl">
+          <!-- HEADER -->
+          <header id="step0-option-c-header-phase1" class="border-b border-slate-200 px-6 py-4">
+            <div class="flex items-start justify-between gap-4">
+              <div class="space-y-0.5">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">Conservation Scenario Search</p>
+                <p class="text-sm text-slate-600">Choose the solution scope to begin configuring your scenario search.</p>
+              </div>
+              <button type="button" class="mt-1 rounded-full p-1 text-slate-400 hover:bg-slate-100" aria-label="Close">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- ★ SCOPE SELECTION BODY ★ -->
+          <section id="step0-option-c-scope-body" class="flex flex-col items-center justify-center px-6 py-12 lg:py-16">
+            <div id="step0-option-c-scope-intro" class="mb-8 text-center">
+              <h2 id="step0-option-c-scope-heading" class="text-xl font-bold text-slate-900">
+                What type of solutions are you looking for?
+              </h2>
+              <p id="step0-option-c-scope-subheading" class="mt-2 text-sm text-slate-500">
+                This determines which conservation scenarios are available in the search.
+              </p>
+            </div>
+
+            <div id="step0-option-c-scope-cards" class="grid max-w-2xl gap-6 lg:grid-cols-2">
+              <!-- Nacional card -->
+              <button id="step0-option-c-card-nacional" type="button"
+                class="step0c-scope-card group flex flex-col items-center rounded-xl border-2 border-slate-200 bg-white px-6 py-8 text-center shadow-sm hover:shadow-md">
+                <!-- Icon: globe/country -->
+                <div id="step0-option-c-card-nacional-icon" class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sky-100">
+                  <svg class="h-7 w-7 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <h3 id="step0-option-c-card-nacional-title" class="text-lg font-bold text-slate-900">Nacional</h3>
+                <p id="step0-option-c-card-nacional-desc" class="mt-2 text-sm leading-relaxed text-slate-500">
+                  National-level conservation scenarios covering all of Colombia.
+                  Available to all users.
+                </p>
+                <span id="step0-option-c-card-nacional-badge" class="mt-4 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                  No login required
+                </span>
+                <span id="step0-option-c-card-nacional-cta" class="mt-4 text-sm font-semibold text-sky-600 group-hover:text-sky-700">
+                  Select Nacional →
+                </span>
+              </button>
+
+              <!-- SIRAP card -->
+              <button id="step0-option-c-card-sirap" type="button"
+                class="step0c-scope-card group flex flex-col items-center rounded-xl border-2 border-slate-200 bg-white px-6 py-8 text-center shadow-sm hover:shadow-md">
+                <!-- Icon: region/map pins -->
+                <div id="step0-option-c-card-sirap-icon" class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                  <svg class="h-7 w-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                </div>
+                <h3 id="step0-option-c-card-sirap-title" class="text-lg font-bold text-slate-900">SIRAP</h3>
+                <p id="step0-option-c-card-sirap-desc" class="mt-2 text-sm leading-relaxed text-slate-500">
+                  Regional conservation scenarios for specific SIRAP sub-areas within Colombia.
+                  Finer-grained analysis for local planning.
+                </p>
+                <span id="step0-option-c-card-sirap-badge" class="mt-4 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                  Login required
+                </span>
+                <span id="step0-option-c-card-sirap-cta" class="mt-4 text-sm font-semibold text-sky-600 group-hover:text-sky-700">
+                  Select SIRAP →
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <!-- FOOTER (minimal on scope screen) -->
+          <footer id="step0-option-c-footer-phase1" class="border-t border-slate-200 bg-white px-6 py-4">
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Cancel</button>
+            </div>
+          </footer>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!--  PHASE 1b: Unauthenticated user clicks SIRAP                     -->
+      <!-- ================================================================ -->
+      <section id="step0-option-c-phase1-unauth" class="space-y-2">
+        <h2 id="step0-option-c-phase1-unauth-label" class="text-sm font-semibold uppercase tracking-widest text-slate-500">
+          Phase 1 variant: Unauthenticated user clicks SIRAP
+        </h2>
+
+        <div id="step0-option-c-modal-shell-phase1-unauth" class="rounded-2xl border border-slate-300 bg-white shadow-2xl">
+          <header class="border-b border-slate-200 px-6 py-4">
+            <div class="flex items-start justify-between gap-4">
+              <div class="space-y-0.5">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">Conservation Scenario Search</p>
+                <p class="text-sm text-slate-600">Choose the solution scope to begin configuring your scenario search.</p>
+              </div>
+              <button type="button" class="mt-1 rounded-full p-1 text-slate-400 hover:bg-slate-100" aria-label="Close">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <section class="flex flex-col items-center justify-center px-6 py-12 lg:py-16">
+            <div class="mb-8 text-center">
+              <h2 class="text-xl font-bold text-slate-900">What type of solutions are you looking for?</h2>
+              <p class="mt-2 text-sm text-slate-500">This determines which conservation scenarios are available.</p>
+            </div>
+
+            <div class="grid max-w-2xl gap-6 lg:grid-cols-2">
+              <!-- Nacional card (not selected) -->
+              <button type="button" class="step0c-scope-card group flex flex-col items-center rounded-xl border-2 border-slate-200 bg-white px-6 py-8 text-center shadow-sm">
+                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sky-100">
+                  <svg class="h-7 w-7 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Nacional</h3>
+                <p class="mt-2 text-sm leading-relaxed text-slate-500">National-level conservation scenarios.</p>
+                <span class="mt-4 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">No login required</span>
+                <span class="mt-4 text-sm font-semibold text-sky-600">Select Nacional →</span>
+              </button>
+
+              <!-- SIRAP card — selected but showing auth gate -->
+              <div id="step0-option-c-card-sirap-unauth" class="step0c-scope-card step0c-scope-card-selected flex flex-col items-center rounded-xl border-2 border-amber-300 bg-amber-50/50 px-6 py-8 text-center shadow-sm">
+                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                  <svg class="h-7 w-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">SIRAP</h3>
+                <p class="mt-2 text-sm leading-relaxed text-slate-500">Regional scenarios for SIRAP sub-areas.</p>
+
+                <!-- Auth gate (replaces the CTA) -->
+                <div id="step0-option-c-sirap-auth-gate" class="mt-4 w-full rounded-lg border border-amber-200 bg-white px-4 py-3">
+                  <div class="flex items-center justify-center gap-2">
+                    <svg class="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span class="text-sm font-semibold text-slate-900">Sign in required</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-center gap-2">
+                    <button type="button" class="rounded-md border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Register</button>
+                    <button type="button" class="rounded-md bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-sky-700">Sign in</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="border-t border-slate-200 bg-white px-6 py-4">
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+            </div>
+          </footer>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!--  PHASE 2: After selecting Nacional — wizard with back-link       -->
+      <!-- ================================================================ -->
+      <section id="step0-option-c-phase2" class="space-y-2">
+        <h2 id="step0-option-c-phase2-label" class="text-sm font-semibold uppercase tracking-widest text-slate-500">
+          Phase 2: Nacional selected → Steps 1–3 wizard (with scope breadcrumb)
+        </h2>
+
+        <div id="step0-option-c-modal-shell-phase2" class="rounded-2xl border border-slate-300 bg-white shadow-2xl">
+          <header class="border-b border-slate-200 px-6 py-4">
+            <div class="flex items-start justify-between gap-4">
+              <div class="space-y-0.5">
+                <div id="step0-option-c-phase2-breadcrumb" class="flex items-center gap-2 text-xs">
+                  <button type="button" class="font-semibold text-sky-600 hover:text-sky-700 hover:underline">← Change scope</button>
+                  <span class="text-slate-400">/</span>
+                  <span class="rounded-md bg-sky-100 px-2 py-0.5 font-semibold text-sky-700">Nacional</span>
+                </div>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">Conservation Scenario Search</p>
+                <p class="text-sm text-slate-600">Choose what to protect, optional included areas, and a trade-off basis.</p>
+              </div>
+              <button type="button" class="mt-1 rounded-full p-1 text-slate-400 hover:bg-slate-100" aria-label="Close">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- Normal 4-column step grid (unchanged from current) -->
+          <section id="step0-option-c-body-phase2" class="grid gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6">
+            <!-- Step 1 -->
+            <section class="space-y-3 lg:col-span-3">
+              <div class="space-y-1">
+                <h4 class="text-base text-slate-800">
+                  <span class="font-bold text-slate-900">Step 1</span>
+                  <span class="font-medium text-slate-600">What to protect</span>
+                </h4>
+                <p class="text-xs leading-snug text-slate-500">Select targets and coverage levels.</p>
+              </div>
+              <article class="rounded-md border border-slate-200 bg-white p-4 shadow-sm space-y-2">
+                <div class="rounded-md border border-sky-300 bg-sky-100 px-3 py-2">
+                  <span class="text-sm font-semibold text-sky-900">Ecosystems</span>
+                  <p class="step0c-target-help-clamp mt-1 text-xs leading-snug text-slate-500">Full range of Colombia's ecosystem types.</p>
+                  <div class="mt-2 flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2 py-1.5">
+                    <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Coverage level</span>
+                    <div class="flex gap-1">
+                      <button type="button" class="rounded-md border border-sky-600 bg-sky-600 px-2 py-0.5 text-xs font-semibold text-white">17%</button>
+                      <button type="button" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">30%</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="rounded-md border border-slate-200 bg-white px-3 py-2">
+                  <span class="text-sm font-semibold text-slate-900">Strategic ecosystems</span>
+                  <p class="step0c-target-help-clamp mt-1 text-xs leading-snug text-slate-500">Nationally designated strategic types.</p>
+                </div>
+                <div class="rounded-md border border-slate-200 bg-white px-3 py-2">
+                  <span class="text-sm font-semibold text-slate-900">Species richness</span>
+                  <p class="step0c-target-help-clamp mt-1 text-xs leading-snug text-slate-500">Greatest number of different species.</p>
+                </div>
+              </article>
+            </section>
+
+            <!-- Step 2 -->
+            <section class="space-y-3 lg:col-span-3">
+              <div class="space-y-1">
+                <h4 class="text-base text-slate-800">
+                  <span class="font-bold text-slate-900">Step 2</span>
+                  <span class="font-medium text-slate-600">Included areas (optional)</span>
+                </h4>
+                <p class="text-xs leading-snug text-slate-500">Optional included areas alongside RUNAP.</p>
+              </div>
+              <article class="rounded-md border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+                <div class="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-slate-900">Include OMECs</p>
+                    <p class="mt-1 text-xs leading-snug text-slate-500">Other effective conservation measures.</p>
+                  </div>
+                  <span class="shrink-0 rounded-md bg-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-800">OFF</span>
+                </div>
+                <div class="flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-slate-900">Include comunidades</p>
+                    <p class="mt-1 text-xs leading-snug text-slate-500">Afro-Colombian community territories.</p>
+                  </div>
+                  <span class="shrink-0 rounded-md bg-sky-600 px-2 py-1 text-[11px] font-semibold text-white">ON</span>
+                </div>
+                <div class="border-t border-slate-200 pt-3">
+                  <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Always applied</p>
+                  <div class="mt-2 flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2">
+                    <p class="text-sm font-semibold text-slate-900">RUNAP protected areas</p>
+                    <span class="shrink-0 rounded-md bg-sky-600 px-2 py-1 text-[11px] font-semibold text-white">Always on</span>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+            <!-- Step 3 -->
+            <section class="space-y-3 lg:col-span-3">
+              <div class="space-y-1">
+                <h4 class="text-base text-slate-800">
+                  <span class="font-bold text-slate-900">Step 3</span>
+                  <span class="font-medium text-slate-600">Trade-off basis</span>
+                </h4>
+                <p class="text-xs leading-snug text-slate-500">Choose one cost layer.</p>
+              </div>
+              <article class="rounded-md border border-slate-200 bg-white p-4 shadow-sm space-y-2">
+                <button type="button" class="flex w-full flex-col gap-1 rounded-md border border-sky-300 bg-sky-100 px-2 py-2 text-left">
+                  <span class="text-sm font-semibold text-slate-900">Human pressure <span class="font-normal opacity-90">(HF_2030)</span></span>
+                  <span class="mt-1 text-xs leading-snug text-slate-500">Projected Human Footprint 2030.</span>
+                </button>
+                <button type="button" class="flex w-full flex-col gap-1 rounded-md border border-slate-200 bg-white px-2 py-2 text-left">
+                  <span class="text-sm font-semibold text-slate-900">Net benefit <span class="font-normal opacity-90">(CO)</span></span>
+                  <span class="mt-1 text-xs leading-snug text-slate-500">Agricultural-rent surface.</span>
+                </button>
+                <button type="button" class="flex w-full flex-col gap-1 rounded-md border border-slate-200 bg-white px-2 py-2 text-left">
+                  <span class="text-sm font-semibold text-slate-900">Conflict exposure <span class="font-normal opacity-90">(CONFLICTO)</span></span>
+                  <span class="mt-1 text-xs leading-snug text-slate-500">Coca and conflict-related deaths.</span>
+                </button>
+              </article>
+            </section>
+
+            <!-- Results -->
+            <section class="space-y-3 lg:col-span-3">
+              <div class="space-y-1">
+                <h4 class="text-base font-medium text-slate-600">Matching results</h4>
+                <p class="text-xs leading-snug text-slate-500">Refreshes automatically.</p>
+              </div>
+              <article class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="flex items-center justify-between gap-2">
+                  <h5 class="text-sm font-semibold text-slate-900">Found 1 scenario</h5>
+                  <span class="rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Available</span>
+                </div>
+                <div class="mt-3 rounded-md border border-slate-200 bg-slate-50/80 p-3">
+                  <p class="text-sm font-semibold text-slate-900">Ecos17 RUNAP HF comunidades</p>
+                  <p class="mt-1 text-xs leading-snug text-slate-500">17% ecosystem, RUNAP + Comunidades, HF cost</p>
+                  <p class="mt-2 font-mono text-[11px] text-slate-500">Ecos17+RUNAP_HF_comunidades.tif</p>
+                </div>
+              </article>
+            </section>
+          </section>
+
+          <footer class="border-t border-slate-200 bg-white px-6 py-4">
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Reset to defaults</button>
+              <div class="flex items-center gap-2">
+                <button type="button" class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+                <button type="button" class="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white">Apply selected scenario</button>
+              </div>
+            </div>
+          </footer>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!--  ANNOTATION: Tradeoffs                                           -->
+      <!-- ================================================================ -->
+      <div id="step0-option-c-annotation" class="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-2">
+        <h3 class="text-sm font-bold text-blue-800">Design Tradeoffs</h3>
+        <ul class="list-disc pl-5 space-y-1 text-sm text-blue-900">
+          <li><strong>Pro:</strong> Maximum separation of concerns — the auth gate is handled before users ever see the step controls.</li>
+          <li><strong>Pro:</strong> The existing 4-column layout is completely untouched.</li>
+          <li><strong>Con:</strong> Adds an extra mandatory click for <em>every</em> user on <em>every</em> modal open, even Nacional-default users who gain nothing from it.</li>
+          <li><strong>Con:</strong> Once inside Steps 1–3, the current scope is hidden unless a persistent indicator (breadcrumb) is added — which partly re-creates Option A.</li>
+          <li><strong>Con:</strong> Requires modal-internal view state machine and transition animations.</li>
+          <li><strong>Possible mitigation:</strong> Remember the last-used scope and auto-advance, showing the breadcrumb to change. But this only helps on repeat visits.</li>
+        </ul>
+      </div>
+
+    </main>
+  </body>
+</html>
