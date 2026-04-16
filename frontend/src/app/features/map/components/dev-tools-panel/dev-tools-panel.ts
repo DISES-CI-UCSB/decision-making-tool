@@ -30,10 +30,20 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
           <button
             id="dev-tools-toggle-btn"
             type="button"
-            class="inline-flex min-h-8 items-center rounded-md border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100"
+            class="inline-flex h-7 items-center rounded-md border px-2 text-[11px] font-semibold leading-none shadow-sm transition"
+            [class.border-sky-300]="!isOpen()"
+            [class.bg-sky-50]="!isOpen()"
+            [class.text-sky-700]="!isOpen()"
+            [class.hover:bg-sky-100]="!isOpen()"
+            [class.border-indigo-300]="isOpen()"
+            [class.bg-indigo-50]="isOpen()"
+            [class.text-indigo-700]="isOpen()"
+            [class.ring-1]="isOpen()"
+            [class.ring-indigo-200]="isOpen()"
+            [class.hover:bg-indigo-100]="isOpen()"
             (click)="isOpen.set(!isOpen())"
           >
-            {{ isOpen() ? 'Close DevTools' : 'DevTools' }}
+            <span id="dev-tools-toggle-label" class="dev-tools-cap-height-label">DevTools</span>
           </button>
         </div>
       </div>
@@ -438,6 +448,22 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
         </div>
       }
     </section>
+  `,
+  styles: `
+    .dev-tools-cap-height-label {
+      display: inline-block;
+      line-height: 1;
+      /* Fallback optical trim for browsers without text-box-trim support. */
+      transform: translateY(-0.04em);
+    }
+
+    @supports (text-box-trim: trim-both) {
+      .dev-tools-cap-height-label {
+        text-box-trim: trim-both;
+        text-box-edge: cap alphabetic;
+        transform: none;
+      }
+    }
   `,
 })
 export class DevToolsPanelComponent {
