@@ -42,6 +42,7 @@ export class AppStateService {
   readonly fillDummyOverviewMetrics$ = signal(true);
   readonly fillDummyComparisonMetrics$ = signal(true);
   readonly fillDummyAoiMetrics$ = signal(true);
+  readonly showFinderScenarioFilenames$ = signal(false);
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -106,6 +107,10 @@ export class AppStateService {
 
   setFillDummyAoiMetrics(enabled: boolean): void {
     this.fillDummyAoiMetrics$.set(enabled);
+  }
+
+  setShowFinderScenarioFilenames(enabled: boolean): void {
+    this.showFinderScenarioFilenames$.set(enabled);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {

@@ -166,6 +166,23 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
             </div>
 
             <div
+              id="dev-tools-finder-filename-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <p id="dev-tools-finder-filename-toggle-label" class="text-[11px] text-slate-600">
+                Finder scenario filenames
+              </p>
+              <button
+                id="dev-tools-finder-filename-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleFinderScenarioFilenames()"
+              >
+                {{ showFinderScenarioFilenames() ? 'Hide filenames' : 'Show filenames' }}
+              </button>
+            </div>
+
+            <div
               id="dev-tools-overview-dummy-toggle-row"
               class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
@@ -460,6 +477,7 @@ export class DevToolsPanelComponent {
   readonly chartPaletteOptions = CHART_PALETTE_IDS.map((id) => CHART_PALETTES[id]);
   readonly selectedChartPalette = computed(() => CHART_PALETTES[this.chartPaletteId()]);
   readonly selectSolutionButtonHoverFx = this.appState.selectSolutionButtonHoverFx$;
+  readonly showFinderScenarioFilenames = this.appState.showFinderScenarioFilenames$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
 
@@ -540,6 +558,10 @@ export class DevToolsPanelComponent {
 
   toggleOverviewMetricFill(): void {
     this.appState.setFillDummyOverviewMetrics(!this.fillDummyOverviewMetrics());
+  }
+
+  toggleFinderScenarioFilenames(): void {
+    this.appState.setShowFinderScenarioFilenames(!this.showFinderScenarioFilenames());
   }
 
   toggleComparisonMetricFill(): void {

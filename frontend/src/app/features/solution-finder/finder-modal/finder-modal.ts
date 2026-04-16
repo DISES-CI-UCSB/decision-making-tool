@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import type { SolutionScenario } from '@core/models/solution-scenario.model';
 import type { SolutionFinderContext } from '@core/services/app-state.service';
+import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -59,6 +60,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
   styleUrl: './finder-modal.scss',
 })
 export class FinderModalComponent implements AfterViewInit, OnDestroy {
+  private readonly appState = inject(AppStateService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
   protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
@@ -104,6 +106,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   @Output() readonly scenarioApplied = new EventEmitter<ScenarioMatch>();
 
   protected readonly scenarioLibrary: SolutionScenario[] = this.solutionCatalog.getAll();
+  protected readonly showScenarioFilenames = this.appState.showFinderScenarioFilenames$;
 
   /** Step 1 */
   protected selectedTargetTypeIds: FinderTargetType[] = [];

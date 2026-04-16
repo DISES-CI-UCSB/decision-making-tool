@@ -745,12 +745,14 @@
                     >
                       {{ top.description }}
                     </p>
-                    <p
-                      id="solution-finder-modal-results-single-file"
-                      class="finder-subtext-dark mt-2 font-mono text-[11px]"
-                    >
-                      {{ top.scenarioId }}.tif
-                    </p>
+                    @if (showScenarioFilenames()) {
+                      <p
+                        id="solution-finder-modal-results-single-file"
+                        class="finder-subtext-dark mt-2 font-mono text-[11px]"
+                      >
+                        {{ top.scenarioId }}.tif
+                      </p>
+                    }
                   </div>
 
                   @if (matchResults.length > 1) {
