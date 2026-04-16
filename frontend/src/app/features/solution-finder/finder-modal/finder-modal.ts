@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import type { SolutionScenario } from '@core/models/solution-scenario.model';
 import type { SolutionFinderContext } from '@core/services/app-state.service';
+import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -28,6 +29,20 @@ type FinderTargetType =
   | 'other-natural-cultural-elements';
 
 type CostLayerChoice = 'human-footprint' | 'carbon-opportunity' | 'conflict';
+
+type SirapRegionId =
+  | 'caribe'
+  | 'pacifico'
+  | 'andes-occidentales'
+  | 'andes-nororientales'
+  | 'orinoquia'
+  | 'amazonia';
+
+interface SirapRegionOption {
+  id: SirapRegionId;
+  labelKey: string;
+  departments: string;
+}
 
 interface TargetTypeOption {
   id: FinderTargetType;
@@ -59,6 +74,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
   styleUrl: './finder-modal.scss',
 })
 export class FinderModalComponent implements AfterViewInit, OnDestroy {
+  private readonly appState = inject(AppStateService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
   protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
@@ -104,6 +120,45 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   @Output() readonly scenarioApplied = new EventEmitter<ScenarioMatch>();
 
   protected readonly scenarioLibrary: SolutionScenario[] = this.solutionCatalog.getAll();
+  protected readonly showScenarioFilenames = this.appState.showFinderScenarioFilenames$;
+  protected readonly showScopeBar = this.appState.showFinderScopeBar$;
+  protected selectedScope: 'nacional' | 'sirap' = 'nacional';
+  protected selectedSirapRegion: SirapRegionId | null = null;
+
+  protected readonly sirapRegions: readonly SirapRegionOption[] = [
+    {
+      id: 'caribe',
+      labelKey: 'solutionControls.finder.scopeBar.regions.caribe',
+      departments:
+        'La Guajira, Cesar, Magdalena, Atlántico, Córdoba, Sucre, Bolívar, San Andrés y Providencia',
+    },
+    {
+      id: 'pacifico',
+      labelKey: 'solutionControls.finder.scopeBar.regions.pacifico',
+      departments: 'Chocó, Cauca, Nariño, Valle del Cauca',
+    },
+    {
+      id: 'andes-occidentales',
+      labelKey: 'solutionControls.finder.scopeBar.regions.andesOccidentales',
+      departments:
+        'Antioquia, Caldas, Cauca, Huila, Nariño, Quindío, Risaralda, Tolima, Valle del Cauca',
+    },
+    {
+      id: 'andes-nororientales',
+      labelKey: 'solutionControls.finder.scopeBar.regions.andesNororientales',
+      departments: 'Santander, Norte de Santander, Boyacá, Cundinamarca',
+    },
+    {
+      id: 'orinoquia',
+      labelKey: 'solutionControls.finder.scopeBar.regions.orinoquia',
+      departments: 'Arauca, Meta, Vichada, Casanare',
+    },
+    {
+      id: 'amazonia',
+      labelKey: 'solutionControls.finder.scopeBar.regions.amazonia',
+      departments: 'Guainía, Guaviare, Vaupés, Putumayo, Amazonas, Caquetá',
+    },
+  ];
 
   /** Step 1 */
   protected selectedTargetTypeIds: FinderTargetType[] = [];
@@ -269,6 +324,19 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected onResultsMouseLeave(): void {
     this.hideScrollThumbAfterDelay(400);
+  }
+
+  protected selectScope(scope: 'nacional' | 'sirap'): void {
+    if (scope === this.selectedScope) return;
+    this.selectedScope = scope;
+    this.selectedSirapRegion = null;
+    this.resetSelections();
+  }
+
+  protected selectSirapRegion(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedSirapRegion = (value || null) as SirapRegionId | null;
+    this.resetSelections();
   }
 
   protected resetSelections(): void {

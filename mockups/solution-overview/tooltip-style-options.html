@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solution Overview Tooltip Options</title>
+    <style>
+      :root {
+        --panel-bg: #ffffff;
+        --app-bg: #f3f6fb;
+        --border: #e2e8f0;
+        --text: #1e293b;
+        --subtext: #64748b;
+        --muted: #94a3b8;
+        --brand: #1d4ed8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--app-bg);
+        color: var(--text);
+        font-family: Inter, "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      #tooltip-options-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      #tooltip-options-title {
+        margin: 0 0 6px;
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      #tooltip-options-subtitle {
+        margin: 0 0 18px;
+        color: var(--subtext);
+        font-size: 14px;
+      }
+
+      #tooltip-options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+      }
+
+      .option-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+      }
+
+      .option-title {
+        margin: 0 0 10px;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .metric-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border: 1px solid #edf2f7;
+        border-radius: 8px;
+        background: #f8fafc;
+        padding: 10px 10px 11px;
+      }
+
+      .metric-left {
+        min-width: 0;
+      }
+
+      .metric-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+      }
+
+      .metric-desc {
+        margin: 2px 0 0;
+        font-size: 11px;
+        color: #94a3b8;
+      }
+
+      .metric-value {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: #94a3b8;
+      }
+
+      .info-chip {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: #64748b;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+      }
+
+      .tooltip {
+        margin-top: 8px;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      #tooltip-option-1-bubble {
+        display: inline-block;
+        border-radius: 6px;
+        padding: 8px 10px;
+        color: #0f172a;
+        background: #ffffff;
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      }
+
+      #tooltip-option-2-bubble {
+        display: inline-block;
+        border-radius: 6px;
+        padding: 8px 10px;
+        color: #1e293b;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+      }
+
+      #tooltip-option-3-bubble {
+        display: inline-block;
+        border-radius: 8px;
+        padding: 9px 10px;
+        color: #334155;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+      }
+
+      #tooltip-option-4-bubble {
+        display: inline-block;
+        border-radius: 6px;
+        padding: 8px 10px;
+        color: #3f3f46;
+        background: #fffbeb;
+        border-left: 3px solid #d97706;
+      }
+
+      #tooltip-option-5-bubble {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 7px 12px;
+        color: #334155;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+      }
+
+      #tooltip-option-6-bubble {
+        display: inline-block;
+        border-radius: 6px;
+        padding: 8px 10px;
+        color: #f8fafc;
+        background: #334155;
+        border: 1px solid #1e293b;
+      }
+
+      #tooltip-option-7-bubble {
+        display: inline-block;
+        border-radius: 4px;
+        padding: 8px 10px;
+        color: #334155;
+        background: #ffffff;
+        border-bottom: 2px solid #2563eb;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.12);
+      }
+
+      #tooltip-option-8-bubble {
+        display: inline-block;
+        border-radius: 8px;
+        padding: 8px 10px;
+        color: #475569;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border: 1px solid #dbe4f0;
+      }
+    </style>
+  </head>
+  <body id="tooltip-options-body">
+    <main id="tooltip-options-page">
+      <h1 id="tooltip-options-title">Tooltip Style Options</h1>
+      <p id="tooltip-options-subtitle">
+        Eight visual treatments for unavailable-metric tooltips in the right sidebar.
+      </p>
+
+      <section id="tooltip-options-grid">
+        <article id="tooltip-option-1-card" class="option-card">
+          <h2 id="tooltip-option-1-title" class="option-title">Option 1 - Floating neutral</h2>
+          <div id="tooltip-option-1-row" class="metric-row">
+            <div id="tooltip-option-1-left" class="metric-left">
+              <p id="tooltip-option-1-label" class="metric-label">
+                Agricultural Opportunity Cost <span id="tooltip-option-1-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-1-desc" class="metric-desc">Production foregone</p>
+            </div>
+            <p id="tooltip-option-1-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-1-bubble" class="tooltip">
+            Requires agricultural opportunity-cost layer before this metric can be shown.
+          </p>
+        </article>
+
+        <article id="tooltip-option-2-card" class="option-card">
+          <h2 id="tooltip-option-2-title" class="option-title">Option 2 - Blue inline</h2>
+          <div id="tooltip-option-2-row" class="metric-row">
+            <div id="tooltip-option-2-left" class="metric-left">
+              <p id="tooltip-option-2-label" class="metric-label">
+                Conflict Zone Overlap <span id="tooltip-option-2-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-2-desc" class="metric-desc">Historical conflict zones</p>
+            </div>
+            <p id="tooltip-option-2-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-2-bubble" class="tooltip">
+            This value appears once the conflict-zone source layer is available.
+          </p>
+        </article>
+
+        <article id="tooltip-option-3-card" class="option-card">
+          <h2 id="tooltip-option-3-title" class="option-title">Option 3 - Dashed subtle</h2>
+          <div id="tooltip-option-3-row" class="metric-row">
+            <div id="tooltip-option-3-left" class="metric-left">
+              <p id="tooltip-option-3-label" class="metric-label">
+                Water Regulation Services <span id="tooltip-option-3-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-3-desc" class="metric-desc">Hydrological regulation capacity</p>
+            </div>
+            <p id="tooltip-option-3-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-3-bubble" class="tooltip">
+            Missing water-service input layer for this scenario.
+          </p>
+        </article>
+
+        <article id="tooltip-option-4-card" class="option-card">
+          <h2 id="tooltip-option-4-title" class="option-title">Option 4 - Amber callout</h2>
+          <div id="tooltip-option-4-row" class="metric-row">
+            <div id="tooltip-option-4-left" class="metric-left">
+              <p id="tooltip-option-4-label" class="metric-label">
+                Agricultural Opportunity Cost <span id="tooltip-option-4-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-4-desc" class="metric-desc">Production foregone</p>
+            </div>
+            <p id="tooltip-option-4-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-4-bubble" class="tooltip">
+            Pending delivery of required cost layer from upstream data pipeline.
+          </p>
+        </article>
+
+        <article id="tooltip-option-5-card" class="option-card">
+          <h2 id="tooltip-option-5-title" class="option-title">Option 5 - Capsule microcopy</h2>
+          <div id="tooltip-option-5-row" class="metric-row">
+            <div id="tooltip-option-5-left" class="metric-left">
+              <p id="tooltip-option-5-label" class="metric-label">
+                Conflict Zone Overlap <span id="tooltip-option-5-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-5-desc" class="metric-desc">Historical conflict zones</p>
+            </div>
+            <p id="tooltip-option-5-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-5-bubble" class="tooltip">Blocked until conflict-layer ingestion completes.</p>
+        </article>
+
+        <article id="tooltip-option-6-card" class="option-card">
+          <h2 id="tooltip-option-6-title" class="option-title">Option 6 - Dark contrast</h2>
+          <div id="tooltip-option-6-row" class="metric-row">
+            <div id="tooltip-option-6-left" class="metric-left">
+              <p id="tooltip-option-6-label" class="metric-label">
+                Water Regulation Services <span id="tooltip-option-6-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-6-desc" class="metric-desc">Hydrological regulation capacity</p>
+            </div>
+            <p id="tooltip-option-6-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-6-bubble" class="tooltip">
+            Not available in this release because source data has not been integrated.
+          </p>
+        </article>
+
+        <article id="tooltip-option-7-card" class="option-card">
+          <h2 id="tooltip-option-7-title" class="option-title">Option 7 - Brand underline</h2>
+          <div id="tooltip-option-7-row" class="metric-row">
+            <div id="tooltip-option-7-left" class="metric-left">
+              <p id="tooltip-option-7-label" class="metric-label">
+                Agricultural Opportunity Cost <span id="tooltip-option-7-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-7-desc" class="metric-desc">Production foregone</p>
+            </div>
+            <p id="tooltip-option-7-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-7-bubble" class="tooltip">
+            This card will populate after the agriculture-cost raster is linked.
+          </p>
+        </article>
+
+        <article id="tooltip-option-8-card" class="option-card">
+          <h2 id="tooltip-option-8-title" class="option-title">Option 8 - Soft gradient</h2>
+          <div id="tooltip-option-8-row" class="metric-row">
+            <div id="tooltip-option-8-left" class="metric-left">
+              <p id="tooltip-option-8-label" class="metric-label">
+                Conflict Zone Overlap <span id="tooltip-option-8-info" class="info-chip">i</span>
+              </p>
+              <p id="tooltip-option-8-desc" class="metric-desc">Historical conflict zones</p>
+            </div>
+            <p id="tooltip-option-8-value" class="metric-value">--</p>
+          </div>
+          <p id="tooltip-option-8-bubble" class="tooltip">
+            Data dependency unresolved: conflict zone layer not yet delivered.
+          </p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

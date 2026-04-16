@@ -30,7 +30,11 @@
       @if (titleKey || showCloseButton) {
         <header
           [id]="rootId + '-header'"
-          class="flex justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3"
+          class="flex justify-between gap-3 border-b border-slate-200 bg-white"
+          [class.px-4]="mode !== 'wide'"
+          [class.py-3]="mode !== 'wide'"
+          [class.px-6]="mode === 'wide'"
+          [class.py-4]="mode === 'wide'"
           [class.items-center]="headerAlign === 'center'"
           [class.items-start]="headerAlign === 'start'"
         >

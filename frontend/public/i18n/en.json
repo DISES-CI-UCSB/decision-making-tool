@@ -104,6 +104,8 @@
         "costsAndTradeoffs": "Costs & Trade-offs"
       },
       "conditional": "Conditional",
+      "unavailableInfoLabel": "Why this metric is unavailable",
+      "unavailableTooltip": "Unavailable right now: this metric needs an additional source layer that has not been delivered yet.",
       "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
       "nationalAnchor": {
@@ -234,6 +236,21 @@
       },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
+      "scopeBar": {
+        "label": "Solution scope",
+        "nacional": "Nacional",
+        "sirap": "SIRAP",
+        "selectRegion": "— Select SIRAP region —",
+        "regionalBadge": "Regional solutions",
+        "regions": {
+          "caribe": "SIRAP Caribe",
+          "pacifico": "SIRAP Pacífico",
+          "andesOccidentales": "SIRAP Andes Occidentales",
+          "andesNororientales": "SIRAP Andes Nororientales",
+          "orinoquia": "SIRAP Orinoquía",
+          "amazonia": "SIRAP Amazonía"
+        }
+      },
       "loading": "Finding scenario…",
       "stepPrefixes": {
         "step1": "Step 1",

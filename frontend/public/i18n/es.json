@@ -104,6 +104,8 @@
         "costsAndTradeoffs": "Costos y compensaciones"
       },
       "conditional": "Condicional",
+      "unavailableInfoLabel": "Por que esta metrica no esta disponible",
+      "unavailableTooltip": "No disponible por ahora: esta metrica necesita una capa de datos adicional que aun no se ha entregado.",
       "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climaticos.",
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
       "nationalAnchor": {
@@ -234,6 +236,21 @@
       },
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
+      "scopeBar": {
+        "label": "Alcance de soluciones",
+        "nacional": "Nacional",
+        "sirap": "SIRAP",
+        "selectRegion": "— Seleccionar región SIRAP —",
+        "regionalBadge": "Soluciones regionales",
+        "regions": {
+          "caribe": "SIRAP Caribe",
+          "pacifico": "SIRAP Pacífico",
+          "andesOccidentales": "SIRAP Andes Occidentales",
+          "andesNororientales": "SIRAP Andes Nororientales",
+          "orinoquia": "SIRAP Orinoquía",
+          "amazonia": "SIRAP Amazonía"
+        }
+      },
       "loading": "Buscando escenario…",
       "stepPrefixes": {
         "step1": "Paso 1",
