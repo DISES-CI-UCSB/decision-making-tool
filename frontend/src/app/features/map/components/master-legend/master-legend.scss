@@ -1,0 +1,7 @@
+/* Progressive enhancement for optical vertical alignment of all-caps heading text. */
+@supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
+  #master-legend-title.master-legend-heading-trim {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+  }
+}
