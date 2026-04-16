@@ -30,7 +30,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
           <button
             id="dev-tools-toggle-btn"
             type="button"
-            class="rounded-md border border-slate-300 bg-white/95 px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+            class="inline-flex min-h-8 items-center rounded-md border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100"
             (click)="isOpen.set(!isOpen())"
           >
             {{ isOpen() ? 'Close DevTools' : 'DevTools' }}
