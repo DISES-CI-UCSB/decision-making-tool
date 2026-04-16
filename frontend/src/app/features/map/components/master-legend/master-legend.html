@@ -14,7 +14,7 @@
         id="master-legend-title"
         class="master-legend-heading-trim flex-1 text-xs font-bold uppercase tracking-wide text-slate-900 leading-none"
       >
-        Master Legend
+        Legend
       </h3>
       <svg
         id="master-legend-chevron"
@@ -32,193 +32,191 @@
       </svg>
     </button>
 
-    @if (!collapsed()) {
-      <div id="master-legend-content" class="divide-y divide-slate-100">
-        @if (loaded(); as sol) {
-          <section id="master-legend-solution-section" class="space-y-1.5 px-3 py-2">
-            <div id="master-legend-solution-header" class="flex items-baseline gap-2">
-              <p
-                id="master-legend-solution-section-title"
-                class="text-sm font-semibold text-slate-500"
-              >
-                {{ legendText.activeScenarioLabel }}
-              </p>
-              @if (shouldShowActiveScenarioName()) {
-                <p
-                  id="master-legend-solution-name"
-                  class="truncate text-sm font-medium text-slate-500"
-                >
-                  {{ isComparing() ? 'Comparison' : sol.scenario.name }}
-                </p>
-              }
-            </div>
-
-            @if (!isComparing()) {
-              <ul
-                id="master-legend-solution-items-single"
-                class="space-y-1.5 text-xs text-slate-700"
-              >
-                <li id="master-legend-solution-selected-item" class="flex items-center gap-2">
-                  <span
-                    id="master-legend-solution-selected-swatch"
-                    class="inline-block h-3 w-3 rounded-[3px]"
-                    style="background-color: rgba(22, 163, 74, 0.7)"
-                  ></span>
-                  Selected ({{ sol.rasterMeta.selectedPct.toFixed(1) }}%)
-                </li>
-                <li id="master-legend-solution-not-selected-item" class="flex items-center gap-2">
-                  <span
-                    id="master-legend-solution-not-selected-swatch"
-                    class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
-                    style="background-color: transparent"
-                  ></span>
-                  Not selected
-                </li>
-              </ul>
-            } @else if (comparisonMode() === 'threeColorOverlay') {
-              <ul
-                id="master-legend-solution-items-three-color"
-                class="space-y-1.5 text-xs text-slate-700"
-              >
-                <li
-                  id="master-legend-solution-baseline-item-three-color"
-                  class="flex items-center gap-2"
-                >
-                  <span
-                    id="master-legend-solution-baseline-swatch-three-color"
-                    class="inline-block h-3 w-5 rounded-sm"
-                    [style.background-color]="baselineColor()"
-                    [style.opacity]="baselineOpacity()"
-                  ></span>
-                  A only: {{ baselineName() }}
-                </li>
-                <li
-                  id="master-legend-solution-candidate-item-three-color"
-                  class="flex items-center gap-2"
-                >
-                  <span
-                    id="master-legend-solution-candidate-swatch-three-color"
-                    class="inline-block h-3 w-5 rounded-sm"
-                    [style.background-color]="candidateColor()"
-                    [style.opacity]="candidateOpacity()"
-                  ></span>
-                  B only: {{ candidateName() }}
-                </li>
-                <li
-                  id="master-legend-solution-overlap-item-three-color"
-                  class="flex items-center gap-2"
-                >
-                  <span
-                    id="master-legend-solution-overlap-swatch-three-color"
-                    class="inline-block h-3 w-5 rounded-sm"
-                    [style.background-color]="overlapColor()"
-                    [style.opacity]="overlapOpacity()"
-                  ></span>
-                  Overlap (A + B)
-                </li>
-              </ul>
-            } @else if (comparisonMode() === 'twoColorOpacity') {
-              <ul
-                id="master-legend-solution-items-two-color"
-                class="space-y-1.5 text-xs text-slate-700"
-              >
-                <li
-                  id="master-legend-solution-baseline-item-two-color"
-                  class="flex items-center gap-2"
-                >
-                  <span
-                    id="master-legend-solution-baseline-swatch-two-color"
-                    class="inline-block h-3 w-5 rounded-sm"
-                    [style.background-color]="baselineColor()"
-                    [style.opacity]="baselineOpacity()"
-                  ></span>
-                  Scenario A: {{ baselineName() }} ({{ baselineOpacityPercent() }}%)
-                </li>
-                <li
-                  id="master-legend-solution-candidate-item-two-color"
-                  class="flex items-center gap-2"
-                >
-                  <span
-                    id="master-legend-solution-candidate-swatch-two-color"
-                    class="inline-block h-3 w-5 rounded-sm"
-                    [style.background-color]="candidateColor()"
-                    [style.opacity]="candidateOpacity()"
-                  ></span>
-                  Scenario B: {{ candidateName() }} ({{ candidateOpacityPercent() }}%)
-                </li>
-              </ul>
-            } @else {
-              <ul
-                id="master-legend-solution-items-swipe"
-                class="space-y-1.5 text-xs text-slate-700"
-              >
-                <li id="master-legend-solution-baseline-item-swipe" class="flex items-center gap-2">
-                  <span
-                    id="master-legend-solution-baseline-swatch-swipe"
-                    class="inline-block h-3 w-5 rounded-sm"
-                    [style.background-color]="baselineColor()"
-                    [style.opacity]="baselineOpacity()"
-                  ></span>
-                  Left side: {{ baselineName() }}
-                </li>
-                <li
-                  id="master-legend-solution-candidate-item-swipe"
-                  class="flex items-center gap-2"
-                >
-                  <span
-                    id="master-legend-solution-candidate-swatch-swipe"
-                    class="inline-block h-3 w-5 rounded-sm"
-                    [style.background-color]="candidateColor()"
-                    [style.opacity]="candidateOpacity()"
-                  ></span>
-                  Right side: {{ candidateName() }}
-                </li>
-              </ul>
-            }
-          </section>
-        }
-
-        @if (selectedLayerEntries().length > 0) {
-          <section id="master-legend-layer-section" class="space-y-1.5 px-3 py-2">
-            <p id="master-legend-layer-section-title" class="text-sm font-semibold text-slate-500">
-              {{ legendText.otherSelectedLayersLabel }} ({{ selectedLayerEntries().length }})
+    <div
+      id="master-legend-content"
+      class="master-legend-content overflow-hidden divide-y divide-slate-100"
+      [class.master-legend-content-collapsed]="collapsed()"
+      [class.master-legend-content-expanded]="!collapsed()"
+      [attr.aria-hidden]="collapsed()"
+    >
+      @if (loaded(); as sol) {
+        <section id="master-legend-solution-section" class="space-y-1.5 px-3 py-2">
+          <div id="master-legend-solution-header" class="flex items-baseline gap-2">
+            <p
+              id="master-legend-solution-section-title"
+              class="master-legend-section-label text-sm font-semibold"
+            >
+              {{ legendText.activeScenarioLabel }}
             </p>
-            <ul id="master-legend-layer-list" class="space-y-1.5 text-xs text-slate-700">
-              @for (entry of selectedLayerEntries(); track entry.id) {
-                <li [id]="'master-legend-layer-entry-' + entry.id" class="flex items-center gap-2">
-                  @if (entry.swatchType === 'line') {
-                    <span
-                      [id]="'master-legend-layer-line-swatch-' + entry.id"
-                      class="inline-block h-0 w-5"
-                      [style.border-top-style]="entry.lineStyle"
-                      [style.border-top-color]="entry.color"
-                      [style.border-top-width.px]="entry.lineWidth"
-                    ></span>
-                  } @else if (entry.swatchType === 'gradient') {
-                    <span
-                      [id]="'master-legend-layer-gradient-swatch-' + entry.id"
-                      class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
-                      style="background-image: linear-gradient(to right, #dbeafe, #f97316, #7f1d1d)"
-                    ></span>
-                  } @else {
-                    <span
-                      [id]="'master-legend-layer-fill-swatch-' + entry.id"
-                      class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
-                      [style.background-color]="entry.color"
-                    ></span>
-                  }
-                  <span
-                    [id]="'master-legend-layer-name-' + entry.id"
-                    class="min-w-0 flex-1 wrap-break-word"
-                  >
-                    {{ entry.name }}
-                  </span>
-                </li>
-              }
+            @if (shouldShowActiveScenarioName()) {
+              <p
+                id="master-legend-solution-name"
+                class="truncate text-sm font-medium text-slate-500"
+              >
+                {{ isComparing() ? 'Comparison' : sol.scenario.name }}
+              </p>
+            }
+          </div>
+
+          @if (!isComparing()) {
+            <ul id="master-legend-solution-items-single" class="space-y-1.5 text-xs text-slate-700">
+              <li id="master-legend-solution-selected-item" class="flex items-center gap-2">
+                <span
+                  id="master-legend-solution-selected-swatch"
+                  class="inline-block h-3 w-3 rounded-[3px]"
+                  style="background-color: rgba(22, 163, 74, 0.7)"
+                ></span>
+                Selected ({{ sol.rasterMeta.selectedPct.toFixed(1) }}%)
+              </li>
+              <li id="master-legend-solution-not-selected-item" class="flex items-center gap-2">
+                <span
+                  id="master-legend-solution-not-selected-swatch"
+                  class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
+                  style="background-color: transparent"
+                ></span>
+                Not selected
+              </li>
             </ul>
-          </section>
-        }
-      </div>
-    }
+          } @else if (comparisonMode() === 'threeColorOverlay') {
+            <ul
+              id="master-legend-solution-items-three-color"
+              class="space-y-1.5 text-xs text-slate-700"
+            >
+              <li
+                id="master-legend-solution-baseline-item-three-color"
+                class="flex items-center gap-2"
+              >
+                <span
+                  id="master-legend-solution-baseline-swatch-three-color"
+                  class="inline-block h-3 w-5 rounded-sm"
+                  [style.background-color]="baselineColor()"
+                  [style.opacity]="baselineOpacity()"
+                ></span>
+                A only: {{ baselineName() }}
+              </li>
+              <li
+                id="master-legend-solution-candidate-item-three-color"
+                class="flex items-center gap-2"
+              >
+                <span
+                  id="master-legend-solution-candidate-swatch-three-color"
+                  class="inline-block h-3 w-5 rounded-sm"
+                  [style.background-color]="candidateColor()"
+                  [style.opacity]="candidateOpacity()"
+                ></span>
+                B only: {{ candidateName() }}
+              </li>
+              <li
+                id="master-legend-solution-overlap-item-three-color"
+                class="flex items-center gap-2"
+              >
+                <span
+                  id="master-legend-solution-overlap-swatch-three-color"
+                  class="inline-block h-3 w-5 rounded-sm"
+                  [style.background-color]="overlapColor()"
+                  [style.opacity]="overlapOpacity()"
+                ></span>
+                Overlap (A + B)
+              </li>
+            </ul>
+          } @else if (comparisonMode() === 'twoColorOpacity') {
+            <ul
+              id="master-legend-solution-items-two-color"
+              class="space-y-1.5 text-xs text-slate-700"
+            >
+              <li
+                id="master-legend-solution-baseline-item-two-color"
+                class="flex items-center gap-2"
+              >
+                <span
+                  id="master-legend-solution-baseline-swatch-two-color"
+                  class="inline-block h-3 w-5 rounded-sm"
+                  [style.background-color]="baselineColor()"
+                  [style.opacity]="baselineOpacity()"
+                ></span>
+                Scenario A: {{ baselineName() }} ({{ baselineOpacityPercent() }}%)
+              </li>
+              <li
+                id="master-legend-solution-candidate-item-two-color"
+                class="flex items-center gap-2"
+              >
+                <span
+                  id="master-legend-solution-candidate-swatch-two-color"
+                  class="inline-block h-3 w-5 rounded-sm"
+                  [style.background-color]="candidateColor()"
+                  [style.opacity]="candidateOpacity()"
+                ></span>
+                Scenario B: {{ candidateName() }} ({{ candidateOpacityPercent() }}%)
+              </li>
+            </ul>
+          } @else {
+            <ul id="master-legend-solution-items-swipe" class="space-y-1.5 text-xs text-slate-700">
+              <li id="master-legend-solution-baseline-item-swipe" class="flex items-center gap-2">
+                <span
+                  id="master-legend-solution-baseline-swatch-swipe"
+                  class="inline-block h-3 w-5 rounded-sm"
+                  [style.background-color]="baselineColor()"
+                  [style.opacity]="baselineOpacity()"
+                ></span>
+                Left side: {{ baselineName() }}
+              </li>
+              <li id="master-legend-solution-candidate-item-swipe" class="flex items-center gap-2">
+                <span
+                  id="master-legend-solution-candidate-swatch-swipe"
+                  class="inline-block h-3 w-5 rounded-sm"
+                  [style.background-color]="candidateColor()"
+                  [style.opacity]="candidateOpacity()"
+                ></span>
+                Right side: {{ candidateName() }}
+              </li>
+            </ul>
+          }
+        </section>
+      }
+
+      @if (selectedLayerEntries().length > 0) {
+        <section id="master-legend-layer-section" class="space-y-1.5 px-3 py-2">
+          <p
+            id="master-legend-layer-section-title"
+            class="master-legend-section-label text-sm font-semibold"
+          >
+            {{ legendText.otherSelectedLayersLabel }} ({{ selectedLayerEntries().length }})
+          </p>
+          <ul id="master-legend-layer-list" class="space-y-1.5 text-xs text-slate-700">
+            @for (entry of selectedLayerEntries(); track entry.id) {
+              <li [id]="'master-legend-layer-entry-' + entry.id" class="flex items-center gap-2">
+                @if (entry.swatchType === 'line') {
+                  <span
+                    [id]="'master-legend-layer-line-swatch-' + entry.id"
+                    class="inline-block h-0 w-5"
+                    [style.border-top-style]="entry.lineStyle"
+                    [style.border-top-color]="entry.color"
+                    [style.border-top-width.px]="entry.lineWidth"
+                  ></span>
+                } @else if (entry.swatchType === 'gradient') {
+                  <span
+                    [id]="'master-legend-layer-gradient-swatch-' + entry.id"
+                    class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
+                    style="background-image: linear-gradient(to right, #dbeafe, #f97316, #7f1d1d)"
+                  ></span>
+                } @else {
+                  <span
+                    [id]="'master-legend-layer-fill-swatch-' + entry.id"
+                    class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
+                    [style.background-color]="entry.color"
+                  ></span>
+                }
+                <span
+                  [id]="'master-legend-layer-name-' + entry.id"
+                  class="min-w-0 flex-1 wrap-break-word"
+                >
+                  {{ entry.name }}
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
   </section>
 }

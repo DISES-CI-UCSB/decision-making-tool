@@ -5,3 +5,25 @@
     text-box-edge: cap alphabetic;
   }
 }
+
+/* Match sidebar SIRAP tone with explicit fallback + oklch target. */
+.master-legend-section-label {
+  color: #1f2937;
+  color: oklch(0.279 0.041 260.031);
+}
+
+.master-legend-content {
+  transition:
+    max-height 220ms ease,
+    opacity 180ms ease;
+}
+
+.master-legend-content-expanded {
+  max-height: 38rem;
+  opacity: 1;
+}
+
+.master-legend-content-collapsed {
+  max-height: 0;
+  opacity: 0;
+}
