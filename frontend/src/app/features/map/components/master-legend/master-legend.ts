@@ -1,46 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { type LayerConfig } from '@core/models';
-import { AppStateService } from '@core/services/app-state.service';
-import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
+import { UI_TEXT_TOKENS } from '@core/config/ui-text-tokens';
+import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
-
-type LayerLegendSwatchType = 'fill' | 'line' | 'gradient';
-
-interface LayerLegendEntry {
-  id: string;
-  name: string;
-  swatchType: LayerLegendSwatchType;
-  color: string;
-  lineStyle: 'solid' | 'dashed';
-  lineWidth: number;
-}
-
-const BOUNDARY_LAYER_ENTRIES: Record<
-  string,
-  Omit<LayerLegendEntry, 'id' | 'swatchType'> & { swatchType?: LayerLegendSwatchType }
-> = {
-  sirap: {
-    name: 'SIRAP Regions',
-    swatchType: 'line',
-    lineStyle: 'dashed',
-    color: '#111827',
-    lineWidth: 2,
-  },
-  department: {
-    name: 'Departments',
-    swatchType: 'line',
-    lineStyle: 'solid',
-    color: '#111827',
-    lineWidth: 1,
-  },
-  municipality: {
-    name: 'Municipalities',
-    swatchType: 'line',
-    lineStyle: 'solid',
-    color: '#111827',
-    lineWidth: 1,
-  },
-};
 
 @Component({
   selector: 'app-master-legend',
@@ -49,24 +10,24 @@ const BOUNDARY_LAYER_ENTRIES: Record<
     @if (hasLegendContent()) {
       <section
         id="master-legend-panel"
-        class="pointer-events-auto max-w-80 rounded-md border border-slate-200 bg-white/95 shadow-sm"
+        class="pointer-events-auto max-w-80 overflow-hidden rounded-lg border border-slate-300 bg-white shadow-md"
       >
         <button
           id="master-legend-toggle"
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left"
+          class="flex w-full items-center gap-2 border-b border-slate-200 px-3 py-2 text-left"
           [attr.aria-expanded]="!collapsed()"
           (click)="toggleCollapsed()"
         >
           <h3
             id="master-legend-title"
-            class="flex-1 text-xs font-semibold uppercase tracking-wide text-slate-500"
+            class="master-legend-heading-trim flex-1 text-xs font-semibold uppercase tracking-wide text-slate-500 leading-none"
           >
-            Map Legend
+            Master Legend
           </h3>
           <svg
             id="master-legend-chevron"
-            class="h-3 w-3 text-slate-400 transition-transform"
+            class="h-3 w-3 text-slate-400 transition-transform duration-200"
             [class.rotate-180]="collapsed()"
             viewBox="0 0 12 12"
             fill="none"
@@ -81,12 +42,26 @@ const BOUNDARY_LAYER_ENTRIES: Record<
         </button>
 
         @if (!collapsed()) {
-          <div id="master-legend-content" class="space-y-3 px-3 pb-3">
+          <div id="master-legend-content" class="divide-y divide-slate-100">
             @if (loaded(); as sol) {
-              <section id="master-legend-solution-section" class="space-y-1.5">
-                <p id="master-legend-solution-name" class="text-xs font-semibold text-slate-700">
-                  {{ isComparing() ? 'Comparison' : sol.scenario.name }}
-                </p>
+              <section id="master-legend-solution-section" class="space-y-1.5 px-3 py-2">
+                <div
+                  id="master-legend-solution-header"
+                  class="flex items-baseline justify-between gap-2"
+                >
+                  <p
+                    id="master-legend-solution-section-title"
+                    class="text-sm font-semibold text-slate-500"
+                  >
+                    {{ legendText.activeScenarioLabel }}
+                  </p>
+                  <p
+                    id="master-legend-solution-name"
+                    class="truncate text-sm font-medium text-slate-500"
+                  >
+                    {{ isComparing() ? 'Comparison' : sol.scenario.name }}
+                  </p>
+                </div>
 
                 @if (!isComparing()) {
                   <ul
@@ -96,7 +71,7 @@ const BOUNDARY_LAYER_ENTRIES: Record<
                     <li id="master-legend-solution-selected-item" class="flex items-center gap-2">
                       <span
                         id="master-legend-solution-selected-swatch"
-                        class="inline-block h-3 w-5 rounded-sm"
+                        class="inline-block h-3 w-3 rounded-[3px]"
                         style="background-color: rgba(22,163,74,0.7);"
                       ></span>
                       Selected ({{ sol.rasterMeta.selectedPct.toFixed(1) }}%)
@@ -107,7 +82,7 @@ const BOUNDARY_LAYER_ENTRIES: Record<
                     >
                       <span
                         id="master-legend-solution-not-selected-swatch"
-                        class="inline-block h-3 w-5 rounded-sm border border-slate-300"
+                        class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
                         style="background-color: transparent;"
                       ></span>
                       Not selected
@@ -220,12 +195,12 @@ const BOUNDARY_LAYER_ENTRIES: Record<
             }
 
             @if (selectedLayerEntries().length > 0) {
-              <section id="master-legend-layer-section" class="space-y-1.5">
+              <section id="master-legend-layer-section" class="space-y-1.5 px-3 py-2">
                 <p
                   id="master-legend-layer-section-title"
-                  class="text-xs font-semibold text-slate-700"
+                  class="text-sm font-semibold text-slate-500"
                 >
-                  Selected layers
+                  {{ legendText.otherSelectedLayersLabel }} ({{ selectedLayerEntries().length }})
                 </p>
                 <ul id="master-legend-layer-list" class="space-y-1.5 text-xs text-slate-700">
                   @for (entry of selectedLayerEntries(); track entry.id) {
@@ -244,13 +219,13 @@ const BOUNDARY_LAYER_ENTRIES: Record<
                       } @else if (entry.swatchType === 'gradient') {
                         <span
                           [id]="'master-legend-layer-gradient-swatch-' + entry.id"
-                          class="inline-block h-3 w-5 rounded-sm border border-slate-300"
+                          class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
                           style="background-image: linear-gradient(to right, #dbeafe, #f97316, #7f1d1d);"
                         ></span>
                       } @else {
                         <span
                           [id]="'master-legend-layer-fill-swatch-' + entry.id"
-                          class="inline-block h-3 w-5 rounded-sm border border-slate-300"
+                          class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
                           [style.background-color]="entry.color"
                         ></span>
                       }
@@ -265,10 +240,19 @@ const BOUNDARY_LAYER_ENTRIES: Record<
       </section>
     }
   `,
+  styles: `
+    /* Progressive enhancement for optical vertical alignment of all-caps heading text. */
+    @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
+      #master-legend-title.master-legend-heading-trim {
+        text-box-trim: trim-both;
+        text-box-edge: cap alphabetic;
+      }
+    }
+  `,
 })
 export class MasterLegendComponent {
+  protected readonly legendText = UI_TEXT_TOKENS.mapLegend;
   private readonly appState = inject(AppStateService);
-  private readonly adminBoundary = inject(AdminBoundaryService);
   private readonly solutionLayer = inject(SolutionLayerService);
 
   readonly collapsed = signal(false);
@@ -293,11 +277,9 @@ export class MasterLegendComponent {
   readonly baselineOpacityPercent = computed(() => Math.round(this.baselineOpacity() * 100));
   readonly candidateOpacityPercent = computed(() => Math.round(this.candidateOpacity() * 100));
 
-  readonly selectedLayerEntries = computed<LayerLegendEntry[]>(() => {
-    const boundaryEntries = this.getVisibleBoundaryEntries();
-    const appLayerEntries = this.getVisibleAppLayerEntries();
-    return [...boundaryEntries, ...appLayerEntries];
-  });
+  readonly selectedLayerEntries = computed<MapLegendLayerEntry[]>(() =>
+    this.appState.selectedLegendLayers$(),
+  );
 
   readonly hasLegendContent = computed(() => {
     return this.loaded() !== null || this.selectedLayerEntries().length > 0;
@@ -305,84 +287,5 @@ export class MasterLegendComponent {
 
   protected toggleCollapsed(): void {
     this.collapsed.update((value) => !value);
-  }
-
-  private getVisibleBoundaryEntries(): LayerLegendEntry[] {
-    const visibility = this.adminBoundary.layerVisibilityByType$();
-    const entries: LayerLegendEntry[] = [];
-    for (const [type, isVisible] of Object.entries(visibility)) {
-      if (!isVisible) {
-        continue;
-      }
-      const meta = BOUNDARY_LAYER_ENTRIES[type];
-      if (!meta) {
-        continue;
-      }
-      entries.push({
-        id: `boundary-${type}`,
-        name: meta.name,
-        swatchType: meta.swatchType ?? 'line',
-        color: meta.color,
-        lineStyle: meta.lineStyle,
-        lineWidth: meta.lineWidth,
-      });
-    }
-    return entries;
-  }
-
-  private getVisibleAppLayerEntries(): LayerLegendEntry[] {
-    const visibleLayers = this.appState.visibleLayers$().filter((layer) => layer.visible);
-    return visibleLayers.map((layer) => this.toLegendEntry(layer));
-  }
-
-  private toLegendEntry(layer: LayerConfig): LayerLegendEntry {
-    const style = this.getSymbologyStyle(layer);
-    const color = this.getSymbologyColor(layer);
-    if (style === 'outline') {
-      return {
-        id: `app-layer-${layer.id}`,
-        name: layer.name,
-        swatchType: 'line',
-        color,
-        lineStyle: 'solid',
-        lineWidth: 2,
-      };
-    }
-    if (style === 'heatmap') {
-      return {
-        id: `app-layer-${layer.id}`,
-        name: layer.name,
-        swatchType: 'gradient',
-        color,
-        lineStyle: 'solid',
-        lineWidth: 1,
-      };
-    }
-    return {
-      id: `app-layer-${layer.id}`,
-      name: layer.name,
-      swatchType: 'fill',
-      color,
-      lineStyle: 'solid',
-      lineWidth: 1,
-    };
-  }
-
-  private getSymbologyStyle(layer: LayerConfig): string {
-    const symbology = layer.symbology;
-    if (!symbology || typeof symbology !== 'object') {
-      return 'fill';
-    }
-    const style = symbology['style'];
-    return typeof style === 'string' ? style : 'fill';
-  }
-
-  private getSymbologyColor(layer: LayerConfig): string {
-    const symbology = layer.symbology;
-    if (!symbology || typeof symbology !== 'object') {
-      return '#64748b';
-    }
-    const color = symbology['color'];
-    return typeof color === 'string' ? color : '#64748b';
   }
 }

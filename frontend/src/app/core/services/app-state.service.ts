@@ -6,6 +6,16 @@ import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/model
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
 export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity' | 'swipe';
+export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
+
+export interface MapLegendLayerEntry {
+  id: string;
+  name: string;
+  swatchType: MapLegendLayerSwatchType;
+  color: string;
+  lineStyle: 'solid' | 'dashed';
+  lineWidth: number;
+}
 
 /** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */
 export type SelectSolutionButtonHoverFxMode =
@@ -47,6 +57,7 @@ export class AppStateService {
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
   readonly userTier$ = signal<UserTier>(UserTier.Public);
   readonly mapExtent$ = signal<Extent | null>(null);
+  readonly selectedLegendLayers$ = signal<MapLegendLayerEntry[]>([]);
   readonly selectSolutionButtonHoverFx$ = signal<SelectSolutionButtonHoverFxMode>(
     readStoredSelectSolutionHoverFx(),
   );
@@ -94,6 +105,10 @@ export class AppStateService {
 
   setComparisonVisualizationMode(mode: ComparisonVisualizationMode): void {
     this.comparisonVisualizationMode$.set(mode);
+  }
+
+  setSelectedLegendLayers(entries: MapLegendLayerEntry[]): void {
+    this.selectedLegendLayers$.set(entries);
   }
 
   setFillDummyOverviewMetrics(enabled: boolean): void {

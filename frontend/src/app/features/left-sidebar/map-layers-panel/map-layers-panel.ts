@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 
 import { type AoiType } from '@core/models';
-import { AppStateService } from '@core/services/app-state.service';
+import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 
@@ -93,6 +93,14 @@ const SINGLE_SOLUTION_COLOR = '#16a34a';
 const COMPARISON_BASELINE_COLOR = '#1e6fa8';
 const COMPARISON_CANDIDATE_COLOR = '#7c3aed';
 const COMPARISON_OVERLAP_COLOR = '#ec4899';
+const LEGEND_BOUNDARY_STYLES: Record<
+  AoiType,
+  { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
+> = {
+  sirap: { lineStyle: 'dashed', lineWidth: 2, color: '#111827' },
+  department: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
+  municipality: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
+};
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Component({
@@ -244,6 +252,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       untracked(() => {
         this.syncSelectedLayerStackingToMap(order, overlays);
       });
+    });
+
+    effect(() => {
+      const entries = this.buildMasterLegendLayerEntries();
+      untracked(() => this.appState.setSelectedLegendLayers(entries));
     });
 
     // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
@@ -1432,6 +1445,109 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     return orderedSelectedRows;
+  }
+
+  private buildMasterLegendLayerEntries(): MapLegendLayerEntry[] {
+    const overlays = this.overlays();
+    const groups = this.groups();
+    const taxa = this.taxa();
+    const order = this.selectedLayerOrder();
+    const entryLookup = new Map<string, MapLegendLayerEntry>();
+
+    for (const row of overlays) {
+      if (!row.selected || this.isSolutionLayerRow(row)) {
+        continue;
+      }
+      entryLookup.set(row.id, this.toMasterLegendLayerEntry(row));
+    }
+
+    for (const group of groups) {
+      for (const row of group.rows) {
+        if (!row.selected || this.isSolutionLayerRow(row)) {
+          continue;
+        }
+        entryLookup.set(row.id, this.toMasterLegendLayerEntry(row));
+      }
+    }
+
+    for (const taxon of taxa) {
+      if (taxon.selected) {
+        entryLookup.set(taxon.id, this.toMasterLegendLayerEntry(taxon));
+      }
+      for (const species of taxon.species) {
+        if (!species.selected) {
+          continue;
+        }
+        entryLookup.set(species.id, this.toMasterLegendLayerEntry(species));
+      }
+    }
+
+    const orderedEntries: MapLegendLayerEntry[] = [];
+    for (const rowId of order) {
+      const entry = entryLookup.get(rowId);
+      if (!entry) {
+        continue;
+      }
+      orderedEntries.push(entry);
+      entryLookup.delete(rowId);
+    }
+
+    for (const entry of entryLookup.values()) {
+      orderedEntries.push(entry);
+    }
+
+    return orderedEntries;
+  }
+
+  private toMasterLegendLayerEntry(row: LayerControlRow): MapLegendLayerEntry {
+    if (row.mapSync?.type === 'admin-boundary') {
+      const style = LEGEND_BOUNDARY_STYLES[row.mapSync.boundaryType];
+      return {
+        id: row.id,
+        name: row.name,
+        swatchType: 'line',
+        color: style.color,
+        lineStyle: style.lineStyle,
+        lineWidth: style.lineWidth,
+      };
+    }
+
+    if (this.isHumanFootprintLayerRow(row)) {
+      return {
+        id: row.id,
+        name: row.name,
+        swatchType: 'gradient',
+        color: row.color,
+        lineStyle: 'solid',
+        lineWidth: 1,
+      };
+    }
+
+    return {
+      id: row.id,
+      name: row.name,
+      swatchType: 'fill',
+      color: row.color || '#64748b',
+      lineStyle: 'solid',
+      lineWidth: 1,
+    };
+  }
+
+  private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
+    const normalizedName = row.name.trim().toLowerCase();
+    return normalizedName === 'human footprint';
+  }
+
+  private isSolutionLayerRow(row: LayerControlRow): boolean {
+    const mapType = row.mapSync?.type;
+    return (
+      row.id === BASELINE_SOLUTION_OVERLAY_ID ||
+      row.id === CANDIDATE_SOLUTION_OVERLAY_ID ||
+      row.id === OVERLAP_SOLUTION_OVERLAY_ID ||
+      mapType === 'solution-baseline' ||
+      mapType === 'solution-candidate' ||
+      mapType === 'solution-overlap'
+    );
   }
 
   private findGroupIdByRowId(rowId: string): string | undefined {
