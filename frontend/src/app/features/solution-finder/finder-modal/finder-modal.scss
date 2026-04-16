@@ -29,6 +29,15 @@
   color: var(--color-subtext);
 }
 
+.finder-step-lock-overlay {
+  /* Stronger neutral gray veil so locked steps are obviously unavailable. */
+  background-color: rgb(243 244 246 / 0.88);
+}
+
+.finder-step-lock-overlay-message {
+  color: #0f172a;
+}
+
 .finder-target-help-clamp {
   display: -webkit-box;
   line-clamp: 2;
@@ -109,11 +118,11 @@
 }
 
 .finder-target-level-choice-cue {
-  animation: finder-target-level-choice-pulse-primary 1.4s ease-in-out infinite;
+  animation: finder-target-level-choice-pulse-primary 2.4s ease-in-out infinite;
 }
 
 .finder-target-level-choice-cue-delayed {
-  animation: finder-target-level-choice-pulse-secondary 1.4s ease-in-out infinite;
+  animation: finder-target-level-choice-pulse-secondary 2.4s ease-in-out infinite;
 }
 
 /* Optical cap-height alignment against adjacent 17% / 30% buttons. */
@@ -126,11 +135,23 @@
 }
 
 @keyframes finder-target-level-choice-pulse-primary {
-  0%,
-  42% {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+  10% {
+    box-shadow: 0 0 0 0.4px rgba(245, 158, 11, 0.08);
+  }
+  18% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.18);
+  }
+  24%,
+  45% {
     box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.28);
   }
-  50%,
+  52% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.16);
+  }
+  58%,
   100% {
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
@@ -138,12 +159,33 @@
 
 @keyframes finder-target-level-choice-pulse-secondary {
   0%,
-  50% {
+  56% {
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
-  58%,
-  100% {
+  62% {
+    box-shadow: 0 0 0 0.4px rgba(245, 158, 11, 0.08);
+  }
+  70% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.18);
+  }
+  76%,
+  86.5% {
     box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.28);
+  }
+  91% {
+    box-shadow: 0 0 0 1.2px rgba(245, 158, 11, 0.2);
+  }
+  95% {
+    box-shadow: 0 0 0 0.8px rgba(245, 158, 11, 0.14);
+  }
+  98% {
+    box-shadow: 0 0 0 0.4px rgba(245, 158, 11, 0.08);
+  }
+  99.5% {
+    box-shadow: 0 0 0 0.2px rgba(245, 158, 11, 0.04);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
 }
 
