@@ -2,6 +2,97 @@
   id="solution-finder-modal-root"
   class="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50"
 >
+  @if (showScopeBar()) {
+    <div
+      id="solution-finder-modal-scope-bar"
+      class="flex items-center gap-4 border-b border-slate-200 bg-white/80 px-6 py-2.5"
+    >
+      <span
+        id="solution-finder-modal-scope-bar-label"
+        class="text-xs font-semibold uppercase tracking-widest text-slate-500"
+      >
+        {{ 'solutionControls.finder.scopeBar.label' | translate }}
+      </span>
+      <div
+        id="solution-finder-modal-scope-bar-segments"
+        class="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+        role="radiogroup"
+        [attr.aria-label]="'solutionControls.finder.scopeBar.label' | translate"
+      >
+        <button
+          id="solution-finder-modal-scope-btn-nacional"
+          type="button"
+          class="finder-scope-segment rounded-md px-2.5 py-1.5 text-sm font-semibold outline-none focus:outline-none focus-visible:outline-none"
+          [class.bg-sky-600]="selectedScope === 'nacional'"
+          [class.text-white]="selectedScope === 'nacional'"
+          [class.shadow-sm]="selectedScope === 'nacional'"
+          [class.text-slate-600]="selectedScope !== 'nacional'"
+          [class.hover:bg-slate-100]="selectedScope !== 'nacional'"
+          role="radio"
+          [attr.aria-checked]="selectedScope === 'nacional'"
+          (click)="selectScope('nacional')"
+        >
+          <span
+            id="solution-finder-modal-scope-btn-nacional-label"
+            class="finder-scope-segment-label"
+          >
+            {{ 'solutionControls.finder.scopeBar.nacional' | translate }}
+          </span>
+        </button>
+        <button
+          id="solution-finder-modal-scope-btn-sirap"
+          type="button"
+          class="finder-scope-segment rounded-md px-2.5 py-1.5 text-sm font-semibold outline-none focus:outline-none focus-visible:outline-none"
+          [class.bg-sky-600]="selectedScope === 'sirap'"
+          [class.text-white]="selectedScope === 'sirap'"
+          [class.shadow-sm]="selectedScope === 'sirap'"
+          [class.text-slate-600]="selectedScope !== 'sirap'"
+          [class.hover:bg-slate-100]="selectedScope !== 'sirap'"
+          role="radio"
+          [attr.aria-checked]="selectedScope === 'sirap'"
+          (click)="selectScope('sirap')"
+        >
+          <span id="solution-finder-modal-scope-btn-sirap-label" class="finder-scope-segment-label">
+            {{ 'solutionControls.finder.scopeBar.sirap' | translate }}
+          </span>
+        </button>
+      </div>
+      @if (selectedScope === 'sirap') {
+        <div
+          id="solution-finder-modal-scope-bar-sirap-region-picker"
+          class="flex items-center gap-2"
+        >
+          <select
+            id="solution-finder-modal-scope-bar-sirap-region-select"
+            class="finder-scope-region-select h-7 rounded-md border border-slate-200 bg-white py-0 pl-2.5 pr-7 text-sm font-semibold text-slate-700 outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+            [value]="selectedSirapRegion ?? ''"
+            (change)="selectSirapRegion($event)"
+          >
+            <option id="solution-finder-modal-scope-bar-sirap-region-placeholder" value="">
+              {{ 'solutionControls.finder.scopeBar.selectRegion' | translate }}
+            </option>
+            @for (region of sirapRegions; track region.id) {
+              <option
+                [id]="'solution-finder-modal-scope-bar-sirap-region-' + region.id"
+                [value]="region.id"
+              >
+                {{ region.labelKey | translate }}
+              </option>
+            }
+          </select>
+          @if (selectedSirapRegion) {
+            <span
+              id="solution-finder-modal-scope-bar-sirap-badge"
+              class="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
+            >
+              {{ 'solutionControls.finder.scopeBar.regionalBadge' | translate }}
+            </span>
+          }
+        </div>
+      }
+    </div>
+  }
+
   <section
     id="solution-finder-modal-workflow-body"
     class="finder-modal-scrollbar grid min-h-0 flex-1 items-stretch gap-4 overflow-y-auto p-4 lg:grid-cols-12 lg:p-6"
@@ -838,7 +929,7 @@
         <button
           id="solution-finder-modal-apply-button"
           type="button"
-          class="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
+          class="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
           [disabled]="!canApplyScenario()"
           (click)="applySelectedScenario()"
         >

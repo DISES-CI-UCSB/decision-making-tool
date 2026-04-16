@@ -234,6 +234,21 @@
       },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
+      "scopeBar": {
+        "label": "Solution scope",
+        "nacional": "Nacional",
+        "sirap": "SIRAP",
+        "selectRegion": "— Select SIRAP region —",
+        "regionalBadge": "Regional solutions",
+        "regions": {
+          "caribe": "SIRAP Caribe",
+          "pacifico": "SIRAP Pacífico",
+          "andesOccidentales": "SIRAP Andes Occidentales",
+          "andesNororientales": "SIRAP Andes Nororientales",
+          "orinoquia": "SIRAP Orinoquía",
+          "amazonia": "SIRAP Amazonía"
+        }
+      },
       "loading": "Finding scenario…",
       "stepPrefixes": {
         "step1": "Step 1",

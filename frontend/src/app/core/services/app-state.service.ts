@@ -43,6 +43,7 @@ export class AppStateService {
   readonly fillDummyComparisonMetrics$ = signal(true);
   readonly fillDummyAoiMetrics$ = signal(true);
   readonly showFinderScenarioFilenames$ = signal(false);
+  readonly showFinderScopeBar$ = signal(false);
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -111,6 +112,10 @@ export class AppStateService {
 
   setShowFinderScenarioFilenames(enabled: boolean): void {
     this.showFinderScenarioFilenames$.set(enabled);
+  }
+
+  setShowFinderScopeBar(enabled: boolean): void {
+    this.showFinderScopeBar$.set(enabled);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {

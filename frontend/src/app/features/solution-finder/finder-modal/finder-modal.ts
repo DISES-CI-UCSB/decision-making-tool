@@ -30,6 +30,20 @@ type FinderTargetType =
 
 type CostLayerChoice = 'human-footprint' | 'carbon-opportunity' | 'conflict';
 
+type SirapRegionId =
+  | 'caribe'
+  | 'pacifico'
+  | 'andes-occidentales'
+  | 'andes-nororientales'
+  | 'orinoquia'
+  | 'amazonia';
+
+interface SirapRegionOption {
+  id: SirapRegionId;
+  labelKey: string;
+  departments: string;
+}
+
 interface TargetTypeOption {
   id: FinderTargetType;
   labelKey: string;
@@ -107,6 +121,44 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected readonly scenarioLibrary: SolutionScenario[] = this.solutionCatalog.getAll();
   protected readonly showScenarioFilenames = this.appState.showFinderScenarioFilenames$;
+  protected readonly showScopeBar = this.appState.showFinderScopeBar$;
+  protected selectedScope: 'nacional' | 'sirap' = 'nacional';
+  protected selectedSirapRegion: SirapRegionId | null = null;
+
+  protected readonly sirapRegions: readonly SirapRegionOption[] = [
+    {
+      id: 'caribe',
+      labelKey: 'solutionControls.finder.scopeBar.regions.caribe',
+      departments:
+        'La Guajira, Cesar, Magdalena, Atlántico, Córdoba, Sucre, Bolívar, San Andrés y Providencia',
+    },
+    {
+      id: 'pacifico',
+      labelKey: 'solutionControls.finder.scopeBar.regions.pacifico',
+      departments: 'Chocó, Cauca, Nariño, Valle del Cauca',
+    },
+    {
+      id: 'andes-occidentales',
+      labelKey: 'solutionControls.finder.scopeBar.regions.andesOccidentales',
+      departments:
+        'Antioquia, Caldas, Cauca, Huila, Nariño, Quindío, Risaralda, Tolima, Valle del Cauca',
+    },
+    {
+      id: 'andes-nororientales',
+      labelKey: 'solutionControls.finder.scopeBar.regions.andesNororientales',
+      departments: 'Santander, Norte de Santander, Boyacá, Cundinamarca',
+    },
+    {
+      id: 'orinoquia',
+      labelKey: 'solutionControls.finder.scopeBar.regions.orinoquia',
+      departments: 'Arauca, Meta, Vichada, Casanare',
+    },
+    {
+      id: 'amazonia',
+      labelKey: 'solutionControls.finder.scopeBar.regions.amazonia',
+      departments: 'Guainía, Guaviare, Vaupés, Putumayo, Amazonas, Caquetá',
+    },
+  ];
 
   /** Step 1 */
   protected selectedTargetTypeIds: FinderTargetType[] = [];
@@ -272,6 +324,19 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected onResultsMouseLeave(): void {
     this.hideScrollThumbAfterDelay(400);
+  }
+
+  protected selectScope(scope: 'nacional' | 'sirap'): void {
+    if (scope === this.selectedScope) return;
+    this.selectedScope = scope;
+    this.selectedSirapRegion = null;
+    this.resetSelections();
+  }
+
+  protected selectSirapRegion(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedSirapRegion = (value || null) as SirapRegionId | null;
+    this.resetSelections();
   }
 
   protected resetSelections(): void {
