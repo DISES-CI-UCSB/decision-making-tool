@@ -897,6 +897,18 @@ export class PanelSwitcherComponent {
     return this.overviewMetricBlueprints
       .filter((metric) => metric.section === section)
       .map((metric) => {
+        if (metric.conditional) {
+          return {
+            id: metric.id,
+            labelKey: metric.labelKey,
+            descriptionKey: metric.descriptionKey,
+            value: '--',
+            unit: '--',
+            conditional: true,
+            unavailable: true,
+          };
+        }
+
         const realMetric = metric.realMetricId ? metricsById.get(metric.realMetricId) : undefined;
         const realValueAvailable = realMetric?.status === 'ready' && realMetric.value !== null;
 
