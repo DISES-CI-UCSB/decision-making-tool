@@ -166,6 +166,48 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
             </div>
 
             <div
+              id="dev-tools-finder-filename-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <p id="dev-tools-finder-filename-toggle-label" class="text-[11px] text-slate-600">
+                Finder scenario filenames
+              </p>
+              <button
+                id="dev-tools-finder-filename-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleFinderScenarioFilenames()"
+              >
+                {{ showFinderScenarioFilenames() ? 'Hide filenames' : 'Show filenames' }}
+              </button>
+            </div>
+
+            <div
+              id="dev-tools-finder-scope-bar-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <div class="min-w-0 pr-2">
+                <p
+                  id="dev-tools-finder-scope-bar-toggle-label"
+                  class="text-[11px] font-semibold text-slate-700"
+                >
+                  Finder scope bar (Nacional / SIRAP)
+                </p>
+                <p class="text-[10px] leading-4 text-slate-500">
+                  Shows solution-scope toggle above Steps 1–3.
+                </p>
+              </div>
+              <button
+                id="dev-tools-finder-scope-bar-toggle-btn"
+                type="button"
+                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleFinderScopeBar()"
+              >
+                {{ showFinderScopeBar() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+
+            <div
               id="dev-tools-overview-dummy-toggle-row"
               class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
@@ -460,6 +502,8 @@ export class DevToolsPanelComponent {
   readonly chartPaletteOptions = CHART_PALETTE_IDS.map((id) => CHART_PALETTES[id]);
   readonly selectedChartPalette = computed(() => CHART_PALETTES[this.chartPaletteId()]);
   readonly selectSolutionButtonHoverFx = this.appState.selectSolutionButtonHoverFx$;
+  readonly showFinderScenarioFilenames = this.appState.showFinderScenarioFilenames$;
+  readonly showFinderScopeBar = this.appState.showFinderScopeBar$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
 
@@ -540,6 +584,14 @@ export class DevToolsPanelComponent {
 
   toggleOverviewMetricFill(): void {
     this.appState.setFillDummyOverviewMetrics(!this.fillDummyOverviewMetrics());
+  }
+
+  toggleFinderScenarioFilenames(): void {
+    this.appState.setShowFinderScenarioFilenames(!this.showFinderScenarioFilenames());
+  }
+
+  toggleFinderScopeBar(): void {
+    this.appState.setShowFinderScopeBar(!this.showFinderScopeBar());
   }
 
   toggleComparisonMetricFill(): void {
