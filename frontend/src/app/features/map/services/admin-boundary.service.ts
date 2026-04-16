@@ -93,7 +93,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
     url: '/data/sirap-regions.geojson',
     idFields: ['sirap'],
     nameFields: ['sirap'],
-    visible: true,
+    visible: false,
     opacity: 0.95,
     minScale: 0,
     maxScale: 0,
@@ -124,7 +124,7 @@ export class AdminBoundaryService {
   private lastSelectionCandidate: HitTestCandidate | null = null;
   private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
-    sirap: true,
+    sirap: false,
     department: false,
     municipality: false,
   };
@@ -195,6 +195,11 @@ export class AdminBoundaryService {
   }
 
   setLayerVisibility(type: AoiType, visible: boolean): void {
+    if (type === 'sirap' && visible && !this.appState.canAccessTier2()) {
+      this.layerVisibilityByType$.update((state) => ({ ...state, [type]: false }));
+      return;
+    }
+
     if (visible) {
       this.ensureLayersForType(type);
       if (this.unavailableBoundaryTypes.has(type)) {
@@ -334,6 +339,10 @@ export class AdminBoundaryService {
 
     const candidate = this.resolveCandidate(hit.results);
     if (!candidate) {
+      this.clearSelectionState();
+      return;
+    }
+    if (candidate.config.type === 'sirap' && !this.appState.canAccessTier2()) {
       this.clearSelectionState();
       return;
     }

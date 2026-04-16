@@ -526,13 +526,21 @@
                           [id]="'map-layers-boundary-selected-button-' + row.id"
                           type="button"
                           class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                          [class.cursor-not-allowed]="isAuthLockedRow(row)"
+                          [class.opacity-50]="isAuthLockedRow(row)"
                           [class.border-blue-200]="row.selected"
                           [class.bg-blue-50]="row.selected"
                           [class.text-blue-700]="row.selected"
                           [class.border-slate-200]="!row.selected"
                           [class.bg-white]="!row.selected"
                           [class.text-slate-600]="!row.selected"
+                          [attr.aria-label]="
+                            isAuthLockedRow(row)
+                              ? row.name + ' requires login to add'
+                              : (row.selected ? 'Remove ' : 'Add ') + row.name
+                          "
                           [attr.aria-pressed]="row.selected"
+                          [disabled]="isAuthLockedRow(row)"
                           (click)="toggleLayerSelected(abGroup.id, row.id)"
                         >
                           {{ row.selected ? 'Added' : 'Add' }}
@@ -541,8 +549,16 @@
                           [id]="'map-layers-boundary-visibility-button-' + row.id"
                           type="button"
                           class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                          [attr.aria-label]="'Toggle visibility for ' + row.name"
-                          [attr.aria-pressed]="row.visible"
+                          [class.cursor-not-allowed]="isAuthLockedRow(row)"
+                          [class.opacity-50]="isAuthLockedRow(row)"
+                          [class.hover:bg-slate-50]="!isAuthLockedRow(row)"
+                          [attr.aria-label]="
+                            isAuthLockedRow(row)
+                              ? row.name + ' requires login to show on map'
+                              : 'Toggle visibility for ' + row.name
+                          "
+                          [attr.aria-pressed]="isAuthLockedRow(row) ? false : row.visible"
+                          [disabled]="isAuthLockedRow(row)"
                           (click)="toggleLayerVisibility(abGroup.id, row.id)"
                         >
                           @if (row.visible) {
@@ -582,6 +598,14 @@
                           }
                         </button>
                       </div>
+                      @if (isAuthLockedRow(row)) {
+                        <p
+                          [id]="'map-layers-boundary-auth-locked-note-' + row.id"
+                          class="px-3 pb-2 text-[11px] text-amber-700"
+                        >
+                          Login / Register in the header to unlock SIRAP.
+                        </p>
+                      }
                     </article>
                   }
                 </div>

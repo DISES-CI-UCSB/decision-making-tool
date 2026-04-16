@@ -206,6 +206,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.buildSelectedLayers(),
   );
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
+  protected readonly canAccessTier2 = this.appState.canAccessTier2;
 
   constructor() {
     this.syncInitialBoundaryState();
@@ -411,6 +412,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected toggleLayerVisibility(groupId: string, rowId: string): void {
     let nextVisible = false;
     let nextSelected = false;
+    let didToggle = false;
     this.groups.update((groups) =>
       groups.map((g) => {
         if (g.id !== groupId) {
@@ -422,11 +424,12 @@ export class MapLayersPanelComponent implements OnDestroy {
           rows: g.rows.map((row) =>
             row.id === rowId
               ? (() => {
-                  if (row.mapUnavailable) {
+                  if (row.mapUnavailable || this.isAuthLockedRow(row)) {
                     return row;
                   }
                   nextVisible = !row.visible;
                   nextSelected = row.selected || nextVisible;
+                  didToggle = true;
                   return { ...row, selected: nextSelected, visible: nextVisible };
                 })()
               : row,
@@ -434,12 +437,16 @@ export class MapLayersPanelComponent implements OnDestroy {
         };
       }),
     );
+    if (!didToggle) {
+      return;
+    }
     this.updateSelectedLayerOrder(rowId, nextSelected);
     this.syncGroupRowById(groupId, rowId);
   }
 
   protected toggleLayerSelected(groupId: string, rowId: string): void {
     let nextSelected = false;
+    let didToggle = false;
     this.groups.update((groups) =>
       groups.map((group) => {
         if (group.id !== groupId) {
@@ -451,7 +458,11 @@ export class MapLayersPanelComponent implements OnDestroy {
             if (row.id !== rowId) {
               return row;
             }
+            if (this.isAuthLockedRow(row)) {
+              return row;
+            }
             nextSelected = !row.selected;
+            didToggle = true;
             return {
               ...row,
               selected: nextSelected,
@@ -462,6 +473,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         };
       }),
     );
+    if (!didToggle) {
+      return;
+    }
     this.updateSelectedLayerOrder(rowId, nextSelected);
     this.syncGroupRowById(groupId, rowId);
   }
@@ -1760,7 +1774,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         countLabel: '3 layers',
         collapsed: false,
         rows: [
-          this.boundaryRow('sirap', 'SIRAP Regions', true, true),
+          this.boundaryRow('sirap', 'SIRAP Regions', false, false),
           this.boundaryRow('department', 'Departments', false, false),
           this.boundaryRow('municipality', 'Municipalities', false, false),
         ],
@@ -1907,6 +1921,14 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
     return name.toLowerCase().includes(normalizedQuery);
+  }
+
+  protected isAuthLockedRow(row: LayerControlRow): boolean {
+    return (
+      row.mapSync?.type === 'admin-boundary' &&
+      row.mapSync.boundaryType === 'sirap' &&
+      !this.canAccessTier2()
+    );
   }
 
   private speciesMatchesSearch(species: SpeciesRow, normalizedQuery: string): boolean {

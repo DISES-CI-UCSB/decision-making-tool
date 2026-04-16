@@ -1,4 +1,8 @@
-<app-header id="foundation-header"></app-header>
+<app-header
+  id="foundation-header"
+  [coordinateToolEnabled]="coordinateToolEnabled"
+  (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
+></app-header>
 <app-shell id="foundation-app-shell">
   <section id="foundation-left-sidebar-slot" slot-left class="h-full min-h-0 bg-white">
     <app-sidebar-container
@@ -15,17 +19,6 @@
         class="block h-full w-full min-w-0"
         [coordinateToolEnabled]="coordinateToolEnabled"
       ></app-map-view>
-      <section
-        id="foundation-map-overlay-stack"
-        class="pointer-events-none absolute bottom-7 right-3 z-20 flex flex-col items-end gap-2"
-      >
-        <app-dev-tools-panel
-          id="foundation-map-dev-tools-panel"
-          class="pointer-events-auto"
-          [coordinateToolEnabled]="coordinateToolEnabled"
-          (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
-        ></app-dev-tools-panel>
-      </section>
     </div>
   </section>
 

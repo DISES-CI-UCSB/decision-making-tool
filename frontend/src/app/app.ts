@@ -11,7 +11,6 @@ import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { PanelSwitcherComponent } from '@features/analysis/panel-switcher/panel-switcher';
 import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-container/sidebar-container';
 import { MapViewComponent } from '@features/map/map-view/map-view';
-import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FinderModalComponent } from '@features/solution-finder/finder-modal/finder-modal';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -27,7 +26,6 @@ import { TranslatePipe } from '@ngx-translate/core';
     RouterOutlet,
     SidebarContainerComponent,
     FinderModalComponent,
-    DevToolsPanelComponent,
     TranslatePipe,
   ],
   templateUrl: './app.html',

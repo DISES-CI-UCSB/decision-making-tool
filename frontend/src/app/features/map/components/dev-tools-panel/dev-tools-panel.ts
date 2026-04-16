@@ -41,7 +41,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
       @if (isOpen()) {
         <div
           id="dev-tools-panel"
-          class="pointer-events-auto absolute bottom-full right-0 mb-2 w-96 max-h-[65vh] overflow-auto rounded-md border border-slate-200 bg-white/98 p-4 shadow-lg font-mono text-xs"
+          class="pointer-events-auto absolute right-0 top-full z-40 mt-2 w-104 max-h-[70vh] overflow-auto rounded-md border border-slate-200 bg-white/98 p-4 shadow-lg font-mono text-xs"
         >
           <h3 id="dev-tools-title" class="text-sm font-bold text-slate-800 mb-3">
             Solution Dev Tools
