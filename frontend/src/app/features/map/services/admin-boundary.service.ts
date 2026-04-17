@@ -125,7 +125,7 @@ export class AdminBoundaryService {
   private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
     sirap: false,
-    department: false,
+    department: true,
     municipality: false,
   };
   readonly layerVisibilityByType$ = signal<Record<AoiType, boolean>>(this.defaultVisibilityByType);
@@ -195,7 +195,7 @@ export class AdminBoundaryService {
   }
 
   setLayerVisibility(type: AoiType, visible: boolean): void {
-    if (type === 'sirap' && visible && !this.appState.canAccessTier2()) {
+    if (type === 'sirap' && visible && !this.appState.canAccessSirapBoundaries()) {
       this.layerVisibilityByType$.update((state) => ({ ...state, [type]: false }));
       return;
     }
@@ -342,7 +342,7 @@ export class AdminBoundaryService {
       this.clearSelectionState();
       return;
     }
-    if (candidate.config.type === 'sirap' && !this.appState.canAccessTier2()) {
+    if (candidate.config.type === 'sirap' && !this.appState.canAccessSirapBoundaries()) {
       this.clearSelectionState();
       return;
     }

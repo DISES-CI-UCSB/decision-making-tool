@@ -117,9 +117,12 @@
         "maxLabel": "100% of Colombia"
       },
       "actions": {
-        "viewFullReport": "View Full Report",
-        "compare": "Compare",
-        "export": "Export"
+        "viewFullReport": "View Full Report"
+      },
+      "notImplementedDialog": {
+        "title": "Feature not available",
+        "description": "This feature has not yet been implemented.",
+        "close": "Close"
       },
       "metrics": {
         "speciesGroupsProtected": "Species Groups Protected",

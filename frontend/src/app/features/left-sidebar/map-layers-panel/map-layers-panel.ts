@@ -214,7 +214,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.buildSelectedLayers(),
   );
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
-  protected readonly canAccessTier2 = this.appState.canAccessTier2;
+  protected readonly canAccessSirapBoundaries = this.appState.canAccessSirapBoundaries;
 
   constructor() {
     this.syncInitialBoundaryState();
@@ -476,11 +476,18 @@ export class MapLayersPanelComponent implements OnDestroy {
             }
             nextSelected = !row.selected;
             didToggle = true;
+            const shouldAutoShowWhenAdded = row.mapSync?.type === 'admin-boundary';
             return {
               ...row,
               selected: nextSelected,
               // Removing a layer from selected should also remove it from the map.
-              visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
+              visible: row.mapUnavailable
+                ? false
+                : nextSelected
+                  ? shouldAutoShowWhenAdded
+                    ? true
+                    : row.visible
+                  : false,
             };
           }),
         };
@@ -1891,7 +1898,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         collapsed: false,
         rows: [
           this.boundaryRow('sirap', 'SIRAP Regions', false, false),
-          this.boundaryRow('department', 'Departments', false, false),
+          this.boundaryRow('department', 'Departments', true, true),
           this.boundaryRow('municipality', 'Municipalities', false, false),
         ],
       },
@@ -2043,7 +2050,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     return (
       row.mapSync?.type === 'admin-boundary' &&
       row.mapSync.boundaryType === 'sirap' &&
-      !this.canAccessTier2()
+      !this.canAccessSirapBoundaries()
     );
   }
 

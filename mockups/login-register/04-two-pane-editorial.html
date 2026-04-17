@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login / Register — Variant 4: Two-pane editorial modal</title>
+    <script id="login-register-v4-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="login-register-v4-fonts"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: Inter, system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body id="login-register-v4-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <main id="login-register-v4-page" class="mx-auto max-w-6xl px-6 py-10">
+      <header id="login-register-v4-page-header" class="mb-8 space-y-2">
+        <p id="login-register-v4-eyebrow" class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+          Variant 4
+        </p>
+        <h1 id="login-register-v4-title" class="text-2xl font-bold tracking-tight text-slate-900">
+          Two-pane editorial modal
+        </h1>
+        <p id="login-register-v4-lede" class="max-w-3xl text-sm leading-6 text-slate-600">
+          A wider modal split into a dark "value" pane (left) and a light "form" pane (right). The left pane explains
+          <em>why</em> anyone would bother signing in — this is important because our current "unlock" is narrow
+          (Nacional/SIRAP toggle) and needs to be set up honestly. Gives Request Access real estate to breathe.
+        </p>
+      </header>
+
+      <section id="login-register-v4-states" class="space-y-10">
+        <!-- STATE 1: LOGIN -->
+        <article id="login-register-v4-state-login" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 id="login-register-v4-state-login-title" class="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+            State A · Login
+          </h2>
+
+          <div id="login-register-v4-state-login-frame" class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-900/40">
+            <div id="login-register-v4-login-scrim" class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"></div>
+            <div id="login-register-v4-login-modal-wrap" class="relative flex min-h-[580px] items-center justify-center p-8">
+              <div id="login-register-v4-login-modal" class="grid w-full max-w-3xl grid-cols-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <!-- Left value pane -->
+                <aside id="login-register-v4-login-value-pane" class="col-span-2 flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 p-7 text-white">
+                  <div>
+                    <p id="login-register-v4-login-value-eyebrow" class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-sky-300">
+                      Planner access
+                    </p>
+                    <h4 id="login-register-v4-login-value-heading" class="mb-4 text-xl font-bold leading-tight">
+                      Switch between <span class="text-sky-200">Nacional</span> and <span class="text-sky-200">SIRAP</span>&nbsp;scope
+                    </h4>
+                    <p id="login-register-v4-login-value-body" class="text-sm leading-relaxed text-slate-200">
+                      Anonymous users see the tool at the national scale. Signed-in Planners get a scope toggle to
+                      drill into the regional level — and we'll continue layering Planner capabilities here over time.
+                    </p>
+                  </div>
+                  <ul id="login-register-v4-login-value-bullets" class="mt-6 space-y-2.5 text-xs text-slate-200">
+                    <li class="flex items-start gap-2">
+                      <span class="mt-0.5 text-sky-300">✓</span>
+                      <span>Nacional / SIRAP scope toggle</span>
+                    </li>
+                    <li class="flex items-start gap-2 opacity-60">
+                      <span class="mt-0.5 text-slate-400">·</span>
+                      <span><span class="line-through">Save named scenarios</span> <span class="italic">coming soon</span></span>
+                    </li>
+                    <li class="flex items-start gap-2 opacity-60">
+                      <span class="mt-0.5 text-slate-400">·</span>
+                      <span><span class="line-through">Scenario comparison</span> <span class="italic">coming soon</span></span>
+                    </li>
+                  </ul>
+                </aside>
+
+                <!-- Right form pane -->
+                <div id="login-register-v4-login-form-pane" class="col-span-3 flex flex-col px-7 py-6">
+                  <div id="login-register-v4-login-form-top" class="mb-4 flex items-center justify-between">
+                    <h3 id="login-register-v4-login-form-title" class="text-base font-semibold text-slate-900">Sign in</h3>
+                    <button id="login-register-v4-login-form-close" aria-label="Close" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                      <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path fill-rule="evenodd" d="M10 8.586 4.707 3.293a1 1 0 0 0-1.414 1.414L8.586 10l-5.293 5.293a1 1 0 1 0 1.414 1.414L10 11.414l5.293 5.293a1 1 0 0 0 1.414-1.414L11.414 10l5.293-5.293a1 1 0 0 0-1.414-1.414L10 8.586Z" clip-rule="evenodd"/></svg>
+                    </button>
+                  </div>
+
+                  <button id="login-register-v4-login-google-btn" class="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                    <svg viewBox="0 0 18 18" class="h-4 w-4" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.9v2.33A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.9a9 9 0 0 0 0 8.1l3.07-2.33Z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .9 4.95l3.07 2.33C4.68 5.16 6.66 3.58 9 3.58Z"/></svg>
+                    Continue with Google
+                  </button>
+
+                  <div id="login-register-v4-login-divider" class="relative mb-4 flex items-center">
+                    <span class="flex-1 border-t border-slate-200"></span>
+                    <span class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">or</span>
+                    <span class="flex-1 border-t border-slate-200"></span>
+                  </div>
+
+                  <label id="login-register-v4-login-email-label" for="login-register-v4-login-email-input" class="mb-1.5 block text-xs font-semibold text-slate-700">Email</label>
+                  <input id="login-register-v4-login-email-input" type="email" value="maria.gomez@sirap-caribe.gov.co" class="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" />
+
+                  <label id="login-register-v4-login-pw-label" for="login-register-v4-login-pw-input" class="mb-1.5 block text-xs font-semibold text-slate-700">Password</label>
+                  <input id="login-register-v4-login-pw-input" type="password" value="••••••••••" class="mb-5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" />
+
+                  <button id="login-register-v4-login-submit-btn" class="flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+                    Log in
+                  </button>
+
+                  <p id="login-register-v4-login-footer-link" class="mt-4 text-center text-xs text-slate-500">
+                    No account yet?
+                    <a href="#" class="font-semibold text-sky-700 underline-offset-2 hover:underline">Request access</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- STATE 2: REQUEST ACCESS -->
+        <article id="login-register-v4-state-request" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 id="login-register-v4-state-request-title" class="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+            State B · Request access
+          </h2>
+
+          <div id="login-register-v4-state-request-frame" class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-900/40">
+            <div id="login-register-v4-request-scrim" class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"></div>
+            <div id="login-register-v4-request-modal-wrap" class="relative flex min-h-[680px] items-center justify-center p-8">
+              <div id="login-register-v4-request-modal" class="grid w-full max-w-3xl grid-cols-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <aside id="login-register-v4-request-value-pane" class="col-span-2 flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 p-7 text-white">
+                  <div>
+                    <p id="login-register-v4-request-value-eyebrow" class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-sky-300">
+                      Access by invitation
+                    </p>
+                    <h4 id="login-register-v4-request-value-heading" class="mb-4 text-xl font-bold leading-tight">
+                      Request reviewed by the <span class="text-sky-200">Mesa Nacional</span>
+                    </h4>
+                    <p id="login-register-v4-request-value-body" class="text-sm leading-relaxed text-slate-200">
+                      Accounts are granted to planners, SIRAP members, and researchers whose work benefits from
+                      regional-scale analysis. Tell us a bit about your role — we usually review within 1–3 business days.
+                    </p>
+                  </div>
+                  <div id="login-register-v4-request-value-quote" class="mt-6 rounded-lg border border-white/10 bg-white/5 p-3 text-[11px] leading-relaxed text-slate-200">
+                    <span class="mb-1 block font-semibold text-sky-200">What we ask for</span>
+                    Your name, work email, and a password (or Google), plus (optionally) your SIRAP and a sentence on
+                    how you'll use the tool. Your credentials start working the moment an admin approves your request.
+                  </div>
+                </aside>
+
+                <div id="login-register-v4-request-form-pane" class="col-span-3 flex flex-col px-7 py-6">
+                  <div id="login-register-v4-request-form-top" class="mb-4 flex items-center justify-between">
+                    <h3 id="login-register-v4-request-form-title" class="text-base font-semibold text-slate-900">Request access</h3>
+                    <button id="login-register-v4-request-form-close" aria-label="Close" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                      <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path fill-rule="evenodd" d="M10 8.586 4.707 3.293a1 1 0 0 0-1.414 1.414L8.586 10l-5.293 5.293a1 1 0 1 0 1.414 1.414L10 11.414l5.293 5.293a1 1 0 0 0 1.414-1.414L11.414 10l5.293-5.293a1 1 0 0 0-1.414-1.414L10 8.586Z" clip-rule="evenodd"/></svg>
+                    </button>
+                  </div>
+
+                  <div id="login-register-v4-request-form-fields" class="flex-1 space-y-4">
+                    <button id="login-register-v4-request-google-btn" class="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                      <svg viewBox="0 0 18 18" class="h-4 w-4" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.9v2.33A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.9a9 9 0 0 0 0 8.1l3.07-2.33Z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .9 4.95l3.07 2.33C4.68 5.16 6.66 3.58 9 3.58Z"/></svg>
+                      Continue with Google
+                    </button>
+
+                    <div id="login-register-v4-request-divider" class="relative flex items-center">
+                      <span class="flex-1 border-t border-slate-200"></span>
+                      <span class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">or with email</span>
+                      <span class="flex-1 border-t border-slate-200"></span>
+                    </div>
+
+                    <div>
+                      <label id="login-register-v4-request-name-label" for="login-register-v4-request-name-input" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                        Full name <span class="font-normal text-slate-400">· required</span>
+                      </label>
+                      <input id="login-register-v4-request-name-input" type="text" value="María Gómez" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700" />
+                    </div>
+                    <div>
+                      <label id="login-register-v4-request-email-label" for="login-register-v4-request-email-input" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                        Email <span class="font-normal text-slate-400">· required</span>
+                      </label>
+                      <input id="login-register-v4-request-email-input" type="email" value="maria.gomez@sirap-caribe.gov.co" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700" />
+                    </div>
+                    <div id="login-register-v4-request-pw-row" class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label id="login-register-v4-request-pw-label" for="login-register-v4-request-pw-input" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                          Password <span class="font-normal text-slate-400">· required</span>
+                        </label>
+                        <input id="login-register-v4-request-pw-input" type="password" value="••••••••••" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700" />
+                      </div>
+                      <div>
+                        <label id="login-register-v4-request-pwc-label" for="login-register-v4-request-pwc-input" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                          Confirm <span class="font-normal text-slate-400">· required</span>
+                        </label>
+                        <input id="login-register-v4-request-pwc-input" type="password" value="••••••••••" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700" />
+                      </div>
+                    </div>
+                    <div>
+                      <label id="login-register-v4-request-org-label" for="login-register-v4-request-org-input" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                        Organization / SIRAP <span class="font-normal text-slate-400">· optional</span>
+                      </label>
+                      <input id="login-register-v4-request-org-input" type="text" value="SIRAP Caribe" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700" />
+                    </div>
+                    <div>
+                      <label id="login-register-v4-request-reason-label" for="login-register-v4-request-reason-input" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                        Reason for access <span class="font-normal text-slate-400">· optional</span>
+                      </label>
+                      <textarea id="login-register-v4-request-reason-input" rows="3" class="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">Regional planning for the Caribe SIRAP; reviewing conservation priorities across coastal municipalities.</textarea>
+                    </div>
+                  </div>
+
+                  <button id="login-register-v4-request-submit-btn" class="mt-5 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+                    Submit request
+                  </button>
+
+                  <p id="login-register-v4-request-footer-link" class="mt-3 text-center text-xs text-slate-500">
+                    Already approved?
+                    <a href="#" class="font-semibold text-sky-700 underline-offset-2 hover:underline">Log in</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- STATE 3: PENDING -->
+        <article id="login-register-v4-state-pending" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 id="login-register-v4-state-pending-title" class="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+            State C · Pending confirmation
+          </h2>
+
+          <div id="login-register-v4-state-pending-frame" class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-900/40">
+            <div id="login-register-v4-pending-scrim" class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"></div>
+            <div id="login-register-v4-pending-modal-wrap" class="relative flex min-h-[580px] items-center justify-center p-8">
+              <div id="login-register-v4-pending-modal" class="grid w-full max-w-3xl grid-cols-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <aside id="login-register-v4-pending-value-pane" class="col-span-2 flex flex-col justify-between bg-gradient-to-br from-emerald-900 via-slate-800 to-sky-900 p-7 text-white">
+                  <div>
+                    <p id="login-register-v4-pending-value-eyebrow" class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">
+                      Request received
+                    </p>
+                    <h4 id="login-register-v4-pending-value-heading" class="mb-4 text-xl font-bold leading-tight">
+                      Thanks, <span class="text-emerald-200">María</span> — we're on it.
+                    </h4>
+                    <p id="login-register-v4-pending-value-body" class="text-sm leading-relaxed text-slate-200">
+                      Your request is in the admin queue. You'll get an email at
+                      <span class="font-semibold text-white">maria.gomez@sirap-caribe.gov.co</span>
+                      with the outcome, usually within 1–3 business days.
+                    </p>
+                  </div>
+                  <div id="login-register-v4-pending-value-meta" class="mt-6 space-y-2 text-[11px] text-slate-300">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span class="text-slate-400">Submitted</span>
+                      <span class="font-semibold text-white">Today, 10:42</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">Request ID</span>
+                      <span class="font-mono text-white">REQ-2026-0417-A3F2</span>
+                    </div>
+                  </div>
+                </aside>
+
+                <div id="login-register-v4-pending-form-pane" class="col-span-3 flex flex-col px-7 py-6">
+                  <div id="login-register-v4-pending-form-top" class="mb-4 flex items-center justify-between">
+                    <h3 id="login-register-v4-pending-form-title" class="text-base font-semibold text-slate-900">What happens next</h3>
+                    <button id="login-register-v4-pending-form-close" aria-label="Close" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                      <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path fill-rule="evenodd" d="M10 8.586 4.707 3.293a1 1 0 0 0-1.414 1.414L8.586 10l-5.293 5.293a1 1 0 1 0 1.414 1.414L10 11.414l5.293 5.293a1 1 0 0 0 1.414-1.414L11.414 10l5.293-5.293a1 1 0 0 0-1.414-1.414L10 8.586Z" clip-rule="evenodd"/></svg>
+                    </button>
+                  </div>
+
+                  <ol id="login-register-v4-pending-form-steps" class="space-y-4 text-sm text-slate-700">
+                    <li id="login-register-v4-pending-step-1" class="flex items-start gap-3">
+                      <span class="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">✓</span>
+                      <div>
+                        <p class="font-semibold text-slate-900">Request received</p>
+                        <p class="text-xs text-slate-500">Your submission is safely queued.</p>
+                      </div>
+                    </li>
+                    <li id="login-register-v4-pending-step-2" class="flex items-start gap-3">
+                      <span class="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-sky-500 bg-white text-xs font-bold text-sky-600">2</span>
+                      <div>
+                        <p class="font-semibold text-slate-900">Admin review</p>
+                        <p class="text-xs text-slate-500">A Mesa Nacional admin approves or denies, typically within 1–3 business days.</p>
+                      </div>
+                    </li>
+                    <li id="login-register-v4-pending-step-3" class="flex items-start gap-3 text-slate-400">
+                      <span class="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-xs font-bold text-slate-400">3</span>
+                      <div>
+                        <p class="font-semibold text-slate-600">Email sent</p>
+                        <p class="text-xs">Approval emails include login credentials; denials include a short note.</p>
+                      </div>
+                    </li>
+                    <li id="login-register-v4-pending-step-4" class="flex items-start gap-3 text-slate-400">
+                      <span class="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-xs font-bold text-slate-400">4</span>
+                      <div>
+                        <p class="font-semibold text-slate-600">Log in</p>
+                        <p class="text-xs">Come back and sign in to unlock the Nacional / SIRAP scope toggle.</p>
+                      </div>
+                    </li>
+                  </ol>
+
+                  <button id="login-register-v4-pending-close-btn" class="mt-6 flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                    Back to the app
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+        <!-- STATE D: PENDING LOGIN ATTEMPT -->
+        <article id="login-register-v4-state-pending-login" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 id="login-register-v4-state-pending-login-title" class="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+            State D · Pending login attempt <span class="font-normal normal-case tracking-normal text-slate-400">— shown when a pending user tries to sign in</span>
+          </h2>
+
+          <div id="login-register-v4-state-pending-login-frame" class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-900/40">
+            <div id="login-register-v4-pending-login-scrim" class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"></div>
+            <div id="login-register-v4-pending-login-modal-wrap" class="relative flex min-h-[620px] items-center justify-center p-8">
+              <div id="login-register-v4-pending-login-modal" class="grid w-full max-w-3xl grid-cols-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <aside id="login-register-v4-pending-login-value-pane" class="col-span-2 flex flex-col justify-between bg-gradient-to-br from-amber-900 via-slate-800 to-sky-900 p-7 text-white">
+                  <div>
+                    <p id="login-register-v4-pending-login-value-eyebrow" class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300">
+                      Under review
+                    </p>
+                    <h4 id="login-register-v4-pending-login-value-heading" class="mb-4 text-xl font-bold leading-tight">
+                      We haven't forgotten you, <span class="text-amber-200">María</span>.
+                    </h4>
+                    <p id="login-register-v4-pending-login-value-body" class="text-sm leading-relaxed text-slate-200">
+                      Your request is still in the admin queue. As soon as a Mesa Nacional reviewer makes a decision,
+                      we'll email you at
+                      <span class="font-semibold text-white">maria.gomez@sirap-caribe.gov.co</span>.
+                    </p>
+                  </div>
+                  <div id="login-register-v4-pending-login-value-meta" class="mt-6 space-y-2 text-[11px] text-slate-300">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span class="text-slate-400">Submitted</span>
+                      <span class="font-semibold text-white">2 days ago</span>
+                    </div>
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span class="text-slate-400">Typical response</span>
+                      <span class="font-semibold text-white">1–3 business days</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">Request ID</span>
+                      <span class="font-mono text-white">REQ-2026-0415-A3F2</span>
+                    </div>
+                  </div>
+                </aside>
+
+                <div id="login-register-v4-pending-login-form-pane" class="col-span-3 flex flex-col px-7 py-6">
+                  <div id="login-register-v4-pending-login-form-top" class="mb-5 flex items-center justify-between">
+                    <h3 id="login-register-v4-pending-login-form-title" class="text-base font-semibold text-slate-900">While you wait</h3>
+                    <button id="login-register-v4-pending-login-form-close" aria-label="Close" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                      <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path fill-rule="evenodd" d="M10 8.586 4.707 3.293a1 1 0 0 0-1.414 1.414L8.586 10l-5.293 5.293a1 1 0 1 0 1.414 1.414L10 11.414l5.293 5.293a1 1 0 0 0 1.414-1.414L11.414 10l5.293-5.293a1 1 0 0 0-1.414-1.414L10 8.586Z" clip-rule="evenodd"/></svg>
+                    </button>
+                  </div>
+
+                  <div id="login-register-v4-pending-login-allowed" class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                    <p class="mb-1 text-xs font-semibold text-emerald-900">You can still use</p>
+                    <ul class="ml-4 list-disc space-y-0.5 text-xs text-emerald-900">
+                      <li>Solution Finder (Nacional scope)</li>
+                      <li>Interactive map &amp; AOI Dashboard</li>
+                      <li>Basic PDF summary report</li>
+                    </ul>
+                  </div>
+
+                  <div id="login-register-v4-pending-login-locked" class="mb-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p class="mb-1 text-xs font-semibold text-slate-700">Waiting on approval</p>
+                    <ul class="ml-4 list-disc space-y-0.5 text-xs text-slate-600">
+                      <li>Nacional / SIRAP scope toggle</li>
+                    </ul>
+                  </div>
+
+                  <div id="login-register-v4-pending-login-actions" class="mt-auto space-y-2">
+                    <button id="login-register-v4-pending-login-dismiss-btn" class="flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+                      Continue as anonymous
+                    </button>
+                    <button id="login-register-v4-pending-login-nudge-btn" disabled class="flex min-h-11 w-full cursor-not-allowed items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-400">
+                      Email admins for an update · next nudge in 38h
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer id="login-register-v4-notes" class="mt-10 rounded-xl border border-slate-200 bg-white p-5 text-xs leading-relaxed text-slate-600 shadow-sm">
+        <p id="login-register-v4-notes-tradeoffs" class="mb-2">
+          <span class="font-semibold text-slate-800">Tradeoffs · </span>
+          <span class="font-semibold text-emerald-700">Pros:</span> Honestly sells the (narrow) benefits of logging in;
+          gives the pending state real design weight; most "finished" feeling of the five.
+          <span class="font-semibold text-rose-700">Cons:</span> Biggest build cost; two marketing panes to maintain
+          copy for; heavy scrim blocks map context.
+        </p>
+        <p id="login-register-v4-notes-fit">
+          <span class="font-semibold text-slate-800">Best fit:</span> if we expect the team to pitch the tool to
+          outside SIRAPs and want the first auth moment to feel like a real "product" rather than a utility form.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
