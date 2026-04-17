@@ -25,6 +25,14 @@
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
   background-size: 12px;
+
+  &:focus,
+  &:focus-visible,
+  &:active {
+    outline: none;
+    box-shadow: none;
+    border-color: #e2e8f0;
+  }
 }
 
 .finder-step-intro {
