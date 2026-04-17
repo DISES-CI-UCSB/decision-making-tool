@@ -1337,7 +1337,12 @@
       }
 
       @case ('comparison') {
-        <section id="right-sidebar-comparison-panel" class="panel-enter c2-panel">
+        <section
+          id="right-sidebar-comparison-panel"
+          class="panel-enter c2-panel"
+          [style.--comparison-baseline-color]="comparisonBaselineColor()"
+          [style.--comparison-candidate-color]="comparisonCandidateColor()"
+        >
           <header id="right-sidebar-comparison-header" class="c2-panel-header">
             <h3 id="right-sidebar-comparison-kicker" class="rs-header-optical-nudge">
               {{ 'analysis.comparison.kicker' | translate }}
