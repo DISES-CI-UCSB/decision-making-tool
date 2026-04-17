@@ -17,6 +17,7 @@ import {
   AdminBoundaryService,
   type SirapSelectionScope,
 } from '@features/map/services/admin-boundary.service';
+import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, distinctUntilChanged, finalize, map, of, switchMap } from 'rxjs';
 import {
@@ -172,8 +173,13 @@ export class PanelSwitcherComponent {
   private readonly api = inject(ApiService);
   private readonly mockData = inject(MockDataService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
+  private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Reactive comparison colors sourced from the SolutionLayerService (driven by the left sidebar). */
+  protected readonly comparisonBaselineColor = this.solutionLayer.baselineColor$;
+  protected readonly comparisonCandidateColor = this.solutionLayer.candidateColor$;
 
   private readonly overviewSectionLookup: Record<string, { id: string; labelKey: string }> = {
     'm-biodiversity': { id: 'ecology', labelKey: 'analysis.sections.ecology' },

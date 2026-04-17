@@ -68,17 +68,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly debugMarker = 'UCS-40-layer-infra-v1';
   protected mapErrorMessage = '';
-  protected readonly activeSolution = this.appState.activeSolution$;
-  protected readonly comparisonSolution = this.appState.comparisonSolution$;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
-  protected readonly isComparisonOverlayVisible = computed(() => {
-    return (
-      this.appState.rightSidebarMode$() === 'comparison' &&
-      this.activeSolution() !== null &&
-      this.comparisonSolution() !== null
-    );
-  });
 
   @Input()
   set coordinateToolEnabled(value: boolean) {

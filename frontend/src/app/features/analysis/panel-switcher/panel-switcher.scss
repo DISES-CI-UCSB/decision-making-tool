@@ -868,26 +868,32 @@
 
 .c2-summary-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .c2-summary-card {
+  width: 100%;
+  min-width: 0;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   padding: 10px 12px;
 }
 
-/* Match table baseline / candidate value hues (see .c2-compare-value-*). */
+/* Comparison card hues are driven by CSS custom properties set on #right-sidebar-comparison-panel
+   via [style.--comparison-baseline-color] / [style.--comparison-candidate-color] bindings.
+   The hex fallbacks in var(..., #...) match the defaults exported by solution-layer.service.ts
+   (DEFAULT_COMPARISON_BASELINE_HEX / DEFAULT_COMPARISON_CANDIDATE_HEX). Tinted backgrounds are
+   derived reactively via color-mix so they track any user-picked color from the left sidebar. */
 #right-sidebar-comparison-baseline-card {
-  border-color: #1e6fa8;
-  background: #e8f2fa;
+  border-color: var(--comparison-baseline-color, #1e6fa8);
+  background: color-mix(in srgb, var(--comparison-baseline-color, #1e6fa8) 12%, white);
 }
 
 #right-sidebar-comparison-candidate-card.c2-summary-card-candidate-selected {
-  border-color: #7c3aed;
-  background: #f3edff;
+  border-color: var(--comparison-candidate-color, #7c3aed);
+  background: color-mix(in srgb, var(--comparison-candidate-color, #7c3aed) 12%, white);
 }
 
 #right-sidebar-comparison-candidate-card.c2-summary-card-candidate-empty {
@@ -908,6 +914,8 @@
   font-size: 14px;
   font-weight: 700;
   color: #0f172a;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .c2-summary-name-muted {
@@ -1090,6 +1098,8 @@
 
 .c2-viz-mode-option {
   display: flex;
+  width: 100%;
+  min-width: 0;
   min-height: 72px;
   flex-direction: column;
   align-items: flex-start;
@@ -1246,11 +1256,11 @@
 }
 
 .c2-compare-value-baseline {
-  color: #1e6fa8;
+  color: var(--comparison-baseline-color, #1e6fa8);
 }
 
 .c2-compare-value-candidate {
-  color: #7c3aed;
+  color: var(--comparison-candidate-color, #7c3aed);
 }
 
 .c2-delta-badge {

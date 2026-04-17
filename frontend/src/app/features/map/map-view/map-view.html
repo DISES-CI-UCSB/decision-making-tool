@@ -38,27 +38,6 @@
     <app-master-legend id="map-view-master-legend"></app-master-legend>
   </section>
 
-  @if (isComparisonOverlayVisible()) {
-    <section
-      id="map-view-comparison-badges"
-      class="pointer-events-none absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2"
-      aria-label="Comparison scenario labels"
-    >
-      <span
-        id="map-view-comparison-baseline-badge"
-        class="rounded-md border border-sky-200 bg-sky-50/95 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-sky-700 shadow-sm"
-      >
-        Scenario A: {{ activeSolution()?.name ?? 'Baseline' }}
-      </span>
-      <span
-        id="map-view-comparison-candidate-badge"
-        class="rounded-md border border-violet-200 bg-violet-50/95 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-violet-700 shadow-sm"
-      >
-        Scenario B: {{ comparisonSolution()?.name ?? 'Candidate' }}
-      </span>
-    </section>
-  }
-
   @if (isSolutionLoading()) {
     <div
       id="map-view-solution-loading"
