@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html id="sla-html-root" lang="en">
+  <head id="sla-head">
+    <meta id="sla-meta-charset" charset="UTF-8" />
+    <meta id="sla-meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="sla-title">Selected Layer Card — Alignment Variants</title>
+    <script id="sla-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="sla-font-link"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style id="sla-inline-style">
+      :root {
+        --ease: cubic-bezier(0.4, 0, 0.2, 1);
+        --dur: 240ms;
+      }
+
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+
+      /* Shared collapsible pattern: grid-template-rows 0fr -> 1fr. */
+      .sla-collapsible {
+        display: grid;
+        grid-template-rows: 1fr;
+        opacity: 1;
+        transition:
+          grid-template-rows var(--dur) var(--ease),
+          opacity var(--dur) var(--ease);
+        will-change: grid-template-rows;
+      }
+      .sla-collapsible[data-collapsed='true'] {
+        grid-template-rows: 0fr;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .sla-collapsible-content {
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      /* Header's conditional bottom padding eases in sync with the expand. */
+      .sla-header {
+        transition: padding-bottom var(--dur) var(--ease);
+      }
+
+      /* Chevron rotation with easing (instead of instant snap). */
+      .sla-chevron {
+        transition: transform var(--dur) var(--ease);
+      }
+      .sla-chevron[data-rotated='true'] {
+        transform: rotate(180deg);
+      }
+
+      /* Opacity slider — match production styling. */
+      .sla-slider {
+        appearance: none;
+        -webkit-appearance: none;
+        height: 1rem;
+        background: transparent;
+        --sla-progress: 70%;
+      }
+      .sla-slider::-webkit-slider-runnable-track {
+        height: 0.25rem;
+        border-radius: 9999px;
+        background: linear-gradient(
+          to right,
+          rgb(71 85 105) 0%,
+          rgb(71 85 105) var(--sla-progress),
+          rgb(203 213 225) var(--sla-progress),
+          rgb(203 213 225) 100%
+        );
+      }
+      .sla-slider::-webkit-slider-thumb {
+        appearance: none;
+        margin-top: -0.3125rem;
+        height: 0.875rem;
+        width: 0.875rem;
+        border-radius: 9999px;
+        border: 1px solid rgb(148 163 184);
+        background: #fff;
+      }
+
+      /* Color swatch — match production styling. */
+      .sla-swatch {
+        appearance: none;
+        -webkit-appearance: none;
+        overflow: hidden;
+        background-color: transparent;
+        padding: 0;
+      }
+      .sla-swatch::-webkit-color-swatch-wrapper {
+        padding: 0;
+        border-radius: inherit;
+      }
+      .sla-swatch::-webkit-color-swatch {
+        border: none;
+        border-radius: inherit;
+      }
+
+      /* Right-edge alignment guide (visual-only, toggled by button). */
+      .sla-card[data-show-guides='true'] .sla-guide {
+        background: rgba(239, 68, 68, 0.35);
+      }
+      .sla-guide {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: transparent;
+        pointer-events: none;
+      }
+
+      /*
+        Shared "eye ↔ caret" (and mirrored "Color ↔ swatch") gap for Variant 2.
+        Change --sla-v2-gap on #sla-v2-demo to tinker both rows in lockstep and
+        keep the eye-over-Color column locked. Falls back to 4 px if unset.
+      */
+      .sla-v2-cluster-gap {
+        gap: var(--sla-v2-gap, 4px);
+      }
+
+      /* Respect reduced motion. */
+      @media (prefers-reduced-motion: reduce) {
+        .sla-collapsible,
+        .sla-header,
+        .sla-chevron {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body id="sla-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <main id="sla-main" class="mx-auto max-w-7xl px-6 py-10">
+      <!-- ─────────────────────────  Document header  ───────────────────────── -->
+      <header id="sla-doc-header" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p id="sla-kicker" class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+          Left Sidebar / Selected Layers
+        </p>
+        <h1 id="sla-h1" class="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+          Selected-layer card — 5 alignment variants
+        </h1>
+        <p id="sla-summary" class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+          The current card has four right-side elements — <strong>eye icon</strong>,
+          <strong>caret</strong>, <strong>"70%"</strong>, <strong>color swatch</strong> — that each
+          live at a slightly different x-position. Each variant below explores a different
+          combination of: <em>(1) eye-icon box on/off</em>, <em>(2) 70% inline with the slider vs.
+          its own column</em>, and <em>(3) eye-to-caret gap</em>. All variants use the same
+          grid-template-rows collapse animation (240ms cubic-bezier). Click a card header to toggle
+          its expanded/collapsed state and feel the transition.
+        </p>
+        <div id="sla-legend" class="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+          <button
+            id="sla-toggle-guides-btn"
+            type="button"
+            class="rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Toggle red alignment guides
+          </button>
+          <button
+            id="sla-expand-all-btn"
+            type="button"
+            class="rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Expand all
+          </button>
+          <button
+            id="sla-collapse-all-btn"
+            type="button"
+            class="rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Collapse all
+          </button>
+          <span id="sla-hint" class="text-slate-500">
+            Tip: click a row's caret to toggle just that card.
+          </span>
+        </div>
+      </header>
+
+      <!-- ─────────────────────────  Variant grid  ───────────────────────── -->
+      <section
+        id="sla-variants-grid"
+        class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+      >
+        <!-- ═══════════ V1 — Ghost eye, unified right column ═══════════ -->
+        <article
+          id="sla-v1-card"
+          data-variant="v1"
+          class="sla-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <header id="sla-v1-header" class="mb-3">
+            <p id="sla-v1-kicker" class="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
+              Variant 1
+            </p>
+            <h2 id="sla-v1-title" class="mt-1 text-base font-bold text-slate-900">
+              Ghost eye, unified right column
+            </h2>
+            <p id="sla-v1-desc" class="mt-1 text-xs leading-5 text-slate-600">
+              Eye and caret become slim icon-only buttons (w-5). Color swatch wrapper is also w-5.
+              All three rightmost elements share one 20&nbsp;px column. "70%" stays in its own
+              right-aligned column.
+            </p>
+          </header>
+
+          <!-- Demo card -->
+          <div
+            id="sla-v1-demo"
+            class="relative overflow-hidden rounded-md border border-slate-200 bg-white"
+          >
+            <div
+              id="sla-v1-row"
+              data-ui="selected-layer-row"
+              class="relative"
+            >
+              <!-- Eye center + "Color" text center both ~48 px from card right. -->
+              <span id="sla-v1-eye-guide" class="sla-guide" style="right: 48px;"></span>
+              <!-- Caret center + swatch center both at 22 px from card right. -->
+              <span id="sla-v1-guide" class="sla-guide" style="right: 22px;"></span>
+
+              <!-- Header row -->
+              <div
+                id="sla-v1-row-header"
+                class="sla-header flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-2"
+                data-collapsed-padding="pb-2"
+                data-expanded-padding="pb-0"
+              >
+                <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500"
+                  >⋮⋮</span
+                >
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
+                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                </div>
+                <!-- Eye: no border, slim -->
+                <button
+                  id="sla-v1-eye-btn"
+                  type="button"
+                  aria-label="Toggle visibility"
+                  class="inline-flex h-7 w-5 shrink-0 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100"
+                >
+                  <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                <!-- Caret -->
+                <button
+                  id="sla-v1-caret-btn"
+                  type="button"
+                  aria-label="Toggle controls"
+                  data-role="caret"
+                  class="inline-flex h-7 w-5 shrink-0 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100"
+                >
+                  <svg class="sla-chevron h-3 w-3" data-rotated="false" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 4.5L6 7.5L9 4.5" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Controls -->
+              <div class="sla-collapsible" data-collapsed="false">
+                <div class="sla-collapsible-content">
+                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                    <div class="flex min-w-0 flex-1 items-center gap-1.5">
+                      <label class="shrink-0 text-[10px] text-slate-600">Opacity</label>
+                      <input type="range" min="0" max="100" value="70" class="sla-slider w-full" />
+                      <span class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600">70%</span>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-1">
+                      <label class="text-[10px] text-slate-600">Color</label>
+                      <span class="inline-flex h-7 w-5 shrink-0 items-center justify-center">
+                        <input type="color" value="#16a34a" class="sla-swatch h-4 w-4 cursor-pointer rounded-sm border border-slate-200" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ul id="sla-v1-notes" class="mt-3 space-y-1 text-[11px] leading-5 text-slate-600">
+            <li>• <strong>Eye box:</strong> removed. Eye + caret both ghost, equal weight.</li>
+            <li>• <strong>70%:</strong> unchanged (right-aligned w-8 column).</li>
+            <li>• <strong>Eye↔caret gap:</strong> gap-1.5 (default).</li>
+            <li>• <strong>Column math:</strong> eye center ≈ "Color" text center at 48&nbsp;px; caret center = swatch center at 22&nbsp;px.</li>
+            <li>• <strong>Tradeoff:</strong> eye loses its "button" look; relies on hover only. Color label width is natural (not forced) so the eye/Color column is visually aligned but not mathematically locked.</li>
+          </ul>
+        </article>
+
+        <!-- ═══════════ V2 — Bordered eye + inline 70% ═══════════ -->
+        <article
+          id="sla-v2-card"
+          data-variant="v2"
+          class="sla-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <header id="sla-v2-header" class="mb-3">
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">Variant 2</p>
+            <h2 class="mt-1 text-base font-bold text-slate-900">Bordered eye + 70% inline</h2>
+            <p class="mt-1 text-xs leading-5 text-slate-600">
+              Keeps the bordered eye as the primary affordance. "70%" sits right after the slider
+              thumb (no separate column). Eye + caret hugged at gap-1 (4&nbsp;px) so the eye pulls
+              toward the caret, with the Color label + swatch mirroring the same tightened gap
+              below. Caret still w-5.
+            </p>
+          </header>
+
+          <!--
+            ▼ SINGLE TINKER POINT ▼
+            Change the value of --sla-v2-gap below to tighten or loosen both the
+            eye↔caret gap (header row) and the Color↔swatch gap (controls row) in
+            lockstep. Both rows reference the same variable via .sla-v2-cluster-gap,
+            so the eye-over-Color vertical column stays locked at any value.
+            Try: 2px (hugged), 4px (current), 6px (original / default), 8px (loose).
+          -->
+          <div id="sla-v2-demo" style="--sla-v2-gap: 4px;" class="relative overflow-hidden rounded-md border border-slate-200 bg-white">
+            <div class="relative">
+              <!--
+                Eye center + Color-label center, both at (pr-3 + caret-w-5 + gap + half-eye-w-7)
+                = 46px + var(--sla-v2-gap). Guide tracks the tinker value automatically.
+              -->
+              <span class="sla-guide" style="right: calc(46px + var(--sla-v2-gap, 4px));"></span>
+              <!-- Caret center + swatch center both at 22 px from card right (fixed). -->
+              <span class="sla-guide" style="right: 22px;"></span>
+
+              <div class="sla-header flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-2 pb-0">
+                <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
+                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                </div>
+                <!--
+                  Eye + caret grouped in a sub-flex. Gap is driven by the shared
+                  --sla-v2-gap CSS variable (see SINGLE TINKER POINT at the top of
+                  this demo) so this row and the controls row stay in sync.
+                -->
+                <div class="sla-v2-cluster-gap flex shrink-0 items-center">
+                  <button id="sla-v2-eye-btn" type="button" aria-label="Toggle visibility"
+                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50">
+                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                  <button type="button" aria-label="Toggle controls" data-role="caret"
+                    class="inline-flex h-7 w-5 shrink-0 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100">
+                    <svg class="sla-chevron h-3 w-3" data-rotated="false" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="sla-collapsible" data-collapsed="false">
+                <div class="sla-collapsible-content">
+                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                    <!--
+                      Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
+                      reads as part of the slider. Outer gap-2 still separates the "Opacity"
+                      label from the slider group.
+                    -->
+                    <div class="flex min-w-0 flex-1 items-center gap-2">
+                      <label class="shrink-0 text-[10px] text-slate-600">Opacity</label>
+                      <div class="flex min-w-0 flex-1 items-center gap-1">
+                        <input type="range" min="0" max="100" value="70" class="sla-slider flex-1" />
+                        <span class="shrink-0 text-[10px] font-semibold text-slate-600">70%</span>
+                      </div>
+                    </div>
+                    <!--
+                      Mirror of the eye + caret cluster above. Gap is driven by the
+                      same --sla-v2-gap variable so the Color label + swatch shift
+                      in lockstep with the eye + caret — keeping the eye-over-Color
+                      column aligned at any gap value.
+                    -->
+                    <div class="sla-v2-cluster-gap flex shrink-0 items-center">
+                      <label class="inline-flex h-7 w-7 shrink-0 items-center justify-center text-[10px] text-slate-600">Color</label>
+                      <span class="inline-flex h-7 w-5 shrink-0 items-center justify-center">
+                        <input type="color" value="#16a34a" class="sla-swatch h-4 w-4 cursor-pointer rounded-sm border border-slate-200" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ul class="mt-3 space-y-1 text-[11px] leading-5 text-slate-600">
+            <li>• <strong>Eye box:</strong> kept — primary "hide layer" affordance stays visually heavier.</li>
+            <li>• <strong>70%:</strong> hugged to the slider via a 4&nbsp;px gap so it reads as a live readout, not a column.</li>
+            <li>• <strong>Eye↔caret gap:</strong> driven by the <code class="rounded bg-slate-100 px-1 py-0.5 text-[10px]">--sla-v2-gap</code> CSS variable (currently 4&nbsp;px). Mirrored between Color label and swatch so the column stays aligned at any value. See <em>SINGLE TINKER POINT</em> comment above the demo.</li>
+            <li>• <strong>Column math:</strong> Color label forced to w-7 centered → eye and "Color" always share a column regardless of the gap value. At 4&nbsp;px gap, the column sits 50&nbsp;px from the right edge.</li>
+            <li>• <strong>Tradeoff:</strong> Color label has extra horizontal whitespace around the word to satisfy the column; minor.</li>
+          </ul>
+        </article>
+
+        <!-- ═══════════ V3 — Matched w-7 column (eye + caret + swatch) ═══════════ -->
+        <article
+          id="sla-v3-card"
+          data-variant="v3"
+          class="sla-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <header class="mb-3">
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">Variant 3</p>
+            <h2 class="mt-1 text-base font-bold text-slate-900">Matched w-7 column (strongest alignment)</h2>
+            <p class="mt-1 text-xs leading-5 text-slate-600">
+              Eye, caret, and color swatch wrapper are all w-7 (28&nbsp;px). Three equal-width hit
+              targets in a single right column. 70% inline with slider. Strongest vertical column;
+              most "intentional" feel.
+            </p>
+          </header>
+
+          <div class="relative overflow-hidden rounded-md border border-slate-200 bg-white">
+            <div class="relative">
+              <!-- Eye center + Color-label center both at 60 px from card right. -->
+              <span class="sla-guide" style="right: 60px;"></span>
+              <!-- Caret center + swatch center both at 26 px from card right. -->
+              <span class="sla-guide" style="right: 26px;"></span>
+
+              <div class="sla-header flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-2 pb-0">
+                <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
+                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                </div>
+                <button type="button" aria-label="Toggle visibility"
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50">
+                  <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                <button type="button" aria-label="Toggle controls" data-role="caret"
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100">
+                  <svg class="sla-chevron h-3 w-3" data-rotated="false" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 4.5L6 7.5L9 4.5" />
+                  </svg>
+                </button>
+              </div>
+
+              <div class="sla-collapsible" data-collapsed="false">
+                <div class="sla-collapsible-content">
+                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                    <!--
+                      Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
+                      reads as part of the slider. Outer gap-2 still separates the "Opacity"
+                      label from the slider group.
+                    -->
+                    <div class="flex min-w-0 flex-1 items-center gap-2">
+                      <label class="shrink-0 text-[10px] text-slate-600">Opacity</label>
+                      <div class="flex min-w-0 flex-1 items-center gap-1">
+                        <input type="range" min="0" max="100" value="70" class="sla-slider flex-1" />
+                        <span class="shrink-0 text-[10px] font-semibold text-slate-600">70%</span>
+                      </div>
+                    </div>
+                    <!-- Mirror of the [eye w-7 gap-1.5 caret w-7] cluster above. -->
+                    <div class="flex shrink-0 items-center gap-1.5">
+                      <label class="inline-flex h-7 w-7 shrink-0 items-center justify-center text-[10px] text-slate-600">Color</label>
+                      <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center">
+                        <input type="color" value="#16a34a" class="sla-swatch h-4 w-4 cursor-pointer rounded-sm border border-slate-200" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ul class="mt-3 space-y-1 text-[11px] leading-5 text-slate-600">
+            <li>• <strong>Eye box:</strong> kept.</li>
+            <li>• <strong>70%:</strong> hugged to the slider (4&nbsp;px gap).</li>
+            <li>• <strong>Eye↔caret gap:</strong> gap-1.5, equal-width buttons.</li>
+            <li>• <strong>Column math:</strong> two mirrored columns — eye + "Color" at 60&nbsp;px from right; caret + swatch at 26&nbsp;px.</li>
+            <li>• <strong>Tradeoff:</strong> caret feels visually equal to the eye even though it's a secondary action.</li>
+          </ul>
+        </article>
+
+        <!-- ═══════════ V4 — Hugged ghost pair, inline 70% ═══════════ -->
+        <article
+          id="sla-v4-card"
+          data-variant="v4"
+          class="sla-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <header class="mb-3">
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">Variant 4</p>
+            <h2 class="mt-1 text-base font-bold text-slate-900">Hugged ghost pair + inline 70%</h2>
+            <p class="mt-1 text-xs leading-5 text-slate-600">
+              Both eye and caret are ghost icons (no border) sitting 2&nbsp;px apart — they read as a
+              single control cluster. "70%" inline. Color swatch mirrors the pair on the bottom row.
+              Minimum visual noise.
+            </p>
+          </header>
+
+          <div class="relative overflow-hidden rounded-md border border-slate-200 bg-white">
+            <div class="relative">
+              <!-- Eye center + Color-text center both at 44 px from card right. -->
+              <span class="sla-guide" style="right: 44px;"></span>
+              <!-- Caret center + swatch center both at 22 px from card right. -->
+              <span class="sla-guide" style="right: 22px;"></span>
+
+              <div class="sla-header flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-2 pb-0">
+                <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
+                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                </div>
+                <!-- Hugged pair grouped so gap-0.5 only applies inside, not between title and eye. -->
+                <div class="flex shrink-0 items-center gap-0.5">
+                  <button type="button" aria-label="Toggle visibility"
+                    class="inline-flex h-7 w-5 shrink-0 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100">
+                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                  <button type="button" aria-label="Toggle controls" data-role="caret"
+                    class="inline-flex h-7 w-5 shrink-0 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100">
+                    <svg class="sla-chevron h-3 w-3" data-rotated="false" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="sla-collapsible" data-collapsed="false">
+                <div class="sla-collapsible-content">
+                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                    <!--
+                      Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
+                      reads as part of the slider. Outer gap-2 still separates the "Opacity"
+                      label from the slider group.
+                    -->
+                    <div class="flex min-w-0 flex-1 items-center gap-2">
+                      <label class="shrink-0 text-[10px] text-slate-600">Opacity</label>
+                      <div class="flex min-w-0 flex-1 items-center gap-1">
+                        <input type="range" min="0" max="100" value="70" class="sla-slider flex-1" />
+                        <span class="shrink-0 text-[10px] font-semibold text-slate-600">70%</span>
+                      </div>
+                    </div>
+                    <!--
+                      Mirror of the hugged pair above: [Color w-5 centered gap-0.5 swatch-wrap w-5].
+                      Color label uses overflow-visible so the word "Color" (≈26 px) can
+                      center-overhang its 20 px slot; its visual center stays at 44 px from
+                      the right edge, which is also the eye's center above.
+                    -->
+                    <div class="flex shrink-0 items-center gap-0.5">
+                      <label class="inline-flex h-7 w-5 shrink-0 items-center justify-center overflow-visible whitespace-nowrap text-[10px] text-slate-600">Color</label>
+                      <span class="inline-flex h-7 w-5 shrink-0 items-center justify-center">
+                        <input type="color" value="#16a34a" class="sla-swatch h-4 w-4 cursor-pointer rounded-sm border border-slate-200" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ul class="mt-3 space-y-1 text-[11px] leading-5 text-slate-600">
+            <li>• <strong>Eye box:</strong> removed.</li>
+            <li>• <strong>70%:</strong> hugged to the slider (4&nbsp;px gap).</li>
+            <li>• <strong>Eye↔caret gap:</strong> gap-0.5 (2&nbsp;px) — read as one unit; mirrored below Color↔swatch.</li>
+            <li>• <strong>Column math:</strong> eye and "Color" text both centered at 44&nbsp;px; caret and swatch both centered at 22&nbsp;px.</li>
+            <li>• <strong>Tradeoff:</strong> "Color" overhangs its 20&nbsp;px slot by ~3&nbsp;px on each side (no clipping, no neighbor overlap) to hit the eye-over-Color column.</li>
+          </ul>
+        </article>
+
+        <!-- ═══════════ V5 — Caret before eye (flipped order) ═══════════ -->
+        <article
+          id="sla-v5-card"
+          data-variant="v5"
+          class="sla-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <header class="mb-3">
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">Variant 5</p>
+            <h2 class="mt-1 text-base font-bold text-slate-900">Caret first, eye flush right</h2>
+            <p class="mt-1 text-xs leading-5 text-slate-600">
+              Order is flipped: caret sits next to the title (it controls what opens below), and the
+              bordered eye becomes the rightmost element — aligning vertically with the color swatch
+              below. "70%" inline.
+            </p>
+          </header>
+
+          <div class="relative overflow-hidden rounded-md border border-slate-200 bg-white">
+            <div class="relative">
+              <!-- Eye center + Color-label center both at 26 px from card right. -->
+              <span class="sla-guide" style="right: 26px;"></span>
+              <!-- Caret center + swatch center both at 56 px from card right. -->
+              <span class="sla-guide" style="right: 56px;"></span>
+
+              <div class="sla-header flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-2 pb-0">
+                <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
+                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                </div>
+                <!-- Caret FIRST (secondary action) -->
+                <button type="button" aria-label="Toggle controls" data-role="caret"
+                  class="inline-flex h-7 w-5 shrink-0 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100">
+                  <svg class="sla-chevron h-3 w-3" data-rotated="false" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 4.5L6 7.5L9 4.5" />
+                  </svg>
+                </button>
+                <!-- Eye flush right (primary action) -->
+                <button type="button" aria-label="Toggle visibility"
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50">
+                  <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="sla-collapsible" data-collapsed="false">
+                <div class="sla-collapsible-content">
+                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                    <!--
+                      Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
+                      reads as part of the slider. Outer gap-2 still separates the "Opacity"
+                      label from the slider group.
+                    -->
+                    <div class="flex min-w-0 flex-1 items-center gap-2">
+                      <label class="shrink-0 text-[10px] text-slate-600">Opacity</label>
+                      <div class="flex min-w-0 flex-1 items-center gap-1">
+                        <input type="range" min="0" max="100" value="70" class="sla-slider flex-1" />
+                        <span class="shrink-0 text-[10px] font-semibold text-slate-600">70%</span>
+                      </div>
+                    </div>
+                    <!--
+                      Bottom mirror of the top row: [swatch w-5] [gap-1.5] [Color w-7 centered].
+                      Order is swapped (swatch first, Color last) so the "Color" label sits
+                      flush right — directly under the flush-right eye above. The color input
+                      keeps its semantic label via aria-labelledby.
+                    -->
+                    <div class="flex shrink-0 items-center gap-1.5">
+                      <span class="inline-flex h-7 w-5 shrink-0 items-center justify-center">
+                        <input type="color" value="#16a34a" aria-labelledby="sla-v5-color-label" class="sla-swatch h-4 w-4 cursor-pointer rounded-sm border border-slate-200" />
+                      </span>
+                      <label id="sla-v5-color-label" class="inline-flex h-7 w-7 shrink-0 items-center justify-center text-[10px] text-slate-600">Color</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ul class="mt-3 space-y-1 text-[11px] leading-5 text-slate-600">
+            <li>• <strong>Eye box:</strong> kept; now flush right.</li>
+            <li>• <strong>70%:</strong> hugged to the slider (4&nbsp;px gap).</li>
+            <li>• <strong>Eye↔caret gap:</strong> caret LEFT of eye (flipped); bottom row also flips so "Color" is flush right.</li>
+            <li>• <strong>Column math:</strong> eye + "Color" both centered at 26&nbsp;px from right; caret + swatch both at 56&nbsp;px.</li>
+            <li>• <strong>Tradeoff:</strong> label-after-input is unconventional — users scanning for "Color" will find it on the right rather than the typical left-of-swatch position.</li>
+          </ul>
+        </article>
+      </section>
+
+      <!-- ─────────────────────────  Comparison table  ───────────────────────── -->
+      <section id="sla-comparison-section" class="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 id="sla-comparison-title" class="text-base font-bold text-slate-900">
+          Side-by-side decision matrix
+        </h2>
+        <p id="sla-comparison-desc" class="mt-1 text-xs text-slate-600">
+          Quick scan of which variant changes which parameter.
+        </p>
+        <div id="sla-comparison-table-wrap" class="mt-4 overflow-x-auto">
+          <table id="sla-comparison-table" class="w-full min-w-[640px] border-collapse text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 text-[10px] uppercase tracking-[0.08em] text-slate-500">
+                <th class="py-2 pr-3 font-semibold">Variant</th>
+                <th class="py-2 pr-3 font-semibold">Eye box</th>
+                <th class="py-2 pr-3 font-semibold">70% placement</th>
+                <th class="py-2 pr-3 font-semibold">Eye ↔ caret gap</th>
+                <th class="py-2 pr-3 font-semibold">Eye-over-Color column</th>
+                <th class="py-2 pr-3 font-semibold">Biggest win</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-700">
+              <tr class="border-b border-slate-100">
+                <td class="py-2 pr-3 font-semibold text-slate-900">V1</td>
+                <td class="py-2 pr-3">Removed</td>
+                <td class="py-2 pr-3">Own w-8 column</td>
+                <td class="py-2 pr-3">gap-1.5</td>
+                <td class="py-2 pr-3">≈ 48&nbsp;px (natural, ~1&nbsp;px off)</td>
+                <td class="py-2 pr-3">Minimal visual weight</td>
+              </tr>
+              <tr class="border-b border-slate-100">
+                <td class="py-2 pr-3 font-semibold text-slate-900">V2</td>
+                <td class="py-2 pr-3">Kept</td>
+                <td class="py-2 pr-3">Hugged to slider (4&nbsp;px)</td>
+                <td class="py-2 pr-3">gap-1 (4&nbsp;px)</td>
+                <td class="py-2 pr-3">50&nbsp;px (locked via w-7 label)</td>
+                <td class="py-2 pr-3">Keeps eye prominent, aligned</td>
+              </tr>
+              <tr class="border-b border-slate-100">
+                <td class="py-2 pr-3 font-semibold text-slate-900">V3</td>
+                <td class="py-2 pr-3">Kept</td>
+                <td class="py-2 pr-3">Hugged to slider (4&nbsp;px)</td>
+                <td class="py-2 pr-3">gap-1.5</td>
+                <td class="py-2 pr-3">60&nbsp;px (locked, w-7 everywhere)</td>
+                <td class="py-2 pr-3">Strongest, most "intentional" grid</td>
+              </tr>
+              <tr class="border-b border-slate-100">
+                <td class="py-2 pr-3 font-semibold text-slate-900">V4</td>
+                <td class="py-2 pr-3">Removed</td>
+                <td class="py-2 pr-3">Hugged to slider (4&nbsp;px)</td>
+                <td class="py-2 pr-3">gap-0.5 (hugged)</td>
+                <td class="py-2 pr-3">44&nbsp;px (Color overhangs w-5 slot)</td>
+                <td class="py-2 pr-3">Least noise; reads as 1 unit</td>
+              </tr>
+              <tr>
+                <td class="py-2 pr-3 font-semibold text-slate-900">V5</td>
+                <td class="py-2 pr-3">Kept, flush right</td>
+                <td class="py-2 pr-3">Hugged to slider (4&nbsp;px)</td>
+                <td class="py-2 pr-3">Caret LEFT of eye</td>
+                <td class="py-2 pr-3">26&nbsp;px (Color flush right, label-after-input)</td>
+                <td class="py-2 pr-3">Eye ↔ Color at far right</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="sla-recommendation" class="mt-6 rounded-lg border border-sky-200 bg-sky-50 p-4">
+          <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-sky-700">My pick</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">Variant 3 — Matched w-7 column</p>
+          <p class="mt-1 text-xs leading-5 text-slate-700">
+            Strongest alignment (all right-side hit targets in one column), keeps the bordered eye
+            as the primary action, and "70%" inline reads as live slider feedback instead of a
+            separate column. Only real cost is that the caret looks visually equal to the eye;
+            mitigated with a slightly lighter chevron color.
+          </p>
+          <p class="mt-2 text-xs leading-5 text-slate-700">
+            <strong>Runner-up:</strong> Variant 2 if you want to keep the caret visually lighter
+            than the eye.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script id="sla-script">
+      (function () {
+        // Per-card collapse toggle via caret click.
+        document.querySelectorAll('[data-role="caret"]').forEach(function (caret) {
+          caret.addEventListener('click', function () {
+            var card = caret.closest('.sla-card');
+            if (!card) return;
+            toggleCard(card);
+          });
+        });
+
+        // Global controls.
+        var toggleGuidesBtn = document.getElementById('sla-toggle-guides-btn');
+        if (toggleGuidesBtn) {
+          toggleGuidesBtn.addEventListener('click', function () {
+            document.querySelectorAll('.sla-card').forEach(function (card) {
+              var current = card.getAttribute('data-show-guides') === 'true';
+              card.setAttribute('data-show-guides', String(!current));
+            });
+          });
+        }
+        var expandAllBtn = document.getElementById('sla-expand-all-btn');
+        if (expandAllBtn) {
+          expandAllBtn.addEventListener('click', function () {
+            document.querySelectorAll('.sla-card').forEach(function (card) {
+              setCardCollapsed(card, false);
+            });
+          });
+        }
+        var collapseAllBtn = document.getElementById('sla-collapse-all-btn');
+        if (collapseAllBtn) {
+          collapseAllBtn.addEventListener('click', function () {
+            document.querySelectorAll('.sla-card').forEach(function (card) {
+              setCardCollapsed(card, true);
+            });
+          });
+        }
+
+        function toggleCard(card) {
+          var collapsible = card.querySelector('.sla-collapsible');
+          if (!collapsible) return;
+          var currentlyCollapsed = collapsible.getAttribute('data-collapsed') === 'true';
+          setCardCollapsed(card, !currentlyCollapsed);
+        }
+
+        function setCardCollapsed(card, collapsed) {
+          var collapsible = card.querySelector('.sla-collapsible');
+          var chevron = card.querySelector('.sla-chevron');
+          var header = card.querySelector('.sla-header');
+          if (collapsible) collapsible.setAttribute('data-collapsed', String(collapsed));
+          if (chevron) chevron.setAttribute('data-rotated', String(collapsed));
+          if (header) {
+            var expanded = header.getAttribute('data-expanded-padding') || 'pb-0';
+            var collapsedPad = header.getAttribute('data-collapsed-padding') || 'pb-2';
+            header.classList.remove('pb-0', 'pb-1', 'pb-2', 'pb-3');
+            header.classList.add(collapsed ? collapsedPad : expanded);
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>
