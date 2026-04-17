@@ -89,6 +89,11 @@ type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
+const COMPARISON_PRIORITY_OVERLAY_IDS = [
+  OVERLAP_SOLUTION_OVERLAY_ID,
+  BASELINE_SOLUTION_OVERLAY_ID,
+  CANDIDATE_SOLUTION_OVERLAY_ID,
+] as const;
 const SINGLE_SOLUTION_COLOR = '#16a34a';
 const COMPARISON_BASELINE_COLOR = '#1e6fa8';
 const COMPARISON_CANDIDATE_COLOR = '#7c3aed';
@@ -219,7 +224,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   constructor() {
     this.syncInitialBoundaryState();
     this.selectedLayerOrder.set(
-      this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      this.normalizeSelectedLayerOrder(
+        this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      ),
     );
 
     effect(() => {
@@ -251,6 +258,18 @@ export class MapLayersPanelComponent implements OnDestroy {
       const overlays = this.overlays();
       untracked(() => {
         this.syncSelectedLayerStackingToMap(order, overlays);
+      });
+    });
+
+    effect(() => {
+      this.appState.rightSidebarMode$();
+      this.appState.comparisonSolution$();
+      this.overlays();
+      untracked(() => {
+        this.selectedLayerOrder.update((order) => {
+          const normalizedOrder = this.normalizeSelectedLayerOrder(order);
+          return this.areOrdersEqual(order, normalizedOrder) ? order : normalizedOrder;
+        });
       });
     });
 
@@ -802,13 +821,17 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
     this.selectedLayerOrder.set(
-      this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      this.normalizeSelectedLayerOrder(
+        this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      ),
     );
     this.syncAllRowsToMap();
   }
 
   protected moveSelectedLayer(rowId: string, direction: 'up' | 'down'): void {
-    this.selectedLayerOrder.update((order) => this.reorderRowsById(order, rowId, direction));
+    this.selectedLayerOrder.update((order) =>
+      this.normalizeSelectedLayerOrder(this.reorderRowsById(order, rowId, direction)),
+    );
   }
 
   protected onSelectedLayerDragStart(event: DragEvent, rowId: string): void {
@@ -851,7 +874,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     const dropPosition = this.selectedLayerDropPosition();
     this.selectedLayerOrder.update((order) =>
-      this.reorderRowsByDropTarget(order, draggedRowId, targetRowId, dropPosition),
+      this.normalizeSelectedLayerOrder(
+        this.reorderRowsByDropTarget(order, draggedRowId, targetRowId, dropPosition),
+      ),
     );
     this.clearSelectedLayerDragState();
   }
@@ -1173,10 +1198,13 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private syncSelectedLayerStackingToMap(order: string[], overlays: LayerControlRow[]): void {
+    const effectiveOrder = this.shouldPrioritizeComparisonLayers()
+      ? this.normalizeSelectedLayerOrder(order)
+      : order;
     const overlaysById = new Map(overlays.map((overlay) => [overlay.id, overlay]));
     const layerOrderTopToBottom: SidebarSolutionLayerType[] = [];
 
-    for (const rowId of order) {
+    for (const rowId of effectiveOrder) {
       const overlay = overlaysById.get(rowId);
       const mapSync = overlay?.mapSync;
       if (!overlay?.selected || !mapSync) {
@@ -1339,13 +1367,49 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.selectedLayerOrder.update((order) => {
       const exists = order.includes(rowId);
       if (selected && !exists) {
-        return position === 'start' ? [rowId, ...order] : [...order, rowId];
+        const nextOrder = position === 'start' ? [rowId, ...order] : [...order, rowId];
+        return this.normalizeSelectedLayerOrder(nextOrder);
       }
       if (!selected && exists) {
-        return order.filter((id) => id !== rowId);
+        return this.normalizeSelectedLayerOrder(order.filter((id) => id !== rowId));
       }
-      return order;
+      return this.normalizeSelectedLayerOrder(order);
     });
+  }
+
+  private shouldPrioritizeComparisonLayers(): boolean {
+    return this.appState.comparisonSolution$() !== null;
+  }
+
+  private normalizeSelectedLayerOrder(order: string[]): string[] {
+    if (!this.shouldPrioritizeComparisonLayers()) {
+      return order;
+    }
+
+    const priorityRowIds: string[] = COMPARISON_PRIORITY_OVERLAY_IDS.filter((id) =>
+      order.includes(id),
+    );
+    if (priorityRowIds.length === 0) {
+      return order;
+    }
+
+    const priorityRowIdSet = new Set(priorityRowIds);
+    const nonPriorityRows = order.filter((id) => !priorityRowIdSet.has(id));
+    return [...priorityRowIds, ...nonPriorityRows];
+  }
+
+  private areOrdersEqual(left: string[], right: string[]): boolean {
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    for (let index = 0; index < left.length; index += 1) {
+      if (left[index] !== right[index]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private computeSelectedLayerOrder(
@@ -1451,7 +1515,29 @@ export class MapLayersPanelComponent implements OnDestroy {
       orderedSelectedRows.push(row);
     }
 
-    return orderedSelectedRows;
+    return this.applyComparisonPriorityToSelectedRows(orderedSelectedRows);
+  }
+
+  private applyComparisonPriorityToSelectedRows(rows: SelectedLayerRow[]): SelectedLayerRow[] {
+    if (!this.shouldPrioritizeComparisonLayers()) {
+      return rows;
+    }
+
+    const priorityRows: SelectedLayerRow[] = [];
+    for (const priorityId of COMPARISON_PRIORITY_OVERLAY_IDS) {
+      const row = rows.find((candidate) => candidate.id === priorityId);
+      if (row) {
+        priorityRows.push(row);
+      }
+    }
+
+    if (priorityRows.length === 0) {
+      return rows;
+    }
+
+    const priorityIds = new Set(priorityRows.map((row) => row.id));
+    const remainingRows = rows.filter((row) => !priorityIds.has(row.id));
+    return [...priorityRows, ...remainingRows];
   }
 
   private buildMasterLegendLayerEntries(): MapLegendLayerEntry[] {
