@@ -114,23 +114,37 @@
 .map-layers-chevron,
 .map-layers-chevron-button {
   color: rgb(71 85 105);
+  border-radius: 0.375rem;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
 }
 
 .map-layers-chevron-button:hover {
   color: rgb(30 41 59);
+  background-color: rgb(241 245 249);
 }
 
 .map-layers-chevron-icon {
   stroke-width: 1.5;
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/*
+  Collapsible pattern.
+  - grid-template-rows 0fr → 1fr animates the row height in modern browsers.
+  - Opacity is synced to the same timing / easing so content does not fade
+    ahead of (or behind) the height change, which is the usual cause of the
+    "visible jump" at the start/end of the transition.
+*/
 .map-layers-collapsible {
   display: grid;
   grid-template-rows: 1fr;
   opacity: 1;
   transition:
-    grid-template-rows 220ms ease,
-    opacity 180ms ease;
+    grid-template-rows 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: grid-template-rows;
 }
 
 .map-layers-collapsible-collapsed {
@@ -142,6 +156,15 @@
 .map-layers-collapsible-content {
   min-height: 0;
   overflow: hidden;
+}
+
+/*
+  The selected-layer row header tightens its bottom padding when expanded
+  (pb-3 → pb-2). Transition the padding so that change doesn't snap while
+  the controls row is smoothly growing in beneath it.
+*/
+.map-layers-selected-layer-row-header {
+  transition: padding-bottom 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .map-layers-opacity-slider {
@@ -252,7 +275,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .map-layers-collapsible,
-  .map-layers-selected-layer-row {
+  .map-layers-selected-layer-row,
+  .map-layers-selected-layer-row-header,
+  .map-layers-chevron-icon,
+  .map-layers-chevron,
+  .map-layers-chevron-button {
     transition: none;
   }
 

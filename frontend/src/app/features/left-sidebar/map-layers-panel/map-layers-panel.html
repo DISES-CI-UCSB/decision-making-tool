@@ -121,9 +121,9 @@
                   [id]="'map-layers-selected-layer-row-header-' + selected.id"
                   data-ui="selected-layer-row-header"
                   [attr.data-layer-id]="selected.id"
-                  class="flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-3"
-                  [class.pb-1.5]="!selected.mapUnavailable && isSelectedLayerExpanded(selected.id)"
-                  [class.pb-3]="selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)"
+                  class="map-layers-selected-layer-row-header flex min-w-0 items-center gap-1.5 pl-1.5 pr-3 pt-2"
+                  [class.pb-0]="!selected.mapUnavailable && isSelectedLayerExpanded(selected.id)"
+                  [class.pb-2]="selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)"
                 >
                   <button
                     [id]="'map-layers-selected-layer-row-drag-handle-' + selected.id"
@@ -305,7 +305,7 @@
                     <div class="map-layers-collapsible-content">
                       <div
                         [id]="'map-layers-selected-layer-row-controls-content-' + selected.id"
-                        class="flex items-center gap-2 px-3 pb-3 pl-6"
+                        class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1"
                       >
                         <div
                           [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
@@ -351,15 +351,22 @@
                             >
                               Color
                             </label>
-                            <input
-                              [id]="'map-layers-selected-layer-row-color-input-' + selected.id"
-                              type="color"
-                              class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                              [value]="selectedLayerColor(selected.id)"
-                              (input)="
-                                updateSelectedLayerColor(selected.id, $any($event.target).value)
+                            <span
+                              [id]="
+                                'map-layers-selected-layer-row-color-swatch-wrap-' + selected.id
                               "
-                            />
+                              class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
+                            >
+                              <input
+                                [id]="'map-layers-selected-layer-row-color-input-' + selected.id"
+                                type="color"
+                                class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
+                                [value]="selectedLayerColor(selected.id)"
+                                (input)="
+                                  updateSelectedLayerColor(selected.id, $any($event.target).value)
+                                "
+                              />
+                            </span>
                           </div>
                         }
                       </div>
@@ -433,7 +440,7 @@
             <input
               id="map-layers-overlays-search-input"
               type="text"
-              class="relative top-px h-6 flex-1 border-0 bg-transparent text-xs leading-6 text-slate-700 placeholder:text-slate-400 focus-visible:outline-none"
+              class="relative top-px h-6 flex-1 border-0 bg-transparent text-xs leading-6 text-slate-700 placeholder:text-slate-500 focus-visible:outline-none"
               placeholder="Search layers..."
               [value]="layerSearchQuery()"
               (input)="updateLayerSearchQuery($any($event.target).value)"
@@ -832,13 +839,18 @@
                           >
                             Color
                           </label>
-                          <input
-                            [id]="'map-layers-overlay-color-input-' + overlay.id"
-                            type="color"
-                            class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                            [value]="overlay.color"
-                            (input)="updateOverlayColor(overlay.id, $any($event.target).value)"
-                          />
+                          <span
+                            [id]="'map-layers-overlay-color-swatch-wrap-' + overlay.id"
+                            class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
+                          >
+                            <input
+                              [id]="'map-layers-overlay-color-input-' + overlay.id"
+                              type="color"
+                              class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
+                              [value]="overlay.color"
+                              (input)="updateOverlayColor(overlay.id, $any($event.target).value)"
+                            />
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1510,17 +1522,34 @@
                                   >
                                     Color
                                   </label>
-                                  <input
+                                  <span
                                     [id]="
-                                      'map-layers-layer-row-color-input-' + group.id + '-' + row.id
+                                      'map-layers-layer-row-color-swatch-wrap-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
                                     "
-                                    type="color"
-                                    class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                                    [value]="row.color"
-                                    (input)="
-                                      updateLayerColor(group.id, row.id, $any($event.target).value)
-                                    "
-                                  />
+                                    class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
+                                  >
+                                    <input
+                                      [id]="
+                                        'map-layers-layer-row-color-input-' +
+                                        group.id +
+                                        '-' +
+                                        row.id
+                                      "
+                                      type="color"
+                                      class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
+                                      [value]="row.color"
+                                      (input)="
+                                        updateLayerColor(
+                                          group.id,
+                                          row.id,
+                                          $any($event.target).value
+                                        )
+                                      "
+                                    />
+                                  </span>
                                 </div>
                               </div>
                             </div>
