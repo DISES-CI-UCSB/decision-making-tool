@@ -36,6 +36,7 @@ interface OverviewMetricBlueprint {
   section: OverviewMetricSection;
   labelKey: string;
   descriptionKey: string;
+  iconClass?: string;
   realMetricId?: string;
   dummyValue: string;
   dummyUnit: string;
@@ -46,6 +47,7 @@ interface OverviewMetricDisplayEntry {
   id: string;
   labelKey: string;
   descriptionKey: string;
+  iconClass?: string;
   value: string;
   unit: string;
   conditional: boolean;
@@ -185,6 +187,7 @@ export class PanelSwitcherComponent {
       section: 'gains',
       labelKey: 'analysis.overview.metrics.speciesGroupsProtected',
       descriptionKey: 'analysis.overview.metrics.speciesGroupsProtectedDesc',
+      iconClass: 'fas fa-paw',
       realMetricId: 'm-biodiversity',
       dummyValue: '45 / 50',
       dummyUnit: '90% of total',
@@ -194,6 +197,7 @@ export class PanelSwitcherComponent {
       section: 'gains',
       labelKey: 'analysis.overview.metrics.threatenedSpeciesSecured',
       descriptionKey: 'analysis.overview.metrics.threatenedSpeciesSecuredDesc',
+      iconClass: 'fas fa-triangle-exclamation',
       dummyValue: '28 / 32',
       dummyUnit: '88% secured',
     },
@@ -202,6 +206,7 @@ export class PanelSwitcherComponent {
       section: 'gains',
       labelKey: 'analysis.overview.metrics.ecosystemCoverage',
       descriptionKey: 'analysis.overview.metrics.ecosystemCoverageDesc',
+      iconClass: 'fas fa-seedling',
       dummyValue: '125k km²',
       dummyUnit: '85% of target',
     },
@@ -210,6 +215,7 @@ export class PanelSwitcherComponent {
       section: 'gains',
       labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
       descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
+      iconClass: 'fas fa-leaf',
       realMetricId: 'm-carbon',
       dummyValue: '2.3B',
       dummyUnit: 'tCO2e',
@@ -219,6 +225,7 @@ export class PanelSwitcherComponent {
       section: 'gains',
       labelKey: 'analysis.overview.metrics.waterRegulationServices',
       descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
+      iconClass: 'fas fa-droplet',
       dummyValue: '450M',
       dummyUnit: 'm³ index',
       conditional: true,
@@ -228,6 +235,7 @@ export class PanelSwitcherComponent {
       section: 'costs',
       labelKey: 'analysis.overview.metrics.affectedAgriculturalArea',
       descriptionKey: 'analysis.overview.metrics.affectedAgriculturalAreaDesc',
+      iconClass: 'fas fa-wheat-awn',
       dummyValue: '8,500 km²',
       dummyUnit: '15% overlap',
     },
@@ -236,6 +244,7 @@ export class PanelSwitcherComponent {
       section: 'costs',
       labelKey: 'analysis.overview.metrics.agriculturalOpportunityCost',
       descriptionKey: 'analysis.overview.metrics.agriculturalOpportunityCostDesc',
+      iconClass: 'fas fa-coins',
       realMetricId: 'm-cost',
       dummyValue: '$350M',
       dummyUnit: 'USD',
@@ -246,6 +255,7 @@ export class PanelSwitcherComponent {
       section: 'costs',
       labelKey: 'analysis.overview.metrics.conflictZoneOverlap',
       descriptionKey: 'analysis.overview.metrics.conflictZoneOverlapDesc',
+      iconClass: 'fas fa-triangle-exclamation',
       dummyValue: '95,000 km²',
       dummyUnit: 'Area affected',
       conditional: true,
@@ -256,7 +266,7 @@ export class PanelSwitcherComponent {
     Pick<ComparisonMetricSection, 'title' | 'toneClass' | 'insight'>
   > = {
     general: {
-      title: 'Regional Conservation Summary',
+      title: 'Conservation Summary',
       toneClass: 'general',
       insight: '',
     },
@@ -430,6 +440,7 @@ export class PanelSwitcherComponent {
   protected readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
   protected readonly showGenerateRegionalReportButton =
     this.appState.showGenerateRegionalReportButton$;
+  protected readonly showMetricIcons = this.appState.showMetricIcons$;
   protected readonly isNotImplementedDialogOpen = signal(false);
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
@@ -927,6 +938,7 @@ export class PanelSwitcherComponent {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
+            iconClass: metric.iconClass,
             value: '--',
             unit: '--',
             conditional: true,
@@ -942,6 +954,7 @@ export class PanelSwitcherComponent {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
+            iconClass: metric.iconClass,
             value: this.formatMetricValue(realMetric),
             unit: 'Ready',
             conditional: Boolean(metric.conditional),
@@ -954,6 +967,7 @@ export class PanelSwitcherComponent {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
+            iconClass: metric.iconClass,
             value: metric.dummyValue,
             unit: metric.dummyUnit,
             conditional: Boolean(metric.conditional),
@@ -965,6 +979,7 @@ export class PanelSwitcherComponent {
           id: metric.id,
           labelKey: metric.labelKey,
           descriptionKey: metric.descriptionKey,
+          iconClass: metric.iconClass,
           value: '--',
           unit: '--',
           conditional: Boolean(metric.conditional),

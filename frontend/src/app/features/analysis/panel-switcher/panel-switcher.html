@@ -1,6 +1,7 @@
 <section
   id="right-sidebar-panel-switcher"
   class="flex h-full min-h-0 flex-col overflow-hidden bg-white"
+  [class.hide-metric-icons]="!showMetricIcons()"
 >
   <nav
     id="right-sidebar-panel-tab-nav"
@@ -255,6 +256,16 @@
                             [class.v3-metric-row-unavailable]="entry.unavailable"
                           >
                             <div
+                              [id]="'right-sidebar-v3-overview-gain-icon-shell-' + entry.id"
+                              class="v3-m-icon"
+                            >
+                              <i
+                                [id]="'right-sidebar-v3-overview-gain-icon-' + entry.id"
+                                [class]="entry.iconClass"
+                                aria-hidden="true"
+                              ></i>
+                            </div>
+                            <div
                               [id]="'right-sidebar-v3-overview-gain-body-' + entry.id"
                               class="v3-m-body"
                             >
@@ -389,6 +400,16 @@
                             class="v3-metric-row"
                             [class.v3-metric-row-unavailable]="entry.unavailable"
                           >
+                            <div
+                              [id]="'right-sidebar-v3-overview-cost-icon-shell-' + entry.id"
+                              class="v3-m-icon"
+                            >
+                              <i
+                                [id]="'right-sidebar-v3-overview-cost-icon-' + entry.id"
+                                [class]="entry.iconClass"
+                                aria-hidden="true"
+                              ></i>
+                            </div>
                             <div
                               [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
                               class="v3-m-body"
@@ -647,7 +668,7 @@
 
             <!-- ═══ SCROLLABLE BODY ═══ -->
             <div id="aoi-dashboard-body" class="aoi-panel-body">
-              <!-- ─── SECTION A: Regional Conservation Summary ─── -->
+              <!-- ─── SECTION A: Conservation Summary ─── -->
               <section id="aoi-section-general">
                 <button
                   id="aoi-head-general"
@@ -658,7 +679,7 @@
                 >
                   <span class="aoi-section-dot"></span>
                   <span class="aoi-section-label rs-header-optical-nudge"
-                    >Regional Conservation Summary</span
+                    >Conservation Summary</span
                   >
                   <span
                     id="aoi-chevron-general"

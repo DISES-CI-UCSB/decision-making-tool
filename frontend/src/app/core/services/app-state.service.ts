@@ -53,6 +53,8 @@ export class AppStateService {
   readonly fillDummyOverviewMetrics$ = signal(true);
   readonly fillDummyComparisonMetrics$ = signal(true);
   readonly fillDummyAoiMetrics$ = signal(true);
+  /** Dev-only: toggle metric-row icons in Overview/AOI panels for iconography review. */
+  readonly showMetricIcons$ = signal(true);
   readonly showFinderScenarioFilenames$ = signal(false);
   readonly showFinderScopeBar$ = signal(false);
   /** Dev-only: gate the overview panel's "View Full Report" CTA while the report experience is in flight. */
@@ -131,6 +133,10 @@ export class AppStateService {
 
   setFillDummyAoiMetrics(enabled: boolean): void {
     this.fillDummyAoiMetrics$.set(enabled);
+  }
+
+  setShowMetricIcons(enabled: boolean): void {
+    this.showMetricIcons$.set(enabled);
   }
 
   setShowFinderScenarioFilenames(enabled: boolean): void {

@@ -236,6 +236,22 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
               </button>
             </div>
             <div
+              id="dev-tools-metric-icons-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <p id="dev-tools-metric-icons-toggle-label" class="text-[11px] text-slate-600">
+                Metric icons (Overview + AOI)
+              </p>
+              <button
+                id="dev-tools-metric-icons-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleMetricIcons()"
+              >
+                {{ showMetricIcons() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+            <div
               id="dev-tools-view-full-report-toggle-row"
               class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
@@ -576,6 +592,7 @@ export class DevToolsPanelComponent {
   readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
   readonly fillDummyAoiMetrics = this.appState.fillDummyAoiMetrics$;
+  readonly showMetricIcons = this.appState.showMetricIcons$;
   readonly chartPaletteId = this.appState.chartPaletteId$;
   readonly chartPaletteOptions = CHART_PALETTE_IDS.map((id) => CHART_PALETTES[id]);
   readonly selectedChartPalette = computed(() => CHART_PALETTES[this.chartPaletteId()]);
@@ -704,6 +721,10 @@ export class DevToolsPanelComponent {
 
   toggleAoiMetricFill(): void {
     this.appState.setFillDummyAoiMetrics(!this.fillDummyAoiMetrics());
+  }
+
+  toggleMetricIcons(): void {
+    this.appState.setShowMetricIcons(!this.showMetricIcons());
   }
 
   onChartPaletteChange(event: Event): void {

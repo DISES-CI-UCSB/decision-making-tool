@@ -524,6 +524,11 @@
   color: #94a3b8;
 }
 
+.v3-metric-row-unavailable .v3-m-icon {
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
 .v3-metric-row:last-child {
   border-bottom: 0;
 }
@@ -531,6 +536,19 @@
 .v3-m-body {
   min-width: 0;
   flex: 1;
+}
+
+.v3-m-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  color: var(--color-subtext);
 }
 
 .v3-m-name {
@@ -1700,6 +1718,11 @@
   flex-shrink: 0;
   background: #f1f5f9;
   color: var(--color-subtext);
+}
+
+#right-sidebar-panel-switcher.hide-metric-icons .v3-m-icon,
+#right-sidebar-panel-switcher.hide-metric-icons .aoi-m-icon {
+  display: none;
 }
 
 .aoi-m-body {
