@@ -13,6 +13,9 @@
 export const environment = {
   production: false,
   googleClientId: '',
+  // Temporary dev override: keep SIRAP boundaries testable while auth approval
+  // flow remains mocked/pending (UCS-181 in progress).
+  allowSirapWithoutAuth: true,
 } as const;
 
 export type AppEnvironment = typeof environment;

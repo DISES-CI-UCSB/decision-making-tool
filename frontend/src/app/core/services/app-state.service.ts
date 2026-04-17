@@ -2,6 +2,7 @@ import { computed, Injectable, signal } from '@angular/core';
 import type Extent from '@arcgis/core/geometry/Extent';
 import { DEFAULT_CHART_PALETTE_ID, type ChartPaletteId } from '@core/models/chart-palette.model';
 import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
+import { environment } from '../../../environments/environment';
 
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
@@ -67,6 +68,9 @@ export class AppStateService {
   readonly hasActiveSolution = computed(() => this.activeSolution$() !== null);
   readonly isComparing = computed(() => this.comparisonSolution$() !== null);
   readonly canAccessTier2 = computed(() => this.userTier$() >= UserTier.DecisionMaker);
+  readonly canAccessSirapBoundaries = computed(
+    () => this.canAccessTier2() || environment.allowSirapWithoutAuth,
+  );
 
   loadSolution(solution: Solution): void {
     this.activeSolution$.set(solution);
