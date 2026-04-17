@@ -54,6 +54,8 @@ export class AppStateService {
   readonly fillDummyAoiMetrics$ = signal(true);
   readonly showFinderScenarioFilenames$ = signal(false);
   readonly showFinderScopeBar$ = signal(false);
+  /** Dev-only: gate the overview panel's "View Full Report" CTA while the report experience is in flight. */
+  readonly showViewFullReportButton$ = signal(true);
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -131,6 +133,10 @@ export class AppStateService {
 
   setShowFinderScopeBar(enabled: boolean): void {
     this.showFinderScopeBar$.set(enabled);
+  }
+
+  setShowViewFullReportButton(enabled: boolean): void {
+    this.showViewFullReportButton$.set(enabled);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {

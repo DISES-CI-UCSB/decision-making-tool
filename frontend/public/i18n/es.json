@@ -117,9 +117,7 @@
         "maxLabel": "100% de Colombia"
       },
       "actions": {
-        "viewFullReport": "Ver informe completo",
-        "compare": "Comparar",
-        "export": "Exportar"
+        "viewFullReport": "Ver informe completo"
       },
       "metrics": {
         "speciesGroupsProtected": "Grupos de especies protegidos",

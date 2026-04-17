@@ -517,31 +517,17 @@
               }
             </div>
 
-            <footer id="right-sidebar-v3-overview-footer" class="v3-panel-footer">
-              <button
-                id="right-sidebar-v3-overview-btn-report"
-                type="button"
-                class="v3-btn v3-btn-primary"
-              >
-                {{ 'analysis.overview.actions.viewFullReport' | translate }}
-              </button>
-              <div id="right-sidebar-v3-overview-btn-group" class="v3-btn-group">
+            @if (showViewFullReportButton()) {
+              <footer id="right-sidebar-v3-overview-footer" class="v3-panel-footer">
                 <button
-                  id="right-sidebar-v3-overview-btn-compare"
+                  id="right-sidebar-v3-overview-btn-report"
                   type="button"
-                  class="v3-btn v3-btn-secondary"
+                  class="v3-btn v3-btn-primary"
                 >
-                  {{ 'analysis.overview.actions.compare' | translate }}
+                  {{ 'analysis.overview.actions.viewFullReport' | translate }}
                 </button>
-                <button
-                  id="right-sidebar-v3-overview-btn-export"
-                  type="button"
-                  class="v3-btn v3-btn-secondary"
-                >
-                  {{ 'analysis.overview.actions.export' | translate }}
-                </button>
-              </div>
-            </footer>
+              </footer>
+            }
           </section>
         } @else {
           <section

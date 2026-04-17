@@ -427,6 +427,7 @@ export class PanelSwitcherComponent {
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   protected readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
+  protected readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
   protected readonly isOverviewLoading = signal(false);
