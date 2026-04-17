@@ -15,7 +15,13 @@ import {
 import { type AoiType } from '@core/models';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
-import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import {
+  DEFAULT_COMPARISON_BASELINE_HEX,
+  DEFAULT_COMPARISON_CANDIDATE_HEX,
+  DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_SINGLE_SOLUTION_HEX,
+  SolutionLayerService,
+} from '@features/map/services/solution-layer.service';
 
 interface LayerControlRow {
   id: string;
@@ -89,10 +95,16 @@ type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
-const SINGLE_SOLUTION_COLOR = '#16a34a';
-const COMPARISON_BASELINE_COLOR = '#1e6fa8';
-const COMPARISON_CANDIDATE_COLOR = '#7c3aed';
-const COMPARISON_OVERLAP_COLOR = '#ec4899';
+const COMPARISON_PRIORITY_OVERLAY_IDS = [
+  OVERLAP_SOLUTION_OVERLAY_ID,
+  BASELINE_SOLUTION_OVERLAY_ID,
+  CANDIDATE_SOLUTION_OVERLAY_ID,
+] as const;
+// Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
+const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
+const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
+const COMPARISON_CANDIDATE_COLOR = DEFAULT_COMPARISON_CANDIDATE_HEX;
+const COMPARISON_OVERLAP_COLOR = DEFAULT_COMPARISON_OVERLAP_HEX;
 const LEGEND_BOUNDARY_STYLES: Record<
   AoiType,
   { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
@@ -219,7 +231,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   constructor() {
     this.syncInitialBoundaryState();
     this.selectedLayerOrder.set(
-      this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      this.normalizeSelectedLayerOrder(
+        this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      ),
     );
 
     effect(() => {
@@ -235,14 +249,31 @@ export class MapLayersPanelComponent implements OnDestroy {
     effect(() => {
       const comparisonSolution = this.appState.comparisonSolution$();
       const vizMode = this.appState.comparisonVisualizationMode$();
+      const rightSidebarMode = this.appState.rightSidebarMode$();
       untracked(() => {
-        const isComparing = !!comparisonSolution;
+        const inComparisonPanel = rightSidebarMode === 'comparison';
+        const isComparing = inComparisonPanel && !!comparisonSolution;
         this.syncBaselineOverlayColor(isComparing);
-        this.syncComparisonSolutionOverlay(comparisonSolution?.name ?? null);
-        this.syncComparisonOverlapOverlay(
-          comparisonSolution?.name ?? null,
-          vizMode === 'threeColorOverlay',
-        );
+
+        if (!comparisonSolution) {
+          // Comparison cleared entirely — destructively remove rows so a fresh
+          // scenario pick starts from defaults.
+          this.syncComparisonSolutionOverlay(null);
+          this.syncComparisonOverlapOverlay(null, false);
+          return;
+        }
+
+        if (!inComparisonPanel) {
+          // User navigated away (e.g. to an AOI or overview) but the comparison
+          // pair is still set. Hide the candidate + overlap rows from Selected
+          // Layers without destroying their customized colors so they restore
+          // cleanly on return.
+          this.hideComparisonOverlays();
+          return;
+        }
+
+        this.syncComparisonSolutionOverlay(comparisonSolution.name);
+        this.syncComparisonOverlapOverlay(comparisonSolution.name, vizMode === 'threeColorOverlay');
       });
     });
 
@@ -251,6 +282,18 @@ export class MapLayersPanelComponent implements OnDestroy {
       const overlays = this.overlays();
       untracked(() => {
         this.syncSelectedLayerStackingToMap(order, overlays);
+      });
+    });
+
+    effect(() => {
+      this.appState.rightSidebarMode$();
+      this.appState.comparisonSolution$();
+      this.overlays();
+      untracked(() => {
+        this.selectedLayerOrder.update((order) => {
+          const normalizedOrder = this.normalizeSelectedLayerOrder(order);
+          return this.areOrdersEqual(order, normalizedOrder) ? order : normalizedOrder;
+        });
       });
     });
 
@@ -802,13 +845,17 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
     this.selectedLayerOrder.set(
-      this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      this.normalizeSelectedLayerOrder(
+        this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
+      ),
     );
     this.syncAllRowsToMap();
   }
 
   protected moveSelectedLayer(rowId: string, direction: 'up' | 'down'): void {
-    this.selectedLayerOrder.update((order) => this.reorderRowsById(order, rowId, direction));
+    this.selectedLayerOrder.update((order) =>
+      this.normalizeSelectedLayerOrder(this.reorderRowsById(order, rowId, direction)),
+    );
   }
 
   protected onSelectedLayerDragStart(event: DragEvent, rowId: string): void {
@@ -851,7 +898,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     const dropPosition = this.selectedLayerDropPosition();
     this.selectedLayerOrder.update((order) =>
-      this.reorderRowsByDropTarget(order, draggedRowId, targetRowId, dropPosition),
+      this.normalizeSelectedLayerOrder(
+        this.reorderRowsByDropTarget(order, draggedRowId, targetRowId, dropPosition),
+      ),
     );
     this.clearSelectedLayerDragState();
   }
@@ -1173,10 +1222,13 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private syncSelectedLayerStackingToMap(order: string[], overlays: LayerControlRow[]): void {
+    const effectiveOrder = this.shouldPrioritizeComparisonLayers()
+      ? this.normalizeSelectedLayerOrder(order)
+      : order;
     const overlaysById = new Map(overlays.map((overlay) => [overlay.id, overlay]));
     const layerOrderTopToBottom: SidebarSolutionLayerType[] = [];
 
-    for (const rowId of order) {
+    for (const rowId of effectiveOrder) {
       const overlay = overlaysById.get(rowId);
       const mapSync = overlay?.mapSync;
       if (!overlay?.selected || !mapSync) {
@@ -1339,13 +1391,49 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.selectedLayerOrder.update((order) => {
       const exists = order.includes(rowId);
       if (selected && !exists) {
-        return position === 'start' ? [rowId, ...order] : [...order, rowId];
+        const nextOrder = position === 'start' ? [rowId, ...order] : [...order, rowId];
+        return this.normalizeSelectedLayerOrder(nextOrder);
       }
       if (!selected && exists) {
-        return order.filter((id) => id !== rowId);
+        return this.normalizeSelectedLayerOrder(order.filter((id) => id !== rowId));
       }
-      return order;
+      return this.normalizeSelectedLayerOrder(order);
     });
+  }
+
+  private shouldPrioritizeComparisonLayers(): boolean {
+    return this.appState.comparisonSolution$() !== null;
+  }
+
+  private normalizeSelectedLayerOrder(order: string[]): string[] {
+    if (!this.shouldPrioritizeComparisonLayers()) {
+      return order;
+    }
+
+    const priorityRowIds: string[] = COMPARISON_PRIORITY_OVERLAY_IDS.filter((id) =>
+      order.includes(id),
+    );
+    if (priorityRowIds.length === 0) {
+      return order;
+    }
+
+    const priorityRowIdSet = new Set(priorityRowIds);
+    const nonPriorityRows = order.filter((id) => !priorityRowIdSet.has(id));
+    return [...priorityRowIds, ...nonPriorityRows];
+  }
+
+  private areOrdersEqual(left: string[], right: string[]): boolean {
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    for (let index = 0; index < left.length; index += 1) {
+      if (left[index] !== right[index]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private computeSelectedLayerOrder(
@@ -1451,7 +1539,29 @@ export class MapLayersPanelComponent implements OnDestroy {
       orderedSelectedRows.push(row);
     }
 
-    return orderedSelectedRows;
+    return this.applyComparisonPriorityToSelectedRows(orderedSelectedRows);
+  }
+
+  private applyComparisonPriorityToSelectedRows(rows: SelectedLayerRow[]): SelectedLayerRow[] {
+    if (!this.shouldPrioritizeComparisonLayers()) {
+      return rows;
+    }
+
+    const priorityRows: SelectedLayerRow[] = [];
+    for (const priorityId of COMPARISON_PRIORITY_OVERLAY_IDS) {
+      const row = rows.find((candidate) => candidate.id === priorityId);
+      if (row) {
+        priorityRows.push(row);
+      }
+    }
+
+    if (priorityRows.length === 0) {
+      return rows;
+    }
+
+    const priorityIds = new Set(priorityRows.map((row) => row.id));
+    const remainingRows = rows.filter((row) => !priorityIds.has(row.id));
+    return [...priorityRows, ...remainingRows];
   }
 
   private buildMasterLegendLayerEntries(): MapLegendLayerEntry[] {
@@ -1650,6 +1760,18 @@ export class MapLayersPanelComponent implements OnDestroy {
       ),
     );
     this.syncOverlayById(BASELINE_SOLUTION_OVERLAY_ID);
+  }
+
+  private hideComparisonOverlays(): void {
+    this.overlays.update((rows) =>
+      rows.map((row) =>
+        row.id === CANDIDATE_SOLUTION_OVERLAY_ID || row.id === OVERLAP_SOLUTION_OVERLAY_ID
+          ? { ...row, selected: false, visible: false }
+          : row,
+      ),
+    );
+    this.updateSelectedLayerOrder(CANDIDATE_SOLUTION_OVERLAY_ID, false);
+    this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, false);
   }
 
   private syncComparisonSolutionOverlay(solutionName: string | null): void {

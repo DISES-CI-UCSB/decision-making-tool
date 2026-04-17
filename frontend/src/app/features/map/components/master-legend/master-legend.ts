@@ -46,9 +46,9 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly candidateName = computed(
     () => this.appState.comparisonSolution$()?.name ?? 'Scenario B',
   );
-  readonly baselineColor = computed(() => this.solutionLayer.getBaselineColorHex());
-  readonly candidateColor = computed(() => this.solutionLayer.getCandidateColorHex());
-  readonly overlapColor = computed(() => this.solutionLayer.getOverlapColorHex());
+  readonly baselineColor = this.solutionLayer.baselineColor$;
+  readonly candidateColor = this.solutionLayer.candidateColor$;
+  readonly overlapColor = this.solutionLayer.overlapColor$;
   readonly baselineOpacity = computed(() => this.solutionLayer.getBaselineOpacity());
   readonly candidateOpacity = computed(() => this.solutionLayer.getCandidateOpacity());
   readonly overlapOpacity = computed(() => this.solutionLayer.getOverlapOpacity());

@@ -53,10 +53,14 @@ export class AppStateService {
   readonly fillDummyOverviewMetrics$ = signal(true);
   readonly fillDummyComparisonMetrics$ = signal(true);
   readonly fillDummyAoiMetrics$ = signal(true);
+  /** Dev-only: toggle metric-row icons in Overview/AOI panels for iconography review. */
+  readonly showMetricIcons$ = signal(true);
   readonly showFinderScenarioFilenames$ = signal(false);
   readonly showFinderScopeBar$ = signal(false);
   /** Dev-only: gate the overview panel's "View Full Report" CTA while the report experience is in flight. */
   readonly showViewFullReportButton$ = signal(true);
+  /** Dev-only: gate the AOI dashboard's "Generate Regional Report" CTA until that functionality exists (UCS-144). */
+  readonly showGenerateRegionalReportButton$ = signal(false);
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -131,6 +135,10 @@ export class AppStateService {
     this.fillDummyAoiMetrics$.set(enabled);
   }
 
+  setShowMetricIcons(enabled: boolean): void {
+    this.showMetricIcons$.set(enabled);
+  }
+
   setShowFinderScenarioFilenames(enabled: boolean): void {
     this.showFinderScenarioFilenames$.set(enabled);
   }
@@ -141,6 +149,10 @@ export class AppStateService {
 
   setShowViewFullReportButton(enabled: boolean): void {
     this.showViewFullReportButton$.set(enabled);
+  }
+
+  setShowGenerateRegionalReportButton(enabled: boolean): void {
+    this.showGenerateRegionalReportButton$.set(enabled);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {

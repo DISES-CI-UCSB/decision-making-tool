@@ -59,82 +59,77 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
             Solution Dev Tools
           </h3>
 
-          <!-- Scenario Picker -->
-          <section id="dev-tools-scenario-picker" class="mb-3">
-            <label
-              id="dev-tools-scenario-label"
-              for="dev-tools-scenario-select"
-              class="block text-slate-500 mb-1"
-              >Load Scenario</label
+          <p
+            id="dev-tools-location-grouping-note"
+            class="mb-2 text-[10px] uppercase tracking-wide text-slate-500"
+          >
+            Grouped by page location
+          </p>
+
+          <section
+            id="dev-tools-group-map-panel"
+            class="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-2.5"
+          >
+            <div
+              id="dev-tools-group-map-panel-header"
+              class="mb-2 flex items-center justify-between gap-2"
             >
-            <select
-              id="dev-tools-scenario-select"
-              class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
-              [value]="selectedScenarioId()"
-              (change)="onScenarioChange($event)"
-            >
-              <option value="">-- select --</option>
-              @for (s of scenarios; track s.id) {
-                <option [value]="s.id">{{ s.id }}</option>
-              }
-            </select>
-            <div id="dev-tools-scenario-actions" class="mt-1.5 flex gap-1.5">
-              <button
-                id="dev-tools-load-btn"
-                type="button"
-                class="rounded border border-emerald-400 bg-emerald-50 px-2 py-1 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
-                [disabled]="!selectedScenarioId() || solutionLayer.isLoading$()"
-                (click)="loadScenario()"
+              <h4
+                id="dev-tools-group-map-panel-title"
+                class="text-[11px] font-semibold text-slate-700"
               >
-                {{ solutionLayer.isLoading$() ? 'Loading...' : 'Load on Map' }}
-              </button>
-              <button
-                id="dev-tools-clear-btn"
-                type="button"
-                class="rounded border border-red-300 bg-red-50 px-2 py-1 text-red-600 hover:bg-red-100"
-                (click)="clearSolution()"
+                Map Panel
+              </h4>
+              <span
+                id="dev-tools-group-map-panel-badge"
+                class="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700"
               >
-                Clear
-              </button>
+                Map
+              </span>
             </div>
 
-            <section
-              id="dev-tools-candidate-scenario-picker"
-              class="mt-3 border-t border-slate-200 pt-3"
-            >
+            <section id="dev-tools-scenario-picker">
               <label
-                id="dev-tools-candidate-scenario-label"
-                for="dev-tools-candidate-scenario-select"
+                id="dev-tools-scenario-label"
+                for="dev-tools-scenario-select"
                 class="block text-slate-500 mb-1"
-                >Load Candidate Scenario</label
+                >Load Scenario</label
               >
               <select
-                id="dev-tools-candidate-scenario-select"
+                id="dev-tools-scenario-select"
                 class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
-                [value]="selectedCandidateScenarioId()"
-                (change)="onCandidateScenarioChange($event)"
+                [value]="selectedScenarioId()"
+                (change)="onScenarioChange($event)"
               >
                 <option value="">-- select --</option>
                 @for (s of scenarios; track s.id) {
                   <option [value]="s.id">{{ s.id }}</option>
                 }
               </select>
-              <div id="dev-tools-candidate-scenario-actions" class="mt-1.5 flex gap-1.5">
+              <div id="dev-tools-scenario-actions" class="mt-1.5 flex gap-1.5">
                 <button
-                  id="dev-tools-load-candidate-btn"
+                  id="dev-tools-load-btn"
                   type="button"
-                  class="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
-                  [disabled]="!selectedCandidateScenarioId() || solutionLayer.isLoading$()"
-                  (click)="loadCandidateScenario()"
+                  class="rounded border border-emerald-400 bg-emerald-50 px-2 py-1 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
+                  [disabled]="!selectedScenarioId() || solutionLayer.isLoading$()"
+                  (click)="loadScenario()"
                 >
-                  Load in Comparison
+                  {{ solutionLayer.isLoading$() ? 'Loading...' : 'Load on Map' }}
+                </button>
+                <button
+                  id="dev-tools-clear-btn"
+                  type="button"
+                  class="rounded border border-red-300 bg-red-50 px-2 py-1 text-red-600 hover:bg-red-100"
+                  (click)="clearSolution()"
+                >
+                  Clear
                 </button>
               </div>
             </section>
 
             <div
               id="dev-tools-coordinate-picker-toggle-row"
-              class="mt-3 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
               <p id="dev-tools-coordinate-picker-toggle-label" class="text-[11px] text-slate-600">
                 Coordinate picker
@@ -150,8 +145,48 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
             </div>
 
             <div
+              id="dev-tools-popup-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <p id="dev-tools-popup-toggle-label" class="text-[11px] text-slate-600">
+                Boundary tooltips
+              </p>
+              <button
+                id="dev-tools-popup-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleBoundaryPopups()"
+              >
+                {{ boundaryPopupsEnabled() ? 'Disable tooltips' : 'Enable tooltips' }}
+              </button>
+            </div>
+          </section>
+
+          <section
+            id="dev-tools-group-solution-finder"
+            class="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-2.5"
+          >
+            <div
+              id="dev-tools-group-solution-finder-header"
+              class="mb-2 flex items-center justify-between gap-2"
+            >
+              <h4
+                id="dev-tools-group-solution-finder-title"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                Solution Finder
+              </h4>
+              <span
+                id="dev-tools-group-solution-finder-badge"
+                class="rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700"
+              >
+                Solution Finder
+              </span>
+            </div>
+
+            <div
               id="dev-tools-select-solution-hover-row"
-              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
               <div id="dev-tools-select-solution-hover-copy" class="min-w-0 pr-2">
                 <p
@@ -179,7 +214,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 
             <div
               id="dev-tools-finder-filename-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
               <p id="dev-tools-finder-filename-toggle-label" class="text-[11px] text-slate-600">
                 Finder scenario filenames
@@ -196,16 +231,19 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 
             <div
               id="dev-tools-finder-scope-bar-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
-              <div class="min-w-0 pr-2">
+              <div id="dev-tools-finder-scope-bar-copy" class="min-w-0 pr-2">
                 <p
                   id="dev-tools-finder-scope-bar-toggle-label"
                   class="text-[11px] font-semibold text-slate-700"
                 >
                   Finder scope bar (Nacional / SIRAP)
                 </p>
-                <p class="text-[10px] leading-4 text-slate-500">
+                <p
+                  id="dev-tools-finder-scope-bar-toggle-hint"
+                  class="text-[10px] leading-4 text-slate-500"
+                >
                   Shows solution-scope toggle above Steps 1–3.
                 </p>
               </div>
@@ -218,139 +256,33 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                 {{ showFinderScopeBar() ? 'ON' : 'OFF' }}
               </button>
             </div>
+          </section>
 
+          <section
+            id="dev-tools-group-left-sidebar-layers"
+            class="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-2.5"
+          >
             <div
-              id="dev-tools-overview-dummy-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              id="dev-tools-group-left-sidebar-layers-header"
+              class="mb-2 flex items-center justify-between gap-2"
             >
-              <p id="dev-tools-overview-dummy-toggle-label" class="text-[11px] text-slate-600">
-                Fill missing overview metrics
-              </p>
-              <button
-                id="dev-tools-overview-dummy-toggle-btn"
-                type="button"
-                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                (click)="toggleOverviewMetricFill()"
+              <h4
+                id="dev-tools-group-left-sidebar-layers-title"
+                class="text-[11px] font-semibold text-slate-700"
               >
-                {{ fillDummyOverviewMetrics() ? 'ON' : 'OFF' }}
-              </button>
-            </div>
-            <div
-              id="dev-tools-view-full-report-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
-            >
-              <div class="min-w-0 pr-2">
-                <p
-                  id="dev-tools-view-full-report-toggle-label"
-                  class="text-[11px] font-semibold text-slate-700"
-                >
-                  View Full Report button
-                </p>
-                <p class="text-[10px] leading-4 text-slate-500">
-                  Show/hide the overview footer CTA while the full report is in progress.
-                </p>
-              </div>
-              <button
-                id="dev-tools-view-full-report-toggle-btn"
-                type="button"
-                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                (click)="toggleViewFullReportButton()"
+                Left Sidebar Layers
+              </h4>
+              <span
+                id="dev-tools-group-left-sidebar-layers-badge"
+                class="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700"
               >
-                {{ showViewFullReportButton() ? 'ON' : 'OFF' }}
-              </button>
-            </div>
-            <div
-              id="dev-tools-comparison-dummy-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
-            >
-              <p id="dev-tools-comparison-dummy-toggle-label" class="text-[11px] text-slate-600">
-                Fill missing solution comparison metrics
-              </p>
-              <button
-                id="dev-tools-comparison-dummy-toggle-btn"
-                type="button"
-                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                (click)="toggleComparisonMetricFill()"
-              >
-                {{ fillDummyComparisonMetrics() ? 'ON' : 'OFF' }}
-              </button>
-            </div>
-            <div
-              id="dev-tools-aoi-dummy-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
-            >
-              <p id="dev-tools-aoi-dummy-toggle-label" class="text-[11px] text-slate-600">
-                Fill missing AOI dashboard metrics
-              </p>
-              <button
-                id="dev-tools-aoi-dummy-toggle-btn"
-                type="button"
-                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                (click)="toggleAoiMetricFill()"
-              >
-                {{ fillDummyAoiMetrics() ? 'ON' : 'OFF' }}
-              </button>
-            </div>
-            <section
-              id="dev-tools-chart-palette-section"
-              class="mt-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
-            >
-              <label
-                id="dev-tools-chart-palette-label"
-                for="dev-tools-chart-palette-select"
-                class="block text-[11px] text-slate-600"
-              >
-                AOI chart color palette
-              </label>
-              <select
-                id="dev-tools-chart-palette-select"
-                class="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-[11px]"
-                [value]="chartPaletteId()"
-                (change)="onChartPaletteChange($event)"
-              >
-                @for (palette of chartPaletteOptions; track palette.id) {
-                  <option [value]="palette.id">{{ palette.name }}</option>
-                }
-              </select>
-              <p id="dev-tools-chart-palette-description" class="mt-1 text-[10px] text-slate-500">
-                {{ selectedChartPalette().description }}
-              </p>
-              <div id="dev-tools-chart-palette-preview-row" class="mt-1 flex items-center gap-1">
-                @for (
-                  color of selectedChartPalette().colors;
-                  track color;
-                  let swatchIndex = $index
-                ) {
-                  <span
-                    [id]="'dev-tools-chart-palette-swatch-' + swatchIndex"
-                    class="inline-block h-4 w-7 rounded border border-slate-300"
-                    [style.background-color]="color"
-                    [title]="color"
-                    [attr.aria-label]="'Palette color ' + (swatchIndex + 1) + ': ' + color"
-                  ></span>
-                }
-              </div>
-            </section>
-            <div
-              id="dev-tools-popup-toggle-row"
-              class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
-            >
-              <p id="dev-tools-popup-toggle-label" class="text-[11px] text-slate-600">
-                Boundary tooltips
-              </p>
-              <button
-                id="dev-tools-popup-toggle-btn"
-                type="button"
-                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                (click)="toggleBoundaryPopups()"
-              >
-                {{ boundaryPopupsEnabled() ? 'Disable tooltips' : 'Enable tooltips' }}
-              </button>
+                Left Sidebar
+              </span>
             </div>
 
             <section
               id="dev-tools-admin-boundaries-toggle-section"
-              class="mt-3 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+              class="rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
               <h4
                 id="dev-tools-admin-boundaries-toggle-title"
@@ -415,6 +347,295 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                 </button>
               </div>
             </section>
+          </section>
+
+          <section
+            id="dev-tools-group-right-sidebar-overview"
+            class="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-2.5"
+          >
+            <div
+              id="dev-tools-group-right-sidebar-overview-header"
+              class="mb-2 flex items-center justify-between gap-2"
+            >
+              <h4
+                id="dev-tools-group-right-sidebar-overview-title"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                Right Sidebar Overview
+              </h4>
+              <span
+                id="dev-tools-group-right-sidebar-overview-badge"
+                class="rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700"
+              >
+                Right Sidebar - Overview
+              </span>
+            </div>
+
+            <div
+              id="dev-tools-overview-dummy-toggle-row"
+              class="flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <p id="dev-tools-overview-dummy-toggle-label" class="text-[11px] text-slate-600">
+                Fill missing overview metrics
+              </p>
+              <button
+                id="dev-tools-overview-dummy-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleOverviewMetricFill()"
+              >
+                {{ fillDummyOverviewMetrics() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+
+            <div
+              id="dev-tools-view-full-report-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <div id="dev-tools-view-full-report-toggle-copy" class="min-w-0 pr-2">
+                <p
+                  id="dev-tools-view-full-report-toggle-label"
+                  class="text-[11px] font-semibold text-slate-700"
+                >
+                  View Full Report button
+                </p>
+                <p
+                  id="dev-tools-view-full-report-toggle-hint"
+                  class="text-[10px] leading-4 text-slate-500"
+                >
+                  Show/hide the overview footer CTA while the full report is in progress.
+                </p>
+              </div>
+              <button
+                id="dev-tools-view-full-report-toggle-btn"
+                type="button"
+                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleViewFullReportButton()"
+              >
+                {{ showViewFullReportButton() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+          </section>
+
+          <section
+            id="dev-tools-group-right-sidebar-comparison"
+            class="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-2.5"
+          >
+            <div
+              id="dev-tools-group-right-sidebar-comparison-header"
+              class="mb-2 flex items-center justify-between gap-2"
+            >
+              <h4
+                id="dev-tools-group-right-sidebar-comparison-title"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                Right Sidebar Comparison
+              </h4>
+              <span
+                id="dev-tools-group-right-sidebar-comparison-badge"
+                class="rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700"
+              >
+                Right Sidebar - Comparison
+              </span>
+            </div>
+
+            <section id="dev-tools-candidate-scenario-picker">
+              <label
+                id="dev-tools-candidate-scenario-label"
+                for="dev-tools-candidate-scenario-select"
+                class="block text-slate-500 mb-1"
+                >Load Candidate Scenario</label
+              >
+              <select
+                id="dev-tools-candidate-scenario-select"
+                class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                [value]="selectedCandidateScenarioId()"
+                (change)="onCandidateScenarioChange($event)"
+              >
+                <option value="">-- select --</option>
+                @for (s of scenarios; track s.id) {
+                  <option [value]="s.id">{{ s.id }}</option>
+                }
+              </select>
+              <div id="dev-tools-candidate-scenario-actions" class="mt-1.5 flex gap-1.5">
+                <button
+                  id="dev-tools-load-candidate-btn"
+                  type="button"
+                  class="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
+                  [disabled]="!selectedCandidateScenarioId() || solutionLayer.isLoading$()"
+                  (click)="loadCandidateScenario()"
+                >
+                  Load in Comparison
+                </button>
+              </div>
+            </section>
+
+            <div
+              id="dev-tools-comparison-dummy-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <p id="dev-tools-comparison-dummy-toggle-label" class="text-[11px] text-slate-600">
+                Fill missing solution comparison metrics
+              </p>
+              <button
+                id="dev-tools-comparison-dummy-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleComparisonMetricFill()"
+              >
+                {{ fillDummyComparisonMetrics() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+          </section>
+
+          <section
+            id="dev-tools-group-right-sidebar-aoi"
+            class="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-2.5"
+          >
+            <div
+              id="dev-tools-group-right-sidebar-aoi-header"
+              class="mb-2 flex items-center justify-between gap-2"
+            >
+              <h4
+                id="dev-tools-group-right-sidebar-aoi-title"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                Right Sidebar AOI
+              </h4>
+              <span
+                id="dev-tools-group-right-sidebar-aoi-badge"
+                class="rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700"
+              >
+                Right Sidebar - AOI
+              </span>
+            </div>
+
+            <div
+              id="dev-tools-aoi-dummy-toggle-row"
+              class="flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <p id="dev-tools-aoi-dummy-toggle-label" class="text-[11px] text-slate-600">
+                Fill missing AOI dashboard metrics
+              </p>
+              <button
+                id="dev-tools-aoi-dummy-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleAoiMetricFill()"
+              >
+                {{ fillDummyAoiMetrics() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+
+            <section
+              id="dev-tools-chart-palette-section"
+              class="mt-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <label
+                id="dev-tools-chart-palette-label"
+                for="dev-tools-chart-palette-select"
+                class="block text-[11px] text-slate-600"
+              >
+                AOI chart color palette
+              </label>
+              <select
+                id="dev-tools-chart-palette-select"
+                class="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-[11px]"
+                [value]="chartPaletteId()"
+                (change)="onChartPaletteChange($event)"
+              >
+                @for (palette of chartPaletteOptions; track palette.id) {
+                  <option [value]="palette.id">{{ palette.name }}</option>
+                }
+              </select>
+              <p id="dev-tools-chart-palette-description" class="mt-1 text-[10px] text-slate-500">
+                {{ selectedChartPalette().description }}
+              </p>
+              <div id="dev-tools-chart-palette-preview-row" class="mt-1 flex items-center gap-1">
+                @for (
+                  color of selectedChartPalette().colors;
+                  track color;
+                  let swatchIndex = $index
+                ) {
+                  <span
+                    [id]="'dev-tools-chart-palette-swatch-' + swatchIndex"
+                    class="inline-block h-4 w-7 rounded border border-slate-300"
+                    [style.background-color]="color"
+                    [title]="color"
+                    [attr.aria-label]="'Palette color ' + (swatchIndex + 1) + ': ' + color"
+                  ></span>
+                }
+              </div>
+            </section>
+
+            <div
+              id="dev-tools-generate-regional-report-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <div id="dev-tools-generate-regional-report-toggle-copy" class="min-w-0 pr-2">
+                <p
+                  id="dev-tools-generate-regional-report-toggle-label"
+                  class="text-[11px] font-semibold text-slate-700"
+                >
+                  Generate Regional Report button
+                </p>
+                <p
+                  id="dev-tools-generate-regional-report-toggle-hint"
+                  class="text-[10px] leading-4 text-slate-500"
+                >
+                  Show/hide the AOI dashboard footer CTA until report generation is implemented
+                  (UCS-144).
+                </p>
+              </div>
+              <button
+                id="dev-tools-generate-regional-report-toggle-btn"
+                type="button"
+                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleGenerateRegionalReportButton()"
+              >
+                {{ showGenerateRegionalReportButton() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+          </section>
+
+          <section
+            id="dev-tools-group-right-sidebar-shared"
+            class="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-2.5"
+          >
+            <div
+              id="dev-tools-group-right-sidebar-shared-header"
+              class="mb-2 flex items-center justify-between gap-2"
+            >
+              <h4
+                id="dev-tools-group-right-sidebar-shared-title"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                Right Sidebar Shared
+              </h4>
+              <span
+                id="dev-tools-group-right-sidebar-shared-badge"
+                class="rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700"
+              >
+                Right Sidebar - Overview + AOI
+              </span>
+            </div>
+
+            <div
+              id="dev-tools-metric-icons-toggle-row"
+              class="flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <p id="dev-tools-metric-icons-toggle-label" class="text-[11px] text-slate-600">
+                Metric icons (Overview + AOI)
+              </p>
+              <button
+                id="dev-tools-metric-icons-toggle-btn"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleMetricIcons()"
+              >
+                {{ showMetricIcons() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
           </section>
 
           @if (solutionLayer.loadError$()) {
@@ -551,6 +772,7 @@ export class DevToolsPanelComponent {
   readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
   readonly fillDummyAoiMetrics = this.appState.fillDummyAoiMetrics$;
+  readonly showMetricIcons = this.appState.showMetricIcons$;
   readonly chartPaletteId = this.appState.chartPaletteId$;
   readonly chartPaletteOptions = CHART_PALETTE_IDS.map((id) => CHART_PALETTES[id]);
   readonly selectedChartPalette = computed(() => CHART_PALETTES[this.chartPaletteId()]);
@@ -558,6 +780,7 @@ export class DevToolsPanelComponent {
   readonly showFinderScenarioFilenames = this.appState.showFinderScenarioFilenames$;
   readonly showFinderScopeBar = this.appState.showFinderScopeBar$;
   readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
+  readonly showGenerateRegionalReportButton = this.appState.showGenerateRegionalReportButton$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
 
@@ -668,12 +891,20 @@ export class DevToolsPanelComponent {
     this.appState.setShowViewFullReportButton(!this.showViewFullReportButton());
   }
 
+  toggleGenerateRegionalReportButton(): void {
+    this.appState.setShowGenerateRegionalReportButton(!this.showGenerateRegionalReportButton());
+  }
+
   toggleComparisonMetricFill(): void {
     this.appState.setFillDummyComparisonMetrics(!this.fillDummyComparisonMetrics());
   }
 
   toggleAoiMetricFill(): void {
     this.appState.setFillDummyAoiMetrics(!this.fillDummyAoiMetrics());
+  }
+
+  toggleMetricIcons(): void {
+    this.appState.setShowMetricIcons(!this.showMetricIcons());
   }
 
   onChartPaletteChange(event: Event): void {

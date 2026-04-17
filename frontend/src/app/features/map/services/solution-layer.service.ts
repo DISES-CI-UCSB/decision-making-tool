@@ -19,10 +19,13 @@ const SOLUTION_LAYER_ID = 'solution-raster-layer';
 const BASELINE_LAYER_ID = 'solution-raster-layer-baseline';
 const CANDIDATE_LAYER_ID = 'solution-raster-layer-candidate';
 const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
-const DEFAULT_SOLUTION_COLOR_HEX = '#16a34a';
-const DEFAULT_COMPARISON_BASELINE_COLOR_HEX = '#1e6fa8';
-const DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX = '#7c3aed';
-const DEFAULT_COMPARISON_OVERLAP_COLOR_HEX = '#ec4899';
+
+/** Canonical default colors. Any module that needs a default must import from here. */
+export const DEFAULT_SINGLE_SOLUTION_HEX = '#16a34a';
+export const DEFAULT_COMPARISON_BASELINE_HEX = '#1e6fa8';
+export const DEFAULT_COMPARISON_CANDIDATE_HEX = '#7c3aed';
+export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
+
 const SOLUTION_ALPHA = 180;
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
@@ -39,10 +42,9 @@ export class SolutionLayerService {
   private baselineComparisonLoaded: LoadedSolution | null = null;
   private candidateComparisonLoaded: LoadedSolution | null = null;
   private comparisonMode = false;
-  private solutionColorHex = DEFAULT_SOLUTION_COLOR_HEX;
-  private baselineComparisonColorHex = DEFAULT_COMPARISON_BASELINE_COLOR_HEX;
-  private candidateComparisonColorHex = DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX;
-  private overlapComparisonColorHex = DEFAULT_COMPARISON_OVERLAP_COLOR_HEX;
+  private lastSingleSolutionId: string | null = null;
+  private lastComparisonBaselineId: string | null = null;
+  private lastComparisonCandidateId: string | null = null;
   private baselineComparisonOpacity = 0.7;
   private candidateComparisonOpacity = 0.7;
   private overlapComparisonOpacity = 1;
@@ -51,6 +53,16 @@ export class SolutionLayerService {
   private overlapComparisonVisible = true;
   private comparisonVisualizationMode: ComparisonVisualizationMode = 'threeColorOverlay';
   private solutionImageElement: InstanceType<typeof ImageElement> | null = null;
+
+  /**
+   * Canonical source of truth for all four solution-layer colors.
+   * Downstream consumers (legend, right-sidebar comparison panel) subscribe directly.
+   * The left-sidebar layer-control rows write here via set*Color().
+   */
+  readonly solutionColor$ = signal(DEFAULT_SINGLE_SOLUTION_HEX);
+  readonly baselineColor$ = signal(DEFAULT_COMPARISON_BASELINE_HEX);
+  readonly candidateColor$ = signal(DEFAULT_COMPARISON_CANDIDATE_HEX);
+  readonly overlapColor$ = signal(DEFAULT_COMPARISON_OVERLAP_HEX);
 
   readonly loadedSolution$ = signal<LoadedSolution | null>(null);
   readonly isLoading$ = signal(false);
@@ -79,7 +91,12 @@ export class SolutionLayerService {
       this.removeAllLayers();
 
       const loaded = await this.loader.loadSolution(scenarioId);
-      this.solutionImageElement = this.createImageElement(loaded, this.solutionColorHex);
+      // Option B: snap back to default green whenever the single-solution scenario changes.
+      if (this.lastSingleSolutionId !== loaded.scenario.id) {
+        this.solutionColor$.set(DEFAULT_SINGLE_SOLUTION_HEX);
+      }
+      this.lastSingleSolutionId = loaded.scenario.id;
+      this.solutionImageElement = this.createImageElement(loaded, this.solutionColor$());
       this.currentLayer = new MediaLayer({
         id: SOLUTION_LAYER_ID,
         source: new LocalMediaElementSource({ elements: [this.solutionImageElement] }),
@@ -142,19 +159,32 @@ export class SolutionLayerService {
 
       // Only clear existing map layers once both scenarios have loaded successfully.
       this.removeAllLayers();
-      this.baselineComparisonColorHex = DEFAULT_COMPARISON_BASELINE_COLOR_HEX;
-      this.candidateComparisonColorHex = DEFAULT_COMPARISON_CANDIDATE_COLOR_HEX;
+      // Option B: each side snaps back to its default only when its scenario actually changes.
+      // Overlap depends on both, so it resets whenever either side changes.
+      const baselineChanged = this.lastComparisonBaselineId !== baselineLoaded.scenario.id;
+      const candidateChanged = this.lastComparisonCandidateId !== candidateLoaded.scenario.id;
+      if (baselineChanged) {
+        this.baselineColor$.set(DEFAULT_COMPARISON_BASELINE_HEX);
+      }
+      if (candidateChanged) {
+        this.candidateColor$.set(DEFAULT_COMPARISON_CANDIDATE_HEX);
+      }
+      if (baselineChanged || candidateChanged) {
+        this.overlapColor$.set(DEFAULT_COMPARISON_OVERLAP_HEX);
+      }
+      this.lastComparisonBaselineId = baselineLoaded.scenario.id;
+      this.lastComparisonCandidateId = candidateLoaded.scenario.id;
       this.baselineComparisonLayer = this.createLayerFromLoaded(
         baselineLoaded,
         BASELINE_LAYER_ID,
         `Scenario A: ${baselineLoaded.scenario.name}`,
-        this.baselineComparisonColorHex,
+        this.baselineColor$(),
       );
       this.candidateComparisonLayer = this.createLayerFromLoaded(
         candidateLoaded,
         CANDIDATE_LAYER_ID,
         `Scenario B: ${candidateLoaded.scenario.name}`,
-        this.candidateComparisonColorHex,
+        this.candidateColor$(),
       );
       this.baselineComparisonLoaded = baselineLoaded;
       this.candidateComparisonLoaded = candidateLoaded;
@@ -174,12 +204,19 @@ export class SolutionLayerService {
     this.removeAllLayers();
     this.loadedSolution$.set(null);
     this.comparisonMode = false;
+    // Clear scenario tracking so a subsequent load of the same id is treated as a fresh start
+    // (and therefore snaps colors back to defaults per Option B).
+    this.lastSingleSolutionId = null;
+    this.lastComparisonBaselineId = null;
+    this.lastComparisonCandidateId = null;
     this.appState.clearSolution();
   }
 
   exitComparisonMode(): void {
     this.removeComparisonLayers();
     this.comparisonMode = false;
+    this.lastComparisonBaselineId = null;
+    this.lastComparisonCandidateId = null;
   }
 
   isComparisonModeActive(): boolean {
@@ -200,16 +237,19 @@ export class SolutionLayerService {
     };
   }
 
+  /** @deprecated Prefer subscribing to `baselineColor$` for reactivity. */
   getBaselineColorHex(): string {
-    return this.baselineComparisonColorHex;
+    return this.baselineColor$();
   }
 
+  /** @deprecated Prefer subscribing to `candidateColor$` for reactivity. */
   getCandidateColorHex(): string {
-    return this.candidateComparisonColorHex;
+    return this.candidateColor$();
   }
 
+  /** @deprecated Prefer subscribing to `overlapColor$` for reactivity. */
   getOverlapColorHex(): string {
-    return this.overlapComparisonColorHex;
+    return this.overlapColor$();
   }
 
   getBaselineOpacity(): number {
@@ -310,10 +350,10 @@ export class SolutionLayerService {
 
   setColor(color: string): void {
     const normalized = this.normalizeHexColor(color);
-    if (!normalized) {
+    if (!normalized || normalized === this.solutionColor$()) {
       return;
     }
-    this.solutionColorHex = normalized;
+    this.solutionColor$.set(normalized);
     const loaded = this.loadedSolution$();
     if (!loaded || !this.currentLayer) {
       return;
@@ -332,11 +372,13 @@ export class SolutionLayerService {
 
   setBaselineColor(color: string): void {
     const normalized = this.normalizeHexColor(color);
-    if (!normalized) {
+    if (!normalized || normalized === this.baselineColor$()) {
       return;
     }
-    this.solutionColorHex = normalized;
-    this.baselineComparisonColorHex = normalized;
+    // Baseline color also drives the single-solution (non-comparison) green channel so the
+    // left sidebar's sole "Selected Solution" row and the comparison baseline stay coherent.
+    this.solutionColor$.set(normalized);
+    this.baselineColor$.set(normalized);
 
     const loaded = this.loadedSolution$();
     if (loaded && this.currentLayer) {
@@ -353,10 +395,10 @@ export class SolutionLayerService {
 
   setCandidateColor(color: string): void {
     const normalized = this.normalizeHexColor(color);
-    if (!normalized) {
+    if (!normalized || normalized === this.candidateColor$()) {
       return;
     }
-    this.candidateComparisonColorHex = normalized;
+    this.candidateColor$.set(normalized);
     if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
       this.replaceLayerSourceColor(
         this.candidateComparisonLayer,
@@ -368,10 +410,10 @@ export class SolutionLayerService {
 
   setOverlapColor(color: string): void {
     const normalized = this.normalizeHexColor(color);
-    if (!normalized) {
+    if (!normalized || normalized === this.overlapColor$()) {
       return;
     }
-    this.overlapComparisonColorHex = normalized;
+    this.overlapColor$.set(normalized);
     if (
       !this.overlapComparisonLayer ||
       !this.baselineComparisonLoaded ||
@@ -396,7 +438,7 @@ export class SolutionLayerService {
     loaded: LoadedSolution,
     layerId: string,
     title: string,
-    colorHex = DEFAULT_SOLUTION_COLOR_HEX,
+    colorHex = DEFAULT_SINGLE_SOLUTION_HEX,
   ): InstanceType<typeof MediaLayer> {
     return new MediaLayer({
       id: layerId,
@@ -587,7 +629,7 @@ export class SolutionLayerService {
         this.overlapComparisonLayer,
         this.baselineComparisonLoaded,
         overlapRasterData,
-        this.overlapComparisonColorHex,
+        this.overlapColor$(),
       );
     }
 
@@ -633,7 +675,7 @@ export class SolutionLayerService {
     const canvas = this.rasterToCanvasWithColor(
       rasterData,
       loaded.rasterMeta,
-      this.overlapComparisonColorHex,
+      this.overlapColor$(),
     );
     const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
     return new ImageElement({
