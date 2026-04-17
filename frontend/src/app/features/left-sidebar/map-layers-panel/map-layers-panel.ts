@@ -15,7 +15,13 @@ import {
 import { type AoiType } from '@core/models';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
-import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import {
+  DEFAULT_COMPARISON_BASELINE_HEX,
+  DEFAULT_COMPARISON_CANDIDATE_HEX,
+  DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_SINGLE_SOLUTION_HEX,
+  SolutionLayerService,
+} from '@features/map/services/solution-layer.service';
 
 interface LayerControlRow {
   id: string;
@@ -94,10 +100,11 @@ const COMPARISON_PRIORITY_OVERLAY_IDS = [
   BASELINE_SOLUTION_OVERLAY_ID,
   CANDIDATE_SOLUTION_OVERLAY_ID,
 ] as const;
-const SINGLE_SOLUTION_COLOR = '#16a34a';
-const COMPARISON_BASELINE_COLOR = '#1e6fa8';
-const COMPARISON_CANDIDATE_COLOR = '#7c3aed';
-const COMPARISON_OVERLAP_COLOR = '#ec4899';
+// Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
+const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
+const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
+const COMPARISON_CANDIDATE_COLOR = DEFAULT_COMPARISON_CANDIDATE_HEX;
+const COMPARISON_OVERLAP_COLOR = DEFAULT_COMPARISON_OVERLAP_HEX;
 const LEGEND_BOUNDARY_STYLES: Record<
   AoiType,
   { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
@@ -242,14 +249,31 @@ export class MapLayersPanelComponent implements OnDestroy {
     effect(() => {
       const comparisonSolution = this.appState.comparisonSolution$();
       const vizMode = this.appState.comparisonVisualizationMode$();
+      const rightSidebarMode = this.appState.rightSidebarMode$();
       untracked(() => {
-        const isComparing = !!comparisonSolution;
+        const inComparisonPanel = rightSidebarMode === 'comparison';
+        const isComparing = inComparisonPanel && !!comparisonSolution;
         this.syncBaselineOverlayColor(isComparing);
-        this.syncComparisonSolutionOverlay(comparisonSolution?.name ?? null);
-        this.syncComparisonOverlapOverlay(
-          comparisonSolution?.name ?? null,
-          vizMode === 'threeColorOverlay',
-        );
+
+        if (!comparisonSolution) {
+          // Comparison cleared entirely — destructively remove rows so a fresh
+          // scenario pick starts from defaults.
+          this.syncComparisonSolutionOverlay(null);
+          this.syncComparisonOverlapOverlay(null, false);
+          return;
+        }
+
+        if (!inComparisonPanel) {
+          // User navigated away (e.g. to an AOI or overview) but the comparison
+          // pair is still set. Hide the candidate + overlap rows from Selected
+          // Layers without destroying their customized colors so they restore
+          // cleanly on return.
+          this.hideComparisonOverlays();
+          return;
+        }
+
+        this.syncComparisonSolutionOverlay(comparisonSolution.name);
+        this.syncComparisonOverlapOverlay(comparisonSolution.name, vizMode === 'threeColorOverlay');
       });
     });
 
@@ -1736,6 +1760,18 @@ export class MapLayersPanelComponent implements OnDestroy {
       ),
     );
     this.syncOverlayById(BASELINE_SOLUTION_OVERLAY_ID);
+  }
+
+  private hideComparisonOverlays(): void {
+    this.overlays.update((rows) =>
+      rows.map((row) =>
+        row.id === CANDIDATE_SOLUTION_OVERLAY_ID || row.id === OVERLAP_SOLUTION_OVERLAY_ID
+          ? { ...row, selected: false, visible: false }
+          : row,
+      ),
+    );
+    this.updateSelectedLayerOrder(CANDIDATE_SOLUTION_OVERLAY_ID, false);
+    this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, false);
   }
 
   private syncComparisonSolutionOverlay(solutionName: string | null): void {
