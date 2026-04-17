@@ -260,6 +260,31 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
               </button>
             </div>
             <div
+              id="dev-tools-generate-regional-report-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
+            >
+              <div class="min-w-0 pr-2">
+                <p
+                  id="dev-tools-generate-regional-report-toggle-label"
+                  class="text-[11px] font-semibold text-slate-700"
+                >
+                  Generate Regional Report button
+                </p>
+                <p class="text-[10px] leading-4 text-slate-500">
+                  Show/hide the AOI dashboard footer CTA until report generation is implemented
+                  (UCS-144).
+                </p>
+              </div>
+              <button
+                id="dev-tools-generate-regional-report-toggle-btn"
+                type="button"
+                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleGenerateRegionalReportButton()"
+              >
+                {{ showGenerateRegionalReportButton() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
+            <div
               id="dev-tools-comparison-dummy-toggle-row"
               class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2"
             >
@@ -558,6 +583,7 @@ export class DevToolsPanelComponent {
   readonly showFinderScenarioFilenames = this.appState.showFinderScenarioFilenames$;
   readonly showFinderScopeBar = this.appState.showFinderScopeBar$;
   readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
+  readonly showGenerateRegionalReportButton = this.appState.showGenerateRegionalReportButton$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
 
@@ -666,6 +692,10 @@ export class DevToolsPanelComponent {
 
   toggleViewFullReportButton(): void {
     this.appState.setShowViewFullReportButton(!this.showViewFullReportButton());
+  }
+
+  toggleGenerateRegionalReportButton(): void {
+    this.appState.setShowGenerateRegionalReportButton(!this.showGenerateRegionalReportButton());
   }
 
   toggleComparisonMetricFill(): void {

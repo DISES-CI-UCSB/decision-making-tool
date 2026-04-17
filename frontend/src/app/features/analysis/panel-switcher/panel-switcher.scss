@@ -1813,25 +1813,3 @@
 .aoi-btn-primary:hover {
   background: #334155;
 }
-
-.aoi-btn-group {
-  display: flex;
-  gap: 8px;
-}
-
-.aoi-btn-secondary {
-  flex: 1;
-  background: #fff;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-}
-
-.aoi-btn-secondary:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-
-.aoi-btn-secondary i {
-  color: var(--color-subtext);
-  font-size: 12px;
-}

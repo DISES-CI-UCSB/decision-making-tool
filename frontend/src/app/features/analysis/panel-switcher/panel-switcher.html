@@ -1301,20 +1301,13 @@
               }
             </div>
 
-            <!-- ═══ FOOTER ═══ -->
-            <footer id="aoi-dashboard-footer" class="aoi-panel-footer">
-              <button id="aoi-btn-report" type="button" class="aoi-btn aoi-btn-primary">
-                <i class="fas fa-file-pdf" aria-hidden="true"></i> Generate Regional Report
-              </button>
-              <div id="aoi-btn-group" class="aoi-btn-group">
-                <button id="aoi-btn-export-data" type="button" class="aoi-btn aoi-btn-secondary">
-                  <i class="fas fa-table" aria-hidden="true"></i> Export Data
+            @if (showGenerateRegionalReportButton()) {
+              <footer id="aoi-dashboard-footer" class="aoi-panel-footer">
+                <button id="aoi-btn-report" type="button" class="aoi-btn aoi-btn-primary">
+                  <i class="fas fa-file-pdf" aria-hidden="true"></i> Generate Regional Report
                 </button>
-                <button id="aoi-btn-export-map" type="button" class="aoi-btn aoi-btn-secondary">
-                  <i class="fas fa-image" aria-hidden="true"></i> Export Map
-                </button>
-              </div>
-            </footer>
+              </footer>
+            }
           </section>
         } @else {
           <section
