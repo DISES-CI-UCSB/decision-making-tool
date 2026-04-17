@@ -1,8 +1,10 @@
 import {
   Component,
   computed,
+  ElementRef,
   effect,
   EventEmitter,
+  HostListener,
   inject,
   Input,
   Output,
@@ -534,6 +536,7 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 })
 export class DevToolsPanelComponent {
   protected readonly solutionLayer = inject(SolutionLayerService);
+  private readonly hostElement = inject(ElementRef<HTMLElement>);
   private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly catalog = inject(SolutionCatalogService);
   private readonly appState = inject(AppStateService);
@@ -573,6 +576,22 @@ export class DevToolsPanelComponent {
       if (!sol) return;
       requestAnimationFrame(() => this.drawPreview(sol.canvas));
     });
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onDocumentMouseDown(event: MouseEvent): void {
+    if (!this.isOpen()) {
+      return;
+    }
+
+    const targetNode = event.target;
+    if (!(targetNode instanceof Node)) {
+      return;
+    }
+
+    if (!this.hostElement.nativeElement.contains(targetNode)) {
+      this.isOpen.set(false);
+    }
   }
 
   onScenarioChange(event: Event): void {
