@@ -121,6 +121,15 @@
         gap: var(--sla-v2-gap, 4px);
       }
 
+      /*
+        Shared top padding for the controls row (Opacity + slider + Color).
+        Change --sla-controls-row-pt in one place to move that entire bottom
+        row up/down across all variants.
+      */
+      .sla-controls-row {
+        padding-top: var(--sla-controls-row-pt, 0px);
+      }
+
       /* Respect reduced motion. */
       @media (prefers-reduced-motion: reduce) {
         .sla-collapsible,
@@ -132,7 +141,7 @@
     </style>
   </head>
   <body id="sla-body" class="min-h-screen bg-slate-100 text-slate-900">
-    <main id="sla-main" class="mx-auto max-w-7xl px-6 py-10">
+    <main id="sla-main" style="--sla-controls-row-pt: 2px;" class="mx-auto max-w-7xl px-6 py-10">
       <!-- ─────────────────────────  Document header  ───────────────────────── -->
       <header id="sla-doc-header" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <p id="sla-kicker" class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
@@ -230,7 +239,7 @@
                 >
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
-                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                  <p class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">Selected Solution</p>
                 </div>
                 <!-- Eye: no border, slim -->
                 <button
@@ -261,7 +270,7 @@
               <!-- Controls -->
               <div class="sla-collapsible" data-collapsed="false">
                 <div class="sla-collapsible-content">
-                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                  <div class="sla-controls-row flex items-center gap-2 px-3 pb-2 pl-6">
                     <div class="flex min-w-0 flex-1 items-center gap-1.5">
                       <label class="shrink-0 text-[10px] text-slate-600">Opacity</label>
                       <input type="range" min="0" max="100" value="70" class="sla-slider w-full" />
@@ -327,7 +336,7 @@
                 <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
-                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                  <p class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">Selected Solution</p>
                 </div>
                 <!--
                   Eye + caret grouped in a sub-flex. Gap is driven by the shared
@@ -353,7 +362,7 @@
 
               <div class="sla-collapsible" data-collapsed="false">
                 <div class="sla-collapsible-content">
-                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                  <div class="sla-controls-row flex items-center gap-2 px-3 pb-2 pl-6">
                     <!--
                       Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
                       reads as part of the slider. Outer gap-2 still separates the "Opacity"
@@ -420,7 +429,7 @@
                 <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
-                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                  <p class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">Selected Solution</p>
                 </div>
                 <button type="button" aria-label="Toggle visibility"
                   class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50">
@@ -439,7 +448,7 @@
 
               <div class="sla-collapsible" data-collapsed="false">
                 <div class="sla-collapsible-content">
-                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                  <div class="sla-controls-row flex items-center gap-2 px-3 pb-2 pl-6">
                     <!--
                       Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
                       reads as part of the slider. Outer gap-2 still separates the "Opacity"
@@ -501,7 +510,7 @@
                 <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
-                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                  <p class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">Selected Solution</p>
                 </div>
                 <!-- Hugged pair grouped so gap-0.5 only applies inside, not between title and eye. -->
                 <div class="flex shrink-0 items-center gap-0.5">
@@ -523,7 +532,7 @@
 
               <div class="sla-collapsible" data-collapsed="false">
                 <div class="sla-collapsible-content">
-                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                  <div class="sla-controls-row flex items-center gap-2 px-3 pb-2 pl-6">
                     <!--
                       Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
                       reads as part of the slider. Outer gap-2 still separates the "Opacity"
@@ -590,7 +599,7 @@
                 <span class="w-3 shrink-0 text-center text-[13px] font-extrabold leading-none text-slate-500">⋮⋮</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-[13px] font-semibold text-slate-800">Ecos17 RUNAP HF</p>
-                  <p class="truncate text-[10px] text-slate-600">Selected Solution</p>
+                  <p class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">Selected Solution</p>
                 </div>
                 <!-- Caret FIRST (secondary action) -->
                 <button type="button" aria-label="Toggle controls" data-role="caret"
@@ -611,7 +620,7 @@
 
               <div class="sla-collapsible" data-collapsed="false">
                 <div class="sla-collapsible-content">
-                  <div class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1">
+                  <div class="sla-controls-row flex items-center gap-2 px-3 pb-2 pl-6">
                     <!--
                       Slider + "70%" grouped in a nested flex with gap-1 (4 px) so the readout
                       reads as part of the slider. Outer gap-2 still separates the "Opacity"
