@@ -106,6 +106,17 @@
       "conditional": "Condicional",
       "unavailableInfoLabel": "Por que esta metrica no esta disponible",
       "unavailableTooltip": "No disponible por ahora: esta metrica necesita una capa de datos adicional que aun no se ha entregado.",
+      "inputsTooltip": {
+        "triggerLabel": "Mostrar los insumos usados para generar esta solucion",
+        "title": "Insumos usados",
+        "targetLabel": "Meta",
+        "constraintsLabel": "Restricciones",
+        "tradeoffLabel": "Compensacion",
+        "targetValue": "{{pct}}% de {{family}}",
+        "targetFamilyEcosystems": "ecosistemas",
+        "targetFamilyStrategic": "ecosistemas estrategicos",
+        "constraintsNone": "Ninguna"
+      },
       "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climaticos.",
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
       "nationalAnchor": {

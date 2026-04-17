@@ -13,6 +13,7 @@ import {
   type RightSidebarMode,
 } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
+import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import {
   AdminBoundaryService,
   type SirapSelectionScope,
@@ -106,6 +107,17 @@ interface ComparisonVisualizationOption {
   description: string;
 }
 
+/**
+ * Human-readable reminder of the Solution Finder inputs that produced the
+ * currently active solution. Rendered as a tooltip next to the solution name
+ * in the Overview panel header.
+ */
+interface ActiveSolutionInputs {
+  targetText: string;
+  constraintsText: string;
+  tradeoffText: string;
+}
+
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
@@ -171,6 +183,7 @@ export class PanelSwitcherComponent {
   private readonly appState = inject(AppStateService);
   private readonly api = inject(ApiService);
   private readonly mockData = inject(MockDataService);
+  private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
@@ -431,6 +444,9 @@ export class PanelSwitcherComponent {
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
+  protected readonly activeSolutionInputs = computed<ActiveSolutionInputs | null>(() =>
+    this.buildActiveSolutionInputs(),
+  );
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly sirapSelectionScope = this.adminBoundaries.sirapSelectionScope$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
@@ -892,6 +908,44 @@ export class PanelSwitcherComponent {
     const green = Number.parseInt(hex.slice(2, 4), 16);
     const blue = Number.parseInt(hex.slice(4, 6), 16);
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  private buildActiveSolutionInputs(): ActiveSolutionInputs | null {
+    if (!this.appState.showOverviewInputsReminder$()) {
+      return null;
+    }
+
+    const solution = this.activeSolution();
+    const scenarioId = solution?.metadata?.['scenarioId'];
+    if (typeof scenarioId !== 'string') {
+      return null;
+    }
+
+    const scenario = this.solutionCatalog.getById(scenarioId);
+    if (!scenario) {
+      return null;
+    }
+
+    const isStrategic = scenario.id.startsWith('ESTR');
+    const targetFamilyKey = isStrategic
+      ? 'analysis.overview.inputsTooltip.targetFamilyStrategic'
+      : 'analysis.overview.inputsTooltip.targetFamilyEcosystems';
+
+    const targetText = this.translate.instant('analysis.overview.inputsTooltip.targetValue', {
+      pct: scenario.ecosystemTargets,
+      family: this.translate.instant(targetFamilyKey),
+    });
+
+    const constraintsText =
+      scenario.constraints.length > 0
+        ? scenario.constraints.join(', ')
+        : this.translate.instant('analysis.overview.inputsTooltip.constraintsNone');
+
+    return {
+      targetText,
+      constraintsText,
+      tradeoffText: scenario.costLayer,
+    };
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {

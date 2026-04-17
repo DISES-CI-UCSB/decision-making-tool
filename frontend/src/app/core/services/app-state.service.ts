@@ -61,6 +61,8 @@ export class AppStateService {
   readonly showViewFullReportButton$ = signal(true);
   /** Dev-only: gate the AOI dashboard's "Generate Regional Report" CTA until that functionality exists (UCS-144). */
   readonly showGenerateRegionalReportButton$ = signal(false);
+  /** Dev-only: show the info-icon reminder of Solution Finder inputs next to the overview title. Off until data is ready. */
+  readonly showOverviewInputsReminder$ = signal(false);
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -153,6 +155,10 @@ export class AppStateService {
 
   setShowGenerateRegionalReportButton(enabled: boolean): void {
     this.showGenerateRegionalReportButton$.set(enabled);
+  }
+
+  setShowOverviewInputsReminder(enabled: boolean): void {
+    this.showOverviewInputsReminder$.set(enabled);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {
