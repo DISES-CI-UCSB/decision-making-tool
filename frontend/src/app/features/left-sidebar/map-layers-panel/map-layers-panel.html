@@ -150,7 +150,7 @@
                     </p>
                     <p
                       [id]="'map-layers-selected-layer-row-source-' + selected.id"
-                      class="truncate text-[10px] text-slate-600"
+                      class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400"
                     >
                       {{ selected.sourceLabel }}
                     </p>
@@ -203,94 +203,101 @@
                       </svg>
                     </button>
                   }
-                  <button
-                    [id]="'map-layers-selected-layer-row-visibility-button-' + selected.id"
-                    data-ui="selected-layer-visibility-button"
-                    [attr.data-layer-id]="selected.id"
-                    type="button"
-                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                    [class.cursor-not-allowed]="selected.mapUnavailable"
-                    [class.opacity-50]="selected.mapUnavailable"
-                    [attr.aria-label]="
-                      selected.mapUnavailable
-                        ? selected.name + ' does not have a map layer yet'
-                        : 'Toggle visibility for ' + selected.name
-                    "
-                    [attr.aria-pressed]="isSelectedLayerVisible(selected.id)"
-                    [disabled]="selected.mapUnavailable"
-                    (click)="toggleSelectedLayerVisibility(selected.id)"
+                  <div
+                    [id]="'map-layers-selected-layer-row-action-cluster-' + selected.id"
+                    class="flex shrink-0 items-center gap-1"
                   >
-                    @if (isSelectedLayerVisible(selected.id)) {
-                      <svg
-                        [id]="'map-layers-selected-layer-row-eye-open-icon-' + selected.id"
-                        class="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                      </svg>
-                    } @else {
-                      <svg
-                        [id]="'map-layers-selected-layer-row-eye-closed-icon-' + selected.id"
-                        class="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M3 3l18 18"></path>
-                        <path
-                          d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
-                        ></path>
-                        <path d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"></path>
-                        <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
-                      </svg>
-                    }
-                  </button>
-                  <button
-                    [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
-                    data-ui="selected-layer-expand-button"
-                    [attr.data-layer-id]="selected.id"
-                    type="button"
-                    class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                    [class.rotate-180]="
-                      selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)
-                    "
-                    [class.cursor-not-allowed]="selected.mapUnavailable"
-                    [class.opacity-50]="selected.mapUnavailable"
-                    [disabled]="selected.mapUnavailable"
-                    [attr.aria-label]="
-                      selected.mapUnavailable
-                        ? 'Style controls are not available for ' + selected.name
-                        : 'Toggle controls for ' + selected.name
-                    "
-                    [attr.aria-expanded]="
-                      selected.mapUnavailable ? false : isSelectedLayerExpanded(selected.id)
-                    "
-                    (click)="toggleSelectedLayerExpanded(selected.id)"
-                  >
-                    <svg
-                      class="map-layers-chevron-icon h-3 w-3"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
+                    <button
+                      [id]="'map-layers-selected-layer-row-visibility-button-' + selected.id"
+                      data-ui="selected-layer-visibility-button"
+                      [attr.data-layer-id]="selected.id"
+                      type="button"
+                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
+                      [class.cursor-not-allowed]="selected.mapUnavailable"
+                      [class.opacity-50]="selected.mapUnavailable"
+                      [attr.aria-label]="
+                        selected.mapUnavailable
+                          ? selected.name + ' does not have a map layer yet'
+                          : 'Toggle visibility for ' + selected.name
+                      "
+                      [attr.aria-pressed]="isSelectedLayerVisible(selected.id)"
+                      [disabled]="selected.mapUnavailable"
+                      (click)="toggleSelectedLayerVisibility(selected.id)"
                     >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </button>
+                      @if (isSelectedLayerVisible(selected.id)) {
+                        <svg
+                          [id]="'map-layers-selected-layer-row-eye-open-icon-' + selected.id"
+                          class="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      } @else {
+                        <svg
+                          [id]="'map-layers-selected-layer-row-eye-closed-icon-' + selected.id"
+                          class="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 3l18 18"></path>
+                          <path
+                            d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
+                          ></path>
+                          <path
+                            d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
+                          ></path>
+                          <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
+                        </svg>
+                      }
+                    </button>
+                    <button
+                      [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
+                      data-ui="selected-layer-expand-button"
+                      [attr.data-layer-id]="selected.id"
+                      type="button"
+                      class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
+                      [class.rotate-180]="
+                        selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)
+                      "
+                      [class.cursor-not-allowed]="selected.mapUnavailable"
+                      [class.opacity-50]="selected.mapUnavailable"
+                      [disabled]="selected.mapUnavailable"
+                      [attr.aria-label]="
+                        selected.mapUnavailable
+                          ? 'Style controls are not available for ' + selected.name
+                          : 'Toggle controls for ' + selected.name
+                      "
+                      [attr.aria-expanded]="
+                        selected.mapUnavailable ? false : isSelectedLayerExpanded(selected.id)
+                      "
+                      (click)="toggleSelectedLayerExpanded(selected.id)"
+                    >
+                      <svg
+                        class="map-layers-chevron-icon h-3 w-3"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 @if (!selected.mapUnavailable) {
@@ -305,11 +312,11 @@
                     <div class="map-layers-collapsible-content">
                       <div
                         [id]="'map-layers-selected-layer-row-controls-content-' + selected.id"
-                        class="flex items-center gap-2 px-3 pb-2 pl-6 pt-1"
+                        class="flex items-center gap-2 px-3 pb-1 pl-6 pt-0.5"
                       >
                         <div
                           [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
-                          class="flex min-w-0 flex-1 items-center gap-1.5"
+                          class="flex min-w-0 flex-1 items-center gap-2"
                         >
                           <label
                             [id]="'map-layers-selected-layer-row-opacity-label-' + selected.id"
@@ -318,36 +325,43 @@
                           >
                             Opacity
                           </label>
-                          <input
-                            [id]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
-                            type="range"
-                            min="0"
-                            max="100"
-                            class="map-layers-opacity-slider w-full"
-                            [style.--map-layers-slider-progress]="
-                              selectedLayerOpacity(selected.id) + '%'
+                          <div
+                            [id]="
+                              'map-layers-selected-layer-row-opacity-slider-group-' + selected.id
                             "
-                            [value]="selectedLayerOpacity(selected.id)"
-                            (input)="
-                              updateSelectedLayerOpacity(selected.id, $any($event.target).value)
-                            "
-                          />
-                          <span
-                            [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
-                            class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
+                            class="flex min-w-0 flex-1 items-center gap-1"
                           >
-                            {{ selectedLayerOpacity(selected.id) }}%
-                          </span>
+                            <input
+                              [id]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
+                              type="range"
+                              min="0"
+                              max="100"
+                              class="map-layers-opacity-slider min-w-0 flex-1"
+                              [style.--map-layers-slider-progress]="
+                                selectedLayerOpacity(selected.id) + '%'
+                              "
+                              [value]="selectedLayerOpacity(selected.id)"
+                              (input)="
+                                updateSelectedLayerOpacity(selected.id, $any($event.target).value)
+                              "
+                            />
+                            <span
+                              [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
+                              class="w-8 shrink-0 text-left text-[10px] font-semibold text-slate-600"
+                            >
+                              {{ selectedLayerOpacity(selected.id) }}%
+                            </span>
+                          </div>
                         </div>
                         @if (selectedLayerHasColorControl(selected.id)) {
                           <div
                             [id]="'map-layers-selected-layer-row-color-group-' + selected.id"
-                            class="flex shrink-0 items-center gap-1"
+                            class="flex shrink-0 items-center gap-1 pl-1"
                           >
                             <label
                               [id]="'map-layers-selected-layer-row-color-label-' + selected.id"
                               [for]="'map-layers-selected-layer-row-color-input-' + selected.id"
-                              class="text-[10px] text-slate-600"
+                              class="inline-flex h-7 w-7 shrink-0 items-center justify-center whitespace-nowrap text-[10px] text-slate-600"
                             >
                               Color
                             </label>
