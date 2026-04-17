@@ -119,6 +119,11 @@
       "actions": {
         "viewFullReport": "Ver informe completo"
       },
+      "notImplementedDialog": {
+        "title": "Funcion no disponible",
+        "description": "Esta funcion aun no esta implementada.",
+        "close": "Cerrar"
+      },
       "metrics": {
         "speciesGroupsProtected": "Grupos de especies protegidos",
         "speciesGroupsProtectedDesc": "Proteccion adecuada del habitat",
