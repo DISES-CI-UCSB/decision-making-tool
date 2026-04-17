@@ -117,9 +117,12 @@
         "maxLabel": "100% de Colombia"
       },
       "actions": {
-        "viewFullReport": "Ver informe completo",
-        "compare": "Comparar",
-        "export": "Exportar"
+        "viewFullReport": "Ver informe completo"
+      },
+      "notImplementedDialog": {
+        "title": "Funcion no disponible",
+        "description": "Esta funcion aun no esta implementada.",
+        "close": "Cerrar"
       },
       "metrics": {
         "speciesGroupsProtected": "Grupos de especies protegidos",
