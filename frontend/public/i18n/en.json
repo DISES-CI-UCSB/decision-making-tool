@@ -106,6 +106,17 @@
       "conditional": "Conditional",
       "unavailableInfoLabel": "Why this metric is unavailable",
       "unavailableTooltip": "Unavailable right now: this metric needs an additional source layer that has not been delivered yet.",
+      "inputsTooltip": {
+        "triggerLabel": "Show the inputs used to generate this solution",
+        "title": "Inputs used",
+        "targetLabel": "Target",
+        "constraintsLabel": "Constraints",
+        "tradeoffLabel": "Trade-off",
+        "targetValue": "{{pct}}% of {{family}}",
+        "targetFamilyEcosystems": "ecosystems",
+        "targetFamilyStrategic": "strategic ecosystems",
+        "constraintsNone": "None"
+      },
       "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
       "nationalAnchor": {
