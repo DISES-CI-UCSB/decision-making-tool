@@ -1,0 +1,858 @@
+<div
+  id="auth-modal-overlay"
+  class="fixed inset-0 z-1000 flex items-center justify-center overflow-y-auto bg-slate-900/55 p-4 backdrop-blur-sm sm:p-8"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="auth-modal-title"
+  (mousedown)="onScrimClick($event)"
+>
+  <div
+    #modalCard
+    id="auth-modal-card"
+    class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+  >
+    @switch (state()) {
+      <!-- ================================================================== -->
+      <!-- v5-A · Entry choices                                                -->
+      <!-- ================================================================== -->
+      @case ('entry') {
+        <section id="auth-modal-entry" class="p-7">
+          <header id="auth-modal-entry-header" class="mb-6 text-center">
+            <div
+              id="auth-modal-entry-logo"
+              class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600 ring-1 ring-sky-200"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                <path
+                  d="M10 2a8 8 0 0 0-3.16 15.35c.42.08.57-.18.57-.4v-1.4c-2.32.5-2.81-1.12-2.81-1.12-.38-.96-.93-1.22-.93-1.22-.76-.52.06-.51.06-.51.83.06 1.27.86 1.27.86.74 1.27 1.95.9 2.42.69.08-.54.29-.9.53-1.11-1.85-.21-3.8-.93-3.8-4.12 0-.91.33-1.65.85-2.23-.08-.21-.37-1.06.08-2.2 0 0 .7-.22 2.28.85a7.9 7.9 0 0 1 4.15 0c1.58-1.07 2.28-.85 2.28-.85.45 1.14.17 1.99.08 2.2.53.58.85 1.32.85 2.23 0 3.2-1.95 3.9-3.81 4.11.3.26.57.77.57 1.56v2.31c0 .22.15.48.58.4A8 8 0 0 0 10 2Z"
+                />
+              </svg>
+            </div>
+            <h2 id="auth-modal-title" class="text-lg font-semibold text-slate-900">
+              Sign in or request access
+            </h2>
+            <p id="auth-modal-entry-sub" class="mt-1 text-sm text-slate-500">
+              Unlocks the
+              <span class="font-semibold text-slate-700">Nacional / SIRAP</span>
+              scope toggle.
+            </p>
+          </header>
+
+          <div id="auth-modal-entry-options" class="space-y-3">
+            <button
+              id="auth-modal-entry-google-btn"
+              type="button"
+              class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="isSubmitting()"
+              (click)="chooseGoogleFromEntry()"
+            >
+              <svg viewBox="0 0 18 18" class="h-5 w-5 shrink-0" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.9v2.33A9 9 0 0 0 9 18Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.9a9 9 0 0 0 0 8.1l3.07-2.33Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .9 4.95l3.07 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+                />
+              </svg>
+              <span class="flex-1">Continue with Google</span>
+              @if (isSubmitting()) {
+                <span
+                  id="auth-modal-entry-google-spinner"
+                  class="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
+                  aria-hidden="true"
+                ></span>
+              } @else {
+                <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 text-slate-400">
+                  <path
+                    fill-rule="evenodd"
+                    d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              }
+            </button>
+
+            <button
+              id="auth-modal-entry-email-btn"
+              type="button"
+              class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              (click)="chooseEmailLogin()"
+            >
+              <span
+                id="auth-modal-entry-email-icon"
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
+                  <path
+                    d="M2.94 6.25A2 2 0 0 1 4.94 4h10.12a2 2 0 0 1 2 2.25l-.42 3.54-6.64 3.98-6.64-3.98-.42-3.54Z"
+                  />
+                  <path d="m3.3 11.38 6.7 4 6.7-4v2.87a2 2 0 0 1-2 2H5.3a2 2 0 0 1-2-2v-2.87Z" />
+                </svg>
+              </span>
+              <span class="flex-1">Continue with email</span>
+              <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 text-slate-400">
+                <path
+                  fill-rule="evenodd"
+                  d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+
+            <div
+              id="auth-modal-entry-divider"
+              class="relative flex items-center py-1"
+              aria-hidden="true"
+            >
+              <span class="flex-1 border-t border-slate-200"></span>
+              <span class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                new to the tool?
+              </span>
+              <span class="flex-1 border-t border-slate-200"></span>
+            </div>
+
+            <button
+              id="auth-modal-entry-request-btn"
+              type="button"
+              class="flex min-h-11 w-full items-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              (click)="chooseEmailRequest()"
+            >
+              <span
+                id="auth-modal-entry-request-icon"
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-300"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
+                  <path
+                    d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1Z"
+                  />
+                </svg>
+              </span>
+              <span class="flex-1">
+                Request access
+                <span
+                  id="auth-modal-entry-request-sub"
+                  class="block text-[11px] font-normal text-slate-500"
+                >
+                  Admin review, 1&ndash;3 business days
+                </span>
+              </span>
+              <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 text-slate-400">
+                <path
+                  fill-rule="evenodd"
+                  d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <p
+            id="auth-modal-entry-legal"
+            class="mt-6 text-center text-[11px] leading-relaxed text-slate-400"
+          >
+            Sessions last 7 days. We don&rsquo;t track you when you&rsquo;re not signed in.
+          </p>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- v5-B · Email login                                                  -->
+      <!-- ================================================================== -->
+      @case ('emailLogin') {
+        <section id="auth-modal-email-login" class="p-7">
+          <header id="auth-modal-email-login-header" class="mb-5 flex items-center gap-3">
+            <button
+              id="auth-modal-email-login-back-btn"
+              type="button"
+              aria-label="Back"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              (click)="backToEntry()"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                <path
+                  fill-rule="evenodd"
+                  d="M12.707 5.293a1 1 0 0 1 0 1.414L9.414 10l3.293 3.293a1 1 0 0 1-1.414 1.414l-4-4a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+            <h2
+              id="auth-modal-email-login-title"
+              class="flex-1 text-base font-semibold text-slate-900"
+            >
+              Sign in with email
+            </h2>
+          </header>
+
+          <form
+            id="auth-modal-email-login-form"
+            (submit)="$event.preventDefault(); submitEmailLogin()"
+          >
+            <label
+              id="auth-modal-email-login-email-label"
+              for="auth-modal-email-login-email-input"
+              class="mb-1.5 block text-xs font-semibold text-slate-700"
+            >
+              Email
+            </label>
+            <input
+              id="auth-modal-email-login-email-input"
+              type="email"
+              autocomplete="email"
+              required
+              class="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              [value]="emailLoginForm().email"
+              (input)="updateEmailLoginField('email', $any($event.target).value)"
+            />
+
+            <label
+              id="auth-modal-email-login-password-label"
+              for="auth-modal-email-login-password-input"
+              class="mb-1.5 block text-xs font-semibold text-slate-700"
+            >
+              Password
+            </label>
+            <input
+              id="auth-modal-email-login-password-input"
+              type="password"
+              autocomplete="current-password"
+              required
+              class="mb-5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              [value]="emailLoginForm().password"
+              (input)="updateEmailLoginField('password', $any($event.target).value)"
+            />
+
+            @if (loginError()) {
+              <p
+                id="auth-modal-email-login-error"
+                class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+                role="alert"
+              >
+                {{ loginError() }}
+              </p>
+            }
+
+            <button
+              id="auth-modal-email-login-submit-btn"
+              type="submit"
+              class="mb-4 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="!canSubmitEmailLogin() || isSubmitting()"
+            >
+              @if (isSubmitting()) {
+                <span
+                  class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                  aria-hidden="true"
+                ></span>
+                Signing in&hellip;
+              } @else {
+                Log in
+              }
+            </button>
+
+            <p id="auth-modal-email-login-footer" class="text-center text-xs text-slate-500">
+              Don&rsquo;t have an account?
+              <button
+                id="auth-modal-email-login-switch-btn"
+                type="button"
+                class="font-semibold text-sky-700 underline-offset-2 hover:underline"
+                (click)="chooseEmailRequest()"
+              >
+                Request access
+              </button>
+            </p>
+          </form>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- v5-C · Email Request Access                                         -->
+      <!-- ================================================================== -->
+      @case ('emailRequest') {
+        <section id="auth-modal-email-request" class="p-7">
+          <header id="auth-modal-email-request-header" class="mb-5 flex items-center gap-3">
+            <button
+              id="auth-modal-email-request-back-btn"
+              type="button"
+              aria-label="Back"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              (click)="backToEntry()"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                <path
+                  fill-rule="evenodd"
+                  d="M12.707 5.293a1 1 0 0 1 0 1.414L9.414 10l3.293 3.293a1 1 0 0 1-1.414 1.414l-4-4a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+            <div class="flex-1">
+              <h2
+                id="auth-modal-email-request-title"
+                class="text-base font-semibold text-slate-900"
+              >
+                Request access
+              </h2>
+              <p id="auth-modal-email-request-sub" class="text-[11px] text-slate-500">
+                Reviewed within 1&ndash;3 business days
+              </p>
+            </div>
+          </header>
+
+          <button
+            id="auth-modal-email-request-google-btn"
+            type="button"
+            class="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            [disabled]="isSubmitting()"
+            (click)="chooseGoogleFromRequest()"
+          >
+            <svg viewBox="0 0 18 18" class="h-4 w-4" aria-hidden="true">
+              <path
+                fill="#4285F4"
+                d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
+              />
+              <path
+                fill="#34A853"
+                d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.9v2.33A9 9 0 0 0 9 18Z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.9a9 9 0 0 0 0 8.1l3.07-2.33Z"
+              />
+              <path
+                fill="#EA4335"
+                d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .9 4.95l3.07 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+              />
+            </svg>
+            Continue with Google
+          </button>
+
+          <div
+            id="auth-modal-email-request-divider"
+            class="relative mb-4 flex items-center"
+            aria-hidden="true"
+          >
+            <span class="flex-1 border-t border-slate-200"></span>
+            <span class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              or with email
+            </span>
+            <span class="flex-1 border-t border-slate-200"></span>
+          </div>
+
+          <form
+            id="auth-modal-email-request-form"
+            class="space-y-4"
+            (submit)="$event.preventDefault(); submitEmailRequest()"
+          >
+            <div id="auth-modal-email-request-name-row">
+              <label
+                id="auth-modal-email-request-name-label"
+                for="auth-modal-email-request-name-input"
+                class="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Full name <span class="font-normal text-slate-400">&middot; required</span>
+              </label>
+              <input
+                id="auth-modal-email-request-name-input"
+                type="text"
+                autocomplete="name"
+                required
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                [value]="emailRequestForm().fullName"
+                (input)="updateRequestField('fullName', $any($event.target).value)"
+              />
+            </div>
+
+            <div id="auth-modal-email-request-email-row">
+              <label
+                id="auth-modal-email-request-email-label"
+                for="auth-modal-email-request-email-input"
+                class="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Email <span class="font-normal text-slate-400">&middot; required</span>
+              </label>
+              <input
+                id="auth-modal-email-request-email-input"
+                type="email"
+                autocomplete="email"
+                required
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                [value]="emailRequestForm().email"
+                (input)="updateRequestField('email', $any($event.target).value)"
+              />
+            </div>
+
+            <div id="auth-modal-email-request-password-row" class="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  id="auth-modal-email-request-password-label"
+                  for="auth-modal-email-request-password-input"
+                  class="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Password <span class="font-normal text-slate-400">&middot; required</span>
+                </label>
+                <input
+                  id="auth-modal-email-request-password-input"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+                  minlength="6"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  [value]="emailRequestForm().password"
+                  (input)="updateRequestField('password', $any($event.target).value)"
+                />
+              </div>
+              <div>
+                <label
+                  id="auth-modal-email-request-password-confirm-label"
+                  for="auth-modal-email-request-password-confirm-input"
+                  class="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Confirm <span class="font-normal text-slate-400">&middot; required</span>
+                </label>
+                <input
+                  id="auth-modal-email-request-password-confirm-input"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  [value]="emailRequestForm().passwordConfirm"
+                  (input)="updateRequestField('passwordConfirm', $any($event.target).value)"
+                />
+              </div>
+            </div>
+
+            <div id="auth-modal-email-request-org-row">
+              <label
+                id="auth-modal-email-request-org-label"
+                for="auth-modal-email-request-org-input"
+                class="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Organization / SIRAP
+                <span class="font-normal text-slate-400">&middot; optional</span>
+              </label>
+              <input
+                id="auth-modal-email-request-org-input"
+                type="text"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                [value]="emailRequestForm().organization"
+                (input)="updateRequestField('organization', $any($event.target).value)"
+              />
+            </div>
+
+            <div id="auth-modal-email-request-reason-row">
+              <label
+                id="auth-modal-email-request-reason-label"
+                for="auth-modal-email-request-reason-input"
+                class="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Reason for access
+                <span class="font-normal text-slate-400">&middot; optional</span>
+              </label>
+              <textarea
+                id="auth-modal-email-request-reason-input"
+                rows="3"
+                class="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                [value]="emailRequestForm().reason"
+                (input)="updateRequestField('reason', $any($event.target).value)"
+              ></textarea>
+            </div>
+
+            @if (requestFormError()) {
+              <p
+                id="auth-modal-email-request-error"
+                class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+                role="alert"
+              >
+                {{ requestFormError() }}
+              </p>
+            }
+
+            <button
+              id="auth-modal-email-request-submit-btn"
+              type="submit"
+              class="mt-1 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="!canSubmitRequest() || isSubmitting()"
+            >
+              @if (isSubmitting()) {
+                <span
+                  class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                  aria-hidden="true"
+                ></span>
+                Submitting&hellip;
+              } @else {
+                Submit request
+              }
+            </button>
+          </form>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- v5-D · Pending confirmation                                         -->
+      <!-- ================================================================== -->
+      @case ('pendingConfirm') {
+        <section id="auth-modal-pending-confirm" class="p-7 text-center">
+          <div
+            id="auth-modal-pending-confirm-icon-wrap"
+            class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-4 ring-emerald-50"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-7 w-7">
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.71-9.29a1 1 0 0 0-1.42-1.42L9 10.59 7.71 9.29a1 1 0 0 0-1.42 1.42l2 2a1 1 0 0 0 1.42 0l4-4Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <h2
+            id="auth-modal-pending-confirm-title"
+            class="mb-2 text-lg font-semibold text-slate-900"
+          >
+            Request submitted
+          </h2>
+          <p
+            id="auth-modal-pending-confirm-body"
+            class="mx-auto mb-5 max-w-sm text-sm leading-relaxed text-slate-600"
+          >
+            @if (confirmedRequest(); as req) {
+              Thanks, {{ req.fullName }}. We&rsquo;ve notified the admins. You&rsquo;ll hear back at
+              <span class="font-semibold text-slate-800">{{ req.email }}</span>
+              within 1&ndash;3 business days.
+            } @else {
+              Thanks. We&rsquo;ve notified the admins and will email you within 1&ndash;3 business
+              days.
+            }
+          </p>
+
+          @if (confirmedRequest(); as req) {
+            <div
+              id="auth-modal-pending-confirm-meta"
+              class="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] text-slate-500"
+            >
+              <span>Request ID</span>
+              <span class="font-mono text-slate-800">{{ req.requestId }}</span>
+            </div>
+          }
+
+          <button
+            id="auth-modal-pending-confirm-dismiss-btn"
+            type="button"
+            class="mx-auto flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            (click)="dismissFromConfirm()"
+          >
+            Back to the app
+          </button>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- v5-E · Pending login attempt (access under review)                  -->
+      <!-- ================================================================== -->
+      @case ('pendingReview') {
+        <section id="auth-modal-pending-review" class="px-7 py-7">
+          <div
+            id="auth-modal-pending-review-icon-wrap"
+            class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 ring-4 ring-amber-50"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-6 w-6">
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm1-11a1 1 0 1 0-2 0v4a1 1 0 0 0 .3.7l2.5 2.5a1 1 0 1 0 1.4-1.4L11 10.58V7Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+
+          <p
+            id="auth-modal-pending-review-eyebrow"
+            class="mb-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-amber-600"
+          >
+            Still under review
+          </p>
+          <h2
+            id="auth-modal-pending-review-title"
+            class="mb-2 text-lg font-semibold text-slate-900"
+          >
+            @if (pendingRequestForReview(); as req) {
+              We&rsquo;re almost there, {{ req.fullName }}
+            } @else {
+              We&rsquo;re almost there
+            }
+          </h2>
+          <p
+            id="auth-modal-pending-review-body"
+            class="mb-5 text-sm leading-relaxed text-slate-600"
+          >
+            Your access request hasn&rsquo;t been reviewed yet. We&rsquo;ll email
+            @if (pendingRequestForReview(); as req) {
+              <span class="font-semibold text-slate-800">{{ req.email }}</span>
+            } @else {
+              you
+            }
+            the moment an admin approves or denies it.
+          </p>
+
+          @if (pendingRequestForReview(); as req) {
+            <dl
+              id="auth-modal-pending-review-meta"
+              class="mb-5 space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs"
+            >
+              <div id="auth-modal-pending-review-meta-submitted" class="flex justify-between">
+                <dt class="text-slate-500">Submitted</dt>
+                <dd class="font-semibold text-slate-800">
+                  {{ formatSubmittedRelative(req.submittedAt) }}
+                </dd>
+              </div>
+              <div id="auth-modal-pending-review-meta-response" class="flex justify-between">
+                <dt class="text-slate-500">Typical response</dt>
+                <dd class="font-semibold text-slate-800">1&ndash;3 business days</dd>
+              </div>
+              <div id="auth-modal-pending-review-meta-reqid" class="flex justify-between">
+                <dt class="text-slate-500">Request ID</dt>
+                <dd class="font-mono text-slate-800">{{ req.requestId }}</dd>
+              </div>
+            </dl>
+          }
+
+          <div
+            id="auth-modal-pending-review-info"
+            class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-relaxed text-emerald-900"
+          >
+            <p class="mb-0.5 font-semibold">You can keep using the app right now.</p>
+            <p>
+              Only the <span class="font-semibold">Nacional / SIRAP</span> scope toggle waits on
+              approval &mdash; every other feature is available anonymously.
+            </p>
+          </div>
+
+          <div id="auth-modal-pending-review-actions" class="space-y-2">
+            <button
+              id="auth-modal-pending-review-dismiss-btn"
+              type="button"
+              class="flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              (click)="dismissFromReview()"
+            >
+              Continue as anonymous
+            </button>
+            <button
+              id="auth-modal-pending-review-nudge-btn"
+              type="button"
+              class="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed"
+              [class.text-slate-700]="canNudge()"
+              [class.hover:bg-slate-50]="canNudge()"
+              [class.text-slate-400]="!canNudge()"
+              [disabled]="!canNudge() || isSubmitting()"
+              (click)="nudgeAdmins()"
+            >
+              {{ nudgeCooldownLabel() }}
+            </button>
+          </div>
+        </section>
+      }
+
+      <!-- ================================================================== -->
+      <!-- v5-F · Post-Google completion                                       -->
+      <!-- ================================================================== -->
+      @case ('postGoogle') {
+        <section id="auth-modal-post-google">
+          <header
+            id="auth-modal-post-google-ribbon"
+            class="flex items-center justify-between border-b border-slate-200 px-7 py-4"
+          >
+            <div id="auth-modal-post-google-ribbon-left" class="flex items-center gap-2.5">
+              <svg viewBox="0 0 18 18" class="h-4 w-4 shrink-0" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.9v2.33A9 9 0 0 0 9 18Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.9a9 9 0 0 0 0 8.1l3.07-2.33Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .9 4.95l3.07 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+                />
+              </svg>
+              <span
+                id="auth-modal-post-google-ribbon-text"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                Signed in with Google
+              </span>
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="h-3.5 w-3.5 text-emerald-600"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.58l7.3-7.3a1 1 0 0 1 1.4 0Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <button
+              id="auth-modal-post-google-close-btn"
+              type="button"
+              aria-label="Close"
+              class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              (click)="requestClose()"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 8.586 4.707 3.293a1 1 0 0 0-1.414 1.414L8.586 10l-5.293 5.293a1 1 0 1 0 1.414 1.414L10 11.414l5.293 5.293a1 1 0 0 0 1.414-1.414L11.414 10l5.293-5.293a1 1 0 0 0-1.414-1.414L10 8.586Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+          </header>
+
+          <div id="auth-modal-post-google-body" class="px-7 py-6">
+            <h2 id="auth-modal-post-google-title" class="mb-1 text-lg font-semibold text-slate-900">
+              A few last details
+            </h2>
+            <p id="auth-modal-post-google-sub" class="mb-5 text-sm text-slate-500">
+              Your identity is verified. Help admins triage your request faster.
+            </p>
+
+            @if (pendingGoogleProfile(); as profile) {
+              <div
+                id="auth-modal-post-google-identity"
+                class="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    id="auth-modal-post-google-identity-avatar"
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-sky-400 to-indigo-500 text-sm font-semibold text-white shadow-sm"
+                    aria-hidden="true"
+                  >
+                    {{ profile.avatarInitials }}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p
+                      id="auth-modal-post-google-identity-name"
+                      class="truncate text-sm font-semibold text-slate-900"
+                    >
+                      {{ profile.name }}
+                    </p>
+                    <p
+                      id="auth-modal-post-google-identity-email"
+                      class="truncate text-xs text-slate-500"
+                    >
+                      {{ profile.email }}
+                    </p>
+                  </div>
+                  <span
+                    id="auth-modal-post-google-identity-locked-pill"
+                    class="flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200"
+                  >
+                    <svg viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3" aria-hidden="true">
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 2a4 4 0 0 0-4 4v2H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4Zm-2 6V6a2 2 0 1 1 4 0v2H8Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    From Google
+                  </span>
+                </div>
+              </div>
+            }
+
+            <form
+              id="auth-modal-post-google-form"
+              class="space-y-4"
+              (submit)="$event.preventDefault(); submitPostGoogle()"
+            >
+              <div id="auth-modal-post-google-org-row">
+                <label
+                  id="auth-modal-post-google-org-label"
+                  for="auth-modal-post-google-org-input"
+                  class="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Organization / SIRAP
+                  <span class="font-normal text-slate-400">&middot; optional</span>
+                </label>
+                <input
+                  id="auth-modal-post-google-org-input"
+                  type="text"
+                  placeholder="e.g., SIRAP Caribe, MinAmbiente, PNNC"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  [value]="postGoogleForm().organization"
+                  (input)="updatePostGoogleField('organization', $any($event.target).value)"
+                />
+                <p id="auth-modal-post-google-org-help" class="mt-1 text-[11px] text-slate-500">
+                  Helps admins recognize you faster.
+                </p>
+              </div>
+
+              <div id="auth-modal-post-google-reason-row">
+                <label
+                  id="auth-modal-post-google-reason-label"
+                  for="auth-modal-post-google-reason-input"
+                  class="mb-1.5 block text-xs font-semibold text-slate-700"
+                >
+                  Reason for access
+                  <span class="font-normal text-slate-400">&middot; optional</span>
+                </label>
+                <textarea
+                  id="auth-modal-post-google-reason-input"
+                  rows="3"
+                  placeholder="Briefly, how do you plan to use the tool?"
+                  class="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  [value]="postGoogleForm().reason"
+                  (input)="updatePostGoogleField('reason', $any($event.target).value)"
+                ></textarea>
+              </div>
+
+              <button
+                id="auth-modal-post-google-submit-btn"
+                type="submit"
+                class="mt-1 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                [disabled]="isSubmitting()"
+              >
+                @if (isSubmitting()) {
+                  <span
+                    class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                    aria-hidden="true"
+                  ></span>
+                  Submitting&hellip;
+                } @else {
+                  Submit request
+                }
+              </button>
+              <p
+                id="auth-modal-post-google-skip-hint"
+                class="mt-3 text-center text-[11px] text-slate-500"
+              >
+                Both fields are optional &mdash; you can submit without them.
+              </p>
+            </form>
+          </div>
+        </section>
+      }
+    }
+  </div>
+</div>
