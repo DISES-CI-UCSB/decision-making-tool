@@ -459,7 +459,7 @@
             <input
               id="map-layers-overlays-search-input"
               type="text"
-              class="relative top-px h-6 flex-1 border-0 bg-transparent text-xs leading-6 text-slate-700 placeholder:text-slate-500 focus-visible:outline-none"
+              class="relative top-px h-6 flex-1 border-0 bg-transparent text-xs leading-6 text-slate-700 placeholder:text-slate-600 focus-visible:outline-none"
               placeholder="Search layers..."
               [value]="layerSearchQuery()"
               (input)="updateLayerSearchQuery($any($event.target).value)"
@@ -476,6 +476,12 @@
             </button>
           </div>
         </div>
+        <p
+          id="map-layers-overlays-visibility-helper-copy"
+          class="px-0.5 text-[10px] font-medium text-slate-500"
+        >
+          Visibility and style controls live in Selected Layers.
+        </p>
 
         <!-- ─── ADMINISTRATIVE BOUNDARIES (above Management Figures) ─── -->
         @if (adminBoundaryGroup(); as abGroup) {
@@ -570,58 +576,6 @@
                           (click)="toggleLayerSelected(abGroup.id, row.id)"
                         >
                           {{ row.selected ? 'Added' : 'Add' }}
-                        </button>
-                        <button
-                          [id]="'map-layers-boundary-visibility-button-' + row.id"
-                          type="button"
-                          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50"
-                          [class.cursor-not-allowed]="isAuthLockedRow(row)"
-                          [class.opacity-50]="isAuthLockedRow(row)"
-                          [class.hover:bg-slate-50]="!isAuthLockedRow(row)"
-                          [attr.aria-label]="
-                            isAuthLockedRow(row)
-                              ? row.name + ' requires login to show on map'
-                              : 'Toggle visibility for ' + row.name
-                          "
-                          [attr.aria-pressed]="isAuthLockedRow(row) ? false : row.visible"
-                          [disabled]="isAuthLockedRow(row)"
-                          (click)="toggleLayerVisibility(abGroup.id, row.id)"
-                        >
-                          @if (row.visible) {
-                            <svg
-                              class="h-4 w-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
-                              <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                          } @else {
-                            <svg
-                              class="h-4 w-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M3 3l18 18"></path>
-                              <path
-                                d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
-                              ></path>
-                              <path
-                                d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
-                              ></path>
-                              <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
-                            </svg>
-                          }
                         </button>
                       </div>
                       @if (isAuthLockedRow(row)) {
@@ -728,83 +682,6 @@
                       (click)="toggleOverlaySelected(overlay.id)"
                     >
                       {{ overlay.selected ? 'Added' : 'Add' }}
-                    </button>
-                    <button
-                      [id]="'map-layers-overlay-visibility-button-' + overlay.id"
-                      type="button"
-                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
-                      [class.cursor-not-allowed]="overlay.mapUnavailable"
-                      [class.opacity-50]="overlay.mapUnavailable"
-                      [class.text-slate-400]="overlay.mapUnavailable"
-                      [class.hover:bg-slate-50]="!overlay.mapUnavailable"
-                      [attr.aria-label]="
-                        overlay.mapUnavailable
-                          ? overlay.name + ' does not have a map layer yet'
-                          : 'Toggle visibility for ' + overlay.name
-                      "
-                      [attr.aria-pressed]="overlay.mapUnavailable ? false : overlay.visible"
-                      [disabled]="overlay.mapUnavailable"
-                      (click)="toggleOverlayVisibility(overlay.id)"
-                    >
-                      @if (!overlay.mapUnavailable && overlay.visible) {
-                        <svg
-                          [id]="'map-layers-overlay-eye-open-icon-' + overlay.id"
-                          class="h-4 w-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      } @else {
-                        <svg
-                          [id]="'map-layers-overlay-eye-closed-icon-' + overlay.id"
-                          class="h-4 w-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M3 3l18 18"></path>
-                          <path
-                            d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
-                          ></path>
-                          <path
-                            d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
-                          ></path>
-                          <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
-                        </svg>
-                      }
-                    </button>
-                    <button
-                      [id]="'map-layers-overlay-expand-button-' + overlay.id"
-                      type="button"
-                      class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                      [class.rotate-180]="!overlay.expanded"
-                      [attr.aria-label]="'Toggle controls for ' + overlay.name"
-                      [attr.aria-expanded]="overlay.expanded"
-                      (click)="toggleOverlayExpanded(overlay.id)"
-                    >
-                      <svg
-                        class="map-layers-chevron-icon h-3 w-3"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M3 4.5L6 7.5L9 4.5" />
-                      </svg>
                     </button>
                   </div>
 
@@ -1002,83 +879,6 @@
                           >
                             {{ taxon.selected ? 'Added' : 'Add' }}
                           </button>
-                          <button
-                            [id]="'map-layers-taxon-visibility-button-' + taxon.id"
-                            type="button"
-                            class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
-                            [class.cursor-not-allowed]="taxon.mapUnavailable"
-                            [class.opacity-50]="taxon.mapUnavailable"
-                            [class.text-slate-400]="taxon.mapUnavailable"
-                            [class.hover:bg-slate-50]="!taxon.mapUnavailable"
-                            [attr.aria-label]="
-                              taxon.mapUnavailable
-                                ? taxon.name + ' does not have a map layer yet'
-                                : 'Toggle visibility for ' + taxon.name
-                            "
-                            [attr.aria-pressed]="taxon.mapUnavailable ? false : taxon.visible"
-                            [disabled]="taxon.mapUnavailable"
-                            (click)="toggleTaxonVisibility(taxon.id)"
-                          >
-                            @if (!taxon.mapUnavailable && taxon.visible) {
-                              <svg
-                                [id]="'map-layers-taxon-eye-open-icon-' + taxon.id"
-                                class="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                              </svg>
-                            } @else {
-                              <svg
-                                [id]="'map-layers-taxon-eye-closed-icon-' + taxon.id"
-                                class="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M3 3l18 18"></path>
-                                <path
-                                  d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
-                                ></path>
-                                <path
-                                  d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
-                                ></path>
-                                <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
-                              </svg>
-                            }
-                          </button>
-                          <button
-                            [id]="'map-layers-taxon-expand-button-' + taxon.id"
-                            type="button"
-                            class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                            [class.rotate-180]="!taxon.expanded && !hasLayerSearchQuery()"
-                            [attr.aria-label]="'Toggle species list for ' + taxon.name"
-                            [attr.aria-expanded]="taxon.expanded || hasLayerSearchQuery()"
-                            (click)="toggleTaxonExpanded(taxon.id)"
-                          >
-                            <svg
-                              class="map-layers-chevron-icon h-3 w-3"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="1.5"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M3 4.5L6 7.5L9 4.5" />
-                            </svg>
-                          </button>
                         </div>
 
                         <div
@@ -1164,87 +964,6 @@
                                       (click)="toggleSpeciesSelected(taxon.id, species.id)"
                                     >
                                       {{ species.selected ? 'Added' : 'Add' }}
-                                    </button>
-                                    <button
-                                      [id]="'map-layers-species-visibility-button-' + species.id"
-                                      type="button"
-                                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
-                                      [class.cursor-not-allowed]="species.mapUnavailable"
-                                      [class.opacity-50]="species.mapUnavailable"
-                                      [class.text-slate-400]="species.mapUnavailable"
-                                      [class.hover:bg-slate-50]="!species.mapUnavailable"
-                                      [attr.aria-label]="
-                                        species.mapUnavailable
-                                          ? species.common + ' does not have a map layer yet'
-                                          : 'Toggle visibility for ' + species.common
-                                      "
-                                      [attr.aria-pressed]="
-                                        species.mapUnavailable ? false : species.visible
-                                      "
-                                      [disabled]="species.mapUnavailable"
-                                      (click)="toggleSpeciesVisibility(taxon.id, species.id)"
-                                    >
-                                      @if (!species.mapUnavailable && species.visible) {
-                                        <svg
-                                          [id]="'map-layers-species-eye-open-icon-' + species.id"
-                                          class="h-4 w-4"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          stroke-width="1.8"
-                                          stroke-linecap="round"
-                                          stroke-linejoin="round"
-                                          aria-hidden="true"
-                                        >
-                                          <path
-                                            d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"
-                                          ></path>
-                                          <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                      } @else {
-                                        <svg
-                                          [id]="'map-layers-species-eye-closed-icon-' + species.id"
-                                          class="h-4 w-4"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          stroke-width="1.8"
-                                          stroke-linecap="round"
-                                          stroke-linejoin="round"
-                                          aria-hidden="true"
-                                        >
-                                          <path d="M3 3l18 18"></path>
-                                          <path
-                                            d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
-                                          ></path>
-                                          <path
-                                            d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
-                                          ></path>
-                                          <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
-                                        </svg>
-                                      }
-                                    </button>
-                                    <button
-                                      [id]="'map-layers-species-expand-button-' + species.id"
-                                      type="button"
-                                      class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                                      [class.rotate-180]="!species.expanded"
-                                      [attr.aria-label]="'Toggle controls for ' + species.common"
-                                      [attr.aria-expanded]="species.expanded"
-                                      (click)="toggleSpeciesExpanded(taxon.id, species.id)"
-                                    >
-                                      <svg
-                                        class="map-layers-chevron-icon h-3 w-3"
-                                        viewBox="0 0 12 12"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="1.5"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        aria-hidden="true"
-                                      >
-                                        <path d="M3 4.5L6 7.5L9 4.5" />
-                                      </svg>
                                     </button>
                                   </div>
 
@@ -1365,91 +1084,6 @@
                               (click)="toggleLayerSelected(group.id, row.id)"
                             >
                               {{ row.selected ? 'Added' : 'Add' }}
-                            </button>
-                          }
-                          <button
-                            [id]="
-                              'map-layers-layer-row-visibility-button-' + group.id + '-' + row.id
-                            "
-                            type="button"
-                            class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition"
-                            [class.cursor-not-allowed]="row.mapUnavailable"
-                            [class.opacity-50]="row.mapUnavailable"
-                            [class.text-slate-400]="row.mapUnavailable"
-                            [class.hover:bg-slate-50]="!row.mapUnavailable"
-                            [attr.aria-label]="
-                              row.mapUnavailable
-                                ? row.name + ' does not have a map layer yet'
-                                : 'Toggle visibility for ' + row.name
-                            "
-                            [attr.aria-pressed]="row.mapUnavailable ? false : row.visible"
-                            [disabled]="row.mapUnavailable"
-                            (click)="toggleLayerVisibility(group.id, row.id)"
-                          >
-                            @if (!row.mapUnavailable && row.visible) {
-                              <svg
-                                [id]="
-                                  'map-layers-layer-row-eye-open-icon-' + group.id + '-' + row.id
-                                "
-                                class="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6-10-6-10-6z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                              </svg>
-                            } @else {
-                              <svg
-                                [id]="
-                                  'map-layers-layer-row-eye-closed-icon-' + group.id + '-' + row.id
-                                "
-                                class="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M3 3l18 18"></path>
-                                <path
-                                  d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.3 0 10 7 10 7a17.7 17.7 0 0 1-4.3 5.1"
-                                ></path>
-                                <path
-                                  d="M6.5 6.5A18 18 0 0 0 2 12s3.7 7 10 7a10.6 10.6 0 0 0 5-1.2"
-                                ></path>
-                                <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
-                              </svg>
-                            }
-                          </button>
-                          @if (row.hasStyleControls) {
-                            <button
-                              [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
-                              type="button"
-                              class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
-                              [class.rotate-180]="!row.expanded"
-                              [attr.aria-label]="'Toggle controls for ' + row.name"
-                              [attr.aria-expanded]="row.expanded"
-                              (click)="toggleLayerExpanded(group.id, row.id)"
-                            >
-                              <svg
-                                class="map-layers-chevron-icon h-3 w-3"
-                                viewBox="0 0 12 12"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M3 4.5L6 7.5L9 4.5" />
-                              </svg>
                             </button>
                           }
                         </div>
