@@ -1,0 +1,13 @@
+---
+description: Keep agent context checkpoints visually compact in chat responses
+alwaysApply: true
+---
+
+# Chat Response Formatting
+
+When ending with a Context Checkpoint, keep it visually small and plain.
+
+- Do not format the checkpoint title or labels as Markdown headings.
+- Do not use bold text, blockquotes, tables, or code fences for the checkpoint.
+- Use plain text labels: `Context Checkpoint`, `Task:`, `What I Did:`, and `What I Need From You:`.
+- Keep the checkpoint concise enough to scan in 10 seconds.
