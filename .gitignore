@@ -73,3 +73,5 @@ Archive/Cambio_Global/**/*.lock
 /frontend/node_modules/
 /frontend/dist/
 /frontend/.angular/
+.vercel
+.env*.local
