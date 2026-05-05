@@ -75,3 +75,12 @@ Archive/Cambio_Global/**/*.lock
 /frontend/.angular/
 .vercel
 .env*.local
+
+# Generated metric/compression benchmark outputs
+/scripts/**/artifacts/
+/scripts/**/cache/
+/scripts/**/results*.json
+
+# Python generated files
+__pycache__/
+*.py[cod]
