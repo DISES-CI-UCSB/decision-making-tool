@@ -1,0 +1,117 @@
+{
+  "version": "0.1.0",
+  "generatedAt": "2026-05-06T00:00:00.000Z",
+  "publicBlobHost": "https://aagibolq28slyfof.public.blob.vercel-storage.com",
+  "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
+  "categories": [
+    {
+      "id": "species_and_biodiversity",
+      "spanishLabel": "Species & Biodiversity",
+      "englishLabel": "Species & Biodiversity",
+      "layerIds": ["species_richness", "species"]
+    },
+    {
+      "id": "ecosistemas_estrategicos",
+      "spanishLabel": "Ecosistemas estratégicos",
+      "englishLabel": null,
+      "layerIds": ["paramos"]
+    },
+    {
+      "id": "limite_politico_o_administrativo",
+      "spanishLabel": "Límite político o administrativo",
+      "englishLabel": null,
+      "layerIds": ["admin_departments"]
+    },
+    {
+      "id": "solutions",
+      "spanishLabel": "Solutions",
+      "englishLabel": "Solutions",
+      "layerIds": ["solution_national_30"]
+    }
+  ],
+  "layers": [
+    {
+      "id": "species_richness",
+      "spanishLabel": "Riqueza de especies",
+      "englishLabel": "Species Richness",
+      "description": "Biodiversity richness surface summarizing ecosystem-level species richness across the country.",
+      "tooltip": "Shows relative species richness for biodiversity review.",
+      "dataRole": "feature_layer",
+      "sidebarCategoryId": "species_and_biodiversity",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/species_richness.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/species_richness.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/species_richness/nacional.json"
+      }
+    },
+    {
+      "id": "species",
+      "spanishLabel": "Distribuciones de especies individuales",
+      "englishLabel": "Individual Species Distributions",
+      "description": "Species distribution rasters available for species search and review.",
+      "tooltip": "Open species search to find individual species distribution layers.",
+      "dataRole": "manifest_for_species_layers",
+      "sidebarCategoryId": "species_and_biodiversity",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayCollectionUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/",
+      "speciesManifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifests/species.manifest.json",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/species.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/species.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/species/nacional.json"
+      }
+    },
+    {
+      "id": "paramos",
+      "spanishLabel": "Páramos",
+      "englishLabel": "Paramos",
+      "description": "Official páramo complex boundaries for environmental management and conservation planning.",
+      "tooltip": "Shows high-altitude páramo ecosystems.",
+      "dataRole": "feature_layer",
+      "sidebarCategoryId": "ecosistemas_estrategicos",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/paramos.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/paramos.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/paramos.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/paramos/nacional.json"
+      }
+    },
+    {
+      "id": "admin_departments",
+      "spanishLabel": "Departamentos",
+      "englishLabel": "Departments",
+      "description": "Department AOI boundaries served from IGAC.",
+      "tooltip": "Use departments as known areas of interest with cached metric results.",
+      "dataRole": "administrative_boundary",
+      "sidebarCategoryId": "limite_politico_o_administrativo",
+      "roleInMetricCalculation": "boundary_used_for_precomputed_metric_lookup",
+      "displayUrl": "https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/2",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/admin_departments.metadata.json",
+      "compressedDataForLiveMetricsUrl": null,
+      "precomputedMetricUrls": {
+        "byBoundaryFeature": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/admin_departments/by-feature.json"
+      }
+    },
+    {
+      "id": "solution_national_30",
+      "spanishLabel": "Solución nacional 30%",
+      "englishLabel": "National 30% Solution",
+      "description": "Example national solution layer used to display a selected conservation prioritization scenario.",
+      "tooltip": "Shows the selected national conservation solution on the map.",
+      "dataRole": "solution_layer",
+      "sidebarCategoryId": "solutions",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/solution_national_30.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/solution_national_30.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/solution_national_30.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/nacional.json",
+        "byDepartment": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/by-department.json",
+        "byMunicipality": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/by-municipality.json"
+      }
+    }
+  ]
+}

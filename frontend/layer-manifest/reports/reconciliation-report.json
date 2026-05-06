@@ -1,0 +1,242 @@
+{
+  "generatedAt": "2026-05-06T21:33:40.411Z",
+  "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
+  "policy": {
+    "includedRows": "Only rows with en_uso_actual / in_use_now set to TRUE",
+    "speciesHandling": "Species rasters are represented as one collection pointer, not one layer per TIFF",
+    "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
+  },
+  "counts": {
+    "csvRows": 22,
+    "includedRows": 16,
+    "generatedLayers": 16,
+    "blobInventoryEntries": 47,
+    "missingRequired": 0,
+    "extraAvailable": 15,
+    "includedRowMetadataGaps": 15,
+    "excludedRows": 6
+  },
+  "missingRequired": [],
+  "extraAvailable": [
+    {
+      "pathname": "boundaries/coberturas.csv",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.csv",
+      "bytes": 144
+    },
+    {
+      "pathname": "boundaries/coberturas.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.tif",
+      "bytes": 955973
+    },
+    {
+      "pathname": "boundaries/coberturas.xlsx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.xlsx",
+      "bytes": 5195
+    },
+    {
+      "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.cpg",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.cpg",
+      "bytes": 5
+    },
+    {
+      "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.dbf",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.dbf",
+      "bytes": 1375222
+    },
+    {
+      "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.prj",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.prj",
+      "bytes": 143
+    },
+    {
+      "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shp",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shp",
+      "bytes": 88468604
+    },
+    {
+      "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shx",
+      "bytes": 5012
+    },
+    {
+      "pathname": "inputs/costs/climate_refugia.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/climate_refugia.tif",
+      "bytes": 3213633
+    },
+    {
+      "pathname": "inputs/costs/conflict.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/conflict.tif",
+      "bytes": 12402324
+    },
+    {
+      "pathname": "inputs/costs/human_footprint_2030.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2030.tif",
+      "bytes": 12402302
+    },
+    {
+      "pathname": "inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/biomass/biomasa_areara%2Bsubterranea_1km.tif",
+      "bytes": 13380154
+    },
+    {
+      "pathname": "inputs/features/carbon/carbono_organico.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/carbon/carbono_organico.tif",
+      "bytes": 6272115
+    },
+    {
+      "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "bytes": 166170
+    },
+    {
+      "pathname": "inputs/includes/runap_categories.csv",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_categories.csv",
+      "bytes": 1100
+    }
+  ],
+  "includedRowMetadataGaps": [
+    {
+      "layerId": "species_richness",
+      "displayName": "Riqueza de especies",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "species",
+      "displayName": "Distribuciones de especies individuales (~8751)",
+      "missingFields": ["source_updated_date", "source_license"]
+    },
+    {
+      "layerId": "paramos",
+      "displayName": "Páramos",
+      "missingFields": ["source_license"]
+    },
+    {
+      "layerId": "wetlands",
+      "displayName": "Humedales",
+      "missingFields": ["source_license", "source_contact"]
+    },
+    {
+      "layerId": "bosque_seco",
+      "displayName": "Bosque seco",
+      "missingFields": ["source_license"]
+    },
+    {
+      "layerId": "mangroves",
+      "displayName": "Manglares",
+      "missingFields": ["source_updated_date", "source_contact"]
+    },
+    {
+      "layerId": "ecosistemas",
+      "displayName": "Ecosistemas",
+      "missingFields": [
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "human_footprint_2022",
+      "displayName": "Índice de Huella Espacial Humana 2022",
+      "missingFields": ["source_updated_date", "source_license"]
+    },
+    {
+      "layerId": "net_benefit",
+      "displayName": "Beneficio neto (renta agropecuaria)",
+      "missingFields": [
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "siraps",
+      "displayName": "Limites SIRAPS",
+      "missingFields": [
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "omecs",
+      "displayName": "OMECs (raster)",
+      "missingFields": [
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "comunidades",
+      "displayName": "Comunidades Negras",
+      "missingFields": ["source_contact"]
+    },
+    {
+      "layerId": "resguardos",
+      "displayName": "Resguardos Indígenas",
+      "missingFields": ["source_contact"]
+    },
+    {
+      "layerId": "ADMIN_DEPARTMENTS",
+      "displayName": "Departamentos",
+      "missingFields": [
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "ADMIN_MUNICIPALITIES",
+      "displayName": "Municipios",
+      "missingFields": [
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    }
+  ],
+  "excludedRows": [
+    {
+      "layerId": "biomasa_areara+subterranea_1km",
+      "displayName": "Biomasa aérea y subterránea",
+      "reason": "in_use_now is not TRUE"
+    },
+    {
+      "layerId": "recarga_agua_subterranea_moderado_alto",
+      "displayName": "Recarga de aguas subterraneas",
+      "reason": "in_use_now is not TRUE"
+    },
+    {
+      "layerId": "human_footprint_2030",
+      "displayName": "Índice de Huella Espacial Humana 2030",
+      "reason": "in_use_now is not TRUE"
+    },
+    {
+      "layerId": "conflict",
+      "displayName": "Conflictos (coca muertes)",
+      "reason": "in_use_now is not TRUE"
+    },
+    {
+      "layerId": "climate_refugia",
+      "displayName": "Velocidad del cambio climático",
+      "reason": "in_use_now is not TRUE"
+    },
+    {
+      "layerId": "coberturas",
+      "displayName": "Cobertura de la tierra",
+      "reason": "in_use_now is not TRUE"
+    }
+  ]
+}

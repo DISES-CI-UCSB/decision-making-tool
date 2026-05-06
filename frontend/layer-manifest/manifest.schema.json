@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://decision-making-tool.local/schemas/blob-layer-manifest.schema.json",
-  "title": "DISES Blob Layer Manifest",
+  "title": "DISES Runtime Layer Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "publicBlobHost", "categories", "layers"],
+  "required": ["version", "generatedAt", "publicBlobHost", "sourceCsv", "categories", "layers"],
   "properties": {
     "version": {
       "type": "string"
@@ -13,25 +13,12 @@
       "type": "string",
       "format": "date-time"
     },
-    "source": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "requiredLayersCsv": {
-          "type": "string"
-        },
-        "layersInUseCsv": {
-          "type": "string"
-        },
-        "blobInventoryGeneratedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
     "publicBlobHost": {
       "type": "string",
       "format": "uri"
+    },
+    "sourceCsv": {
+      "type": "string"
     },
     "categories": {
       "type": "array",
@@ -48,191 +35,119 @@
     }
   },
   "$defs": {
+    "nullableString": {
+      "type": ["string", "null"]
+    },
     "category": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title"],
+      "required": ["id", "spanishLabel", "layerIds"],
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
         },
-        "title": {
+        "spanishLabel": {
           "type": "string"
         },
-        "description": {
-          "type": "string"
+        "englishLabel": {
+          "$ref": "#/$defs/nullableString"
         },
-        "sidebarGroupId": {
-          "type": "string"
+        "layerIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "layer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "displayName", "category", "visibility", "assets", "provenance"],
+      "required": [
+        "id",
+        "spanishLabel",
+        "description",
+        "tooltip",
+        "dataRole",
+        "sidebarCategoryId",
+        "roleInMetricCalculation",
+        "metadataUrl",
+        "compressedDataForLiveMetricsUrl",
+        "precomputedMetricUrls"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$"
+          "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
         },
-        "displayName": {
+        "spanishLabel": {
           "type": "string"
+        },
+        "englishLabel": {
+          "$ref": "#/$defs/nullableString"
         },
         "description": {
           "type": "string"
         },
-        "category": {
-          "type": "string"
+        "tooltip": {
+          "$ref": "#/$defs/nullableString"
         },
-        "layerGroup": {
-          "type": "string"
-        },
-        "layerSubtype": {
-          "type": "string"
-        },
-        "scope": {
-          "type": "string"
-        },
-        "visibility": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["sidebar"],
-          "properties": {
-            "sidebar": {
-              "type": "boolean"
-            },
-            "defaultVisible": {
-              "type": "boolean"
-            },
-            "selectableInFinder": {
-              "type": "boolean"
-            }
-          }
-        },
-        "assets": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "display": {
-              "$ref": "#/$defs/asset"
-            },
-            "metric": {
-              "$ref": "#/$defs/asset"
-            },
-            "source": {
-              "$ref": "#/$defs/asset"
-            }
-          },
-          "anyOf": [
-            {
-              "required": ["display"]
-            },
-            {
-              "required": ["metric"]
-            },
-            {
-              "required": ["source"]
-            }
+        "dataRole": {
+          "type": "string",
+          "enum": [
+            "feature_layer",
+            "manifest_for_species_layers",
+            "species_layer",
+            "cost_layer",
+            "include_layer",
+            "solution_layer",
+            "administrative_boundary",
+            "reference_layer"
           ]
         },
-        "metric": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "usedForCalculation": {
-              "type": "boolean"
-            },
-            "roles": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "valueKind": {
-              "type": "string",
-              "enum": [
-                "binary",
-                "categorical",
-                "continuous",
-                "species-presence",
-                "precomputed-json",
-                "unknown"
-              ]
-            },
-            "units": {
-              "type": "string"
-            }
-          }
+        "sidebarCategoryId": {
+          "type": "string"
         },
-        "display": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "arcgisType": {
-              "type": "string",
-              "enum": ["feature", "tile", "imagery-tile", "graphics"]
-            },
-            "opacity": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "styleHint": {
-              "type": "string"
-            }
-          }
-        },
-        "provenance": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "sourceFilename": {
-              "type": "string"
-            },
-            "repoPath": {
-              "type": "string"
-            },
-            "googleSheetName": {
-              "type": "string"
-            },
-            "notes": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "asset": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["kind"],
-      "properties": {
-        "kind": {
+        "roleInMetricCalculation": {
           "type": "string",
-          "enum": ["blob", "remote-service", "local-public", "pending"]
+          "enum": [
+            "none",
+            "data_used_for_live_metric_calculation",
+            "boundary_used_for_precomputed_metric_lookup",
+            "data_used_for_live_metric_calculation_and_precomputed_metric_lookup"
+          ]
         },
-        "url": {
-          "type": "string"
+        "displayUrl": {
+          "$ref": "#/$defs/nullableString"
         },
-        "blobPath": {
-          "type": "string"
+        "displayCollectionUrl": {
+          "$ref": "#/$defs/nullableString"
         },
-        "format": {
-          "type": "string"
+        "speciesManifestUrl": {
+          "$ref": "#/$defs/nullableString"
         },
-        "encoding": {
-          "type": "string"
+        "metadataUrl": {
+          "$ref": "#/$defs/nullableString"
         },
-        "checksum": {
-          "type": "string"
+        "compressedDataForLiveMetricsUrl": {
+          "$ref": "#/$defs/nullableString"
         },
-        "bytes": {
-          "type": "integer",
-          "minimum": 0
+        "precomputedMetricUrls": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": ["displayUrl"]
+        },
+        {
+          "required": ["displayCollectionUrl"]
+        }
+      ]
     }
   }
 }

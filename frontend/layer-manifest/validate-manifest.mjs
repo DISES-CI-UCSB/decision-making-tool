@@ -30,8 +30,21 @@ function assertString(value, label) {
   );
 }
 
-function assertBoolean(value, label) {
-  assert(typeof value === 'boolean', `${label} must be a boolean`);
+function assertNullableString(value, label) {
+  assert(
+    value === null || (typeof value === 'string' && value.trim().length > 0),
+    `${label} must be null or a non-empty string`,
+  );
+}
+
+function assertUrlOrNull(value, label) {
+  assertNullableString(value, label);
+  if (value) {
+    assert(
+      value.startsWith('https://') || value.startsWith('/'),
+      `${label} must be an HTTPS URL or local public path`,
+    );
+  }
 }
 
 function assertUnique(values, label) {
@@ -51,22 +64,36 @@ function assertUnique(values, label) {
   );
 }
 
-function assertAsset(asset, label) {
-  assert(asset && typeof asset === 'object' && !Array.isArray(asset), `${label} must be an object`);
-  assertString(asset.kind, `${label}.kind`);
+function assertOneOf(value, allowedValues, label) {
+  assert(allowedValues.includes(value), `${label} must be one of: ${allowedValues.join(', ')}`);
+}
 
-  if (asset.kind === 'blob') {
-    assertString(asset.url, `${label}.url`);
-    assertString(asset.blobPath, `${label}.blobPath`);
-  }
+function assertUrlMap(value, label) {
+  assert(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
 
-  if (asset.url) {
-    assert(
-      asset.url.startsWith('https://') || asset.url.startsWith('/'),
-      `${label}.url must be an HTTPS URL or local public path`,
-    );
+  for (const [key, url] of Object.entries(value)) {
+    assertString(key, `${label} key`);
+    assertUrlOrNull(url, `${label}.${key}`);
   }
 }
+
+const DATA_ROLES = [
+  'feature_layer',
+  'manifest_for_species_layers',
+  'species_layer',
+  'cost_layer',
+  'include_layer',
+  'solution_layer',
+  'administrative_boundary',
+  'reference_layer',
+];
+
+const METRIC_CALCULATION_ROLES = [
+  'none',
+  'data_used_for_live_metric_calculation',
+  'boundary_used_for_precomputed_metric_lookup',
+  'data_used_for_live_metric_calculation_and_precomputed_metric_lookup',
+];
 
 function validateManifest(manifest, manifestPath) {
   assert(
@@ -74,14 +101,20 @@ function validateManifest(manifest, manifestPath) {
     'Manifest root must be an object',
   );
   assertString(manifest.version, 'version');
+  assertString(manifest.generatedAt, 'generatedAt');
   assertString(manifest.publicBlobHost, 'publicBlobHost');
+  assertString(manifest.sourceCsv, 'sourceCsv');
   assert(Array.isArray(manifest.categories), 'categories must be an array');
   assert(Array.isArray(manifest.layers), 'layers must be an array');
 
   const categoryIds = manifest.categories.map((category, index) => {
     assert(category && typeof category === 'object', `categories[${index}] must be an object`);
     assertString(category.id, `categories[${index}].id`);
-    assertString(category.title, `categories[${index}].title`);
+    assertString(category.spanishLabel, `categories[${index}].spanishLabel`);
+    if ('englishLabel' in category) {
+      assertNullableString(category.englishLabel, `categories[${index}].englishLabel`);
+    }
+    assert(Array.isArray(category.layerIds), `categories[${index}].layerIds must be an array`);
     return category.id;
   });
 
@@ -91,34 +124,58 @@ function validateManifest(manifest, manifestPath) {
   const layerIds = manifest.layers.map((layer, index) => {
     assert(layer && typeof layer === 'object', `layers[${index}] must be an object`);
     assertString(layer.id, `layers[${index}].id`);
-    assertString(layer.displayName, `layers[${index}].displayName`);
-    assertString(layer.category, `layers[${index}].category`);
-    assert(
-      knownCategoryIds.has(layer.category),
-      `layers[${index}].category is not listed in categories: ${layer.category}`,
-    );
-
-    assert(
-      layer.visibility && typeof layer.visibility === 'object',
-      `layers[${index}].visibility must be an object`,
-    );
-    assertBoolean(layer.visibility.sidebar, `layers[${index}].visibility.sidebar`);
-
-    assert(
-      layer.assets && typeof layer.assets === 'object',
-      `layers[${index}].assets must be an object`,
-    );
-    const assetEntries = Object.entries(layer.assets);
-    assert(assetEntries.length > 0, `layers[${index}].assets must include at least one asset`);
-
-    for (const [assetName, asset] of assetEntries) {
-      assertAsset(asset, `layers[${index}].assets.${assetName}`);
+    assertString(layer.spanishLabel, `layers[${index}].spanishLabel`);
+    if ('englishLabel' in layer) {
+      assertNullableString(layer.englishLabel, `layers[${index}].englishLabel`);
     }
+    assertString(layer.description, `layers[${index}].description`);
+    assertNullableString(layer.tooltip, `layers[${index}].tooltip`);
+    assertOneOf(layer.dataRole, DATA_ROLES, `layers[${index}].dataRole`);
+    assertString(layer.sidebarCategoryId, `layers[${index}].sidebarCategoryId`);
+    assert(
+      knownCategoryIds.has(layer.sidebarCategoryId),
+      `layers[${index}].sidebarCategoryId is not listed in categories: ${layer.sidebarCategoryId}`,
+    );
+    assertOneOf(
+      layer.roleInMetricCalculation,
+      METRIC_CALCULATION_ROLES,
+      `layers[${index}].roleInMetricCalculation`,
+    );
+    assert(
+      'displayUrl' in layer || 'displayCollectionUrl' in layer,
+      `layers[${index}] must include displayUrl or displayCollectionUrl`,
+    );
+    if ('displayUrl' in layer) {
+      assertUrlOrNull(layer.displayUrl, `layers[${index}].displayUrl`);
+    }
+    if ('displayCollectionUrl' in layer) {
+      assertUrlOrNull(layer.displayCollectionUrl, `layers[${index}].displayCollectionUrl`);
+    }
+    if ('speciesManifestUrl' in layer) {
+      assertUrlOrNull(layer.speciesManifestUrl, `layers[${index}].speciesManifestUrl`);
+    }
+    assertUrlOrNull(layer.metadataUrl, `layers[${index}].metadataUrl`);
+    assertUrlOrNull(
+      layer.compressedDataForLiveMetricsUrl,
+      `layers[${index}].compressedDataForLiveMetricsUrl`,
+    );
+    assertUrlMap(layer.precomputedMetricUrls, `layers[${index}].precomputedMetricUrls`);
 
     return layer.id;
   });
 
   assertUnique(layerIds, 'layers.id');
+  const knownLayerIds = new Set(layerIds);
+
+  for (const [index, category] of manifest.categories.entries()) {
+    for (const layerId of category.layerIds) {
+      assertString(layerId, `categories[${index}].layerIds item`);
+      assert(
+        knownLayerIds.has(layerId),
+        `categories[${index}].layerIds references unknown layer: ${layerId}`,
+      );
+    }
+  }
 
   return {
     manifestPath,

@@ -1,97 +1,48 @@
 {
   "version": "0.1.0",
-  "generatedAt": "2026-05-05T00:00:00.000Z",
+  "generatedAt": "2026-05-06T00:00:00.000Z",
   "publicBlobHost": "https://aagibolq28slyfof.public.blob.vercel-storage.com",
-  "source": {
-    "requiredLayersCsv": "data/input_layers_required.csv",
-    "layersInUseCsv": "data/input_layers_in_use.csv",
-    "blobInventoryGeneratedAt": "2026-05-05T00:00:00.000Z"
-  },
+  "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
   "categories": [
     {
-      "id": "ecosystems",
-      "title": "Ecosystems",
-      "sidebarGroupId": "group-ecosystems"
-    },
-    {
-      "id": "environmental-services",
-      "title": "Environmental Services",
-      "sidebarGroupId": "group-environmental-services"
-    },
-    {
-      "id": "cultural-ethnic",
-      "title": "Cultural & Ethnic Territories",
-      "sidebarGroupId": "group-cultural-ethnic"
-    },
-    {
-      "id": "socio-economic",
-      "title": "Socio-economic",
-      "sidebarGroupId": "group-socio-economic"
-    },
-    {
-      "id": "conflict-security",
-      "title": "Conflict & Security",
-      "sidebarGroupId": "group-conflict-security"
-    },
-    {
-      "id": "management-figures",
-      "title": "Management Figures"
-    },
-    {
-      "id": "administrative-boundaries",
-      "title": "Administrative Boundaries",
-      "sidebarGroupId": "group-admin-boundaries"
+      "id": "biodiversidad",
+      "spanishLabel": "Biodiversidad",
+      "englishLabel": "Biodiversity",
+      "layerIds": ["species_richness", "species"]
     }
   ],
   "layers": [
     {
-      "id": "FEAT_SPECIES_RICHNESS",
-      "displayName": "Species Richness (Ecosistemas)",
-      "description": "Template entry showing separate display, metric, and source assets for one conceptual layer.",
-      "category": "ecosystems",
-      "layerGroup": "features",
-      "layerSubtype": "ecosystems",
-      "scope": "nacional",
-      "visibility": {
-        "sidebar": true,
-        "defaultVisible": false,
-        "selectableInFinder": true
-      },
-      "assets": {
-        "display": {
-          "kind": "blob",
-          "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas.tif",
-          "blobPath": "inputs/features/ecosystems/ecosistemas.tif",
-          "format": "geotiff"
-        },
-        "metric": {
-          "kind": "pending",
-          "format": "gzip_delta_sparse_ids",
-          "encoding": "gzip_delta_sparse_ids"
-        },
-        "source": {
-          "kind": "blob",
-          "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas.tif",
-          "blobPath": "inputs/features/ecosystems/ecosistemas.tif",
-          "format": "geotiff"
-        }
-      },
-      "metric": {
-        "usedForCalculation": true,
-        "roles": ["biodiversity-feature"],
-        "valueKind": "continuous",
-        "units": "relative richness"
-      },
-      "display": {
-        "arcgisType": "imagery-tile",
-        "opacity": 0.6,
-        "styleHint": "teal-continuous"
-      },
-      "provenance": {
-        "sourceFilename": "ecosistemas.tif",
-        "repoPath": "data/inputs/features/ecosystems/ecosistemas.tif",
-        "googleSheetName": "DISES required layers",
-        "notes": "Replace this template entry when the generated manifest is refreshed from Blob inventory and layer metadata."
+      "id": "species_richness",
+      "spanishLabel": "Riqueza de especies",
+      "englishLabel": "Species Richness",
+      "description": "Biodiversity richness surface summarizing ecosystem-level species richness across the country.",
+      "tooltip": "Shows relative species richness for biodiversity review.",
+      "dataRole": "feature_layer",
+      "sidebarCategoryId": "biodiversidad",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/species_richness.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/species_richness.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/species_richness/nacional.json"
+      }
+    },
+    {
+      "id": "species",
+      "spanishLabel": "Distribuciones de especies individuales",
+      "englishLabel": "Individual Species Distributions",
+      "description": "Species distribution rasters available for species search and review.",
+      "tooltip": "Open species search to find individual species distribution layers.",
+      "dataRole": "manifest_for_species_layers",
+      "sidebarCategoryId": "biodiversidad",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayCollectionUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/",
+      "speciesManifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifests/species.manifest.json",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/species.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/species.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/species/nacional.json"
       }
     }
   ]
