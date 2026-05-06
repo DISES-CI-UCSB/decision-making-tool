@@ -123,40 +123,62 @@ const proposedCsvGroupCategoryIds = {
 };
 
 const categoryMappingRules = {
-  biodiversidad: {
+  species_and_biodiversity: {
     frontendCategoryIds: ['group-species-biodiversity'],
     status: 'maps_cleanly',
-    notes: 'CSV biodiversity layers map to the existing Species & Biodiversity sidebar group.',
+    notes: 'Biodiversity layers map to the existing Species & Biodiversity sidebar group.',
   },
-  costo: {
+  ecosystems: {
+    frontendCategoryIds: ['group-ecosystems'],
+    status: 'maps_cleanly',
+    notes: 'Ecosystem layers map to the existing Ecosystems sidebar group.',
+  },
+  environmental_services: {
+    frontendCategoryIds: ['group-environmental-services'],
+    status: 'maps_cleanly',
+    notes: 'Environmental service layers map to the existing Environmental Services sidebar group.',
+  },
+  management_figures: {
+    frontendCategoryIds: ['management-figures'],
+    status: 'maps_cleanly',
+    notes: 'RUNAP and OMEC layers map to the existing Management Figures overlay group.',
+  },
+  administrative_boundaries: {
+    frontendCategoryIds: ['group-admin-boundaries'],
+    status: 'maps_cleanly',
+    notes: 'Administrative boundary layers map to the existing Administrative Boundaries sidebar group.',
+  },
+  cultural_and_ethnic_territories: {
+    frontendCategoryIds: ['group-cultural-ethnic'],
+    status: 'maps_cleanly',
+    notes:
+      'Cultural and ethnic territory layers map to the existing Cultural & Ethnic Territories sidebar group.',
+  },
+  socioeconomic: {
     frontendCategoryIds: ['group-socio-economic'],
     status: 'maps_cleanly',
-    notes: 'Current cost layers are displayed as socio-economic context in the sidebar.',
+    notes: 'Socioeconomic cost/context layers map to the existing Socio-economic sidebar group.',
   },
-  ecosistemas: {
-    frontendCategoryIds: ['group-ecosystems'],
-    status: 'maps_cleanly_with_shared_frontend_group',
-    notes: 'This CSV category shares the existing Ecosystems sidebar group with Ecosistemas estrategicos.',
+  conflict_and_security: {
+    frontendCategoryIds: ['group-conflict-security'],
+    status: 'maps_cleanly',
+    notes: 'Conflict and security layers map to the existing Conflict & Security sidebar group.',
   },
-  ecosistemas_estrategicos: {
-    frontendCategoryIds: ['group-ecosystems'],
-    status: 'maps_cleanly_with_shared_frontend_group',
-    notes: 'Strategic ecosystem layers fit the existing Ecosystems sidebar group.',
-  },
-  limite_politico_o_administrativo: {
-    frontendCategoryIds: ['group-admin-boundaries', 'management-figures', 'group-cultural-ethnic'],
-    status: 'needs_layer_level_split',
+  territorial_planning: {
+    frontendCategoryIds: [],
+    status: 'needs_frontend_category',
     notes:
-      'This CSV category mixes AOI boundaries, management overlays, and cultural/ethnic territories in the current sidebar.',
-    layerLevelFrontendCategoryIds: {
-      runap: 'management-figures',
-      omecs: 'management-figures',
-      comunidades: 'group-cultural-ethnic',
-      resguardos: 'group-cultural-ethnic',
-      siraps: 'group-admin-boundaries',
-      admin_departments: 'group-admin-boundaries',
-      admin_municipalities: 'group-admin-boundaries',
-    },
+      'The current left sidebar does not have a dedicated Territorial Planning group. Confirm whether these layers should use an existing group or a new UI category.',
+  },
+  prospective_models: {
+    frontendCategoryIds: ['group-prospective-models'],
+    status: 'maps_cleanly',
+    notes: 'Prospective model layers map to the existing Prospective Models sidebar group.',
+  },
+  solutions: {
+    frontendCategoryIds: ['management-figures'],
+    status: 'maps_cleanly_with_existing_overlay_group',
+    notes: 'Solution layers currently appear in the existing Management Figures overlay group.',
   },
 };
 
@@ -433,8 +455,8 @@ function createCategories(rows, layerEntries) {
   const categories = new Map();
 
   for (const row of rows) {
-    const spanishLabel = row.layer_group || 'Uncategorized';
-    const id = toLayerId(spanishLabel) || 'uncategorized';
+    const id = inferProposedCategoryId(row);
+    const proposedCategory = proposedManifestCategories[id];
     const layerIds = layerEntries
       .filter((entry) => entry.manifestLayer.sidebarCategoryId === id)
       .map((entry) => entry.manifestLayer.id);
@@ -442,8 +464,8 @@ function createCategories(rows, layerEntries) {
     if (!categories.has(id)) {
       categories.set(id, {
         id,
-        spanishLabel,
-        englishLabel: null,
+        spanishLabel: proposedCategory.spanishLabel,
+        englishLabel: proposedCategory.englishLabel,
         layerIds,
       });
     }
@@ -477,7 +499,7 @@ function createLayerEntry(row, blobByPath) {
       description: row.layer_description,
       tooltip: null,
       dataRole,
-      sidebarCategoryId: toLayerId(row.layer_group || 'uncategorized'),
+      sidebarCategoryId: inferProposedCategoryId(row),
       roleInMetricCalculation,
       ...toDisplayUrlFields(displayReference),
       ...(row.layer_id === 'species'
