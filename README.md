@@ -6,11 +6,14 @@ A spatial conservation prioritization platform for Colombia, enabling stakeholde
 
 | Directory | Description |
 |-----------|-------------|
-| `frontend/` | Angular web application — ArcGIS map, solution finder, analysis dashboards |
-| `data/` | Geospatial data layers, solution rasters, and deploy assets |
-| `docs/` | Design docs, branch plans, and team feedback |
-| `mockups/` | HTML/CSS UI mockups and prototypes |
-| `Archive/` | Legacy code (Shiny app, Node server, Azure deploy, R processing scripts) |
+| `frontend/` | Active Angular web application — ArcGIS map, solution finder, analysis dashboards |
+| `frontend/layer-manifest/` | Committed schema, template, and validation tooling for the Blob-backed layer manifest |
+| `data/` | Local geospatial source/provenance files, solution rasters, and layer registries |
+| `docs/` | Current design docs, branch plans, task trackers, and team feedback |
+| `development-artifacts/` | Non-runtime work products such as exploratory experiments and UI mockups |
+| `legacy-r-shiny-app/` | Archived R/Shiny app and associated legacy analysis/server/deploy code, no longer in active use |
+
+Vercel Blob is becoming the runtime source for published geospatial layer assets. During development, the latest layer manifest may be refreshed into `frontend/public/data/layer-manifest/manifest.json`, but that generated file is intentionally ignored.
 
 ## Quick Start
 

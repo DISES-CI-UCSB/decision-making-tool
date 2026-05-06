@@ -28,9 +28,10 @@ import numpy as np
 from osgeo import gdal
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-CACHE_DIR = REPO_ROOT / "scripts/aoi-layer-compression-benchmark/cache"
-DEFAULT_OUTPUT = REPO_ROOT / "scripts/aoi-layer-compression-benchmark/results.json"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+CACHE_DIR = EXPERIMENT_DIR / "cache"
+DEFAULT_OUTPUT = EXPERIMENT_DIR / "results.json"
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 
 

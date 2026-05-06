@@ -16,45 +16,33 @@ USER_INSTRUCTIONS_SPANISH.md
 ADMIN_FEATURES_GUIDE.md
 ADMIN_FEATURES_GUID E_SPANISH.md
 
-# Cambio_Global data files (archived; keep scripts and docs)
-Archive/Cambio_Global/*.Rproj
-Archive/Cambio_Global/**/*.tif
-Archive/Cambio_Global/**/*.fst
-Archive/Cambio_Global/**/*.xlsx
-Archive/Cambio_Global/**/*.csv
-Archive/Cambio_Global/**/*.xml
-Archive/Cambio_Global/**/*.ovr
-Archive/Cambio_Global/**/*.zip
-Archive/Cambio_Global/**/*.cpg
-Archive/Cambio_Global/**/*.dbf
-Archive/Cambio_Global/**/*.prj
-Archive/Cambio_Global/**/*.shp
-Archive/Cambio_Global/**/*.shx
-Archive/Cambio_Global/**/*.sbx
-Archive/Cambio_Global/**/*.sbn
-Archive/Cambio_Global/**/*.tfw
-Archive/Cambio_Global/**/*.lock
+# Cambio_Global data files in the legacy R/Shiny app; keep scripts and docs.
+legacy-r-shiny-app/Cambio_Global/*.Rproj
+legacy-r-shiny-app/Cambio_Global/**/*.tif
+legacy-r-shiny-app/Cambio_Global/**/*.fst
+legacy-r-shiny-app/Cambio_Global/**/*.xlsx
+legacy-r-shiny-app/Cambio_Global/**/*.csv
+legacy-r-shiny-app/Cambio_Global/**/*.xml
+legacy-r-shiny-app/Cambio_Global/**/*.ovr
+legacy-r-shiny-app/Cambio_Global/**/*.zip
+legacy-r-shiny-app/Cambio_Global/**/*.cpg
+legacy-r-shiny-app/Cambio_Global/**/*.dbf
+legacy-r-shiny-app/Cambio_Global/**/*.prj
+legacy-r-shiny-app/Cambio_Global/**/*.shp
+legacy-r-shiny-app/Cambio_Global/**/*.shx
+legacy-r-shiny-app/Cambio_Global/**/*.sbx
+legacy-r-shiny-app/Cambio_Global/**/*.sbn
+legacy-r-shiny-app/Cambio_Global/**/*.tfw
+legacy-r-shiny-app/Cambio_Global/**/*.lock
 # Data policy: ignore binary/large files by default, track docs + deploy assets + CSVs.
 /data/**
 !/data/**/
 !/data/README.md
-!/data/layers_in_use.csv
-!/data/layers_required.csv
+!/data/input_layers_in_use.csv
+!/data/input_layers_required.csv
 !/data/**/*.md
 !/data/**/*.csv
-# Core runtime data used by the app
-!/data/costs/
-!/data/costs/**/*.tif
-!/data/features/
-!/data/features/**/*.tif
-!/data/includes_excludes/
-!/data/includes_excludes/**/*.tif
-!/data/includes_excludes/**/*.csv
-!/data/includes_excludes/**/*.shp
-!/data/includes_excludes/**/*.dbf
-!/data/includes_excludes/**/*.shx
-!/data/includes_excludes/**/*.prj
-!/data/includes_excludes/**/*.cpg
+# Local source rasters stay ignored by default; published layer assets move through Vercel Blob.
 !/data/solutions/
 !/data/solutions/**/*.tif
 !/data/solutions/**/*.csv
@@ -73,13 +61,15 @@ Archive/Cambio_Global/**/*.lock
 /frontend/node_modules/
 /frontend/dist/
 /frontend/.angular/
+# Development-only cache refreshed from the Blob layer manifest.
+/frontend/public/data/layer-manifest/manifest.json
 .vercel
 .env*.local
 
-# Generated metric/compression benchmark outputs
-/scripts/**/artifacts/
-/scripts/**/cache/
-/scripts/**/results*.json
+# Generated outputs from exploratory development artifacts
+/development-artifacts/experiments/**/artifacts/
+/development-artifacts/experiments/**/cache/
+/development-artifacts/experiments/**/results*.json
 
 # Python generated files
 __pycache__/

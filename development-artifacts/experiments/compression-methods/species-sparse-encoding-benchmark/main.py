@@ -27,10 +27,11 @@ import numpy as np
 from osgeo import gdal
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
+EXPERIMENT_DIR = Path(__file__).resolve().parent
 DEFAULT_METADATA = REPO_ROOT / "data/archive/metadata/features_v4_4_24_(MAPV).xlsx"
 DEFAULT_SPECIES_DIR = REPO_ROOT / "data/inputs/features/species"
-DEFAULT_OUTPUT = REPO_ROOT / "scripts/species-sparse-benchmark/results.json"
+DEFAULT_OUTPUT = EXPERIMENT_DIR / "results.json"
 
 XLSX_NS = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 THREATENED_CODES = {"CR", "EN", "VU"}

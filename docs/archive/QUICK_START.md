@@ -24,7 +24,7 @@
 → Use **[TEAM_EMAIL_DRAFT_METRICS_REVIEW.md](./workflows/TEAM_EMAIL_DRAFT_METRICS_REVIEW.md)** as template
 
 ### Generate Mockups
-→ Use prompts in **[AI_MOCKUP_PROMPTS.md](./mockups/AI_MOCKUP_PROMPTS.md)** or **[HTML_MOCKUP_PROMPTS.md](./mockups/HTML_MOCKUP_PROMPTS.md)**
+→ Use prompts in **[AI_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/AI_MOCKUP_PROMPTS.md)** or **[HTML_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/HTML_MOCKUP_PROMPTS.md)**
 
 ---
 
@@ -52,7 +52,7 @@ docs/
 │   ├── ADDITIONAL_FEATURES.md
 │   └── SOLUTION_PARAMETERS.md
 │
-└── mockups/
+└── development-artifacts/mockups/
     ├── AI_MOCKUP_PROMPTS.md
     └── HTML_MOCKUP_PROMPTS.md
 ```

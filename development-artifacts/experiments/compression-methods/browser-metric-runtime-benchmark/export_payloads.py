@@ -14,8 +14,10 @@ import numpy as np
 from osgeo import gdal
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-ARTIFACT_DIR = REPO_ROOT / "scripts/browser-metric-benchmark/artifacts"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+EXPERIMENT_ROOT = Path(__file__).resolve().parents[1]
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+ARTIFACT_DIR = EXPERIMENT_DIR / "artifacts"
 MANIFEST_PATH = ARTIFACT_DIR / "manifest.json"
 
 
@@ -29,10 +31,10 @@ def import_module(name: str, path: Path):
 
 
 aoi_bench = import_module(
-    "aoi_bench", REPO_ROOT / "scripts/aoi-layer-compression-benchmark/main.py"
+    "aoi_bench", EXPERIMENT_ROOT / "aoi-layer-artifact-compression-benchmark/main.py"
 )
 species_bench = import_module(
-    "species_bench", REPO_ROOT / "scripts/species-sparse-benchmark/main.py"
+    "species_bench", EXPERIMENT_ROOT / "species-sparse-encoding-benchmark/main.py"
 )
 
 

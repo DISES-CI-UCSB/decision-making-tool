@@ -10,8 +10,8 @@ const path = require('node:path');
 const zlib = require('node:zlib');
 const { performance } = require('node:perf_hooks');
 
-const ROOT = path.resolve(__dirname, '../..');
-const ARTIFACT_DIR = path.join(ROOT, 'scripts/browser-metric-benchmark/artifacts');
+const ROOT = path.resolve(__dirname, '../../../..');
+const ARTIFACT_DIR = path.join(__dirname, 'artifacts');
 const MANIFEST_PATH = path.join(ARTIFACT_DIR, 'manifest.json');
 
 function readManifest() {

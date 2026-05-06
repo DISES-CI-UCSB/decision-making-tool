@@ -1,7 +1,7 @@
 # Solution Overview — Metric Layout Design Decision
 
 > **Issue:** [UCS-60 / ANL-04](https://linear.app/ucsb-spatial-center/issue/UCS-60)
-> **Mockup:** [`mockups/solution-overview-panel.html`](../../mockups/solution-overview-panel.html)
+> **Mockup:** [`development-artifacts/mockups/solution-overview-panel.html`](../../development-artifacts/mockups/solution-overview-panel.html)
 > **Date:** 2026-03-16
 > **Status:** Proposed
 

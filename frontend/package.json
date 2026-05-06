@@ -12,6 +12,7 @@
     "sync:solutions": "node ./scripts/data-deploy/sync-solutions.mjs",
     "sync:boundaries": "node ./scripts/data-deploy/sync-boundaries.mjs",
     "validate:deploy-assets": "node ./scripts/data-deploy/validate-deploy-assets.mjs",
+    "validate:layer-manifest": "node ./layer-manifest/validate-manifest.mjs",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css,json,md}\"",
     "prepare": "cd .. && husky .husky"
   },

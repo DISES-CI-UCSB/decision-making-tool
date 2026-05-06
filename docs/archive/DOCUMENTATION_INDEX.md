@@ -21,8 +21,8 @@ This repository contains all design documentation, planning documents, and task 
 - **[SOLUTION_PARAMETERS.md](./workflows/SOLUTION_PARAMETERS.md)** - Comprehensive catalog of solution finder inputs (themes, weights, includes, excludes)
 
 ### Mockup Generation
-- **[AI_MOCKUP_PROMPTS.md](./mockups/AI_MOCKUP_PROMPTS.md)** - Prompts for generating AI image mockups (Gemini, DALL-E, etc.)
-- **[HTML_MOCKUP_PROMPTS.md](./mockups/HTML_MOCKUP_PROMPTS.md)** - Prompts for generating HTML/CSS mockups
+- **[AI_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/AI_MOCKUP_PROMPTS.md)** - Prompts for generating AI image mockups (Gemini, DALL-E, etc.)
+- **[HTML_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/HTML_MOCKUP_PROMPTS.md)** - Prompts for generating HTML/CSS mockups
 
 ### Task & Version Tracking
 - **[TASKS.md](./TASKS.md)** - Personal task tracker for action items from discussions
@@ -190,7 +190,7 @@ docs/
 │   ├── TEAM_EMAIL_DRAFT_METRICS_REVIEW.md
 │   ├── ADDITIONAL_FEATURES.md
 │   └── SOLUTION_PARAMETERS.md
-├── mockups/
+├── development-artifacts/mockups/
 │   ├── AI_MOCKUP_PROMPTS.md
 │   └── HTML_MOCKUP_PROMPTS.md
 ├── DOCUMENTATION_INDEX.md (this file)
@@ -210,8 +210,8 @@ docs/
 4. Use **[REVIEW_GUIDE.md](./workflows/REVIEW_GUIDE.md)** when requesting team feedback
 
 ### For Mockup Generation
-1. Choose **[AI_MOCKUP_PROMPTS.md](./mockups/AI_MOCKUP_PROMPTS.md)** for quick visual concepts
-2. Use **[HTML_MOCKUP_PROMPTS.md](./mockups/HTML_MOCKUP_PROMPTS.md)** for interactive, code-based mockups
+1. Choose **[AI_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/AI_MOCKUP_PROMPTS.md)** for quick visual concepts
+2. Use **[HTML_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/HTML_MOCKUP_PROMPTS.md)** for interactive, code-based mockups
 3. Both reference **MASTER_DESIGN_DOCUMENT.md** for accuracy
 
 ### For Team Communication

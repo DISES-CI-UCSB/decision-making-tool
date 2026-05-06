@@ -19,7 +19,7 @@ docs/
 ├── design/                  ← Core design documents (future organization)
 ├── proposals/               ← Enhancement proposals (future organization)
 ├── workflows/               ← Process documents (future organization)
-└── mockups/                 ← Mockup generation prompts (future organization)
+└── development-artifacts/mockups/                 ← Mockup generation prompts (future organization)
 ```
 
 **Note:** Currently, all markdown files are at the repository root level for easy discovery. The `docs/` subfolders are created but empty - move files here when ready to organize.
@@ -43,8 +43,8 @@ docs/
 - **[SOLUTION_PARAMETERS.md](./workflows/SOLUTION_PARAMETERS.md)** - Catalog of solution finder inputs
 
 ### For Mockups
-- **[AI_MOCKUP_PROMPTS.md](./mockups/AI_MOCKUP_PROMPTS.md)** - Prompts for AI image generation
-- **[HTML_MOCKUP_PROMPTS.md](./mockups/HTML_MOCKUP_PROMPTS.md)** - Prompts for HTML mockup generation
+- **[AI_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/AI_MOCKUP_PROMPTS.md)** - Prompts for AI image generation
+- **[HTML_MOCKUP_PROMPTS.md](../../development-artifacts/mockups/HTML_MOCKUP_PROMPTS.md)** - Prompts for HTML mockup generation
 
 ## Workflow
 

@@ -1,16 +1,36 @@
-# EcoPlan
+# Decision Making Tool Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.0.
+Angular web application for the DISES Decision Making Tool.
+
+## Project-specific folders
+
+| Folder                        | Purpose                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `src/`                        | Active application code                                                      |
+| `public/`                     | Static assets and local development mirrors served by Angular                |
+| `public/data/layer-manifest/` | Development-only cache location for the generated Blob layer manifest        |
+| `layer-manifest/`             | Committed schema, template, and validator for the Blob-backed layer manifest |
+| `scripts/data-deploy/`        | Frequently used sync/validation scripts for current frontend deploy assets   |
+
+Large geospatial layer assets are transitioning from repo-local files to Vercel Blob storage. The committed manifest contract lives in `layer-manifest/`; the generated development manifest lives at `public/data/layer-manifest/manifest.json` and is intentionally ignored.
 
 ## Development server
 
 To start a local development server, run:
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+`npm start` syncs current local solution and boundary assets into `public/data/` before running `ng serve`. Once the server is running, open `http://localhost:4200/`.
+
+## Layer manifest validation
+
+```bash
+npm run validate:layer-manifest
+```
+
+This validates the committed template and, when present, the ignored development manifest cache.
 
 ## Code scaffolding
 
@@ -31,10 +51,16 @@ ng generate --help
 To build the project run:
 
 ```bash
-ng build
+npm run build
 ```
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+
+For Vercel-style validation and asset sync, run:
+
+```bash
+npm run build:vercel
+```
 
 ## Running unit tests
 

@@ -274,4 +274,4 @@ All of these are in the MDD and will need to come back, but not now.
 ## 12. Related
 
 - `docs/design/MASTER_DESIGN_DOCUMENT.md` §2.2, §2.3, §4.8.1, §4.9.2 — full auth vision (post-MVP)
-- `mockups/login-register/` — five visual treatments of this flow (for review)
+- `development-artifacts/mockups/login-register/` — five visual treatments of this flow (for review)
