@@ -16,12 +16,14 @@ El manifest no debe guardar toda la historia de una capa. Los detalles largos de
 
 ### Archivos principales
 
-- `manifest.template.json`: ejemplo pequeno y legible del contrato.
+- `manifest.template.json`: ejemplo pequeno y legible del contrato, con casos representativos.
 - `manifest.schema.json`: contrato tecnico que valida la estructura.
 - `generate-manifest.mjs`: genera el manifest runtime desde el CSV verificado y Vercel Blob.
 - `validate-manifest.mjs`: valida el template y el manifest generado.
 - `reports/reconciliation-report.json`: reporte para revisar diferencias entre el CSV verificado y Blob Storage.
-- `public/data/layer-manifest/manifest.json`: manifest generado para desarrollo local. Este archivo esta ignorado por git.
+- `reports/category-mapping-report.json`: reporte para comparar categorias del CSV con categorias actuales del panel lateral.
+- `reports/category-review.csv`: borrador para revisar categorias en Google Sheets con el equipo cientifico.
+- `public/data/layer-manifest/manifest.json`: manifest mas reciente para desarrollo local. Este archivo esta ignorado por git y funciona como cache/snapshot para desarrolladores.
 
 ### CSV, Blob y reporte de reconciliacion
 
@@ -97,12 +99,14 @@ The manifest should not store the full history of a layer. Long source, license,
 
 ### Main Files
 
-- `manifest.template.json`: small readable example of the contract.
+- `manifest.template.json`: small readable example of the contract, with representative cases.
 - `manifest.schema.json`: technical contract used for validation.
 - `generate-manifest.mjs`: generates the runtime manifest from the verified CSV and Vercel Blob.
 - `validate-manifest.mjs`: validates the template and generated manifest.
 - `reports/reconciliation-report.json`: report for reviewing differences between the verified CSV and Blob Storage.
-- `public/data/layer-manifest/manifest.json`: generated local development manifest. This file is ignored by git.
+- `reports/category-mapping-report.json`: report for comparing CSV categories with current left-sidebar categories.
+- `reports/category-review.csv`: draft category review sheet for the science team in Google Sheets.
+- `public/data/layer-manifest/manifest.json`: latest local development manifest. This file is ignored by git and works as a developer cache/snapshot.
 
 ### CSV, Blob, And Reconciliation
 

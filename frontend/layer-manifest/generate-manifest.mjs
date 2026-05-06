@@ -19,6 +19,12 @@ const GENERATED_MANIFEST_PATH = path.resolve(
   '../public/data/layer-manifest/manifest.json',
 );
 const REPORT_PATH = path.resolve(__dirname, './reports/reconciliation-report.json');
+const CATEGORY_MAPPING_REPORT_PATH = path.resolve(__dirname, './reports/category-mapping-report.json');
+const CATEGORY_REVIEW_CSV_PATH = path.resolve(__dirname, './reports/category-review.csv');
+const LEFT_SIDEBAR_SOURCE_PATH = path.resolve(
+  __dirname,
+  '../src/app/features/left-sidebar/map-layers-panel/map-layers-panel.ts',
+);
 const GENERATED_AT = new Date().toISOString();
 
 const BLOB_PREFIXES = [
@@ -33,6 +39,126 @@ const BLOB_PREFIXES = [
   'inputs/includes/',
 ];
 const COLLECTION_PREFIXES = ['inputs/features/species/'];
+
+const proposedManifestCategories = {
+  species_and_biodiversity: {
+    spanishLabel: 'Especies y biodiversidad',
+    englishLabel: 'Species & Biodiversity',
+    frontendGroup: 'Species & Biodiversity',
+  },
+  ecosystems: {
+    spanishLabel: 'Ecosistemas',
+    englishLabel: 'Ecosystems',
+    frontendGroup: 'Ecosystems',
+  },
+  environmental_services: {
+    spanishLabel: 'Servicios ecosistémicos',
+    englishLabel: 'Environmental Services',
+    frontendGroup: 'Environmental Services',
+  },
+  management_figures: {
+    spanishLabel: 'Figuras de manejo',
+    englishLabel: 'Management Figures',
+    frontendGroup: 'Management Figures',
+  },
+  administrative_boundaries: {
+    spanishLabel: 'Límites administrativos',
+    englishLabel: 'Administrative Boundaries',
+    frontendGroup: 'Administrative Boundaries',
+  },
+  cultural_and_ethnic_territories: {
+    spanishLabel: 'Territorios culturales y étnicos',
+    englishLabel: 'Cultural & Ethnic Territories',
+    frontendGroup: 'Cultural & Ethnic Territories',
+  },
+  socioeconomic: {
+    spanishLabel: 'Socioeconómico',
+    englishLabel: 'Socio-economic',
+    frontendGroup: 'Socio-economic',
+  },
+  conflict_and_security: {
+    spanishLabel: 'Conflicto y seguridad',
+    englishLabel: 'Conflict & Security',
+    frontendGroup: 'Conflict & Security',
+  },
+  territorial_planning: {
+    spanishLabel: 'Ordenamiento territorial',
+    englishLabel: 'Territorial Planning',
+    frontendGroup: 'Territorial Planning',
+  },
+  prospective_models: {
+    spanishLabel: 'Modelos prospectivos',
+    englishLabel: 'Prospective Models',
+    frontendGroup: 'Prospective Models',
+  },
+  solutions: {
+    spanishLabel: 'Soluciones',
+    englishLabel: 'Solutions',
+    frontendGroup: 'Solutions',
+  },
+};
+
+const proposedLayerCategoryOverrides = {
+  runap: 'management_figures',
+  omecs: 'management_figures',
+  comunidades: 'cultural_and_ethnic_territories',
+  resguardos: 'cultural_and_ethnic_territories',
+  siraps: 'administrative_boundaries',
+  admin_departments: 'administrative_boundaries',
+  admin_municipalities: 'administrative_boundaries',
+  human_footprint_2022: 'socioeconomic',
+  human_footprint_2030: 'prospective_models',
+  net_benefit: 'socioeconomic',
+  conflict: 'conflict_and_security',
+  climate_refugia: 'prospective_models',
+};
+
+const proposedCsvGroupCategoryIds = {
+  biodiversidad: 'species_and_biodiversity',
+  ecosistemas: 'ecosystems',
+  ecosistemas_estrategicos: 'ecosystems',
+  servicios_ecosistemicos: 'environmental_services',
+  costo: 'socioeconomic',
+  coberturas: 'territorial_planning',
+};
+
+const categoryMappingRules = {
+  biodiversidad: {
+    frontendCategoryIds: ['group-species-biodiversity'],
+    status: 'maps_cleanly',
+    notes: 'CSV biodiversity layers map to the existing Species & Biodiversity sidebar group.',
+  },
+  costo: {
+    frontendCategoryIds: ['group-socio-economic'],
+    status: 'maps_cleanly',
+    notes: 'Current cost layers are displayed as socio-economic context in the sidebar.',
+  },
+  ecosistemas: {
+    frontendCategoryIds: ['group-ecosystems'],
+    status: 'maps_cleanly_with_shared_frontend_group',
+    notes: 'This CSV category shares the existing Ecosystems sidebar group with Ecosistemas estrategicos.',
+  },
+  ecosistemas_estrategicos: {
+    frontendCategoryIds: ['group-ecosystems'],
+    status: 'maps_cleanly_with_shared_frontend_group',
+    notes: 'Strategic ecosystem layers fit the existing Ecosystems sidebar group.',
+  },
+  limite_politico_o_administrativo: {
+    frontendCategoryIds: ['group-admin-boundaries', 'management-figures', 'group-cultural-ethnic'],
+    status: 'needs_layer_level_split',
+    notes:
+      'This CSV category mixes AOI boundaries, management overlays, and cultural/ethnic territories in the current sidebar.',
+    layerLevelFrontendCategoryIds: {
+      runap: 'management-figures',
+      omecs: 'management-figures',
+      comunidades: 'group-cultural-ethnic',
+      resguardos: 'group-cultural-ethnic',
+      siraps: 'group-admin-boundaries',
+      admin_departments: 'group-admin-boundaries',
+      admin_municipalities: 'group-admin-boundaries',
+    },
+  },
+};
 
 const columnAliases = {
   layer_id: ['layer_id'],
@@ -178,6 +304,15 @@ function splitMultilineLabel(value) {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function splitLayerLabels(value) {
+  const labels = splitMultilineLabel(value);
+
+  return {
+    spanishLabel: labels[0] ?? value,
+    englishLabel: labels[1] ?? '',
+  };
 }
 
 function toLayerId(value) {
@@ -468,7 +603,173 @@ function createPrecomputedMetricUrls(layerId, roleInMetricCalculation) {
   };
 }
 
-function buildReport({ allRows, includedRows, layerEntries, blobInventory }) {
+function inferProposedCategoryId(row) {
+  const layerId = toLayerId(row.layer_id);
+  const csvGroupId = toLayerId(row.layer_group || 'uncategorized');
+
+  return (
+    proposedLayerCategoryOverrides[layerId] ??
+    proposedCsvGroupCategoryIds[csvGroupId] ??
+    'territorial_planning'
+  );
+}
+
+function shouldTeamReviewCategory(row, proposedCategoryId) {
+  const layerId = toLayerId(row.layer_id);
+  const csvGroupId = toLayerId(row.layer_group || 'uncategorized');
+
+  return (
+    !isTrue(row.in_use_now) ||
+    csvGroupId === 'limite_politico_o_administrativo' ||
+    csvGroupId === 'costo' ||
+    proposedCategoryId === 'territorial_planning'
+  );
+}
+
+function createCategoryReviewRows(rows) {
+  return rows.map((row) => {
+    const layerId = toLayerId(row.layer_id);
+    const labels = splitLayerLabels(row.layer_name);
+    const proposedCategoryId = inferProposedCategoryId(row);
+    const proposedCategory = proposedManifestCategories[proposedCategoryId];
+
+    return {
+      layer_id: layerId,
+      layer_name_spanish: labels.spanishLabel,
+      layer_name_english: labels.englishLabel,
+      current_csv_layer_group: row.layer_group,
+      in_use_now: isTrue(row.in_use_now) ? 'TRUE' : 'FALSE',
+      proposed_manifest_category_id: proposedCategoryId,
+      proposed_category_spanish_label: proposedCategory.spanishLabel,
+      proposed_category_english_label: proposedCategory.englishLabel,
+      proposed_frontend_group: proposedCategory.frontendGroup,
+      needs_team_review: shouldTeamReviewCategory(row, proposedCategoryId) ? 'TRUE' : 'FALSE',
+      team_approved_category_id: '',
+      team_notes: '',
+    };
+  });
+}
+
+function escapeCsvValue(value) {
+  const stringValue = String(value ?? '');
+
+  if (/[",\n\r]/.test(stringValue)) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  return stringValue;
+}
+
+function toCsv(rows) {
+  if (rows.length === 0) {
+    return '';
+  }
+
+  const headers = Object.keys(rows[0]);
+  const lines = [
+    headers.join(','),
+    ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(',')),
+  ];
+
+  return `${lines.join('\n')}\n`;
+}
+
+async function extractCurrentFrontendCategories() {
+  const source = await fs.readFile(LEFT_SIDEBAR_SOURCE_PATH, 'utf-8');
+  const groupStart = source.indexOf('private createDefaultGroups(): LayerGroup[]');
+  const groupEnd = source.indexOf('private layerRow(', groupStart);
+  const groupSource = groupStart >= 0 && groupEnd > groupStart ? source.slice(groupStart, groupEnd) : '';
+  const categories = [
+    {
+      id: 'management-figures',
+      title: 'Management Figures',
+      source: 'createDefaultOverlays',
+      notes: 'Overlay card above category groups; currently contains solution, RUNAP, and OMEC rows.',
+    },
+  ];
+
+  for (const match of groupSource.matchAll(/id:\s*'([^']+)'[\s\S]*?title:\s*'([^']+)'/g)) {
+    categories.push({
+      id: match[1],
+      title: match[2],
+      source: 'createDefaultGroups',
+    });
+  }
+
+  return categories;
+}
+
+function buildCategoryMappingReport({ categories, layerEntries, currentFrontendCategories }) {
+  const frontendById = new Map(currentFrontendCategories.map((category) => [category.id, category]));
+  const manifestCategoryMappings = categories.map((category) => {
+    const rule = categoryMappingRules[category.id];
+    const frontendCategoryIds = rule?.frontendCategoryIds ?? [];
+    const layerMappings = category.layerIds.map((layerId) => {
+      const layer = layerEntries.find((entry) => entry.manifestLayer.id === layerId)?.manifestLayer;
+      const frontendCategoryId = rule?.layerLevelFrontendCategoryIds?.[layerId] ?? frontendCategoryIds[0] ?? null;
+
+      return {
+        layerId,
+        spanishLabel: layer?.spanishLabel ?? null,
+        dataRole: layer?.dataRole ?? null,
+        frontendCategoryId,
+        frontendCategoryTitle: frontendCategoryId ? frontendById.get(frontendCategoryId)?.title ?? null : null,
+      };
+    });
+
+    return {
+      manifestCategoryId: category.id,
+      manifestSpanishLabel: category.spanishLabel,
+      layerIds: category.layerIds,
+      frontendCategoryIds,
+      frontendCategoryTitles: frontendCategoryIds.map((id) => frontendById.get(id)?.title ?? null),
+      status: rule?.status ?? 'needs_mapping_rule',
+      notes: rule?.notes ?? 'No mapping rule has been defined for this manifest category.',
+      layerMappings,
+    };
+  });
+
+  const mappedFrontendCategoryIds = new Set(
+    manifestCategoryMappings.flatMap((mapping) => mapping.frontendCategoryIds),
+  );
+  const frontendCategoriesWithoutManifestMapping = currentFrontendCategories
+    .filter((category) => !mappedFrontendCategoryIds.has(category.id))
+    .map((category) => ({
+      id: category.id,
+      title: category.title,
+      source: category.source,
+      notes: category.notes ?? 'No included CSV layer currently maps to this sidebar category.',
+    }));
+
+  return {
+    generatedAt: GENERATED_AT,
+    whyThisReportExists: {
+      purpose:
+        'Helps developers compare generated manifest categories against the current left-sidebar map layer groups.',
+      intendedAudience: 'Developers and product reviewers working on sidebar category integration.',
+      howToUse:
+        'Review mappings with status values that include "needs" before changing sidebar grouping behavior.',
+    },
+    sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
+    frontendSource: path.relative(repoRoot, LEFT_SIDEBAR_SOURCE_PATH),
+    counts: {
+      manifestCategories: categories.length,
+      currentFrontendCategories: currentFrontendCategories.length,
+      mappedManifestCategories: manifestCategoryMappings.filter(
+        (mapping) => mapping.status !== 'needs_mapping_rule',
+      ).length,
+      manifestCategoriesNeedingReview: manifestCategoryMappings.filter((mapping) =>
+        mapping.status.includes('needs'),
+      ).length,
+      frontendCategoriesWithoutManifestMapping: frontendCategoriesWithoutManifestMapping.length,
+    },
+    currentFrontendCategories,
+    manifestCategoryMappings,
+    frontendCategoriesWithoutManifestMapping,
+  };
+}
+
+function buildReport({ allRows, includedRows, layerEntries, blobInventory, categoryMappingReport }) {
   const matchedBlobPaths = new Set(
     layerEntries
       .map((entry) => entry.reconciliation.displayReference.blobPath)
@@ -528,6 +829,13 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory }) {
 
   return {
     generatedAt: GENERATED_AT,
+    whyThisReportExists: {
+      purpose:
+        'Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.',
+      intendedAudience: 'Developers validating Blob Storage contents before wiring layers into the tool.',
+      howToUse:
+        'Check missingRequired first, then extraAvailable and includedRowMetadataGaps, before treating the generated manifest as ready for frontend integration.',
+    },
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     policy: {
       includedRows: 'Only rows with en_uso_actual / in_use_now set to TRUE',
@@ -543,10 +851,21 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory }) {
       extraAvailable: extraAvailable.length,
       includedRowMetadataGaps: includedRowMetadataGaps.length,
       excludedRows: excludedRows.length,
+      manifestCategoriesNeedingReview:
+        categoryMappingReport.counts.manifestCategoriesNeedingReview,
+      frontendCategoriesWithoutManifestMapping:
+        categoryMappingReport.counts.frontendCategoriesWithoutManifestMapping,
     },
     missingRequired,
     extraAvailable,
     includedRowMetadataGaps,
+    categoryMappingSummary: {
+      reportPath: path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH),
+      manifestCategoriesNeedingReview:
+        categoryMappingReport.counts.manifestCategoriesNeedingReview,
+      frontendCategoriesWithoutManifestMapping:
+        categoryMappingReport.counts.frontendCategoriesWithoutManifestMapping,
+    },
     excludedRows,
   };
 }
@@ -554,6 +873,11 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory }) {
 async function writeJson(filePath, data) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
+}
+
+async function writeText(filePath, data) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, data, 'utf-8');
 }
 
 async function main() {
@@ -565,7 +889,19 @@ async function main() {
   const layerEntries = includedRows.map((row) => createLayerEntry(row, blobByPath));
   const categories = createCategories(includedRows, layerEntries);
   const layers = layerEntries.map((entry) => entry.manifestLayer);
-  const report = buildReport({ allRows: rows, includedRows, layerEntries, blobInventory });
+  const currentFrontendCategories = await extractCurrentFrontendCategories();
+  const categoryMappingReport = buildCategoryMappingReport({
+    categories,
+    layerEntries,
+    currentFrontendCategories,
+  });
+  const report = buildReport({
+    allRows: rows,
+    includedRows,
+    layerEntries,
+    blobInventory,
+    categoryMappingReport,
+  });
 
   const manifest = {
     version: '0.1.0',
@@ -577,10 +913,14 @@ async function main() {
   };
 
   await writeJson(GENERATED_MANIFEST_PATH, manifest);
+  await writeJson(CATEGORY_MAPPING_REPORT_PATH, categoryMappingReport);
   await writeJson(REPORT_PATH, report);
+  await writeText(CATEGORY_REVIEW_CSV_PATH, toCsv(createCategoryReviewRows(rows)));
 
   console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, GENERATED_MANIFEST_PATH)}`);
+  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH)}`);
   console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, REPORT_PATH)}`);
+  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_REVIEW_CSV_PATH)}`);
   console.log(
     `[generate:layer-manifest] ${layers.length} layer(s), ${report.counts.missingRequired} missing required, ${report.counts.extraAvailable} extra available`,
   );

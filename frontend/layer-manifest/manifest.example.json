@@ -6,25 +6,67 @@
   "categories": [
     {
       "id": "species_and_biodiversity",
-      "spanishLabel": "Species & Biodiversity",
+      "spanishLabel": "Especies y biodiversidad",
       "englishLabel": "Species & Biodiversity",
       "layerIds": ["species_richness", "species"]
     },
     {
-      "id": "ecosistemas_estrategicos",
-      "spanishLabel": "Ecosistemas estratégicos",
-      "englishLabel": null,
+      "id": "ecosystems",
+      "spanishLabel": "Ecosistemas",
+      "englishLabel": "Ecosystems",
       "layerIds": ["paramos"]
     },
     {
-      "id": "limite_politico_o_administrativo",
-      "spanishLabel": "Límite político o administrativo",
-      "englishLabel": null,
+      "id": "environmental_services",
+      "spanishLabel": "Servicios ecosistémicos",
+      "englishLabel": "Environmental Services",
+      "layerIds": ["ground_water_recharge"]
+    },
+    {
+      "id": "management_figures",
+      "spanishLabel": "Figuras de manejo",
+      "englishLabel": "Management Figures",
+      "layerIds": ["runap"]
+    },
+    {
+      "id": "administrative_boundaries",
+      "spanishLabel": "Límites administrativos",
+      "englishLabel": "Administrative Boundaries",
       "layerIds": ["admin_departments"]
     },
     {
+      "id": "cultural_and_ethnic_territories",
+      "spanishLabel": "Territorios culturales y étnicos",
+      "englishLabel": "Cultural & Ethnic Territories",
+      "layerIds": ["resguardos"]
+    },
+    {
+      "id": "socioeconomic",
+      "spanishLabel": "Socioeconómico",
+      "englishLabel": "Socio-economic",
+      "layerIds": ["net_benefit"]
+    },
+    {
+      "id": "conflict_and_security",
+      "spanishLabel": "Conflicto y seguridad",
+      "englishLabel": "Conflict & Security",
+      "layerIds": ["conflict"]
+    },
+    {
+      "id": "territorial_planning",
+      "spanishLabel": "Ordenamiento territorial",
+      "englishLabel": "Territorial Planning",
+      "layerIds": ["land_cover"]
+    },
+    {
+      "id": "prospective_models",
+      "spanishLabel": "Modelos prospectivos",
+      "englishLabel": "Prospective Models",
+      "layerIds": ["human_footprint_2030"]
+    },
+    {
       "id": "solutions",
-      "spanishLabel": "Solutions",
+      "spanishLabel": "Soluciones",
       "englishLabel": "Solutions",
       "layerIds": ["solution_national_30"]
     }
@@ -70,7 +112,7 @@
       "description": "Official páramo complex boundaries for environmental management and conservation planning.",
       "tooltip": "Shows high-altitude páramo ecosystems.",
       "dataRole": "feature_layer",
-      "sidebarCategoryId": "ecosistemas_estrategicos",
+      "sidebarCategoryId": "ecosystems",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/paramos.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/paramos.metadata.json",
@@ -80,19 +122,129 @@
       }
     },
     {
+      "id": "ground_water_recharge",
+      "spanishLabel": "Recarga de aguas subterráneas",
+      "englishLabel": "Ground Water Recharge",
+      "description": "Potential groundwater recharge areas used to review environmental service coverage.",
+      "tooltip": "Shows groundwater recharge areas that may support environmental service decisions.",
+      "dataRole": "feature_layer",
+      "sidebarCategoryId": "environmental_services",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/ground_water_recharge.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/ground_water_recharge.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/ground_water_recharge/nacional.json"
+      }
+    },
+    {
+      "id": "runap",
+      "spanishLabel": "Áreas protegidas (RUNAP 2023)",
+      "englishLabel": "Protected Areas (RUNAP 2023)",
+      "description": "Protected areas from RUNAP that are treated as already conserved in planning outputs.",
+      "tooltip": "Shows protected areas used as conservation management context.",
+      "dataRole": "include_layer",
+      "sidebarCategoryId": "management_figures",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_protected_areas.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/runap.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/runap.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/runap/nacional.json"
+      }
+    },
+    {
       "id": "admin_departments",
       "spanishLabel": "Departamentos",
       "englishLabel": "Departments",
       "description": "Department AOI boundaries served from IGAC.",
       "tooltip": "Use departments as known areas of interest with cached metric results.",
       "dataRole": "administrative_boundary",
-      "sidebarCategoryId": "limite_politico_o_administrativo",
+      "sidebarCategoryId": "administrative_boundaries",
       "roleInMetricCalculation": "boundary_used_for_precomputed_metric_lookup",
       "displayUrl": "https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/2",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/admin_departments.metadata.json",
       "compressedDataForLiveMetricsUrl": null,
       "precomputedMetricUrls": {
         "byBoundaryFeature": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/admin_departments/by-feature.json"
+      }
+    },
+    {
+      "id": "resguardos",
+      "spanishLabel": "Resguardos Indígenas",
+      "englishLabel": "Indigenous Reserves",
+      "description": "Indigenous reserve territories that can be included in planning and visualization.",
+      "tooltip": "Shows Indigenous reserve territories for cultural and ethnic context.",
+      "dataRole": "include_layer",
+      "sidebarCategoryId": "cultural_and_ethnic_territories",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/resguardos.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/resguardos.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/resguardos.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/resguardos/nacional.json"
+      }
+    },
+    {
+      "id": "net_benefit",
+      "spanishLabel": "Beneficio neto (renta agropecuaria)",
+      "englishLabel": "Net Benefit (Agricultural Rent)",
+      "description": "Potential agricultural net benefit used as opportunity-cost context for conservation.",
+      "tooltip": "Shows opportunity-cost pressure from agricultural rent.",
+      "dataRole": "cost_layer",
+      "sidebarCategoryId": "socioeconomic",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/net_benefit.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/net_benefit.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/net_benefit.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/net_benefit/nacional.json"
+      }
+    },
+    {
+      "id": "conflict",
+      "spanishLabel": "Conflictos (coca muertes)",
+      "englishLabel": "Conflict (Coca Deaths)",
+      "description": "Conflict intensity layer used to represent social risk and implementation difficulty.",
+      "tooltip": "Shows conflict and security pressure for planning review.",
+      "dataRole": "cost_layer",
+      "sidebarCategoryId": "conflict_and_security",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/conflict.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/conflict.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/conflict.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/conflict/nacional.json"
+      }
+    },
+    {
+      "id": "land_cover",
+      "spanishLabel": "Cobertura de la tierra",
+      "englishLabel": "Land Cover",
+      "description": "Land-cover context layer used to interpret local planning tradeoffs.",
+      "tooltip": "Shows land-cover patterns for territorial planning context.",
+      "dataRole": "reference_layer",
+      "sidebarCategoryId": "territorial_planning",
+      "roleInMetricCalculation": "none",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/land_cover.metadata.json",
+      "compressedDataForLiveMetricsUrl": null,
+      "precomputedMetricUrls": {}
+    },
+    {
+      "id": "human_footprint_2030",
+      "spanishLabel": "Índice de Huella Espacial Humana 2030",
+      "englishLabel": "Human Footprint 2030",
+      "description": "Projected human pressure layer used as prospective scenario context.",
+      "tooltip": "Shows projected human footprint intensity for future scenario review.",
+      "dataRole": "cost_layer",
+      "sidebarCategoryId": "prospective_models",
+      "roleInMetricCalculation": "data_used_for_live_metric_calculation",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/human_footprint_2030.metadata.json",
+      "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/human_footprint_2030.bin.gz",
+      "precomputedMetricUrls": {
+        "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/human_footprint_2030/nacional.json"
       }
     },
     {

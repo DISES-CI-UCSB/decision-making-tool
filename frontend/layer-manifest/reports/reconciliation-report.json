@@ -1,5 +1,10 @@
 {
-  "generatedAt": "2026-05-06T21:33:40.411Z",
+  "generatedAt": "2026-05-06T22:53:57.198Z",
+  "whyThisReportExists": {
+    "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
+    "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
+    "howToUse": "Check missingRequired first, then extraAvailable and includedRowMetadataGaps, before treating the generated manifest as ready for frontend integration."
+  },
   "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
   "policy": {
     "includedRows": "Only rows with en_uso_actual / in_use_now set to TRUE",
@@ -14,7 +19,9 @@
     "missingRequired": 0,
     "extraAvailable": 15,
     "includedRowMetadataGaps": 15,
-    "excludedRows": 6
+    "excludedRows": 6,
+    "manifestCategoriesNeedingReview": 1,
+    "frontendCategoriesWithoutManifestMapping": 3
   },
   "missingRequired": [],
   "extraAvailable": [
@@ -207,6 +214,11 @@
       ]
     }
   ],
+  "categoryMappingSummary": {
+    "reportPath": "frontend/layer-manifest/reports/category-mapping-report.json",
+    "manifestCategoriesNeedingReview": 1,
+    "frontendCategoriesWithoutManifestMapping": 3
+  },
   "excludedRows": [
     {
       "layerId": "biomasa_areara+subterranea_1km",
