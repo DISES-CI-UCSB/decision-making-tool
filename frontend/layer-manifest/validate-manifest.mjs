@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const templatePath = path.resolve(__dirname, './manifest.template.json');
 const generatedManifestPath = path.resolve(__dirname, '../public/data/layer-manifest/manifest.json');
+const APPROVED_LOCAL_PUBLIC_PATH_PREFIXES = ['/assets/', '/data/'];
 
 async function exists(filePath) {
   try {
@@ -40,11 +41,37 @@ function assertNullableString(value, label) {
 function assertUrlOrNull(value, label) {
   assertNullableString(value, label);
   if (value) {
-    assert(
-      value.startsWith('https://') || value.startsWith('/'),
-      `${label} must be an HTTPS URL or local public path`,
-    );
+    assertValidUrl(value, label);
   }
+}
+
+function assertValidUrl(value, label) {
+  assert(!/\s/.test(value), `${label} must not contain whitespace`);
+
+  if (value.startsWith('/')) {
+    assert(!value.startsWith('//'), `${label} must not be a protocol-relative URL`);
+    assert(
+      APPROVED_LOCAL_PUBLIC_PATH_PREFIXES.some((prefix) => value.startsWith(prefix)),
+      `${label} must use an approved local public path prefix: ${APPROVED_LOCAL_PUBLIC_PATH_PREFIXES.join(', ')}`,
+    );
+
+    try {
+      new URL(value, 'http://localhost');
+    } catch {
+      throw new Error(`${label} must be a syntactically valid local public path`);
+    }
+
+    return;
+  }
+
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${label} must be a syntactically valid URL`);
+  }
+
+  assert(url.protocol === 'https:', `${label} must use https:// or an approved local public path`);
 }
 
 function assertUnique(values, label) {
@@ -73,7 +100,8 @@ function assertUrlMap(value, label) {
 
   for (const [key, url] of Object.entries(value)) {
     assertString(key, `${label} key`);
-    assertUrlOrNull(url, `${label}.${key}`);
+    assertString(url, `${label}.${key}`);
+    assertValidUrl(url, `${label}.${key}`);
   }
 }
 
@@ -95,7 +123,38 @@ const METRIC_CALCULATION_ROLES = [
   'data_used_for_live_metric_calculation_and_precomputed_metric_lookup',
 ];
 
-function validateManifest(manifest, manifestPath) {
+const LIVE_METRIC_CALCULATION_ROLES = [
+  'data_used_for_live_metric_calculation',
+  'data_used_for_live_metric_calculation_and_precomputed_metric_lookup',
+];
+
+function getDisplayUrls(layer) {
+  return [layer.displayUrl, layer.displayCollectionUrl].filter(
+    (value) => typeof value === 'string' && value.trim().length > 0,
+  );
+}
+
+async function assertReachable(url, label) {
+  let response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+
+  if (response.status === 405 || response.status === 403) {
+    response = await fetch(url, { method: 'GET', redirect: 'follow' });
+  }
+
+  assert(
+    response.ok,
+    `${label} failed reachability check with HTTP ${response.status} ${response.statusText}`,
+  );
+}
+
+function shouldCheckRemoteDisplayUrls(args) {
+  return (
+    args.includes('--check-remote-display-urls') ||
+    process.env.CHECK_REMOTE_DISPLAY_URLS === 'true'
+  );
+}
+
+async function validateManifest(manifest, manifestPath, options = {}) {
   assert(
     manifest && typeof manifest === 'object' && !Array.isArray(manifest),
     'Manifest root must be an object',
@@ -120,14 +179,17 @@ function validateManifest(manifest, manifestPath) {
 
   assertUnique(categoryIds, 'categories.id');
   const knownCategoryIds = new Set(categoryIds);
+  const remoteDisplayUrls = [];
 
   const layerIds = manifest.layers.map((layer, index) => {
     assert(layer && typeof layer === 'object', `layers[${index}] must be an object`);
     assertString(layer.id, `layers[${index}].id`);
     assertString(layer.spanishLabel, `layers[${index}].spanishLabel`);
-    if ('englishLabel' in layer) {
-      assertNullableString(layer.englishLabel, `layers[${index}].englishLabel`);
-    }
+    assert(
+      'englishLabel' in layer,
+      `layers[${index}].englishLabel must be present as a string or null`,
+    );
+    assertNullableString(layer.englishLabel, `layers[${index}].englishLabel`);
     assertString(layer.description, `layers[${index}].description`);
     assertNullableString(layer.tooltip, `layers[${index}].tooltip`);
     assertOneOf(layer.dataRole, DATA_ROLES, `layers[${index}].dataRole`);
@@ -145,6 +207,10 @@ function validateManifest(manifest, manifestPath) {
       'displayUrl' in layer || 'displayCollectionUrl' in layer,
       `layers[${index}] must include displayUrl or displayCollectionUrl`,
     );
+    assert(
+      getDisplayUrls(layer).length > 0,
+      `layers[${index}] must include a non-null displayUrl or displayCollectionUrl`,
+    );
     if ('displayUrl' in layer) {
       assertUrlOrNull(layer.displayUrl, `layers[${index}].displayUrl`);
     }
@@ -160,6 +226,29 @@ function validateManifest(manifest, manifestPath) {
       `layers[${index}].compressedDataForLiveMetricsUrl`,
     );
     assertUrlMap(layer.precomputedMetricUrls, `layers[${index}].precomputedMetricUrls`);
+
+    if (layer.dataRole === 'administrative_boundary') {
+      assert(
+        layer.roleInMetricCalculation === 'boundary_used_for_precomputed_metric_lookup',
+        `layers[${index}].roleInMetricCalculation must be boundary_used_for_precomputed_metric_lookup for administrative_boundary layers`,
+      );
+    }
+
+    if (LIVE_METRIC_CALCULATION_ROLES.includes(layer.roleInMetricCalculation)) {
+      assert(
+        typeof layer.compressedDataForLiveMetricsUrl === 'string' &&
+          layer.compressedDataForLiveMetricsUrl.trim().length > 0,
+        `layers[${index}].compressedDataForLiveMetricsUrl is required for live metric calculation layers`,
+      );
+    }
+
+    if (options.checkRemoteDisplayUrls) {
+      for (const url of getDisplayUrls(layer)) {
+        if (url.startsWith('https://')) {
+          remoteDisplayUrls.push({ url, label: `layers[${index}] display URL` });
+        }
+      }
+    }
 
     return layer.id;
   });
@@ -177,10 +266,15 @@ function validateManifest(manifest, manifestPath) {
     }
   }
 
+  for (const { url, label } of remoteDisplayUrls) {
+    await assertReachable(url, label);
+  }
+
   return {
     manifestPath,
     categoryCount: manifest.categories.length,
     layerCount: manifest.layers.length,
+    checkedRemoteDisplayUrlCount: remoteDisplayUrls.length,
   };
 }
 
@@ -190,7 +284,7 @@ async function readJson(filePath) {
 }
 
 async function getTargetPaths() {
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 
   if (args.length > 0) {
     return args.map((arg) => path.resolve(process.cwd(), arg));
@@ -206,14 +300,20 @@ async function getTargetPaths() {
 }
 
 async function main() {
+  const checkRemoteDisplayUrls = shouldCheckRemoteDisplayUrls(process.argv.slice(2));
   const targetPaths = await getTargetPaths();
 
   for (const targetPath of targetPaths) {
     const manifest = await readJson(targetPath);
-    const result = validateManifest(manifest, targetPath);
+    const result = await validateManifest(manifest, targetPath, { checkRemoteDisplayUrls });
     console.log(
       `[validate:layer-manifest] ${path.relative(process.cwd(), result.manifestPath)} passed (${result.layerCount} layer(s), ${result.categoryCount} categories)`,
     );
+    if (checkRemoteDisplayUrls) {
+      console.log(
+        `[validate:layer-manifest] checked ${result.checkedRemoteDisplayUrlCount} remote display URL(s)`,
+      );
+    }
   }
 }
 
