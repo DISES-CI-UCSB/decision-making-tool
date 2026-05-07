@@ -15,6 +15,7 @@
     "generate:layer-manifest": "node ./layer-manifest/generate-manifest.mjs && node ./layer-manifest/sync-latest-manifest.mjs",
     "sync:latest-layer-manifest": "node ./layer-manifest/sync-latest-manifest.mjs",
     "validate:layer-manifest": "node ./layer-manifest/validate-manifest.mjs",
+    "publish:layer-manifest": "node ./layer-manifest/publish-manifest.mjs",
     "rollback:layer-manifest": "node ./layer-manifest/rollback-manifest.mjs",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css,json,md}\"",
     "prepare": "cd .. && husky .husky"

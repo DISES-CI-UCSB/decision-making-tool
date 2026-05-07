@@ -8,9 +8,9 @@ const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULT_ARCHIVE_PREFIX = 'manifests/archive/';
+const DEFAULT_ARCHIVE_PREFIX = 'manifest/archive/';
 const DEFAULT_LIMIT = 50;
-const DEFAULT_TARGET_PATH = 'manifests/manifest.json';
+const DEFAULT_TARGET_PATH = 'manifest/manifest.json';
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
 
 function parseBlobListOutput(output) {
@@ -87,7 +87,7 @@ function printUsage() {
   console.log('[rollback:layer-manifest] Usage:');
   console.log('  npm --prefix frontend run rollback:layer-manifest');
   console.log('  npm --prefix frontend run rollback:layer-manifest -- --use <index|pathname|url>');
-  console.log('  npm --prefix frontend run rollback:layer-manifest -- --use 0 --to manifests/manifest.json');
+  console.log('  npm --prefix frontend run rollback:layer-manifest -- --use 0 --to manifest/manifest.json');
 }
 
 async function listArchiveBlobs(token, prefix, limit) {
