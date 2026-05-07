@@ -317,7 +317,7 @@
                     <div class="map-layers-collapsible-content">
                       <div
                         [id]="'map-layers-selected-layer-row-controls-content-' + selected.id"
-                        class="flex items-center gap-2 pb-1 pr-[0.75rem] pt-0.5"
+                        class="flex items-center gap-2 pb-1 pr-3 pt-0.5"
                       >
                         <div
                           [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
@@ -652,7 +652,7 @@
               id="map-layers-overlays-category-title"
               class="flex-1 text-xs font-bold text-slate-700"
             >
-              Management Figures
+              {{ managementFiguresTitle() }}
             </span>
             <span
               id="map-layers-overlays-category-count"
@@ -863,6 +863,53 @@
                       >
                         {{ group.note }}
                       </p>
+                    }
+
+                    @for (
+                      row of visibleGroupRows(group);
+                      track row.id;
+                      let isLastManifestRow = $last
+                    ) {
+                      <article
+                        [id]="'map-layers-layer-row-' + group.id + '-' + row.id"
+                        class="bg-white"
+                        [class.border-b]="!isLastManifestRow || filteredTaxa().length > 0"
+                        [class.border-slate-100]="!isLastManifestRow || filteredTaxa().length > 0"
+                      >
+                        <div
+                          [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
+                          class="flex items-center gap-1.5 px-3 py-2.5"
+                        >
+                          <button
+                            [id]="'map-layers-layer-row-name-button-' + group.id + '-' + row.id"
+                            type="button"
+                            class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-slate-800"
+                            [title]="row.name"
+                            (click)="toggleLayerExpanded(group.id, row.id)"
+                          >
+                            {{ row.name }}
+                          </button>
+                          @if (!row.hideAddButton) {
+                            <button
+                              [id]="
+                                'map-layers-layer-row-selected-button-' + group.id + '-' + row.id
+                              "
+                              type="button"
+                              class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                              [class.border-blue-200]="row.selected"
+                              [class.bg-blue-50]="row.selected"
+                              [class.text-blue-700]="row.selected"
+                              [class.border-slate-200]="!row.selected"
+                              [class.bg-white]="!row.selected"
+                              [class.text-slate-600]="!row.selected"
+                              [attr.aria-pressed]="row.selected"
+                              (click)="toggleLayerSelected(group.id, row.id)"
+                            >
+                              {{ row.selected ? 'Added' : 'Add' }}
+                            </button>
+                          }
+                        </div>
+                      </article>
                     }
 
                     @for (taxon of filteredTaxa(); track taxon.id) {

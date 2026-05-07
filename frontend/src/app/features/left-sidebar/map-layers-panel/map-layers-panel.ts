@@ -116,18 +116,45 @@ const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], st
   'group-ecosystems': 'ecosystems',
   'group-socio-economic': 'socioeconomic',
   'group-cultural-ethnic': 'cultural_and_ethnic_territories',
+  'group-species-biodiversity': 'species_and_biodiversity',
+};
+const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
+  runap: 'overlay-runap',
+  omecs: 'overlay-omecs',
+};
+const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_AOI_TYPE: Record<string, AoiType> = {
+  siraps: 'sirap',
+  admin_departments: 'department',
+  admin_municipalities: 'municipality',
 };
 const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
   'group-ecosystems': ['#0d9488', '#6d8e7e', '#0284c7', '#a16207', '#15803d'],
   'group-socio-economic': ['#d97706', '#ea580c', '#78716c'],
   'group-cultural-ethnic': ['#6366f1', '#a855f7'],
 };
-const LIVE_MANIFEST_CATEGORY_IDS = new Set<string>(['ecosystems']);
+const MANIFEST_LIVE_RENDER_POLICY = {
+  enabledCategoryIds: new Set<string>([
+    'ecosystems',
+    'socioeconomic',
+    'cultural_and_ethnic_territories',
+    'species_and_biodiversity',
+  ]),
+  blockedCategoryReasons: {
+    // Keep these in dedicated cards with existing interaction models for this branch.
+    management_figures: 'Managed in overlays card until management figures migrate to raster rows.',
+    administrative_boundaries:
+      'Administrative boundary rows use boundary feature services, not raster display assets.',
+  } as Record<string, string>,
+} as const;
 const COMPARISON_PRIORITY_OVERLAY_IDS = [
   OVERLAP_SOLUTION_OVERLAY_ID,
   BASELINE_SOLUTION_OVERLAY_ID,
   CANDIDATE_SOLUTION_OVERLAY_ID,
 ] as const;
+const SPECIES_RICHNESS_RENDER_RANGE = {
+  minValue: 815,
+  maxValue: 3562,
+} as const;
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
 const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
 const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
@@ -180,6 +207,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
+  protected readonly managementFiguresTitle = signal('Management Figures');
   protected readonly availableOverlays = computed(() =>
     this.overlays().filter(
       (row) => row.id !== BASELINE_SOLUTION_OVERLAY_ID && row.id !== CANDIDATE_SOLUTION_OVERLAY_ID,
@@ -223,15 +251,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     const taxa = this.filteredTaxa();
     const matches = new Map<string, LayerSearchGroupMatch>();
     for (const group of groups) {
-      if (group.id === 'group-species-biodiversity') {
-        matches.set(group.id, { groupId: group.id, rowMatches: 0, taxonMatches: taxa.length });
-        continue;
-      }
       const rowMatches =
         query.length === 0
           ? group.rows.length
           : group.rows.filter((row) => this.nameMatchesSearch(row.name, query)).length;
-      matches.set(group.id, { groupId: group.id, rowMatches, taxonMatches: 0 });
+      const taxonMatches = group.id === 'group-species-biodiversity' ? taxa.length : 0;
+      matches.set(group.id, { groupId: group.id, rowMatches, taxonMatches });
     }
     return matches;
   });
@@ -436,6 +461,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       .subscribe((groups) => {
         this.manifestSidebarLayerGroups.set(groups);
         this.reconcileGroupsWithManifest(groups);
+        this.reconcileOverlaysWithManifest(groups);
+        this.reconcileAdminBoundariesWithManifest(groups);
       });
   }
 
@@ -456,14 +483,17 @@ export class MapLayersPanelComponent implements OnDestroy {
           return group;
         }
 
-        const rows = manifestGroup.rows.map((row, index) =>
-          this.manifestSidebarLayerRow(group.id, row, index),
-        );
+        const rows = manifestGroup.rows
+          .filter((row) => !row.isSpeciesCollection)
+          .map((row, index) => this.manifestSidebarLayerRow(group.id, row, index, group.rows));
 
         return {
           ...group,
           title: manifestGroup.title,
-          countLabel: this.toLayerCountLabel(rows.length),
+          countLabel:
+            group.id === 'group-species-biodiversity'
+              ? group.countLabel
+              : this.toLayerCountLabel(rows.length),
           rows,
         };
       }),
@@ -471,22 +501,122 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.selectedLayerOrder.update((order) => this.normalizeSelectedLayerOrder(order));
   }
 
+  private reconcileOverlaysWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
+    const managementGroup = manifestGroups.find(
+      (group) => group.sidebarCategoryId === 'management_figures',
+    );
+    if (!managementGroup) {
+      return;
+    }
+    this.managementFiguresTitle.set(managementGroup.title);
+
+    this.overlays.update((rows) => {
+      const rowById = new Map(rows.map((row) => [row.id, row]));
+      const baselineRow = rowById.get(BASELINE_SOLUTION_OVERLAY_ID);
+      const candidateRow = rowById.get(CANDIDATE_SOLUTION_OVERLAY_ID);
+      const overlapRow = rowById.get(OVERLAP_SOLUTION_OVERLAY_ID);
+      const reconciledManagementRows: LayerControlRow[] = [];
+
+      for (const manifestRow of managementGroup.rows) {
+        const overlayId = MANIFEST_OVERLAY_ROW_BY_LAYER_ID[manifestRow.id];
+        if (!overlayId) {
+          continue;
+        }
+        const existingOverlay = rowById.get(overlayId);
+        if (!existingOverlay) {
+          continue;
+        }
+        reconciledManagementRows.push({
+          ...existingOverlay,
+          name: manifestRow.name,
+        });
+      }
+
+      // Preserve non-manifest overlays that are still part of active comparison flows.
+      return [
+        ...(baselineRow ? [baselineRow] : []),
+        ...(candidateRow ? [candidateRow] : []),
+        ...(overlapRow ? [overlapRow] : []),
+        ...reconciledManagementRows,
+      ];
+    });
+  }
+
+  private reconcileAdminBoundariesWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
+    const adminGroup = manifestGroups.find(
+      (group) => group.sidebarCategoryId === 'administrative_boundaries',
+    );
+    if (!adminGroup) {
+      return;
+    }
+
+    this.groups.update((groups) =>
+      groups.map((group) => {
+        if (group.id !== 'group-admin-boundaries') {
+          return group;
+        }
+
+        const existingRowsByBoundaryType = new Map(
+          group.rows
+            .map((row) =>
+              row.mapSync?.type === 'admin-boundary'
+                ? ([row.mapSync.boundaryType, row] as const)
+                : null,
+            )
+            .filter((entry): entry is readonly [AoiType, LayerControlRow] => entry !== null),
+        );
+
+        const rows = adminGroup.rows
+          .map((manifestRow) => {
+            const boundaryType = MANIFEST_ADMIN_BOUNDARY_LAYER_TO_AOI_TYPE[manifestRow.id];
+            if (!boundaryType) {
+              return null;
+            }
+            const existingRow = existingRowsByBoundaryType.get(boundaryType);
+            if (!existingRow) {
+              return null;
+            }
+            return {
+              ...existingRow,
+              name: manifestRow.name,
+            };
+          })
+          .filter((row): row is LayerControlRow => row !== null);
+
+        if (rows.length === 0) {
+          return group;
+        }
+
+        return {
+          ...group,
+          title: adminGroup.title,
+          countLabel: this.toLayerCountLabel(rows.length),
+          rows,
+        };
+      }),
+    );
+  }
+
   private manifestSidebarLayerRow(
     sidebarGroupId: LayerGroup['id'],
     manifestRow: ManifestSidebarLayerRow,
     index: number,
+    existingRows: LayerControlRow[],
   ): LayerControlRow {
     const layerId = `layer-${manifestRow.id}`;
+    const existingRow = existingRows.find((row) => row.id === layerId);
     const isLiveRenderable = this.isManifestRowLiveRenderable(manifestRow);
+    const rendering = this.normalizeManifestRendering(manifestRow);
+    const existingSelected = existingRow?.selected ?? false;
 
     return {
       id: layerId,
       name: manifestRow.name,
-      selected: false,
-      visible: false,
-      expanded: false,
-      opacity: this.manifestRowOpacity(manifestRow.dataRole),
-      color: this.manifestRowColor(sidebarGroupId, index),
+      selected: existingSelected,
+      visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
+      expanded: existingRow?.expanded ?? false,
+      opacity: existingRow?.opacity ?? this.manifestRowOpacity(manifestRow.dataRole),
+      color: existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
       canReorder: true,
       hasStyleControls: true,
       hasColorControl: true,
@@ -497,9 +627,39 @@ export class MapLayersPanelComponent implements OnDestroy {
               type: 'manifest-raster',
               layerId,
               displayUrl: manifestRow.displayUrl,
-              rendering: manifestRow.rendering,
+              rendering,
             }
           : undefined,
+    };
+  }
+
+  private normalizeManifestRendering(
+    manifestRow: ManifestSidebarLayerRow,
+  ): RuntimeLayerManifestRenderingConfig {
+    if (manifestRow.id !== 'species_richness') {
+      return manifestRow.rendering;
+    }
+
+    if (
+      manifestRow.rendering.valueType === 'continuous' &&
+      manifestRow.rendering.renderMode === 'gradient'
+    ) {
+      return {
+        ...manifestRow.rendering,
+        minValue: SPECIES_RICHNESS_RENDER_RANGE.minValue,
+        maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
+      };
+    }
+
+    // Species richness data is continuous; mask rendering makes most cells transparent.
+    return {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: manifestRow.rendering.noDataValue ?? 255,
+      minValue: SPECIES_RICHNESS_RENDER_RANGE.minValue,
+      maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
+      startColor: '#fef3c7',
+      endColor: '#854d0e',
     };
   }
 
@@ -524,12 +684,23 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private isManifestRowLiveRenderable(manifestRow: ManifestSidebarLayerRow): boolean {
-    return (
-      LIVE_MANIFEST_CATEGORY_IDS.has(manifestRow.sidebarCategoryId) &&
-      !manifestRow.isSpeciesCollection &&
-      typeof manifestRow.displayUrl === 'string' &&
-      manifestRow.displayUrl.length > 0
-    );
+    if (manifestRow.isSpeciesCollection) {
+      return false;
+    }
+    if (!MANIFEST_LIVE_RENDER_POLICY.enabledCategoryIds.has(manifestRow.sidebarCategoryId)) {
+      return false;
+    }
+    if (!this.isManifestRenderingSupported(manifestRow.rendering)) {
+      return false;
+    }
+    return typeof manifestRow.displayUrl === 'string' && manifestRow.displayUrl.length > 0;
+  }
+
+  private isManifestRenderingSupported(rendering: RuntimeLayerManifestRenderingConfig): boolean {
+    if (rendering.renderMode === 'categorical') {
+      return Array.isArray(rendering.classColors) && rendering.classColors.length > 0;
+    }
+    return rendering.renderMode === 'mask' || rendering.renderMode === 'gradient';
   }
 
   private toLayerCountLabel(layerCount: number): string {
@@ -939,9 +1110,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (!this.hasLayerSearchQuery()) {
       return group.rows;
     }
-    if (group.id === 'group-species-biodiversity') {
-      return [];
-    }
     const query = this.normalizedLayerSearchQuery();
     return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
   }
@@ -972,7 +1140,18 @@ export class MapLayersPanelComponent implements OnDestroy {
       return undefined;
     }
     if (group.id === 'group-species-biodiversity') {
-      return `${match.taxonMatches} ${match.taxonMatches === 1 ? 'taxon match' : 'taxon matches'}`;
+      const parts: string[] = [];
+      if (match.rowMatches > 0) {
+        parts.push(
+          `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`,
+        );
+      }
+      if (match.taxonMatches > 0) {
+        parts.push(
+          `${match.taxonMatches} ${match.taxonMatches === 1 ? 'taxon match' : 'taxon matches'}`,
+        );
+      }
+      return parts.length > 0 ? parts.join(' · ') : '0 matches';
     }
     return `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`;
   }
@@ -2211,16 +2390,6 @@ export class MapLayersPanelComponent implements OnDestroy {
         ],
       },
       {
-        id: 'group-environmental-services',
-        title: 'Environmental Services',
-        countLabel: '2 layers',
-        collapsed: true,
-        rows: [
-          this.layerRow('env-carbon', 'Carbon Storage', '#374151', 50),
-          this.layerRow('env-water', 'Water Regulation', '#0369a1', 50),
-        ],
-      },
-      {
         id: 'group-cultural-ethnic',
         title: 'Cultural & Ethnic Territories',
         countLabel: '2 layers',
@@ -2240,13 +2409,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           this.layerRow('soc-ag-opportunity-cost', 'Agricultural Opportunity Cost', '#ea580c', 55),
           this.layerRow('soc-land-use', 'Land Use', '#78716c', 50),
         ],
-      },
-      {
-        id: 'group-conflict-security',
-        title: 'Conflict & Security',
-        countLabel: '1 layer',
-        collapsed: true,
-        rows: [this.layerRow('conflict-zones', 'Conflict Zones', '#dc2626', 50)],
       },
       {
         id: 'group-prospective-models',
