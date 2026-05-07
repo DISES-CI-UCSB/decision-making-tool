@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T23:30:08.117Z",
+  "generatedAt": "2026-05-07T18:47:43.162Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -66,9 +66,19 @@
     {
       "manifestCategoryId": "ecosystems",
       "manifestSpanishLabel": "Ecosistemas",
-      "layerIds": ["paramos", "wetlands", "bosque_seco", "mangroves", "ecosistemas"],
-      "frontendCategoryIds": ["group-ecosystems"],
-      "frontendCategoryTitles": ["Ecosystems"],
+      "layerIds": [
+        "paramos",
+        "wetlands",
+        "bosque_seco",
+        "mangroves",
+        "ecosistemas"
+      ],
+      "frontendCategoryIds": [
+        "group-ecosystems"
+      ],
+      "frontendCategoryTitles": [
+        "Ecosystems"
+      ],
       "status": "maps_cleanly",
       "notes": "Ecosystem layers map to the existing Ecosystems sidebar group.",
       "layerMappings": [
@@ -112,9 +122,16 @@
     {
       "manifestCategoryId": "species_and_biodiversity",
       "manifestSpanishLabel": "Especies y biodiversidad",
-      "layerIds": ["species_richness", "species"],
-      "frontendCategoryIds": ["group-species-biodiversity"],
-      "frontendCategoryTitles": ["Species & Biodiversity"],
+      "layerIds": [
+        "species_richness",
+        "species"
+      ],
+      "frontendCategoryIds": [
+        "group-species-biodiversity"
+      ],
+      "frontendCategoryTitles": [
+        "Species & Biodiversity"
+      ],
       "status": "maps_cleanly",
       "notes": "Biodiversity layers map to the existing Species & Biodiversity sidebar group.",
       "layerMappings": [
@@ -137,9 +154,16 @@
     {
       "manifestCategoryId": "management_figures",
       "manifestSpanishLabel": "Figuras de manejo",
-      "layerIds": ["runap", "omecs"],
-      "frontendCategoryIds": ["management-figures"],
-      "frontendCategoryTitles": ["Management Figures"],
+      "layerIds": [
+        "runap",
+        "omecs"
+      ],
+      "frontendCategoryIds": [
+        "management-figures"
+      ],
+      "frontendCategoryTitles": [
+        "Management Figures"
+      ],
       "status": "maps_cleanly",
       "notes": "RUNAP and OMEC layers map to the existing Management Figures overlay group.",
       "layerMappings": [
@@ -162,9 +186,17 @@
     {
       "manifestCategoryId": "administrative_boundaries",
       "manifestSpanishLabel": "Límites administrativos",
-      "layerIds": ["siraps", "admin_departments", "admin_municipalities"],
-      "frontendCategoryIds": ["group-admin-boundaries"],
-      "frontendCategoryTitles": ["Administrative Boundaries"],
+      "layerIds": [
+        "siraps",
+        "admin_departments",
+        "admin_municipalities"
+      ],
+      "frontendCategoryIds": [
+        "group-admin-boundaries"
+      ],
+      "frontendCategoryTitles": [
+        "Administrative Boundaries"
+      ],
       "status": "maps_cleanly",
       "notes": "Administrative boundary layers map to the existing Administrative Boundaries sidebar group.",
       "layerMappings": [
@@ -194,9 +226,16 @@
     {
       "manifestCategoryId": "socioeconomic",
       "manifestSpanishLabel": "Socioeconómico",
-      "layerIds": ["human_footprint_2022", "net_benefit"],
-      "frontendCategoryIds": ["group-socio-economic"],
-      "frontendCategoryTitles": ["Socio-economic"],
+      "layerIds": [
+        "human_footprint_2022",
+        "net_benefit"
+      ],
+      "frontendCategoryIds": [
+        "group-socio-economic"
+      ],
+      "frontendCategoryTitles": [
+        "Socio-economic"
+      ],
       "status": "maps_cleanly",
       "notes": "Socioeconomic cost/context layers map to the existing Socio-economic sidebar group.",
       "layerMappings": [
@@ -219,9 +258,16 @@
     {
       "manifestCategoryId": "cultural_and_ethnic_territories",
       "manifestSpanishLabel": "Territorios culturales y étnicos",
-      "layerIds": ["comunidades", "resguardos"],
-      "frontendCategoryIds": ["group-cultural-ethnic"],
-      "frontendCategoryTitles": ["Cultural & Ethnic Territories"],
+      "layerIds": [
+        "comunidades",
+        "resguardos"
+      ],
+      "frontendCategoryIds": [
+        "group-cultural-ethnic"
+      ],
+      "frontendCategoryTitles": [
+        "Cultural & Ethnic Territories"
+      ],
       "status": "maps_cleanly",
       "notes": "Cultural and ethnic territory layers map to the existing Cultural & Ethnic Territories sidebar group.",
       "layerMappings": [

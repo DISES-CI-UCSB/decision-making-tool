@@ -5,6 +5,7 @@ import ImageElement from '@arcgis/core/layers/support/ImageElement';
 import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
 import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaElementSource';
 import type ArcGISMap from '@arcgis/core/Map';
+import type { RuntimeLayerManifestRenderingConfig } from '@core/models/layer-manifest.model';
 
 interface LoadedManifestRaster {
   width: number;
@@ -19,6 +20,7 @@ interface ManifestRasterLayerState {
   visible: boolean;
   opacity: number;
   color: string;
+  rendering: RuntimeLayerManifestRenderingConfig;
 }
 
 const DEFAULT_BBOX: [number, number, number, number] = [-79.0, -4.5, -66.0, 13.5];
@@ -66,7 +68,7 @@ export class ManifestRasterLayerService {
       return;
     }
 
-    const imageElement = this.createImageElement(raster, latestState.color);
+    const imageElement = this.createImageElement(raster, latestState);
     const existingLayer = this.layersById.get(layerId);
 
     if (existingLayer) {
@@ -137,8 +139,11 @@ export class ManifestRasterLayerService {
     return loadingPromise;
   }
 
-  private createImageElement(raster: LoadedManifestRaster, colorHex: string): ImageElement {
-    const canvas = this.rasterToCanvas(raster, colorHex);
+  private createImageElement(
+    raster: LoadedManifestRaster,
+    state: ManifestRasterLayerState,
+  ): ImageElement {
+    const canvas = this.rasterToCanvas(raster, state);
     const [xmin, ymin, xmax, ymax] = raster.bbox;
     return new ImageElement({
       image: canvas,
@@ -154,7 +159,10 @@ export class ManifestRasterLayerService {
     });
   }
 
-  private rasterToCanvas(raster: LoadedManifestRaster, colorHex: string): HTMLCanvasElement {
+  private rasterToCanvas(
+    raster: LoadedManifestRaster,
+    state: ManifestRasterLayerState,
+  ): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
     canvas.width = raster.width;
     canvas.height = raster.height;
@@ -164,33 +172,74 @@ export class ManifestRasterLayerService {
       return canvas;
     }
 
-    const [r, g, b] = this.hexToRgb(colorHex) ?? [22, 163, 74];
     const imageData = context.createImageData(raster.width, raster.height);
     const pixels = imageData.data;
-
-    const renderAsBinaryMask = raster.noDataValue === 255;
+    const rendering = state.rendering;
+    const noDataValue =
+      typeof rendering.noDataValue === 'number' ? rendering.noDataValue : raster.noDataValue;
+    const categoricalColorByValue = new Map(
+      (rendering.classColors ?? []).map((entry) => [entry.value, entry.color]),
+    );
+    const gradientMinMax = this.resolveGradientMinMax(raster, noDataValue, rendering);
+    const startColorRgb = this.hexToRgb(rendering.startColor ?? '') ?? [220, 252, 231];
+    const endColorRgb = this.hexToRgb(rendering.endColor ?? '') ?? [22, 101, 52];
+    const maskColorRgb = this.hexToRgb(rendering.selectedColor ?? '') ??
+      this.hexToRgb(state.color) ?? [22, 163, 74];
 
     for (let index = 0; index < raster.values.length; index++) {
       const value = raster.values[index];
       const pixelOffset = index * 4;
       const isNoData =
-        !Number.isFinite(value) || (raster.noDataValue !== null && value === raster.noDataValue);
+        !Number.isFinite(value) || (typeof noDataValue === 'number' && value === noDataValue);
       if (isNoData) {
         pixels[pixelOffset + 3] = 0;
         continue;
       }
-
-      // Most strategic-ecosystem masks use nodata=255 and selected=1.
-      // Render these as strict binary masks to avoid flooding the map.
-      const shouldRenderPixel = renderAsBinaryMask ? value === 1 : value > 0;
-      if (!shouldRenderPixel) {
-        pixels[pixelOffset + 3] = 0;
+      if (rendering.renderMode === 'mask') {
+        const selectedValue =
+          typeof rendering.selectedValue === 'number' ? rendering.selectedValue : 1;
+        if (value !== selectedValue) {
+          pixels[pixelOffset + 3] = 0;
+          continue;
+        }
+        pixels[pixelOffset] = maskColorRgb[0];
+        pixels[pixelOffset + 1] = maskColorRgb[1];
+        pixels[pixelOffset + 2] = maskColorRgb[2];
+        pixels[pixelOffset + 3] = RASTER_ALPHA;
         continue;
       }
 
-      pixels[pixelOffset] = r;
-      pixels[pixelOffset + 1] = g;
-      pixels[pixelOffset + 2] = b;
+      if (rendering.renderMode === 'categorical') {
+        const classColor = categoricalColorByValue.get(value);
+        if (!classColor) {
+          pixels[pixelOffset + 3] = 0;
+          continue;
+        }
+        const [r, g, b] = this.hexToRgb(classColor) ?? maskColorRgb;
+        pixels[pixelOffset] = r;
+        pixels[pixelOffset + 1] = g;
+        pixels[pixelOffset + 2] = b;
+        pixels[pixelOffset + 3] = RASTER_ALPHA;
+        continue;
+      }
+
+      const [gradientMin, gradientMax] = gradientMinMax;
+      if (
+        !Number.isFinite(gradientMin) ||
+        !Number.isFinite(gradientMax) ||
+        gradientMax <= gradientMin
+      ) {
+        pixels[pixelOffset + 3] = 0;
+        continue;
+      }
+      const t = Math.max(0, Math.min(1, (value - gradientMin) / (gradientMax - gradientMin)));
+      pixels[pixelOffset] = Math.round(startColorRgb[0] + (endColorRgb[0] - startColorRgb[0]) * t);
+      pixels[pixelOffset + 1] = Math.round(
+        startColorRgb[1] + (endColorRgb[1] - startColorRgb[1]) * t,
+      );
+      pixels[pixelOffset + 2] = Math.round(
+        startColorRgb[2] + (endColorRgb[2] - startColorRgb[2]) * t,
+      );
       pixels[pixelOffset + 3] = RASTER_ALPHA;
     }
 
@@ -205,5 +254,34 @@ export class ManifestRasterLayerService {
     }
     const intValue = Number.parseInt(normalized.slice(1), 16);
     return [(intValue >> 16) & 255, (intValue >> 8) & 255, intValue & 255];
+  }
+
+  private resolveGradientMinMax(
+    raster: LoadedManifestRaster,
+    noDataValue: number | null,
+    rendering: RuntimeLayerManifestRenderingConfig,
+  ): [number, number] {
+    if (typeof rendering.minValue === 'number' && typeof rendering.maxValue === 'number') {
+      return [rendering.minValue, rendering.maxValue];
+    }
+
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+
+    for (const value of raster.values) {
+      const isNoData =
+        !Number.isFinite(value) || (typeof noDataValue === 'number' && value === noDataValue);
+      if (isNoData) {
+        continue;
+      }
+      if (value < min) {
+        min = value;
+      }
+      if (value > max) {
+        max = value;
+      }
+    }
+
+    return [min, max];
   }
 }

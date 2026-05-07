@@ -74,7 +74,8 @@
         "roleInMetricCalculation",
         "metadataUrl",
         "compressedDataForLiveMetricsUrl",
-        "precomputedMetricUrls"
+        "precomputedMetricUrls",
+        "rendering"
       ],
       "properties": {
         "id": {
@@ -137,6 +138,71 @@
           "type": "object",
           "additionalProperties": {
             "type": "string"
+          }
+        },
+        "rendering": {
+          "$ref": "#/$defs/rendering"
+        }
+      },
+      "classColor": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "color"],
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "label": {
+            "$ref": "#/$defs/nullableString"
+          }
+        }
+      },
+      "rendering": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["valueType", "renderMode"],
+        "properties": {
+          "valueType": {
+            "type": "string",
+            "enum": ["binary", "categorical", "continuous"]
+          },
+          "renderMode": {
+            "type": "string",
+            "enum": ["mask", "gradient", "categorical"]
+          },
+          "noDataValue": {
+            "type": ["number", "null"]
+          },
+          "selectedValue": {
+            "type": ["number", "null"]
+          },
+          "selectedColor": {
+            "type": ["string", "null"],
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "minValue": {
+            "type": ["number", "null"]
+          },
+          "maxValue": {
+            "type": ["number", "null"]
+          },
+          "startColor": {
+            "type": ["string", "null"],
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "endColor": {
+            "type": ["string", "null"],
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "classColors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/classColor"
+            }
           }
         }
       },

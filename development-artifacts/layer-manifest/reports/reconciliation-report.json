@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T23:30:08.117Z",
+  "generatedAt": "2026-05-07T18:47:43.162Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -116,27 +116,40 @@
     {
       "layerId": "species",
       "displayName": "Distribuciones de especies individuales (~8751)",
-      "missingFields": ["source_updated_date", "source_license"]
+      "missingFields": [
+        "source_updated_date",
+        "source_license"
+      ]
     },
     {
       "layerId": "paramos",
       "displayName": "Páramos",
-      "missingFields": ["source_license"]
+      "missingFields": [
+        "source_license"
+      ]
     },
     {
       "layerId": "wetlands",
       "displayName": "Humedales",
-      "missingFields": ["source_license", "source_contact"]
+      "missingFields": [
+        "source_license",
+        "source_contact"
+      ]
     },
     {
       "layerId": "bosque_seco",
       "displayName": "Bosque seco",
-      "missingFields": ["source_license"]
+      "missingFields": [
+        "source_license"
+      ]
     },
     {
       "layerId": "mangroves",
       "displayName": "Manglares",
-      "missingFields": ["source_updated_date", "source_contact"]
+      "missingFields": [
+        "source_updated_date",
+        "source_contact"
+      ]
     },
     {
       "layerId": "ecosistemas",
@@ -151,7 +164,10 @@
     {
       "layerId": "human_footprint_2022",
       "displayName": "Índice de Huella Espacial Humana 2022",
-      "missingFields": ["source_updated_date", "source_license"]
+      "missingFields": [
+        "source_updated_date",
+        "source_license"
+      ]
     },
     {
       "layerId": "net_benefit",
@@ -186,12 +202,16 @@
     {
       "layerId": "comunidades",
       "displayName": "Comunidades Negras",
-      "missingFields": ["source_contact"]
+      "missingFields": [
+        "source_contact"
+      ]
     },
     {
       "layerId": "resguardos",
       "displayName": "Resguardos Indígenas",
-      "missingFields": ["source_contact"]
+      "missingFields": [
+        "source_contact"
+      ]
     },
     {
       "layerId": "ADMIN_DEPARTMENTS",
@@ -215,7 +235,7 @@
     }
   ],
   "categoryMappingSummary": {
-    "reportPath": "frontend/layer-manifest/reports/category-mapping-report.json",
+    "reportPath": "development-artifacts/layer-manifest/reports/category-mapping-report.json",
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 3
   },

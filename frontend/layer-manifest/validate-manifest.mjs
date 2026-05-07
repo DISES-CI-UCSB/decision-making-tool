@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const templatePath = path.resolve(__dirname, './manifest.template.json');
+const examplePath = path.resolve(__dirname, './manifest.example.json');
 const generatedManifestPath = path.resolve(__dirname, '../public/data/layer-manifest/manifest.json');
 const APPROVED_LOCAL_PUBLIC_PATH_PREFIXES = ['/assets/', '/data/'];
 
@@ -105,6 +105,13 @@ function assertUrlMap(value, label) {
   }
 }
 
+function assertHexColorOrNull(value, label) {
+  assert(
+    value === null || /^#[0-9a-fA-F]{6}$/.test(value),
+    `${label} must be null or a #RRGGBB color`,
+  );
+}
+
 const DATA_ROLES = [
   'feature_layer',
   'manifest_for_species_layers',
@@ -127,6 +134,8 @@ const LIVE_METRIC_CALCULATION_ROLES = [
   'data_used_for_live_metric_calculation',
   'data_used_for_live_metric_calculation_and_precomputed_metric_lookup',
 ];
+const RENDER_VALUE_TYPES = ['binary', 'categorical', 'continuous'];
+const RENDER_MODES = ['mask', 'gradient', 'categorical'];
 
 function getDisplayUrls(layer) {
   return [layer.displayUrl, layer.displayCollectionUrl].filter(
@@ -226,6 +235,63 @@ async function validateManifest(manifest, manifestPath, options = {}) {
       `layers[${index}].compressedDataForLiveMetricsUrl`,
     );
     assertUrlMap(layer.precomputedMetricUrls, `layers[${index}].precomputedMetricUrls`);
+    assert(layer.rendering && typeof layer.rendering === 'object', `layers[${index}].rendering`);
+    assertOneOf(layer.rendering.valueType, RENDER_VALUE_TYPES, `layers[${index}].rendering.valueType`);
+    assertOneOf(layer.rendering.renderMode, RENDER_MODES, `layers[${index}].rendering.renderMode`);
+    if ('noDataValue' in layer.rendering && layer.rendering.noDataValue !== null) {
+      assert(
+        typeof layer.rendering.noDataValue === 'number' && Number.isFinite(layer.rendering.noDataValue),
+        `layers[${index}].rendering.noDataValue must be a finite number or null`,
+      );
+    }
+    if ('selectedValue' in layer.rendering && layer.rendering.selectedValue !== null) {
+      assert(
+        typeof layer.rendering.selectedValue === 'number' &&
+          Number.isFinite(layer.rendering.selectedValue),
+        `layers[${index}].rendering.selectedValue must be a finite number or null`,
+      );
+    }
+    if ('selectedColor' in layer.rendering) {
+      assertHexColorOrNull(layer.rendering.selectedColor, `layers[${index}].rendering.selectedColor`);
+    }
+    if ('minValue' in layer.rendering && layer.rendering.minValue !== null) {
+      assert(
+        typeof layer.rendering.minValue === 'number' && Number.isFinite(layer.rendering.minValue),
+        `layers[${index}].rendering.minValue must be a finite number or null`,
+      );
+    }
+    if ('maxValue' in layer.rendering && layer.rendering.maxValue !== null) {
+      assert(
+        typeof layer.rendering.maxValue === 'number' && Number.isFinite(layer.rendering.maxValue),
+        `layers[${index}].rendering.maxValue must be a finite number or null`,
+      );
+    }
+    if ('startColor' in layer.rendering) {
+      assertHexColorOrNull(layer.rendering.startColor, `layers[${index}].rendering.startColor`);
+    }
+    if ('endColor' in layer.rendering) {
+      assertHexColorOrNull(layer.rendering.endColor, `layers[${index}].rendering.endColor`);
+    }
+    if ('classColors' in layer.rendering) {
+      assert(
+        Array.isArray(layer.rendering.classColors),
+        `layers[${index}].rendering.classColors must be an array`,
+      );
+      for (const [classIndex, classColor] of layer.rendering.classColors.entries()) {
+        assert(
+          classColor && typeof classColor === 'object',
+          `layers[${index}].rendering.classColors[${classIndex}] must be an object`,
+        );
+        assert(
+          typeof classColor.value === 'number' && Number.isFinite(classColor.value),
+          `layers[${index}].rendering.classColors[${classIndex}].value must be a finite number`,
+        );
+        assertHexColorOrNull(
+          classColor.color,
+          `layers[${index}].rendering.classColors[${classIndex}].color`,
+        );
+      }
+    }
 
     if (layer.dataRole === 'administrative_boundary') {
       assert(
@@ -284,16 +350,21 @@ async function readJson(filePath) {
 }
 
 async function getTargetPaths() {
-  const args = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
+  const cliArgs = process.argv.slice(2);
+  const includeExample = cliArgs.includes('--include-example');
+  const args = cliArgs.filter((arg) => !arg.startsWith('--'));
 
   if (args.length > 0) {
     return args.map((arg) => path.resolve(process.cwd(), arg));
   }
 
-  const paths = [templatePath];
+  const paths = [];
 
   if (await exists(generatedManifestPath)) {
     paths.push(generatedManifestPath);
+  }
+  if (includeExample && (await exists(examplePath))) {
+    paths.push(examplePath);
   }
 
   return paths;

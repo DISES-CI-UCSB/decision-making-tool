@@ -12,7 +12,8 @@
     "sync:solutions": "node ./scripts/data-deploy/sync-solutions.mjs",
     "sync:boundaries": "node ./scripts/data-deploy/sync-boundaries.mjs",
     "validate:deploy-assets": "node ./scripts/data-deploy/validate-deploy-assets.mjs",
-    "generate:layer-manifest": "node ./layer-manifest/generate-manifest.mjs",
+    "generate:layer-manifest": "node ./layer-manifest/generate-manifest.mjs && node ./layer-manifest/sync-latest-manifest.mjs",
+    "sync:latest-layer-manifest": "node ./layer-manifest/sync-latest-manifest.mjs",
     "validate:layer-manifest": "node ./layer-manifest/validate-manifest.mjs",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css,json,md}\"",
     "prepare": "cd .. && husky .husky"

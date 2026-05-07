@@ -18,9 +18,10 @@ const GENERATED_MANIFEST_PATH = path.resolve(
   __dirname,
   '../public/data/layer-manifest/manifest.json',
 );
-const REPORT_PATH = path.resolve(__dirname, './reports/reconciliation-report.json');
-const CATEGORY_MAPPING_REPORT_PATH = path.resolve(__dirname, './reports/category-mapping-report.json');
-const CATEGORY_REVIEW_CSV_PATH = path.resolve(__dirname, './reports/category-review.csv');
+const REPORTS_ROOT = path.resolve(repoRoot, 'development-artifacts/layer-manifest/reports');
+const REPORT_PATH = path.resolve(REPORTS_ROOT, 'reconciliation-report.json');
+const CATEGORY_MAPPING_REPORT_PATH = path.resolve(REPORTS_ROOT, 'category-mapping-report.json');
+const CATEGORY_REVIEW_CSV_PATH = path.resolve(REPORTS_ROOT, 'category-review.csv');
 const LEFT_SIDEBAR_SOURCE_PATH = path.resolve(
   __dirname,
   '../src/app/features/left-sidebar/map-layers-panel/map-layers-panel.ts',
@@ -490,6 +491,7 @@ function createLayerEntry(row, blobByPath) {
   const id = toLayerId(row.layer_id);
   const dataRole = inferDataRole(row);
   const roleInMetricCalculation = inferRoleInMetricCalculation(dataRole);
+  const rendering = inferRenderingConfig({ row, id, dataRole });
 
   return {
     manifestLayer: {
@@ -510,6 +512,7 @@ function createLayerEntry(row, blobByPath) {
         ? `${PUBLIC_BLOB_HOST}/metrics/live/${id}.bin.gz`
         : null,
       precomputedMetricUrls: createPrecomputedMetricUrls(id, roleInMetricCalculation),
+      rendering,
     },
     reconciliation: {
       sourceLayerId: row.layer_id,
@@ -517,6 +520,59 @@ function createLayerEntry(row, blobByPath) {
       displayReference,
       originalStorageLocation: row.storage_location,
     },
+  };
+}
+
+function inferRenderingConfig({ row, id, dataRole }) {
+  const layerGroupId = toLayerId(row.layer_group || '');
+  const modelGroupId = toLayerId(row.model_group || '');
+
+  if (id === 'ecosistemas') {
+    return {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: -32768,
+      minValue: null,
+      maxValue: null,
+      startColor: '#bbf7d0',
+      endColor: '#166534',
+    };
+  }
+
+  if (dataRole === 'cost_layer') {
+    return {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: null,
+      minValue: null,
+      maxValue: null,
+      startColor: '#fee2e2',
+      endColor: '#991b1b',
+    };
+  }
+
+  if (
+    layerGroupId === 'ecosistemas_estrategicos' ||
+    modelGroupId === 'incluye' ||
+    modelGroupId === 'limites' ||
+    dataRole === 'include_layer' ||
+    dataRole === 'administrative_boundary'
+  ) {
+    return {
+      valueType: 'binary',
+      renderMode: 'mask',
+      noDataValue: 255,
+      selectedValue: 1,
+      selectedColor: '#16a34a',
+    };
+  }
+
+  return {
+    valueType: 'binary',
+    renderMode: 'mask',
+    noDataValue: 255,
+    selectedValue: 1,
+    selectedColor: '#16a34a',
   };
 }
 

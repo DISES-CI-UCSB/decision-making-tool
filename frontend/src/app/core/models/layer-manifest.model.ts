@@ -14,6 +14,28 @@ export type RuntimeLayerManifestMetricRole =
   | 'boundary_used_for_precomputed_metric_lookup'
   | 'data_used_for_live_metric_calculation_and_precomputed_metric_lookup';
 
+export type RuntimeLayerManifestValueType = 'binary' | 'categorical' | 'continuous';
+export type RuntimeLayerManifestRenderMode = 'mask' | 'gradient' | 'categorical';
+
+export interface RuntimeLayerManifestClassColor {
+  value: number;
+  color: string;
+  label?: string | null;
+}
+
+export interface RuntimeLayerManifestRenderingConfig {
+  valueType: RuntimeLayerManifestValueType;
+  renderMode: RuntimeLayerManifestRenderMode;
+  noDataValue?: number | null;
+  selectedValue?: number | null;
+  selectedColor?: string | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  startColor?: string | null;
+  endColor?: string | null;
+  classColors?: RuntimeLayerManifestClassColor[];
+}
+
 export interface RuntimeLayerManifest {
   version: string;
   generatedAt: string;
@@ -45,6 +67,7 @@ export interface RuntimeLayerManifestLayer {
   metadataUrl: string | null;
   compressedDataForLiveMetricsUrl: string | null;
   precomputedMetricUrls: Record<string, string>;
+  rendering: RuntimeLayerManifestRenderingConfig;
 }
 
 export interface ManifestSidebarLayerRow {
@@ -59,6 +82,7 @@ export interface ManifestSidebarLayerRow {
   roleInMetricCalculation: RuntimeLayerManifestMetricRole;
   displayUrl: string | null;
   displayCollectionUrl: string | null;
+  rendering: RuntimeLayerManifestRenderingConfig;
   hasDisplayAsset: boolean;
   isSpeciesCollection: boolean;
 }
@@ -88,6 +112,7 @@ export function mapManifestLayerToSidebarRow(
     roleInMetricCalculation: layer.roleInMetricCalculation,
     displayUrl: layer.displayUrl ?? null,
     displayCollectionUrl: layer.displayCollectionUrl ?? null,
+    rendering: layer.rendering,
     hasDisplayAsset: Boolean(layer.displayUrl ?? layer.displayCollectionUrl),
     isSpeciesCollection: layer.dataRole === 'manifest_for_species_layers',
   };

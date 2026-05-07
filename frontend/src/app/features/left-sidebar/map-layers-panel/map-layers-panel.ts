@@ -18,6 +18,7 @@ import {
   type AoiType,
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayerRow,
+  type RuntimeLayerManifestRenderingConfig,
   type RuntimeLayerManifestDataRole,
 } from '@core/models';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
@@ -53,7 +54,12 @@ interface LayerControlRow {
     | { type: 'solution-candidate' }
     | { type: 'solution-overlap' }
     | { type: 'app-state-layer'; layerId: string }
-    | { type: 'manifest-raster'; layerId: string; displayUrl: string }
+    | {
+        type: 'manifest-raster';
+        layerId: string;
+        displayUrl: string;
+        rendering: RuntimeLayerManifestRenderingConfig;
+      }
     | { type: 'admin-boundary'; boundaryType: AoiType };
 }
 
@@ -487,7 +493,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       mapUnavailable: !isLiveRenderable,
       mapSync:
         isLiveRenderable && manifestRow.displayUrl
-          ? { type: 'manifest-raster', layerId, displayUrl: manifestRow.displayUrl }
+          ? {
+              type: 'manifest-raster',
+              layerId,
+              displayUrl: manifestRow.displayUrl,
+              rendering: manifestRow.rendering,
+            }
           : undefined,
     };
   }
@@ -1428,6 +1439,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           visible: row.visible,
           opacity: row.opacity / 100,
           color: row.color,
+          rendering: mapSync.rendering,
         },
         { selected: row.selected },
       );
