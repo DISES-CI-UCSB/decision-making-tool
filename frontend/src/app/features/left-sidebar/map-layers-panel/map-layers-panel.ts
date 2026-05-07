@@ -2,6 +2,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  DestroyRef,
   EventEmitter,
   OnDestroy,
   Output,
@@ -11,9 +12,11 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { type AoiType } from '@core/models';
+import { type AoiType, type ManifestSidebarLayerGroup } from '@core/models';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
+import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
@@ -22,6 +25,7 @@ import {
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
+import { catchError, of } from 'rxjs';
 
 interface LayerControlRow {
   id: string;
@@ -139,6 +143,8 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private readonly appState = inject(AppStateService);
   private readonly adminBoundaryService = inject(AdminBoundaryService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
@@ -158,6 +164,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
+  protected readonly manifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
+  protected readonly manifestSidebarLoadFailed = signal(false);
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
   );
@@ -230,6 +238,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   constructor() {
     this.syncInitialBoundaryState();
+    this.loadManifestSidebarRows();
     this.selectedLayerOrder.set(
       this.normalizeSelectedLayerOrder(
         this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
@@ -386,6 +395,20 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (btn instanceof HTMLButtonElement) {
       btn.style.setProperty('--select-solution-proximity-opacity', '0');
     }
+  }
+
+  private loadManifestSidebarRows(): void {
+    this.manifestSidebarLoadFailed.set(false);
+    this.layerManifestService
+      .getSidebarLayerGroups()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => {
+          this.manifestSidebarLoadFailed.set(true);
+          return of<ManifestSidebarLayerGroup[]>([]);
+        }),
+      )
+      .subscribe((groups) => this.manifestSidebarLayerGroups.set(groups));
   }
 
   private selectSolutionHoverUsesPointerTracking(): boolean {
