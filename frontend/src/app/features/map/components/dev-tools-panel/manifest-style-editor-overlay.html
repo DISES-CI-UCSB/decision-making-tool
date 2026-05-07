@@ -1,0 +1,710 @@
+<section id="manifest-style-editor-root" class="mt-2">
+  <button
+    id="manifest-style-editor-open-button"
+    type="button"
+    class="w-full rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-left text-[11px] font-semibold text-amber-800 transition hover:bg-amber-100"
+    (click)="openEditor()"
+  >
+    Manifest Style Editor
+  </button>
+
+  @if (isOpen()) {
+    <div
+      id="manifest-style-editor-overlay-backdrop"
+      class="fixed inset-0 z-[120] flex items-start justify-center bg-slate-900/50 px-6 pb-6 pt-14"
+    >
+      <div
+        id="manifest-style-editor-overlay-panel"
+        class="relative flex h-[84vh] w-[min(1200px,96vw)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <header
+          id="manifest-style-editor-overlay-header"
+          class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3"
+        >
+          <div id="manifest-style-editor-header-copy" class="min-w-0 pr-4">
+            <h2
+              id="manifest-style-editor-header-title"
+              class="text-sm font-semibold text-slate-900"
+            >
+              Manifest Style Editor
+            </h2>
+            <p id="manifest-style-editor-header-subtitle" class="mt-1 text-xs text-slate-500">
+              Edit mask and gradient rendering fields, validate, diff, and export publish artifacts.
+            </p>
+          </div>
+          <button
+            id="manifest-style-editor-close-button"
+            type="button"
+            class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+            (click)="closeEditor()"
+          >
+            Close
+          </button>
+        </header>
+
+        @if (isLoadingManifest()) {
+          <div
+            id="manifest-style-editor-loading-state"
+            class="flex flex-1 items-center justify-center text-sm text-slate-600"
+          >
+            Loading manifest...
+          </div>
+        } @else if (loadError()) {
+          <div id="manifest-style-editor-load-error-wrap" class="p-5">
+            <div
+              id="manifest-style-editor-load-error"
+              class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
+              {{ loadError() }}
+            </div>
+          </div>
+        } @else {
+          <div
+            id="manifest-style-editor-main-layout"
+            class="grid min-h-0 flex-1 grid-cols-[320px_1fr]"
+          >
+            <aside
+              id="manifest-style-editor-layer-list-pane"
+              class="flex min-h-0 flex-col border-r border-slate-200 bg-slate-50"
+            >
+              <div
+                id="manifest-style-editor-layer-list-header"
+                class="border-b border-slate-200 p-3"
+              >
+                <label
+                  id="manifest-style-editor-layer-search-label"
+                  for="manifest-style-editor-layer-search-input"
+                  class="mb-1 block text-[11px] font-semibold text-slate-700"
+                >
+                  Search editable layers
+                </label>
+                <input
+                  id="manifest-style-editor-layer-search-input"
+                  type="text"
+                  class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800"
+                  [value]="searchQuery()"
+                  placeholder="layer id, label, data role"
+                  (input)="onSearchInput($event)"
+                />
+              </div>
+
+              <div
+                id="manifest-style-editor-layer-list-scroll"
+                class="min-h-0 flex-1 overflow-auto p-2"
+              >
+                @for (layer of filteredLayerSummaries(); track trackLayer($index, layer)) {
+                  <button
+                    [id]="'manifest-style-editor-layer-item-' + layer.id"
+                    type="button"
+                    class="mb-2 w-full rounded-md border px-2.5 py-2 text-left text-xs transition"
+                    [class.border-indigo-300]="selectedLayerId() === layer.id"
+                    [class.bg-indigo-50]="selectedLayerId() === layer.id"
+                    [class.border-red-300]="hasLayerValidationErrors(layer.id)"
+                    [class.bg-red-50]="hasLayerValidationErrors(layer.id)"
+                    [class.border-slate-200]="
+                      selectedLayerId() !== layer.id && !hasLayerValidationErrors(layer.id)
+                    "
+                    [class.bg-white]="
+                      selectedLayerId() !== layer.id && !hasLayerValidationErrors(layer.id)
+                    "
+                    (click)="selectLayer(layer.id)"
+                  >
+                    <p
+                      [id]="'manifest-style-editor-layer-item-title-' + layer.id"
+                      class="font-semibold text-slate-800"
+                    >
+                      {{ layer.title }}
+                    </p>
+                    <p
+                      [id]="'manifest-style-editor-layer-item-id-' + layer.id"
+                      class="mt-1 text-[11px] text-slate-500"
+                    >
+                      {{ layer.id }}
+                    </p>
+                    <p
+                      [id]="'manifest-style-editor-layer-item-meta-' + layer.id"
+                      class="mt-1 text-[10px] uppercase tracking-wide text-slate-500"
+                    >
+                      {{ layer.renderMode }} | {{ layer.valueType }}
+                    </p>
+                  </button>
+                } @empty {
+                  <p
+                    id="manifest-style-editor-layer-list-empty"
+                    class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500"
+                  >
+                    No editable layers match this search.
+                  </p>
+                }
+              </div>
+            </aside>
+
+            <main id="manifest-style-editor-detail-pane" class="min-h-0 overflow-auto p-4">
+              @if (selectedLayer(); as layer) {
+                <section
+                  id="manifest-style-editor-layer-metadata"
+                  class="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+                >
+                  <h3
+                    id="manifest-style-editor-layer-metadata-title"
+                    class="text-xs font-semibold text-slate-700"
+                  >
+                    Layer metadata
+                  </h3>
+                  <dl
+                    id="manifest-style-editor-layer-metadata-list"
+                    class="mt-2 grid grid-cols-[140px_1fr] gap-x-2 gap-y-1 text-xs"
+                  >
+                    <dt id="manifest-style-editor-metadata-layer-id-label" class="text-slate-500">
+                      layer id
+                    </dt>
+                    <dd id="manifest-style-editor-metadata-layer-id-value" class="text-slate-800">
+                      {{ layer.id }}
+                    </dd>
+                    <dt id="manifest-style-editor-metadata-data-role-label" class="text-slate-500">
+                      dataRole
+                    </dt>
+                    <dd id="manifest-style-editor-metadata-data-role-value" class="text-slate-800">
+                      {{ layer.dataRole }}
+                    </dd>
+                    <dt
+                      id="manifest-style-editor-metadata-render-mode-label"
+                      class="text-slate-500"
+                    >
+                      renderMode
+                    </dt>
+                    <dd
+                      id="manifest-style-editor-metadata-render-mode-value"
+                      class="text-slate-800"
+                    >
+                      {{ layer.rendering.renderMode }}
+                    </dd>
+                    <dt id="manifest-style-editor-metadata-value-type-label" class="text-slate-500">
+                      valueType
+                    </dt>
+                    <dd id="manifest-style-editor-metadata-value-type-value" class="text-slate-800">
+                      {{ layer.rendering.valueType }}
+                    </dd>
+                  </dl>
+                </section>
+
+                <section
+                  id="manifest-style-editor-live-preview"
+                  class="mb-4 rounded-md border border-slate-200 p-3"
+                >
+                  <h3
+                    id="manifest-style-editor-live-preview-title"
+                    class="text-xs font-semibold text-slate-700"
+                  >
+                    Live preview
+                  </h3>
+                  <div
+                    id="manifest-style-editor-live-preview-swatch-wrap"
+                    class="mt-2 h-8 w-full rounded border border-slate-300"
+                    [style]="renderPreviewStyle(layer)"
+                  ></div>
+                </section>
+
+                <section
+                  id="manifest-style-editor-fields-card"
+                  class="rounded-md border border-slate-200 p-3"
+                >
+                  <h3
+                    id="manifest-style-editor-fields-title"
+                    class="text-xs font-semibold text-slate-700"
+                  >
+                    Rendering fields
+                  </h3>
+
+                  @if (layer.rendering.renderMode === 'mask') {
+                    <div id="manifest-style-editor-mask-fields" class="mt-3 grid grid-cols-2 gap-3">
+                      <div id="manifest-style-editor-mask-selected-color-group" class="col-span-2">
+                        <label
+                          id="manifest-style-editor-mask-selected-color-label"
+                          for="manifest-style-editor-mask-selected-color-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          selectedColor
+                        </label>
+                        <div
+                          id="manifest-style-editor-mask-selected-color-controls"
+                          class="flex items-center gap-2"
+                        >
+                          <input
+                            id="manifest-style-editor-mask-selected-color-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.selectedColor ?? ''"
+                            placeholder="#22c55e"
+                            (input)="updateColorField('selectedColor', $event)"
+                          />
+                          <input
+                            id="manifest-style-editor-mask-selected-color-picker"
+                            type="color"
+                            class="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-1"
+                            [value]="layer.rendering.selectedColor ?? '#22c55e'"
+                            (input)="updateColorField('selectedColor', $event)"
+                          />
+                        </div>
+                        @for (error of fieldErrors('selectedColor'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-selected-color-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+
+                      <div id="manifest-style-editor-mask-selected-value-group">
+                        <label
+                          id="manifest-style-editor-mask-selected-value-label"
+                          for="manifest-style-editor-mask-selected-value-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          selectedValue (optional)
+                        </label>
+                        <input
+                          id="manifest-style-editor-mask-selected-value-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="layer.rendering.selectedValue ?? ''"
+                          placeholder="1"
+                          (input)="updateNumberField('selectedValue', $event)"
+                        />
+                        @for (error of fieldErrors('selectedValue'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-selected-value-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+
+                      <div id="manifest-style-editor-mask-no-data-group">
+                        <label
+                          id="manifest-style-editor-mask-no-data-label"
+                          for="manifest-style-editor-mask-no-data-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          noDataValue (optional)
+                        </label>
+                        <input
+                          id="manifest-style-editor-mask-no-data-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="layer.rendering.noDataValue ?? ''"
+                          placeholder="-9999"
+                          (input)="updateNumberField('noDataValue', $event)"
+                        />
+                        @for (error of fieldErrors('noDataValue'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-no-data-mask-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (layer.rendering.renderMode === 'gradient') {
+                    <div
+                      id="manifest-style-editor-gradient-fields"
+                      class="mt-3 grid grid-cols-2 gap-3"
+                    >
+                      <div id="manifest-style-editor-gradient-start-color-group">
+                        <label
+                          id="manifest-style-editor-gradient-start-color-label"
+                          for="manifest-style-editor-gradient-start-color-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          startColor
+                        </label>
+                        <div
+                          id="manifest-style-editor-gradient-start-color-controls"
+                          class="flex items-center gap-2"
+                        >
+                          <input
+                            id="manifest-style-editor-gradient-start-color-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.startColor ?? ''"
+                            placeholder="#d1fae5"
+                            (input)="updateColorField('startColor', $event)"
+                          />
+                          <input
+                            id="manifest-style-editor-gradient-start-color-picker"
+                            type="color"
+                            class="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-1"
+                            [value]="layer.rendering.startColor ?? '#d1fae5'"
+                            (input)="updateColorField('startColor', $event)"
+                          />
+                        </div>
+                        @for (error of fieldErrors('startColor'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-start-color-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+
+                      <div id="manifest-style-editor-gradient-end-color-group">
+                        <label
+                          id="manifest-style-editor-gradient-end-color-label"
+                          for="manifest-style-editor-gradient-end-color-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          endColor
+                        </label>
+                        <div
+                          id="manifest-style-editor-gradient-end-color-controls"
+                          class="flex items-center gap-2"
+                        >
+                          <input
+                            id="manifest-style-editor-gradient-end-color-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.endColor ?? ''"
+                            placeholder="#166534"
+                            (input)="updateColorField('endColor', $event)"
+                          />
+                          <input
+                            id="manifest-style-editor-gradient-end-color-picker"
+                            type="color"
+                            class="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-1"
+                            [value]="layer.rendering.endColor ?? '#166534'"
+                            (input)="updateColorField('endColor', $event)"
+                          />
+                        </div>
+                        @for (error of fieldErrors('endColor'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-end-color-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+
+                      <div id="manifest-style-editor-gradient-min-value-group">
+                        <label
+                          id="manifest-style-editor-gradient-min-value-label"
+                          for="manifest-style-editor-gradient-min-value-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          minValue (optional)
+                        </label>
+                        <input
+                          id="manifest-style-editor-gradient-min-value-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="layer.rendering.minValue ?? ''"
+                          placeholder="0"
+                          (input)="updateNumberField('minValue', $event)"
+                        />
+                        @for (error of fieldErrors('minValue'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-min-value-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+
+                      <div id="manifest-style-editor-gradient-max-value-group">
+                        <label
+                          id="manifest-style-editor-gradient-max-value-label"
+                          for="manifest-style-editor-gradient-max-value-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          maxValue (optional)
+                        </label>
+                        <input
+                          id="manifest-style-editor-gradient-max-value-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="layer.rendering.maxValue ?? ''"
+                          placeholder="100"
+                          (input)="updateNumberField('maxValue', $event)"
+                        />
+                        @for (error of fieldErrors('maxValue'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-max-value-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+
+                      <div id="manifest-style-editor-gradient-no-data-group" class="col-span-2">
+                        <label
+                          id="manifest-style-editor-gradient-no-data-label"
+                          for="manifest-style-editor-gradient-no-data-input"
+                          class="mb-1 block text-[11px] font-semibold text-slate-700"
+                        >
+                          noDataValue (optional)
+                        </label>
+                        <input
+                          id="manifest-style-editor-gradient-no-data-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="layer.rendering.noDataValue ?? ''"
+                          placeholder="-9999"
+                          (input)="updateNumberField('noDataValue', $event)"
+                        />
+                        @for (error of fieldErrors('noDataValue'); track error) {
+                          <p
+                            [id]="'manifest-style-editor-error-no-data-gradient-' + $index"
+                            class="mt-1 text-[11px] text-red-600"
+                          >
+                            {{ error }}
+                          </p>
+                        }
+                      </div>
+                    </div>
+                  }
+                </section>
+
+                <section
+                  id="manifest-style-editor-diff-section"
+                  class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+                >
+                  <h3
+                    id="manifest-style-editor-diff-title"
+                    class="text-xs font-semibold text-slate-700"
+                  >
+                    Draft diff summary
+                  </h3>
+                  <p id="manifest-style-editor-diff-count" class="mt-1 text-xs text-slate-700">
+                    {{ diffSummary().changedLayerCount }} layer(s) changed.
+                  </p>
+                  <div
+                    id="manifest-style-editor-diff-list-wrap"
+                    class="mt-2 max-h-28 overflow-auto rounded border border-slate-200 bg-white p-2"
+                  >
+                    @for (diff of diffSummary().changedLayers; track diff.layerId) {
+                      <p
+                        [id]="'manifest-style-editor-diff-row-' + diff.layerId"
+                        class="mb-1 text-[11px] text-slate-700"
+                      >
+                        <span
+                          [id]="'manifest-style-editor-diff-layer-id-' + diff.layerId"
+                          class="font-semibold"
+                        >
+                          {{ diff.layerId }}
+                        </span>
+                        <span [id]="'manifest-style-editor-diff-fields-' + diff.layerId">
+                          : {{ diff.changedFields.join(', ') }}
+                        </span>
+                      </p>
+                    } @empty {
+                      <p id="manifest-style-editor-diff-empty" class="text-[11px] text-slate-500">
+                        No style fields changed yet.
+                      </p>
+                    }
+                  </div>
+                </section>
+              } @else {
+                <div
+                  id="manifest-style-editor-no-selection-state"
+                  class="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600"
+                >
+                  Select a layer to edit rendering values.
+                </div>
+              }
+            </main>
+          </div>
+
+          <footer
+            id="manifest-style-editor-footer"
+            class="border-t border-slate-200 bg-slate-50 px-4 py-3"
+          >
+            <div
+              id="manifest-style-editor-editor-name-row"
+              class="mb-2 grid grid-cols-[160px_1fr] items-center gap-2"
+            >
+              <label
+                id="manifest-style-editor-editor-name-label"
+                for="manifest-style-editor-editor-name-input"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                editorName (temporary audit)
+              </label>
+              <input
+                id="manifest-style-editor-editor-name-input"
+                type="text"
+                class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                [value]="editorName()"
+                placeholder="Jane Developer"
+                (input)="onEditorNameInput($event)"
+              />
+            </div>
+
+            <div
+              id="manifest-style-editor-footer-actions"
+              class="flex flex-wrap items-center gap-2"
+            >
+              <button
+                id="manifest-style-editor-reset-layer-button"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                (click)="resetSelectedLayer()"
+              >
+                Reset selected layer
+              </button>
+              <button
+                id="manifest-style-editor-reset-all-button"
+                type="button"
+                class="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                (click)="resetAllLayers()"
+              >
+                Reset all to loaded
+              </button>
+              <button
+                id="manifest-style-editor-save-draft-button"
+                type="button"
+                class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                (click)="saveDraftLocally()"
+              >
+                Save draft locally
+              </button>
+              <button
+                id="manifest-style-editor-publish-button"
+                type="button"
+                class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="
+                  hasInvalidFields() || !hasUnsavedChanges() || publishState() === 'loading'
+                "
+                (click)="requestPublish()"
+              >
+                Publish for everyone
+              </button>
+            </div>
+
+            @if (hasInvalidFields()) {
+              <p id="manifest-style-editor-invalid-banner" class="mt-2 text-[11px] text-red-600">
+                Fix validation errors before publishing.
+              </p>
+            }
+
+            @if (localDraftMessage()) {
+              <p
+                id="manifest-style-editor-local-draft-message"
+                class="mt-2 text-[11px] text-slate-600"
+              >
+                {{ localDraftMessage() }}
+              </p>
+            }
+
+            @if (publishMessage()) {
+              <p
+                id="manifest-style-editor-publish-message"
+                class="mt-2 text-[11px]"
+                [class.text-emerald-700]="publishState() === 'success'"
+                [class.text-slate-700]="publishState() === 'loading'"
+                [class.text-red-700]="publishState() === 'error'"
+              >
+                {{ publishMessage() }}
+              </p>
+            }
+
+            @if (publishCommand()) {
+              <div
+                id="manifest-style-editor-publish-command-wrap"
+                class="mt-2 rounded-md border border-slate-200 bg-white p-2"
+              >
+                <p
+                  id="manifest-style-editor-publish-command-label"
+                  class="mb-1 text-[10px] uppercase tracking-wide text-slate-500"
+                >
+                  Deterministic publish command
+                </p>
+                <code
+                  id="manifest-style-editor-publish-command-value"
+                  class="block whitespace-pre-wrap break-words text-[11px] text-slate-700"
+                >
+                  {{ publishCommand() }}
+                </code>
+                <p
+                  id="manifest-style-editor-publish-target-path"
+                  class="mt-2 text-[11px] text-slate-600"
+                >
+                  Publish target path: {{ publishTargetPath() }}
+                </p>
+                <p
+                  id="manifest-style-editor-publish-archive-path"
+                  class="mt-1 text-[11px] text-slate-600"
+                >
+                  Expected archive path: {{ publishArchivePath() }}
+                </p>
+                <p
+                  id="manifest-style-editor-publish-url-note"
+                  class="mt-1 text-[11px] text-slate-500"
+                >
+                  Published URL and actual archive URL are shown by the CLI output after you run the
+                  command.
+                </p>
+              </div>
+            }
+
+            <p id="manifest-style-editor-source-url" class="mt-2 text-[10px] text-slate-500">
+              Loaded source: {{ resolvedManifestUrl() }}
+            </p>
+          </footer>
+        }
+
+        @if (confirmPublishOpen()) {
+          <div
+            id="manifest-style-editor-confirm-overlay"
+            class="absolute inset-0 z-[140] flex items-center justify-center bg-slate-950/45"
+          >
+            <div
+              id="manifest-style-editor-confirm-dialog"
+              class="w-[min(560px,88vw)] rounded-lg border border-slate-200 bg-white p-4 shadow-xl"
+            >
+              <h3
+                id="manifest-style-editor-confirm-title"
+                class="text-sm font-semibold text-slate-900"
+              >
+                Confirm publish export
+              </h3>
+              <p id="manifest-style-editor-confirm-copy" class="mt-2 text-xs text-slate-600">
+                Exporting creates an edited manifest JSON and publish payload with editorName. You
+                will run the CLI command locally to publish to blob and archive the previous
+                manifest.
+              </p>
+              <p id="manifest-style-editor-confirm-diff" class="mt-2 text-xs text-slate-700">
+                {{ diffSummary().changedLayerCount }} layer(s) changed.
+              </p>
+              <div id="manifest-style-editor-confirm-actions" class="mt-3 flex justify-end gap-2">
+                <button
+                  id="manifest-style-editor-confirm-cancel-button"
+                  type="button"
+                  class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                  (click)="cancelPublish()"
+                >
+                  Cancel
+                </button>
+                <button
+                  id="manifest-style-editor-confirm-submit-button"
+                  type="button"
+                  class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                  (click)="confirmPublish()"
+                >
+                  Export publish artifacts
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</section>

@@ -21,10 +21,13 @@ import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { environment } from '../../../../../environments/environment';
+import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-overlay';
 
 @Component({
   selector: 'app-dev-tools-panel',
   standalone: true,
+  imports: [ManifestStyleEditorOverlayComponent],
   template: `
     <section id="dev-tools-root" class="relative pointer-events-auto z-20">
       <div id="dev-tools-toggle-row" class="flex items-center justify-end gap-2">
@@ -98,6 +101,14 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
                 Clear map solution
               </button>
             </div>
+
+            @if (enableManifestEditor) {
+              <section id="dev-tools-manifest-style-editor-section" class="mt-2">
+                <app-manifest-style-editor-overlay
+                  id="dev-tools-manifest-style-editor-overlay"
+                ></app-manifest-style-editor-overlay>
+              </section>
+            }
 
             <div
               id="dev-tools-coordinate-picker-toggle-row"
@@ -847,6 +858,7 @@ export class DevToolsPanelComponent {
   readonly showOverviewInputsReminder = this.appState.showOverviewInputsReminder$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
+  readonly enableManifestEditor = environment.ENABLE_MANIFEST_EDITOR;
 
   @Input() coordinateToolEnabled = false;
   @Output() readonly coordinateToolEnabledChange = new EventEmitter<boolean>();

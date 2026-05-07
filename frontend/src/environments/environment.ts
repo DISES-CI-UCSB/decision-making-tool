@@ -13,6 +13,8 @@
 export const environment = {
   production: false,
   googleClientId: '',
+  manifestBlobUrl: '',
+  ENABLE_MANIFEST_EDITOR: true,
   // Temporary dev override: keep SIRAP boundaries testable while auth approval
   // flow remains mocked/pending (UCS-181 in progress).
   allowSirapWithoutAuth: true,
