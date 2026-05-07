@@ -14,10 +14,16 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { type AoiType, type ManifestSidebarLayerGroup } from '@core/models';
+import {
+  type AoiType,
+  type ManifestSidebarLayerGroup,
+  type ManifestSidebarLayerRow,
+  type RuntimeLayerManifestDataRole,
+} from '@core/models';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
+import { ManifestRasterLayerService } from '@features/map/services/manifest-raster-layer.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
@@ -47,6 +53,7 @@ interface LayerControlRow {
     | { type: 'solution-candidate' }
     | { type: 'solution-overlap' }
     | { type: 'app-state-layer'; layerId: string }
+    | { type: 'manifest-raster'; layerId: string; displayUrl: string }
     | { type: 'admin-boundary'; boundaryType: AoiType };
 }
 
@@ -99,6 +106,17 @@ type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
+const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
+  'group-ecosystems': 'ecosystems',
+  'group-socio-economic': 'socioeconomic',
+  'group-cultural-ethnic': 'cultural_and_ethnic_territories',
+};
+const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
+  'group-ecosystems': ['#0d9488', '#6d8e7e', '#0284c7', '#a16207', '#15803d'],
+  'group-socio-economic': ['#d97706', '#ea580c', '#78716c'],
+  'group-cultural-ethnic': ['#6366f1', '#a855f7'],
+};
+const LIVE_MANIFEST_CATEGORY_IDS = new Set<string>(['ecosystems']);
 const COMPARISON_PRIORITY_OVERLAY_IDS = [
   OVERLAP_SOLUTION_OVERLAY_ID,
   BASELINE_SOLUTION_OVERLAY_ID,
@@ -143,6 +161,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private readonly appState = inject(AppStateService);
   private readonly adminBoundaryService = inject(AdminBoundaryService);
+  private readonly manifestRasterLayerService = inject(ManifestRasterLayerService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
@@ -408,7 +427,103 @@ export class MapLayersPanelComponent implements OnDestroy {
           return of<ManifestSidebarLayerGroup[]>([]);
         }),
       )
-      .subscribe((groups) => this.manifestSidebarLayerGroups.set(groups));
+      .subscribe((groups) => {
+        this.manifestSidebarLayerGroups.set(groups);
+        this.reconcileGroupsWithManifest(groups);
+      });
+  }
+
+  private reconcileGroupsWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
+    const groupsByManifestCategoryId = new Map(
+      manifestGroups.map((group) => [group.sidebarCategoryId, group]),
+    );
+
+    this.groups.update((groups) =>
+      groups.map((group) => {
+        const manifestCategoryId = SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID[group.id];
+        if (!manifestCategoryId) {
+          return group;
+        }
+
+        const manifestGroup = groupsByManifestCategoryId.get(manifestCategoryId);
+        if (!manifestGroup) {
+          return group;
+        }
+
+        const rows = manifestGroup.rows.map((row, index) =>
+          this.manifestSidebarLayerRow(group.id, row, index),
+        );
+
+        return {
+          ...group,
+          title: manifestGroup.title,
+          countLabel: this.toLayerCountLabel(rows.length),
+          rows,
+        };
+      }),
+    );
+    this.selectedLayerOrder.update((order) => this.normalizeSelectedLayerOrder(order));
+  }
+
+  private manifestSidebarLayerRow(
+    sidebarGroupId: LayerGroup['id'],
+    manifestRow: ManifestSidebarLayerRow,
+    index: number,
+  ): LayerControlRow {
+    const layerId = `layer-${manifestRow.id}`;
+    const isLiveRenderable = this.isManifestRowLiveRenderable(manifestRow);
+
+    return {
+      id: layerId,
+      name: manifestRow.name,
+      selected: false,
+      visible: false,
+      expanded: false,
+      opacity: this.manifestRowOpacity(manifestRow.dataRole),
+      color: this.manifestRowColor(sidebarGroupId, index),
+      canReorder: true,
+      hasStyleControls: true,
+      hasColorControl: true,
+      mapUnavailable: !isLiveRenderable,
+      mapSync:
+        isLiveRenderable && manifestRow.displayUrl
+          ? { type: 'manifest-raster', layerId, displayUrl: manifestRow.displayUrl }
+          : undefined,
+    };
+  }
+
+  private manifestRowOpacity(dataRole: RuntimeLayerManifestDataRole): number {
+    if (dataRole === 'cost_layer') {
+      return 55;
+    }
+
+    if (dataRole === 'include_layer') {
+      return 60;
+    }
+
+    return 55;
+  }
+
+  private manifestRowColor(sidebarGroupId: LayerGroup['id'], index: number): string {
+    const palette = MANIFEST_GROUP_COLOR_PALETTES[sidebarGroupId];
+    if (!palette || palette.length === 0) {
+      return '#475569';
+    }
+    return palette[index % palette.length];
+  }
+
+  private isManifestRowLiveRenderable(manifestRow: ManifestSidebarLayerRow): boolean {
+    return (
+      LIVE_MANIFEST_CATEGORY_IDS.has(manifestRow.sidebarCategoryId) &&
+      !manifestRow.isSpeciesCollection &&
+      typeof manifestRow.displayUrl === 'string' &&
+      manifestRow.displayUrl.length > 0
+    );
+  }
+
+  private toLayerCountLabel(layerCount: number): string {
+    const noun = layerCount === 1 ? 'layer' : 'layers';
+    return `${layerCount} ${noun}`;
   }
 
   private selectSolutionHoverUsesPointerTracking(): boolean {
@@ -542,7 +657,8 @@ export class MapLayersPanelComponent implements OnDestroy {
             }
             nextSelected = !row.selected;
             didToggle = true;
-            const shouldAutoShowWhenAdded = row.mapSync?.type === 'admin-boundary';
+            const shouldAutoShowWhenAdded =
+              row.mapSync?.type === 'admin-boundary' || row.mapSync?.type === 'manifest-raster';
             return {
               ...row,
               selected: nextSelected,
@@ -1301,6 +1417,20 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     if (mapSync.type === 'admin-boundary') {
       this.adminBoundaryService.setLayerVisibility(mapSync.boundaryType, row.visible);
+      return;
+    }
+
+    if (mapSync.type === 'manifest-raster') {
+      this.manifestRasterLayerService.syncLayer(
+        mapSync.layerId,
+        {
+          displayUrl: mapSync.displayUrl,
+          visible: row.visible,
+          opacity: row.opacity / 100,
+          color: row.color,
+        },
+        { selected: row.selected },
+      );
       return;
     }
 

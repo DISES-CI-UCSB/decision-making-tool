@@ -22,6 +22,7 @@ import type { Solution } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
+import { ManifestRasterLayerService } from '@features/map/services/manifest-raster-layer.service';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { MasterLegendComponent } from '@features/map/components/master-legend/master-legend';
@@ -63,6 +64,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly basemapService = inject(MapBasemapService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly layerRenderer = inject(LayerRendererService);
+  private readonly manifestRasterLayerService = inject(ManifestRasterLayerService);
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly appState = inject(AppStateService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -205,6 +207,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       console.info(`[MapView][${this.debugMarker}] creating ArcGISMap + ArcGISMapView`);
       this.map = new ArcGISMap({ basemap: 'topo-vector' });
       this.layerRenderer.initialize(this.map);
+      this.manifestRasterLayerService.initialize(this.map);
       this.solutionLayer.initialize(this.map);
       this.layerRenderer.syncLayers(this.appState.visibleLayers$());
 

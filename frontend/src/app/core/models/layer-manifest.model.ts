@@ -57,6 +57,8 @@ export interface ManifestSidebarLayerRow {
   sidebarCategoryId: string;
   dataRole: RuntimeLayerManifestDataRole;
   roleInMetricCalculation: RuntimeLayerManifestMetricRole;
+  displayUrl: string | null;
+  displayCollectionUrl: string | null;
   hasDisplayAsset: boolean;
   isSpeciesCollection: boolean;
 }
@@ -84,6 +86,8 @@ export function mapManifestLayerToSidebarRow(
     sidebarCategoryId: layer.sidebarCategoryId,
     dataRole: layer.dataRole,
     roleInMetricCalculation: layer.roleInMetricCalculation,
+    displayUrl: layer.displayUrl ?? null,
+    displayCollectionUrl: layer.displayCollectionUrl ?? null,
     hasDisplayAsset: Boolean(layer.displayUrl ?? layer.displayCollectionUrl),
     isSpeciesCollection: layer.dataRole === 'manifest_for_species_layers',
   };
