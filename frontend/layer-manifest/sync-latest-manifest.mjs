@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadLocalEnv } from './load-local-env.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,8 @@ async function resolveManifestSource() {
 }
 
 async function main() {
+  await loadLocalEnv(path.resolve(__dirname, '..'));
+
   const { manifest, sourceType, sourceUrl } = await resolveManifestSource();
   const payload = {
     _meta: {

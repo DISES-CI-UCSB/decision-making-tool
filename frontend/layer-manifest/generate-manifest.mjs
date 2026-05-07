@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { loadLocalEnv } from './load-local-env.mjs';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +20,8 @@ const GENERATED_MANIFEST_PATH = path.resolve(
   '../public/data/layer-manifest/manifest.json',
 );
 const REPORTS_ROOT = path.resolve(repoRoot, 'development-artifacts/layer-manifest/reports');
+const MANIFEST_ARCHIVE_ROOT = path.resolve(repoRoot, 'development-artifacts/layer-manifest/archive');
+const MAX_ARCHIVED_MANIFESTS = 30;
 const REPORT_PATH = path.resolve(REPORTS_ROOT, 'reconciliation-report.json');
 const CATEGORY_MAPPING_REPORT_PATH = path.resolve(REPORTS_ROOT, 'category-mapping-report.json');
 const CATEGORY_REVIEW_CSV_PATH = path.resolve(REPORTS_ROOT, 'category-review.csv');
@@ -40,6 +43,29 @@ const BLOB_PREFIXES = [
   'inputs/includes/',
 ];
 const COLLECTION_PREFIXES = ['inputs/features/species/'];
+const RASTER_SAMPLE_GRID_SIZE = 64;
+const NON_INTEGER_TOLERANCE = 1e-6;
+const DEFAULT_BINARY_SELECTED_COLOR = '#16a34a';
+const DEFAULT_CONTINUOUS_START_COLOR = '#bbf7d0';
+const DEFAULT_CONTINUOUS_END_COLOR = '#166534';
+
+/**
+ * Optional per-layer overrides for rendering inference.
+ * Keep these entries rare and explicit when domain knowledge must win.
+ */
+const renderingOverrideByLayerId = {
+  ecosistemas: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: -32768,
+    minValue: null,
+    maxValue: null,
+    startColor: DEFAULT_CONTINUOUS_START_COLOR,
+    endColor: DEFAULT_CONTINUOUS_END_COLOR,
+  },
+};
+
+const rasterCharacteristicsByUrl = new Map();
 
 const proposedManifestCategories = {
   species_and_biodiversity: {
@@ -475,7 +501,7 @@ function createCategories(rows, layerEntries) {
   return [...categories.values()].sort((a, b) => a.spanishLabel.localeCompare(b.spanishLabel));
 }
 
-function createLayerEntry(row, blobByPath) {
+async function createLayerEntry(row, blobByPath) {
   const labels = splitMultilineLabel(row.layer_name);
   const blobPath = toBlobPath(row.storage_location, row.filename);
   const isCollection = blobPath?.endsWith('/');
@@ -491,7 +517,12 @@ function createLayerEntry(row, blobByPath) {
   const id = toLayerId(row.layer_id);
   const dataRole = inferDataRole(row);
   const roleInMetricCalculation = inferRoleInMetricCalculation(dataRole);
-  const rendering = inferRenderingConfig({ row, id, dataRole });
+  const { rendering, renderingInference } = await inferRenderingConfig({
+    row,
+    id,
+    dataRole,
+    displayReference,
+  });
 
   return {
     manifestLayer: {
@@ -519,35 +550,90 @@ function createLayerEntry(row, blobByPath) {
       displayName: labels[0] || row.layer_name,
       displayReference,
       originalStorageLocation: row.storage_location,
+      renderingInference,
     },
   };
 }
 
-function inferRenderingConfig({ row, id, dataRole }) {
+async function inferRenderingConfig({ row, id, dataRole, displayReference }) {
+  const override = renderingOverrideByLayerId[id];
+  if (override) {
+    return {
+      rendering: override,
+      renderingInference: {
+        strategy: 'manual_override',
+        classification: override.valueType,
+        confidence: 'forced',
+        reason: 'Layer matched renderingOverrideByLayerId',
+      },
+    };
+  }
+
+  const isRasterCandidate = isRasterDisplayReference(displayReference, row.data_format);
+  if (isRasterCandidate && displayReference.url) {
+    const characteristics = await getRasterCharacteristics(displayReference.url);
+
+    if (characteristics.status === 'ok') {
+      if (characteristics.classification === 'binary') {
+        return {
+          rendering: toBinaryRenderingConfig(characteristics, id, dataRole),
+          renderingInference: {
+            strategy: 'raster_sampling',
+            classification: 'binary',
+            confidence: characteristics.confidence,
+            reason: characteristics.reason,
+            sample: characteristics.sample,
+          },
+        };
+      }
+
+      if (characteristics.classification === 'continuous') {
+        return {
+          rendering: toContinuousRenderingConfig(characteristics, id, dataRole),
+          renderingInference: {
+            strategy: 'raster_sampling',
+            classification: 'continuous',
+            confidence: characteristics.confidence,
+            reason: characteristics.reason,
+            sample: characteristics.sample,
+          },
+        };
+      }
+    }
+  }
+
+  const fallbackRendering = inferLegacyRenderingConfig({ row, id, dataRole });
+  return {
+    rendering: fallbackRendering,
+    renderingInference: {
+      strategy: isRasterCandidate ? 'fallback_after_uncertain_sampling' : 'legacy_non_raster',
+      classification: fallbackRendering.valueType,
+      confidence: 'low',
+      reason: isRasterCandidate
+        ? 'Raster sampling was unavailable or inconclusive; used legacy rule-based fallback.'
+        : 'Layer is not a direct GeoTIFF file URL; used legacy rule-based fallback.',
+    },
+  };
+}
+
+function inferLegacyRenderingConfig({ row, id, dataRole }) {
   const layerGroupId = toLayerId(row.layer_group || '');
   const modelGroupId = toLayerId(row.model_group || '');
 
   if (id === 'ecosistemas') {
-    return {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: -32768,
-      minValue: null,
-      maxValue: null,
-      startColor: '#bbf7d0',
-      endColor: '#166534',
-    };
+    return renderingOverrideByLayerId.ecosistemas;
   }
 
   if (dataRole === 'cost_layer') {
+    const theme = inferLayerColorTheme(id, dataRole);
     return {
       valueType: 'continuous',
       renderMode: 'gradient',
       noDataValue: null,
       minValue: null,
       maxValue: null,
-      startColor: '#fee2e2',
-      endColor: '#991b1b',
+      startColor: theme.gradientStartColor,
+      endColor: theme.gradientEndColor,
     };
   }
 
@@ -558,22 +644,330 @@ function inferRenderingConfig({ row, id, dataRole }) {
     dataRole === 'include_layer' ||
     dataRole === 'administrative_boundary'
   ) {
+    const theme = inferLayerColorTheme(id, dataRole);
     return {
       valueType: 'binary',
       renderMode: 'mask',
       noDataValue: 255,
       selectedValue: 1,
-      selectedColor: '#16a34a',
+      selectedColor: theme.binarySelectedColor,
     };
   }
 
+  const theme = inferLayerColorTheme(id, dataRole);
   return {
     valueType: 'binary',
     renderMode: 'mask',
     noDataValue: 255,
     selectedValue: 1,
-    selectedColor: '#16a34a',
+    selectedColor: theme.binarySelectedColor,
   };
+}
+
+function isRasterDisplayReference(displayReference, dataFormat) {
+  if (!displayReference?.url || displayReference.type !== 'file') {
+    return false;
+  }
+
+  const normalizedDataFormat = (dataFormat || '').toLowerCase();
+  if (normalizedDataFormat.includes('geotiff')) {
+    return true;
+  }
+
+  try {
+    const { pathname } = new URL(displayReference.url);
+    return pathname.toLowerCase().endsWith('.tif') || pathname.toLowerCase().endsWith('.tiff');
+  } catch {
+    return false;
+  }
+}
+
+async function getRasterCharacteristics(url) {
+  const cached = rasterCharacteristicsByUrl.get(url);
+  if (cached) {
+    return cached;
+  }
+
+  const characteristicsPromise = analyzeRasterCharacteristics(url).catch((error) => ({
+    status: 'error',
+    reason: `Failed to inspect raster: ${error.message}`,
+  }));
+  rasterCharacteristicsByUrl.set(url, characteristicsPromise);
+  return characteristicsPromise;
+}
+
+async function analyzeRasterCharacteristics(url) {
+  const { fromUrl } = await import('geotiff');
+  const tiff = await fromUrl(url);
+  const image = await tiff.getImage();
+  const width = image.getWidth();
+  const height = image.getHeight();
+  const noDataValue = normalizeNumericValue(image.getGDALNoData());
+  const sampleWidth = Math.max(1, Math.min(width, RASTER_SAMPLE_GRID_SIZE));
+  const sampleHeight = Math.max(1, Math.min(height, RASTER_SAMPLE_GRID_SIZE));
+  const sampleValues = await image.readRasters({
+    samples: [0],
+    interleave: true,
+    width: sampleWidth,
+    height: sampleHeight,
+  });
+  const sample = summarizeSampleValues(sampleValues, noDataValue);
+  const classification = classifyRasterSample({
+    sample,
+    sampleFormat: image.fileDirectory?.SampleFormat?.[0] ?? null,
+    bitsPerSample: image.fileDirectory?.BitsPerSample?.[0] ?? null,
+  });
+
+  return {
+    status: 'ok',
+    ...classification,
+    noDataValue,
+  };
+}
+
+function summarizeSampleValues(values, noDataValue) {
+  let validCount = 0;
+  let integerLikeCount = 0;
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  const valueCounts = new Map();
+
+  for (const rawValue of values) {
+    const value = Number(rawValue);
+    if (!Number.isFinite(value)) {
+      continue;
+    }
+    if (typeof noDataValue === 'number' && value === noDataValue) {
+      continue;
+    }
+
+    validCount += 1;
+    if (Math.abs(value - Math.round(value)) <= NON_INTEGER_TOLERANCE) {
+      integerLikeCount += 1;
+    }
+    if (value < min) {
+      min = value;
+    }
+    if (value > max) {
+      max = value;
+    }
+
+    const key = Number(value.toFixed(6));
+    valueCounts.set(key, (valueCounts.get(key) ?? 0) + 1);
+  }
+
+  const uniqueValues = [...valueCounts.keys()].sort((a, b) => a - b);
+  const topValues = [...valueCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([value, count]) => ({ value, count }));
+
+  return {
+    validCount,
+    integerLikeCount,
+    nonIntegerRatio: validCount > 0 ? (validCount - integerLikeCount) / validCount : 0,
+    min: Number.isFinite(min) ? min : null,
+    max: Number.isFinite(max) ? max : null,
+    uniqueValues,
+    uniqueCount: uniqueValues.length,
+    topValues,
+  };
+}
+
+function classifyRasterSample({ sample, sampleFormat, bitsPerSample }) {
+  if (sample.validCount === 0) {
+    return {
+      classification: 'unknown',
+      confidence: 'low',
+      reason: 'No valid sampled cells after excluding noData/non-finite values.',
+      sample,
+      sampleFormat,
+      bitsPerSample,
+    };
+  }
+
+  const range =
+    typeof sample.min === 'number' && typeof sample.max === 'number' ? sample.max - sample.min : null;
+  const allIntegerLike = sample.nonIntegerRatio <= 0.01;
+  const hasManyUniqueValues = sample.uniqueCount >= 16;
+  const hasWideRange = typeof range === 'number' && range > 10;
+
+  if (sample.nonIntegerRatio >= 0.05) {
+    return {
+      classification: 'continuous',
+      confidence: 'high',
+      reason: 'Sample contains substantial non-integer values.',
+      sample,
+      sampleFormat,
+      bitsPerSample,
+    };
+  }
+
+  if (sampleFormat === 3 && sample.uniqueCount > 2) {
+    return {
+      classification: 'continuous',
+      confidence: 'medium',
+      reason: 'Float sample format with more than two unique values.',
+      sample,
+      sampleFormat,
+      bitsPerSample,
+    };
+  }
+
+  if (allIntegerLike && sample.uniqueCount <= 3) {
+    return {
+      classification: 'binary',
+      confidence: 'high',
+      reason: 'Sample has three or fewer integer-like unique values.',
+      sample,
+      sampleFormat,
+      bitsPerSample,
+    };
+  }
+
+  if (allIntegerLike && hasManyUniqueValues && hasWideRange) {
+    return {
+      classification: 'continuous',
+      confidence: 'high',
+      reason: 'Integer-like sample has many unique values across a wide range.',
+      sample,
+      sampleFormat,
+      bitsPerSample,
+    };
+  }
+
+  return {
+    classification: 'unknown',
+    confidence: 'low',
+    reason: 'Sample does not clearly match binary or continuous thresholds.',
+    sample,
+    sampleFormat,
+    bitsPerSample,
+  };
+}
+
+function toBinaryRenderingConfig(characteristics, layerId, dataRole) {
+  const selectedValue = inferSelectedBinaryValue(characteristics.sample.uniqueValues, characteristics.noDataValue);
+  const fallbackNoDataValue = inferNoDataFromBinaryValues(characteristics.sample.uniqueValues);
+  const theme = inferLayerColorTheme(layerId, dataRole);
+
+  return {
+    valueType: 'binary',
+    renderMode: 'mask',
+    noDataValue:
+      typeof characteristics.noDataValue === 'number' ? characteristics.noDataValue : fallbackNoDataValue,
+    selectedValue,
+    selectedColor: theme.binarySelectedColor,
+  };
+}
+
+function inferSelectedBinaryValue(uniqueValues, noDataValue) {
+  const viableValues = uniqueValues.filter(
+    (value) => typeof noDataValue !== 'number' || value !== noDataValue,
+  );
+  if (viableValues.includes(1)) {
+    return 1;
+  }
+  const nonZeroValue = viableValues.find((value) => value !== 0);
+  if (typeof nonZeroValue === 'number') {
+    return nonZeroValue;
+  }
+  return viableValues[0] ?? 1;
+}
+
+function inferNoDataFromBinaryValues(uniqueValues) {
+  if (uniqueValues.includes(255)) {
+    return 255;
+  }
+  if (uniqueValues.includes(-32768)) {
+    return -32768;
+  }
+  return null;
+}
+
+function toContinuousRenderingConfig(characteristics, layerId, dataRole) {
+  const minValue = typeof characteristics.sample.min === 'number' ? characteristics.sample.min : null;
+  const maxValue = typeof characteristics.sample.max === 'number' ? characteristics.sample.max : null;
+  const hasValidRange = typeof minValue === 'number' && typeof maxValue === 'number' && maxValue > minValue;
+  const theme = inferLayerColorTheme(layerId, dataRole);
+
+  return {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: typeof characteristics.noDataValue === 'number' ? characteristics.noDataValue : null,
+    minValue: hasValidRange ? minValue : null,
+    maxValue: hasValidRange ? maxValue : null,
+    startColor: theme.gradientStartColor,
+    endColor: theme.gradientEndColor,
+  };
+}
+
+function normalizeNumericValue(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function inferLayerColorTheme(layerId, dataRole) {
+  const seed = hashStringToPositiveInt(layerId);
+  const [minHue, maxHue] = dataRole === 'cost_layer' ? [6, 35] : [55, 320];
+  const hueSpan = maxHue - minHue;
+  const hue = minHue + (seed % (hueSpan + 1));
+
+  return {
+    binarySelectedColor: hslToHex(hue, 78, 42),
+    gradientStartColor: hslToHex(hue, 72, 86),
+    gradientEndColor: hslToHex(hue, 74, 33),
+  };
+}
+
+function hashStringToPositiveInt(value) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function hslToHex(h, s, l) {
+  const hue = ((h % 360) + 360) % 360;
+  const saturation = Math.max(0, Math.min(100, s)) / 100;
+  const lightness = Math.max(0, Math.min(100, l)) / 100;
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = lightness - chroma / 2;
+
+  let rPrime = 0;
+  let gPrime = 0;
+  let bPrime = 0;
+  if (hue < 60) {
+    rPrime = chroma;
+    gPrime = x;
+  } else if (hue < 120) {
+    rPrime = x;
+    gPrime = chroma;
+  } else if (hue < 180) {
+    gPrime = chroma;
+    bPrime = x;
+  } else if (hue < 240) {
+    gPrime = x;
+    bPrime = chroma;
+  } else if (hue < 300) {
+    rPrime = x;
+    bPrime = chroma;
+  } else {
+    rPrime = chroma;
+    bPrime = x;
+  }
+
+  const r = Math.round((rPrime + m) * 255);
+  const g = Math.round((gPrime + m) * 255);
+  const b = Math.round((bPrime + m) * 255);
+  return `#${[r, g, b]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('')}`;
 }
 
 function createDisplayReference({ row, blobPath, isCollection, matchedBlob, remoteUrl }) {
@@ -905,6 +1299,18 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory, categ
     })
     .filter((entry) => entry.missingFields.length > 0);
 
+  const renderingInferenceCounts = layerEntries.reduce(
+    (counts, entry) => {
+      const strategy = entry.reconciliation.renderingInference?.strategy ?? 'unknown';
+      counts.byStrategy[strategy] = (counts.byStrategy[strategy] ?? 0) + 1;
+      if (entry.reconciliation.renderingInference?.confidence === 'low') {
+        counts.lowConfidence += 1;
+      }
+      return counts;
+    },
+    { byStrategy: {}, lowConfidence: 0 },
+  );
+
   return {
     generatedAt: GENERATED_AT,
     whyThisReportExists: {
@@ -933,6 +1339,7 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory, categ
         categoryMappingReport.counts.manifestCategoriesNeedingReview,
       frontendCategoriesWithoutManifestMapping:
         categoryMappingReport.counts.frontendCategoriesWithoutManifestMapping,
+      renderingInferenceLowConfidence: renderingInferenceCounts.lowConfidence,
     },
     missingRequired,
     extraAvailable,
@@ -944,6 +1351,7 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory, categ
       frontendCategoriesWithoutManifestMapping:
         categoryMappingReport.counts.frontendCategoriesWithoutManifestMapping,
     },
+    renderingInferenceSummary: renderingInferenceCounts,
     excludedRows,
   };
 }
@@ -958,13 +1366,53 @@ async function writeText(filePath, data) {
   await fs.writeFile(filePath, data, 'utf-8');
 }
 
+async function archiveExistingManifestIfChanged(nextManifestJson) {
+  let existingManifestJson;
+  try {
+    existingManifestJson = await fs.readFile(GENERATED_MANIFEST_PATH, 'utf-8');
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+
+  if (existingManifestJson === nextManifestJson) {
+    return null;
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const archiveFileName = `manifest.${timestamp}.json`;
+  const archivePath = path.resolve(MANIFEST_ARCHIVE_ROOT, archiveFileName);
+  await fs.mkdir(MANIFEST_ARCHIVE_ROOT, { recursive: true });
+  await fs.writeFile(archivePath, existingManifestJson, 'utf-8');
+  await pruneManifestArchive();
+
+  return archivePath;
+}
+
+async function pruneManifestArchive() {
+  const archiveEntries = await fs.readdir(MANIFEST_ARCHIVE_ROOT, { withFileTypes: true });
+  const files = archiveEntries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .map((entry) => entry.name)
+    .sort();
+
+  const filesToRemove = files.slice(0, Math.max(0, files.length - MAX_ARCHIVED_MANIFESTS));
+  for (const fileName of filesToRemove) {
+    await fs.unlink(path.resolve(MANIFEST_ARCHIVE_ROOT, fileName));
+  }
+}
+
 async function main() {
+  await loadLocalEnv(path.resolve(__dirname, '..'));
+
   const csvRaw = await fs.readFile(REQUIRED_LAYERS_CSV, 'utf-8');
   const rows = rowsToObjects(parseCsv(csvRaw));
   const includedRows = rows.filter((row) => isTrue(row.in_use_now) && isDisplayCandidate(row));
   const blobInventory = await readBlobInventory();
   const blobByPath = new Map(blobInventory.map((blob) => [blob.pathname, blob]));
-  const layerEntries = includedRows.map((row) => createLayerEntry(row, blobByPath));
+  const layerEntries = await Promise.all(includedRows.map((row) => createLayerEntry(row, blobByPath)));
   const categories = createCategories(includedRows, layerEntries);
   const layers = layerEntries.map((entry) => entry.manifestLayer);
   const currentFrontendCategories = await extractCurrentFrontendCategories();
@@ -990,12 +1438,18 @@ async function main() {
     layers,
   };
 
+  const nextManifestJson = `${JSON.stringify(manifest, null, 2)}\n`;
+  const archivedManifestPath = await archiveExistingManifestIfChanged(nextManifestJson);
+
   await writeJson(GENERATED_MANIFEST_PATH, manifest);
   await writeJson(CATEGORY_MAPPING_REPORT_PATH, categoryMappingReport);
   await writeJson(REPORT_PATH, report);
   await writeText(CATEGORY_REVIEW_CSV_PATH, toCsv(createCategoryReviewRows(rows)));
 
   console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, GENERATED_MANIFEST_PATH)}`);
+  if (archivedManifestPath) {
+    console.log(`[generate:layer-manifest] archived ${path.relative(repoRoot, archivedManifestPath)}`);
+  }
   console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH)}`);
   console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, REPORT_PATH)}`);
   console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_REVIEW_CSV_PATH)}`);
