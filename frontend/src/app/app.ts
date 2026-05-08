@@ -74,7 +74,7 @@ export class App implements OnInit, OnDestroy {
 
   protected onScenarioApplied(match: { solutionId: string; scenarioId: string }): void {
     const selectedSolution =
-      this.mockData.getSolutionById(match.solutionId) ?? this.buildManifestSolution(match);
+      this.buildManifestSolution(match) ?? this.mockData.getSolutionById(match.solutionId);
     if (!selectedSolution) {
       return;
     }

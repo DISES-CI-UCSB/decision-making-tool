@@ -95,6 +95,32 @@ describe('App', () => {
     expect(appState.rightSidebarMode$()).toBe('overview');
     expect(showSolutionSpy).toHaveBeenCalledWith(scenario.id);
   });
+
+  it('prefers manifest solution records over mock solution ids when applying a scenario', () => {
+    const fixture = TestBed.createComponent(App);
+    const component = fixture.componentInstance;
+    const appState = TestBed.inject(AppStateService);
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
+    const solutionLayer = TestBed.inject(SolutionLayerService);
+    const scenario = buildManifestScenario();
+    vi.spyOn(solutionCatalog, 'getById').mockImplementation((id: string) =>
+      id === scenario.id ? scenario : null,
+    );
+    const showSolutionSpy = vi.spyOn(solutionLayer, 'showSolution').mockResolvedValue(undefined);
+
+    (
+      component as unknown as {
+        onScenarioApplied: (match: { solutionId: string; scenarioId: string }) => void;
+      }
+    ).onScenarioApplied({
+      solutionId: 'sol-001',
+      scenarioId: scenario.id,
+    });
+
+    expect(appState.activeSolution$()?.id).toBe(scenario.id);
+    expect(appState.activeSolution$()?.name).toBe(scenario.name);
+    expect(showSolutionSpy).toHaveBeenCalledWith(scenario.id);
+  });
 });
 
 function buildManifestScenario(): SolutionScenario {

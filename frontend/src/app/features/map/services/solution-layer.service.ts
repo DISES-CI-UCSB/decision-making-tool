@@ -27,6 +27,7 @@ export const DEFAULT_COMPARISON_CANDIDATE_HEX = '#7c3aed';
 export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
 
 const SOLUTION_ALPHA = 180;
+const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Injectable({ providedIn: 'root' })
@@ -516,29 +517,22 @@ export class SolutionLayerService {
   }
 
   private toSidebarSolution(loaded: LoadedSolution): Solution {
-    const mockSolution = this.getMockSolutionForScenario(loaded.scenario.id);
-    const matchPercentage = Math.round(
-      Math.max(65, Math.min(98, 100 - loaded.rasterMeta.selectedPct / 4)),
-    );
+    const metricsFixture = this.mockData.getSolutionById(TEMPORARY_METRICS_FIXTURE_SOLUTION_ID);
 
     return {
-      id: mockSolution.id,
+      id: loaded.scenario.id,
       name: loaded.scenario.name,
       description: loaded.scenario.description,
-      matchPercentage,
-      geometryUrl: loaded.scenario.filename,
+      matchPercentage: loaded.scenario.pctTargetsMet,
+      geometryUrl: loaded.scenario.displayUrl,
       metadata: {
         scenarioId: loaded.scenario.id,
+        scope: loaded.scenario.scope,
+        rasterFile: loaded.scenario.filename,
+        metadataUrl: loaded.scenario.metadataUrl,
       },
-      metrics: mockSolution.metrics,
+      metrics: metricsFixture?.metrics ?? [],
     };
-  }
-
-  private getMockSolutionForScenario(scenarioId: string): Solution {
-    const mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'] as const;
-    const hash = Array.from(scenarioId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const fallbackId = mockSolutionIds[hash % mockSolutionIds.length];
-    return this.mockData.getSolutionById(fallbackId) ?? this.mockData.getSolutionById('sol-001')!;
   }
 
   private createImageElement(loaded: LoadedSolution, colorHex: string): ImageElement {

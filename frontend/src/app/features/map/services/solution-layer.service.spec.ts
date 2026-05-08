@@ -105,7 +105,19 @@ describe('SolutionLayerService', () => {
 
     expect(loaderMock.loadSolution).toHaveBeenCalledWith('baseline');
     expect(mapMock.add).toHaveBeenCalledTimes(1);
-    expect(appStateMock.loadSolution).toHaveBeenCalledTimes(1);
+    expect(appStateMock.loadSolution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'baseline',
+        name: 'Scenario baseline',
+        matchPercentage: 70,
+        geometryUrl: 'https://example.com/baseline.tif',
+        metadata: expect.objectContaining({
+          scenarioId: 'baseline',
+          rasterFile: 'baseline.tif',
+          metadataUrl: 'https://example.com/baseline.json',
+        }),
+      }),
+    );
     expect(service.isComparisonModeActive()).toBe(false);
   });
 
