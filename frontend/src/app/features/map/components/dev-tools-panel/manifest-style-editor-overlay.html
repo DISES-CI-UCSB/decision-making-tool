@@ -11,11 +11,11 @@
   @if (isOpen()) {
     <div
       id="manifest-style-editor-overlay-backdrop"
-      class="fixed inset-0 z-[120] flex items-start justify-center bg-slate-900/50 px-6 pb-6 pt-14"
+      class="pointer-events-none fixed inset-0 z-120 flex items-start justify-center bg-transparent px-6 pb-6 pt-8"
     >
       <div
         id="manifest-style-editor-overlay-panel"
-        class="relative flex h-[84vh] w-[min(1200px,96vw)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        class="pointer-events-auto relative flex h-[88vh] w-[min(1240px,96vw)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
       >
         <header
           id="manifest-style-editor-overlay-header"
@@ -28,8 +28,9 @@
             >
               Manifest Style Editor
             </h2>
-            <p id="manifest-style-editor-header-subtitle" class="mt-1 text-xs text-slate-500">
-              Edit mask and gradient rendering fields, validate, diff, and export publish artifacts.
+            <p id="manifest-style-editor-header-subtitle" class="mt-1 text-xs text-slate-600">
+              Edit category defaults, preserve layer overrides, validate, and publish a new
+              manifest.
             </p>
           </div>
           <button
@@ -61,454 +62,1027 @@
         } @else {
           <div
             id="manifest-style-editor-main-layout"
-            class="grid min-h-0 flex-1 grid-cols-[320px_1fr]"
+            class="grid min-h-0 flex-1 grid-cols-[360px_1fr]"
           >
             <aside
-              id="manifest-style-editor-layer-list-pane"
+              id="manifest-style-editor-category-list-pane"
               class="flex min-h-0 flex-col border-r border-slate-200 bg-slate-50"
             >
               <div
-                id="manifest-style-editor-layer-list-header"
+                id="manifest-style-editor-category-list-header"
                 class="border-b border-slate-200 p-3"
               >
                 <label
-                  id="manifest-style-editor-layer-search-label"
-                  for="manifest-style-editor-layer-search-input"
+                  id="manifest-style-editor-search-label"
+                  for="manifest-style-editor-search-input"
                   class="mb-1 block text-[11px] font-semibold text-slate-700"
                 >
-                  Search editable layers
+                  Search categories and layers
                 </label>
                 <input
-                  id="manifest-style-editor-layer-search-input"
+                  id="manifest-style-editor-search-input"
                   type="text"
                   class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800"
                   [value]="searchQuery()"
-                  placeholder="layer id, label, data role"
+                  placeholder="Search layers..."
                   (input)="onSearchInput($event)"
                 />
               </div>
 
               <div
-                id="manifest-style-editor-layer-list-scroll"
-                class="min-h-0 flex-1 overflow-auto p-2"
+                id="manifest-style-editor-category-list-scroll"
+                class="min-h-0 flex-1 overflow-auto p-1"
               >
-                @for (layer of filteredLayerSummaries(); track trackLayer($index, layer)) {
-                  <button
-                    [id]="'manifest-style-editor-layer-item-' + layer.id"
-                    type="button"
-                    class="mb-2 w-full rounded-md border px-2.5 py-2 text-left text-xs transition"
-                    [class.border-indigo-300]="selectedLayerId() === layer.id"
-                    [class.bg-indigo-50]="selectedLayerId() === layer.id"
-                    [class.border-red-300]="hasLayerValidationErrors(layer.id)"
-                    [class.bg-red-50]="hasLayerValidationErrors(layer.id)"
-                    [class.border-slate-200]="
-                      selectedLayerId() !== layer.id && !hasLayerValidationErrors(layer.id)
-                    "
-                    [class.bg-white]="
-                      selectedLayerId() !== layer.id && !hasLayerValidationErrors(layer.id)
-                    "
-                    (click)="selectLayer(layer.id)"
+                @for (
+                  category of filteredCategorySummaries();
+                  track trackCategory($index, category)
+                ) {
+                  <section
+                    [id]="'manifest-style-editor-category-card-' + category.id"
+                    class="border-b border-slate-200 py-1"
                   >
-                    <p
-                      [id]="'manifest-style-editor-layer-item-title-' + layer.id"
-                      class="font-semibold text-slate-800"
+                    <button
+                      [id]="'manifest-style-editor-category-button-' + category.id"
+                      type="button"
+                      class="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left hover:bg-slate-100"
+                      [class.bg-indigo-50]="isSelectedCategory(category.id)"
+                      (click)="selectCategory(category.id)"
                     >
-                      {{ layer.title }}
-                    </p>
-                    <p
-                      [id]="'manifest-style-editor-layer-item-id-' + layer.id"
-                      class="mt-1 text-[11px] text-slate-500"
+                      <span
+                        [id]="'manifest-style-editor-category-chevron-' + category.id"
+                        class="text-[10px] font-bold text-slate-600"
+                      >
+                        {{ isCategoryExpanded(category.id) ? 'v' : '>' }}
+                      </span>
+                      <span
+                        [id]="'manifest-style-editor-category-copy-' + category.id"
+                        class="min-w-0"
+                      >
+                        <span class="flex items-center gap-1.5">
+                          <span
+                            [id]="'manifest-style-editor-category-dot-' + category.id"
+                            class="inline-block h-2.5 w-2.5 rounded-sm border border-slate-300"
+                            [style]="category.swatchStyle"
+                          ></span>
+                          <span
+                            [id]="'manifest-style-editor-category-title-' + category.id"
+                            class="block text-xs font-semibold text-slate-900"
+                          >
+                            {{ category.title }}
+                          </span>
+                          <span
+                            [id]="'manifest-style-editor-category-count-' + category.id"
+                            class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700"
+                          >
+                            {{ category.layerCount }}
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+
+                    <div
+                      [id]="'manifest-style-editor-category-layer-list-' + category.id"
+                      class="ml-4 space-y-0.5"
+                      [class.hidden]="!isCategoryExpanded(category.id)"
                     >
-                      {{ layer.id }}
-                    </p>
-                    <p
-                      [id]="'manifest-style-editor-layer-item-meta-' + layer.id"
-                      class="mt-1 text-[10px] uppercase tracking-wide text-slate-500"
-                    >
-                      {{ layer.renderMode }} | {{ layer.valueType }}
-                    </p>
-                  </button>
+                      @for (taxon of category.speciesTaxa; track trackSpeciesTaxon($index, taxon)) {
+                        <button
+                          [id]="'manifest-style-editor-taxon-button-' + taxon.id"
+                          type="button"
+                          class="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left text-[11px] hover:bg-slate-100"
+                          [class.bg-indigo-50]="isSelectedSpeciesTaxon(taxon.id)"
+                          (click)="selectSpeciesTaxon(taxon.id)"
+                        >
+                          <span
+                            [id]="'manifest-style-editor-taxon-chevron-' + taxon.id"
+                            class="w-3 text-[10px] text-slate-600"
+                          >
+                            >
+                          </span>
+                          <span
+                            [id]="'manifest-style-editor-taxon-dot-' + taxon.id"
+                            class="inline-block h-2.5 w-2.5 rounded-sm border border-slate-300"
+                            [style]="taxon.swatchStyle"
+                          ></span>
+                          <span
+                            [id]="'manifest-style-editor-taxon-title-' + taxon.id"
+                            class="block min-w-0 truncate font-medium text-slate-800"
+                          >
+                            {{ taxon.title }}
+                          </span>
+                          <span
+                            [id]="'manifest-style-editor-taxon-count-' + taxon.id"
+                            class="ml-auto rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700"
+                          >
+                            {{ taxon.layerCount }}
+                          </span>
+                        </button>
+                      }
+                      @for (layer of category.layers; track trackLayer($index, layer)) {
+                        <button
+                          [id]="'manifest-style-editor-layer-button-' + layer.id"
+                          type="button"
+                          class="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left text-[11px] hover:bg-slate-100"
+                          [class.bg-indigo-50]="isSelectedLayer(layer.id)"
+                          [class.bg-red-50]="layer.hasValidationErrors"
+                          [class.opacity-60]="!layer.isEditable"
+                          (click)="selectLayer(layer.id)"
+                        >
+                          <span
+                            [id]="'manifest-style-editor-layer-chevron-' + layer.id"
+                            class="w-3 text-[10px] text-transparent"
+                          >
+                            .
+                          </span>
+                          @if (layer.usesCategoricalSwatch) {
+                            <svg
+                              [id]="'manifest-style-editor-layer-shapes-icon-' + layer.id"
+                              class="h-3.5 w-3.5 shrink-0"
+                              viewBox="0 0 16 16"
+                              aria-hidden="true"
+                            >
+                              <rect
+                                [id]="'manifest-style-editor-layer-shapes-square-' + layer.id"
+                                x="1.5"
+                                y="1.5"
+                                width="5"
+                                height="5"
+                                rx="0.8"
+                                fill="#111827"
+                              ></rect>
+                              <polygon
+                                [id]="'manifest-style-editor-layer-shapes-triangle-' + layer.id"
+                                points="11,1.5 14.8,7 7.2,7"
+                                fill="#2563eb"
+                              ></polygon>
+                              <circle
+                                [id]="'manifest-style-editor-layer-shapes-circle-' + layer.id"
+                                cx="8"
+                                cy="11.5"
+                                r="3.4"
+                                fill="#16a34a"
+                              ></circle>
+                            </svg>
+                          } @else {
+                            <span
+                              [id]="'manifest-style-editor-layer-dot-' + layer.id"
+                              class="inline-block h-2.5 w-2.5 rounded-full border border-slate-300"
+                              [style]="layer.swatchStyle"
+                            ></span>
+                          }
+                          <span
+                            [id]="'manifest-style-editor-layer-title-' + layer.id"
+                            class="block min-w-0 truncate font-medium text-slate-800"
+                            [class.line-through]="!layer.isEditable"
+                          >
+                            {{ layer.title }}
+                          </span>
+                          @if (layer.styleOverride) {
+                            <span
+                              [id]="'manifest-style-editor-layer-override-badge-tree-' + layer.id"
+                              class="ml-auto rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                            >
+                              override
+                            </span>
+                          }
+                        </button>
+                      }
+                      @if (category.layers.length === 0) {
+                        <p
+                          [id]="'manifest-style-editor-category-layer-empty-' + category.id"
+                          class="px-1.5 py-1 text-[11px] text-slate-500"
+                        >
+                          No layers in this category.
+                        </p>
+                      }
+                    </div>
+                  </section>
                 } @empty {
                   <p
-                    id="manifest-style-editor-layer-list-empty"
+                    id="manifest-style-editor-category-list-empty"
                     class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500"
                   >
-                    No editable layers match this search.
+                    No categories or layers match this search.
                   </p>
                 }
               </div>
             </aside>
 
             <main id="manifest-style-editor-detail-pane" class="min-h-0 overflow-auto p-4">
-              @if (selectedLayer(); as layer) {
+              @if (selectedCategory(); as category) {
                 <section
-                  id="manifest-style-editor-layer-metadata"
+                  id="manifest-style-editor-category-detail-card"
                   class="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3"
                 >
-                  <h3
-                    id="manifest-style-editor-layer-metadata-title"
-                    class="text-xs font-semibold text-slate-700"
+                  <div
+                    id="manifest-style-editor-category-detail-header"
+                    class="flex items-start justify-between gap-3"
                   >
-                    Layer metadata
-                  </h3>
-                  <dl
-                    id="manifest-style-editor-layer-metadata-list"
-                    class="mt-2 grid grid-cols-[140px_1fr] gap-x-2 gap-y-1 text-xs"
-                  >
-                    <dt id="manifest-style-editor-metadata-layer-id-label" class="text-slate-500">
-                      layer id
-                    </dt>
-                    <dd id="manifest-style-editor-metadata-layer-id-value" class="text-slate-800">
-                      {{ layer.id }}
-                    </dd>
-                    <dt id="manifest-style-editor-metadata-data-role-label" class="text-slate-500">
-                      dataRole
-                    </dt>
-                    <dd id="manifest-style-editor-metadata-data-role-value" class="text-slate-800">
-                      {{ layer.dataRole }}
-                    </dd>
-                    <dt
-                      id="manifest-style-editor-metadata-render-mode-label"
-                      class="text-slate-500"
+                    <div id="manifest-style-editor-category-detail-copy" class="min-w-0">
+                      <h3
+                        id="manifest-style-editor-category-detail-title"
+                        class="text-sm font-semibold text-slate-900"
+                      >
+                        {{ category.title }}
+                      </h3>
+                      <p
+                        id="manifest-style-editor-category-detail-meta"
+                        class="mt-1 text-xs text-slate-600"
+                      >
+                        Category defaults apply to non-overridden sub-categories and layers.
+                      </p>
+                    </div>
+                    <span
+                      id="manifest-style-editor-category-override-badge"
+                      class="rounded-full bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200"
                     >
-                      renderMode
-                    </dt>
-                    <dd
-                      id="manifest-style-editor-metadata-render-mode-value"
-                      class="text-slate-800"
-                    >
-                      {{ layer.rendering.renderMode }}
-                    </dd>
-                    <dt id="manifest-style-editor-metadata-value-type-label" class="text-slate-500">
-                      valueType
-                    </dt>
-                    <dd id="manifest-style-editor-metadata-value-type-value" class="text-slate-800">
-                      {{ layer.rendering.valueType }}
-                    </dd>
-                  </dl>
+                      {{ category.overrideCount }} override(s)
+                    </span>
+                  </div>
                 </section>
 
                 <section
-                  id="manifest-style-editor-live-preview"
+                  id="manifest-style-editor-category-preview-card"
                   class="mb-4 rounded-md border border-slate-200 p-3"
                 >
                   <h3
-                    id="manifest-style-editor-live-preview-title"
+                    id="manifest-style-editor-category-preview-title"
                     class="text-xs font-semibold text-slate-700"
                   >
-                    Live preview
+                    Category previews
                   </h3>
                   <div
-                    id="manifest-style-editor-live-preview-swatch-wrap"
+                    id="manifest-style-editor-category-preview-grid"
+                    class="mt-2 grid grid-cols-2 gap-3"
+                  >
+                    <div id="manifest-style-editor-category-mask-preview-group">
+                      <p
+                        id="manifest-style-editor-category-mask-preview-label"
+                        class="mb-1 text-[11px] font-semibold text-slate-600"
+                      >
+                        Binary / mask layers
+                      </p>
+                      <div
+                        id="manifest-style-editor-category-mask-preview-swatch"
+                        class="h-8 w-full rounded border border-slate-300"
+                        [style]="renderMaskDefaultPreviewStyle(selectedCategoryDefaults())"
+                      ></div>
+                    </div>
+                    <div id="manifest-style-editor-category-gradient-preview-group">
+                      <p
+                        id="manifest-style-editor-category-gradient-preview-label"
+                        class="mb-1 text-[11px] font-semibold text-slate-600"
+                      >
+                        Continuous / gradient layers
+                      </p>
+                      <div
+                        id="manifest-style-editor-category-gradient-preview-swatch"
+                        class="h-8 w-full rounded border border-slate-300"
+                        [style]="renderGradientDefaultPreviewStyle(selectedCategoryDefaults())"
+                      ></div>
+                    </div>
+                  </div>
+                </section>
+
+                <section
+                  id="manifest-style-editor-category-fields-card"
+                  class="rounded-md border border-slate-200 p-3"
+                >
+                  <h3
+                    id="manifest-style-editor-category-fields-title"
+                    class="text-xs font-semibold text-slate-700"
+                  >
+                    Category color defaults
+                  </h3>
+                  <div
+                    id="manifest-style-editor-category-fields-grid"
+                    class="mt-3 grid grid-cols-2 gap-3"
+                  >
+                    <div
+                      id="manifest-style-editor-category-selected-color-group"
+                      class="col-span-2 rounded-md border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <p
+                        id="manifest-style-editor-category-mask-row-title"
+                        class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Binary / mask defaults
+                      </p>
+                      <label
+                        id="manifest-style-editor-category-selected-color-label"
+                        for="manifest-style-editor-category-selected-color-input"
+                        class="mb-1 block text-[11px] font-semibold text-slate-700"
+                      >
+                        selectedColor
+                      </label>
+                      <div
+                        id="manifest-style-editor-category-selected-color-control"
+                        class="flex items-center gap-2"
+                      >
+                        <input
+                          id="manifest-style-editor-category-selected-color-picker"
+                          type="color"
+                          class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                          [value]="
+                            colorPickerValue(selectedCategoryDefaults().selectedColor, '#22c55e')
+                          "
+                          (input)="updateCategoryColorField('selectedColor', $event)"
+                        />
+                        <input
+                          id="manifest-style-editor-category-selected-color-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="selectedCategoryDefaults().selectedColor ?? ''"
+                          placeholder="#22c55e"
+                          (input)="updateCategoryColorField('selectedColor', $event)"
+                          (blur)="updateCategoryColorFieldOnBlur('selectedColor', $event)"
+                        />
+                      </div>
+                      @for (error of fieldErrors('selectedColor'); track error) {
+                        <p
+                          [id]="'manifest-style-editor-category-selected-color-error-' + $index"
+                          class="mt-1 text-[11px] text-red-600"
+                        >
+                          {{ error }}
+                        </p>
+                      }
+                    </div>
+
+                    <div
+                      id="manifest-style-editor-category-start-color-group"
+                      class="rounded-md border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <p
+                        id="manifest-style-editor-category-gradient-row-title"
+                        class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Gradient defaults
+                      </p>
+                      <label
+                        id="manifest-style-editor-category-start-color-label"
+                        for="manifest-style-editor-category-start-color-input"
+                        class="mb-1 block text-[11px] font-semibold text-slate-700"
+                      >
+                        startColor
+                      </label>
+                      <div
+                        id="manifest-style-editor-category-start-color-control"
+                        class="flex items-center gap-2"
+                      >
+                        <input
+                          id="manifest-style-editor-category-start-color-picker"
+                          type="color"
+                          class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                          [value]="
+                            colorPickerValue(selectedCategoryDefaults().startColor, '#d1fae5')
+                          "
+                          (input)="updateCategoryColorField('startColor', $event)"
+                        />
+                        <input
+                          id="manifest-style-editor-category-start-color-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="selectedCategoryDefaults().startColor ?? ''"
+                          placeholder="#d1fae5"
+                          (input)="updateCategoryColorField('startColor', $event)"
+                          (blur)="updateCategoryColorFieldOnBlur('startColor', $event)"
+                        />
+                      </div>
+                      @for (error of fieldErrors('startColor'); track error) {
+                        <p
+                          [id]="'manifest-style-editor-category-start-color-error-' + $index"
+                          class="mt-1 text-[11px] text-red-600"
+                        >
+                          {{ error }}
+                        </p>
+                      }
+                    </div>
+
+                    <div
+                      id="manifest-style-editor-category-end-color-group"
+                      class="rounded-md border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <p
+                        id="manifest-style-editor-category-gradient-end-spacer"
+                        class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-transparent"
+                      >
+                        Gradient defaults
+                      </p>
+                      <label
+                        id="manifest-style-editor-category-end-color-label"
+                        for="manifest-style-editor-category-end-color-input"
+                        class="mb-1 block text-[11px] font-semibold text-slate-700"
+                      >
+                        endColor
+                      </label>
+                      <div
+                        id="manifest-style-editor-category-end-color-control"
+                        class="flex items-center gap-2"
+                      >
+                        <input
+                          id="manifest-style-editor-category-end-color-picker"
+                          type="color"
+                          class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                          [value]="colorPickerValue(selectedCategoryDefaults().endColor, '#166534')"
+                          (input)="updateCategoryColorField('endColor', $event)"
+                        />
+                        <input
+                          id="manifest-style-editor-category-end-color-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="selectedCategoryDefaults().endColor ?? ''"
+                          placeholder="#166534"
+                          (input)="updateCategoryColorField('endColor', $event)"
+                          (blur)="updateCategoryColorFieldOnBlur('endColor', $event)"
+                        />
+                      </div>
+                      @for (error of fieldErrors('endColor'); track error) {
+                        <p
+                          [id]="'manifest-style-editor-category-end-color-error-' + $index"
+                          class="mt-1 text-[11px] text-red-600"
+                        >
+                          {{ error }}
+                        </p>
+                      }
+                    </div>
+                  </div>
+
+                  <div
+                    id="manifest-style-editor-category-actions"
+                    class="mt-3 flex flex-wrap gap-2"
+                  >
+                    <button
+                      id="manifest-style-editor-category-apply-button"
+                      type="button"
+                      class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                      (click)="applySelectedCategoryDefaults(false)"
+                    >
+                      Apply to non-overridden layers
+                    </button>
+                    <button
+                      id="manifest-style-editor-category-replace-overrides-button"
+                      type="button"
+                      class="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-800 hover:bg-amber-100"
+                      (click)="applySelectedCategoryDefaults(true)"
+                    >
+                      Replace layer overrides
+                    </button>
+                  </div>
+                </section>
+              } @else if (selectedSpeciesTaxon(); as taxon) {
+                <section
+                  id="manifest-style-editor-taxon-detail-card"
+                  class="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+                >
+                  <h3
+                    id="manifest-style-editor-taxon-detail-title"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ taxon.title }}
+                  </h3>
+                  <p
+                    id="manifest-style-editor-taxon-detail-meta"
+                    class="mt-1 text-xs text-slate-600"
+                  >
+                    Sub-category defaults apply to non-overridden layers in this taxon.
+                  </p>
+                </section>
+
+                <section
+                  id="manifest-style-editor-taxon-preview-card"
+                  class="mb-4 rounded-md border border-slate-200 p-3"
+                >
+                  <h3
+                    id="manifest-style-editor-taxon-preview-title"
+                    class="text-xs font-semibold text-slate-700"
+                  >
+                    Sub-category preview
+                  </h3>
+                  <div
+                    id="manifest-style-editor-taxon-preview-swatch"
                     class="mt-2 h-8 w-full rounded border border-slate-300"
-                    [style]="renderPreviewStyle(layer)"
+                    [style]="renderCategoryPreviewStyle(selectedSpeciesTaxonDefaults())"
                   ></div>
                 </section>
 
                 <section
-                  id="manifest-style-editor-fields-card"
+                  id="manifest-style-editor-taxon-fields-card"
                   class="rounded-md border border-slate-200 p-3"
                 >
                   <h3
-                    id="manifest-style-editor-fields-title"
+                    id="manifest-style-editor-taxon-fields-title"
                     class="text-xs font-semibold text-slate-700"
                   >
-                    Rendering fields
+                    Sub-category color defaults
                   </h3>
-
-                  @if (layer.rendering.renderMode === 'mask') {
-                    <div id="manifest-style-editor-mask-fields" class="mt-3 grid grid-cols-2 gap-3">
-                      <div id="manifest-style-editor-mask-selected-color-group" class="col-span-2">
-                        <label
-                          id="manifest-style-editor-mask-selected-color-label"
-                          for="manifest-style-editor-mask-selected-color-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          selectedColor
-                        </label>
-                        <div
-                          id="manifest-style-editor-mask-selected-color-controls"
-                          class="flex items-center gap-2"
-                        >
-                          <input
-                            id="manifest-style-editor-mask-selected-color-input"
-                            type="text"
-                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                            [value]="layer.rendering.selectedColor ?? ''"
-                            placeholder="#22c55e"
-                            (input)="updateColorField('selectedColor', $event)"
-                          />
-                          <input
-                            id="manifest-style-editor-mask-selected-color-picker"
-                            type="color"
-                            class="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-1"
-                            [value]="layer.rendering.selectedColor ?? '#22c55e'"
-                            (input)="updateColorField('selectedColor', $event)"
-                          />
-                        </div>
-                        @for (error of fieldErrors('selectedColor'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-selected-color-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
-                      </div>
-
-                      <div id="manifest-style-editor-mask-selected-value-group">
-                        <label
-                          id="manifest-style-editor-mask-selected-value-label"
-                          for="manifest-style-editor-mask-selected-value-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          selectedValue (optional)
-                        </label>
+                  <div
+                    id="manifest-style-editor-taxon-fields-grid"
+                    class="mt-3 grid grid-cols-3 gap-3"
+                  >
+                    <div id="manifest-style-editor-taxon-selected-color-group">
+                      <label
+                        id="manifest-style-editor-taxon-selected-color-label"
+                        for="manifest-style-editor-taxon-selected-color-input"
+                        class="mb-1 block text-[11px] font-semibold text-slate-700"
+                      >
+                        mask selectedColor
+                      </label>
+                      <div
+                        id="manifest-style-editor-taxon-selected-color-control"
+                        class="flex items-center gap-2"
+                      >
                         <input
-                          id="manifest-style-editor-mask-selected-value-input"
+                          id="manifest-style-editor-taxon-selected-color-picker"
+                          type="color"
+                          class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                          [value]="
+                            colorPickerValue(
+                              selectedSpeciesTaxonDefaults().selectedColor,
+                              '#bf18ab'
+                            )
+                          "
+                          (input)="updateSpeciesTaxonColorField('selectedColor', $event)"
+                        />
+                        <input
+                          id="manifest-style-editor-taxon-selected-color-input"
                           type="text"
                           class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                          [value]="layer.rendering.selectedValue ?? ''"
-                          placeholder="1"
-                          (input)="updateNumberField('selectedValue', $event)"
+                          [value]="selectedSpeciesTaxonDefaults().selectedColor ?? ''"
+                          placeholder="#bf18ab"
+                          (input)="updateSpeciesTaxonColorField('selectedColor', $event)"
+                          (blur)="updateSpeciesTaxonColorFieldOnBlur('selectedColor', $event)"
                         />
-                        @for (error of fieldErrors('selectedValue'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-selected-value-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
-                      </div>
-
-                      <div id="manifest-style-editor-mask-no-data-group">
-                        <label
-                          id="manifest-style-editor-mask-no-data-label"
-                          for="manifest-style-editor-mask-no-data-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          noDataValue (optional)
-                        </label>
-                        <input
-                          id="manifest-style-editor-mask-no-data-input"
-                          type="text"
-                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                          [value]="layer.rendering.noDataValue ?? ''"
-                          placeholder="-9999"
-                          (input)="updateNumberField('noDataValue', $event)"
-                        />
-                        @for (error of fieldErrors('noDataValue'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-no-data-mask-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
                       </div>
                     </div>
-                  }
 
-                  @if (layer.rendering.renderMode === 'gradient') {
+                    <div id="manifest-style-editor-taxon-start-color-group">
+                      <label
+                        id="manifest-style-editor-taxon-start-color-label"
+                        for="manifest-style-editor-taxon-start-color-input"
+                        class="mb-1 block text-[11px] font-semibold text-slate-700"
+                      >
+                        gradient startColor
+                      </label>
+                      <div
+                        id="manifest-style-editor-taxon-start-color-control"
+                        class="flex items-center gap-2"
+                      >
+                        <input
+                          id="manifest-style-editor-taxon-start-color-picker"
+                          type="color"
+                          class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                          [value]="
+                            colorPickerValue(selectedSpeciesTaxonDefaults().startColor, '#f5d0fe')
+                          "
+                          (input)="updateSpeciesTaxonColorField('startColor', $event)"
+                        />
+                        <input
+                          id="manifest-style-editor-taxon-start-color-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="selectedSpeciesTaxonDefaults().startColor ?? ''"
+                          placeholder="#f5d0fe"
+                          (input)="updateSpeciesTaxonColorField('startColor', $event)"
+                          (blur)="updateSpeciesTaxonColorFieldOnBlur('startColor', $event)"
+                        />
+                      </div>
+                    </div>
+
+                    <div id="manifest-style-editor-taxon-end-color-group">
+                      <label
+                        id="manifest-style-editor-taxon-end-color-label"
+                        for="manifest-style-editor-taxon-end-color-input"
+                        class="mb-1 block text-[11px] font-semibold text-slate-700"
+                      >
+                        gradient endColor
+                      </label>
+                      <div
+                        id="manifest-style-editor-taxon-end-color-control"
+                        class="flex items-center gap-2"
+                      >
+                        <input
+                          id="manifest-style-editor-taxon-end-color-picker"
+                          type="color"
+                          class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                          [value]="
+                            colorPickerValue(selectedSpeciesTaxonDefaults().endColor, '#86198f')
+                          "
+                          (input)="updateSpeciesTaxonColorField('endColor', $event)"
+                        />
+                        <input
+                          id="manifest-style-editor-taxon-end-color-input"
+                          type="text"
+                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                          [value]="selectedSpeciesTaxonDefaults().endColor ?? ''"
+                          placeholder="#86198f"
+                          (input)="updateSpeciesTaxonColorField('endColor', $event)"
+                          (blur)="updateSpeciesTaxonColorFieldOnBlur('endColor', $event)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              } @else if (selectedLayer(); as layer) {
+                <section
+                  id="manifest-style-editor-layer-metadata"
+                  class="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+                >
+                  <div
+                    id="manifest-style-editor-layer-metadata-header"
+                    class="flex items-start justify-between gap-3"
+                  >
+                    <div id="manifest-style-editor-layer-metadata-copy" class="min-w-0">
+                      <h3
+                        id="manifest-style-editor-layer-metadata-title"
+                        class="text-sm font-semibold text-slate-900"
+                      >
+                        {{ layer.englishLabel ?? layer.spanishLabel }}
+                      </h3>
+                      <p
+                        id="manifest-style-editor-layer-metadata-id"
+                        class="mt-1 text-xs text-slate-600"
+                      >
+                        {{ layer.id }} · {{ layerRenderModeLabel(layer) }} ·
+                        {{ layerValueTypeLabel(layer) }}
+                      </p>
+                    </div>
                     <div
-                      id="manifest-style-editor-gradient-fields"
-                      class="mt-3 grid grid-cols-2 gap-3"
+                      id="manifest-style-editor-layer-override-status-wrap"
+                      class="flex shrink-0 items-center gap-2"
                     >
-                      <div id="manifest-style-editor-gradient-start-color-group">
-                        <label
-                          id="manifest-style-editor-gradient-start-color-label"
-                          for="manifest-style-editor-gradient-start-color-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          startColor
-                        </label>
-                        <div
-                          id="manifest-style-editor-gradient-start-color-controls"
-                          class="flex items-center gap-2"
-                        >
-                          <input
-                            id="manifest-style-editor-gradient-start-color-input"
-                            type="text"
-                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                            [value]="layer.rendering.startColor ?? ''"
-                            placeholder="#d1fae5"
-                            (input)="updateColorField('startColor', $event)"
-                          />
-                          <input
-                            id="manifest-style-editor-gradient-start-color-picker"
-                            type="color"
-                            class="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-1"
-                            [value]="layer.rendering.startColor ?? '#d1fae5'"
-                            (input)="updateColorField('startColor', $event)"
-                          />
-                        </div>
-                        @for (error of fieldErrors('startColor'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-start-color-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
-                      </div>
-
-                      <div id="manifest-style-editor-gradient-end-color-group">
-                        <label
-                          id="manifest-style-editor-gradient-end-color-label"
-                          for="manifest-style-editor-gradient-end-color-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          endColor
-                        </label>
-                        <div
-                          id="manifest-style-editor-gradient-end-color-controls"
-                          class="flex items-center gap-2"
-                        >
-                          <input
-                            id="manifest-style-editor-gradient-end-color-input"
-                            type="text"
-                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                            [value]="layer.rendering.endColor ?? ''"
-                            placeholder="#166534"
-                            (input)="updateColorField('endColor', $event)"
-                          />
-                          <input
-                            id="manifest-style-editor-gradient-end-color-picker"
-                            type="color"
-                            class="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-1"
-                            [value]="layer.rendering.endColor ?? '#166534'"
-                            (input)="updateColorField('endColor', $event)"
-                          />
-                        </div>
-                        @for (error of fieldErrors('endColor'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-end-color-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
-                      </div>
-
-                      <div id="manifest-style-editor-gradient-min-value-group">
-                        <label
-                          id="manifest-style-editor-gradient-min-value-label"
-                          for="manifest-style-editor-gradient-min-value-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          minValue (optional)
-                        </label>
-                        <input
-                          id="manifest-style-editor-gradient-min-value-input"
-                          type="text"
-                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                          [value]="layer.rendering.minValue ?? ''"
-                          placeholder="0"
-                          (input)="updateNumberField('minValue', $event)"
-                        />
-                        @for (error of fieldErrors('minValue'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-min-value-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
-                      </div>
-
-                      <div id="manifest-style-editor-gradient-max-value-group">
-                        <label
-                          id="manifest-style-editor-gradient-max-value-label"
-                          for="manifest-style-editor-gradient-max-value-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          maxValue (optional)
-                        </label>
-                        <input
-                          id="manifest-style-editor-gradient-max-value-input"
-                          type="text"
-                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                          [value]="layer.rendering.maxValue ?? ''"
-                          placeholder="100"
-                          (input)="updateNumberField('maxValue', $event)"
-                        />
-                        @for (error of fieldErrors('maxValue'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-max-value-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
-                      </div>
-
-                      <div id="manifest-style-editor-gradient-no-data-group" class="col-span-2">
-                        <label
-                          id="manifest-style-editor-gradient-no-data-label"
-                          for="manifest-style-editor-gradient-no-data-input"
-                          class="mb-1 block text-[11px] font-semibold text-slate-700"
-                        >
-                          noDataValue (optional)
-                        </label>
-                        <input
-                          id="manifest-style-editor-gradient-no-data-input"
-                          type="text"
-                          class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
-                          [value]="layer.rendering.noDataValue ?? ''"
-                          placeholder="-9999"
-                          (input)="updateNumberField('noDataValue', $event)"
-                        />
-                        @for (error of fieldErrors('noDataValue'); track error) {
-                          <p
-                            [id]="'manifest-style-editor-error-no-data-gradient-' + $index"
-                            class="mt-1 text-[11px] text-red-600"
-                          >
-                            {{ error }}
-                          </p>
-                        }
-                      </div>
+                      <span
+                        id="manifest-style-editor-layer-override-badge"
+                        class="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ring-1"
+                        [class.bg-amber-50]="layer.styleOverride"
+                        [class.text-amber-800]="layer.styleOverride"
+                        [class.ring-amber-200]="layer.styleOverride"
+                        [class.bg-white]="!layer.styleOverride"
+                        [class.text-slate-600]="!layer.styleOverride"
+                        [class.ring-slate-200]="!layer.styleOverride"
+                      >
+                        {{ layer.styleOverride ? 'Layer override' : 'Inherits category' }}
+                      </span>
+                      <button
+                        id="manifest-style-editor-layer-override-toggle-button"
+                        type="button"
+                        class="rounded-md border px-3 py-1.5 text-[11px] font-semibold hover:bg-amber-100"
+                        [class.border-amber-300]="!layer.styleOverride"
+                        [class.bg-amber-50]="!layer.styleOverride"
+                        [class.text-amber-800]="!layer.styleOverride"
+                        [class.border-slate-300]="layer.styleOverride"
+                        [class.bg-white]="layer.styleOverride"
+                        [class.text-slate-700]="layer.styleOverride"
+                        (click)="toggleSelectedLayerOverride()"
+                      >
+                        {{
+                          layer.styleOverride ? 'Use category styling' : 'Override category styling'
+                        }}
+                      </button>
                     </div>
-                  }
+                  </div>
                 </section>
 
                 <section
-                  id="manifest-style-editor-diff-section"
-                  class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+                  id="manifest-style-editor-layer-preview-card"
+                  class="mb-4 rounded-md border border-slate-200 p-3"
                 >
                   <h3
-                    id="manifest-style-editor-diff-title"
+                    id="manifest-style-editor-layer-preview-title"
                     class="text-xs font-semibold text-slate-700"
                   >
-                    Draft diff summary
+                    Layer preview
                   </h3>
-                  <p id="manifest-style-editor-diff-count" class="mt-1 text-xs text-slate-700">
-                    {{ diffSummary().changedLayerCount }} layer(s) changed.
+                  <p
+                    id="manifest-style-editor-layer-preview-note"
+                    class="mt-1 text-[11px] text-slate-500"
+                  >
+                    {{
+                      layer.styleOverride
+                        ? 'Showing the layer override.'
+                        : 'Showing inherited category styling.'
+                    }}
                   </p>
                   <div
-                    id="manifest-style-editor-diff-list-wrap"
-                    class="mt-2 max-h-28 overflow-auto rounded border border-slate-200 bg-white p-2"
+                    id="manifest-style-editor-layer-preview-swatch"
+                    class="mt-2 h-8 w-full rounded border border-slate-300"
+                    [style]="renderLayerPreviewStyle(layer)"
+                  ></div>
+                </section>
+
+                <section
+                  id="manifest-style-editor-layer-fields-card"
+                  class="rounded-md border border-slate-200 p-3"
+                >
+                  <button
+                    id="manifest-style-editor-layer-override-primary-button"
+                    type="button"
+                    class="mb-3 inline-flex items-center gap-2 rounded-md border px-3 py-2 text-left text-xs font-semibold transition hover:bg-slate-50"
+                    [class.border-slate-300]="!layer.styleOverride"
+                    [class.bg-slate-50]="!layer.styleOverride"
+                    [class.text-slate-600]="!layer.styleOverride"
+                    [class.border-emerald-300]="layer.styleOverride"
+                    [class.bg-emerald-50]="layer.styleOverride"
+                    [class.text-emerald-900]="layer.styleOverride"
+                    (click)="toggleSelectedLayerOverride()"
                   >
-                    @for (diff of diffSummary().changedLayers; track diff.layerId) {
-                      <p
-                        [id]="'manifest-style-editor-diff-row-' + diff.layerId"
-                        class="mb-1 text-[11px] text-slate-700"
+                    <span
+                      id="manifest-style-editor-layer-override-primary-checkbox"
+                      class="flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 bg-white text-[10px] leading-none"
+                      [class.border-slate-400]="!layer.styleOverride"
+                      [class.border-emerald-700]="layer.styleOverride"
+                    >
+                      {{ layer.styleOverride ? '✓' : '' }}
+                    </span>
+                    <span id="manifest-style-editor-layer-override-primary-label">
+                      Override category styling for this layer
+                    </span>
+                  </button>
+                  <h3
+                    id="manifest-style-editor-layer-fields-title"
+                    class="text-xs font-semibold text-slate-700"
+                  >
+                    Layer rendering fields
+                  </h3>
+                  <p
+                    id="manifest-style-editor-layer-override-inline-note"
+                    class="mt-1 text-[11px] text-slate-500"
+                    [class.text-slate-400]="!layer.styleOverride"
+                    [class.text-slate-600]="layer.styleOverride"
+                  >
+                    {{
+                      layer.styleOverride
+                        ? 'Override is on. Edits below affect only this layer.'
+                        : 'Override is off. Fields below stay disabled while the layer inherits category styling.'
+                    }}
+                  </p>
+
+                  @if (!selectedLayerIsEditable()) {
+                    <div
+                      id="manifest-style-editor-layer-not-editable-message"
+                      class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                    >
+                      This layer is shown for discoverability, but current editor controls support
+                      mask and gradient rendering only.
+                    </div>
+                  }
+
+                  <fieldset
+                    id="manifest-style-editor-layer-rendering-fieldset"
+                    [disabled]="!layerUsesOverride(layer)"
+                    [class.opacity-50]="!layerUsesOverride(layer)"
+                    [class.text-slate-500]="!layerUsesOverride(layer)"
+                    class="transition-opacity"
+                  >
+                    @if (selectedLayerIsEditable() && isLayerRenderMode(layer, 'mask')) {
+                      <div
+                        id="manifest-style-editor-mask-fields"
+                        class="mt-3 grid grid-cols-2 gap-3"
                       >
-                        <span
-                          [id]="'manifest-style-editor-diff-layer-id-' + diff.layerId"
-                          class="font-semibold"
+                        <div
+                          id="manifest-style-editor-mask-selected-color-group"
+                          class="col-span-2"
                         >
-                          {{ diff.layerId }}
-                        </span>
-                        <span [id]="'manifest-style-editor-diff-fields-' + diff.layerId">
-                          : {{ diff.changedFields.join(', ') }}
-                        </span>
-                      </p>
-                    } @empty {
-                      <p id="manifest-style-editor-diff-empty" class="text-[11px] text-slate-500">
-                        No style fields changed yet.
-                      </p>
+                          <label
+                            id="manifest-style-editor-mask-selected-color-label"
+                            for="manifest-style-editor-mask-selected-color-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            selectedColor
+                          </label>
+                          <div
+                            id="manifest-style-editor-mask-selected-color-control"
+                            class="flex items-center gap-2"
+                          >
+                            <input
+                              id="manifest-style-editor-mask-selected-color-picker"
+                              type="color"
+                              class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                              [value]="colorPickerValue(layer.rendering.selectedColor, '#22c55e')"
+                              (input)="updateColorField('selectedColor', $event)"
+                            />
+                            <input
+                              id="manifest-style-editor-mask-selected-color-input"
+                              type="text"
+                              class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                              [value]="layer.rendering.selectedColor ?? ''"
+                              placeholder="#22c55e"
+                              (input)="updateColorField('selectedColor', $event)"
+                              (blur)="updateColorFieldOnBlur('selectedColor', $event)"
+                            />
+                          </div>
+                          @for (error of fieldErrors('selectedColor'); track error) {
+                            <p
+                              [id]="'manifest-style-editor-error-selected-color-' + $index"
+                              class="mt-1 text-[11px] text-red-600"
+                            >
+                              {{ error }}
+                            </p>
+                          }
+                        </div>
+
+                        <div id="manifest-style-editor-mask-selected-value-group">
+                          <label
+                            id="manifest-style-editor-mask-selected-value-label"
+                            for="manifest-style-editor-mask-selected-value-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            selectedValue
+                          </label>
+                          <input
+                            id="manifest-style-editor-mask-selected-value-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.selectedValue ?? ''"
+                            placeholder="1"
+                            (input)="updateNumberField('selectedValue', $event)"
+                          />
+                        </div>
+
+                        <div id="manifest-style-editor-mask-no-data-group">
+                          <label
+                            id="manifest-style-editor-mask-no-data-label"
+                            for="manifest-style-editor-mask-no-data-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            noDataValue
+                          </label>
+                          <input
+                            id="manifest-style-editor-mask-no-data-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.noDataValue ?? ''"
+                            placeholder="-9999"
+                            (input)="updateNumberField('noDataValue', $event)"
+                          />
+                        </div>
+                      </div>
                     }
+
+                    @if (selectedLayerIsEditable() && isLayerRenderMode(layer, 'gradient')) {
+                      <div
+                        id="manifest-style-editor-gradient-fields"
+                        class="mt-3 grid grid-cols-2 gap-3"
+                      >
+                        <div id="manifest-style-editor-gradient-start-color-group">
+                          <label
+                            id="manifest-style-editor-gradient-start-color-label"
+                            for="manifest-style-editor-gradient-start-color-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            startColor
+                          </label>
+                          <div
+                            id="manifest-style-editor-gradient-start-color-control"
+                            class="flex items-center gap-2"
+                          >
+                            <input
+                              id="manifest-style-editor-gradient-start-color-picker"
+                              type="color"
+                              class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                              [value]="colorPickerValue(layer.rendering.startColor, '#d1fae5')"
+                              (input)="updateColorField('startColor', $event)"
+                            />
+                            <input
+                              id="manifest-style-editor-gradient-start-color-input"
+                              type="text"
+                              class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                              [value]="layer.rendering.startColor ?? ''"
+                              placeholder="#d1fae5"
+                              (input)="updateColorField('startColor', $event)"
+                              (blur)="updateColorFieldOnBlur('startColor', $event)"
+                            />
+                          </div>
+                          @for (error of fieldErrors('startColor'); track error) {
+                            <p
+                              [id]="'manifest-style-editor-error-start-color-' + $index"
+                              class="mt-1 text-[11px] text-red-600"
+                            >
+                              {{ error }}
+                            </p>
+                          }
+                        </div>
+
+                        <div id="manifest-style-editor-gradient-end-color-group">
+                          <label
+                            id="manifest-style-editor-gradient-end-color-label"
+                            for="manifest-style-editor-gradient-end-color-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            endColor
+                          </label>
+                          <div
+                            id="manifest-style-editor-gradient-end-color-control"
+                            class="flex items-center gap-2"
+                          >
+                            <input
+                              id="manifest-style-editor-gradient-end-color-picker"
+                              type="color"
+                              class="h-8 w-9 rounded border border-slate-300 bg-white p-1"
+                              [value]="colorPickerValue(layer.rendering.endColor, '#166534')"
+                              (input)="updateColorField('endColor', $event)"
+                            />
+                            <input
+                              id="manifest-style-editor-gradient-end-color-input"
+                              type="text"
+                              class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                              [value]="layer.rendering.endColor ?? ''"
+                              placeholder="#166534"
+                              (input)="updateColorField('endColor', $event)"
+                              (blur)="updateColorFieldOnBlur('endColor', $event)"
+                            />
+                          </div>
+                          @for (error of fieldErrors('endColor'); track error) {
+                            <p
+                              [id]="'manifest-style-editor-error-end-color-' + $index"
+                              class="mt-1 text-[11px] text-red-600"
+                            >
+                              {{ error }}
+                            </p>
+                          }
+                        </div>
+
+                        <div id="manifest-style-editor-gradient-min-value-group">
+                          <label
+                            id="manifest-style-editor-gradient-min-value-label"
+                            for="manifest-style-editor-gradient-min-value-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            minValue
+                          </label>
+                          <input
+                            id="manifest-style-editor-gradient-min-value-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.minValue ?? ''"
+                            placeholder="0"
+                            (input)="updateNumberField('minValue', $event)"
+                          />
+                        </div>
+
+                        <div id="manifest-style-editor-gradient-max-value-group">
+                          <label
+                            id="manifest-style-editor-gradient-max-value-label"
+                            for="manifest-style-editor-gradient-max-value-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            maxValue
+                          </label>
+                          <input
+                            id="manifest-style-editor-gradient-max-value-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.maxValue ?? ''"
+                            placeholder="100"
+                            (input)="updateNumberField('maxValue', $event)"
+                          />
+                          @for (error of fieldErrors('maxValue'); track error) {
+                            <p
+                              [id]="'manifest-style-editor-error-max-value-' + $index"
+                              class="mt-1 text-[11px] text-red-600"
+                            >
+                              {{ error }}
+                            </p>
+                          }
+                        </div>
+
+                        <div id="manifest-style-editor-gradient-no-data-group" class="col-span-2">
+                          <label
+                            id="manifest-style-editor-gradient-no-data-label"
+                            for="manifest-style-editor-gradient-no-data-input"
+                            class="mb-1 block text-[11px] font-semibold text-slate-700"
+                          >
+                            noDataValue
+                          </label>
+                          <input
+                            id="manifest-style-editor-gradient-no-data-input"
+                            type="text"
+                            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                            [value]="layer.rendering.noDataValue ?? ''"
+                            placeholder="-9999"
+                            (input)="updateNumberField('noDataValue', $event)"
+                          />
+                        </div>
+                      </div>
+                    }
+                  </fieldset>
+
+                  <div id="manifest-style-editor-layer-actions" class="mt-3 flex flex-wrap gap-2">
+                    <button
+                      id="manifest-style-editor-clear-layer-override-button"
+                      type="button"
+                      class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                      (click)="clearSelectedLayerOverride()"
+                    >
+                      Clear override / inherit category
+                    </button>
+                    <button
+                      id="manifest-style-editor-reset-layer-button"
+                      type="button"
+                      class="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                      (click)="resetSelectedLayer()"
+                    >
+                      Reset selected layer
+                    </button>
                   </div>
                 </section>
               } @else {
@@ -516,9 +1090,64 @@
                   id="manifest-style-editor-no-selection-state"
                   class="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600"
                 >
-                  Select a layer to edit rendering values.
+                  Select a category or layer to edit styles.
                 </div>
               }
+
+              <section
+                id="manifest-style-editor-diff-section"
+                class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+              >
+                <h3
+                  id="manifest-style-editor-diff-title"
+                  class="text-xs font-semibold text-slate-700"
+                >
+                  Draft diff summary
+                </h3>
+                <p id="manifest-style-editor-diff-count" class="mt-1 text-xs text-slate-700">
+                  {{ diffSummary().changedDefaultCount }} default(s),
+                  {{ diffSummary().changedLayerCount }} layer(s), and
+                  {{ diffSummary().changedOverrideCount }} override flag(s) changed.
+                </p>
+                <div
+                  id="manifest-style-editor-diff-list-wrap"
+                  class="mt-2 max-h-28 overflow-auto rounded border border-slate-200 bg-white p-2"
+                >
+                  @for (
+                    diff of diffSummary().changedDefaults;
+                    track diff.scopeType + diff.scopeId
+                  ) {
+                    <p
+                      [id]="
+                        'manifest-style-editor-default-diff-row-' +
+                        diff.scopeType +
+                        '-' +
+                        diff.scopeId
+                      "
+                      class="mb-1 text-[11px] text-slate-700"
+                    >
+                      <span class="font-semibold">{{ diff.scopeType }} {{ diff.scopeId }}</span
+                      >:
+                      {{ diff.changedFields.join(', ') }}
+                    </p>
+                  }
+                  @for (diff of diffSummary().changedLayers; track diff.layerId) {
+                    <p
+                      [id]="'manifest-style-editor-layer-diff-row-' + diff.layerId"
+                      class="mb-1 text-[11px] text-slate-700"
+                    >
+                      <span class="font-semibold">{{ diff.layerId }}</span
+                      >:
+                      {{ diff.changedFields.join(', ') }}
+                    </p>
+                  }
+                  @if (!hasUnsavedChanges()) {
+                    <p id="manifest-style-editor-diff-empty" class="text-[11px] text-slate-500">
+                      No style fields changed yet.
+                    </p>
+                  }
+                </div>
+              </section>
             </main>
           </div>
 
@@ -527,15 +1156,15 @@
             class="border-t border-slate-200 bg-slate-50 px-4 py-3"
           >
             <div
-              id="manifest-style-editor-editor-name-row"
-              class="mb-2 grid grid-cols-[160px_1fr] items-center gap-2"
+              id="manifest-style-editor-footer-input-grid"
+              class="mb-2 grid grid-cols-[160px_1fr_160px_1fr] items-center gap-2"
             >
               <label
                 id="manifest-style-editor-editor-name-label"
                 for="manifest-style-editor-editor-name-input"
                 class="text-[11px] font-semibold text-slate-700"
               >
-                editorName (temporary audit)
+                editorName
               </label>
               <input
                 id="manifest-style-editor-editor-name-input"
@@ -545,20 +1174,27 @@
                 placeholder="Jane Developer"
                 (input)="onEditorNameInput($event)"
               />
+              <label
+                id="manifest-style-editor-publish-secret-label"
+                for="manifest-style-editor-publish-secret-input"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                write secret
+              </label>
+              <input
+                id="manifest-style-editor-publish-secret-input"
+                type="password"
+                class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                [value]="publishSecret()"
+                placeholder="MANIFEST_EDITOR_WRITE_SECRET"
+                (input)="onPublishSecretInput($event)"
+              />
             </div>
 
             <div
               id="manifest-style-editor-footer-actions"
               class="flex flex-wrap items-center gap-2"
             >
-              <button
-                id="manifest-style-editor-reset-layer-button"
-                type="button"
-                class="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
-                (click)="resetSelectedLayer()"
-              >
-                Reset selected layer
-              </button>
               <button
                 id="manifest-style-editor-reset-all-button"
                 type="button"
@@ -580,11 +1216,14 @@
                 type="button"
                 class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                 [disabled]="
-                  hasInvalidFields() || !hasUnsavedChanges() || publishState() === 'loading'
+                  hasInvalidFields() ||
+                  !hasUnsavedChanges() ||
+                  !publishSecret().trim() ||
+                  publishState() === 'loading'
                 "
                 (click)="requestPublish()"
               >
-                Publish for everyone
+                Save For All
               </button>
             </div>
 
@@ -615,41 +1254,19 @@
               </p>
             }
 
-            @if (publishCommand()) {
+            @if (publishTargetPath()) {
               <div
-                id="manifest-style-editor-publish-command-wrap"
-                class="mt-2 rounded-md border border-slate-200 bg-white p-2"
+                id="manifest-style-editor-publish-result-wrap"
+                class="mt-2 rounded-md border border-slate-200 bg-white p-2 text-[11px] text-slate-600"
               >
-                <p
-                  id="manifest-style-editor-publish-command-label"
-                  class="mb-1 text-[10px] uppercase tracking-wide text-slate-500"
-                >
-                  Deterministic publish command
-                </p>
-                <code
-                  id="manifest-style-editor-publish-command-value"
-                  class="block whitespace-pre-wrap break-words text-[11px] text-slate-700"
-                >
-                  {{ publishCommand() }}
-                </code>
-                <p
-                  id="manifest-style-editor-publish-target-path"
-                  class="mt-2 text-[11px] text-slate-600"
-                >
+                <p id="manifest-style-editor-publish-target-path">
                   Publish target path: {{ publishTargetPath() }}
                 </p>
-                <p
-                  id="manifest-style-editor-publish-archive-path"
-                  class="mt-1 text-[11px] text-slate-600"
-                >
-                  Expected archive path: {{ publishArchivePath() }}
+                <p id="manifest-style-editor-publish-archive-path" class="mt-1">
+                  Archive path: {{ publishArchivePath() }}
                 </p>
-                <p
-                  id="manifest-style-editor-publish-url-note"
-                  class="mt-1 text-[11px] text-slate-500"
-                >
-                  Published URL and actual archive URL are shown by the CLI output after you run the
-                  command.
+                <p id="manifest-style-editor-publish-manifest-url" class="mt-1">
+                  Manifest URL: {{ publishedManifestUrl() }}
                 </p>
               </div>
             }
@@ -663,7 +1280,7 @@
         @if (confirmPublishOpen()) {
           <div
             id="manifest-style-editor-confirm-overlay"
-            class="absolute inset-0 z-[140] flex items-center justify-center bg-slate-950/45"
+            class="absolute inset-0 z-140 flex items-center justify-center bg-slate-950/45"
           >
             <div
               id="manifest-style-editor-confirm-dialog"
@@ -673,15 +1290,19 @@
                 id="manifest-style-editor-confirm-title"
                 class="text-sm font-semibold text-slate-900"
               >
-                Confirm publish export
+                Confirm Save For All
               </h3>
               <p id="manifest-style-editor-confirm-copy" class="mt-2 text-xs text-slate-600">
-                Exporting creates an edited manifest JSON and publish payload with editorName. You
-                will run the CLI command locally to publish to blob and archive the previous
-                manifest.
+                This will archive the current blob manifest and overwrite
+                <span id="manifest-style-editor-confirm-target-path" class="font-semibold">
+                  manifest/manifest.json
+                </span>
+                for everyone using that manifest URL.
               </p>
               <p id="manifest-style-editor-confirm-diff" class="mt-2 text-xs text-slate-700">
-                {{ diffSummary().changedLayerCount }} layer(s) changed.
+                {{ diffSummary().changedDefaultCount }} default(s),
+                {{ diffSummary().changedLayerCount }} layer(s), and
+                {{ diffSummary().changedOverrideCount }} override flag(s) changed.
               </p>
               <div id="manifest-style-editor-confirm-actions" class="mt-3 flex justify-end gap-2">
                 <button
@@ -698,7 +1319,7 @@
                   class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
                   (click)="confirmPublish()"
                 >
-                  Export publish artifacts
+                  Archive and publish
                 </button>
               </div>
             </div>

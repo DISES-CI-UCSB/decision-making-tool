@@ -1,0 +1,837 @@
+<!doctype html>
+<html id="manifest-style-editor-mockup-html" lang="en">
+  <head id="manifest-style-editor-mockup-head">
+    <meta id="manifest-style-editor-mockup-meta-charset" charset="UTF-8" />
+    <meta id="manifest-style-editor-mockup-meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="manifest-style-editor-mockup-title">Manifest Style Editor Redesign Mockup</title>
+    <style id="manifest-style-editor-mockup-style">
+      :root {
+        --bg: #f1f5f9;
+        --panel: #ffffff;
+        --line: #d9e0e8;
+        --text: #0f172a;
+        --muted: #5b6879;
+        --hover: #eef3f8;
+        --selected-bg: #e9f0ff;
+        --selected-ring: #7aa2ff;
+        --category-dot: #4257b2;
+        --sub-dot: #7c3aed;
+        --layer-dot: #0f766e;
+        --badge: #e9edf3;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          sans-serif;
+        color: var(--text);
+        background: linear-gradient(180deg, #edf2f7 0%, #e8eef5 100%);
+      }
+
+      #manifest-style-editor-mockup-root {
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      #manifest-style-editor-mockup-frame {
+        height: calc(100vh - 48px);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+        overflow: hidden;
+        box-shadow: 0 22px 50px rgba(15, 23, 42, 0.14);
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+
+      #manifest-style-editor-mockup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        background: #f8fafc;
+        padding: 10px 14px;
+      }
+
+      #manifest-style-editor-mockup-header-copy {
+        min-width: 0;
+      }
+
+      #manifest-style-editor-mockup-header-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      #manifest-style-editor-mockup-header-subtitle {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      #manifest-style-editor-mockup-close {
+        border: 1px solid #c8d0da;
+        border-radius: 6px;
+        background: #fff;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      #manifest-style-editor-mockup-main {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 360px 1fr;
+      }
+
+      #manifest-style-editor-mockup-tree-pane {
+        border-right: 1px solid var(--line);
+        background: #f8fafc;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      #manifest-style-editor-mockup-search-wrap {
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      #manifest-style-editor-mockup-search-input {
+        width: 100%;
+        border: 1px solid #c9d2dd;
+        border-radius: 7px;
+        background: #fff;
+        padding: 8px 10px;
+        font-size: 12px;
+        color: #1f2937;
+      }
+
+      #manifest-style-editor-mockup-tree {
+        min-height: 0;
+        overflow: auto;
+        padding: 6px;
+      }
+
+      .mockup-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        text-align: left;
+        border: 1px solid transparent;
+        background: transparent;
+        border-radius: 7px;
+        padding: 5px 6px;
+        font-size: 12px;
+        color: #182230;
+        cursor: pointer;
+      }
+
+      .mockup-row:hover {
+        background: var(--hover);
+      }
+
+      .mockup-row.selected {
+        background: var(--selected-bg);
+        border-color: var(--selected-ring);
+      }
+
+      .mockup-row.l1 {
+        padding-left: 22px;
+      }
+
+      .mockup-row.l2 {
+        padding-left: 40px;
+      }
+
+      .mockup-row + .mockup-row {
+        margin-top: 1px;
+      }
+
+      .mockup-chevron {
+        width: 10px;
+        color: #516173;
+        font-size: 11px;
+      }
+
+      .mockup-dot {
+        height: 9px;
+        width: 9px;
+        border-radius: 999px;
+      }
+
+      .mockup-dot.category {
+        background: var(--category-dot);
+        border-radius: 2px;
+      }
+
+      .mockup-dot.subcategory {
+        background: var(--sub-dot);
+        border-radius: 2px;
+      }
+
+      .mockup-dot.layer {
+        background: var(--layer-dot);
+      }
+
+      .mockup-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .mockup-badge {
+        margin-left: auto;
+        background: var(--badge);
+        color: #334155;
+        font-size: 10px;
+        line-height: 1;
+        border-radius: 999px;
+        padding: 3px 6px;
+      }
+
+      #manifest-style-editor-mockup-detail-pane {
+        min-height: 0;
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .mockup-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .mockup-card + .mockup-card {
+        margin-top: 10px;
+      }
+
+      #manifest-style-editor-mockup-selection {
+        background: #f8fafc;
+      }
+
+      #manifest-style-editor-mockup-selection-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #manifest-style-editor-mockup-selection-name {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      #manifest-style-editor-mockup-selection-state {
+        margin-left: auto;
+        border: 1px solid #d1d9e2;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 10px;
+        background: #fff;
+        color: #334155;
+      }
+
+      #manifest-style-editor-mockup-selection-path {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .mockup-card-title {
+        margin: 0 0 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
+      }
+
+      #manifest-style-editor-mockup-gradient-preview {
+        height: 32px;
+        border: 1px solid #bec9d7;
+        border-radius: 6px;
+        background: linear-gradient(90deg, #b9e5d0 0%, #73b794 52%, #166534 100%);
+      }
+
+      #manifest-style-editor-mockup-override-options-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .mockup-override-option {
+        border: 1px solid #d9e0e8;
+        border-radius: 8px;
+        background: #f8fafc;
+        padding: 8px;
+      }
+
+      .mockup-override-option-title {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .mockup-override-option-copy {
+        margin: 4px 0 0;
+        font-size: 11px;
+        color: #5b6879;
+      }
+
+      .mockup-override-option-control {
+        margin-top: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border: 1px solid #d9e0e8;
+        border-radius: 7px;
+        background: #fff;
+        padding: 6px 8px;
+      }
+
+      .mockup-override-option-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #334155;
+      }
+
+      .mockup-override-option-switch {
+        height: 18px;
+        min-width: 38px;
+        border-radius: 999px;
+        border: 1px solid #c8d0da;
+        background: #e2e8f0;
+        padding: 1px;
+        display: flex;
+        align-items: center;
+      }
+
+      .mockup-override-option-switch-dot {
+        height: 14px;
+        width: 14px;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+      }
+
+      #manifest-style-editor-mockup-override-switch-on {
+        justify-content: flex-end;
+        border-color: #86efac;
+        background: #bbf7d0;
+      }
+
+      #manifest-style-editor-mockup-override-checkbox-row {
+        margin-top: 7px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      #manifest-style-editor-mockup-override-checkbox {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #92400e;
+        border-radius: 4px;
+        background: #fef3c7;
+      }
+
+      #manifest-style-editor-mockup-override-split {
+        margin-top: 7px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .mockup-override-choice {
+        border: 1px solid #d9e0e8;
+        border-radius: 7px;
+        background: #fff;
+        padding: 6px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: #334155;
+      }
+
+      #manifest-style-editor-mockup-override-choice-selected {
+        border-color: #f59e0b;
+        background: #fffbeb;
+        color: #92400e;
+      }
+
+      #manifest-style-editor-mockup-color-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .mockup-field-label {
+        display: block;
+        font-size: 11px;
+        color: #334155;
+      }
+
+      .mockup-color-control {
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .mockup-color-picker {
+        width: 34px;
+        height: 32px;
+        border: 1px solid #c9d2dd;
+        border-radius: 6px;
+        background: #fff;
+        padding: 2px;
+        cursor: pointer;
+      }
+
+      .mockup-color-picker::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+
+      .mockup-color-picker::-webkit-color-swatch {
+        border: none;
+        border-radius: 4px;
+      }
+
+      .mockup-field-input {
+        width: 100%;
+        border: 1px solid #c9d2dd;
+        border-radius: 6px;
+        background: #fff;
+        padding: 7px 8px;
+        font-size: 12px;
+      }
+
+      #manifest-style-editor-mockup-actions {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .mockup-action {
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+
+      #manifest-style-editor-mockup-action-apply {
+        background: #e6eeff;
+        border: 1px solid #b8caf8;
+        color: #1d4ed8;
+      }
+
+      #manifest-style-editor-mockup-action-replace {
+        background: #fff6dd;
+        border: 1px solid #f0da95;
+        color: #9a6700;
+      }
+
+      #manifest-style-editor-mockup-action-override {
+        background: #fff;
+        border: 1px solid #c8d0da;
+        color: #334155;
+      }
+
+      #manifest-style-editor-mockup-diff-list {
+        margin: 0;
+        padding: 0 0 0 14px;
+        color: #334155;
+        font-size: 12px;
+      }
+
+      #manifest-style-editor-mockup-diff-list li + li {
+        margin-top: 5px;
+      }
+
+      #manifest-style-editor-mockup-footer {
+        border-top: 1px solid var(--line);
+        background: #f8fafc;
+        padding: 9px 12px;
+      }
+
+      #manifest-style-editor-mockup-footer-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .mockup-footer-input {
+        width: 230px;
+        border: 1px solid #c9d2dd;
+        border-radius: 6px;
+        padding: 7px 8px;
+        font-size: 12px;
+        background: #fff;
+      }
+
+      .mockup-footer-button {
+        border-radius: 6px;
+        border: 1px solid #c8d0da;
+        background: #fff;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 10px;
+      }
+
+      #manifest-style-editor-mockup-save-draft {
+        border-color: #b8caf8;
+        background: #e6eeff;
+        color: #1d4ed8;
+      }
+
+      #manifest-style-editor-mockup-save-for-all {
+        margin-left: auto;
+        border-color: #9fd8bd;
+        background: #e7f9ef;
+        color: #0f766e;
+      }
+    </style>
+  </head>
+  <body id="manifest-style-editor-mockup-body">
+    <section id="manifest-style-editor-mockup-root">
+      <div id="manifest-style-editor-mockup-frame">
+        <header id="manifest-style-editor-mockup-header">
+          <div id="manifest-style-editor-mockup-header-copy">
+            <h1 id="manifest-style-editor-mockup-header-title">Manifest Style Editor</h1>
+            <p id="manifest-style-editor-mockup-header-subtitle">
+              Explorer-style redesign mockup with standalone styling.
+            </p>
+          </div>
+          <button id="manifest-style-editor-mockup-close" type="button">Close</button>
+        </header>
+
+        <div id="manifest-style-editor-mockup-main">
+          <aside id="manifest-style-editor-mockup-tree-pane">
+            <div id="manifest-style-editor-mockup-search-wrap">
+              <input id="manifest-style-editor-mockup-search-input" type="text" placeholder="Search layers..." />
+            </div>
+            <div id="manifest-style-editor-mockup-tree">
+              <button id="mockup-node-category-species" class="mockup-row" type="button">
+                <span id="mockup-node-category-species-chevron" class="mockup-chevron">v</span>
+                <span id="mockup-node-category-species-dot" class="mockup-dot category"></span>
+                <span id="mockup-node-category-species-label" class="mockup-label"><strong id="mockup-node-category-species-label-strong">Species &amp; Biodiversity</strong></span>
+                <span id="mockup-node-category-species-badge" class="mockup-badge">12</span>
+              </button>
+
+              <button id="mockup-node-subcategory-birds" class="mockup-row l1" type="button">
+                <span id="mockup-node-subcategory-birds-chevron" class="mockup-chevron">v</span>
+                <span id="mockup-node-subcategory-birds-dot" class="mockup-dot subcategory"></span>
+                <span id="mockup-node-subcategory-birds-label" class="mockup-label">Birds</span>
+                <span id="mockup-node-subcategory-birds-badge" class="mockup-badge">4</span>
+              </button>
+              <button id="mockup-node-layer-birds-richness" class="mockup-row l2 selected" type="button">
+                <span id="mockup-node-layer-birds-richness-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-birds-richness-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-birds-richness-label" class="mockup-label">Species Richness</span>
+              </button>
+              <button id="mockup-node-layer-birds-endemic" class="mockup-row l2" type="button">
+                <span id="mockup-node-layer-birds-endemic-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-birds-endemic-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-birds-endemic-label" class="mockup-label">Endemic Species</span>
+              </button>
+              <button id="mockup-node-layer-birds-threatened" class="mockup-row l2" type="button">
+                <span id="mockup-node-layer-birds-threatened-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-birds-threatened-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-birds-threatened-label" class="mockup-label">Threatened Species</span>
+              </button>
+              <button id="mockup-node-layer-birds-habitat" class="mockup-row l2" type="button">
+                <span id="mockup-node-layer-birds-habitat-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-birds-habitat-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-birds-habitat-label" class="mockup-label">Habitat Suitability</span>
+              </button>
+
+              <button id="mockup-node-subcategory-mammals" class="mockup-row l1" type="button">
+                <span id="mockup-node-subcategory-mammals-chevron" class="mockup-chevron">></span>
+                <span id="mockup-node-subcategory-mammals-dot" class="mockup-dot subcategory"></span>
+                <span id="mockup-node-subcategory-mammals-label" class="mockup-label">Mammals</span>
+                <span id="mockup-node-subcategory-mammals-badge" class="mockup-badge">3</span>
+              </button>
+              <button id="mockup-node-subcategory-amphibians" class="mockup-row l1" type="button">
+                <span id="mockup-node-subcategory-amphibians-chevron" class="mockup-chevron">></span>
+                <span id="mockup-node-subcategory-amphibians-dot" class="mockup-dot subcategory"></span>
+                <span id="mockup-node-subcategory-amphibians-label" class="mockup-label">Amphibians</span>
+                <span id="mockup-node-subcategory-amphibians-badge" class="mockup-badge">2</span>
+              </button>
+              <button id="mockup-node-layer-species-collection" class="mockup-row l1" type="button">
+                <span id="mockup-node-layer-species-collection-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-species-collection-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-species-collection-label" class="mockup-label">Species Collection Raster</span>
+              </button>
+
+              <button id="mockup-node-category-ecosystems" class="mockup-row" type="button">
+                <span id="mockup-node-category-ecosystems-chevron" class="mockup-chevron">v</span>
+                <span id="mockup-node-category-ecosystems-dot" class="mockup-dot category"></span>
+                <span id="mockup-node-category-ecosystems-label" class="mockup-label"><strong id="mockup-node-category-ecosystems-label-strong">Ecosystems</strong></span>
+                <span id="mockup-node-category-ecosystems-badge" class="mockup-badge">6</span>
+              </button>
+              <button id="mockup-node-layer-paramos" class="mockup-row l1" type="button">
+                <span id="mockup-node-layer-paramos-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-paramos-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-paramos-label" class="mockup-label">Paramos</span>
+              </button>
+              <button id="mockup-node-layer-humid-forest" class="mockup-row l1" type="button">
+                <span id="mockup-node-layer-humid-forest-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-humid-forest-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-humid-forest-label" class="mockup-label">Humid Forest</span>
+              </button>
+              <button id="mockup-node-layer-dry-forest" class="mockup-row l1" type="button">
+                <span id="mockup-node-layer-dry-forest-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-dry-forest-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-dry-forest-label" class="mockup-label">Dry Forest</span>
+              </button>
+              <button id="mockup-node-layer-mangrove" class="mockup-row l1" type="button">
+                <span id="mockup-node-layer-mangrove-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-mangrove-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-mangrove-label" class="mockup-label">Mangrove</span>
+              </button>
+              <button id="mockup-node-layer-wetlands" class="mockup-row l1" type="button">
+                <span id="mockup-node-layer-wetlands-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-wetlands-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-wetlands-label" class="mockup-label">Wetlands</span>
+              </button>
+              <button id="mockup-node-layer-desert-shrubland" class="mockup-row l1" type="button">
+                <span id="mockup-node-layer-desert-shrubland-chevron" class="mockup-chevron"></span>
+                <span id="mockup-node-layer-desert-shrubland-dot" class="mockup-dot layer"></span>
+                <span id="mockup-node-layer-desert-shrubland-label" class="mockup-label">Desert Shrubland</span>
+              </button>
+            </div>
+          </aside>
+
+          <main id="manifest-style-editor-mockup-detail-pane">
+            <section id="manifest-style-editor-mockup-selection" class="mockup-card">
+              <div id="manifest-style-editor-mockup-selection-head">
+                <span id="manifest-style-editor-mockup-selection-dot" class="mockup-dot layer"></span>
+                <h2 id="manifest-style-editor-mockup-selection-name">Species Richness</h2>
+                <span id="manifest-style-editor-mockup-selection-state">Inherited</span>
+              </div>
+              <p id="manifest-style-editor-mockup-selection-path">Species &amp; Biodiversity / Birds / Species Richness</p>
+            </section>
+
+            <section id="manifest-style-editor-mockup-preview" class="mockup-card">
+              <h3 id="manifest-style-editor-mockup-preview-title" class="mockup-card-title">Preview</h3>
+              <div id="manifest-style-editor-mockup-gradient-preview"></div>
+            </section>
+
+            <section id="manifest-style-editor-mockup-override-options" class="mockup-card">
+              <h3 id="manifest-style-editor-mockup-override-options-title" class="mockup-card-title">
+                Override category styling layout options
+              </h3>
+              <div id="manifest-style-editor-mockup-override-options-grid">
+                <article id="manifest-style-editor-mockup-override-option-a" class="mockup-override-option">
+                  <p id="manifest-style-editor-mockup-override-option-a-title" class="mockup-override-option-title">
+                    Option A: Status + switch row
+                  </p>
+                  <p id="manifest-style-editor-mockup-override-option-a-copy" class="mockup-override-option-copy">
+                    Keep a compact control row and remove the yellow callout entirely.
+                  </p>
+                  <div id="manifest-style-editor-mockup-override-option-a-control" class="mockup-override-option-control">
+                    <span id="manifest-style-editor-mockup-override-option-a-label" class="mockup-override-option-label">
+                      Inherit category
+                    </span>
+                    <span id="manifest-style-editor-mockup-override-switch-off" class="mockup-override-option-switch">
+                      <span id="manifest-style-editor-mockup-override-switch-off-dot" class="mockup-override-option-switch-dot"></span>
+                    </span>
+                  </div>
+                </article>
+
+                <article id="manifest-style-editor-mockup-override-option-b" class="mockup-override-option">
+                  <p id="manifest-style-editor-mockup-override-option-b-title" class="mockup-override-option-title">
+                    Option B: Checkbox sentence
+                  </p>
+                  <p id="manifest-style-editor-mockup-override-option-b-copy" class="mockup-override-option-copy">
+                    Single sentence and checkbox, no extra status panel below.
+                  </p>
+                  <div id="manifest-style-editor-mockup-override-checkbox-row">
+                    <span id="manifest-style-editor-mockup-override-checkbox"></span>
+                    <span id="manifest-style-editor-mockup-override-option-b-label" class="mockup-override-option-label">
+                      Override category styling for this layer
+                    </span>
+                  </div>
+                </article>
+
+                <article id="manifest-style-editor-mockup-override-option-c" class="mockup-override-option">
+                  <p id="manifest-style-editor-mockup-override-option-c-title" class="mockup-override-option-title">
+                    Option C: Two-state pills
+                  </p>
+                  <p id="manifest-style-editor-mockup-override-option-c-copy" class="mockup-override-option-copy">
+                    Explicitly choose mode: inherit vs override, then show fields.
+                  </p>
+                  <div id="manifest-style-editor-mockup-override-split">
+                    <span id="manifest-style-editor-mockup-override-choice-inherit" class="mockup-override-choice">
+                      Inherit
+                    </span>
+                    <span id="manifest-style-editor-mockup-override-choice-selected" class="mockup-override-choice">
+                      Override
+                    </span>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section id="manifest-style-editor-mockup-colors" class="mockup-card">
+              <h3 id="manifest-style-editor-mockup-colors-title" class="mockup-card-title">Color settings</h3>
+              <div id="manifest-style-editor-mockup-color-grid">
+                <label id="manifest-style-editor-mockup-field-selected-label" class="mockup-field-label">
+                  Selected
+                  <div id="manifest-style-editor-mockup-field-selected-control" class="mockup-color-control">
+                    <input
+                      id="manifest-style-editor-mockup-field-selected-picker"
+                      class="mockup-color-picker"
+                      type="color"
+                      value="#22c55e"
+                    />
+                    <input
+                      id="manifest-style-editor-mockup-field-selected-input"
+                      class="mockup-field-input"
+                      value="#22c55e"
+                    />
+                  </div>
+                </label>
+                <label id="manifest-style-editor-mockup-field-start-label" class="mockup-field-label">
+                  Start
+                  <div id="manifest-style-editor-mockup-field-start-control" class="mockup-color-control">
+                    <input
+                      id="manifest-style-editor-mockup-field-start-picker"
+                      class="mockup-color-picker"
+                      type="color"
+                      value="#d1fae5"
+                    />
+                    <input
+                      id="manifest-style-editor-mockup-field-start-input"
+                      class="mockup-field-input"
+                      value="#d1fae5"
+                    />
+                  </div>
+                </label>
+                <label id="manifest-style-editor-mockup-field-end-label" class="mockup-field-label">
+                  End
+                  <div id="manifest-style-editor-mockup-field-end-control" class="mockup-color-control">
+                    <input
+                      id="manifest-style-editor-mockup-field-end-picker"
+                      class="mockup-color-picker"
+                      type="color"
+                      value="#166534"
+                    />
+                    <input
+                      id="manifest-style-editor-mockup-field-end-input"
+                      class="mockup-field-input"
+                      value="#166534"
+                    />
+                  </div>
+                </label>
+              </div>
+              <div id="manifest-style-editor-mockup-actions">
+                <button id="manifest-style-editor-mockup-action-apply" class="mockup-action" type="button">Apply to inherited items</button>
+                <button id="manifest-style-editor-mockup-action-replace" class="mockup-action" type="button">Replace overrides</button>
+                <button id="manifest-style-editor-mockup-action-override" class="mockup-action" type="button">Enable override</button>
+              </div>
+            </section>
+
+            <section id="manifest-style-editor-mockup-diff" class="mockup-card">
+              <h3 id="manifest-style-editor-mockup-diff-title" class="mockup-card-title">Draft changes</h3>
+              <ul id="manifest-style-editor-mockup-diff-list">
+                <li id="manifest-style-editor-mockup-diff-item-1">Birds / Species Richness: gradient start color updated.</li>
+                <li id="manifest-style-editor-mockup-diff-item-2">Birds / 3 inherited layers updated.</li>
+                <li id="manifest-style-editor-mockup-diff-item-3">Mammals and Amphibians untouched.</li>
+              </ul>
+            </section>
+          </main>
+        </div>
+
+        <footer id="manifest-style-editor-mockup-footer">
+          <div id="manifest-style-editor-mockup-footer-row">
+            <input id="manifest-style-editor-mockup-editor-name-input" class="mockup-footer-input" type="text" placeholder="editor name" />
+            <input id="manifest-style-editor-mockup-secret-input" class="mockup-footer-input" type="password" placeholder="write secret" />
+            <button id="manifest-style-editor-mockup-reset" class="mockup-footer-button" type="button">Reset</button>
+            <button id="manifest-style-editor-mockup-save-draft" class="mockup-footer-button" type="button">Save draft</button>
+            <button id="manifest-style-editor-mockup-save-for-all" class="mockup-footer-button" type="button">Save for all</button>
+          </div>
+        </footer>
+      </div>
+    </section>
+    <script id="manifest-style-editor-mockup-color-script">
+      (() => {
+        const bindings = [
+          {
+            hexInputId: 'manifest-style-editor-mockup-field-selected-input',
+            pickerId: 'manifest-style-editor-mockup-field-selected-picker',
+          },
+          {
+            hexInputId: 'manifest-style-editor-mockup-field-start-input',
+            pickerId: 'manifest-style-editor-mockup-field-start-picker',
+          },
+          {
+            hexInputId: 'manifest-style-editor-mockup-field-end-input',
+            pickerId: 'manifest-style-editor-mockup-field-end-picker',
+          },
+        ];
+
+        const preview = document.getElementById('manifest-style-editor-mockup-gradient-preview');
+
+        const normalizeHex = (value, fallback) => {
+          const raw = String(value || '').trim();
+          const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+          const valid = /^#[0-9a-fA-F]{6}$/.test(withHash);
+          return valid ? withHash.toLowerCase() : fallback.toLowerCase();
+        };
+
+        const updatePreview = () => {
+          if (!preview) {
+            return;
+          }
+          const startInput = document.getElementById('manifest-style-editor-mockup-field-start-input');
+          const endInput = document.getElementById('manifest-style-editor-mockup-field-end-input');
+          if (!(startInput instanceof HTMLInputElement) || !(endInput instanceof HTMLInputElement)) {
+            return;
+          }
+          const start = normalizeHex(startInput.value, '#d1fae5');
+          const end = normalizeHex(endInput.value, '#166534');
+          preview.style.background = `linear-gradient(90deg, ${start} 0%, ${end} 100%)`;
+        };
+
+        bindings.forEach(({ hexInputId, pickerId }) => {
+          const hexInput = document.getElementById(hexInputId);
+          const pickerInput = document.getElementById(pickerId);
+          if (!(hexInput instanceof HTMLInputElement) || !(pickerInput instanceof HTMLInputElement)) {
+            return;
+          }
+          const fallback = pickerInput.value || '#000000';
+
+          pickerInput.addEventListener('input', () => {
+            hexInput.value = pickerInput.value.toLowerCase();
+            updatePreview();
+          });
+
+          hexInput.addEventListener('input', () => {
+            const normalized = normalizeHex(hexInput.value, fallback);
+            pickerInput.value = normalized;
+            updatePreview();
+          });
+
+          hexInput.addEventListener('blur', () => {
+            const normalized = normalizeHex(hexInput.value, fallback);
+            hexInput.value = normalized;
+            pickerInput.value = normalized;
+            updatePreview();
+          });
+        });
+
+        updatePreview();
+      })();
+    </script>
+  </body>
+</html>

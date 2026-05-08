@@ -48,6 +48,83 @@ const NON_INTEGER_TOLERANCE = 1e-6;
 const DEFAULT_BINARY_SELECTED_COLOR = '#16a34a';
 const DEFAULT_CONTINUOUS_START_COLOR = '#bbf7d0';
 const DEFAULT_CONTINUOUS_END_COLOR = '#166534';
+const MANIFEST_SCHEMA_VERSION = '0.2.0';
+const SPECIES_AND_BIODIVERSITY_CATEGORY_ID = 'species_and_biodiversity';
+const SPECIES_MANIFEST_URL = `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json`;
+
+/**
+ * Curated per-category palette used to seed brand-new layers and categories.
+ * `selectedColor` is the binary-mask default; `startColor`/`endColor` form the
+ * continuous gradient. New layers within a known category derive their color by
+ * hashing the `layerId` to a small hue offset around this base.
+ */
+const CATEGORY_PALETTE = {
+  administrative_boundaries: {
+    selectedColor: '#111827',
+    startColor: '#e5e7eb',
+    endColor: '#111827',
+  },
+  species_and_biodiversity: {
+    selectedColor: '#854d0e',
+    startColor: '#fef3c7',
+    endColor: '#854d0e',
+  },
+  ecosystems: {
+    selectedColor: '#166534',
+    startColor: '#bbf7d0',
+    endColor: '#166534',
+  },
+  environmental_services: {
+    selectedColor: '#0f766e',
+    startColor: '#ccfbf1',
+    endColor: '#0f766e',
+  },
+  management_figures: {
+    selectedColor: '#3730a3',
+    startColor: '#e0e7ff',
+    endColor: '#3730a3',
+  },
+  cultural_and_ethnic_territories: {
+    selectedColor: '#1d4ed8',
+    startColor: '#dbeafe',
+    endColor: '#1d4ed8',
+  },
+  socioeconomic: {
+    selectedColor: '#991b1b',
+    startColor: '#fee2e2',
+    endColor: '#991b1b',
+  },
+  conflict_and_security: {
+    selectedColor: '#9f1239',
+    startColor: '#ffe4e6',
+    endColor: '#9f1239',
+  },
+  territorial_planning: {
+    selectedColor: '#4d7c0f',
+    startColor: '#ecfccb',
+    endColor: '#4d7c0f',
+  },
+  prospective_models: {
+    selectedColor: '#155e75',
+    startColor: '#cffafe',
+    endColor: '#155e75',
+  },
+  solutions: {
+    selectedColor: '#9d174d',
+    startColor: '#fce7f3',
+    endColor: '#9d174d',
+  },
+};
+const CATEGORY_PALETTE_FALLBACK = {
+  selectedColor: '#475569',
+  startColor: '#e2e8f0',
+  endColor: '#475569',
+};
+const LAYER_HUE_OFFSET_RANGE_DEGREES = 15;
+
+export function getCategoryPalette(categoryId) {
+  return CATEGORY_PALETTE[categoryId] ?? CATEGORY_PALETTE_FALLBACK;
+}
 
 /**
  * Optional per-layer overrides for rendering inference.
@@ -487,21 +564,30 @@ async function readBlobInventory() {
   return [...unique.values()];
 }
 
-function createCategories(rows, layerEntries) {
+function createCategories(rows, layerEntries, existingManifestIndex, speciesTaxa) {
   const categories = new Map();
 
   for (const row of rows) {
     const id = inferProposedCategoryId(row);
     const proposedCategory = proposedManifestCategories[id];
     const layerIds = layerEntries
-      .filter((entry) => entry.manifestLayer.sidebarCategoryId === id)
+      .filter((entry) => entry.manifestLayer.category === id)
       .map((entry) => entry.manifestLayer.id);
 
     if (!categories.has(id)) {
+      const existingCategory = existingManifestIndex?.categoriesById?.get(id) ?? null;
+      const styleDefaults = pickCategoryStyleDefaults(id, existingCategory);
+      const subcategories =
+        id === SPECIES_AND_BIODIVERSITY_CATEGORY_ID
+          ? buildSpeciesSubcategories(speciesTaxa, existingManifestIndex)
+          : preserveExistingSubcategories(existingCategory);
+
       categories.set(id, {
         id,
         spanishLabel: proposedCategory.spanishLabel,
         englishLabel: proposedCategory.englishLabel,
+        ...(styleDefaults ? { styleDefaults } : {}),
+        ...(subcategories.length > 0 ? { subcategories } : {}),
         layerIds,
       });
     }
@@ -510,7 +596,113 @@ function createCategories(rows, layerEntries) {
   return [...categories.values()].sort((a, b) => a.spanishLabel.localeCompare(b.spanishLabel));
 }
 
-async function createLayerEntry(row, blobByPath) {
+function pickCategoryStyleDefaults(categoryId, existingCategory) {
+  const existingDefaults =
+    existingCategory && typeof existingCategory.styleDefaults === 'object'
+      ? existingCategory.styleDefaults
+      : null;
+  if (existingDefaults) {
+    return { ...existingDefaults };
+  }
+  const palette = getCategoryPalette(categoryId);
+  if (palette === CATEGORY_PALETTE_FALLBACK && !CATEGORY_PALETTE[categoryId]) {
+    return null;
+  }
+  return { ...palette };
+}
+
+function preserveExistingSubcategories(existingCategory) {
+  if (!existingCategory || !Array.isArray(existingCategory.subcategories)) {
+    return [];
+  }
+  return existingCategory.subcategories
+    .filter((subcategory) => subcategory && typeof subcategory.id === 'string')
+    .map((subcategory) => ({
+      id: subcategory.id,
+      spanishLabel: subcategory.spanishLabel ?? subcategory.id,
+      englishLabel: subcategory.englishLabel ?? null,
+      ...(subcategory.styleDefaults ? { styleDefaults: { ...subcategory.styleDefaults } } : {}),
+      layerIds: Array.isArray(subcategory.layerIds) ? [...subcategory.layerIds] : [],
+    }));
+}
+
+/**
+ * Builds the species-and-biodiversity subcategories from the live species manifest's
+ * taxa, preferring any existing subcategory styleDefaults. Brand-new taxa get a
+ * hashed hue offset over the species palette so they're visually distinct.
+ *
+ * Falls back to whatever subcategories exist in the prior manifest when species
+ * taxa cannot be loaded (e.g. offline, blob fetch failed).
+ */
+function buildSpeciesSubcategories(speciesTaxa, existingManifestIndex) {
+  if (!Array.isArray(speciesTaxa) || speciesTaxa.length === 0) {
+    return preserveExistingSubcategories(
+      existingManifestIndex?.categoriesById?.get(SPECIES_AND_BIODIVERSITY_CATEGORY_ID) ?? null,
+    );
+  }
+
+  const palette = getCategoryPalette(SPECIES_AND_BIODIVERSITY_CATEGORY_ID);
+  return speciesTaxa.map((taxon) => {
+    const path = `${SPECIES_AND_BIODIVERSITY_CATEGORY_ID}.${taxon.id}`;
+    const existing = existingManifestIndex?.subcategoriesByPath?.get(path) ?? null;
+    const offset = hueOffsetForLayer(taxon.id);
+    const seededDefaults = {
+      selectedColor: shiftHexHue(palette.selectedColor, offset),
+      startColor: shiftHexHue(palette.startColor, offset),
+      endColor: shiftHexHue(palette.endColor, offset),
+    };
+
+    return {
+      id: taxon.id,
+      spanishLabel: taxon.spanishLabel ?? existing?.spanishLabel ?? taxon.label ?? taxon.id,
+      englishLabel: taxon.englishLabel ?? existing?.englishLabel ?? taxon.label ?? null,
+      styleDefaults: existing?.styleDefaults ? { ...existing.styleDefaults } : seededDefaults,
+      layerIds: Array.isArray(existing?.layerIds) ? [...existing.layerIds] : [],
+    };
+  });
+}
+
+/**
+ * Fetches the public species manifest to seed `species_and_biodiversity.subcategories`.
+ * Returns `[]` (and logs a warning) if the manifest is unreachable so the generator
+ * can still complete; existing subcategories will be preserved instead.
+ */
+async function fetchSpeciesTaxa() {
+  try {
+    const response = await fetch(SPECIES_MANIFEST_URL, { method: 'GET', redirect: 'follow' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+    const speciesManifest = await response.json();
+    const taxaById = new Map();
+    for (const layer of speciesManifest.layers ?? []) {
+      if (!layer || typeof layer.taxonId !== 'string' || !layer.taxonId) {
+        continue;
+      }
+      if (taxaById.has(layer.taxonId)) {
+        continue;
+      }
+      taxaById.set(layer.taxonId, {
+        id: layer.taxonId,
+        label: layer.taxonLabel ?? null,
+        spanishLabel: layer.taxonLabel ?? layer.taxonId,
+        englishLabel: layer.taxonLabel ?? null,
+      });
+    }
+    return [...taxaById.values()].sort((a, b) =>
+      String(a.spanishLabel).localeCompare(String(b.spanishLabel)),
+    );
+  } catch (error) {
+    console.warn(
+      `[generate:layer-manifest] could not fetch species manifest for subcategories: ${
+        (error instanceof Error && error.message) || String(error)
+      }`,
+    );
+    return [];
+  }
+}
+
+async function createLayerEntry(row, blobByPath, existingManifestIndex) {
   const labels = splitMultilineLabel(row.layer_name);
   const blobPath = toBlobPath(row.storage_location, row.filename);
   const isCollection = blobPath?.endsWith('/');
@@ -526,12 +718,17 @@ async function createLayerEntry(row, blobByPath) {
   const id = toLayerId(row.layer_id);
   const dataRole = inferDataRole(row);
   const roleInMetricCalculation = inferRoleInMetricCalculation(dataRole);
+  const categoryId = inferProposedCategoryId(row);
+  const existingLayer = existingManifestIndex?.layersById?.get(id) ?? null;
   const { rendering, renderingInference } = await inferRenderingConfig({
     row,
     id,
     dataRole,
+    categoryId,
     displayReference,
+    existingLayer,
   });
+  const styleOverride = existingLayer?.styleOverride ?? null;
 
   return {
     manifestLayer: {
@@ -541,7 +738,7 @@ async function createLayerEntry(row, blobByPath) {
       description: row.layer_description,
       tooltip: null,
       dataRole,
-      sidebarCategoryId: inferProposedCategoryId(row),
+      category: categoryId,
       roleInMetricCalculation,
       ...toDisplayUrlFields(displayReference),
       ...(row.layer_id === 'species'
@@ -553,6 +750,7 @@ async function createLayerEntry(row, blobByPath) {
         : null,
       precomputedMetricUrls: createPrecomputedMetricUrls(id, roleInMetricCalculation),
       rendering,
+      ...(styleOverride !== null ? { styleOverride } : {}),
     },
     reconciliation: {
       sourceLayerId: row.layer_id,
@@ -564,14 +762,27 @@ async function createLayerEntry(row, blobByPath) {
   };
 }
 
-async function inferRenderingConfig({ row, id, dataRole, displayReference }) {
+async function inferRenderingConfig({
+  row,
+  id,
+  dataRole,
+  categoryId,
+  displayReference,
+  existingLayer,
+}) {
   const override = renderingOverrideByLayerId[id];
   if (override) {
+    const rendering = pickRenderingForLayer({
+      inferredRendering: override,
+      layerId: id,
+      categoryId,
+      existingLayer,
+    });
     return {
-      rendering: override,
+      rendering,
       renderingInference: {
         strategy: 'manual_override',
-        classification: override.valueType,
+        classification: rendering.valueType,
         confidence: 'forced',
         reason: 'Layer matched renderingOverrideByLayerId',
       },
@@ -584,8 +795,14 @@ async function inferRenderingConfig({ row, id, dataRole, displayReference }) {
 
     if (characteristics.status === 'ok') {
       if (characteristics.classification === 'binary') {
+        const inferred = toBinaryRenderingConfig(characteristics);
         return {
-          rendering: toBinaryRenderingConfig(characteristics, id, dataRole),
+          rendering: pickRenderingForLayer({
+            inferredRendering: inferred,
+            layerId: id,
+            categoryId,
+            existingLayer,
+          }),
           renderingInference: {
             strategy: 'raster_sampling',
             classification: 'binary',
@@ -597,8 +814,14 @@ async function inferRenderingConfig({ row, id, dataRole, displayReference }) {
       }
 
       if (characteristics.classification === 'continuous') {
+        const inferred = toContinuousRenderingConfig(characteristics);
         return {
-          rendering: toContinuousRenderingConfig(characteristics, id, dataRole),
+          rendering: pickRenderingForLayer({
+            inferredRendering: inferred,
+            layerId: id,
+            categoryId,
+            existingLayer,
+          }),
           renderingInference: {
             strategy: 'raster_sampling',
             classification: 'continuous',
@@ -611,12 +834,18 @@ async function inferRenderingConfig({ row, id, dataRole, displayReference }) {
     }
   }
 
-  const fallbackRendering = inferLegacyRenderingConfig({ row, id, dataRole });
+  const fallbackInferred = inferLegacyRenderingConfig({ row, id, dataRole });
+  const rendering = pickRenderingForLayer({
+    inferredRendering: fallbackInferred,
+    layerId: id,
+    categoryId,
+    existingLayer,
+  });
   return {
-    rendering: fallbackRendering,
+    rendering,
     renderingInference: {
       strategy: isRasterCandidate ? 'fallback_after_uncertain_sampling' : 'legacy_non_raster',
-      classification: fallbackRendering.valueType,
+      classification: rendering.valueType,
       confidence: 'low',
       reason: isRasterCandidate
         ? 'Raster sampling was unavailable or inconclusive; used legacy rule-based fallback.'
@@ -634,15 +863,14 @@ function inferLegacyRenderingConfig({ row, id, dataRole }) {
   }
 
   if (dataRole === 'cost_layer') {
-    const theme = inferLayerColorTheme(id, dataRole);
     return {
       valueType: 'continuous',
       renderMode: 'gradient',
       noDataValue: null,
       minValue: null,
       maxValue: null,
-      startColor: theme.gradientStartColor,
-      endColor: theme.gradientEndColor,
+      startColor: null,
+      endColor: null,
     };
   }
 
@@ -653,23 +881,21 @@ function inferLegacyRenderingConfig({ row, id, dataRole }) {
     dataRole === 'include_layer' ||
     dataRole === 'administrative_boundary'
   ) {
-    const theme = inferLayerColorTheme(id, dataRole);
     return {
       valueType: 'binary',
       renderMode: 'mask',
       noDataValue: 255,
       selectedValue: 1,
-      selectedColor: theme.binarySelectedColor,
+      selectedColor: null,
     };
   }
 
-  const theme = inferLayerColorTheme(id, dataRole);
   return {
     valueType: 'binary',
     renderMode: 'mask',
     noDataValue: 255,
     selectedValue: 1,
-    selectedColor: theme.binarySelectedColor,
+    selectedColor: null,
   };
 }
 
@@ -855,10 +1081,9 @@ function classifyRasterSample({ sample, sampleFormat, bitsPerSample }) {
   };
 }
 
-function toBinaryRenderingConfig(characteristics, layerId, dataRole) {
+function toBinaryRenderingConfig(characteristics) {
   const selectedValue = inferSelectedBinaryValue(characteristics.sample.uniqueValues, characteristics.noDataValue);
   const fallbackNoDataValue = inferNoDataFromBinaryValues(characteristics.sample.uniqueValues);
-  const theme = inferLayerColorTheme(layerId, dataRole);
 
   return {
     valueType: 'binary',
@@ -866,7 +1091,7 @@ function toBinaryRenderingConfig(characteristics, layerId, dataRole) {
     noDataValue:
       typeof characteristics.noDataValue === 'number' ? characteristics.noDataValue : fallbackNoDataValue,
     selectedValue,
-    selectedColor: theme.binarySelectedColor,
+    selectedColor: null,
   };
 }
 
@@ -894,11 +1119,10 @@ function inferNoDataFromBinaryValues(uniqueValues) {
   return null;
 }
 
-function toContinuousRenderingConfig(characteristics, layerId, dataRole) {
+function toContinuousRenderingConfig(characteristics) {
   const minValue = typeof characteristics.sample.min === 'number' ? characteristics.sample.min : null;
   const maxValue = typeof characteristics.sample.max === 'number' ? characteristics.sample.max : null;
   const hasValidRange = typeof minValue === 'number' && typeof maxValue === 'number' && maxValue > minValue;
-  const theme = inferLayerColorTheme(layerId, dataRole);
 
   return {
     valueType: 'continuous',
@@ -906,8 +1130,8 @@ function toContinuousRenderingConfig(characteristics, layerId, dataRole) {
     noDataValue: typeof characteristics.noDataValue === 'number' ? characteristics.noDataValue : null,
     minValue: hasValidRange ? minValue : null,
     maxValue: hasValidRange ? maxValue : null,
-    startColor: theme.gradientStartColor,
-    endColor: theme.gradientEndColor,
+    startColor: null,
+    endColor: null,
   };
 }
 
@@ -919,17 +1143,117 @@ function normalizeNumericValue(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function inferLayerColorTheme(layerId, dataRole) {
-  const seed = hashStringToPositiveInt(layerId);
-  const [minHue, maxHue] = dataRole === 'cost_layer' ? [6, 35] : [55, 320];
-  const hueSpan = maxHue - minHue;
-  const hue = minHue + (seed % (hueSpan + 1));
+/**
+ * Resolves the final rendering for a layer by combining inference with what was
+ * already in the previous manifest. Mode-stable layers preserve their existing
+ * colors byte-for-byte; mode-flipped layers carry the previous color forward
+ * (binary mask `selectedColor` becomes new gradient `endColor`, gradient
+ * `endColor` becomes new mask `selectedColor`). Brand-new layers seed from the
+ * curated category palette with a small per-layer hue offset.
+ */
+export function pickRenderingForLayer({ inferredRendering, layerId, categoryId, existingLayer }) {
+  const palette = getCategoryPalette(categoryId);
+  const existingRendering = existingLayer?.rendering ?? null;
+
+  if (!existingRendering || !isEditableRenderMode(existingRendering.renderMode)) {
+    return seedRenderingFromPalette(inferredRendering, palette, layerId);
+  }
+
+  if (existingRendering.renderMode === inferredRendering.renderMode) {
+    return existingRendering;
+  }
+
+  if (existingRendering.renderMode === 'mask' && inferredRendering.renderMode === 'gradient') {
+    const carriedEndColor = existingRendering.selectedColor ?? palette.endColor;
+    return {
+      ...inferredRendering,
+      startColor: lightenHexColor(carriedEndColor, 0.55),
+      endColor: carriedEndColor,
+    };
+  }
+
+  if (existingRendering.renderMode === 'gradient' && inferredRendering.renderMode === 'mask') {
+    return {
+      ...inferredRendering,
+      selectedColor: existingRendering.endColor ?? palette.endColor,
+    };
+  }
+
+  return seedRenderingFromPalette(inferredRendering, palette, layerId);
+}
+
+function seedRenderingFromPalette(inferredRendering, palette, layerId) {
+  const offset = hueOffsetForLayer(layerId);
+  if (inferredRendering.renderMode === 'mask') {
+    return {
+      ...inferredRendering,
+      selectedColor: shiftHexHue(palette.selectedColor, offset),
+    };
+  }
 
   return {
-    binarySelectedColor: hslToHex(hue, 78, 42),
-    gradientStartColor: hslToHex(hue, 72, 86),
-    gradientEndColor: hslToHex(hue, 74, 33),
+    ...inferredRendering,
+    startColor: shiftHexHue(palette.startColor, offset),
+    endColor: shiftHexHue(palette.endColor, offset),
   };
+}
+
+function isEditableRenderMode(mode) {
+  return mode === 'mask' || mode === 'gradient';
+}
+
+function hueOffsetForLayer(layerId) {
+  const seed = hashStringToPositiveInt(String(layerId));
+  const span = LAYER_HUE_OFFSET_RANGE_DEGREES * 2 + 1;
+  return (seed % span) - LAYER_HUE_OFFSET_RANGE_DEGREES;
+}
+
+async function loadExistingManifest(filePath) {
+  let raw;
+  try {
+    raw = await fs.readFile(filePath, 'utf-8');
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  const layersById = new Map();
+  if (Array.isArray(parsed?.layers)) {
+    for (const layer of parsed.layers) {
+      if (layer && typeof layer.id === 'string') {
+        layersById.set(layer.id, layer);
+      }
+    }
+  }
+
+  const categoriesById = new Map();
+  const subcategoriesByPath = new Map();
+  if (Array.isArray(parsed?.categories)) {
+    for (const category of parsed.categories) {
+      if (!category || typeof category.id !== 'string') {
+        continue;
+      }
+      categoriesById.set(category.id, category);
+      if (Array.isArray(category.subcategories)) {
+        for (const subcategory of category.subcategories) {
+          if (subcategory && typeof subcategory.id === 'string') {
+            subcategoriesByPath.set(`${category.id}.${subcategory.id}`, subcategory);
+          }
+        }
+      }
+    }
+  }
+
+  return { manifest: parsed, layersById, categoriesById, subcategoriesByPath };
 }
 
 function hashStringToPositiveInt(value) {
@@ -977,6 +1301,58 @@ function hslToHex(h, s, l) {
   return `#${[r, g, b]
     .map((value) => value.toString(16).padStart(2, '0'))
     .join('')}`;
+}
+
+function hexToHsl(hexColor) {
+  const normalized = String(hexColor || '').trim().replace(/^#/, '');
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return null;
+  }
+  const r = parseInt(normalized.slice(0, 2), 16) / 255;
+  const g = parseInt(normalized.slice(2, 4), 16) / 255;
+  const b = parseInt(normalized.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const lightness = (max + min) / 2;
+  const delta = max - min;
+  let hue = 0;
+  let saturation = 0;
+  if (delta !== 0) {
+    saturation = delta / (1 - Math.abs(2 * lightness - 1));
+    if (max === r) {
+      hue = ((g - b) / delta) % 6;
+    } else if (max === g) {
+      hue = (b - r) / delta + 2;
+    } else {
+      hue = (r - g) / delta + 4;
+    }
+    hue *= 60;
+    if (hue < 0) hue += 360;
+  }
+  return { h: hue, s: saturation * 100, l: lightness * 100 };
+}
+
+function shiftHexHue(hexColor, hueOffsetDegrees) {
+  const hsl = hexToHsl(hexColor);
+  if (!hsl) {
+    return hexColor;
+  }
+  return hslToHex(hsl.h + hueOffsetDegrees, hsl.s, hsl.l);
+}
+
+/**
+ * Returns a lighter version of `hexColor` by raising its lightness toward 100%.
+ * `factor` is a value in [0, 1]: 0 keeps the color unchanged, 1 returns near-white.
+ */
+function lightenHexColor(hexColor, factor) {
+  const hsl = hexToHsl(hexColor);
+  if (!hsl) {
+    return hexColor;
+  }
+  const clampedFactor = Math.max(0, Math.min(1, factor));
+  const nextL = hsl.l + (95 - hsl.l) * clampedFactor;
+  const nextS = Math.max(0, hsl.s - hsl.s * clampedFactor * 0.4);
+  return hslToHex(hsl.h, nextS, nextL);
 }
 
 function createDisplayReference({ row, blobPath, isCollection, matchedBlob, remoteUrl }) {
@@ -1421,8 +1797,17 @@ async function main() {
   const includedRows = rows.filter((row) => isTrue(row.in_use_now) && isDisplayCandidate(row));
   const blobInventory = await readBlobInventory();
   const blobByPath = new Map(blobInventory.map((blob) => [blob.pathname, blob]));
-  const layerEntries = await Promise.all(includedRows.map((row) => createLayerEntry(row, blobByPath)));
-  const categories = createCategories(includedRows, layerEntries);
+  const existingManifestIndex = await loadExistingManifest(GENERATED_MANIFEST_PATH);
+  const speciesTaxa = await fetchSpeciesTaxa();
+  const layerEntries = await Promise.all(
+    includedRows.map((row) => createLayerEntry(row, blobByPath, existingManifestIndex)),
+  );
+  const categories = createCategories(
+    includedRows,
+    layerEntries,
+    existingManifestIndex,
+    speciesTaxa,
+  );
   const layers = layerEntries.map((entry) => entry.manifestLayer);
   const currentFrontendCategories = await extractCurrentFrontendCategories();
   const categoryMappingReport = buildCategoryMappingReport({
@@ -1439,7 +1824,7 @@ async function main() {
   });
 
   const manifest = {
-    version: '0.1.0',
+    version: MANIFEST_SCHEMA_VERSION,
     generatedAt: GENERATED_AT,
     publicBlobHost: PUBLIC_BLOB_HOST,
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
@@ -1467,7 +1852,11 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(`[generate:layer-manifest] ${error.message}`);
-  process.exit(1);
-});
+const isCalledDirectly =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
+if (isCalledDirectly) {
+  main().catch((error) => {
+    console.error(`[generate:layer-manifest] ${error.message}`);
+    process.exit(1);
+  });
+}

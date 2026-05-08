@@ -755,6 +755,19 @@ export class MapLayersPanelComponent implements OnDestroy {
   private normalizeManifestRendering(
     manifestRow: ManifestSidebarLayerRow,
   ): RuntimeLayerManifestRenderingConfig {
+    const fallbackRendering: RuntimeLayerManifestRenderingConfig = {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: 255,
+      minValue: 0,
+      maxValue: 1,
+      startColor: '#e2e8f0',
+      endColor: '#475569',
+    };
+    if (!manifestRow.rendering) {
+      return fallbackRendering;
+    }
+
     if (manifestRow.id !== 'species_richness') {
       return manifestRow.rendering;
     }
@@ -815,7 +828,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     return typeof manifestRow.displayUrl === 'string' && manifestRow.displayUrl.length > 0;
   }
 
-  private isManifestRenderingSupported(rendering: RuntimeLayerManifestRenderingConfig): boolean {
+  private isManifestRenderingSupported(
+    rendering: RuntimeLayerManifestRenderingConfig | null | undefined,
+  ): boolean {
+    if (!rendering) {
+      return false;
+    }
     if (rendering.renderMode === 'categorical') {
       return Array.isArray(rendering.classColors) && rendering.classColors.length > 0;
     }

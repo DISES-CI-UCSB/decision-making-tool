@@ -36,6 +36,12 @@ export interface RuntimeLayerManifestRenderingConfig {
   classColors?: RuntimeLayerManifestClassColor[];
 }
 
+export interface RuntimeLayerManifestColorDefaults {
+  selectedColor?: string | null;
+  startColor?: string | null;
+  endColor?: string | null;
+}
+
 export interface RuntimeLayerManifest {
   version: string;
   generatedAt: string;
@@ -45,10 +51,20 @@ export interface RuntimeLayerManifest {
   layers: RuntimeLayerManifestLayer[];
 }
 
+export interface RuntimeLayerManifestSubcategory {
+  id: string;
+  spanishLabel: string;
+  englishLabel?: string | null;
+  styleDefaults?: RuntimeLayerManifestColorDefaults;
+  layerIds: string[];
+}
+
 export interface RuntimeLayerManifestCategory {
   id: string;
   spanishLabel: string;
   englishLabel?: string | null;
+  styleDefaults?: RuntimeLayerManifestColorDefaults;
+  subcategories?: RuntimeLayerManifestSubcategory[];
   layerIds: string[];
 }
 
@@ -59,7 +75,12 @@ export interface RuntimeLayerManifestLayer {
   description: string;
   tooltip: string | null;
   dataRole: RuntimeLayerManifestDataRole;
-  sidebarCategoryId: string;
+  /**
+   * Dot-path category reference. Bare `categoryId` (e.g. `"ecosystems"`) for layers
+   * that live directly under a category, or `"categoryId.subcategoryId"` (e.g.
+   * `"species_and_biodiversity.felidae"`) for layers grouped under a subcategory.
+   */
+  category: string;
   roleInMetricCalculation: RuntimeLayerManifestMetricRole;
   displayUrl?: string | null;
   displayCollectionUrl?: string | null;
@@ -68,6 +89,7 @@ export interface RuntimeLayerManifestLayer {
   compressedDataForLiveMetricsUrl: string | null;
   precomputedMetricUrls: Record<string, string>;
   rendering: RuntimeLayerManifestRenderingConfig;
+  styleOverride?: boolean | null;
 }
 
 export interface ManifestSidebarLayerRow {
@@ -77,7 +99,10 @@ export interface ManifestSidebarLayerRow {
   englishLabel: string | null;
   description: string;
   tooltip: string | null;
+  /** Top-level category id parsed from `layer.category`. */
   sidebarCategoryId: string;
+  /** Subcategory id parsed from `layer.category`, or null when none. */
+  sidebarSubcategoryId: string | null;
   dataRole: RuntimeLayerManifestDataRole;
   roleInMetricCalculation: RuntimeLayerManifestMetricRole;
   displayUrl: string | null;
@@ -114,9 +139,35 @@ export interface ManifestSidebarLayerGroup {
 
 export type ManifestSidebarLayersByCategory = Record<string, ManifestSidebarLayerRow[]>;
 
+export interface ParsedCategoryPath {
+  categoryId: string;
+  subcategoryId: string | null;
+}
+
+const CATEGORY_PATH_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$/;
+
+/**
+ * Splits a manifest layer's `category` dot-path into its top-level category id and
+ * (optional) subcategory id. Throws when the path is malformed.
+ */
+export function parseCategoryPath(category: string): ParsedCategoryPath {
+  if (typeof category !== 'string' || !CATEGORY_PATH_PATTERN.test(category)) {
+    throw new Error(`layer.category "${category}" must match ^[a-z0-9_]+(\\.[a-z0-9_]+)?$`);
+  }
+  const dotIndex = category.indexOf('.');
+  if (dotIndex < 0) {
+    return { categoryId: category, subcategoryId: null };
+  }
+  return {
+    categoryId: category.slice(0, dotIndex),
+    subcategoryId: category.slice(dotIndex + 1),
+  };
+}
+
 export function mapManifestLayerToSidebarRow(
   layer: RuntimeLayerManifestLayer,
 ): ManifestSidebarLayerRow {
+  const { categoryId, subcategoryId } = parseCategoryPath(layer.category);
   return {
     id: layer.id,
     name: layer.englishLabel ?? layer.spanishLabel,
@@ -124,7 +175,8 @@ export function mapManifestLayerToSidebarRow(
     englishLabel: layer.englishLabel,
     description: layer.description,
     tooltip: layer.tooltip,
-    sidebarCategoryId: layer.sidebarCategoryId,
+    sidebarCategoryId: categoryId,
+    sidebarSubcategoryId: subcategoryId,
     dataRole: layer.dataRole,
     roleInMetricCalculation: layer.roleInMetricCalculation,
     displayUrl: layer.displayUrl ?? null,
@@ -152,17 +204,21 @@ export function buildManifestSidebarLayerGroups(
   manifest: RuntimeLayerManifest,
 ): ManifestSidebarLayerGroup[] {
   const layersById = new Map(manifest.layers.map((layer) => [layer.id, layer]));
+  const layerCategoryIdById = new Map(
+    manifest.layers.map((layer) => [layer.id, parseCategoryPath(layer.category).categoryId]),
+  );
 
   return manifest.categories.map((category) => {
     const orderedCategoryLayers = category.layerIds
       .map((layerId) => layersById.get(layerId))
       .filter(
         (layer): layer is RuntimeLayerManifestLayer =>
-          layer !== undefined && layer.sidebarCategoryId === category.id,
+          layer !== undefined && layerCategoryIdById.get(layer.id) === category.id,
       );
     const orderedLayerIds = new Set(orderedCategoryLayers.map((layer) => layer.id));
     const remainingCategoryLayers = manifest.layers.filter(
-      (layer) => layer.sidebarCategoryId === category.id && !orderedLayerIds.has(layer.id),
+      (layer) =>
+        layerCategoryIdById.get(layer.id) === category.id && !orderedLayerIds.has(layer.id),
     );
     const rows = [...orderedCategoryLayers, ...remainingCategoryLayers].map(
       mapManifestLayerToSidebarRow,

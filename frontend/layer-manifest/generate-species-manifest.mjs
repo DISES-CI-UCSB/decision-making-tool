@@ -399,6 +399,31 @@ function normalizeScientificName(pathname) {
     .join(' ');
 }
 
+function toDisplayLabel(value) {
+  return value
+    .split(/[_-]+/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .map((token) => `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`)
+    .join(' ');
+}
+
+function inferTaxonFromPathname(pathname) {
+  const relativePath = pathname.startsWith(SPECIES_BLOB_PREFIX)
+    ? pathname.slice(SPECIES_BLOB_PREFIX.length)
+    : pathname;
+  const pathSegments = relativePath.split('/').filter(Boolean);
+  if (pathSegments.length < 2) {
+    return { taxonId: null, taxonLabel: null };
+  }
+
+  const taxonSlug = pathSegments[0];
+  return {
+    taxonId: toLayerId(taxonSlug),
+    taxonLabel: toDisplayLabel(taxonSlug),
+  };
+}
+
 function toLayerId(value) {
   return value
     .normalize('NFD')
@@ -507,6 +532,7 @@ async function inspectSpeciesRasterWithRetry(url, sampleGridSize, maxAttempts, p
 
 async function buildSpeciesLayer(blob, sampleGridSize, retryAttempts, pacing) {
   const scientificName = normalizeScientificName(blob.pathname);
+  const taxon = inferTaxonFromPathname(blob.pathname);
   const id = toLayerId(scientificName);
   const { rendering } = await inspectSpeciesRasterWithRetry(
     blob.url,
@@ -517,8 +543,8 @@ async function buildSpeciesLayer(blob, sampleGridSize, retryAttempts, pacing) {
 
   return {
     id,
-    taxonId: null,
-    taxonLabel: null,
+    taxonId: taxon.taxonId,
+    taxonLabel: taxon.taxonLabel,
     commonName: scientificName,
     scientificName,
     displayUrl: blob.url,

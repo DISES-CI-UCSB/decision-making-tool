@@ -2,17 +2,28 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import type {
   RuntimeLayerManifest,
+  RuntimeLayerManifestCategory,
+  RuntimeLayerManifestColorDefaults,
   RuntimeLayerManifestLayer,
   RuntimeLayerManifestRenderingConfig,
+  RuntimeLayerManifestSubcategory,
 } from '@core/models/layer-manifest.model';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { firstValueFrom } from 'rxjs';
 import {
+  applyCategoryColorDefaults,
+  applyColorDefaultsToRendering,
   buildManifestDiffSummary,
+  clearLayerStyleOverride,
+  getCategoryColorDefaults,
+  getLayerCategoryId,
+  getSubcategoryColorDefaults,
   isEditableDataRole,
   isEditableRenderMode,
   normalizeManifestForEditor,
   parseOptionalNumber,
+  setSubcategoryColorDefaults,
+  validateColorDefaults,
   validateRenderingConfig,
 } from './manifest-style-editor.utils';
 
@@ -22,10 +33,55 @@ interface EditableManifestLayerSummary {
   dataRole: string;
   renderMode: string;
   valueType: string;
+  isEditable: boolean;
+  styleOverride: boolean;
+  hasValidationErrors: boolean;
+  swatchStyle: string;
+  usesCategoricalSwatch: boolean;
 }
 
+interface EditableManifestCategorySummary {
+  id: string;
+  title: string;
+  layerCount: number;
+  editableLayerCount: number;
+  overrideCount: number;
+  hasValidationErrors: boolean;
+  swatchStyle: string;
+  subcategories: EditableManifestSubcategorySummary[];
+  /** Kept for template back-compat with the species taxa block; mirrors `subcategories`. */
+  speciesTaxa: EditableManifestSubcategorySummary[];
+  layers: EditableManifestLayerSummary[];
+}
+
+interface EditableManifestSubcategorySummary {
+  id: string;
+  categoryId: string;
+  title: string;
+  layerCount: number;
+  swatchStyle: string;
+}
+
+type ManifestStyleEditorScope =
+  | { type: 'category'; id: string }
+  | { type: 'subcategory'; categoryId: string; id: string }
+  | { type: 'layer'; id: string };
 type EditableRenderingNumberField = 'selectedValue' | 'noDataValue' | 'minValue' | 'maxValue';
 type EditableRenderingColorField = 'selectedColor' | 'startColor' | 'endColor';
+type EditableDefaultColorField = 'selectedColor' | 'startColor' | 'endColor';
+const SIDEBAR_CATEGORY_ORDER = [
+  'administrative_boundaries',
+  'species_and_biodiversity',
+  'ecosystems',
+  'environmental_services',
+  'management_figures',
+  'cultural_and_ethnic_territories',
+  'socioeconomic',
+  'conflict_and_security',
+  'territorial_planning',
+  'prospective_models',
+  'solutions',
+] as const;
 
 @Component({
   selector: 'app-manifest-style-editor-overlay',
@@ -44,70 +100,25 @@ export class ManifestStyleEditorOverlayComponent {
   protected readonly loadedManifest = signal<RuntimeLayerManifest | null>(null);
   protected readonly draftManifest = signal<RuntimeLayerManifest | null>(null);
   protected readonly resolvedManifestUrl = signal('');
-  protected readonly selectedLayerId = signal('');
+  protected readonly selectedScope = signal<ManifestStyleEditorScope | null>(null);
+  protected readonly expandedCategoryIds = signal<Set<string>>(new Set());
   protected readonly searchQuery = signal('');
   protected readonly editorName = signal('');
+  protected readonly publishSecret = signal('');
   protected readonly confirmPublishOpen = signal(false);
   protected readonly publishState = signal<'idle' | 'loading' | 'success' | 'error'>('idle');
   protected readonly publishMessage = signal<string | null>(null);
-  protected readonly publishCommand = signal('');
   protected readonly publishTargetPath = signal('');
   protected readonly publishArchivePath = signal('');
+  protected readonly publishedManifestUrl = signal('');
   protected readonly localDraftMessage = signal<string | null>(null);
-
-  protected readonly editableLayerSummaries = computed<EditableManifestLayerSummary[]>(() => {
-    const manifest = this.draftManifest();
-    if (!manifest) {
-      return [];
-    }
-    return manifest.layers
-      .filter(
-        (layer) =>
-          isEditableDataRole(layer.dataRole) &&
-          layer.rendering &&
-          isEditableRenderMode(layer.rendering.renderMode),
-      )
-      .map((layer) => ({
-        id: layer.id,
-        title: layer.englishLabel ?? layer.spanishLabel,
-        dataRole: layer.dataRole,
-        renderMode: layer.rendering.renderMode,
-        valueType: layer.rendering.valueType,
-      }));
-  });
-
-  protected readonly filteredLayerSummaries = computed(() => {
-    const normalizedQuery = this.searchQuery().trim().toLowerCase();
-    if (!normalizedQuery) {
-      return this.editableLayerSummaries();
-    }
-    return this.editableLayerSummaries().filter((layer) =>
-      `${layer.id} ${layer.title} ${layer.dataRole}`.toLowerCase().includes(normalizedQuery),
-    );
-  });
-
-  protected readonly selectedLayer = computed<RuntimeLayerManifestLayer | null>(() => {
-    const manifest = this.draftManifest();
-    const selectedId = this.selectedLayerId();
-    if (!manifest || !selectedId) {
-      return null;
-    }
-    return manifest.layers.find((layer) => layer.id === selectedId) ?? null;
-  });
-
-  protected readonly selectedLayerValidation = computed(() => {
-    const layer = this.selectedLayer();
-    if (!layer) {
-      return {};
-    }
-    return validateRenderingConfig(layer.rendering);
-  });
 
   protected readonly validationByLayerId = computed(() => {
     const manifest = this.draftManifest();
     if (!manifest) {
       return new Map<string, Record<string, string[]>>();
     }
+
     return new Map(
       manifest.layers
         .filter(
@@ -120,22 +131,193 @@ export class ManifestStyleEditorOverlayComponent {
     );
   });
 
+  protected readonly validationByCategoryId = computed(() => {
+    const manifest = this.draftManifest();
+    if (!manifest) {
+      return new Map<string, Record<string, string[]>>();
+    }
+
+    return new Map(
+      manifest.categories.map((category) => [
+        category.id,
+        validateColorDefaults(getCategoryColorDefaults(manifest, category.id)),
+      ]),
+    );
+  });
+
+  protected readonly editableCategorySummaries = computed<EditableManifestCategorySummary[]>(() => {
+    const manifest = this.draftManifest();
+    if (!manifest) {
+      return [];
+    }
+
+    const orderByCategoryId = new Map<string, number>(
+      SIDEBAR_CATEGORY_ORDER.map((id, index) => [id, index]),
+    );
+    const summaries = manifest.categories.map((category) =>
+      this.toCategorySummary(manifest, category),
+    );
+    return summaries.sort((a, b) => {
+      const aOrder = orderByCategoryId.get(a.id);
+      const bOrder = orderByCategoryId.get(b.id);
+      if (aOrder === undefined && bOrder === undefined) {
+        return a.title.localeCompare(b.title);
+      }
+      if (aOrder === undefined) {
+        return 1;
+      }
+      if (bOrder === undefined) {
+        return -1;
+      }
+      return aOrder - bOrder;
+    });
+  });
+
+  protected readonly filteredCategorySummaries = computed(() => {
+    const normalizedQuery = this.searchQuery().trim().toLowerCase();
+    if (!normalizedQuery) {
+      return this.editableCategorySummaries();
+    }
+
+    return this.editableCategorySummaries()
+      .map((category) => {
+        const categoryMatches = `${category.id} ${category.title}`
+          .toLowerCase()
+          .includes(normalizedQuery);
+        if (categoryMatches) {
+          return category;
+        }
+
+        const matchingSubcategories = category.subcategories.filter((subcategory) =>
+          `${subcategory.id} ${subcategory.title}`.toLowerCase().includes(normalizedQuery),
+        );
+        const matchingLayers = category.layers.filter((layer) =>
+          `${layer.id} ${layer.title} ${layer.dataRole}`.toLowerCase().includes(normalizedQuery),
+        );
+        return matchingLayers.length > 0 || matchingSubcategories.length > 0
+          ? {
+              ...category,
+              subcategories: matchingSubcategories,
+              speciesTaxa: matchingSubcategories,
+              layers: matchingLayers,
+            }
+          : null;
+      })
+      .filter((category): category is EditableManifestCategorySummary => category !== null);
+  });
+
+  protected readonly selectedCategory = computed<EditableManifestCategorySummary | null>(() => {
+    const scope = this.selectedScope();
+    if (!scope || scope.type !== 'category') {
+      return null;
+    }
+
+    return this.editableCategorySummaries().find((category) => category.id === scope.id) ?? null;
+  });
+
+  protected readonly selectedLayer = computed<RuntimeLayerManifestLayer | null>(() => {
+    const manifest = this.draftManifest();
+    const scope = this.selectedScope();
+    if (!manifest || !scope || scope.type !== 'layer') {
+      return null;
+    }
+
+    return manifest.layers.find((layer) => layer.id === scope.id) ?? null;
+  });
+
+  protected readonly selectedSubcategory = computed<EditableManifestSubcategorySummary | null>(
+    () => {
+      const scope = this.selectedScope();
+      if (!scope || scope.type !== 'subcategory') {
+        return null;
+      }
+      const category = this.editableCategorySummaries().find(
+        (entry) => entry.id === scope.categoryId,
+      );
+      return category?.subcategories.find((subcategory) => subcategory.id === scope.id) ?? null;
+    },
+  );
+
+  /** @deprecated Template alias for `selectedSubcategory`; remove after template refresh. */
+  protected readonly selectedSpeciesTaxon = this.selectedSubcategory;
+
+  protected readonly selectedCategoryDefaults = computed<RuntimeLayerManifestColorDefaults>(() => {
+    const manifest = this.draftManifest();
+    const category = this.selectedCategory();
+    if (!manifest || !category) {
+      return {};
+    }
+
+    return getCategoryColorDefaults(manifest, category.id);
+  });
+
+  protected readonly selectedSubcategoryDefaults = computed<RuntimeLayerManifestColorDefaults>(
+    () => {
+      const manifest = this.draftManifest();
+      const subcategory = this.selectedSubcategory();
+      if (!manifest || !subcategory) {
+        return {};
+      }
+
+      return getSubcategoryColorDefaults(manifest, subcategory.categoryId, subcategory.id);
+    },
+  );
+
+  /** @deprecated Template alias; remove after template refresh. */
+  protected readonly selectedSpeciesTaxonDefaults = this.selectedSubcategoryDefaults;
+
+  protected readonly selectedLayerValidation = computed(() => {
+    const layer = this.selectedLayer();
+    return layer?.rendering ? validateRenderingConfig(layer.rendering) : {};
+  });
+
+  protected readonly selectedLayerIsEditable = computed(() => {
+    const layer = this.selectedLayer();
+    if (!layer || !layer.rendering) {
+      return false;
+    }
+    return isEditableDataRole(layer.dataRole) && isEditableRenderMode(layer.rendering.renderMode);
+  });
+
+  protected readonly selectedCategoryValidation = computed(() =>
+    validateColorDefaults(this.selectedCategoryDefaults()),
+  );
+
+  protected readonly selectedSubcategoryValidation = computed(() =>
+    validateColorDefaults(this.selectedSubcategoryDefaults()),
+  );
+
   protected readonly hasInvalidFields = computed(() =>
-    Array.from(this.validationByLayerId().values()).some(
-      (validation) => Object.keys(validation).length > 0,
-    ),
+    [
+      ...this.validationByLayerId().values(),
+      ...this.validationByCategoryId().values(),
+      this.selectedSubcategoryValidation(),
+    ].some((validation) => Object.keys(validation).length > 0),
   );
 
   protected readonly diffSummary = computed(() => {
     const loaded = this.loadedManifest();
     const draft = this.draftManifest();
     if (!loaded || !draft) {
-      return { changedLayerCount: 0, changedLayers: [] };
+      return {
+        changedLayerCount: 0,
+        changedLayers: [],
+        changedDefaultCount: 0,
+        changedDefaults: [],
+        changedOverrideCount: 0,
+        changedOverrideLayers: [],
+      };
     }
+
     return buildManifestDiffSummary(loaded, draft);
   });
 
-  protected readonly hasUnsavedChanges = computed(() => this.diffSummary().changedLayerCount > 0);
+  protected readonly hasUnsavedChanges = computed(() => {
+    const diff = this.diffSummary();
+    return (
+      diff.changedLayerCount > 0 || diff.changedDefaultCount > 0 || diff.changedOverrideCount > 0
+    );
+  });
 
   protected async openEditor(): Promise<void> {
     this.isOpen.set(true);
@@ -150,8 +332,28 @@ export class ManifestStyleEditorOverlayComponent {
     this.confirmPublishOpen.set(false);
   }
 
+  protected selectCategory(categoryId: string): void {
+    const wasSelected = this.isSelectedCategory(categoryId);
+    this.selectedScope.set({ type: 'category', id: categoryId });
+    if (wasSelected) {
+      this.toggleCategory(categoryId);
+    } else {
+      this.expandCategory(categoryId);
+    }
+  }
+
+  protected selectSubcategory(categoryId: string, subcategoryId: string): void {
+    this.selectedScope.set({ type: 'subcategory', categoryId, id: subcategoryId });
+    this.expandCategory(categoryId);
+  }
+
+  /** @deprecated Kept for template compatibility; routes to `selectSubcategory`. */
+  protected selectSpeciesTaxon(taxonId: string): void {
+    this.selectSubcategory('species_and_biodiversity', taxonId);
+  }
+
   protected selectLayer(layerId: string): void {
-    this.selectedLayerId.set(layerId);
+    this.selectedScope.set({ type: 'layer', id: layerId });
   }
 
   protected onSearchInput(event: Event): void {
@@ -162,8 +364,94 @@ export class ManifestStyleEditorOverlayComponent {
     this.editorName.set((event.target as HTMLInputElement).value);
   }
 
+  protected onPublishSecretInput(event: Event): void {
+    this.publishSecret.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateCategoryColorField(fieldName: EditableDefaultColorField, event: Event): void {
+    this.updateCategoryColorValue(fieldName, (event.target as HTMLInputElement).value);
+  }
+
+  protected updateCategoryColorFieldOnBlur(
+    fieldName: EditableDefaultColorField,
+    event: Event,
+  ): void {
+    const input = event.target as HTMLInputElement;
+    const normalized = this.normalizeHexInput(input.value);
+    input.value = normalized;
+    this.updateCategoryColorValue(fieldName, normalized);
+  }
+
+  protected updateSpeciesTaxonColorField(fieldName: EditableDefaultColorField, event: Event): void {
+    this.updateSubcategoryColorValue(fieldName, (event.target as HTMLInputElement).value);
+  }
+
+  protected updateSpeciesTaxonColorFieldOnBlur(
+    fieldName: EditableDefaultColorField,
+    event: Event,
+  ): void {
+    const input = event.target as HTMLInputElement;
+    const normalized = this.normalizeHexInput(input.value);
+    input.value = normalized;
+    this.updateSubcategoryColorValue(fieldName, normalized);
+  }
+
   protected updateColorField(fieldName: EditableRenderingColorField, event: Event): void {
-    const inputValue = (event.target as HTMLInputElement).value.trim();
+    this.updateLayerColorValue(fieldName, (event.target as HTMLInputElement).value);
+  }
+
+  protected updateColorFieldOnBlur(fieldName: EditableRenderingColorField, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const normalized = this.normalizeHexInput(input.value);
+    input.value = normalized;
+    this.updateLayerColorValue(fieldName, normalized);
+  }
+
+  protected colorPickerValue(value: string | null | undefined, fallback: string): string {
+    const normalized = this.normalizeHexInput(value ?? '');
+    return normalized || fallback;
+  }
+
+  private updateCategoryColorValue(fieldName: EditableDefaultColorField, rawValue: string): void {
+    const category = this.selectedCategory();
+    if (!category) {
+      return;
+    }
+
+    const defaults = {
+      ...this.selectedCategoryDefaults(),
+      [fieldName]: rawValue.trim(),
+    };
+    this.applyCategoryDefaults(category.id, defaults, false);
+  }
+
+  private updateSubcategoryColorValue(
+    fieldName: EditableDefaultColorField,
+    rawValue: string,
+  ): void {
+    const subcategory = this.selectedSubcategory();
+    if (!subcategory) {
+      return;
+    }
+
+    const defaults = {
+      ...this.selectedSubcategoryDefaults(),
+      [fieldName]: rawValue.trim(),
+    };
+    this.applySubcategoryDefaults(subcategory.categoryId, subcategory.id, defaults);
+  }
+
+  protected applySelectedCategoryDefaults(replaceOverrides: boolean): void {
+    const category = this.selectedCategory();
+    if (!category) {
+      return;
+    }
+
+    this.applyCategoryDefaults(category.id, this.selectedCategoryDefaults(), replaceOverrides);
+  }
+
+  private updateLayerColorValue(fieldName: EditableRenderingColorField, rawValue: string): void {
+    const inputValue = rawValue.trim();
     this.updateSelectedLayerRendering((rendering) => ({ ...rendering, [fieldName]: inputValue }));
     this.publishState.set('idle');
     this.publishMessage.set(null);
@@ -186,14 +474,65 @@ export class ManifestStyleEditorOverlayComponent {
     if (!loaded || !selected) {
       return;
     }
+
     const sourceLayer = loaded.layers.find((layer) => layer.id === selected.id);
     if (!sourceLayer) {
       return;
     }
 
-    this.updateSelectedLayerRendering(() => structuredClone(sourceLayer.rendering));
+    this.updateSelectedLayer((layer) => ({
+      ...layer,
+      rendering: structuredClone(sourceLayer.rendering),
+      styleOverride: sourceLayer.styleOverride ?? null,
+    }));
     this.publishState.set('idle');
     this.publishMessage.set(null);
+  }
+
+  protected clearSelectedLayerOverride(): void {
+    const selected = this.selectedLayer();
+    if (!selected) {
+      return;
+    }
+
+    this.draftManifest.update((manifest) =>
+      manifest ? clearLayerStyleOverride(manifest, selected.id) : manifest,
+    );
+    this.publishState.set('idle');
+    this.publishMessage.set(null);
+  }
+
+  protected enableSelectedLayerOverride(): void {
+    const manifest = this.draftManifest();
+    const selected = this.selectedLayer();
+    if (!manifest || !selected?.rendering) {
+      return;
+    }
+
+    const inheritedDefaults = getCategoryColorDefaults(manifest, getLayerCategoryId(selected));
+    this.updateSelectedLayer((layer) => ({
+      ...layer,
+      rendering: layer.rendering
+        ? applyColorDefaultsToRendering(layer.rendering, inheritedDefaults)
+        : layer.rendering,
+      styleOverride: true,
+    }));
+    this.publishState.set('idle');
+    this.publishMessage.set(null);
+  }
+
+  protected toggleSelectedLayerOverride(): void {
+    const layer = this.selectedLayer();
+    if (!layer) {
+      return;
+    }
+
+    if (layer.styleOverride) {
+      this.clearSelectedLayerOverride();
+      return;
+    }
+
+    this.enableSelectedLayerOverride();
   }
 
   protected resetAllLayers(): void {
@@ -201,6 +540,7 @@ export class ManifestStyleEditorOverlayComponent {
     if (!loaded) {
       return;
     }
+
     this.draftManifest.set(structuredClone(loaded));
     this.publishState.set('idle');
     this.publishMessage.set(null);
@@ -236,53 +576,51 @@ export class ManifestStyleEditorOverlayComponent {
 
   protected async confirmPublish(): Promise<void> {
     const draftManifest = this.draftManifest();
-    if (!draftManifest || this.hasInvalidFields()) {
+    if (!draftManifest || this.hasInvalidFields() || !this.publishSecret().trim()) {
       return;
     }
 
     this.publishState.set('loading');
-    this.publishMessage.set('Preparing publish files...');
+    this.publishMessage.set('Publishing manifest to Vercel Blob...');
     this.confirmPublishOpen.set(false);
 
     try {
-      const timestamp = this.toSafeTimestamp(new Date().toISOString());
-      const manifestFileName = `manifest.style-editor.${timestamp}.json`;
-      const payloadFileName = `manifest.publish-request.${timestamp}.json`;
-      const targetPath = 'manifest/manifest.json';
-      const archivePath = `manifest/archive/manifest.${timestamp}.json`;
-      const payload = {
-        editorName: this.editorName().trim() || 'unknown-editor',
-        generatedAt: new Date().toISOString(),
-        publishTargetPath: targetPath,
-        archivePrefix: 'manifest/archive/',
-        expectedArchivePath: archivePath,
-        diffSummary: this.diffSummary(),
-        sourceManifestUrl: this.resolvedManifestUrl(),
-      };
+      const response = await fetch('/api/dev/manifest-style-publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-manifest-editor-secret': this.publishSecret().trim(),
+        },
+        body: JSON.stringify({
+          manifest: draftManifest,
+          editorName: this.editorName().trim() || 'unknown-editor',
+          sourceManifestUrl: this.resolvedManifestUrl(),
+          diffSummary: this.diffSummary(),
+        }),
+      });
 
-      this.downloadJsonFile(manifestFileName, draftManifest);
-      this.downloadJsonFile(payloadFileName, payload);
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        targetPath?: string;
+        archivePath?: string;
+        manifestUrl?: string;
+      } | null;
 
-      const command =
-        `npm --prefix frontend run publish:layer-manifest -- ` +
-        `--source "$HOME/Downloads/${manifestFileName}" ` +
-        `--target ${targetPath} --archive-prefix manifest/archive/`;
-      this.publishCommand.set(command);
-      this.publishTargetPath.set(targetPath);
-      this.publishArchivePath.set(archivePath);
-
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(command);
+      if (!response.ok) {
+        throw new Error(payload?.message ?? `Publish failed with HTTP ${response.status}`);
       }
 
+      this.publishTargetPath.set(payload?.targetPath ?? 'manifest/manifest.json');
+      this.publishArchivePath.set(payload?.archivePath ?? '');
+      this.publishedManifestUrl.set(payload?.manifestUrl ?? '');
       this.publishState.set('success');
-      this.publishMessage.set(
-        'Export complete. Command copied to clipboard. Run it locally to publish and archive.',
-      );
-    } catch {
+      this.publishMessage.set('Published and archived the previous manifest.');
+      this.loadedManifest.set(structuredClone(draftManifest));
+    } catch (error) {
       this.publishState.set('error');
       this.publishMessage.set(
-        'Export failed. Retry publish export or manually copy the manifest JSON from browser devtools.',
+        (error instanceof Error && error.message) ||
+          'Publish failed. Check the write secret and server environment flags.',
       );
     }
   }
@@ -293,25 +631,104 @@ export class ManifestStyleEditorOverlayComponent {
   }
 
   protected fieldErrors(fieldName: string): string[] {
-    const validation = this.selectedLayerValidation();
-    return validation[fieldName] ?? [];
+    const layerValidation = this.selectedLayerValidation();
+    const categoryValidation = this.selectedCategoryValidation();
+    const subcategoryValidation = this.selectedSubcategoryValidation();
+    return (
+      layerValidation[fieldName] ??
+      categoryValidation[fieldName] ??
+      subcategoryValidation[fieldName] ??
+      []
+    );
   }
 
-  protected renderPreviewStyle(layer: RuntimeLayerManifestLayer): string {
-    const rendering = layer.rendering;
+  protected renderLayerPreviewStyle(layer: RuntimeLayerManifestLayer): string {
+    const rendering = this.effectiveLayerRendering(layer);
     if (!rendering) {
       return 'background:#e2e8f0';
     }
-    if (rendering.renderMode === 'mask') {
-      return `background:${rendering.selectedColor ?? '#ffffff'}`;
-    }
-    const startColor = rendering.startColor ?? '#d1fae5';
-    const endColor = rendering.endColor ?? '#166534';
+    return this.renderPreviewStyle(rendering);
+  }
+
+  protected renderCategoryPreviewStyle(defaults: RuntimeLayerManifestColorDefaults): string {
+    return this.renderDefaultSwatchStyle(defaults);
+  }
+
+  protected renderMaskDefaultPreviewStyle(defaults: RuntimeLayerManifestColorDefaults): string {
+    return `background:${defaults.selectedColor ?? '#22c55e'}`;
+  }
+
+  protected renderGradientDefaultPreviewStyle(defaults: RuntimeLayerManifestColorDefaults): string {
+    const startColor = defaults.startColor ?? '#d1fae5';
+    const endColor = defaults.endColor ?? '#166534';
     return `background:linear-gradient(90deg, ${startColor} 0%, ${endColor} 100%)`;
+  }
+
+  protected isCategoryExpanded(categoryId: string): boolean {
+    return this.expandedCategoryIds().has(categoryId);
+  }
+
+  protected isSelectedCategory(categoryId: string): boolean {
+    const scope = this.selectedScope();
+    return scope?.type === 'category' && scope.id === categoryId;
+  }
+
+  protected isSelectedSubcategory(categoryId: string, subcategoryId: string): boolean {
+    const scope = this.selectedScope();
+    return (
+      scope?.type === 'subcategory' && scope.categoryId === categoryId && scope.id === subcategoryId
+    );
+  }
+
+  /** @deprecated Kept for template compatibility. */
+  protected isSelectedSpeciesTaxon(taxonId: string): boolean {
+    return this.isSelectedSubcategory('species_and_biodiversity', taxonId);
+  }
+
+  protected isSelectedLayer(layerId: string): boolean {
+    const scope = this.selectedScope();
+    return scope?.type === 'layer' && scope.id === layerId;
+  }
+
+  protected layerRenderModeLabel(layer: RuntimeLayerManifestLayer): string {
+    const rendering = (layer as { rendering?: RuntimeLayerManifestRenderingConfig | null })
+      .rendering;
+    return rendering?.renderMode ?? 'unconfigured';
+  }
+
+  protected layerValueTypeLabel(layer: RuntimeLayerManifestLayer): string {
+    const rendering = (layer as { rendering?: RuntimeLayerManifestRenderingConfig | null })
+      .rendering;
+    return rendering?.valueType ?? 'unconfigured';
+  }
+
+  protected isLayerRenderMode(
+    layer: RuntimeLayerManifestLayer,
+    mode: 'mask' | 'gradient',
+  ): boolean {
+    const rendering = (layer as { rendering?: RuntimeLayerManifestRenderingConfig | null })
+      .rendering;
+    return rendering?.renderMode === mode;
+  }
+
+  protected layerUsesOverride(layer: RuntimeLayerManifestLayer): boolean {
+    return Boolean(layer.styleOverride);
+  }
+
+  protected trackCategory(_: number, category: EditableManifestCategorySummary): string {
+    return category.id;
   }
 
   protected trackLayer(_: number, layer: EditableManifestLayerSummary): string {
     return layer.id;
+  }
+
+  protected trackSpeciesTaxon(_: number, subcategory: EditableManifestSubcategorySummary): string {
+    return subcategory.id;
+  }
+
+  protected trackSubcategory(_: number, subcategory: EditableManifestSubcategorySummary): string {
+    return subcategory.id;
   }
 
   private async loadManifest(): Promise<void> {
@@ -323,17 +740,11 @@ export class ManifestStyleEditorOverlayComponent {
         firstValueFrom(this.layerManifestService.getResolvedManifestUrl()),
       ]);
       const normalizedManifest = normalizeManifestForEditor(manifest);
-      this.loadedManifest.set(structuredClone(manifest));
+      this.loadedManifest.set(structuredClone(normalizedManifest));
       this.draftManifest.set(structuredClone(normalizedManifest));
       this.resolvedManifestUrl.set(manifestUrl);
-      this.selectedLayerId.set(
-        normalizedManifest.layers.find(
-          (layer) =>
-            isEditableDataRole(layer.dataRole) &&
-            layer.rendering &&
-            isEditableRenderMode(layer.rendering.renderMode),
-        )?.id ?? '',
-      );
+      this.selectedScope.set(this.initialScopeForManifest(normalizedManifest));
+      this.expandInitialScope();
     } catch (error) {
       this.loadError.set(
         (error instanceof Error && error.message) || 'Failed to load manifest for style editing.',
@@ -343,13 +754,56 @@ export class ManifestStyleEditorOverlayComponent {
     }
   }
 
+  private applyCategoryDefaults(
+    categoryId: string,
+    defaults: RuntimeLayerManifestColorDefaults,
+    replaceOverrides: boolean,
+  ): void {
+    this.draftManifest.update((manifest) =>
+      manifest
+        ? applyCategoryColorDefaults(manifest, categoryId, defaults, { replaceOverrides })
+        : manifest,
+    );
+    this.publishState.set('idle');
+    this.publishMessage.set(null);
+  }
+
+  private applySubcategoryDefaults(
+    categoryId: string,
+    subcategoryId: string,
+    defaults: RuntimeLayerManifestColorDefaults,
+  ): void {
+    this.draftManifest.update((manifest) =>
+      manifest
+        ? setSubcategoryColorDefaults(manifest, categoryId, subcategoryId, defaults)
+        : manifest,
+    );
+    this.publishState.set('idle');
+    this.publishMessage.set(null);
+  }
+
   private updateSelectedLayerRendering(
     updater: (
       rendering: RuntimeLayerManifestRenderingConfig,
     ) => RuntimeLayerManifestRenderingConfig,
   ): void {
-    const selectedId = this.selectedLayerId();
-    if (!selectedId) {
+    const selected = this.selectedLayer();
+    if (!selected?.rendering) {
+      return;
+    }
+
+    this.updateSelectedLayer((layer) => ({
+      ...layer,
+      rendering: updater({ ...layer.rendering! }),
+      styleOverride: true,
+    }));
+  }
+
+  private updateSelectedLayer(
+    updater: (layer: RuntimeLayerManifestLayer) => RuntimeLayerManifestLayer,
+  ): void {
+    const selected = this.selectedLayer();
+    if (!selected) {
       return;
     }
 
@@ -357,13 +811,10 @@ export class ManifestStyleEditorOverlayComponent {
       if (!manifest) {
         return manifest;
       }
+
       return {
         ...manifest,
-        layers: manifest.layers.map((layer) =>
-          layer.id === selectedId
-            ? { ...layer, rendering: updater({ ...layer.rendering }) }
-            : layer,
-        ),
+        layers: manifest.layers.map((layer) => (layer.id === selected.id ? updater(layer) : layer)),
       };
     });
   }
@@ -377,9 +828,44 @@ export class ManifestStyleEditorOverlayComponent {
       const parsed = JSON.parse(rawValue) as {
         manifest?: RuntimeLayerManifest;
         editorName?: string;
+        sourceManifestUrl?: string;
       };
       if (parsed.manifest) {
-        this.draftManifest.set(parsed.manifest);
+        const loadedManifest = this.loadedManifest();
+        const draftVersion = parsed.manifest.version ?? null;
+        const loadedVersion = loadedManifest?.version ?? null;
+        const isVersionMismatch =
+          !!loadedManifest && !!draftVersion && !!loadedVersion && draftVersion !== loadedVersion;
+
+        if (isVersionMismatch) {
+          localStorage.removeItem(this.localStorageKey);
+          this.localDraftMessage.set(
+            `Saved local draft targets manifest v${draftVersion}; current manifest is v${loadedVersion}. Draft dropped.`,
+          );
+          return;
+        }
+
+        const draftGeneratedAt = parsed.manifest.generatedAt ?? null;
+        const loadedGeneratedAt = loadedManifest?.generatedAt ?? null;
+        const sourceMatchesCurrent =
+          !parsed.sourceManifestUrl || parsed.sourceManifestUrl === this.resolvedManifestUrl();
+        const isStaleAgainstLoaded =
+          !!loadedManifest &&
+          sourceMatchesCurrent &&
+          !!draftGeneratedAt &&
+          !!loadedGeneratedAt &&
+          draftGeneratedAt !== loadedGeneratedAt;
+
+        if (isStaleAgainstLoaded) {
+          this.localDraftMessage.set(
+            'Saved local draft targets an older manifest snapshot and was skipped.',
+          );
+        } else {
+          const normalizedManifest = normalizeManifestForEditor(parsed.manifest);
+          this.draftManifest.set(normalizedManifest);
+          this.selectedScope.set(this.initialScopeForManifest(normalizedManifest));
+          this.expandInitialScope();
+        }
       }
       if (parsed.editorName) {
         this.editorName.set(parsed.editorName);
@@ -389,18 +875,183 @@ export class ManifestStyleEditorOverlayComponent {
     }
   }
 
-  private downloadJsonFile(fileName: string, payload: unknown): void {
-    const json = `${JSON.stringify(payload, null, 2)}\n`;
-    const blob = new Blob([json], { type: 'application/json' });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = fileName;
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+  private initialScopeForManifest(manifest: RuntimeLayerManifest): ManifestStyleEditorScope | null {
+    const firstEditableCategory = manifest.categories.find((category) =>
+      manifest.layers.some(
+        (layer) =>
+          getLayerCategoryId(layer) === category.id &&
+          isEditableDataRole(layer.dataRole) &&
+          layer.rendering &&
+          isEditableRenderMode(layer.rendering.renderMode),
+      ),
+    );
+
+    return firstEditableCategory ? { type: 'category', id: firstEditableCategory.id } : null;
   }
 
-  private toSafeTimestamp(isoDate: string): string {
-    return isoDate.replaceAll(':', '-').replaceAll('.', '-');
+  private expandInitialScope(): void {
+    const scope = this.selectedScope();
+    if (scope?.type === 'category') {
+      this.expandCategory(scope.id);
+    }
+  }
+
+  private expandCategory(categoryId: string): void {
+    const expanded = new Set(this.expandedCategoryIds());
+    expanded.add(categoryId);
+    this.expandedCategoryIds.set(expanded);
+  }
+
+  private toggleCategory(categoryId: string): void {
+    const expanded = new Set(this.expandedCategoryIds());
+    if (expanded.has(categoryId)) {
+      expanded.delete(categoryId);
+    } else {
+      expanded.add(categoryId);
+    }
+    this.expandedCategoryIds.set(expanded);
+  }
+
+  private toCategorySummary(
+    manifest: RuntimeLayerManifest,
+    category: RuntimeLayerManifestCategory,
+  ): EditableManifestCategorySummary {
+    const layersById = new Map(manifest.layers.map((layer) => [layer.id, layer]));
+    const orderedLayers = [
+      ...category.layerIds
+        .map((layerId) => layersById.get(layerId))
+        .filter(
+          (layer): layer is RuntimeLayerManifestLayer =>
+            !!layer && getLayerCategoryId(layer) === category.id,
+        ),
+      ...manifest.layers.filter(
+        (layer) =>
+          getLayerCategoryId(layer) === category.id && !category.layerIds.includes(layer.id),
+      ),
+    ];
+    const editableLayers = orderedLayers.filter(
+      (layer) =>
+        isEditableDataRole(layer.dataRole) &&
+        layer.rendering &&
+        isEditableRenderMode(layer.rendering.renderMode),
+    );
+    const categoryValidation = this.validationByCategoryId().get(category.id);
+
+    const subcategorySummaries = (category.subcategories ?? []).map((subcategory) =>
+      this.toSubcategorySummary(manifest, category, subcategory),
+    );
+
+    return {
+      id: category.id,
+      title: category.englishLabel ?? category.spanishLabel,
+      layerCount: orderedLayers.length,
+      editableLayerCount: editableLayers.length,
+      overrideCount: editableLayers.filter((layer) => layer.styleOverride).length,
+      hasValidationErrors: !!categoryValidation && Object.keys(categoryValidation).length > 0,
+      swatchStyle: this.renderDefaultSwatchStyle(getCategoryColorDefaults(manifest, category.id)),
+      subcategories: subcategorySummaries,
+      speciesTaxa: subcategorySummaries,
+      layers: orderedLayers.map((layer) => {
+        const rendering = layer.rendering;
+        const isEditable =
+          isEditableDataRole(layer.dataRole) &&
+          !!rendering &&
+          isEditableRenderMode(rendering.renderMode);
+        const layerValidation = this.validationByLayerId().get(layer.id);
+        return {
+          id: layer.id,
+          title: layer.englishLabel ?? layer.spanishLabel,
+          dataRole: layer.dataRole,
+          renderMode: rendering?.renderMode ?? 'unconfigured',
+          valueType: rendering?.valueType ?? 'unconfigured',
+          isEditable,
+          styleOverride: Boolean(layer.styleOverride),
+          hasValidationErrors:
+            isEditable && !!layerValidation && Object.keys(layerValidation).length > 0,
+          swatchStyle: this.renderLayerPreviewStyle(layer),
+          usesCategoricalSwatch: this.usesCategoricalSwatch(layer),
+        };
+      }),
+    };
+  }
+
+  private toSubcategorySummary(
+    manifest: RuntimeLayerManifest,
+    category: RuntimeLayerManifestCategory,
+    subcategory: RuntimeLayerManifestSubcategory,
+  ): EditableManifestSubcategorySummary {
+    return {
+      id: subcategory.id,
+      categoryId: category.id,
+      title: subcategory.englishLabel ?? subcategory.spanishLabel ?? subcategory.id,
+      layerCount: subcategory.layerIds?.length ?? 0,
+      swatchStyle: this.renderDefaultSwatchStyle(
+        getSubcategoryColorDefaults(manifest, category.id, subcategory.id),
+      ),
+    };
+  }
+
+  private normalizeHexInput(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return '';
+    }
+    const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+    return /^#[\da-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : trimmed;
+  }
+
+  private renderPreviewStyle(rendering: RuntimeLayerManifestRenderingConfig): string {
+    if (rendering.renderMode === 'mask') {
+      return `background:${rendering.selectedColor ?? '#ffffff'}`;
+    }
+
+    const startColor = rendering.startColor ?? '#d1fae5';
+    const endColor = rendering.endColor ?? '#166534';
+    return `background:linear-gradient(90deg, ${startColor} 0%, ${endColor} 100%)`;
+  }
+
+  private renderDefaultSwatchStyle(defaults: RuntimeLayerManifestColorDefaults): string {
+    const selectedColor = defaults.selectedColor;
+    const startColor = defaults.startColor;
+    const endColor = defaults.endColor;
+
+    if (selectedColor && startColor && endColor) {
+      return `background:linear-gradient(90deg, ${selectedColor} 0%, ${selectedColor} 42%, ${startColor} 52%, ${endColor} 100%)`;
+    }
+
+    if (startColor || endColor) {
+      return this.renderGradientDefaultPreviewStyle(defaults);
+    }
+
+    return this.renderMaskDefaultPreviewStyle(defaults);
+  }
+
+  private effectiveLayerRendering(
+    layer: RuntimeLayerManifestLayer,
+  ): RuntimeLayerManifestRenderingConfig | null {
+    if (!layer.rendering) {
+      return null;
+    }
+
+    if (layer.styleOverride) {
+      return layer.rendering;
+    }
+
+    const manifest = this.draftManifest();
+    if (!manifest) {
+      return layer.rendering;
+    }
+
+    const defaults = getCategoryColorDefaults(manifest, getLayerCategoryId(layer));
+    return applyColorDefaultsToRendering(layer.rendering, defaults);
+  }
+
+  private usesCategoricalSwatch(layer: RuntimeLayerManifestLayer): boolean {
+    return (
+      layer.rendering?.renderMode === 'categorical' ||
+      layer.id === 'siraps' ||
+      layer.id === 'admin_municipalities' ||
+      layer.id === 'admin_departments'
+    );
   }
 }

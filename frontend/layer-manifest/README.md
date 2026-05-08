@@ -47,7 +47,7 @@ El reporte de reconciliacion no es para la aplicacion. Es para humanos y desarro
 - `description`: descripcion corta de la capa.
 - `tooltip`: texto corto opcional para ayuda en la UI.
 - `dataRole`: que tipo de dato es.
-- `sidebarCategoryId`: en que categoria del panel lateral aparece.
+- `category`: ruta con punto que ubica la capa en el panel lateral, como `"ecosystems"` para una categoria de primer nivel o `"species_and_biodiversity.felidae"` cuando vive bajo una subcategoria.
 - `roleInMetricCalculation`: como participa en el calculo de metricas.
 - `displayUrl` o `displayCollectionUrl`: URL que la aplicacion usa para mostrar la capa.
 - `metadataUrl`: URL del archivo de metadatos detallados.
@@ -133,7 +133,7 @@ The reconciliation report is not for the application. It is for humans and devel
 - `description`: short layer description.
 - `tooltip`: optional short UI help text.
 - `dataRole`: what kind of data this is.
-- `sidebarCategoryId`: which left-sidebar category contains this layer.
+- `category`: dot-path locating the layer in the left sidebar, for example `"ecosystems"` for a top-level category or `"species_and_biodiversity.felidae"` when the layer lives under a subcategory.
 - `roleInMetricCalculation`: how this layer participates in metric calculation.
 - `displayUrl` or `displayCollectionUrl`: URL the app uses to display the layer.
 - `metadataUrl`: URL for detailed layer metadata.

@@ -1,6 +1,6 @@
 {
-  "version": "0.1.0",
-  "generatedAt": "2026-05-06T00:00:00.000Z",
+  "version": "0.2.0",
+  "generatedAt": "2026-05-08T00:00:00.000Z",
   "publicBlobHost": "https://aagibolq28slyfof.public.blob.vercel-storage.com",
   "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
   "categories": [
@@ -8,66 +8,134 @@
       "id": "species_and_biodiversity",
       "spanishLabel": "Especies y biodiversidad",
       "englishLabel": "Species & Biodiversity",
+      "styleDefaults": {
+        "selectedColor": "#854d0e",
+        "startColor": "#fef3c7",
+        "endColor": "#854d0e"
+      },
+      "subcategories": [
+        {
+          "id": "felidae",
+          "spanishLabel": "Felidae",
+          "englishLabel": "Felidae",
+          "styleDefaults": {
+            "selectedColor": "#854d0e",
+            "startColor": "#fef3c7",
+            "endColor": "#854d0e"
+          },
+          "layerIds": []
+        }
+      ],
       "layerIds": ["species_richness", "species"]
     },
     {
       "id": "ecosystems",
       "spanishLabel": "Ecosistemas",
       "englishLabel": "Ecosystems",
+      "styleDefaults": {
+        "selectedColor": "#166534",
+        "startColor": "#bbf7d0",
+        "endColor": "#166534"
+      },
       "layerIds": ["paramos"]
     },
     {
       "id": "environmental_services",
       "spanishLabel": "Servicios ecosistémicos",
       "englishLabel": "Environmental Services",
+      "styleDefaults": {
+        "selectedColor": "#0f766e",
+        "startColor": "#ccfbf1",
+        "endColor": "#0f766e"
+      },
       "layerIds": ["ground_water_recharge"]
     },
     {
       "id": "management_figures",
       "spanishLabel": "Figuras de manejo",
       "englishLabel": "Management Figures",
+      "styleDefaults": {
+        "selectedColor": "#3730a3",
+        "startColor": "#e0e7ff",
+        "endColor": "#3730a3"
+      },
       "layerIds": ["runap"]
     },
     {
       "id": "administrative_boundaries",
       "spanishLabel": "Límites administrativos",
       "englishLabel": "Administrative Boundaries",
+      "styleDefaults": {
+        "selectedColor": "#111827",
+        "startColor": "#e5e7eb",
+        "endColor": "#111827"
+      },
       "layerIds": ["admin_departments"]
     },
     {
       "id": "cultural_and_ethnic_territories",
       "spanishLabel": "Territorios culturales y étnicos",
       "englishLabel": "Cultural & Ethnic Territories",
+      "styleDefaults": {
+        "selectedColor": "#1d4ed8",
+        "startColor": "#dbeafe",
+        "endColor": "#1d4ed8"
+      },
       "layerIds": ["resguardos"]
     },
     {
       "id": "socioeconomic",
       "spanishLabel": "Socioeconómico",
       "englishLabel": "Socio-economic",
+      "styleDefaults": {
+        "selectedColor": "#991b1b",
+        "startColor": "#fee2e2",
+        "endColor": "#991b1b"
+      },
       "layerIds": ["net_benefit"]
     },
     {
       "id": "conflict_and_security",
       "spanishLabel": "Conflicto y seguridad",
       "englishLabel": "Conflict & Security",
+      "styleDefaults": {
+        "selectedColor": "#9f1239",
+        "startColor": "#ffe4e6",
+        "endColor": "#9f1239"
+      },
       "layerIds": ["conflict"]
     },
     {
       "id": "territorial_planning",
       "spanishLabel": "Ordenamiento territorial",
       "englishLabel": "Territorial Planning",
+      "styleDefaults": {
+        "selectedColor": "#4d7c0f",
+        "startColor": "#ecfccb",
+        "endColor": "#4d7c0f"
+      },
       "layerIds": ["land_cover"]
     },
     {
       "id": "prospective_models",
       "spanishLabel": "Modelos prospectivos",
       "englishLabel": "Prospective Models",
+      "styleDefaults": {
+        "selectedColor": "#155e75",
+        "startColor": "#cffafe",
+        "endColor": "#155e75"
+      },
       "layerIds": ["human_footprint_2030"]
     },
     {
       "id": "solutions",
       "spanishLabel": "Soluciones",
       "englishLabel": "Solutions",
+      "styleDefaults": {
+        "selectedColor": "#9d174d",
+        "startColor": "#fce7f3",
+        "endColor": "#9d174d"
+      },
       "layerIds": ["solution_national_30"]
     }
   ],
@@ -79,13 +147,21 @@
       "description": "Biodiversity richness surface summarizing ecosystem-level species richness across the country.",
       "tooltip": "Shows relative species richness for biodiversity review.",
       "dataRole": "feature_layer",
-      "sidebarCategoryId": "species_and_biodiversity",
+      "category": "species_and_biodiversity",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/species_richness.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/species_richness.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/species_richness/nacional.json"
+      },
+      "rendering": {
+        "valueType": "continuous",
+        "renderMode": "gradient",
+        "startColor": "#fef3c7",
+        "endColor": "#854d0e",
+        "minValue": 815,
+        "maxValue": 3562
       }
     },
     {
@@ -95,7 +171,7 @@
       "description": "Species distribution rasters available for species search and review.",
       "tooltip": "Open species search to find individual species distribution layers.",
       "dataRole": "manifest_for_species_layers",
-      "sidebarCategoryId": "species_and_biodiversity",
+      "category": "species_and_biodiversity",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayCollectionUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/",
       "speciesManifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifests/species.manifest.json",
@@ -103,6 +179,13 @@
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/species.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/species/nacional.json"
+      },
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "selectedColor": "#854d0e",
+        "selectedValue": 1,
+        "noDataValue": -9999
       }
     },
     {
@@ -112,13 +195,20 @@
       "description": "Official páramo complex boundaries for environmental management and conservation planning.",
       "tooltip": "Shows high-altitude páramo ecosystems.",
       "dataRole": "feature_layer",
-      "sidebarCategoryId": "ecosystems",
+      "category": "ecosystems",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/paramos.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/paramos.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/paramos.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/paramos/nacional.json"
+      },
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "selectedColor": "#166534",
+        "selectedValue": 1,
+        "noDataValue": -9999
       }
     },
     {
@@ -128,13 +218,20 @@
       "description": "Potential groundwater recharge areas used to review environmental service coverage.",
       "tooltip": "Shows groundwater recharge areas that may support environmental service decisions.",
       "dataRole": "feature_layer",
-      "sidebarCategoryId": "environmental_services",
+      "category": "environmental_services",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/ground_water_recharge.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/ground_water_recharge.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/ground_water_recharge/nacional.json"
+      },
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "selectedColor": "#0f766e",
+        "selectedValue": 1,
+        "noDataValue": -9999
       }
     },
     {
@@ -144,13 +241,20 @@
       "description": "Protected areas from RUNAP that are treated as already conserved in planning outputs.",
       "tooltip": "Shows protected areas used as conservation management context.",
       "dataRole": "include_layer",
-      "sidebarCategoryId": "management_figures",
+      "category": "management_figures",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_protected_areas.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/runap.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/runap.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/runap/nacional.json"
+      },
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "selectedColor": "#3730a3",
+        "selectedValue": 1,
+        "noDataValue": -9999
       }
     },
     {
@@ -160,13 +264,20 @@
       "description": "Department AOI boundaries served from IGAC.",
       "tooltip": "Use departments as known areas of interest with cached metric results.",
       "dataRole": "administrative_boundary",
-      "sidebarCategoryId": "administrative_boundaries",
+      "category": "administrative_boundaries",
       "roleInMetricCalculation": "boundary_used_for_precomputed_metric_lookup",
       "displayUrl": "https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/2",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/admin_departments.metadata.json",
       "compressedDataForLiveMetricsUrl": null,
       "precomputedMetricUrls": {
         "byBoundaryFeature": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/admin_departments/by-feature.json"
+      },
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "selectedColor": "#111827",
+        "selectedValue": 1,
+        "noDataValue": -9999
       }
     },
     {
@@ -176,13 +287,20 @@
       "description": "Indigenous reserve territories that can be included in planning and visualization.",
       "tooltip": "Shows Indigenous reserve territories for cultural and ethnic context.",
       "dataRole": "include_layer",
-      "sidebarCategoryId": "cultural_and_ethnic_territories",
+      "category": "cultural_and_ethnic_territories",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/resguardos.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/resguardos.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/resguardos.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/resguardos/nacional.json"
+      },
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "selectedColor": "#1d4ed8",
+        "selectedValue": 1,
+        "noDataValue": -9999
       }
     },
     {
@@ -192,13 +310,21 @@
       "description": "Potential agricultural net benefit used as opportunity-cost context for conservation.",
       "tooltip": "Shows opportunity-cost pressure from agricultural rent.",
       "dataRole": "cost_layer",
-      "sidebarCategoryId": "socioeconomic",
+      "category": "socioeconomic",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/net_benefit.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/net_benefit.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/net_benefit.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/net_benefit/nacional.json"
+      },
+      "rendering": {
+        "valueType": "continuous",
+        "renderMode": "gradient",
+        "startColor": "#fee2e2",
+        "endColor": "#991b1b",
+        "minValue": 0,
+        "maxValue": 1
       }
     },
     {
@@ -208,13 +334,21 @@
       "description": "Conflict intensity layer used to represent social risk and implementation difficulty.",
       "tooltip": "Shows conflict and security pressure for planning review.",
       "dataRole": "cost_layer",
-      "sidebarCategoryId": "conflict_and_security",
+      "category": "conflict_and_security",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/conflict.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/conflict.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/conflict.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/conflict/nacional.json"
+      },
+      "rendering": {
+        "valueType": "continuous",
+        "renderMode": "gradient",
+        "startColor": "#ffe4e6",
+        "endColor": "#9f1239",
+        "minValue": 0,
+        "maxValue": 1
       }
     },
     {
@@ -224,12 +358,21 @@
       "description": "Land-cover context layer used to interpret local planning tradeoffs.",
       "tooltip": "Shows land-cover patterns for territorial planning context.",
       "dataRole": "reference_layer",
-      "sidebarCategoryId": "territorial_planning",
+      "category": "territorial_planning",
       "roleInMetricCalculation": "none",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/land_cover.metadata.json",
       "compressedDataForLiveMetricsUrl": null,
-      "precomputedMetricUrls": {}
+      "precomputedMetricUrls": {},
+      "rendering": {
+        "valueType": "categorical",
+        "renderMode": "categorical",
+        "classColors": [
+          { "value": 1, "color": "#4d7c0f", "label": "Forest" },
+          { "value": 2, "color": "#a3e635", "label": "Grassland" },
+          { "value": 3, "color": "#facc15", "label": "Cropland" }
+        ]
+      }
     },
     {
       "id": "human_footprint_2030",
@@ -238,13 +381,21 @@
       "description": "Projected human pressure layer used as prospective scenario context.",
       "tooltip": "Shows projected human footprint intensity for future scenario review.",
       "dataRole": "cost_layer",
-      "sidebarCategoryId": "prospective_models",
+      "category": "prospective_models",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2030.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/human_footprint_2030.metadata.json",
       "compressedDataForLiveMetricsUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/live/human_footprint_2030.bin.gz",
       "precomputedMetricUrls": {
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/human_footprint_2030/nacional.json"
+      },
+      "rendering": {
+        "valueType": "continuous",
+        "renderMode": "gradient",
+        "startColor": "#cffafe",
+        "endColor": "#155e75",
+        "minValue": 0,
+        "maxValue": 100
       }
     },
     {
@@ -254,7 +405,7 @@
       "description": "Example national solution layer used to display a selected conservation prioritization scenario.",
       "tooltip": "Shows the selected national conservation solution on the map.",
       "dataRole": "solution_layer",
-      "sidebarCategoryId": "solutions",
+      "category": "solutions",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/solution_national_30.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/solution_national_30.metadata.json",
@@ -263,6 +414,13 @@
         "national": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/nacional.json",
         "byDepartment": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/by-department.json",
         "byMunicipality": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/by-municipality.json"
+      },
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "selectedColor": "#9d174d",
+        "selectedValue": 1,
+        "noDataValue": -9999
       }
     }
   ]

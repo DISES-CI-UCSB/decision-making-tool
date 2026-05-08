@@ -136,6 +136,26 @@ const LIVE_METRIC_CALCULATION_ROLES = [
 ];
 const RENDER_VALUE_TYPES = ['binary', 'categorical', 'continuous'];
 const RENDER_MODES = ['mask', 'gradient', 'categorical'];
+const CATEGORY_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
+const CATEGORY_PATH_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$/;
+const COLOR_DEFAULT_FIELDS = ['selectedColor', 'startColor', 'endColor'];
+
+function assertColorDefaults(value, label) {
+  if (value === undefined) {
+    return;
+  }
+  assert(
+    value && typeof value === 'object' && !Array.isArray(value),
+    `${label} must be an object`,
+  );
+  for (const key of Object.keys(value)) {
+    assert(
+      COLOR_DEFAULT_FIELDS.includes(key),
+      `${label}.${key} is not a recognized color default (allowed: ${COLOR_DEFAULT_FIELDS.join(', ')})`,
+    );
+    assertHexColorOrNull(value[key], `${label}.${key}`);
+  }
+}
 
 function getDisplayUrls(layer) {
   return [layer.displayUrl, layer.displayCollectionUrl].filter(
@@ -175,14 +195,46 @@ async function validateManifest(manifest, manifestPath, options = {}) {
   assert(Array.isArray(manifest.categories), 'categories must be an array');
   assert(Array.isArray(manifest.layers), 'layers must be an array');
 
+  const subcategoryIdsByCategoryId = new Map();
   const categoryIds = manifest.categories.map((category, index) => {
     assert(category && typeof category === 'object', `categories[${index}] must be an object`);
     assertString(category.id, `categories[${index}].id`);
+    assert(
+      CATEGORY_ID_PATTERN.test(category.id),
+      `categories[${index}].id must match ${CATEGORY_ID_PATTERN}`,
+    );
     assertString(category.spanishLabel, `categories[${index}].spanishLabel`);
     if ('englishLabel' in category) {
       assertNullableString(category.englishLabel, `categories[${index}].englishLabel`);
     }
+    assertColorDefaults(category.styleDefaults, `categories[${index}].styleDefaults`);
     assert(Array.isArray(category.layerIds), `categories[${index}].layerIds must be an array`);
+
+    const subcategoryIds = new Set();
+    if ('subcategories' in category && category.subcategories !== undefined) {
+      assert(
+        Array.isArray(category.subcategories),
+        `categories[${index}].subcategories must be an array`,
+      );
+      category.subcategories.forEach((subcategory, subIndex) => {
+        const subLabel = `categories[${index}].subcategories[${subIndex}]`;
+        assert(subcategory && typeof subcategory === 'object', `${subLabel} must be an object`);
+        assertString(subcategory.id, `${subLabel}.id`);
+        assert(
+          CATEGORY_ID_PATTERN.test(subcategory.id),
+          `${subLabel}.id must match ${CATEGORY_ID_PATTERN}`,
+        );
+        assert(!subcategoryIds.has(subcategory.id), `${subLabel}.id is duplicated: ${subcategory.id}`);
+        subcategoryIds.add(subcategory.id);
+        assertString(subcategory.spanishLabel, `${subLabel}.spanishLabel`);
+        if ('englishLabel' in subcategory) {
+          assertNullableString(subcategory.englishLabel, `${subLabel}.englishLabel`);
+        }
+        assertColorDefaults(subcategory.styleDefaults, `${subLabel}.styleDefaults`);
+        assert(Array.isArray(subcategory.layerIds), `${subLabel}.layerIds must be an array`);
+      });
+    }
+    subcategoryIdsByCategoryId.set(category.id, subcategoryIds);
     return category.id;
   });
 
@@ -202,11 +254,25 @@ async function validateManifest(manifest, manifestPath, options = {}) {
     assertString(layer.description, `layers[${index}].description`);
     assertNullableString(layer.tooltip, `layers[${index}].tooltip`);
     assertOneOf(layer.dataRole, DATA_ROLES, `layers[${index}].dataRole`);
-    assertString(layer.sidebarCategoryId, `layers[${index}].sidebarCategoryId`);
+    assertString(layer.category, `layers[${index}].category`);
     assert(
-      knownCategoryIds.has(layer.sidebarCategoryId),
-      `layers[${index}].sidebarCategoryId is not listed in categories: ${layer.sidebarCategoryId}`,
+      CATEGORY_PATH_PATTERN.test(layer.category),
+      `layers[${index}].category must match ${CATEGORY_PATH_PATTERN}`,
     );
+    const dotIndex = layer.category.indexOf('.');
+    const categoryId = dotIndex < 0 ? layer.category : layer.category.slice(0, dotIndex);
+    const subcategoryId = dotIndex < 0 ? null : layer.category.slice(dotIndex + 1);
+    assert(
+      knownCategoryIds.has(categoryId),
+      `layers[${index}].category references unknown category: ${categoryId}`,
+    );
+    if (subcategoryId !== null) {
+      const subcategoryIds = subcategoryIdsByCategoryId.get(categoryId);
+      assert(
+        subcategoryIds && subcategoryIds.has(subcategoryId),
+        `layers[${index}].category references unknown subcategory: ${categoryId}.${subcategoryId}`,
+      );
+    }
     assertOneOf(
       layer.roleInMetricCalculation,
       METRIC_CALCULATION_ROLES,
@@ -329,6 +395,20 @@ async function validateManifest(manifest, manifestPath, options = {}) {
         knownLayerIds.has(layerId),
         `categories[${index}].layerIds references unknown layer: ${layerId}`,
       );
+    }
+    if (Array.isArray(category.subcategories)) {
+      for (const [subIndex, subcategory] of category.subcategories.entries()) {
+        for (const layerId of subcategory.layerIds) {
+          assertString(
+            layerId,
+            `categories[${index}].subcategories[${subIndex}].layerIds item`,
+          );
+          assert(
+            knownLayerIds.has(layerId),
+            `categories[${index}].subcategories[${subIndex}].layerIds references unknown layer: ${layerId}`,
+          );
+        }
+      }
     }
   }
 

@@ -38,6 +38,29 @@
     "nullableString": {
       "type": ["string", "null"]
     },
+    "categoryPath": {
+      "type": "string",
+      "description": "Either a bare category id (e.g. \"ecosystems\") or \"categoryId.subcategoryId\".",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*(?:\\.[a-z0-9]+(?:_[a-z0-9]+)*)?$"
+    },
+    "colorDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selectedColor": {
+          "type": ["string", "null"],
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "startColor": {
+          "type": ["string", "null"],
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "endColor": {
+          "type": ["string", "null"],
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      }
+    },
     "category": {
       "type": "object",
       "additionalProperties": false,
@@ -52,6 +75,41 @@
         },
         "englishLabel": {
           "$ref": "#/$defs/nullableString"
+        },
+        "styleDefaults": {
+          "$ref": "#/$defs/colorDefaults"
+        },
+        "subcategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/subcategory"
+          }
+        },
+        "layerIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "subcategory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "spanishLabel", "layerIds"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+        },
+        "spanishLabel": {
+          "type": "string"
+        },
+        "englishLabel": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "styleDefaults": {
+          "$ref": "#/$defs/colorDefaults"
         },
         "layerIds": {
           "type": "array",
@@ -70,7 +128,7 @@
         "description",
         "tooltip",
         "dataRole",
-        "sidebarCategoryId",
+        "category",
         "roleInMetricCalculation",
         "metadataUrl",
         "compressedDataForLiveMetricsUrl",
@@ -107,8 +165,8 @@
             "reference_layer"
           ]
         },
-        "sidebarCategoryId": {
-          "type": "string"
+        "category": {
+          "$ref": "#/$defs/categoryPath"
         },
         "roleInMetricCalculation": {
           "type": "string",
@@ -142,68 +200,9 @@
         },
         "rendering": {
           "$ref": "#/$defs/rendering"
-        }
-      },
-      "classColor": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["value", "color"],
-        "properties": {
-          "value": {
-            "type": "number"
-          },
-          "color": {
-            "type": "string",
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          },
-          "label": {
-            "$ref": "#/$defs/nullableString"
-          }
-        }
-      },
-      "rendering": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["valueType", "renderMode"],
-        "properties": {
-          "valueType": {
-            "type": "string",
-            "enum": ["binary", "categorical", "continuous"]
-          },
-          "renderMode": {
-            "type": "string",
-            "enum": ["mask", "gradient", "categorical"]
-          },
-          "noDataValue": {
-            "type": ["number", "null"]
-          },
-          "selectedValue": {
-            "type": ["number", "null"]
-          },
-          "selectedColor": {
-            "type": ["string", "null"],
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          },
-          "minValue": {
-            "type": ["number", "null"]
-          },
-          "maxValue": {
-            "type": ["number", "null"]
-          },
-          "startColor": {
-            "type": ["string", "null"],
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          },
-          "endColor": {
-            "type": ["string", "null"],
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          },
-          "classColors": {
-            "type": "array",
-            "items": {
-              "$ref": "#/$defs/classColor"
-            }
-          }
+        },
+        "styleOverride": {
+          "type": ["boolean", "null"]
         }
       },
       "oneOf": [
@@ -214,6 +213,68 @@
           "required": ["displayCollectionUrl"]
         }
       ]
+    },
+    "classColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "color"],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "label": {
+          "$ref": "#/$defs/nullableString"
+        }
+      }
+    },
+    "rendering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["valueType", "renderMode"],
+      "properties": {
+        "valueType": {
+          "type": "string",
+          "enum": ["binary", "categorical", "continuous"]
+        },
+        "renderMode": {
+          "type": "string",
+          "enum": ["mask", "gradient", "categorical"]
+        },
+        "noDataValue": {
+          "type": ["number", "null"]
+        },
+        "selectedValue": {
+          "type": ["number", "null"]
+        },
+        "selectedColor": {
+          "type": ["string", "null"],
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "minValue": {
+          "type": ["number", "null"]
+        },
+        "maxValue": {
+          "type": ["number", "null"]
+        },
+        "startColor": {
+          "type": ["string", "null"],
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "endColor": {
+          "type": ["string", "null"],
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "classColors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/classColor"
+          }
+        }
+      }
     }
   }
 }
