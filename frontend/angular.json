@@ -50,6 +50,12 @@
           "configurations": {
             "production": {
               "allowedCommonJsDependencies": ["lerc"],
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.production.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
