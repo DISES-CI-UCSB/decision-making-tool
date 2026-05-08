@@ -1,4 +1,16 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { FirebaseClientService } from '@core/services/firebase-client.service';
+import { UserTier } from '@core/models';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  type DocumentData,
+} from 'firebase/firestore';
+import { environment } from '../../../../environments/environment';
 
 /**
  * Mocked backend for the MVP Login / Request Access flow.
@@ -24,6 +36,16 @@ export type AuthProviderKind = 'local' | 'google';
 
 export type LoginAttemptResult = 'active' | 'pending' | 'invalid';
 
+export type ApprovedUserRole = 'authorized_viewer' | 'science_publisher' | 'admin';
+
+export interface ApprovedUserRecord {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: ApprovedUserRole;
+  status: 'active' | 'denied';
+}
+
 export interface EmailRequestPayload {
   fullName: string;
   email: string;
@@ -33,6 +55,7 @@ export interface EmailRequestPayload {
 }
 
 export interface GoogleRequestPayload {
+  uid?: string;
   googleName: string;
   googleEmail: string;
   googleAvatarInitials: string;
@@ -51,6 +74,7 @@ export interface StoredPendingRequest {
 }
 
 export interface LoginAttemptPayload {
+  uid?: string;
   email: string;
   password?: string;
   provider: AuthProviderKind;
@@ -58,6 +82,8 @@ export interface LoginAttemptPayload {
 
 @Injectable({ providedIn: 'root' })
 export class AuthRequestService {
+  private readonly firebase = inject(FirebaseClientService);
+
   /** Reactive mirror of the persisted pending-request state. */
   readonly pendingRequest$ = signal<StoredPendingRequest | null>(this.readPendingRequest());
 
@@ -104,6 +130,10 @@ export class AuthRequestService {
    *                 emails admin DL with approve/deny links.
    */
   async submitGoogleRequest(payload: GoogleRequestPayload): Promise<StoredPendingRequest> {
+    if (payload.uid && this.firebase.isEnabled) {
+      return this.submitFirebaseGoogleRequest({ ...payload, uid: payload.uid });
+    }
+
     await this.wait();
     const pending: StoredPendingRequest = {
       requestId: this.generateRequestId(),
@@ -135,6 +165,15 @@ export class AuthRequestService {
    * the flag via `window.__dmtApproveAccount()` to demo the 'active' branch.
    */
   async attemptLogin(payload: LoginAttemptPayload): Promise<LoginAttemptResult> {
+    if (payload.provider === 'google' && payload.uid && this.firebase.isEnabled) {
+      const approved = await this.getApprovedUser(payload.uid);
+      if (approved?.status === 'active') {
+        return 'active';
+      }
+      const pending = await this.getFirebasePendingRequest(payload.uid);
+      return pending ? 'pending' : 'invalid';
+    }
+
     await this.wait();
     if (!payload.email.trim()) {
       return 'invalid';
@@ -185,6 +224,27 @@ export class AuthRequestService {
     return this.getNudgeCooldownRemainingMs() === 0;
   }
 
+  async getApprovedUser(uid: string): Promise<ApprovedUserRecord | null> {
+    const firestore = this.firebase.firestore;
+    if (!firestore) {
+      return null;
+    }
+
+    const snapshot = await getDoc(doc(firestore, 'users', uid));
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    return this.parseApprovedUser(uid, snapshot.data());
+  }
+
+  roleToTier(role: ApprovedUserRole | undefined): UserTier {
+    if (role === 'admin') {
+      return UserTier.Manager;
+    }
+    return UserTier.DecisionMaker;
+  }
+
   // ------------------------------------------------------------------
   // Pending-request read helpers
   // ------------------------------------------------------------------
@@ -209,6 +269,127 @@ export class AuthRequestService {
 
   private wait(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
+  }
+
+  private async submitFirebaseGoogleRequest(
+    payload: GoogleRequestPayload & { uid: string },
+  ): Promise<StoredPendingRequest> {
+    const firestore = this.firebase.firestore;
+    if (!firestore) {
+      throw new Error('Firestore is not configured.');
+    }
+
+    const submittedAt = Date.now();
+    const pending: StoredPendingRequest = {
+      requestId: payload.uid,
+      email: payload.googleEmail,
+      fullName: payload.googleName,
+      provider: 'google',
+      submittedAt,
+      organization: payload.organization,
+      reason: payload.reason,
+    };
+
+    await setDoc(
+      doc(firestore, 'accessRequests', payload.uid),
+      {
+        uid: payload.uid,
+        email: payload.googleEmail,
+        displayName: payload.googleName,
+        avatarInitials: payload.googleAvatarInitials,
+        provider: 'google',
+        status: 'pending',
+        organization: payload.organization ?? null,
+        reason: payload.reason ?? null,
+        submittedAt,
+        requestedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+    await this.createAdminNotification(pending);
+    this.writePendingRequest(pending);
+    return pending;
+  }
+
+  private async getFirebasePendingRequest(uid: string): Promise<StoredPendingRequest | null> {
+    const firestore = this.firebase.firestore;
+    if (!firestore) {
+      return null;
+    }
+    const snapshot = await getDoc(doc(firestore, 'accessRequests', uid));
+    if (!snapshot.exists()) {
+      return null;
+    }
+    const data = snapshot.data();
+    const pending: StoredPendingRequest = {
+      requestId: uid,
+      email: this.readString(data, 'email'),
+      fullName: this.readString(data, 'displayName') || this.readString(data, 'email'),
+      provider: 'google',
+      submittedAt: this.readNumber(data, 'submittedAt') ?? Date.now(),
+      organization: this.readOptionalString(data, 'organization'),
+      reason: this.readOptionalString(data, 'reason'),
+    };
+    this.writePendingRequest(pending);
+    return pending;
+  }
+
+  private async createAdminNotification(request: StoredPendingRequest): Promise<void> {
+    const firestore = this.firebase.firestore;
+    const recipient = environment.firebase.accessRequestNotificationEmail.trim();
+    if (!firestore || !recipient) {
+      return;
+    }
+
+    await addDoc(collection(firestore, 'mail'), {
+      to: [recipient],
+      message: {
+        subject: `Decision Making Tool access request: ${request.fullName}`,
+        text: [
+          `${request.fullName} (${request.email}) requested access to the Decision Making Tool.`,
+          request.organization ? `Organization: ${request.organization}` : null,
+          request.reason ? `Reason: ${request.reason}` : null,
+          `Request document: accessRequests/${request.requestId}`,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      },
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  private parseApprovedUser(uid: string, data: DocumentData): ApprovedUserRecord | null {
+    const status = this.readString(data, 'status');
+    const role = this.readString(data, 'role');
+    if (status !== 'active' && status !== 'denied') {
+      return null;
+    }
+    if (role !== 'authorized_viewer' && role !== 'science_publisher' && role !== 'admin') {
+      return null;
+    }
+    return {
+      uid,
+      email: this.readString(data, 'email'),
+      displayName: this.readString(data, 'displayName'),
+      status,
+      role,
+    };
+  }
+
+  private readString(data: DocumentData, key: string): string {
+    const value = data[key];
+    return typeof value === 'string' ? value : '';
+  }
+
+  private readOptionalString(data: DocumentData, key: string): string | undefined {
+    const value = this.readString(data, key);
+    return value || undefined;
+  }
+
+  private readNumber(data: DocumentData, key: string): number | undefined {
+    const value = data[key];
+    return typeof value === 'number' ? value : undefined;
   }
 
   private readPendingRequest(): StoredPendingRequest | null {

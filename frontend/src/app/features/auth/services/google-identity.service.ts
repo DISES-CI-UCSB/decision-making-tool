@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { FirebaseClientService } from '@core/services/firebase-client.service';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { environment } from '../../../../environments/environment';
 
 /**
@@ -21,6 +23,7 @@ const GIS_SCRIPT_ID = 'google-accounts-id';
 const STUB_LATENCY_MS = 300;
 
 export interface GoogleProfile {
+  uid?: string;
   idToken: string;
   name: string;
   email: string;
@@ -56,6 +59,8 @@ const STUB_PROFILE: Omit<GoogleProfile, 'idToken' | 'isStub'> = {
 
 @Injectable({ providedIn: 'root' })
 export class GoogleIdentityService {
+  private readonly firebase = inject(FirebaseClientService);
+
   private scriptPromise: Promise<void> | null = null;
 
   /**
@@ -63,6 +68,9 @@ export class GoogleIdentityService {
    * In stub mode (no client ID) the returned profile's `isStub` is `true`.
    */
   async signIn(): Promise<GoogleProfile> {
+    if (this.firebase.isEnabled) {
+      return this.firebaseSignIn();
+    }
     if (!environment.googleClientId) {
       return this.stubSignIn();
     }
@@ -84,6 +92,27 @@ export class GoogleIdentityService {
         });
       }, STUB_LATENCY_MS);
     });
+  }
+
+  private async firebaseSignIn(): Promise<GoogleProfile> {
+    const auth = this.firebase.auth;
+    if (!auth) {
+      throw new Error('Firebase Auth is not configured.');
+    }
+
+    const credential = await signInWithPopup(auth, new GoogleAuthProvider());
+    const idToken = await credential.user.getIdToken();
+    const email = credential.user.email ?? '';
+    const name = credential.user.displayName ?? email;
+
+    return {
+      uid: credential.user.uid,
+      idToken,
+      name,
+      email,
+      avatarInitials: this.toInitials(name || email),
+      isStub: false,
+    };
   }
 
   private async realSignIn(clientId: string): Promise<GoogleProfile> {

@@ -1,17 +1,21 @@
-/**
- * Runtime environment config.
- *
- * `googleClientId` — OAuth 2.0 Client ID from Google Cloud Console.
- * Leave empty to run the auth modal with a stubbed Google flow
- * (resolves a fake María Gómez profile after 300 ms so the MVP
- * request-access flow demos end-to-end without external dependencies).
- *
- * TODO: once Google OAuth is registered under a PNNC / Spatial Lab
- * project, populate this value (and the ES build-specific override)
- * and the stub will silently switch off.
- */
 export const environment = {
   production: false,
+  firebase: {
+    enabled: true,
+    config: {
+      apiKey: 'AIzaSyBlZ0fv5aT5ZSB9GVRAfvmV8mi8fxvf45E',
+      authDomain: 'dises-decision-making-tool.firebaseapp.com',
+      projectId: 'dises-decision-making-tool',
+      storageBucket: 'dises-decision-making-tool.firebasestorage.app',
+      messagingSenderId: '961351909896',
+      appId: '1:961351909896:web:81b07cc64cfe0ad7e4c7bd',
+      measurementId: 'G-EGXWGXG26X',
+    },
+    // Optional: set this locally after installing Firebase's Trigger Email
+    // extension. Empty means access requests are recorded but no email doc is
+    // created.
+    accessRequestNotificationEmail: '',
+  },
   googleClientId: '',
   manifestBlobUrl: '',
   ENABLE_MANIFEST_EDITOR: true,
