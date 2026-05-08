@@ -3,9 +3,10 @@ name: notion-brain-dump-master-journal
 description: >-
   Captures an unstructured project brain dump into the Notion Master Project
   Journal data source: creates a new row or updates an existing brain-dump row,
-  sets Project tag DISES, and writes AI summary, Next step, Verbal dump, and
-  organized page body. Use when the user says brain dump, verbal dump, ticket
-  ideas dump, or wants to log scattered notes into the DISES work journal.
+  sets Project tag DISES, and writes AI summary, Next step, Verbal dump, page
+  body with Notion to-do blocks for high-level to-dos, and organized capture.
+  Use when the user says brain dump, verbal dump, ticket ideas dump, or wants
+  to log scattered notes into the DISES work journal.
 disable-model-invocation: false
 ---
 
@@ -18,6 +19,25 @@ disable-model-invocation: false
 - **Default filtered view (DISES):** [Work Journal (tagged DISES)](https://www.notion.so/80646effe80040f787ec85ac3660cd2c?v=9a528341de7a4f45aab57b1134e8fc44)
 
 Always **`notion-fetch`** the database or data source URL first if the schema or property names might have changed.
+
+Fetch MCP resource **`notion://docs/enhanced-markdown-spec`** before writing page body so syntax (especially to-dos) is correct.
+
+## High-level to-dos (required in page body)
+
+- Place a **`## High-level to-dos`** section **above** **Organized capture**.
+- Use **Notion to-do blocks**, not numbered lists. In Notion-flavored Markdown each item is a line: `- [ ] **Label:** one to two sentences of concrete action or outcome.` All items unchecked unless the user marks something done.
+- One to-do per theme (merge only if the user explicitly combined themes). Keep each line scannable.
+
+Example (pattern only):
+
+```markdown
+## High-level to-dos
+
+- [ ] **Net Benefit (agricultural rent):** Confirm in the manifest/renderer whether the raster is continuous vs binary and fix symbology so the map shows meaningful variation.
+- [ ] **Límites SIRAP:** Verify the layer against a trusted reference; if Vercel Blob hosts the canonical file, point the app at Blob.
+```
+
+Do **not** use `1.` / `2.` ordered lists for this section — Notion will not treat those as the to-do block type.
 
 ## Workflow
 
@@ -34,7 +54,7 @@ Always **`notion-fetch`** the database or data source URL first if the schema or
    - **Verbal dump:** Paste or lightly clean the user’s raw dictation; keep their wording where it matters.
    - **AI summary:** 2–4 sentences: themes + sharpest risks or decisions.
    - **Next step:** One smallest concrete action (e.g. “Trace X in manifest and confirm raster type”).
-5. **Page body:** Do **not** duplicate the title as an H1. Use `replace_content` or `update_content` to add a short **Organized capture** section with headings, **Suggested sequencing** if helpful, and **open questions** if any.
+5. **Page body:** Do **not** duplicate the title as an H1. Use `replace_content` or `update_content` to add **High-level to-dos** (to-do blocks as above), then **Organized capture** with headings, **Suggested sequencing** if helpful, and **open questions** if any.
 
 ## After saving
 
