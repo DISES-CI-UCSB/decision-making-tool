@@ -38,6 +38,17 @@ function assertNullableString(value, label) {
   );
 }
 
+function assertNumberOrNull(value, label) {
+  assert(
+    value === null || (typeof value === 'number' && Number.isFinite(value)),
+    `${label} must be null or a finite number`,
+  );
+}
+
+function assertBooleanOrNull(value, label) {
+  assert(value === null || typeof value === 'boolean', `${label} must be null or a boolean`);
+}
+
 function assertUrlOrNull(value, label) {
   assertNullableString(value, label);
   if (value) {
@@ -105,6 +116,13 @@ function assertUrlMap(value, label) {
   }
 }
 
+function assertStringArray(value, label) {
+  assert(Array.isArray(value), `${label} must be an array`);
+  for (const [index, item] of value.entries()) {
+    assertString(item, `${label}[${index}]`);
+  }
+}
+
 function assertHexColorOrNull(value, label) {
   assert(
     value === null || /^#[0-9a-fA-F]{6}$/.test(value),
@@ -163,6 +181,10 @@ function shouldCheckRemoteDisplayUrls(args) {
   );
 }
 
+function shouldCheckReachability(url) {
+  return url.startsWith('https://') && !url.endsWith('/');
+}
+
 async function validateManifest(manifest, manifestPath, options = {}) {
   assert(
     manifest && typeof manifest === 'object' && !Array.isArray(manifest),
@@ -174,6 +196,7 @@ async function validateManifest(manifest, manifestPath, options = {}) {
   assertString(manifest.sourceCsv, 'sourceCsv');
   assert(Array.isArray(manifest.categories), 'categories must be an array');
   assert(Array.isArray(manifest.layers), 'layers must be an array');
+  assert(Array.isArray(manifest.solutions), 'solutions must be an array');
 
   const categoryIds = manifest.categories.map((category, index) => {
     assert(category && typeof category === 'object', `categories[${index}] must be an object`);
@@ -310,7 +333,7 @@ async function validateManifest(manifest, manifestPath, options = {}) {
 
     if (options.checkRemoteDisplayUrls) {
       for (const url of getDisplayUrls(layer)) {
-        if (url.startsWith('https://')) {
+        if (shouldCheckReachability(url)) {
           remoteDisplayUrls.push({ url, label: `layers[${index}] display URL` });
         }
       }
@@ -332,6 +355,13 @@ async function validateManifest(manifest, manifestPath, options = {}) {
     }
   }
 
+  const solutionIds = manifest.solutions.map((solution, index) => {
+    validateSolution(solution, index, remoteDisplayUrls, options);
+    return solution.id;
+  });
+
+  assertUnique(solutionIds, 'solutions.id');
+
   for (const { url, label } of remoteDisplayUrls) {
     await assertReachable(url, label);
   }
@@ -340,8 +370,102 @@ async function validateManifest(manifest, manifestPath, options = {}) {
     manifestPath,
     categoryCount: manifest.categories.length,
     layerCount: manifest.layers.length,
+    solutionCount: manifest.solutions.length,
     checkedRemoteDisplayUrlCount: remoteDisplayUrls.length,
   };
+}
+
+function validateSolution(solution, index, remoteDisplayUrls, options) {
+  assert(solution && typeof solution === 'object', `solutions[${index}] must be an object`);
+  assertString(solution.id, `solutions[${index}].id`);
+  assertString(solution.name, `solutions[${index}].name`);
+  assertString(solution.description, `solutions[${index}].description`);
+  assertString(solution.scope, `solutions[${index}].scope`);
+  assertNullableString(solution.sirapId, `solutions[${index}].sirapId`);
+  assertString(solution.displayUrl, `solutions[${index}].displayUrl`);
+  assertValidUrl(solution.displayUrl, `solutions[${index}].displayUrl`);
+  assertString(solution.metadataUrl, `solutions[${index}].metadataUrl`);
+  assertValidUrl(solution.metadataUrl, `solutions[${index}].metadataUrl`);
+  assertString(solution.rasterFile, `solutions[${index}].rasterFile`);
+  assertString(solution.metadataFile, `solutions[${index}].metadataFile`);
+  assertString(solution.blobPath, `solutions[${index}].blobPath`);
+  assertNullableString(solution.generatedAt, `solutions[${index}].generatedAt`);
+  validateSolutionFinderInputs(solution.finderInputs, `solutions[${index}].finderInputs`);
+  validateSolutionInputLayerIds(solution.inputLayerIds, `solutions[${index}].inputLayerIds`);
+  validateSolutionSummaryMetrics(solution.summaryMetrics, `solutions[${index}].summaryMetrics`);
+  validateSolutionCoverage(solution.coverage, `solutions[${index}].coverage`);
+  validateRendering(solution.rendering, `solutions[${index}].rendering`);
+
+  if (options.checkRemoteDisplayUrls) {
+    remoteDisplayUrls.push({ url: solution.displayUrl, label: `solutions[${index}].displayUrl` });
+    remoteDisplayUrls.push({ url: solution.metadataUrl, label: `solutions[${index}].metadataUrl` });
+  }
+}
+
+function validateSolutionFinderInputs(finderInputs, label) {
+  assert(finderInputs && typeof finderInputs === 'object', `${label} must be an object`);
+  assertString(finderInputs.scope, `${label}.scope`);
+  assertNullableString(finderInputs.targetFeatureSet, `${label}.targetFeatureSet`);
+  assertStringArray(finderInputs.targetFeatureIds, `${label}.targetFeatureIds`);
+  assertNumberOrNull(finderInputs.targetPercent, `${label}.targetPercent`);
+  assertNullableString(finderInputs.costLayerId, `${label}.costLayerId`);
+  assertStringArray(finderInputs.includeLayerIds, `${label}.includeLayerIds`);
+  assertStringArray(finderInputs.excludeLayerIds, `${label}.excludeLayerIds`);
+}
+
+function validateSolutionInputLayerIds(inputLayerIds, label) {
+  assert(inputLayerIds && typeof inputLayerIds === 'object', `${label} must be an object`);
+  assertStringArray(inputLayerIds.features, `${label}.features`);
+  assertNullableString(inputLayerIds.cost, `${label}.cost`);
+  assertStringArray(inputLayerIds.includes, `${label}.includes`);
+  assertStringArray(inputLayerIds.excludes, `${label}.excludes`);
+}
+
+function validateSolutionSummaryMetrics(summaryMetrics, label) {
+  assert(summaryMetrics && typeof summaryMetrics === 'object', `${label} must be an object`);
+  assertNumberOrNull(summaryMetrics.nSelected, `${label}.nSelected`);
+  assertNumberOrNull(summaryMetrics.totalCost, `${label}.totalCost`);
+  assertNumberOrNull(summaryMetrics.pctTargetsMet, `${label}.pctTargetsMet`);
+  assertNumberOrNull(summaryMetrics.coverageRowCount, `${label}.coverageRowCount`);
+}
+
+function validateSolutionCoverage(coverage, label) {
+  assert(Array.isArray(coverage), `${label} must be an array`);
+  for (const [index, row] of coverage.entries()) {
+    assert(row && typeof row === 'object', `${label}[${index}] must be an object`);
+    assertString(row.feature, `${label}[${index}].feature`);
+    assertBooleanOrNull(row.met, `${label}[${index}].met`);
+    assertNumberOrNull(row.relativeTarget, `${label}[${index}].relativeTarget`);
+    assertNumberOrNull(row.relativeHeld, `${label}[${index}].relativeHeld`);
+    assertNumberOrNull(row.relativeShortfall, `${label}[${index}].relativeShortfall`);
+  }
+}
+
+function validateRendering(rendering, label) {
+  assert(rendering && typeof rendering === 'object', label);
+  assertOneOf(rendering.valueType, RENDER_VALUE_TYPES, `${label}.valueType`);
+  assertOneOf(rendering.renderMode, RENDER_MODES, `${label}.renderMode`);
+  if ('noDataValue' in rendering) {
+    assertNumberOrNull(rendering.noDataValue, `${label}.noDataValue`);
+  }
+  if ('selectedValue' in rendering) {
+    assertNumberOrNull(rendering.selectedValue, `${label}.selectedValue`);
+  }
+  if ('selectedColor' in rendering) {
+    assertHexColorOrNull(rendering.selectedColor, `${label}.selectedColor`);
+  }
+  if ('minValue' in rendering) {
+    assertNumberOrNull(rendering.minValue, `${label}.minValue`);
+  }
+  if ('maxValue' in rendering) {
+    assertNumberOrNull(rendering.maxValue, `${label}.maxValue`);
+  }
+  if ('startColor' in rendering) {
+    assertHexColorOrNull(rendering.startColor, `${label}.startColor`);
+  }
+  if ('endColor' in rendering) {
+    assertHexColorOrNull(rendering.endColor, `${label}.endColor`);
+  }
 }
 
 async function readJson(filePath) {
@@ -378,7 +502,7 @@ async function main() {
     const manifest = await readJson(targetPath);
     const result = await validateManifest(manifest, targetPath, { checkRemoteDisplayUrls });
     console.log(
-      `[validate:layer-manifest] ${path.relative(process.cwd(), result.manifestPath)} passed (${result.layerCount} layer(s), ${result.categoryCount} categories)`,
+      `[validate:layer-manifest] ${path.relative(process.cwd(), result.manifestPath)} passed (${result.layerCount} layer(s), ${result.solutionCount} solution(s), ${result.categoryCount} categories)`,
     );
     if (checkRemoteDisplayUrls) {
       console.log(

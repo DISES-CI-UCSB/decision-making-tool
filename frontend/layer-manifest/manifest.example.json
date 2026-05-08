@@ -265,5 +265,57 @@
         "byMunicipality": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/by-municipality.json"
       }
     }
+  ],
+  "solutions": [
+    {
+      "id": "ecos17_runap_omec_co",
+      "name": "Ecos17+RUNAP+OMEC_CO",
+      "description": "Ecos17+RUNAP+OMEC_CO solution for 17% ecosystems; includes runap, omecs; net_benefit cost.",
+      "scope": "nacional",
+      "sirapId": null,
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17+RUNAP+OMEC_CO.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17+RUNAP+OMEC_CO.json",
+      "rasterFile": "Ecos17+RUNAP+OMEC_CO.tif",
+      "metadataFile": "Ecos17+RUNAP+OMEC_CO.json",
+      "blobPath": "solutions/nacional/Ecos17+RUNAP+OMEC_CO.tif",
+      "generatedAt": "2026-04-02T23:27:14+00:00",
+      "finderInputs": {
+        "scope": "nacional",
+        "targetFeatureSet": "ecosystems",
+        "targetFeatureIds": ["species_richness"],
+        "targetPercent": 17,
+        "costLayerId": "net_benefit",
+        "includeLayerIds": ["runap", "omecs"],
+        "excludeLayerIds": []
+      },
+      "inputLayerIds": {
+        "features": ["species_richness"],
+        "cost": "net_benefit",
+        "includes": ["runap", "omecs"],
+        "excludes": []
+      },
+      "summaryMetrics": {
+        "nSelected": 341584,
+        "totalCost": 6760000000000,
+        "pctTargetsMet": 100,
+        "coverageRowCount": 1
+      },
+      "coverage": [
+        {
+          "feature": "ecosistemas",
+          "met": true,
+          "relativeTarget": 0.17,
+          "relativeHeld": 0.256699188,
+          "relativeShortfall": 0
+        }
+      ],
+      "rendering": {
+        "valueType": "binary",
+        "renderMode": "mask",
+        "noDataValue": 255,
+        "selectedValue": 1,
+        "selectedColor": "#2563eb"
+      }
+    }
   ]
 }

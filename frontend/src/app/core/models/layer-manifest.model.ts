@@ -43,6 +43,7 @@ export interface RuntimeLayerManifest {
   sourceCsv: string;
   categories: RuntimeLayerManifestCategory[];
   layers: RuntimeLayerManifestLayer[];
+  solutions: RuntimeSolutionManifestEntry[];
 }
 
 export interface RuntimeLayerManifestCategory {
@@ -67,6 +68,57 @@ export interface RuntimeLayerManifestLayer {
   metadataUrl: string | null;
   compressedDataForLiveMetricsUrl: string | null;
   precomputedMetricUrls: Record<string, string>;
+  rendering: RuntimeLayerManifestRenderingConfig;
+}
+
+export interface RuntimeSolutionManifestInputLayerIds {
+  features: string[];
+  cost: string | null;
+  includes: string[];
+  excludes: string[];
+}
+
+export interface RuntimeSolutionManifestFinderInputs {
+  scope: string;
+  targetFeatureSet: string | null;
+  targetFeatureIds: string[];
+  targetPercent: number | null;
+  costLayerId: string | null;
+  includeLayerIds: string[];
+  excludeLayerIds: string[];
+}
+
+export interface RuntimeSolutionManifestSummaryMetrics {
+  nSelected: number | null;
+  totalCost: number | null;
+  pctTargetsMet: number | null;
+  coverageRowCount: number;
+}
+
+export interface RuntimeSolutionManifestCoverageRow {
+  feature: string;
+  met: boolean | null;
+  relativeTarget: number | null;
+  relativeHeld: number | null;
+  relativeShortfall: number | null;
+}
+
+export interface RuntimeSolutionManifestEntry {
+  id: string;
+  name: string;
+  description: string;
+  scope: string;
+  sirapId: string | null;
+  displayUrl: string;
+  metadataUrl: string;
+  rasterFile: string;
+  metadataFile: string;
+  blobPath: string;
+  generatedAt: string | null;
+  finderInputs: RuntimeSolutionManifestFinderInputs;
+  inputLayerIds: RuntimeSolutionManifestInputLayerIds;
+  summaryMetrics: RuntimeSolutionManifestSummaryMetrics;
+  coverage: RuntimeSolutionManifestCoverageRow[];
   rendering: RuntimeLayerManifestRenderingConfig;
 }
 
