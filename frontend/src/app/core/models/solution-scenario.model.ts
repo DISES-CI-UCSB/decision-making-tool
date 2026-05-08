@@ -3,6 +3,9 @@ export interface SolutionScenario {
   filename: string;
   name: string;
   description: string;
+  scope: string;
+  displayUrl: string;
+  metadataUrl: string;
   ecosystemTargets: number;
   constraints: string[];
   costLayer: string;

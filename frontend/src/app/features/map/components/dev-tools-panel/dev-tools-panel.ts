@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
-import { type AoiType, type Solution } from '@core/models';
+import { type AoiType, type Solution, type SolutionScenario } from '@core/models';
 import {
   CHART_PALETTE_IDS,
   CHART_PALETTES,
@@ -181,8 +181,8 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 (change)="onScenarioChange($event)"
               >
                 <option value="">-- select --</option>
-                @for (s of scenarios; track s.id) {
-                  <option [value]="s.id">{{ s.id }}</option>
+                @for (s of scenarios(); track s.id) {
+                  <option [value]="s.id">{{ formatScenarioOption(s) }}</option>
                 }
               </select>
               <div id="dev-tools-finder-original-scenario-actions" class="mt-1.5 flex gap-1.5">
@@ -212,8 +212,8 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 (change)="onCandidateScenarioChange($event)"
               >
                 <option value="">-- select --</option>
-                @for (s of scenarios; track s.id) {
-                  <option [value]="s.id">{{ s.id }}</option>
+                @for (s of scenarios(); track s.id) {
+                  <option [value]="s.id">{{ formatScenarioOption(s) }}</option>
                 }
               </select>
               <div id="dev-tools-finder-comparison-scenario-actions" class="mt-1.5 flex gap-1.5">
@@ -527,8 +527,8 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 (change)="onCandidateScenarioChange($event)"
               >
                 <option value="">-- select --</option>
-                @for (s of scenarios; track s.id) {
-                  <option [value]="s.id">{{ s.id }}</option>
+                @for (s of scenarios(); track s.id) {
+                  <option [value]="s.id">{{ formatScenarioOption(s) }}</option>
                 }
               </select>
               <div id="dev-tools-candidate-scenario-actions" class="mt-1.5 flex gap-1.5">
@@ -721,6 +721,15 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
             </div>
           }
 
+          @if (catalogLoadMessage(); as message) {
+            <div
+              id="dev-tools-solution-catalog-status"
+              class="mb-3 rounded bg-amber-50 border border-amber-200 p-2 text-amber-700"
+            >
+              {{ message }}
+            </div>
+          }
+
           @if (loaded(); as sol) {
             <!-- Scenario Info -->
             <section id="dev-tools-scenario-info" class="mb-3 border-t border-slate-200 pt-3">
@@ -837,7 +846,20 @@ export class DevToolsPanelComponent {
   private readonly appState = inject(AppStateService);
   private readonly mockData = inject(MockDataService);
 
-  readonly scenarios = this.catalog.getAll();
+  readonly scenarios = this.catalog.scenarios;
+  readonly catalogLoadMessage = computed(() => {
+    const error = this.catalog.loadError();
+    if (error) {
+      return `Solution catalog failed to load: ${error}`;
+    }
+    if (this.catalog.isLoading()) {
+      return 'Loading manifest solutions...';
+    }
+    if (this.scenarios().length === 0) {
+      return 'No manifest solutions are available.';
+    }
+    return null;
+  });
   readonly selectedScenarioId = signal('');
   readonly selectedCandidateScenarioId = signal('');
   readonly isOpen = signal(false);
@@ -1012,6 +1034,15 @@ export class DevToolsPanelComponent {
 
   formatBbox(bbox: [number, number, number, number]): string {
     return `[${bbox.map((v) => v.toFixed(2)).join(', ')}]`;
+  }
+
+  protected formatScenarioOption(scenario: SolutionScenario): string {
+    const targetLabel = scenario.ecosystemTargets
+      ? `${scenario.ecosystemTargets}%`
+      : 'target unknown';
+    const constraintsLabel =
+      scenario.constraints.length > 0 ? scenario.constraints.join('+') : 'no constraints';
+    return `${scenario.id} | ${scenario.scope} | ${targetLabel} | ${constraintsLabel} | ${scenario.costLayer}`;
   }
 
   private buildCandidateComparisonSolution(scenarioId: string): Solution {

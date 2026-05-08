@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T19:24:12.583Z",
+  "generatedAt": "2026-05-08T19:38:06.758Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -25,7 +25,7 @@
     "unmatchedSolutionRasters": 0,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 1,
-    "renderingInferenceLowConfidence": 14
+    "renderingInferenceLowConfidence": 13
   },
   "missingRequired": [],
   "extraAvailable": [
@@ -253,9 +253,10 @@
     "byStrategy": {
       "manual_override": 2,
       "legacy_non_raster": 4,
-      "fallback_after_uncertain_sampling": 10
+      "fallback_after_uncertain_sampling": 9,
+      "raster_sampling": 1
     },
-    "lowConfidence": 14
+    "lowConfidence": 13
   },
   "excludedRows": [
     {

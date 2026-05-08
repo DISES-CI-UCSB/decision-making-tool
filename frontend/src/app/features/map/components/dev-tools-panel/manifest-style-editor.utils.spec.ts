@@ -70,6 +70,7 @@ describe('manifest-style-editor.utils', () => {
           },
         },
       ],
+      solutions: [],
     };
 
     const draftManifest: RuntimeLayerManifest = {
@@ -127,6 +128,7 @@ describe('manifest-style-editor.utils', () => {
       sourceCsv: 'layers.csv',
       categories: [],
       layers: [layerWithoutRendering],
+      solutions: [],
     };
 
     const normalized = normalizeManifestForEditor(manifest);
@@ -160,6 +162,7 @@ describe('manifest-style-editor.utils', () => {
       sourceCsv: 'layers.csv',
       categories: [],
       layers: [speciesPointerLayer],
+      solutions: [],
     });
 
     expect(normalized.layers[0].rendering).toBeUndefined();

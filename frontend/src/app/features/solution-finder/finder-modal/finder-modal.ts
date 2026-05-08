@@ -119,7 +119,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   @Output() readonly closeRequested = new EventEmitter<void>();
   @Output() readonly scenarioApplied = new EventEmitter<ScenarioMatch>();
 
-  protected readonly scenarioLibrary: SolutionScenario[] = this.solutionCatalog.getAll();
   protected readonly showScenarioFilenames = this.appState.showFinderScenarioFilenames$;
   protected readonly showScopeBar = this.appState.showFinderScopeBar$;
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
@@ -297,9 +296,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.matchState = 'loading';
     this.loadingTimer = setTimeout(() => {
       this.loadingTimer = null;
-      const filtered = this.scenarioLibrary.filter((scenario) =>
-        this.scenarioMatchesSelection(scenario),
-      );
+      const filtered = this.solutionCatalog
+        .getAll()
+        .filter((scenario) => this.scenarioMatchesSelection(scenario));
       this.matchResults = filtered.map((scenario, index) => this.toScenarioMatch(scenario, index));
       this.selectedMatchId = this.matchResults[0]?.id ?? null;
       this.selectedMatch = this.matchResults[0] ?? null;
@@ -420,7 +419,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   private scenarioMatchesSelection(scenario: SolutionScenario): boolean {
-    const strategic = scenario.id.startsWith('ESTR');
+    const strategic = scenario.id.toLowerCase().startsWith('estr');
     if (strategic && !this.hasStrategicTargetSelected()) {
       return false;
     }
