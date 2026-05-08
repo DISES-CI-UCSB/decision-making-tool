@@ -49,12 +49,13 @@ export class SolutionCatalogService {
   }
 
   private toScenario(solution: RuntimeSolutionManifestEntry): SolutionScenario {
-    const targetPercent = solution.finderInputs.targetPercent ?? 0;
+    const targetPercent = solution.finderInputs.targetPercent ?? this.inferTargetPercent(solution);
     const constraints = this.getConstraintLabels(solution);
     const costLayer = this.getCostLayerLabel(solution);
-    const targetFeatureSet = solution.finderInputs.targetFeatureSet;
-    const targetLabel =
-      targetFeatureSet === 'strategic' ? 'strategic ecosystems' : 'ecosystem types';
+    const targetFeatureSet = solution.finderInputs.targetFeatureSet?.replace(/_/g, '-');
+    const targetLabel = targetFeatureSet?.includes('strategic')
+      ? 'strategic ecosystems'
+      : 'ecosystem types';
     const constraintLabel = constraints.length > 0 ? constraints.join(' + ') : 'no locked-in areas';
 
     return {
@@ -65,8 +66,11 @@ export class SolutionCatalogService {
         solution.description ||
         `${targetPercent}% target for ${targetLabel}, includes ${constraintLabel}, ${costLayer} cost`,
       scope: solution.scope,
+      sirapId: solution.sirapId,
       displayUrl: solution.displayUrl,
       metadataUrl: solution.metadataUrl,
+      finderInputs: solution.finderInputs,
+      inputLayerIds: solution.inputLayerIds,
       ecosystemTargets: targetPercent,
       constraints,
       costLayer,
@@ -91,6 +95,12 @@ export class SolutionCatalogService {
     }
 
     return constraints;
+  }
+
+  private inferTargetPercent(solution: RuntimeSolutionManifestEntry): number {
+    const source = `${solution.id} ${solution.name}`.toLowerCase();
+    const match = source.match(/(?:ecos|estr)(17|30)(?!\d)/);
+    return match ? Number(match[1]) : 0;
   }
 
   private getCostLayerLabel(solution: RuntimeSolutionManifestEntry): string {

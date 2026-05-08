@@ -4,13 +4,22 @@ import {
   provideTranslateLoader,
   provideTranslateService,
 } from '@ngx-translate/core';
+import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import type { SolutionScenario } from '@core/models/solution-scenario.model';
 import { FinderModalComponent } from './finder-modal';
 
 describe('FinderModalComponent', () => {
+  let catalog: { getAll: ReturnType<typeof vi.fn> };
+
   beforeEach(async () => {
+    catalog = {
+      getAll: vi.fn(() => []),
+    };
+
     await TestBed.configureTestingModule({
       imports: [FinderModalComponent],
       providers: [
+        { provide: SolutionCatalogService, useValue: catalog },
         provideTranslateService({
           lang: 'en',
           fallbackLang: 'en',
@@ -18,6 +27,10 @@ describe('FinderModalComponent', () => {
         }),
       ],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders step columns for targets, 2A, 2B, and results', () => {
@@ -43,9 +56,6 @@ describe('FinderModalComponent', () => {
       fixture.nativeElement.querySelector('#solution-finder-modal-cancel-button'),
     ).not.toBeNull();
     expect(
-      fixture.nativeElement.querySelector('#solution-finder-modal-run-match-button'),
-    ).not.toBeNull();
-    expect(
       fixture.nativeElement.querySelector('#solution-finder-modal-apply-button'),
     ).not.toBeNull();
   });
@@ -68,8 +78,8 @@ describe('FinderModalComponent', () => {
 
     const selectedMatch = {
       id: 'scenario-ecos30-runap-hf',
-      solutionId: 'sol-001',
-      scenarioId: 'Ecos30+RUNAP_HF',
+      solutionId: 'ecos30_runap_hf',
+      scenarioId: 'ecos30_runap_hf',
       name: 'Ecos30 RUNAP HF',
       description: 'Sample scenario description',
       mapLabel: 'Human Footprint',
@@ -91,4 +101,93 @@ describe('FinderModalComponent', () => {
     expect(scenarioAppliedSpy).toHaveBeenCalledWith(selectedMatch);
     expect(closeRequestedSpy).toHaveBeenCalled();
   });
+
+  it('matches manifest scenarios by finderInputs and emits real solution ids', () => {
+    vi.useFakeTimers();
+    catalog.getAll.mockReturnValue([
+      buildScenario({
+        id: 'ecos30_runap_hf',
+        name: 'Ecos30+RUNAP_HF',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: null,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap'],
+      }),
+      buildScenario({
+        id: 'ecos17_runap_omec_hf',
+        name: 'Ecos17+RUNAP+OMEC_HF',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: 17,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap', 'omecs'],
+      }),
+    ]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      selectedCostLayerId: string;
+      runMatching: () => void;
+      matchResults: { solutionId: string; scenarioId: string; name: string }[];
+      selectedMatch: { solutionId: string; scenarioId: string } | null;
+    };
+
+    component.selectedTargetTypeIds = ['ecosystems'];
+    component.targetLevelByType = { ecosystems: 30 };
+    component.selectedCostLayerId = 'human-footprint';
+    component.runMatching();
+    vi.advanceTimersByTime(350);
+
+    expect(component.matchResults).toHaveLength(1);
+    expect(component.matchResults[0]).toMatchObject({
+      solutionId: 'ecos30_runap_hf',
+      scenarioId: 'ecos30_runap_hf',
+      name: 'Ecos30+RUNAP_HF',
+    });
+    expect(component.selectedMatch?.solutionId).toBe('ecos30_runap_hf');
+  });
 });
+
+function buildScenario(
+  overrides: Pick<SolutionScenario, 'id' | 'name'> & {
+    targetFeatureSet: string;
+    targetFeatureIds: string[];
+    targetPercent: number | null;
+    costLayerId: string;
+    includeLayerIds: string[];
+  },
+): SolutionScenario {
+  return {
+    id: overrides.id,
+    filename: `${overrides.name}.tif`,
+    name: overrides.name,
+    description: `${overrides.name} solution`,
+    scope: 'nacional',
+    sirapId: null,
+    displayUrl: `https://example.test/${overrides.name}.tif`,
+    metadataUrl: `https://example.test/${overrides.name}.json`,
+    finderInputs: {
+      scope: 'nacional',
+      targetFeatureSet: overrides.targetFeatureSet,
+      targetFeatureIds: overrides.targetFeatureIds,
+      targetPercent: overrides.targetPercent,
+      costLayerId: overrides.costLayerId,
+      includeLayerIds: overrides.includeLayerIds,
+      excludeLayerIds: [],
+    },
+    inputLayerIds: {
+      features: overrides.targetFeatureIds,
+      cost: overrides.costLayerId,
+      includes: overrides.includeLayerIds,
+      excludes: [],
+    },
+    ecosystemTargets: overrides.targetPercent ?? 0,
+    constraints: [],
+    costLayer: 'Human Footprint',
+    nSelected: 123,
+    totalCost: 0,
+    pctTargetsMet: 100,
+  };
+}

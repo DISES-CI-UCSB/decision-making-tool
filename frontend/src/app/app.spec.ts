@@ -5,6 +5,8 @@ import {
   TranslateNoOpLoader,
 } from '@ngx-translate/core';
 import { AppStateService } from '@core/services/app-state.service';
+import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import type { SolutionScenario } from '@core/models/solution-scenario.model';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { App } from './app';
 
@@ -68,4 +70,63 @@ describe('App', () => {
       (component as unknown as { solutionLoadedToastVisible: boolean }).solutionLoadedToastVisible,
     ).toBe(true);
   });
+
+  it('applies a real manifest solution id from the finder', () => {
+    const fixture = TestBed.createComponent(App);
+    const component = fixture.componentInstance;
+    const appState = TestBed.inject(AppStateService);
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
+    const solutionLayer = TestBed.inject(SolutionLayerService);
+    const scenario = buildManifestScenario();
+    vi.spyOn(solutionCatalog, 'getById').mockReturnValue(scenario);
+    const showSolutionSpy = vi.spyOn(solutionLayer, 'showSolution').mockResolvedValue(undefined);
+
+    (
+      component as unknown as {
+        onScenarioApplied: (match: { solutionId: string; scenarioId: string }) => void;
+      }
+    ).onScenarioApplied({
+      solutionId: scenario.id,
+      scenarioId: scenario.id,
+    });
+
+    expect(appState.activeSolution$()?.id).toBe(scenario.id);
+    expect(appState.activeSolution$()?.metadata?.['metadataUrl']).toBe(scenario.metadataUrl);
+    expect(appState.rightSidebarMode$()).toBe('overview');
+    expect(showSolutionSpy).toHaveBeenCalledWith(scenario.id);
+  });
 });
+
+function buildManifestScenario(): SolutionScenario {
+  return {
+    id: 'ecos30_runap_hf',
+    filename: 'Ecos30+RUNAP_HF.tif',
+    name: 'Ecos30+RUNAP_HF',
+    description: '30% ecosystem target with RUNAP and human footprint cost.',
+    scope: 'nacional',
+    sirapId: null,
+    displayUrl: 'https://example.test/Ecos30+RUNAP_HF.tif',
+    metadataUrl: 'https://example.test/Ecos30+RUNAP_HF.json',
+    finderInputs: {
+      scope: 'nacional',
+      targetFeatureSet: 'ecosystems',
+      targetFeatureIds: ['ecosistemas'],
+      targetPercent: 30,
+      costLayerId: 'human_footprint_2022',
+      includeLayerIds: ['runap'],
+      excludeLayerIds: [],
+    },
+    inputLayerIds: {
+      features: ['ecosistemas'],
+      cost: 'human_footprint_2022',
+      includes: ['runap'],
+      excludes: [],
+    },
+    ecosystemTargets: 30,
+    constraints: ['RUNAP'],
+    costLayer: 'Human Footprint',
+    nSelected: 387656,
+    totalCost: 0,
+    pctTargetsMet: 100,
+  };
+}

@@ -76,7 +76,6 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
 export class FinderModalComponent implements AfterViewInit, OnDestroy {
   private readonly appState = inject(AppStateService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
-  private readonly mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'];
   protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
     {
       id: 'ecosystems',
@@ -299,7 +298,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       const filtered = this.solutionCatalog
         .getAll()
         .filter((scenario) => this.scenarioMatchesSelection(scenario));
-      this.matchResults = filtered.map((scenario, index) => this.toScenarioMatch(scenario, index));
+      this.matchResults = filtered.map((scenario) => this.toScenarioMatch(scenario));
       this.selectedMatchId = this.matchResults[0]?.id ?? null;
       this.selectedMatch = this.matchResults[0] ?? null;
       this.matchState = 'ready';
@@ -419,30 +418,32 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   private scenarioMatchesSelection(scenario: SolutionScenario): boolean {
-    const strategic = scenario.id.toLowerCase().startsWith('estr');
-    if (strategic && !this.hasStrategicTargetSelected()) {
-      return false;
-    }
-    if (!strategic && !this.hasNonStrategicTargetSelected()) {
+    if (!this.scenarioScopeMatchesSelection(scenario)) {
       return false;
     }
 
-    if (!this.getSelectedTargetLevels().includes(scenario.ecosystemTargets as 17 | 30)) {
+    if (!this.scenarioTargetTypesMatchSelection(scenario)) {
       return false;
     }
 
-    const hasOmec = scenario.constraints.includes('OMECs');
+    if (!this.scenarioTargetLevelsMatchSelection(scenario)) {
+      return false;
+    }
+
+    const includeIds = this.getScenarioIncludeIds(scenario);
+    const hasOmec = includeIds.some((id) => id.includes('omec'));
     if (hasOmec !== this.includeOmecs) {
       return false;
     }
 
-    const hasComunidades = scenario.constraints.includes('Comunidades');
+    const hasComunidades = includeIds.some(
+      (id) => id.includes('comunidades') || id.includes('resguardos'),
+    );
     if (hasComunidades !== this.includeComunidades) {
       return false;
     }
 
-    const expectedCost = this.mapCostChoiceToCatalog(this.selectedCostLayerId!);
-    if (scenario.costLayer !== expectedCost) {
+    if (!this.scenarioCostMatchesSelection(scenario)) {
       return false;
     }
 
@@ -459,10 +460,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected isStrategicOnlyTargetSelection(): boolean {
     return this.selectedTargetTypeIds.length > 0 && !this.hasNonStrategicTargetSelected();
-  }
-
-  private hasStrategicTargetSelected(): boolean {
-    return this.selectedTargetTypeIds.some((id) => this.isStrategicTarget(id));
   }
 
   private hasNonStrategicTargetSelected(): boolean {
@@ -483,31 +480,167 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }, 0);
   }
 
-  private getSelectedTargetLevels(): (17 | 30)[] {
-    return this.selectedTargetTypeIds.reduce<(17 | 30)[]>((levels, type) => {
-      const targetLevel = this.targetLevelByType[type];
-      if (targetLevel !== undefined) {
-        levels.push(targetLevel);
-      }
-      return levels;
-    }, []);
+  private scenarioScopeMatchesSelection(scenario: SolutionScenario): boolean {
+    const scenarioScope = this.normalizeManifestToken(
+      scenario.finderInputs.scope || scenario.scope,
+    );
+    if (scenarioScope !== this.selectedScope) {
+      return false;
+    }
+
+    if (this.selectedScope !== 'sirap') {
+      return true;
+    }
+
+    return !this.selectedSirapRegion || scenario.sirapId === this.selectedSirapRegion;
   }
 
-  private mapCostChoiceToCatalog(id: CostLayerChoice): string {
-    switch (id) {
+  private scenarioTargetTypesMatchSelection(scenario: SolutionScenario): boolean {
+    const scenarioTargetTypes = this.getScenarioTargetTypes(scenario);
+    const selectedTargetTypes = this.selectedTargetTypeIds.filter((type) =>
+      this.isTargetTypeAvailable(type),
+    );
+
+    return (
+      selectedTargetTypes.every((type) => scenarioTargetTypes.has(type)) &&
+      [...scenarioTargetTypes].every((type) => selectedTargetTypes.includes(type))
+    );
+  }
+
+  private scenarioTargetLevelsMatchSelection(scenario: SolutionScenario): boolean {
+    return this.selectedTargetTypeIds.every((type) => {
+      const selectedLevel = this.targetLevelByType[type];
+      if (selectedLevel === undefined) {
+        return false;
+      }
+
+      return this.getScenarioTargetLevel(scenario, type) === selectedLevel;
+    });
+  }
+
+  private getScenarioTargetTypes(scenario: SolutionScenario): Set<FinderTargetType> {
+    const targetTypes = new Set<FinderTargetType>();
+    const targetFeatureSet = this.normalizeManifestToken(
+      scenario.finderInputs.targetFeatureSet ?? '',
+    );
+    const targetFeatureIds = scenario.finderInputs.targetFeatureIds.map((id) =>
+      this.normalizeManifestToken(id),
+    );
+
+    if (
+      targetFeatureSet.includes('strategic') ||
+      this.hasStrategicTargetFeatures(targetFeatureIds)
+    ) {
+      targetTypes.add('strategic-ecosystems');
+    }
+    if (targetFeatureSet === 'ecosystems' || targetFeatureIds.includes('ecosistemas')) {
+      targetTypes.add('ecosystems');
+    }
+    if (
+      targetFeatureSet.includes('species') ||
+      (!targetFeatureSet && targetFeatureIds.includes('species-richness'))
+    ) {
+      targetTypes.add('species-richness');
+    }
+
+    return targetTypes;
+  }
+
+  private hasStrategicTargetFeatures(targetFeatureIds: string[]): boolean {
+    return targetFeatureIds.some((id) =>
+      ['paramos', 'bosque-seco', 'wetlands', 'mangroves'].includes(id),
+    );
+  }
+
+  private getScenarioTargetLevel(
+    scenario: SolutionScenario,
+    targetType: FinderTargetType,
+  ): 17 | 30 | null {
+    const parsedLevel = this.parseTargetLevelFromScenarioName(scenario, targetType);
+    if (parsedLevel !== null) {
+      return parsedLevel;
+    }
+
+    const manifestLevel = scenario.finderInputs.targetPercent;
+    return manifestLevel === 17 || manifestLevel === 30 ? manifestLevel : null;
+  }
+
+  private parseTargetLevelFromScenarioName(
+    scenario: SolutionScenario,
+    targetType: FinderTargetType,
+  ): 17 | 30 | null {
+    const prefixByTargetType: Partial<Record<FinderTargetType, string>> = {
+      ecosystems: 'ecos',
+      'strategic-ecosystems': 'estr',
+    };
+    const prefix = prefixByTargetType[targetType];
+    if (!prefix) {
+      return null;
+    }
+
+    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
+    const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
+    if (!match) {
+      return null;
+    }
+
+    return Number(match[1]) as 17 | 30;
+  }
+
+  private getScenarioIncludeIds(scenario: SolutionScenario): string[] {
+    return [...scenario.finderInputs.includeLayerIds, ...scenario.inputLayerIds.includes].map(
+      (id) => this.normalizeManifestToken(id),
+    );
+  }
+
+  private scenarioCostMatchesSelection(scenario: SolutionScenario): boolean {
+    const selectedCostLayerId = this.selectedCostLayerId;
+    if (!selectedCostLayerId) {
+      return false;
+    }
+
+    const costIds = [
+      scenario.finderInputs.costLayerId,
+      scenario.inputLayerIds.cost,
+      scenario.costLayer,
+      scenario.id,
+    ]
+      .filter((id): id is string => Boolean(id))
+      .map((id) => this.normalizeManifestToken(id));
+
+    return costIds.some((id) => this.costIdMatchesChoice(id, selectedCostLayerId));
+  }
+
+  private costIdMatchesChoice(costId: string, choice: CostLayerChoice): boolean {
+    switch (choice) {
       case 'human-footprint':
-        return 'Human Footprint';
+        return costId.includes('human-footprint') || costId.endsWith('-hf');
       case 'carbon-opportunity':
-        return 'Net Benefit (Renta agropecuaria)';
+        return (
+          costId.includes('carbon') ||
+          costId.includes('net-benefit') ||
+          costId.includes('renta') ||
+          costId.includes('agropecuaria') ||
+          costId.endsWith('-co')
+        );
       case 'conflict':
-        return 'Conflict (Coca/Deaths)';
+        return (
+          costId.includes('conflict') || costId.includes('conflicto') || costId.includes('coca')
+        );
     }
   }
 
-  private toScenarioMatch(scenario: SolutionScenario, index: number): ScenarioMatch {
+  private normalizeManifestToken(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s]+/g, '-');
+  }
+
+  private toScenarioMatch(scenario: SolutionScenario): ScenarioMatch {
     return {
       id: this.toScenarioMatchId(scenario.id),
-      solutionId: this.mockSolutionIds[index % this.mockSolutionIds.length],
+      solutionId: scenario.id,
       scenarioId: scenario.id,
       name: scenario.name,
       description: scenario.description,
