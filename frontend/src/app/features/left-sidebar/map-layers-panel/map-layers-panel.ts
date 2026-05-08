@@ -122,6 +122,22 @@ const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
   omecs: 'overlay-omecs',
 };
+const MANAGEMENT_FIGURE_CATEGORY_VALUES: Record<string, number[]> = {
+  runap: Array.from({ length: 15 }, (_, index) => index + 1),
+  omecs: Array.from({ length: 20 }, (_, index) => index + 1),
+};
+const MANAGEMENT_FIGURE_CATEGORY_PALETTE = [
+  '#1d4ed8',
+  '#16a34a',
+  '#9333ea',
+  '#ea580c',
+  '#0891b2',
+  '#be123c',
+  '#65a30d',
+  '#f59e0b',
+  '#0f766e',
+  '#7c3aed',
+] as const;
 const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_AOI_TYPE: Record<string, AoiType> = {
   siraps: 'sirap',
   admin_departments: 'department',
@@ -140,8 +156,8 @@ const MANIFEST_LIVE_RENDER_POLICY = {
     'species_and_biodiversity',
   ]),
   blockedCategoryReasons: {
-    // Keep these in dedicated cards with existing interaction models for this branch.
-    management_figures: 'Managed in overlays card until management figures migrate to raster rows.',
+    // Management figures are rendered via the dedicated overlays card
+    // (see reconcileOverlaysWithManifest) rather than the generic group rows path.
     administrative_boundaries:
       'Administrative boundary rows use boundary feature services, not raster display assets.',
   } as Record<string, string>,
@@ -219,6 +235,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
   protected readonly manifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
   protected readonly manifestSidebarLoadFailed = signal(false);
+  protected readonly speciesCollectionManifestUrl = signal<string | null>(null);
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
   );
@@ -297,9 +314,13 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       const solution = this.appState.activeSolution$();
+      const speciesManifestUrl = this.speciesCollectionManifestUrl();
       untracked(() => {
         if (solution?.name) {
           this.activeScenarioName.set(solution.name);
+        }
+        if (solution && speciesManifestUrl) {
+          this.layerManifestService.preloadSpeciesManifest(speciesManifestUrl);
         }
         this.syncPrimarySolutionOverlay(solution?.name ?? null);
       });
@@ -460,10 +481,20 @@ export class MapLayersPanelComponent implements OnDestroy {
       )
       .subscribe((groups) => {
         this.manifestSidebarLayerGroups.set(groups);
+        this.syncSpeciesManifestPrefetch(groups);
         this.reconcileGroupsWithManifest(groups);
         this.reconcileOverlaysWithManifest(groups);
         this.reconcileAdminBoundariesWithManifest(groups);
       });
+  }
+
+  private syncSpeciesManifestPrefetch(manifestGroups: ManifestSidebarLayerGroup[]): void {
+    const speciesCategory = manifestGroups.find(
+      (group) => group.sidebarCategoryId === 'species_and_biodiversity',
+    );
+    const speciesCollectionRow =
+      speciesCategory?.rows.find((row) => row.isSpeciesCollection) ?? null;
+    this.speciesCollectionManifestUrl.set(speciesCollectionRow?.speciesManifestUrl ?? null);
   }
 
   private reconcileGroupsWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
@@ -526,10 +557,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         if (!existingOverlay) {
           continue;
         }
-        reconciledManagementRows.push({
-          ...existingOverlay,
-          name: manifestRow.name,
-        });
+        reconciledManagementRows.push(
+          this.applyManifestToManagementOverlay(existingOverlay, manifestRow),
+        );
       }
 
       // Preserve non-manifest overlays that are still part of active comparison flows.
@@ -595,6 +625,95 @@ export class MapLayersPanelComponent implements OnDestroy {
         };
       }),
     );
+  }
+
+  /**
+   * Management figures (RUNAP, OMECs) live in the dedicated overlays card but render
+   * via the same `manifest-raster` plumbing as ecosystems/socioeconomic rows.
+   *
+   * If the manifest exposes a renderable display asset, we wire up `mapSync` and clear
+   * `mapUnavailable`. Otherwise we keep the row but flag it unavailable so the UI can
+   * disable visibility/opacity controls (graceful fallback).
+   */
+  private applyManifestToManagementOverlay(
+    existingOverlay: LayerControlRow,
+    manifestRow: ManifestSidebarLayerRow,
+  ): LayerControlRow {
+    const isRenderable =
+      this.isManifestRenderingSupported(manifestRow.rendering) &&
+      typeof manifestRow.displayUrl === 'string' &&
+      manifestRow.displayUrl.length > 0;
+
+    if (!isRenderable || !manifestRow.displayUrl) {
+      return {
+        ...existingOverlay,
+        name: manifestRow.name,
+        mapUnavailable: true,
+        mapSync: undefined,
+      };
+    }
+
+    const rendering = this.normalizeManagementFigureRendering(
+      manifestRow.id,
+      manifestRow.rendering,
+    );
+
+    // Sync swatch color with the manifest's selectedColor so the sidebar swatch
+    // matches the raster fill (see ManifestRasterLayerService.rasterToCanvas).
+    const manifestSelectedColor = rendering.selectedColor ?? null;
+    const nextColor =
+      typeof manifestSelectedColor === 'string' && manifestSelectedColor.length > 0
+        ? manifestSelectedColor
+        : existingOverlay.color;
+
+    return {
+      ...existingOverlay,
+      name: manifestRow.name,
+      color: nextColor,
+      mapUnavailable: false,
+      mapSync: {
+        type: 'manifest-raster',
+        layerId: existingOverlay.id,
+        displayUrl: manifestRow.displayUrl,
+        rendering,
+      },
+    };
+  }
+
+  /**
+   * Management figure rasters (RUNAP, OMECs) are categorical mode-code grids
+   * (values like 1..15 / 0..20) even though the manifest declares them as a binary
+   * mask. `selectedValue: 1` therefore drops most/all of the meaningful coverage —
+   * for OMECs there are zero pixels with value=1, so nothing renders.
+   *
+   * We render these as categorical classes so map + legend can communicate
+   * the encoded category values instead of flattening everything to one color.
+   */
+  private normalizeManagementFigureRendering(
+    manifestLayerId: string,
+    rendering: RuntimeLayerManifestRenderingConfig,
+  ): RuntimeLayerManifestRenderingConfig {
+    if (rendering.renderMode !== 'mask') {
+      return rendering;
+    }
+
+    const classValues = MANAGEMENT_FIGURE_CATEGORY_VALUES[manifestLayerId] ?? [];
+    if (classValues.length === 0) {
+      // Fallback for unknown layers: show presence rather than hide everything.
+      return { ...rendering, selectedValue: null };
+    }
+
+    return {
+      ...rendering,
+      valueType: 'categorical',
+      renderMode: 'categorical',
+      classColors: classValues.map((value, index) => ({
+        value,
+        color:
+          MANAGEMENT_FIGURE_CATEGORY_PALETTE[index % MANAGEMENT_FIGURE_CATEGORY_PALETTE.length],
+        label: `Category ${value}`,
+      })),
+    };
   }
 
   private manifestSidebarLayerRow(
@@ -746,11 +865,19 @@ export class MapLayersPanelComponent implements OnDestroy {
           return row;
         }
         nextSelected = !row.selected;
+        // Manifest-raster overlays (e.g. management figures) auto-show on add to
+        // mirror the behavior used by manifest-driven group rows in toggleLayerSelected.
+        const shouldAutoShowWhenAdded = row.mapSync?.type === 'manifest-raster';
         return {
           ...row,
           selected: nextSelected,
-          // Removing a layer from selected should also remove it from the map.
-          visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
+          visible: row.mapUnavailable
+            ? false
+            : nextSelected
+              ? shouldAutoShowWhenAdded
+                ? true
+                : row.visible
+              : false,
         };
       }),
     );
@@ -1981,6 +2108,28 @@ export class MapLayersPanelComponent implements OnDestroy {
         color: row.color,
         lineStyle: 'solid',
         lineWidth: 1,
+      };
+    }
+
+    if (
+      row.mapSync?.type === 'manifest-raster' &&
+      row.mapSync.rendering.renderMode === 'categorical' &&
+      Array.isArray(row.mapSync.rendering.classColors) &&
+      row.mapSync.rendering.classColors.length > 0
+    ) {
+      const categories = row.mapSync.rendering.classColors.map((entry) => ({
+        id: `${row.id}-class-${entry.value}`,
+        label: entry.label?.trim() || `Category ${entry.value}`,
+        color: entry.color,
+      }));
+      return {
+        id: row.id,
+        name: row.name,
+        swatchType: 'fill',
+        color: categories[0]?.color ?? row.color ?? '#64748b',
+        lineStyle: 'solid',
+        lineWidth: 1,
+        categories,
       };
     }
 

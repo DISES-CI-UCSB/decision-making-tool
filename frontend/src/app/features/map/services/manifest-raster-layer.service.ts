@@ -196,9 +196,19 @@ export class ManifestRasterLayerService {
         continue;
       }
       if (rendering.renderMode === 'mask') {
+        // Mask semantics:
+        //   • numeric `selectedValue`  → render only pixels equal to that value (default 1).
+        //   • explicit `null`          → "presence mask": render any non-zero, non-noData pixel.
+        //                                Used for include_layers (e.g. management figures) whose
+        //                                rasters are categorical mode codes rather than 0/1 binary.
         const selectedValue =
-          typeof rendering.selectedValue === 'number' ? rendering.selectedValue : 1;
-        if (value !== selectedValue) {
+          rendering.selectedValue === null
+            ? null
+            : typeof rendering.selectedValue === 'number'
+              ? rendering.selectedValue
+              : 1;
+        const isSelectedPixel = selectedValue === null ? value !== 0 : value === selectedValue;
+        if (!isSelectedPixel) {
           pixels[pixelOffset + 3] = 0;
           continue;
         }

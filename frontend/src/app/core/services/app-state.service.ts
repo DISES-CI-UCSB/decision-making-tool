@@ -9,6 +9,12 @@ export type SolutionFinderContext = 'default' | 'comparison-candidate';
 export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity' | 'swipe';
 export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
 
+export interface MapLegendLayerCategoryEntry {
+  id: string;
+  label: string;
+  color: string;
+}
+
 export interface MapLegendLayerEntry {
   id: string;
   name: string;
@@ -16,6 +22,7 @@ export interface MapLegendLayerEntry {
   color: string;
   lineStyle: 'solid' | 'dashed';
   lineWidth: number;
+  categories?: MapLegendLayerCategoryEntry[];
 }
 
 /** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */

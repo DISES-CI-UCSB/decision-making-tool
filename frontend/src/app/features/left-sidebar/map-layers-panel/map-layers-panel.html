@@ -937,19 +937,30 @@
                             {{ taxon.countLabel }}
                           </span>
                           <button
-                            [id]="'map-layers-taxon-selected-button-' + taxon.id"
+                            [id]="'map-layers-taxon-expand-button-' + taxon.id"
                             type="button"
-                            class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                            [class.border-blue-200]="taxon.selected"
-                            [class.bg-blue-50]="taxon.selected"
-                            [class.text-blue-700]="taxon.selected"
-                            [class.border-slate-200]="!taxon.selected"
-                            [class.bg-white]="!taxon.selected"
-                            [class.text-slate-600]="!taxon.selected"
-                            [attr.aria-pressed]="taxon.selected"
-                            (click)="toggleTaxonSelected(taxon.id)"
+                            class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
+                            [class.rotate-180]="!taxon.expanded && !hasLayerSearchQuery()"
+                            [attr.aria-expanded]="taxon.expanded || hasLayerSearchQuery()"
+                            [attr.aria-label]="
+                              (taxon.expanded || hasLayerSearchQuery() ? 'Collapse ' : 'Expand ') +
+                              taxon.name
+                            "
+                            (click)="toggleTaxonExpanded(taxon.id)"
                           >
-                            {{ taxon.selected ? 'Added' : 'Add' }}
+                            <svg
+                              [id]="'map-layers-taxon-expand-icon-' + taxon.id"
+                              class="map-layers-chevron-icon h-3 w-3"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M3 4.5L6 7.5L9 4.5" />
+                            </svg>
                           </button>
                         </div>
 
