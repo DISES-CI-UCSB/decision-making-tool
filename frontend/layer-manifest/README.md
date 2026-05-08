@@ -19,8 +19,10 @@ El manifest no debe guardar toda la historia de una capa. Los detalles largos de
 - `manifest.example.json`: ejemplo legible del contrato, con casos representativos.
 - `manifest.schema.json`: contrato tecnico que valida la estructura.
 - `generate-manifest.mjs`: genera el manifest runtime desde el CSV verificado y Vercel Blob.
+- `generate-species-manifest.mjs`: hidrata el manifest secundario de especies (`species.manifest.json`) desde Blob y calcula configuracion de render por especie.
 - `validate-manifest.mjs`: valida el ejemplo y el manifest runtime.
 - `public/data/layer-manifest/manifest.json`: manifest runtime actual que la app usa en local.
+- `public/data/layer-manifest/species.manifest.json` (omitido por git): salida opcional solo para depuracion local al ejecutar `npm run generate:species-manifest`. En tiempo de ejecucion la app obtiene la version publicada desde `speciesManifestUrl` en Vercel Blob.
 - `latest/manifest.latest.json` (gitignored): snapshot legible para desarrolladores con metadatos de origen.
 - `../../development-artifacts/layer-manifest/reports/reconciliation-report.json`: reporte para revisar diferencias entre el CSV verificado y Blob Storage.
 - `../../development-artifacts/layer-manifest/reports/category-mapping-report.json`: reporte para comparar categorias del CSV con categorias actuales del panel lateral.
@@ -75,7 +77,7 @@ El reporte de reconciliacion no es para la aplicacion. Es para humanos y desarro
 
 La entrada `species` del manifest principal no representa una sola especie. Representa el punto de entrada para cargar `species.manifest.json`.
 
-El manifest secundario de especies debe describir las especies individuales, sus taxones, nombres de busqueda y URLs de capas. Asi evitamos poner miles de especies en el manifest principal.
+El manifest secundario de especies debe describir las especies individuales, sus taxones, nombres de busqueda y URLs de capas. Asi evitamos poner miles de especies en el manifest principal. La copia canonica esta en Blob (`speciesManifestUrl`); el archivo local bajo `public/data/layer-manifest/` es solo artefacto de generacion si lo necesitas.
 
 ### Regenerar y validar
 
@@ -103,8 +105,10 @@ The manifest should not store the full history of a layer. Long source, license,
 - `manifest.example.json`: readable example of the contract, with representative cases.
 - `manifest.schema.json`: technical contract used for validation.
 - `generate-manifest.mjs`: generates the runtime manifest from the verified CSV and Vercel Blob.
+- `generate-species-manifest.mjs`: hydrates the secondary species manifest (`species.manifest.json`) from Blob and computes per-species rendering settings.
 - `validate-manifest.mjs`: validates the example and runtime manifest.
 - `public/data/layer-manifest/manifest.json`: current runtime manifest used by the app in local development.
+- `public/data/layer-manifest/species.manifest.json` (gitignored): optional local debugger output when you run `npm run generate:species-manifest`. At runtime the app should load the published copy via `speciesManifestUrl` on Vercel Blob.
 - `latest/manifest.latest.json` (gitignored): developer-readable snapshot with source metadata.
 - `../../development-artifacts/layer-manifest/reports/reconciliation-report.json`: report for reviewing differences between the verified CSV and Blob Storage.
 - `../../development-artifacts/layer-manifest/reports/category-mapping-report.json`: report for comparing CSV categories with current left-sidebar categories.
@@ -159,7 +163,7 @@ The reconciliation report is not for the application. It is for humans and devel
 
 The `species` entry in the main manifest does not represent one species. It is the entry point for loading `species.manifest.json`.
 
-The secondary species manifest should describe individual species, taxa, search names, and layer URLs. This avoids putting thousands of species in the main manifest.
+The secondary species manifest should describe individual species, taxa, search names, and layer URLs. This avoids putting thousands of species in the main manifest. The canonical copy lives on Blob (`speciesManifestUrl`); the file under `public/data/layer-manifest/` is only a generated local artifact when you run the hydrator for debugging or builds.
 
 ### Regenerate And Validate
 

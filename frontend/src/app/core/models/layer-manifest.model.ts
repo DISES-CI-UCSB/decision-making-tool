@@ -82,9 +82,26 @@ export interface ManifestSidebarLayerRow {
   roleInMetricCalculation: RuntimeLayerManifestMetricRole;
   displayUrl: string | null;
   displayCollectionUrl: string | null;
+  speciesManifestUrl: string | null;
   rendering: RuntimeLayerManifestRenderingConfig;
   hasDisplayAsset: boolean;
   isSpeciesCollection: boolean;
+}
+
+export interface RuntimeSpeciesManifestLayer {
+  id: string;
+  taxonId: string | null;
+  taxonLabel: string | null;
+  commonName: string;
+  scientificName: string;
+  displayUrl: string | null;
+  rendering: RuntimeLayerManifestRenderingConfig | null;
+}
+
+export interface RuntimeSpeciesManifest {
+  version?: string;
+  generatedAt?: string;
+  layers: RuntimeSpeciesManifestLayer[];
 }
 
 export interface ManifestSidebarLayerGroup {
@@ -112,6 +129,7 @@ export function mapManifestLayerToSidebarRow(
     roleInMetricCalculation: layer.roleInMetricCalculation,
     displayUrl: layer.displayUrl ?? null,
     displayCollectionUrl: layer.displayCollectionUrl ?? null,
+    speciesManifestUrl: layer.speciesManifestUrl ?? null,
     rendering: layer.rendering,
     hasDisplayAsset: Boolean(layer.displayUrl ?? layer.displayCollectionUrl),
     isSpeciesCollection: layer.dataRole === 'manifest_for_species_layers',

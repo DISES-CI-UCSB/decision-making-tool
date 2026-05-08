@@ -197,11 +197,11 @@
             </p>
             <ul id="master-legend-layer-list" class="space-y-1.5 text-xs text-slate-700">
               @for (entry of selectedLayerEntries(); track entry.id) {
-                <li [id]="'master-legend-layer-entry-' + entry.id" class="flex items-center gap-2">
+                <li [id]="'master-legend-layer-entry-' + entry.id" class="flex items-start gap-2">
                   @if (entry.swatchType === 'line') {
                     <span
                       [id]="'master-legend-layer-line-swatch-' + entry.id"
-                      class="inline-block h-0 w-5"
+                      class="mt-1 inline-block h-0 w-5"
                       [style.border-top-style]="entry.lineStyle"
                       [style.border-top-color]="entry.color"
                       [style.border-top-width.px]="entry.lineWidth"
@@ -209,21 +209,45 @@
                   } @else if (entry.swatchType === 'gradient') {
                     <span
                       [id]="'master-legend-layer-gradient-swatch-' + entry.id"
-                      class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
+                      class="mt-0.5 inline-block h-3 w-3 rounded-[3px] border border-slate-300"
                       style="background-image: linear-gradient(to right, #dbeafe, #f97316, #7f1d1d)"
                     ></span>
                   } @else {
                     <span
                       [id]="'master-legend-layer-fill-swatch-' + entry.id"
-                      class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
+                      class="mt-0.5 inline-block h-3 w-3 rounded-[3px] border border-slate-300"
                       [style.background-color]="entry.color"
                     ></span>
                   }
-                  <span
-                    [id]="'master-legend-layer-name-' + entry.id"
-                    class="min-w-0 flex-1 wrap-break-word"
-                  >
-                    {{ entry.name }}
+                  <span [id]="'master-legend-layer-content-' + entry.id" class="min-w-0 flex-1">
+                    <span
+                      [id]="'master-legend-layer-name-' + entry.id"
+                      class="block min-w-0 wrap-break-word"
+                    >
+                      {{ entry.name }}
+                    </span>
+                    @if ((entry.categories?.length ?? 0) > 0) {
+                      <span
+                        [id]="'master-legend-layer-categories-' + entry.id"
+                        class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-600"
+                      >
+                        @for (category of entry.categories; track category.id) {
+                          <span
+                            [id]="'master-legend-layer-category-row-' + category.id"
+                            class="inline-flex items-center gap-1.5"
+                          >
+                            <span
+                              [id]="'master-legend-layer-category-swatch-' + category.id"
+                              class="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px] border border-slate-300"
+                              [style.background-color]="category.color"
+                            ></span>
+                            <span [id]="'master-legend-layer-category-label-' + category.id">
+                              {{ category.label }}
+                            </span>
+                          </span>
+                        }
+                      </span>
+                    }
                   </span>
                 </li>
               }

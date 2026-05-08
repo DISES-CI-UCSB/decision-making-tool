@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T20:07:14.358Z",
+  "generatedAt": "2026-05-07T21:34:10.302Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -9,10 +9,10 @@
   "frontendSource": "frontend/src/app/features/left-sidebar/map-layers-panel/map-layers-panel.ts",
   "counts": {
     "manifestCategories": 6,
-    "currentFrontendCategories": 9,
+    "currentFrontendCategories": 7,
     "mappedManifestCategories": 6,
     "manifestCategoriesNeedingReview": 0,
-    "frontendCategoriesWithoutManifestMapping": 3
+    "frontendCategoriesWithoutManifestMapping": 1
   },
   "currentFrontendCategories": [
     {
@@ -37,11 +37,6 @@
       "source": "createDefaultGroups"
     },
     {
-      "id": "group-environmental-services",
-      "title": "Environmental Services",
-      "source": "createDefaultGroups"
-    },
-    {
       "id": "group-cultural-ethnic",
       "title": "Cultural & Ethnic Territories",
       "source": "createDefaultGroups"
@@ -49,11 +44,6 @@
     {
       "id": "group-socio-economic",
       "title": "Socio-economic",
-      "source": "createDefaultGroups"
-    },
-    {
-      "id": "group-conflict-security",
-      "title": "Conflict & Security",
       "source": "createDefaultGroups"
     },
     {
@@ -289,18 +279,6 @@
     }
   ],
   "frontendCategoriesWithoutManifestMapping": [
-    {
-      "id": "group-environmental-services",
-      "title": "Environmental Services",
-      "source": "createDefaultGroups",
-      "notes": "No included CSV layer currently maps to this sidebar category."
-    },
-    {
-      "id": "group-conflict-security",
-      "title": "Conflict & Security",
-      "source": "createDefaultGroups",
-      "notes": "No included CSV layer currently maps to this sidebar category."
-    },
     {
       "id": "group-prospective-models",
       "title": "Prospective models",

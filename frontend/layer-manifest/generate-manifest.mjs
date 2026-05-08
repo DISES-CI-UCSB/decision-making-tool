@@ -63,6 +63,15 @@ const renderingOverrideByLayerId = {
     startColor: DEFAULT_CONTINUOUS_START_COLOR,
     endColor: DEFAULT_CONTINUOUS_END_COLOR,
   },
+  species_richness: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 255,
+    minValue: 815,
+    maxValue: 3562,
+    startColor: '#fef3c7',
+    endColor: '#854d0e',
+  },
 };
 
 const rasterCharacteristicsByUrl = new Map();
