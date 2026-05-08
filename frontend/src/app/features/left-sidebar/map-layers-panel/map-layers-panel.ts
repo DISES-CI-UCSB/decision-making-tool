@@ -20,6 +20,8 @@ import {
   type ManifestSidebarLayerRow,
   type RuntimeLayerManifestRenderingConfig,
   type RuntimeLayerManifestDataRole,
+  type RuntimeSpeciesManifest,
+  type RuntimeSpeciesManifestLayer,
 } from '@core/models';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
@@ -112,6 +114,7 @@ type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
+const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manifest.json';
 const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
   'group-ecosystems': 'ecosystems',
   'group-socio-economic': 'socioeconomic',
@@ -235,7 +238,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
   protected readonly manifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
   protected readonly manifestSidebarLoadFailed = signal(false);
-  protected readonly speciesCollectionManifestUrl = signal<string | null>(null);
+  protected readonly speciesCollectionManifestUrl = signal<string>(DEFAULT_SPECIES_MANIFEST_URL);
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
   );
@@ -482,6 +485,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       .subscribe((groups) => {
         this.manifestSidebarLayerGroups.set(groups);
         this.syncSpeciesManifestPrefetch(groups);
+        this.loadSpeciesManifestRows(this.speciesCollectionManifestUrl());
         this.reconcileGroupsWithManifest(groups);
         this.reconcileOverlaysWithManifest(groups);
         this.reconcileAdminBoundariesWithManifest(groups);
@@ -494,7 +498,24 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
     const speciesCollectionRow =
       speciesCategory?.rows.find((row) => row.isSpeciesCollection) ?? null;
-    this.speciesCollectionManifestUrl.set(speciesCollectionRow?.speciesManifestUrl ?? null);
+    this.speciesCollectionManifestUrl.set(
+      speciesCollectionRow?.speciesManifestUrl ?? DEFAULT_SPECIES_MANIFEST_URL,
+    );
+  }
+
+  private loadSpeciesManifestRows(speciesManifestUrl: string): void {
+    this.layerManifestService
+      .getSpeciesManifest(speciesManifestUrl)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of<RuntimeSpeciesManifest>({ layers: [] })),
+      )
+      .subscribe((manifest) => {
+        if (manifest.layers.length === 0) {
+          return;
+        }
+        this.reconcileTaxaWithSpeciesManifest(manifest.layers);
+      });
   }
 
   private reconcileGroupsWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
@@ -1152,11 +1173,18 @@ export class MapLayersPanelComponent implements OnDestroy {
               return species;
             }
             nextSelected = !species.selected;
+            const shouldAutoShowWhenAdded = species.mapSync?.type === 'manifest-raster';
             return {
               ...species,
               selected: nextSelected,
               // Removing a layer from selected should also remove it from the map.
-              visible: species.mapUnavailable ? false : nextSelected ? species.visible : false,
+              visible: species.mapUnavailable
+                ? false
+                : nextSelected
+                  ? shouldAutoShowWhenAdded
+                    ? true
+                    : species.visible
+                  : false,
             };
           }),
         };
@@ -1300,6 +1328,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
+    this.loadSpeciesManifestRows(this.speciesCollectionManifestUrl());
     this.selectedLayerOrder.set(
       this.normalizeSelectedLayerOrder(
         this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
@@ -2500,6 +2529,125 @@ export class MapLayersPanelComponent implements OnDestroy {
     ];
   }
 
+  private reconcileTaxaWithSpeciesManifest(manifestLayers: RuntimeSpeciesManifestLayer[]): void {
+    const existingTaxaById = new Map(this.taxa().map((taxon) => [taxon.id, taxon]));
+    const manifestLayersByTaxonId = this.groupSpeciesManifestLayersByTaxon(manifestLayers);
+    const taxa = Array.from(manifestLayersByTaxonId.entries()).map(([taxonId, layers]) =>
+      this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
+    );
+
+    this.taxa.set(taxa);
+    this.groups.update((groups) =>
+      groups.map((group) =>
+        group.id === 'group-species-biodiversity'
+          ? {
+              ...group,
+              countLabel: this.toTaxonCountLabel(taxa.length),
+              note: 'Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.',
+            }
+          : group,
+      ),
+    );
+    this.selectedLayerOrder.update((order) => this.normalizeSelectedLayerOrder(order));
+  }
+
+  private groupSpeciesManifestLayersByTaxon(
+    manifestLayers: RuntimeSpeciesManifestLayer[],
+  ): Map<string, RuntimeSpeciesManifestLayer[]> {
+    const groups = new Map<string, RuntimeSpeciesManifestLayer[]>();
+    for (const layer of manifestLayers) {
+      const taxonId = this.speciesTaxonRowId(layer);
+      groups.set(taxonId, [...(groups.get(taxonId) ?? []), layer]);
+    }
+    return groups;
+  }
+
+  private speciesManifestTaxonRow(
+    taxonId: string,
+    layers: RuntimeSpeciesManifestLayer[],
+    existingTaxon: TaxonRow | undefined,
+  ): TaxonRow {
+    const taxonName = this.speciesTaxonName(layers[0]);
+    const species = layers.map((layer) =>
+      this.speciesManifestLayerRow(taxonId, layer, existingTaxon?.species),
+    );
+
+    return {
+      id: taxonId,
+      name: taxonName,
+      countLabel: this.toSpeciesCountLabel(species.length),
+      speciesCount: species.length,
+      selected: existingTaxon?.selected ?? false,
+      visible: existingTaxon?.visible ?? false,
+      expanded: existingTaxon?.expanded ?? false,
+      opacity: existingTaxon?.opacity ?? 60,
+      color: existingTaxon?.color ?? '#64748b',
+      canReorder: false,
+      hasStyleControls: false,
+      hasColorControl: false,
+      mapUnavailable: true,
+      searchQuery: existingTaxon?.searchQuery ?? '',
+      showAll: existingTaxon?.showAll ?? false,
+      species,
+    };
+  }
+
+  private speciesManifestLayerRow(
+    taxonId: string,
+    layer: RuntimeSpeciesManifestLayer,
+    existingSpeciesRows: SpeciesRow[] | undefined,
+  ): SpeciesRow {
+    const rowId = `species-${layer.id}`;
+    const existingSpecies = existingSpeciesRows?.find((species) => species.id === rowId);
+    const rendering = layer.rendering;
+    const displayUrl = layer.displayUrl?.trim() ?? '';
+    const isRenderable =
+      !!rendering && this.isManifestRenderingSupported(rendering) && displayUrl.length > 0;
+    const commonName = layer.commonName?.trim() || layer.scientificName;
+    const scientificName = layer.scientificName?.trim() || commonName;
+
+    return {
+      id: rowId,
+      name: commonName,
+      common: commonName,
+      latin: scientificName,
+      taxonId,
+      slug: layer.id,
+      selected: existingSpecies?.selected ?? false,
+      visible: isRenderable ? (existingSpecies?.visible ?? false) : false,
+      expanded: existingSpecies?.expanded ?? false,
+      opacity: existingSpecies?.opacity ?? 65,
+      color: existingSpecies?.color ?? rendering?.selectedColor ?? '#475569',
+      canReorder: true,
+      hasStyleControls: true,
+      hasColorControl: false,
+      mapUnavailable: !isRenderable,
+      mapSync:
+        isRenderable && rendering
+          ? {
+              type: 'manifest-raster',
+              layerId: rowId,
+              displayUrl,
+              rendering,
+            }
+          : undefined,
+    };
+  }
+
+  private speciesTaxonRowId(layer: RuntimeSpeciesManifestLayer): string {
+    if (layer.taxonId?.trim()) {
+      return `taxon-${this.toSlug(layer.taxonId)}`;
+    }
+    if (layer.taxonLabel?.trim()) {
+      return `taxon-${this.toSlug(layer.taxonLabel)}`;
+    }
+    return 'taxon-species';
+  }
+
+  private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
+    return layer?.taxonLabel?.trim() || 'Species';
+  }
+
   /**
    * Category cards below Management Figures — all start collapsed (UCS-101).
    * Management Figures itself uses `overlaysCollapsed` (default expanded).
@@ -2638,6 +2786,16 @@ export class MapLayersPanelComponent implements OnDestroy {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  private toSpeciesCountLabel(speciesCount: number): string {
+    const noun = speciesCount === 1 ? 'species' : 'species';
+    return `${speciesCount.toLocaleString()} ${noun}`;
+  }
+
+  private toTaxonCountLabel(taxonCount: number): string {
+    const noun = taxonCount === 1 ? 'taxon group' : 'taxon groups';
+    return `${taxonCount.toLocaleString()} ${noun}`;
   }
 
   private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
