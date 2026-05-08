@@ -70,6 +70,17 @@
         <p id="foundation-header-auth-tier-chip" class="text-[10px] text-slate-500">
           Tier {{ currentTier() }}
         </p>
+        @if (isAdmin()) {
+          <button
+            id="foundation-header-admin-access-button"
+            type="button"
+            class="inline-flex min-h-10 items-center rounded-md border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-100"
+            [attr.aria-expanded]="adminPanelOpen()"
+            (click)="openAdminPanel()"
+          >
+            Admin access
+          </button>
+        }
         <button
           id="foundation-header-logout-button"
           type="button"
@@ -98,4 +109,11 @@
     id="foundation-header-auth-modal"
     (closeRequested)="closeAuthModal()"
   ></app-auth-modal>
+}
+
+@if (adminPanelOpen() && isAdmin()) {
+  <app-admin-access-requests-panel
+    id="foundation-header-admin-access-panel"
+    (closeRequested)="closeAdminPanel()"
+  ></app-admin-access-requests-panel>
 }
