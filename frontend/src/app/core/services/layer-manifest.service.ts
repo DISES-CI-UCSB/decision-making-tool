@@ -13,6 +13,8 @@ import { EMPTY, catchError, map, of, shareReplay, take, throwError, type Observa
 
 const LOCAL_LAYER_MANIFEST_URL = '/data/layer-manifest/manifest.json';
 const EXAMPLE_LAYER_MANIFEST_URL = '/data/layer-manifest/manifest.example.json';
+const PUBLISHED_LAYER_MANIFEST_URL =
+  'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
 
 interface RuntimeManifestWindow {
   __MANIFEST_BLOB_URL__?: string;
@@ -87,7 +89,7 @@ export class LayerManifestService {
       return configuredBlobUrl;
     }
 
-    return LOCAL_LAYER_MANIFEST_URL;
+    return PUBLISHED_LAYER_MANIFEST_URL;
   }
 
   private buildManifestUrlCandidates(): string[] {

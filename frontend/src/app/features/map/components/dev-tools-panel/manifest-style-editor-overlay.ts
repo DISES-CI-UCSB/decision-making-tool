@@ -880,6 +880,7 @@ export class ManifestStyleEditorOverlayComponent {
         firstValueFrom(this.layerManifestService.getResolvedManifestUrl()),
       ]);
       const normalizedManifest = normalizeManifestForEditor(manifest);
+      this.assertManifestLayerCategories(normalizedManifest);
       this.loadedManifest.set(structuredClone(normalizedManifest));
       this.draftManifest.set(structuredClone(normalizedManifest));
       this.resolvedManifestUrl.set(manifestUrl);
@@ -1002,8 +1003,10 @@ export class ManifestStyleEditorOverlayComponent {
           );
         } else {
           const normalizedManifest = normalizeManifestForEditor(parsed.manifest);
+          this.assertManifestLayerCategories(normalizedManifest);
+          const initialScope = this.initialScopeForManifest(normalizedManifest);
           this.draftManifest.set(normalizedManifest);
-          this.selectedScope.set(this.initialScopeForManifest(normalizedManifest));
+          this.selectedScope.set(initialScope);
           this.expandInitialScope();
         }
       }
@@ -1012,6 +1015,13 @@ export class ManifestStyleEditorOverlayComponent {
       }
     } catch {
       this.localDraftMessage.set('Saved draft was unreadable and was ignored.');
+      localStorage.removeItem(this.localStorageKey);
+    }
+  }
+
+  private assertManifestLayerCategories(manifest: RuntimeLayerManifest): void {
+    for (const layer of manifest.layers) {
+      getLayerCategoryId(layer);
     }
   }
 
