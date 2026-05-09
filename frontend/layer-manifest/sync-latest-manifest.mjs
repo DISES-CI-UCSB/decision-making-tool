@@ -13,6 +13,8 @@ const generatedManifestPath = path.resolve(
 );
 const devLatestManifestPath = path.resolve(__dirname, './latest/manifest.latest.json');
 const MANIFEST_BLOB_URL_ENV_VAR = 'MANIFEST_BLOB_URL';
+const PUBLISHED_LAYER_MANIFEST_URL =
+  'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
 
 async function readJson(filePath) {
   const raw = await fs.readFile(filePath, 'utf-8');
@@ -29,7 +31,8 @@ async function fetchJson(url) {
 }
 
 async function resolveManifestSource() {
-  const configuredBlobUrl = process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || null;
+  const configuredBlobUrl =
+    process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || PUBLISHED_LAYER_MANIFEST_URL;
 
   if (configuredBlobUrl) {
     try {

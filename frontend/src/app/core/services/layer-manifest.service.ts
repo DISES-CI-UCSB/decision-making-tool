@@ -12,7 +12,6 @@ import { environment } from '../../../environments/environment';
 import { EMPTY, catchError, map, of, shareReplay, take, throwError, type Observable } from 'rxjs';
 
 const LOCAL_LAYER_MANIFEST_URL = '/data/layer-manifest/manifest.json';
-const EXAMPLE_LAYER_MANIFEST_URL = '/data/layer-manifest/manifest.example.json';
 const PUBLISHED_LAYER_MANIFEST_URL =
   'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
 
@@ -93,9 +92,7 @@ export class LayerManifestService {
   }
 
   private buildManifestUrlCandidates(): string[] {
-    return Array.from(
-      new Set([this.resolvedManifestUrl, LOCAL_LAYER_MANIFEST_URL, EXAMPLE_LAYER_MANIFEST_URL]),
-    );
+    return Array.from(new Set([this.resolvedManifestUrl, LOCAL_LAYER_MANIFEST_URL]));
   }
 
   private loadManifestWithFallback(manifestUrls: string[]): Observable<RuntimeLayerManifest> {
@@ -104,7 +101,7 @@ export class LayerManifestService {
       return throwError(() => new Error('No manifest URL candidates configured'));
     }
 
-    return this.http.get<RuntimeLayerManifest>(this.toUncachedManifestUrl(primaryUrl)).pipe(
+    return this.http.get<RuntimeLayerManifest>(this.toManifestRequestUrl(primaryUrl)).pipe(
       catchError((error) => {
         if (fallbackUrls.length === 0) {
           return throwError(() => error);
@@ -120,9 +117,17 @@ export class LayerManifestService {
     return runtimeBlobUrl || null;
   }
 
-  private toUncachedManifestUrl(manifestUrl: string): string {
+  private toManifestRequestUrl(manifestUrl: string): string {
+    if (!this.isRemoteManifestUrl(manifestUrl)) {
+      return manifestUrl;
+    }
+
     const cacheBust = Date.now().toString();
     const separator = manifestUrl.includes('?') ? '&' : '?';
     return `${manifestUrl}${separator}v=${cacheBust}`;
+  }
+
+  private isRemoteManifestUrl(manifestUrl: string): boolean {
+    return /^https?:\/\//i.test(manifestUrl);
   }
 }

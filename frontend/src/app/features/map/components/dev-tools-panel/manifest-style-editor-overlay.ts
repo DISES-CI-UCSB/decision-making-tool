@@ -973,6 +973,29 @@ export class ManifestStyleEditorOverlayComponent {
       };
       if (parsed.manifest) {
         const loadedManifest = this.loadedManifest();
+        const currentManifestUrl = this.resolvedManifestUrl();
+        const sourceMatchesCurrent =
+          !parsed.sourceManifestUrl || parsed.sourceManifestUrl === currentManifestUrl;
+
+        if (!sourceMatchesCurrent) {
+          localStorage.removeItem(this.localStorageKey);
+          this.localDraftMessage.set(
+            'Saved local draft came from a different manifest source and was dropped.',
+          );
+          return;
+        }
+
+        const normalizedManifest = normalizeManifestForEditor(parsed.manifest);
+        try {
+          this.assertManifestLayerCategories(normalizedManifest);
+        } catch {
+          localStorage.removeItem(this.localStorageKey);
+          this.localDraftMessage.set(
+            'Saved local draft had invalid layer categories and was dropped.',
+          );
+          return;
+        }
+
         const draftVersion = parsed.manifest.version ?? null;
         const loadedVersion = loadedManifest?.version ?? null;
         const isVersionMismatch =
@@ -988,8 +1011,6 @@ export class ManifestStyleEditorOverlayComponent {
 
         const draftGeneratedAt = parsed.manifest.generatedAt ?? null;
         const loadedGeneratedAt = loadedManifest?.generatedAt ?? null;
-        const sourceMatchesCurrent =
-          !parsed.sourceManifestUrl || parsed.sourceManifestUrl === this.resolvedManifestUrl();
         const isStaleAgainstLoaded =
           !!loadedManifest &&
           sourceMatchesCurrent &&
@@ -998,12 +1019,11 @@ export class ManifestStyleEditorOverlayComponent {
           draftGeneratedAt !== loadedGeneratedAt;
 
         if (isStaleAgainstLoaded) {
+          localStorage.removeItem(this.localStorageKey);
           this.localDraftMessage.set(
-            'Saved local draft targets an older manifest snapshot and was skipped.',
+            'Saved local draft targets an older manifest snapshot and was dropped.',
           );
         } else {
-          const normalizedManifest = normalizeManifestForEditor(parsed.manifest);
-          this.assertManifestLayerCategories(normalizedManifest);
           const initialScope = this.initialScopeForManifest(normalizedManifest);
           this.draftManifest.set(normalizedManifest);
           this.selectedScope.set(initialScope);
