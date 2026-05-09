@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import type { Solution } from '@core/models';
+import type { Solution, SolutionScenario } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
@@ -73,13 +73,18 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected onScenarioApplied(match: { solutionId: string; scenarioId: string }): void {
-    const selectedSolution = this.mockData.getSolutionById(match.solutionId);
-    if (selectedSolution && this.solutionFinderContext() === 'comparison-candidate') {
+    const selectedSolution =
+      this.buildManifestSolution(match) ?? this.mockData.getSolutionById(match.solutionId);
+    if (!selectedSolution) {
+      return;
+    }
+
+    if (this.solutionFinderContext() === 'comparison-candidate') {
       this.appState.setComparisonSolution(
         this.buildCandidateComparisonSolution(selectedSolution, match),
       );
       this.appState.setRightSidebarMode('comparison');
-    } else if (selectedSolution) {
+    } else {
       this.applySolution(selectedSolution, match.scenarioId);
     }
 
@@ -117,6 +122,37 @@ export class App implements OnInit, OnDestroy {
       metadata: {
         ...selectedSolution.metadata,
         scenarioId: match.scenarioId,
+      },
+    };
+  }
+
+  private buildManifestSolution(match: {
+    solutionId: string;
+    scenarioId: string;
+  }): Solution | null {
+    const scenario =
+      this.solutionCatalog.getById(match.scenarioId) ??
+      this.solutionCatalog.getById(match.solutionId);
+    if (!scenario) {
+      return null;
+    }
+
+    return this.toSolution(scenario);
+  }
+
+  private toSolution(scenario: SolutionScenario): Solution {
+    return {
+      id: scenario.id,
+      name: scenario.name,
+      description: scenario.description,
+      matchPercentage: scenario.pctTargetsMet,
+      geometryUrl: scenario.displayUrl,
+      metrics: [],
+      metadata: {
+        scenarioId: scenario.id,
+        scope: scenario.scope,
+        rasterFile: scenario.filename,
+        metadataUrl: scenario.metadataUrl,
       },
     };
   }

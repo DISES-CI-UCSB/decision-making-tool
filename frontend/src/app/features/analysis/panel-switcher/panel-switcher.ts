@@ -932,7 +932,7 @@ export class PanelSwitcherComponent {
       return null;
     }
 
-    const isStrategic = scenario.id.startsWith('ESTR');
+    const isStrategic = scenario.id.toLowerCase().startsWith('estr');
     const targetFamilyKey = isStrategic
       ? 'analysis.overview.inputsTooltip.targetFamilyStrategic'
       : 'analysis.overview.inputsTooltip.targetFamilyEcosystems';

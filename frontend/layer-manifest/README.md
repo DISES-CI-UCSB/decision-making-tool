@@ -26,6 +26,7 @@ El manifest no debe guardar toda la historia de una capa. Los detalles largos de
 - `latest/manifest.latest.json` (gitignored): snapshot legible para desarrolladores con metadatos de origen.
 - `../../development-artifacts/layer-manifest/reports/reconciliation-report.json`: reporte para revisar diferencias entre el CSV verificado y Blob Storage.
 - `../../development-artifacts/layer-manifest/reports/category-mapping-report.json`: reporte para comparar categorias del CSV con categorias actuales del panel lateral.
+- `../../development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json`: reporte para revisar que soluciones en Blob entraron en `solutions[]`.
 - `../../development-artifacts/layer-manifest/reports/category-review.csv`: borrador para revisar categorias en Google Sheets con el equipo cientifico.
 
 ### CSV, Blob y reporte de reconciliacion
@@ -54,6 +55,7 @@ El reporte de reconciliacion no es para la aplicacion. Es para humanos y desarro
 - `compressedDataForLiveMetricsUrl`: URL del archivo comprimido usado para calculo vivo de metricas.
 - `precomputedMetricUrls`: URLs para metricas precalculadas.
 - `speciesManifestUrl`: URL del manifest secundario de especies, cuando aplica.
+- `solutions[]`: catalogo app-facing de soluciones disponibles en Blob, con URL del raster, URL de metadatos, entradas normalizadas para Finder, metricas resumen y cobertura.
 
 ### Roles de datos
 
@@ -112,6 +114,7 @@ The manifest should not store the full history of a layer. Long source, license,
 - `latest/manifest.latest.json` (gitignored): developer-readable snapshot with source metadata.
 - `../../development-artifacts/layer-manifest/reports/reconciliation-report.json`: report for reviewing differences between the verified CSV and Blob Storage.
 - `../../development-artifacts/layer-manifest/reports/category-mapping-report.json`: report for comparing CSV categories with current left-sidebar categories.
+- `../../development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json`: report for checking which Blob solutions were included in `solutions[]`.
 - `../../development-artifacts/layer-manifest/reports/category-review.csv`: draft category review sheet for the science team in Google Sheets.
 
 ### CSV, Blob, And Reconciliation
@@ -140,6 +143,7 @@ The reconciliation report is not for the application. It is for humans and devel
 - `compressedDataForLiveMetricsUrl`: URL for compressed data used in live metric calculation.
 - `precomputedMetricUrls`: URLs for precomputed metrics.
 - `speciesManifestUrl`: URL for the secondary species manifest, when relevant.
+- `solutions[]`: app-facing catalog of available Blob solutions, including raster URL, metadata URL, normalized Finder inputs, summary metrics, and coverage.
 
 ### Data Roles
 

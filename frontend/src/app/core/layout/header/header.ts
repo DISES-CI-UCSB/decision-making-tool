@@ -4,12 +4,18 @@ import { AuthService } from '@core/services/auth.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
 import { AuthModalComponent } from '@features/auth/auth-modal/auth-modal';
+import { AdminAccessRequestsPanelComponent } from '@features/auth/admin-access-requests-panel/admin-access-requests-panel';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [TranslatePipe, DevToolsPanelComponent, AuthModalComponent],
+  imports: [
+    TranslatePipe,
+    DevToolsPanelComponent,
+    AuthModalComponent,
+    AdminAccessRequestsPanelComponent,
+  ],
   templateUrl: './header.html',
   styleUrl: './header.scss',
 })
@@ -19,9 +25,11 @@ export class HeaderComponent {
   private readonly appState = inject(AppStateService);
 
   protected readonly authModalOpen = signal(false);
+  protected readonly adminPanelOpen = signal(false);
   protected readonly isAuthenticated = computed(
     () => this.appState.userTier$() >= UserTier.DecisionMaker,
   );
+  protected readonly isAdmin = computed(() => this.appState.userTier$() >= UserTier.Manager);
   protected readonly currentTier = this.appState.userTier$;
 
   @Input() coordinateToolEnabled = false;
@@ -44,7 +52,16 @@ export class HeaderComponent {
     this.authModalOpen.set(false);
   }
 
+  protected openAdminPanel(): void {
+    this.adminPanelOpen.set(true);
+  }
+
+  protected closeAdminPanel(): void {
+    this.adminPanelOpen.set(false);
+  }
+
   protected logout(): void {
+    this.adminPanelOpen.set(false);
     this.authService.logout();
   }
 }

@@ -12,6 +12,25 @@ function createLoadedSolution(id: string): LoadedSolution {
       filename: `${id}.tif`,
       name: `Scenario ${id}`,
       description: `Description ${id}`,
+      scope: 'nacional',
+      sirapId: null,
+      displayUrl: `https://example.com/${id}.tif`,
+      metadataUrl: `https://example.com/${id}.json`,
+      finderInputs: {
+        scope: 'nacional',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: 30,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap'],
+        excludeLayerIds: [],
+      },
+      inputLayerIds: {
+        features: ['ecosistemas'],
+        cost: 'human_footprint_2022',
+        includes: ['runap'],
+        excludes: [],
+      },
       ecosystemTargets: 30,
       constraints: [],
       costLayer: 'cost',
@@ -86,7 +105,19 @@ describe('SolutionLayerService', () => {
 
     expect(loaderMock.loadSolution).toHaveBeenCalledWith('baseline');
     expect(mapMock.add).toHaveBeenCalledTimes(1);
-    expect(appStateMock.loadSolution).toHaveBeenCalledTimes(1);
+    expect(appStateMock.loadSolution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'baseline',
+        name: 'Scenario baseline',
+        matchPercentage: 70,
+        geometryUrl: 'https://example.com/baseline.tif',
+        metadata: expect.objectContaining({
+          scenarioId: 'baseline',
+          rasterFile: 'baseline.tif',
+          metadataUrl: 'https://example.com/baseline.json',
+        }),
+      }),
+    );
     expect(service.isComparisonModeActive()).toBe(false);
   });
 

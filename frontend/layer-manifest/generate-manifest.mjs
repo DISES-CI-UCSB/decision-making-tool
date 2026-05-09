@@ -20,11 +20,18 @@ const GENERATED_MANIFEST_PATH = path.resolve(
   '../public/data/layer-manifest/manifest.json',
 );
 const REPORTS_ROOT = path.resolve(repoRoot, 'development-artifacts/layer-manifest/reports');
-const MANIFEST_ARCHIVE_ROOT = path.resolve(repoRoot, 'development-artifacts/layer-manifest/archive');
+const MANIFEST_ARCHIVE_ROOT = path.resolve(
+  repoRoot,
+  'development-artifacts/layer-manifest/archive',
+);
 const MAX_ARCHIVED_MANIFESTS = 30;
 const REPORT_PATH = path.resolve(REPORTS_ROOT, 'reconciliation-report.json');
 const CATEGORY_MAPPING_REPORT_PATH = path.resolve(REPORTS_ROOT, 'category-mapping-report.json');
 const CATEGORY_REVIEW_CSV_PATH = path.resolve(REPORTS_ROOT, 'category-review.csv');
+const SOLUTION_RECONCILIATION_REPORT_PATH = path.resolve(
+  REPORTS_ROOT,
+  'solutions-reconciliation-report.json',
+);
 const LEFT_SIDEBAR_SOURCE_PATH = path.resolve(
   __dirname,
   '../src/app/features/left-sidebar/map-layers-panel/map-layers-panel.ts',
@@ -43,6 +50,7 @@ const BLOB_PREFIXES = [
   'inputs/includes/',
 ];
 const COLLECTION_PREFIXES = ['inputs/features/species/'];
+const SOLUTION_BLOB_PREFIXES = ['solutions/'];
 const RASTER_SAMPLE_GRID_SIZE = 64;
 const NON_INTEGER_TOLERANCE = 1e-6;
 const DEFAULT_BINARY_SELECTED_COLOR = '#16a34a';
@@ -125,6 +133,13 @@ const LAYER_HUE_OFFSET_RANGE_DEGREES = 15;
 export function getCategoryPalette(categoryId) {
   return CATEGORY_PALETTE[categoryId] ?? CATEGORY_PALETTE_FALLBACK;
 }
+const DEFAULT_SOLUTION_RENDERING = {
+  valueType: 'binary',
+  renderMode: 'mask',
+  noDataValue: 255,
+  selectedValue: 1,
+  selectedColor: '#2563eb',
+};
 
 /**
  * Optional per-layer overrides for rendering inference.
@@ -259,7 +274,8 @@ const categoryMappingRules = {
   administrative_boundaries: {
     frontendCategoryIds: ['group-admin-boundaries'],
     status: 'maps_cleanly',
-    notes: 'Administrative boundary layers map to the existing Administrative Boundaries sidebar group.',
+    notes:
+      'Administrative boundary layers map to the existing Administrative Boundaries sidebar group.',
   },
   cultural_and_ethnic_territories: {
     frontendCategoryIds: ['group-cultural-ethnic'],
@@ -383,10 +399,7 @@ function parseCsv(raw) {
 }
 
 function normalizeHeader(header) {
-  return header
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
+  return header.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 function mapHeaders(headers) {
@@ -562,6 +575,304 @@ async function readBlobInventory() {
   }
 
   return [...unique.values()];
+}
+
+async function readSolutionBlobInventory() {
+  const blobs = [];
+
+  for (const prefix of SOLUTION_BLOB_PREFIXES) {
+    blobs.push(...(await listBlobPrefix(prefix)));
+  }
+
+  const unique = new Map();
+  for (const blob of blobs) {
+    unique.set(blob.pathname, blob);
+  }
+
+  return [...unique.values()];
+}
+
+function isSolutionMetadataBlob(blob) {
+  return path.posix.extname(blob.pathname).toLowerCase() === '.json';
+}
+
+function isSolutionRasterBlob(blob) {
+  const extension = path.posix.extname(blob.pathname).toLowerCase();
+  return extension === '.tif' || extension === '.tiff';
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+async function createSolutionCatalog(solutionBlobInventory) {
+  const metadataBlobs = solutionBlobInventory.filter(isSolutionMetadataBlob);
+  const rasterByPath = new Map(
+    solutionBlobInventory.filter(isSolutionRasterBlob).map((blob) => [blob.pathname, blob]),
+  );
+  const rasterPathsUsed = new Set();
+  const solutionIdsUsed = new Set();
+  const included = [];
+  const skipped = [];
+  const solutions = [];
+
+  for (const metadataBlob of metadataBlobs) {
+    let metadata;
+    try {
+      metadata = await fetchJson(metadataBlob.url);
+    } catch (error) {
+      skipped.push({
+        pathname: metadataBlob.pathname,
+        reason: 'malformed_or_unreadable_metadata',
+        detail: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    const metadataDirectory = path.posix.dirname(metadataBlob.pathname);
+    const metadataStem = path.posix.basename(metadataBlob.pathname, '.json');
+    const rasterPath = metadata.raster_file
+      ? path.posix.join(metadataDirectory, metadata.raster_file)
+      : `${metadataDirectory}/${metadataStem}.tif`;
+    const rasterBlob = rasterByPath.get(rasterPath);
+
+    if (!rasterBlob) {
+      skipped.push({
+        pathname: metadataBlob.pathname,
+        reason: 'missing_raster_pair',
+        expectedRasterPath: rasterPath,
+      });
+      continue;
+    }
+
+    const solution = createSolutionManifestEntry({
+      metadata,
+      metadataBlob,
+      rasterBlob,
+    });
+
+    if (solutionIdsUsed.has(solution.id)) {
+      skipped.push({
+        pathname: metadataBlob.pathname,
+        reason: 'duplicate_solution_id',
+        solutionId: solution.id,
+      });
+      continue;
+    }
+
+    solutionIdsUsed.add(solution.id);
+    rasterPathsUsed.add(rasterBlob.pathname);
+    solutions.push(solution);
+    included.push({
+      id: solution.id,
+      name: solution.name,
+      scope: solution.scope,
+      displayUrl: solution.displayUrl,
+      metadataUrl: solution.metadataUrl,
+    });
+  }
+
+  const unmatchedRasters = [...rasterByPath.values()]
+    .filter((blob) => !rasterPathsUsed.has(blob.pathname))
+    .map((blob) => ({
+      pathname: blob.pathname,
+      url: blob.url,
+      bytes: blob.bytes,
+    }));
+
+  solutions.sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    solutions,
+    report: {
+      generatedAt: GENERATED_AT,
+      whyThisReportExists: {
+        purpose:
+          'Shows how Vercel Blob solution rasters and metadata files were converted into manifest.solutions.',
+        intendedAudience: 'Developers and reviewers validating Solution Finder data readiness.',
+        howToUse:
+          'Check skipped and unmatchedRasters before assuming the solution catalog represents every intended run.',
+      },
+      sourcePrefixes: SOLUTION_BLOB_PREFIXES,
+      counts: {
+        blobInventoryEntries: solutionBlobInventory.length,
+        metadataFiles: metadataBlobs.length,
+        rasterFiles: rasterByPath.size,
+        includedSolutions: solutions.length,
+        skippedMetadataFiles: skipped.length,
+        unmatchedRasters: unmatchedRasters.length,
+      },
+      included,
+      skipped,
+      unmatchedRasters,
+    },
+  };
+}
+
+function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob }) {
+  const inputLayerIds = normalizeSolutionInputLayerIds(metadata.input_layer_ids);
+  const coverage = normalizeSolutionCoverage(metadata.coverage);
+  const scope = normalizeSolutionScope(metadata.scope, metadataBlob.pathname);
+  const id = toLayerId(
+    metadata.id ||
+      metadata.run_name ||
+      path.posix.basename(rasterBlob.pathname, path.extname(rasterBlob.pathname)),
+  );
+  const name = metadata.run_name || id;
+  const finderInputs = {
+    scope,
+    targetFeatureSet: inferSolutionTargetFeatureSet({ metadata, inputLayerIds, coverage }),
+    targetFeatureIds: inputLayerIds.features,
+    targetPercent: inferTargetPercent(coverage),
+    costLayerId: inputLayerIds.cost,
+    includeLayerIds: inputLayerIds.includes,
+    excludeLayerIds: inputLayerIds.excludes,
+  };
+
+  return {
+    id,
+    name,
+    description: createSolutionDescription({
+      name,
+      finderInputs,
+      inputLayerIds,
+    }),
+    scope,
+    sirapId: inferSirapIdFromPath(metadataBlob.pathname),
+    displayUrl: rasterBlob.url,
+    metadataUrl: metadataBlob.url,
+    rasterFile: path.posix.basename(rasterBlob.pathname),
+    metadataFile: path.posix.basename(metadataBlob.pathname),
+    blobPath: rasterBlob.pathname,
+    generatedAt: metadata.generated_at_utc ?? null,
+    finderInputs,
+    inputLayerIds,
+    summaryMetrics: normalizeSolutionSummaryMetrics(metadata.evaluation, coverage),
+    coverage,
+    rendering: DEFAULT_SOLUTION_RENDERING,
+  };
+}
+
+function normalizeSolutionInputLayerIds(inputLayerIds = {}) {
+  return {
+    features: normalizeIdList(inputLayerIds.features),
+    cost: normalizeSolutionInputId(inputLayerIds.cost),
+    includes: normalizeIdList(inputLayerIds.includes),
+    excludes: normalizeIdList(inputLayerIds.excludes),
+  };
+}
+
+function normalizeIdList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map(normalizeSolutionInputId).filter(Boolean);
+}
+
+function normalizeSolutionInputId(value) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return null;
+  }
+  return toLayerId(value.replace(/^(FEAT|COST|INCL|EXCL)_/i, ''));
+}
+
+function normalizeSolutionCoverage(coverage) {
+  if (!Array.isArray(coverage)) {
+    return [];
+  }
+
+  return coverage.map((row) => ({
+    feature:
+      typeof row.feature === 'string' && row.feature.trim().length > 0
+        ? row.feature.trim()
+        : 'unknown',
+    met: parseBooleanOrNull(row.met),
+    relativeTarget: parseFiniteNumberOrNull(row.relative_target),
+    relativeHeld: parseFiniteNumberOrNull(row.relative_held),
+    relativeShortfall: parseFiniteNumberOrNull(row.relative_shortfall),
+  }));
+}
+
+function normalizeSolutionSummaryMetrics(evaluation = {}, coverage = []) {
+  return {
+    nSelected: parseFiniteNumberOrNull(evaluation.n_selected),
+    totalCost: parseFiniteNumberOrNull(evaluation.cost),
+    pctTargetsMet: parseFiniteNumberOrNull(evaluation.pct_targets_met),
+    coverageRowCount: coverage.length,
+  };
+}
+
+function parseFiniteNumberOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function parseBooleanOrNull(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true') {
+    return true;
+  }
+  if (normalized === 'false') {
+    return false;
+  }
+  return null;
+}
+
+function normalizeSolutionScope(scope, pathname) {
+  if (typeof scope === 'string' && scope.trim().length > 0) {
+    return toLayerId(scope);
+  }
+
+  const [, maybeScope] = pathname.split('/');
+  return maybeScope ? toLayerId(maybeScope) : 'unknown';
+}
+
+function inferSirapIdFromPath(pathname) {
+  const parts = pathname.split('/').filter(Boolean);
+  const sirapIndex = parts.indexOf('sirap');
+  if (sirapIndex < 0 || !parts[sirapIndex + 1]) {
+    return null;
+  }
+  return toLayerId(parts[sirapIndex + 1]);
+}
+
+function inferTargetPercent(coverage) {
+  const firstTarget = coverage.find(
+    (row) => typeof row.relativeTarget === 'number',
+  )?.relativeTarget;
+  return typeof firstTarget === 'number' ? Number((firstTarget * 100).toFixed(6)) : null;
+}
+
+function inferSolutionTargetFeatureSet({ metadata, inputLayerIds, coverage }) {
+  const name = `${metadata.id ?? ''} ${metadata.run_name ?? ''}`.toLowerCase();
+  if (name.includes('estr') || inputLayerIds.features.length > 1 || coverage.length > 1) {
+    return 'strategic_ecosystems';
+  }
+  if (name.includes('ecos') || inputLayerIds.features.includes('species_richness')) {
+    return 'ecosystems';
+  }
+  return null;
+}
+
+function createSolutionDescription({ name, finderInputs, inputLayerIds }) {
+  const targetLabel =
+    typeof finderInputs.targetPercent === 'number'
+      ? `${finderInputs.targetPercent}% ${finderInputs.targetFeatureSet ?? 'target'}`
+      : (finderInputs.targetFeatureSet ?? 'configured target');
+  const includeLabel =
+    inputLayerIds.includes.length > 0
+      ? `includes ${inputLayerIds.includes.join(', ')}`
+      : 'no include layers';
+  const costLabel = inputLayerIds.cost ? `${inputLayerIds.cost} cost` : 'no cost layer';
+  return `${name} solution for ${targetLabel}; ${includeLabel}; ${costLabel}.`;
 }
 
 function createCategories(rows, layerEntries, existingManifestIndex, speciesTaxa) {
@@ -1022,7 +1333,9 @@ function classifyRasterSample({ sample, sampleFormat, bitsPerSample }) {
   }
 
   const range =
-    typeof sample.min === 'number' && typeof sample.max === 'number' ? sample.max - sample.min : null;
+    typeof sample.min === 'number' && typeof sample.max === 'number'
+      ? sample.max - sample.min
+      : null;
   const allIntegerLike = sample.nonIntegerRatio <= 0.01;
   const hasManyUniqueValues = sample.uniqueCount >= 16;
   const hasWideRange = typeof range === 'number' && range > 10;
@@ -1082,14 +1395,19 @@ function classifyRasterSample({ sample, sampleFormat, bitsPerSample }) {
 }
 
 function toBinaryRenderingConfig(characteristics) {
-  const selectedValue = inferSelectedBinaryValue(characteristics.sample.uniqueValues, characteristics.noDataValue);
+  const selectedValue = inferSelectedBinaryValue(
+    characteristics.sample.uniqueValues,
+    characteristics.noDataValue,
+  );
   const fallbackNoDataValue = inferNoDataFromBinaryValues(characteristics.sample.uniqueValues);
 
   return {
     valueType: 'binary',
     renderMode: 'mask',
     noDataValue:
-      typeof characteristics.noDataValue === 'number' ? characteristics.noDataValue : fallbackNoDataValue,
+      typeof characteristics.noDataValue === 'number'
+        ? characteristics.noDataValue
+        : fallbackNoDataValue,
     selectedValue,
     selectedColor: null,
   };
@@ -1120,14 +1438,18 @@ function inferNoDataFromBinaryValues(uniqueValues) {
 }
 
 function toContinuousRenderingConfig(characteristics) {
-  const minValue = typeof characteristics.sample.min === 'number' ? characteristics.sample.min : null;
-  const maxValue = typeof characteristics.sample.max === 'number' ? characteristics.sample.max : null;
-  const hasValidRange = typeof minValue === 'number' && typeof maxValue === 'number' && maxValue > minValue;
+  const minValue =
+    typeof characteristics.sample.min === 'number' ? characteristics.sample.min : null;
+  const maxValue =
+    typeof characteristics.sample.max === 'number' ? characteristics.sample.max : null;
+  const hasValidRange =
+    typeof minValue === 'number' && typeof maxValue === 'number' && maxValue > minValue;
 
   return {
     valueType: 'continuous',
     renderMode: 'gradient',
-    noDataValue: typeof characteristics.noDataValue === 'number' ? characteristics.noDataValue : null,
+    noDataValue:
+      typeof characteristics.noDataValue === 'number' ? characteristics.noDataValue : null,
     minValue: hasValidRange ? minValue : null,
     maxValue: hasValidRange ? maxValue : null,
     startColor: null,
@@ -1298,13 +1620,13 @@ function hslToHex(h, s, l) {
   const r = Math.round((rPrime + m) * 255);
   const g = Math.round((gPrime + m) * 255);
   const b = Math.round((bPrime + m) * 255);
-  return `#${[r, g, b]
-    .map((value) => value.toString(16).padStart(2, '0'))
-    .join('')}`;
+  return `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function hexToHsl(hexColor) {
-  const normalized = String(hexColor || '').trim().replace(/^#/, '');
+  const normalized = String(hexColor || '')
+    .trim()
+    .replace(/^#/, '');
   if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
     return null;
   }
@@ -1429,7 +1751,11 @@ function inferDataRole(row) {
   if (modelGroup.includes('incluye')) {
     return 'include_layer';
   }
-  if (modelGroup.includes('limites') || modelGroup.includes('boundaries') || layerGroup.includes('limite')) {
+  if (
+    modelGroup.includes('limites') ||
+    modelGroup.includes('boundaries') ||
+    layerGroup.includes('limite')
+  ) {
     return 'administrative_boundary';
   }
 
@@ -1535,13 +1861,15 @@ async function extractCurrentFrontendCategories() {
   const source = await fs.readFile(LEFT_SIDEBAR_SOURCE_PATH, 'utf-8');
   const groupStart = source.indexOf('private createDefaultGroups(): LayerGroup[]');
   const groupEnd = source.indexOf('private layerRow(', groupStart);
-  const groupSource = groupStart >= 0 && groupEnd > groupStart ? source.slice(groupStart, groupEnd) : '';
+  const groupSource =
+    groupStart >= 0 && groupEnd > groupStart ? source.slice(groupStart, groupEnd) : '';
   const categories = [
     {
       id: 'management-figures',
       title: 'Management Figures',
       source: 'createDefaultOverlays',
-      notes: 'Overlay card above category groups; currently contains solution, RUNAP, and OMEC rows.',
+      notes:
+        'Overlay card above category groups; currently contains solution, RUNAP, and OMEC rows.',
     },
   ];
 
@@ -1557,20 +1885,25 @@ async function extractCurrentFrontendCategories() {
 }
 
 function buildCategoryMappingReport({ categories, layerEntries, currentFrontendCategories }) {
-  const frontendById = new Map(currentFrontendCategories.map((category) => [category.id, category]));
+  const frontendById = new Map(
+    currentFrontendCategories.map((category) => [category.id, category]),
+  );
   const manifestCategoryMappings = categories.map((category) => {
     const rule = categoryMappingRules[category.id];
     const frontendCategoryIds = rule?.frontendCategoryIds ?? [];
     const layerMappings = category.layerIds.map((layerId) => {
       const layer = layerEntries.find((entry) => entry.manifestLayer.id === layerId)?.manifestLayer;
-      const frontendCategoryId = rule?.layerLevelFrontendCategoryIds?.[layerId] ?? frontendCategoryIds[0] ?? null;
+      const frontendCategoryId =
+        rule?.layerLevelFrontendCategoryIds?.[layerId] ?? frontendCategoryIds[0] ?? null;
 
       return {
         layerId,
         spanishLabel: layer?.spanishLabel ?? null,
         dataRole: layer?.dataRole ?? null,
         frontendCategoryId,
-        frontendCategoryTitle: frontendCategoryId ? frontendById.get(frontendCategoryId)?.title ?? null : null,
+        frontendCategoryTitle: frontendCategoryId
+          ? (frontendById.get(frontendCategoryId)?.title ?? null)
+          : null,
       };
     });
 
@@ -1626,7 +1959,14 @@ function buildCategoryMappingReport({ categories, layerEntries, currentFrontendC
   };
 }
 
-function buildReport({ allRows, includedRows, layerEntries, blobInventory, categoryMappingReport }) {
+function buildReport({
+  allRows,
+  includedRows,
+  layerEntries,
+  blobInventory,
+  solutionCatalogReport,
+  categoryMappingReport,
+}) {
   const matchedBlobPaths = new Set(
     layerEntries
       .map((entry) => entry.reconciliation.displayReference.blobPath)
@@ -1701,15 +2041,18 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory, categ
     whyThisReportExists: {
       purpose:
         'Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.',
-      intendedAudience: 'Developers validating Blob Storage contents before wiring layers into the tool.',
+      intendedAudience:
+        'Developers validating Blob Storage contents before wiring layers into the tool.',
       howToUse:
         'Check missingRequired first, then extraAvailable and includedRowMetadataGaps, before treating the generated manifest as ready for frontend integration.',
     },
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     policy: {
       includedRows: 'Only rows with en_uso_actual / in_use_now set to TRUE',
-      speciesHandling: 'Species rasters are represented as one collection pointer, not one layer per TIFF',
-      liveManifest: 'Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git',
+      speciesHandling:
+        'Species rasters are represented as one collection pointer, not one layer per TIFF',
+      liveManifest:
+        'Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git',
     },
     counts: {
       csvRows: allRows.length,
@@ -1720,8 +2063,10 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory, categ
       extraAvailable: extraAvailable.length,
       includedRowMetadataGaps: includedRowMetadataGaps.length,
       excludedRows: excludedRows.length,
-      manifestCategoriesNeedingReview:
-        categoryMappingReport.counts.manifestCategoriesNeedingReview,
+      generatedSolutions: solutionCatalogReport.counts.includedSolutions,
+      skippedSolutionMetadataFiles: solutionCatalogReport.counts.skippedMetadataFiles,
+      unmatchedSolutionRasters: solutionCatalogReport.counts.unmatchedRasters,
+      manifestCategoriesNeedingReview: categoryMappingReport.counts.manifestCategoriesNeedingReview,
       frontendCategoriesWithoutManifestMapping:
         categoryMappingReport.counts.frontendCategoriesWithoutManifestMapping,
       renderingInferenceLowConfidence: renderingInferenceCounts.lowConfidence,
@@ -1731,10 +2076,15 @@ function buildReport({ allRows, includedRows, layerEntries, blobInventory, categ
     includedRowMetadataGaps,
     categoryMappingSummary: {
       reportPath: path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH),
-      manifestCategoriesNeedingReview:
-        categoryMappingReport.counts.manifestCategoriesNeedingReview,
+      manifestCategoriesNeedingReview: categoryMappingReport.counts.manifestCategoriesNeedingReview,
       frontendCategoriesWithoutManifestMapping:
         categoryMappingReport.counts.frontendCategoriesWithoutManifestMapping,
+    },
+    solutionCatalogSummary: {
+      reportPath: path.relative(repoRoot, SOLUTION_RECONCILIATION_REPORT_PATH),
+      generatedSolutions: solutionCatalogReport.counts.includedSolutions,
+      skippedSolutionMetadataFiles: solutionCatalogReport.counts.skippedMetadataFiles,
+      unmatchedSolutionRasters: solutionCatalogReport.counts.unmatchedRasters,
     },
     renderingInferenceSummary: renderingInferenceCounts,
     excludedRows,
@@ -1796,12 +2146,14 @@ async function main() {
   const rows = rowsToObjects(parseCsv(csvRaw));
   const includedRows = rows.filter((row) => isTrue(row.in_use_now) && isDisplayCandidate(row));
   const blobInventory = await readBlobInventory();
+  const solutionBlobInventory = await readSolutionBlobInventory();
   const blobByPath = new Map(blobInventory.map((blob) => [blob.pathname, blob]));
   const existingManifestIndex = await loadExistingManifest(GENERATED_MANIFEST_PATH);
   const speciesTaxa = await fetchSpeciesTaxa();
   const layerEntries = await Promise.all(
     includedRows.map((row) => createLayerEntry(row, blobByPath, existingManifestIndex)),
   );
+  const solutionCatalog = await createSolutionCatalog(solutionBlobInventory);
   const categories = createCategories(
     includedRows,
     layerEntries,
@@ -1820,6 +2172,7 @@ async function main() {
     includedRows,
     layerEntries,
     blobInventory,
+    solutionCatalogReport: solutionCatalog.report,
     categoryMappingReport,
   });
 
@@ -1830,6 +2183,7 @@ async function main() {
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     categories,
     layers,
+    solutions: solutionCatalog.solutions,
   };
 
   const nextManifestJson = `${JSON.stringify(manifest, null, 2)}\n`;
@@ -1838,17 +2192,29 @@ async function main() {
   await writeJson(GENERATED_MANIFEST_PATH, manifest);
   await writeJson(CATEGORY_MAPPING_REPORT_PATH, categoryMappingReport);
   await writeJson(REPORT_PATH, report);
+  await writeJson(SOLUTION_RECONCILIATION_REPORT_PATH, solutionCatalog.report);
   await writeText(CATEGORY_REVIEW_CSV_PATH, toCsv(createCategoryReviewRows(rows)));
 
-  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, GENERATED_MANIFEST_PATH)}`);
-  if (archivedManifestPath) {
-    console.log(`[generate:layer-manifest] archived ${path.relative(repoRoot, archivedManifestPath)}`);
-  }
-  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH)}`);
-  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, REPORT_PATH)}`);
-  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_REVIEW_CSV_PATH)}`);
   console.log(
-    `[generate:layer-manifest] ${layers.length} layer(s), ${report.counts.missingRequired} missing required, ${report.counts.extraAvailable} extra available`,
+    `[generate:layer-manifest] wrote ${path.relative(repoRoot, GENERATED_MANIFEST_PATH)}`,
+  );
+  if (archivedManifestPath) {
+    console.log(
+      `[generate:layer-manifest] archived ${path.relative(repoRoot, archivedManifestPath)}`,
+    );
+  }
+  console.log(
+    `[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH)}`,
+  );
+  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, REPORT_PATH)}`);
+  console.log(
+    `[generate:layer-manifest] wrote ${path.relative(repoRoot, SOLUTION_RECONCILIATION_REPORT_PATH)}`,
+  );
+  console.log(
+    `[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_REVIEW_CSV_PATH)}`,
+  );
+  console.log(
+    `[generate:layer-manifest] ${layers.length} layer(s), ${solutionCatalog.solutions.length} solution(s), ${report.counts.missingRequired} missing required, ${report.counts.extraAvailable} extra available`,
   );
 }
 

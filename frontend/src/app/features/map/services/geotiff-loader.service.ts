@@ -44,9 +44,16 @@ export class GeoTiffLoaderService {
       const loadTimeMs = Math.round(performance.now() - t0);
       return { scenario, rasterMeta, rasterData, canvas, loadTimeMs };
     } catch (error) {
-      // Keep map workflows unblocked in dev environments where .tif assets are intentionally absent.
+      if (!this.shouldUseSyntheticFallback(url)) {
+        throw error;
+      }
+      // Keep map workflows unblocked only for explicit local dev asset paths.
       return this.buildFallbackSolution(scenario, error, t0);
     }
+  }
+
+  private shouldUseSyntheticFallback(url: string): boolean {
+    return url.startsWith('/');
   }
 
   private extractMetadata(

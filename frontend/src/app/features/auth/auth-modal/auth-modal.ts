@@ -145,11 +145,15 @@ export class AuthModalComponent {
     try {
       const profile = await this.googleIdentity.signIn();
       const loginResult = await this.authRequest.attemptLogin({
+        uid: profile.uid,
         email: profile.email,
         provider: 'google',
       });
       if (loginResult === 'active') {
-        this.grantSessionAndClose('google');
+        const approvedUser = profile.uid
+          ? await this.authRequest.getApprovedUser(profile.uid)
+          : null;
+        this.grantSessionAndClose('google', this.authRequest.roleToTier(approvedUser?.role));
         return;
       }
       if (loginResult === 'pending') {
@@ -318,6 +322,7 @@ export class AuthModalComponent {
       const form = this.postGoogleForm();
       const startedAt = Date.now();
       const stored = await this.authRequest.submitGoogleRequest({
+        uid: profile.uid,
         googleName: profile.name,
         googleEmail: profile.email,
         googleAvatarInitials: profile.avatarInitials,
@@ -384,10 +389,10 @@ export class AuthModalComponent {
   // Helpers
   // ------------------------------------------------------------------
 
-  private grantSessionAndClose(provider: 'local' | 'google'): void {
+  private grantSessionAndClose(provider: 'local' | 'google', tier = UserTier.DecisionMaker): void {
     this.authService.login({
       token: `mock-${provider}-${Date.now()}`,
-      tier: UserTier.DecisionMaker,
+      tier,
       provider,
     });
     this.resetForms();

@@ -4,7 +4,15 @@
   "title": "DISES Runtime Layer Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "generatedAt", "publicBlobHost", "sourceCsv", "categories", "layers"],
+  "required": [
+    "version",
+    "generatedAt",
+    "publicBlobHost",
+    "sourceCsv",
+    "categories",
+    "layers",
+    "solutions"
+  ],
   "properties": {
     "version": {
       "type": "string"
@@ -34,6 +42,12 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/layer"
+      }
+    },
+    "solutions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/solution"
       }
     }
   },
@@ -81,6 +95,9 @@
           "pattern": "^#[0-9a-fA-F]{6}$"
         }
       }
+    },
+    "nullableNumber": {
+      "type": ["number", "null"]
     },
     "category": {
       "type": "object",
@@ -234,6 +251,198 @@
           "required": ["displayCollectionUrl"]
         }
       ]
+    },
+    "solution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "description",
+        "scope",
+        "sirapId",
+        "displayUrl",
+        "metadataUrl",
+        "rasterFile",
+        "metadataFile",
+        "blobPath",
+        "generatedAt",
+        "finderInputs",
+        "inputLayerIds",
+        "summaryMetrics",
+        "coverage",
+        "rendering"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "sirapId": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "displayUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "metadataUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "rasterFile": {
+          "type": "string"
+        },
+        "metadataFile": {
+          "type": "string"
+        },
+        "blobPath": {
+          "type": "string"
+        },
+        "generatedAt": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "finderInputs": {
+          "$ref": "#/$defs/solutionFinderInputs"
+        },
+        "inputLayerIds": {
+          "$ref": "#/$defs/solutionInputLayerIds"
+        },
+        "summaryMetrics": {
+          "$ref": "#/$defs/solutionSummaryMetrics"
+        },
+        "coverage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/solutionCoverageRow"
+          }
+        },
+        "rendering": {
+          "$ref": "#/$defs/rendering"
+        }
+      }
+    },
+    "solutionFinderInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "targetFeatureSet",
+        "targetFeatureIds",
+        "targetPercent",
+        "costLayerId",
+        "includeLayerIds",
+        "excludeLayerIds"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string"
+        },
+        "targetFeatureSet": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "targetFeatureIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "targetPercent": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "costLayerId": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "includeLayerIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludeLayerIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "solutionInputLayerIds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["features", "cost", "includes", "excludes"],
+      "properties": {
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cost": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "includes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "solutionSummaryMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nSelected", "totalCost", "pctTargetsMet", "coverageRowCount"],
+      "properties": {
+        "nSelected": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "totalCost": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "pctTargetsMet": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "coverageRowCount": {
+          "type": "number"
+        }
+      }
+    },
+    "solutionCoverageRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["feature", "met", "relativeTarget", "relativeHeld", "relativeShortfall"],
+      "properties": {
+        "feature": {
+          "type": "string"
+        },
+        "met": {
+          "type": ["boolean", "null"]
+        },
+        "relativeTarget": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "relativeHeld": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "relativeShortfall": {
+          "$ref": "#/$defs/nullableNumber"
+        }
+      }
     },
     "classColor": {
       "type": "object",

@@ -83,6 +83,7 @@ describe('manifest-style-editor.utils', () => {
           },
         },
       ],
+      solutions: [],
     };
 
     const draftManifest: RuntimeLayerManifest = {
@@ -162,6 +163,7 @@ describe('manifest-style-editor.utils', () => {
         },
       ],
       layers: [layerWithoutRendering],
+      solutions: [],
     };
 
     const normalized = normalizeManifestForEditor(manifest);
@@ -202,6 +204,7 @@ describe('manifest-style-editor.utils', () => {
         },
       ],
       layers: [speciesPointerLayer],
+      solutions: [],
     });
 
     expect(normalized.layers[0].rendering).toBeUndefined();

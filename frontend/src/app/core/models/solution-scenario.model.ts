@@ -1,8 +1,19 @@
+import type {
+  RuntimeSolutionManifestFinderInputs,
+  RuntimeSolutionManifestInputLayerIds,
+} from './layer-manifest.model';
+
 export interface SolutionScenario {
   id: string;
   filename: string;
   name: string;
   description: string;
+  scope: string;
+  sirapId: string | null;
+  displayUrl: string;
+  metadataUrl: string;
+  finderInputs: RuntimeSolutionManifestFinderInputs;
+  inputLayerIds: RuntimeSolutionManifestInputLayerIds;
   ecosystemTargets: number;
   constraints: string[];
   costLayer: string;
