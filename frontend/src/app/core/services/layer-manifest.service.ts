@@ -104,7 +104,7 @@ export class LayerManifestService {
       return throwError(() => new Error('No manifest URL candidates configured'));
     }
 
-    return this.http.get<RuntimeLayerManifest>(primaryUrl).pipe(
+    return this.http.get<RuntimeLayerManifest>(this.toUncachedManifestUrl(primaryUrl)).pipe(
       catchError((error) => {
         if (fallbackUrls.length === 0) {
           return throwError(() => error);
@@ -118,5 +118,11 @@ export class LayerManifestService {
     const runtimeWindow = globalThis as RuntimeManifestWindow;
     const runtimeBlobUrl = runtimeWindow.__MANIFEST_BLOB_URL__?.trim();
     return runtimeBlobUrl || null;
+  }
+
+  private toUncachedManifestUrl(manifestUrl: string): string {
+    const cacheBust = Date.now().toString();
+    const separator = manifestUrl.includes('?') ? '&' : '?';
+    return `${manifestUrl}${separator}v=${cacheBust}`;
   }
 }
