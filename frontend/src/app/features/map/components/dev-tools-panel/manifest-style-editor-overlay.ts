@@ -70,6 +70,22 @@ type ManifestStyleEditorScope =
 type EditableRenderingNumberField = 'selectedValue' | 'noDataValue' | 'minValue' | 'maxValue';
 type EditableRenderingColorField = 'selectedColor' | 'startColor' | 'endColor';
 type EditableDefaultColorField = 'selectedColor' | 'startColor' | 'endColor';
+
+interface BrowserSaveFilePicker {
+  showSaveFilePicker?: (options: {
+    suggestedName: string;
+    types: {
+      description: string;
+      accept: Record<string, string[]>;
+    }[];
+  }) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: Blob) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+}
+
 const SIDEBAR_CATEGORY_ORDER = [
   'administrative_boundaries',
   'species_and_biodiversity',
@@ -587,25 +603,43 @@ export class ManifestStyleEditorOverlayComponent {
     this.publishMessage.set(null);
   }
 
-  protected saveDraftLocally(): void {
+  protected async saveDraftLocally(): Promise<void> {
     const draftManifest = this.draftManifest();
+    const editorName = this.editorName().trim();
     if (!draftManifest) {
+      return;
+    }
+    if (!editorName) {
+      this.localDraftMessage.set('Enter editorName before saving a local styled manifest JSON.');
       return;
     }
 
     try {
-      const payload = {
-        savedAt: new Date().toISOString(),
-        editorName: this.editorName().trim(),
-        sourceManifestUrl: this.resolvedManifestUrl(),
-        manifest: draftManifest,
-      };
-      localStorage.setItem(this.localStorageKey, JSON.stringify(payload));
-      this.localDraftMessage.set(
-        'Draft saved in local browser storage only. To update Vercel, download styled JSON and run `npm run publish:styled-manifest`.',
+      const { filename, manifest } = this.buildStyledManifestFile(
+        draftManifest,
+        editorName,
+        'manifest-style-editor-local-draft',
       );
-    } catch {
-      this.localDraftMessage.set('Draft save failed. Browser storage may be unavailable.');
+      this.saveDraftToLocalStorage(manifest, editorName);
+
+      if (this.canSaveToLocalFile()) {
+        await this.saveManifestWithPicker(manifest, filename);
+        this.localDraftMessage.set(
+          `Saved ${filename}. Put it in frontend/development-artifacts/layer-manifest/manual-edits/ so npm run publish:styled-manifest can find it.`,
+        );
+        return;
+      }
+
+      this.downloadManifestBlob(manifest, filename);
+      this.localDraftMessage.set(
+        `Downloaded ${filename}. Move it to frontend/development-artifacts/layer-manifest/manual-edits/ or leave it in Downloads before running npm run publish:styled-manifest.`,
+      );
+    } catch (error) {
+      this.localDraftMessage.set(
+        error instanceof DOMException && error.name === 'AbortError'
+          ? 'Local draft save was cancelled.'
+          : 'Draft save failed. Try Download styled JSON or check browser file permissions.',
+      );
     }
   }
 
@@ -842,6 +876,16 @@ export class ManifestStyleEditorOverlayComponent {
     editorName: string,
     source: string,
   ): string {
+    const { filename, manifest } = this.buildStyledManifestFile(draftManifest, editorName, source);
+    this.downloadManifestBlob(manifest, filename);
+    return filename;
+  }
+
+  private buildStyledManifestFile(
+    draftManifest: RuntimeLayerManifest,
+    editorName: string,
+    source: string,
+  ): { filename: string; manifest: RuntimeLayerManifest } {
     const exportedAt = new Date().toISOString();
     const manualEdit: RuntimeLayerManifestManualEdit = {
       editorName,
@@ -859,7 +903,11 @@ export class ManifestStyleEditorOverlayComponent {
       .replace(/^-+|-+$/g, '');
     const timestamp = exportedAt.replace(/[:.]/g, '-');
     const filename = `manifest.styled.${fileSafeEditor || 'unknown-editor'}.${timestamp}.json`;
-    const blob = new Blob([JSON.stringify(manifestToDownload, null, 2)], {
+    return { filename, manifest: manifestToDownload };
+  }
+
+  private downloadManifestBlob(manifest: RuntimeLayerManifest, filename: string): void {
+    const blob = new Blob([JSON.stringify(manifest, null, 2)], {
       type: 'application/json',
     });
     const objectUrl = URL.createObjectURL(blob);
@@ -868,7 +916,54 @@ export class ManifestStyleEditorOverlayComponent {
     anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(objectUrl);
-    return filename;
+  }
+
+  private async saveManifestWithPicker(
+    manifest: RuntimeLayerManifest,
+    filename: string,
+  ): Promise<void> {
+    const pickerGlobal = globalThis as typeof globalThis & BrowserSaveFilePicker;
+    if (!pickerGlobal.showSaveFilePicker) {
+      throw new Error('Browser file picker is unavailable.');
+    }
+
+    const fileHandle = await pickerGlobal.showSaveFilePicker({
+      suggestedName: filename,
+      types: [
+        {
+          description: 'Styled layer manifest JSON',
+          accept: { 'application/json': ['.json'] },
+        },
+      ],
+    });
+    const writable = await fileHandle.createWritable();
+    await writable.write(
+      new Blob([JSON.stringify(manifest, null, 2)], {
+        type: 'application/json',
+      }),
+    );
+    await writable.close();
+  }
+
+  private canSaveToLocalFile(): boolean {
+    return (
+      typeof (globalThis as typeof globalThis & BrowserSaveFilePicker).showSaveFilePicker ===
+      'function'
+    );
+  }
+
+  private saveDraftToLocalStorage(manifest: RuntimeLayerManifest, editorName: string): void {
+    try {
+      const payload = {
+        savedAt: new Date().toISOString(),
+        editorName,
+        sourceManifestUrl: this.resolvedManifestUrl(),
+        manifest,
+      };
+      localStorage.setItem(this.localStorageKey, JSON.stringify(payload));
+    } catch {
+      // The file save is the source of truth for publishing; browser storage is only a restore aid.
+    }
   }
 
   private async loadManifest(): Promise<void> {

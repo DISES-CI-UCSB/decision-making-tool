@@ -11,6 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../..');
 const defaultManualEditsDir = path.resolve(
+  __dirname,
+  '../development-artifacts/layer-manifest/manual-edits',
+);
+const legacyManualEditsDir = path.resolve(
   repoRoot,
   'development-artifacts/layer-manifest/manual-edits',
 );
@@ -34,10 +38,14 @@ function parseArgs(args) {
 }
 
 async function detectLatestStyledManifest(manualEditsDir) {
-  const candidateDirs = [manualEditsDir, path.resolve(os.homedir(), 'Downloads')];
-  const candidates = [];
+  const candidateDirs = [
+    manualEditsDir,
+    legacyManualEditsDir,
+    path.resolve(os.homedir(), 'Downloads'),
+  ];
   for (const directoryPath of candidateDirs) {
     let entries;
+    const candidates = [];
     try {
       entries = await fs.readdir(directoryPath, { withFileTypes: true });
     } catch {
@@ -49,20 +57,19 @@ async function detectLatestStyledManifest(manualEditsDir) {
         entry.name.endsWith('.json') &&
         entry.name.startsWith('manifest.styled.')
       ) {
-        candidates.push(path.join(directoryPath, entry.name));
+        const filePath = path.join(directoryPath, entry.name);
+        const stat = await fs.stat(filePath);
+        candidates.push({ filePath, stat });
       }
+    }
+
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs);
+      return candidates[0]?.filePath ?? null;
     }
   }
 
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  const stats = await Promise.all(
-    candidates.map(async (filePath) => ({ filePath, stat: await fs.stat(filePath) })),
-  );
-  stats.sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs);
-  return stats[0]?.filePath ?? null;
+  return null;
 }
 
 async function runNodeScript(scriptPath, args) {
@@ -77,6 +84,21 @@ async function runNodeScript(scriptPath, args) {
   }
 }
 
+async function assertStyledManifestHasSolutions(sourcePath) {
+  const rawValue = await fs.readFile(sourcePath, 'utf-8');
+  const manifest = JSON.parse(rawValue);
+  if (Array.isArray(manifest.solutions)) {
+    return;
+  }
+
+  throw new Error(
+    [
+      `Styled manifest is missing the required solutions array: ${sourcePath}`,
+      'Load the current Blob manifest in the style editor, save/download a fresh manifest.styled.*.json file, then rerun this command.',
+    ].join('\n'),
+  );
+}
+
 async function main() {
   await loadLocalEnv(path.resolve(__dirname, '..'));
   const { sourcePath: sourceArg, publish } = parseArgs(process.argv.slice(2));
@@ -89,6 +111,8 @@ async function main() {
   }
 
   await fs.access(sourcePath);
+  console.log(`[publish:styled-manifest] using ${sourcePath}`);
+  await assertStyledManifestHasSolutions(sourcePath);
 
   // Validate the supplied styled manifest before touching runtime/publish files.
   await runNodeScript(path.resolve(__dirname, './validate-manifest.mjs'), [sourcePath]);
