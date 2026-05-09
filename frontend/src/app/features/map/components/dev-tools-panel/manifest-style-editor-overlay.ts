@@ -16,6 +16,7 @@ import type {
 import { parseCategoryPath } from '@core/models/layer-manifest.model';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { ManifestStyleRequestService } from '@core/services/manifest-style-request.service';
+import { environment } from '../../../../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import {
   applyCategoryColorDefaults,
@@ -135,6 +136,7 @@ export class ManifestStyleEditorOverlayComponent {
   protected readonly publishArchivePath = signal('');
   protected readonly publishedManifestUrl = signal('');
   protected readonly localDraftMessage = signal<string | null>(null);
+  protected readonly lastDownloadedStyledManifestFilename = signal<string | null>(null);
 
   protected readonly validationByLayerId = computed(() => {
     const manifest = this.draftManifest();
@@ -367,6 +369,14 @@ export class ManifestStyleEditorOverlayComponent {
   });
 
   protected readonly isLocalDevHost = computed(() => this.isRunningOnLocalhost());
+  protected readonly usesLocalStyleRequestWorkflow = environment.bypassLoginForDevelopment;
+  protected readonly localStyleRequestFileLocation = computed(
+    () => `~/Downloads/${this.lastDownloadedStyledManifestFilename() ?? 'DOWNLOADED_FILE.json'}`,
+  );
+  protected readonly localStyleRequestPublishCommand = computed(
+    () =>
+      `npm run publish:styled-manifest -- --source ${this.localStyleRequestFileLocation()} --publish`,
+  );
 
   protected readonly lastManualEdit = computed<RuntimeLayerManifestManualEdit | null>(() => {
     const draftManifest = this.draftManifest();
@@ -630,6 +640,20 @@ export class ManifestStyleEditorOverlayComponent {
       return;
     }
 
+    if (environment.bypassLoginForDevelopment) {
+      this.saveDraftToLocalStorage(draftManifest, editorName);
+      const filename = this.downloadManifestFile(
+        draftManifest,
+        editorName,
+        'manifest-style-editor-local-dev-request',
+      );
+      this.lastDownloadedStyledManifestFilename.set(filename);
+      this.localDraftMessage.set(
+        `Login bypass is enabled, so Firestore was skipped. Downloaded ${filename}; run the command below from frontend.`,
+      );
+      return;
+    }
+
     try {
       this.saveDraftToLocalStorage(draftManifest, editorName);
       const requestId = await this.styleRequestService.saveStyleRequest({
@@ -668,6 +692,7 @@ export class ManifestStyleEditorOverlayComponent {
       editorName,
       'manifest-style-editor-download',
     );
+    this.lastDownloadedStyledManifestFilename.set(filename);
 
     this.draftManifest.update((manifest) =>
       manifest

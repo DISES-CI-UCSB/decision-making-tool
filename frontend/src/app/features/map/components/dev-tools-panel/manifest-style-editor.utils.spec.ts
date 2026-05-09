@@ -433,6 +433,7 @@ function manifestWithTwoEcosystemLayers(): RuntimeLayerManifest {
         },
       },
     ],
+    solutions: [],
   };
 }
 
@@ -491,5 +492,6 @@ function manifestWithSpeciesSubcategory(): RuntimeLayerManifest {
         },
       },
     ],
+    solutions: [],
   };
 }

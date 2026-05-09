@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
 import { UserTier } from '@core/models';
+import { environment } from '../../../environments/environment';
 
 const AUTH_STORAGE_KEY = 'dmt.auth.session';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -44,19 +45,28 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem(AUTH_STORAGE_KEY);
-    this.appState.userTier$.set(UserTier.Public);
+    this.appState.userTier$.set(this.getLoggedOutTier());
   }
 
   getCurrentTier(): UserTier {
     const session = this.readValidSession();
-    if (!session) {
-      this.logout();
-      return UserTier.Public;
+    if (session) {
+      return session.tier;
     }
-    return session.tier;
+
+    if (environment.bypassLoginForDevelopment) {
+      return UserTier.DecisionMaker;
+    }
+
+    this.logout();
+    return UserTier.Public;
   }
 
   isAuthenticated(): boolean {
+    if (environment.bypassLoginForDevelopment) {
+      return true;
+    }
+
     const session = this.readValidSession();
     if (!session) {
       this.logout();
@@ -68,6 +78,10 @@ export class AuthService {
   private syncTierFromStoredSession(): void {
     const tier = this.getCurrentTier();
     this.appState.userTier$.set(tier);
+  }
+
+  private getLoggedOutTier(): UserTier {
+    return environment.bypassLoginForDevelopment ? UserTier.DecisionMaker : UserTier.Public;
   }
 
   private readValidSession(): StoredAuthSession | null {

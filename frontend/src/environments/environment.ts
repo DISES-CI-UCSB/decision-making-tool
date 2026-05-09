@@ -19,6 +19,8 @@ export const environment = {
   googleClientId: '',
   manifestBlobUrl: '',
   ENABLE_MANIFEST_EDITOR: true,
+  // Dev-only override for demos/debugging when the approval/login flow is not the focus.
+  bypassLoginForDevelopment: true,
   // Temporary dev override: keep SIRAP boundaries testable while auth approval
   // flow remains mocked/pending (UCS-181 in progress).
   allowSirapWithoutAuth: true,

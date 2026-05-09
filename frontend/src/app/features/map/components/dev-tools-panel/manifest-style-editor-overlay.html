@@ -1198,7 +1198,11 @@
                   [disabled]="!canPublish()"
                   (click)="saveStyleRequest()"
                 >
-                  Save style request (dev only)
+                  {{
+                    usesLocalStyleRequestWorkflow
+                      ? 'Download style request (dev only)'
+                      : 'Save style request (dev only)'
+                  }}
                 </button>
               }
               <button
@@ -1221,17 +1225,43 @@
             }
 
             @if (isLocalDevHost()) {
-              <p
+              <div
                 id="manifest-style-editor-dev-workflow-hint"
-                class="mt-2 text-[11px] text-slate-600"
+                class="mt-2 rounded-md border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600"
               >
-                Dev workflow: Save style request writes style-only changes to Firestore. Then run
-                <span id="manifest-style-editor-dev-workflow-command" class="font-semibold">
-                  npm run publish:styled-manifest
-                </span>
-                from frontend to apply the latest pending request to the latest Vercel Blob
-                manifest.
-              </p>
+                <p id="manifest-style-editor-dev-workflow-copy">
+                  Dev workflow:
+                  @if (usesLocalStyleRequestWorkflow) {
+                    Save style request downloads a styled JSON file because login bypass is enabled.
+                    Copy the command below from frontend to publish the style changes.
+                  } @else {
+                    Save style request writes style-only changes to Firestore. Copy the command
+                    below from frontend to apply the latest pending request.
+                  }
+                </p>
+
+                @if (usesLocalStyleRequestWorkflow) {
+                  <p id="manifest-style-editor-local-file-label" class="mt-2 font-semibold">
+                    Downloaded file location
+                  </p>
+                  <pre
+                    id="manifest-style-editor-local-file-codeblock"
+                    class="mt-1 select-all overflow-x-auto rounded border border-slate-200 bg-white px-2 py-1 font-mono text-[10px] text-slate-800"
+                  ><code id="manifest-style-editor-local-file-code">{{ localStyleRequestFileLocation() }}</code></pre>
+                }
+
+                <p id="manifest-style-editor-publish-command-label" class="mt-2 font-semibold">
+                  Publish command
+                </p>
+                <pre
+                  id="manifest-style-editor-publish-command-codeblock"
+                  class="mt-1 select-all overflow-x-auto rounded border border-slate-200 bg-white px-2 py-1 font-mono text-[10px] text-slate-800"
+                ><code id="manifest-style-editor-publish-command-code">{{
+                  usesLocalStyleRequestWorkflow
+                    ? localStyleRequestPublishCommand()
+                    : 'npm run publish:styled-manifest'
+                }}</code></pre>
+              </div>
             }
 
             @if (hasInvalidFields()) {
