@@ -29,8 +29,8 @@
               Manifest Style Editor
             </h2>
             <p id="manifest-style-editor-header-subtitle" class="mt-1 text-xs text-slate-600">
-              Edit category defaults, preserve layer overrides, validate, and publish a new
-              manifest.
+              Edit category defaults and layer overrides, then save a Firestore style request for
+              the publish script.
             </p>
           </div>
           <button
@@ -1194,10 +1194,11 @@
                 <button
                   id="manifest-style-editor-save-draft-button"
                   type="button"
-                  class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
-                  (click)="saveDraftLocally()"
+                  class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  [disabled]="!canPublish()"
+                  (click)="saveStyleRequest()"
                 >
-                  Save draft locally (dev only)
+                  Save style request (dev only)
                 </button>
               }
               <button
@@ -1208,17 +1209,6 @@
               >
                 Download styled JSON
               </button>
-              @if (isLocalDevHost()) {
-                <button
-                  id="manifest-style-editor-publish-button"
-                  type="button"
-                  class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  [disabled]="!canPublish()"
-                  (click)="requestPublish()"
-                >
-                  Save For All (dev only)
-                </button>
-              }
             </div>
 
             @if (isLocalDevHost() && !canPublish() && publishDisabledReason()) {
@@ -1235,12 +1225,12 @@
                 id="manifest-style-editor-dev-workflow-hint"
                 class="mt-2 text-[11px] text-slate-600"
               >
-                Dev workflow: Save draft locally writes a styled manifest JSON. Save it into
-                frontend/development-artifacts/layer-manifest/manual-edits/ when prompted, then run
+                Dev workflow: Save style request writes style-only changes to Firestore. Then run
                 <span id="manifest-style-editor-dev-workflow-command" class="font-semibold">
                   npm run publish:styled-manifest
                 </span>
-                .
+                from frontend to apply the latest pending request to the latest Vercel Blob
+                manifest.
               </p>
             }
 
@@ -1301,55 +1291,6 @@
               Loaded source: {{ resolvedManifestUrl() }}
             </p>
           </footer>
-        }
-
-        @if (confirmPublishOpen()) {
-          <div
-            id="manifest-style-editor-confirm-overlay"
-            class="absolute inset-0 z-140 flex items-center justify-center bg-slate-950/45"
-          >
-            <div
-              id="manifest-style-editor-confirm-dialog"
-              class="w-[min(560px,88vw)] rounded-lg border border-slate-200 bg-white p-4 shadow-xl"
-            >
-              <h3
-                id="manifest-style-editor-confirm-title"
-                class="text-sm font-semibold text-slate-900"
-              >
-                Confirm Save For All
-              </h3>
-              <p id="manifest-style-editor-confirm-copy" class="mt-2 text-xs text-slate-600">
-                This will archive the current blob manifest and overwrite
-                <span id="manifest-style-editor-confirm-target-path" class="font-semibold">
-                  manifest/manifest.json
-                </span>
-                for everyone using that manifest URL.
-              </p>
-              <p id="manifest-style-editor-confirm-diff" class="mt-2 text-xs text-slate-700">
-                {{ diffSummary().changedDefaultCount }} default(s),
-                {{ diffSummary().changedLayerCount }} layer(s), and
-                {{ diffSummary().changedOverrideCount }} override flag(s) changed.
-              </p>
-              <div id="manifest-style-editor-confirm-actions" class="mt-3 flex justify-end gap-2">
-                <button
-                  id="manifest-style-editor-confirm-cancel-button"
-                  type="button"
-                  class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
-                  (click)="cancelPublish()"
-                >
-                  Cancel
-                </button>
-                <button
-                  id="manifest-style-editor-confirm-submit-button"
-                  type="button"
-                  class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
-                  (click)="confirmPublish()"
-                >
-                  Archive and publish
-                </button>
-              </div>
-            </div>
-          </div>
         }
       </div>
     </div>

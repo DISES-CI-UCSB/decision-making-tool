@@ -1,6 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import type {
+  ManifestStyleRequestChanges,
+  ManifestStyleRequestDiffSummary,
+} from '@core/models/manifest-style-request.model';
+import type {
   RuntimeLayerManifest,
   RuntimeLayerManifestCategory,
   RuntimeLayerManifestColorDefaults,
@@ -9,7 +13,9 @@ import type {
   RuntimeLayerManifestRenderingConfig,
   RuntimeLayerManifestSubcategory,
 } from '@core/models/layer-manifest.model';
+import { parseCategoryPath } from '@core/models/layer-manifest.model';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
+import { ManifestStyleRequestService } from '@core/services/manifest-style-request.service';
 import { firstValueFrom } from 'rxjs';
 import {
   applyCategoryColorDefaults,
@@ -109,6 +115,7 @@ const SIDEBAR_CATEGORY_ORDER = [
 })
 export class ManifestStyleEditorOverlayComponent {
   private readonly layerManifestService = inject(LayerManifestService);
+  private readonly styleRequestService = inject(ManifestStyleRequestService);
   private readonly localStorageKey = 'eco-plan:manifest-style-editor:draft';
 
   protected readonly isOpen = signal(false);
@@ -348,10 +355,10 @@ export class ManifestStyleEditorOverlayComponent {
       return 'Publishing in progress...';
     }
     if (!this.hasUnsavedChanges()) {
-      return 'Make a style change to enable Save For All.';
+      return 'Make a style change to enable Save style request.';
     }
     if (!this.editorName().trim()) {
-      return 'Enter editorName to enable Save For All.';
+      return 'Enter editorName to enable Save style request.';
     }
     if (this.hasInvalidFields()) {
       return 'Fix validation errors before publishing.';
@@ -603,42 +610,44 @@ export class ManifestStyleEditorOverlayComponent {
     this.publishMessage.set(null);
   }
 
-  protected async saveDraftLocally(): Promise<void> {
+  protected async saveStyleRequest(): Promise<void> {
+    const loadedManifest = this.loadedManifest();
     const draftManifest = this.draftManifest();
     const editorName = this.editorName().trim();
-    if (!draftManifest) {
+    if (!loadedManifest || !draftManifest) {
       return;
     }
     if (!editorName) {
-      this.localDraftMessage.set('Enter editorName before saving a local styled manifest JSON.');
+      this.localDraftMessage.set('Enter editorName before saving a style request.');
+      return;
+    }
+    if (this.hasInvalidFields()) {
+      this.localDraftMessage.set('Fix validation errors before saving a style request.');
+      return;
+    }
+    if (!this.hasUnsavedChanges()) {
+      this.localDraftMessage.set('Make a style change before saving a style request.');
       return;
     }
 
     try {
-      const { filename, manifest } = this.buildStyledManifestFile(
-        draftManifest,
+      this.saveDraftToLocalStorage(draftManifest, editorName);
+      const requestId = await this.styleRequestService.saveStyleRequest({
         editorName,
-        'manifest-style-editor-local-draft',
-      );
-      this.saveDraftToLocalStorage(manifest, editorName);
-
-      if (this.canSaveToLocalFile()) {
-        await this.saveManifestWithPicker(manifest, filename);
-        this.localDraftMessage.set(
-          `Saved ${filename}. Put it in frontend/development-artifacts/layer-manifest/manual-edits/ so npm run publish:styled-manifest can find it.`,
-        );
-        return;
-      }
-
-      this.downloadManifestBlob(manifest, filename);
+        status: 'pending',
+        sourceManifestUrl: this.resolvedManifestUrl(),
+        baseManifestVersion: loadedManifest.version ?? null,
+        baseManifestGeneratedAt: loadedManifest.generatedAt ?? null,
+        diffSummary: this.diffSummary() as ManifestStyleRequestDiffSummary,
+        styleChanges: this.buildStyleChanges(loadedManifest, draftManifest),
+      });
       this.localDraftMessage.set(
-        `Downloaded ${filename}. Move it to frontend/development-artifacts/layer-manifest/manual-edits/ or leave it in Downloads before running npm run publish:styled-manifest.`,
+        `Saved Firestore style request ${requestId}. Run npm run publish:styled-manifest from frontend to apply it to the latest blob manifest.`,
       );
     } catch (error) {
       this.localDraftMessage.set(
-        error instanceof DOMException && error.name === 'AbortError'
-          ? 'Local draft save was cancelled.'
-          : 'Draft save failed. Try Download styled JSON or check browser file permissions.',
+        (error instanceof Error && error.message) ||
+          'Style request save failed. Check Firebase configuration and Firestore permissions.',
       );
     }
   }
@@ -850,7 +859,7 @@ export class ManifestStyleEditorOverlayComponent {
     this.publishState.set('success');
     this.publishMessage.set(
       isLocalMock
-        ? 'Save For All simulated locally (ng serve does not host /api/dev routes).'
+        ? 'Direct publish simulated locally (ng serve does not host /api/dev routes).'
         : 'Published and archived the previous manifest.',
     );
     this.loadedManifest.set(structuredClone(draftManifest));
@@ -904,6 +913,79 @@ export class ManifestStyleEditorOverlayComponent {
     const timestamp = exportedAt.replace(/[:.]/g, '-');
     const filename = `manifest.styled.${fileSafeEditor || 'unknown-editor'}.${timestamp}.json`;
     return { filename, manifest: manifestToDownload };
+  }
+
+  private buildStyleChanges(
+    loadedManifest: RuntimeLayerManifest,
+    draftManifest: RuntimeLayerManifest,
+  ): ManifestStyleRequestChanges {
+    const categoryDefaults = [];
+    const subcategoryDefaults = [];
+    const loadedCategoriesById = new Map(
+      loadedManifest.categories.map((category) => [category.id, category]),
+    );
+
+    for (const draftCategory of draftManifest.categories) {
+      const loadedCategory = loadedCategoriesById.get(draftCategory.id);
+      if (
+        loadedCategory &&
+        !this.jsonEqual(loadedCategory.styleDefaults ?? null, draftCategory.styleDefaults ?? null)
+      ) {
+        categoryDefaults.push({
+          categoryId: draftCategory.id,
+          styleDefaults: structuredClone(draftCategory.styleDefaults ?? {}),
+        });
+      }
+
+      const loadedSubcategoriesById = new Map(
+        (loadedCategory?.subcategories ?? []).map((subcategory) => [subcategory.id, subcategory]),
+      );
+      for (const draftSubcategory of draftCategory.subcategories ?? []) {
+        const loadedSubcategory = loadedSubcategoriesById.get(draftSubcategory.id);
+        if (
+          loadedSubcategory &&
+          !this.jsonEqual(
+            loadedSubcategory.styleDefaults ?? null,
+            draftSubcategory.styleDefaults ?? null,
+          )
+        ) {
+          subcategoryDefaults.push({
+            categoryId: draftCategory.id,
+            subcategoryId: draftSubcategory.id,
+            styleDefaults: structuredClone(draftSubcategory.styleDefaults ?? {}),
+          });
+        }
+      }
+    }
+
+    const loadedLayersById = new Map(loadedManifest.layers.map((layer) => [layer.id, layer]));
+    const layerStyles = draftManifest.layers
+      .map((draftLayer) => {
+        const loadedLayer = loadedLayersById.get(draftLayer.id);
+        if (
+          !loadedLayer ||
+          (!draftLayer.rendering && !loadedLayer.rendering) ||
+          (this.jsonEqual(loadedLayer.rendering ?? null, draftLayer.rendering ?? null) &&
+            (loadedLayer.styleOverride ?? null) === (draftLayer.styleOverride ?? null))
+        ) {
+          return null;
+        }
+
+        return draftLayer.rendering
+          ? {
+              layerId: draftLayer.id,
+              rendering: structuredClone(draftLayer.rendering),
+              styleOverride: draftLayer.styleOverride ?? null,
+            }
+          : null;
+      })
+      .filter((change): change is ManifestStyleRequestChanges['layerStyles'][number] => !!change);
+
+    return { categoryDefaults, subcategoryDefaults, layerStyles };
+  }
+
+  private jsonEqual(left: unknown, right: unknown): boolean {
+    return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
   }
 
   private downloadManifestBlob(manifest: RuntimeLayerManifest, filename: string): void {
@@ -962,7 +1044,7 @@ export class ManifestStyleEditorOverlayComponent {
       };
       localStorage.setItem(this.localStorageKey, JSON.stringify(payload));
     } catch {
-      // The file save is the source of truth for publishing; browser storage is only a restore aid.
+      // Firestore is the publish source of truth; browser storage is only a restore aid.
     }
   }
 
@@ -976,6 +1058,7 @@ export class ManifestStyleEditorOverlayComponent {
       ]);
       const normalizedManifest = normalizeManifestForEditor(manifest);
       this.assertManifestLayerCategories(normalizedManifest);
+      this.assertManifestSolutions(normalizedManifest);
       this.loadedManifest.set(structuredClone(normalizedManifest));
       this.draftManifest.set(structuredClone(normalizedManifest));
       this.resolvedManifestUrl.set(manifestUrl);
@@ -1083,10 +1166,11 @@ export class ManifestStyleEditorOverlayComponent {
         const normalizedManifest = normalizeManifestForEditor(parsed.manifest);
         try {
           this.assertManifestLayerCategories(normalizedManifest);
+          this.assertManifestSolutions(normalizedManifest);
         } catch {
           localStorage.removeItem(this.localStorageKey);
           this.localDraftMessage.set(
-            'Saved local draft had invalid layer categories and was dropped.',
+            'Saved local draft had invalid layer categories or missing solutions and was dropped.',
           );
           return;
         }
@@ -1135,8 +1219,30 @@ export class ManifestStyleEditorOverlayComponent {
   }
 
   private assertManifestLayerCategories(manifest: RuntimeLayerManifest): void {
+    const categoryIds = new Set(manifest.categories.map((category) => category.id));
+    const subcategoryIdsByCategory = new Map(
+      manifest.categories.map((category) => [
+        category.id,
+        new Set((category.subcategories ?? []).map((subcategory) => subcategory.id)),
+      ]),
+    );
+
     for (const layer of manifest.layers) {
-      getLayerCategoryId(layer);
+      const { categoryId, subcategoryId } = parseCategoryPath(layer.category);
+      if (!categoryIds.has(categoryId)) {
+        throw new Error(`Layer "${layer.id}" references missing category "${categoryId}".`);
+      }
+      if (subcategoryId && !subcategoryIdsByCategory.get(categoryId)?.has(subcategoryId)) {
+        throw new Error(
+          `Layer "${layer.id}" references missing subcategory "${categoryId}.${subcategoryId}".`,
+        );
+      }
+    }
+  }
+
+  private assertManifestSolutions(manifest: RuntimeLayerManifest): void {
+    if (!Array.isArray(manifest.solutions)) {
+      throw new Error('Manifest solutions must be an array.');
     }
   }
 
