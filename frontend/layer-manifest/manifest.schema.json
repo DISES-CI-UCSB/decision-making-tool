@@ -20,6 +20,9 @@
     "sourceCsv": {
       "type": "string"
     },
+    "manualEdit": {
+      "$ref": "#/$defs/manualEdit"
+    },
     "categories": {
       "type": "array",
       "minItems": 1,
@@ -37,6 +40,24 @@
   "$defs": {
     "nullableString": {
       "type": ["string", "null"]
+    },
+    "manualEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["editorName", "editedAt"],
+      "properties": {
+        "editorName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "editedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source": {
+          "$ref": "#/$defs/nullableString"
+        }
+      }
     },
     "categoryPath": {
       "type": "string",

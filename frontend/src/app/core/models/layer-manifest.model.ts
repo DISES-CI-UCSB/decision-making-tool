@@ -42,11 +42,18 @@ export interface RuntimeLayerManifestColorDefaults {
   endColor?: string | null;
 }
 
+export interface RuntimeLayerManifestManualEdit {
+  editorName: string;
+  editedAt: string;
+  source?: string | null;
+}
+
 export interface RuntimeLayerManifest {
   version: string;
   generatedAt: string;
   publicBlobHost: string;
   sourceCsv: string;
+  manualEdit?: RuntimeLayerManifestManualEdit;
   categories: RuntimeLayerManifestCategory[];
   layers: RuntimeLayerManifestLayer[];
 }

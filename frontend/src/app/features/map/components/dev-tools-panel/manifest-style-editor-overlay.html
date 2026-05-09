@@ -1157,7 +1157,7 @@
           >
             <div
               id="manifest-style-editor-footer-input-grid"
-              class="mb-2 grid grid-cols-[160px_1fr_160px_1fr] items-center gap-2"
+              class="mb-2 grid grid-cols-[160px_1fr] items-center gap-2"
             >
               <label
                 id="manifest-style-editor-editor-name-label"
@@ -1170,24 +1170,11 @@
                 id="manifest-style-editor-editor-name-input"
                 type="text"
                 class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                [class.border-amber-300]="hasUnsavedChanges() && !editorName().trim()"
+                [class.bg-amber-50]="hasUnsavedChanges() && !editorName().trim()"
                 [value]="editorName()"
                 placeholder="Jane Developer"
                 (input)="onEditorNameInput($event)"
-              />
-              <label
-                id="manifest-style-editor-publish-secret-label"
-                for="manifest-style-editor-publish-secret-input"
-                class="text-[11px] font-semibold text-slate-700"
-              >
-                write secret
-              </label>
-              <input
-                id="manifest-style-editor-publish-secret-input"
-                type="password"
-                class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
-                [value]="publishSecret()"
-                placeholder="MANIFEST_EDITOR_WRITE_SECRET"
-                (input)="onPublishSecretInput($event)"
               />
             </div>
 
@@ -1203,29 +1190,59 @@
               >
                 Reset all to loaded
               </button>
+              @if (isLocalDevHost()) {
+                <button
+                  id="manifest-style-editor-save-draft-button"
+                  type="button"
+                  class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                  (click)="saveDraftLocally()"
+                >
+                  Save draft locally (dev only)
+                </button>
+              }
               <button
-                id="manifest-style-editor-save-draft-button"
+                id="manifest-style-editor-download-styled-json-button"
                 type="button"
-                class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
-                (click)="saveDraftLocally()"
+                class="rounded-md border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                (click)="downloadStyledManifest()"
               >
-                Save draft locally
+                Download styled JSON
               </button>
-              <button
-                id="manifest-style-editor-publish-button"
-                type="button"
-                class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                [disabled]="
-                  hasInvalidFields() ||
-                  !hasUnsavedChanges() ||
-                  !publishSecret().trim() ||
-                  publishState() === 'loading'
-                "
-                (click)="requestPublish()"
-              >
-                Save For All
-              </button>
+              @if (isLocalDevHost()) {
+                <button
+                  id="manifest-style-editor-publish-button"
+                  type="button"
+                  class="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  [disabled]="!canPublish()"
+                  (click)="requestPublish()"
+                >
+                  Save For All (dev only)
+                </button>
+              }
             </div>
+
+            @if (isLocalDevHost() && !canPublish() && publishDisabledReason()) {
+              <p
+                id="manifest-style-editor-publish-disabled-hint"
+                class="mt-2 text-[11px] text-slate-600"
+              >
+                {{ publishDisabledReason() }}
+              </p>
+            }
+
+            @if (isLocalDevHost()) {
+              <p
+                id="manifest-style-editor-dev-workflow-hint"
+                class="mt-2 text-[11px] text-slate-600"
+              >
+                Dev workflow: Save draft locally keeps changes in browser-only storage. To update
+                Vercel, run
+                <span id="manifest-style-editor-dev-workflow-command" class="font-semibold">
+                  npm run publish:styled-manifest
+                </span>
+                after preparing a styled JSON.
+              </p>
+            }
 
             @if (hasInvalidFields()) {
               <p id="manifest-style-editor-invalid-banner" class="mt-2 text-[11px] text-red-600">
@@ -1239,6 +1256,15 @@
                 class="mt-2 text-[11px] text-slate-600"
               >
                 {{ localDraftMessage() }}
+              </p>
+            }
+
+            @if (lastManualEditLabel()) {
+              <p
+                id="manifest-style-editor-last-manual-edit"
+                class="mt-2 text-[11px] text-slate-600"
+              >
+                Last manual edit: {{ lastManualEditLabel() }}
               </p>
             }
 

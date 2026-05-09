@@ -5,6 +5,7 @@ import type {
   RuntimeLayerManifestCategory,
   RuntimeLayerManifestColorDefaults,
   RuntimeLayerManifestLayer,
+  RuntimeLayerManifestManualEdit,
   RuntimeLayerManifestRenderingConfig,
   RuntimeLayerManifestSubcategory,
 } from '@core/models/layer-manifest.model';
@@ -104,7 +105,6 @@ export class ManifestStyleEditorOverlayComponent {
   protected readonly expandedCategoryIds = signal<Set<string>>(new Set());
   protected readonly searchQuery = signal('');
   protected readonly editorName = signal('');
-  protected readonly publishSecret = signal('');
   protected readonly confirmPublishOpen = signal(false);
   protected readonly publishState = signal<'idle' | 'loading' | 'success' | 'error'>('idle');
   protected readonly publishMessage = signal<string | null>(null);
@@ -319,6 +319,51 @@ export class ManifestStyleEditorOverlayComponent {
     );
   });
 
+  protected readonly canPublish = computed(
+    () =>
+      !this.hasInvalidFields() &&
+      this.hasUnsavedChanges() &&
+      !!this.editorName().trim() &&
+      this.publishState() !== 'loading',
+  );
+
+  protected readonly publishDisabledReason = computed<string | null>(() => {
+    if (this.publishState() === 'loading') {
+      return 'Publishing in progress...';
+    }
+    if (!this.hasUnsavedChanges()) {
+      return 'Make a style change to enable Save For All.';
+    }
+    if (!this.editorName().trim()) {
+      return 'Enter editorName to enable Save For All.';
+    }
+    if (this.hasInvalidFields()) {
+      return 'Fix validation errors before publishing.';
+    }
+    return null;
+  });
+
+  protected readonly isLocalDevHost = computed(() => this.isRunningOnLocalhost());
+
+  protected readonly lastManualEdit = computed<RuntimeLayerManifestManualEdit | null>(() => {
+    const draftManifest = this.draftManifest();
+    return draftManifest?.manualEdit ?? null;
+  });
+
+  protected readonly lastManualEditLabel = computed(() => {
+    const manualEdit = this.lastManualEdit();
+    if (!manualEdit) {
+      return null;
+    }
+
+    const editedAt = new Date(manualEdit.editedAt);
+    const editedAtLabel = Number.isNaN(editedAt.getTime())
+      ? manualEdit.editedAt
+      : editedAt.toLocaleString();
+    const sourceLabel = manualEdit.source ? ` (${manualEdit.source})` : '';
+    return `${manualEdit.editorName} at ${editedAtLabel}${sourceLabel}`;
+  });
+
   protected async openEditor(): Promise<void> {
     this.isOpen.set(true);
     if (!this.draftManifest()) {
@@ -362,10 +407,6 @@ export class ManifestStyleEditorOverlayComponent {
 
   protected onEditorNameInput(event: Event): void {
     this.editorName.set((event.target as HTMLInputElement).value);
-  }
-
-  protected onPublishSecretInput(event: Event): void {
-    this.publishSecret.set((event.target as HTMLInputElement).value);
   }
 
   protected updateCategoryColorField(fieldName: EditableDefaultColorField, event: Event): void {
@@ -560,10 +601,44 @@ export class ManifestStyleEditorOverlayComponent {
         manifest: draftManifest,
       };
       localStorage.setItem(this.localStorageKey, JSON.stringify(payload));
-      this.localDraftMessage.set('Draft saved in localStorage for this browser.');
+      this.localDraftMessage.set(
+        'Draft saved in local browser storage only. To update Vercel, download styled JSON and run `npm run publish:styled-manifest`.',
+      );
     } catch {
       this.localDraftMessage.set('Draft save failed. Browser storage may be unavailable.');
     }
+  }
+
+  protected downloadStyledManifest(): void {
+    const draftManifest = this.draftManifest();
+    const editorName = this.editorName().trim();
+    if (!draftManifest) {
+      return;
+    }
+    if (!editorName) {
+      this.localDraftMessage.set('Enter editorName before downloading a styled manifest JSON.');
+      return;
+    }
+
+    const filename = this.downloadManifestFile(
+      draftManifest,
+      editorName,
+      'manifest-style-editor-download',
+    );
+
+    this.draftManifest.update((manifest) =>
+      manifest
+        ? {
+            ...manifest,
+            manualEdit: {
+              editorName,
+              editedAt: new Date().toISOString(),
+              source: 'manifest-style-editor-download',
+            },
+          }
+        : manifest,
+    );
+    this.localDraftMessage.set(`Downloaded ${filename}. Send it to an admin to publish.`);
   }
 
   protected requestPublish(): void {
@@ -576,7 +651,8 @@ export class ManifestStyleEditorOverlayComponent {
 
   protected async confirmPublish(): Promise<void> {
     const draftManifest = this.draftManifest();
-    if (!draftManifest || this.hasInvalidFields() || !this.publishSecret().trim()) {
+    const editorName = this.editorName().trim();
+    if (!draftManifest || this.hasInvalidFields() || !editorName) {
       return;
     }
 
@@ -589,11 +665,10 @@ export class ManifestStyleEditorOverlayComponent {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-manifest-editor-secret': this.publishSecret().trim(),
         },
         body: JSON.stringify({
           manifest: draftManifest,
-          editorName: this.editorName().trim() || 'unknown-editor',
+          editorName,
           sourceManifestUrl: this.resolvedManifestUrl(),
           diffSummary: this.diffSummary(),
         }),
@@ -607,20 +682,19 @@ export class ManifestStyleEditorOverlayComponent {
       } | null;
 
       if (!response.ok) {
+        if (response.status === 404 && this.isLocalDevPublishRouteMissing()) {
+          this.completePublishSuccess(draftManifest, null, true);
+          return;
+        }
         throw new Error(payload?.message ?? `Publish failed with HTTP ${response.status}`);
       }
 
-      this.publishTargetPath.set(payload?.targetPath ?? 'manifest/manifest.json');
-      this.publishArchivePath.set(payload?.archivePath ?? '');
-      this.publishedManifestUrl.set(payload?.manifestUrl ?? '');
-      this.publishState.set('success');
-      this.publishMessage.set('Published and archived the previous manifest.');
-      this.loadedManifest.set(structuredClone(draftManifest));
+      this.completePublishSuccess(draftManifest, payload, false);
     } catch (error) {
       this.publishState.set('error');
       this.publishMessage.set(
         (error instanceof Error && error.message) ||
-          'Publish failed. Check the write secret and server environment flags.',
+          'Publish failed. Check server environment flags and blob token configuration.',
       );
     }
   }
@@ -729,6 +803,72 @@ export class ManifestStyleEditorOverlayComponent {
 
   protected trackSubcategory(_: number, subcategory: EditableManifestSubcategorySummary): string {
     return subcategory.id;
+  }
+
+  private completePublishSuccess(
+    draftManifest: RuntimeLayerManifest,
+    payload: { targetPath?: string; archivePath?: string; manifestUrl?: string } | null,
+    isLocalMock: boolean,
+  ): void {
+    this.publishTargetPath.set(payload?.targetPath ?? 'manifest/manifest.json');
+    this.publishArchivePath.set(payload?.archivePath ?? '');
+    this.publishedManifestUrl.set(payload?.manifestUrl ?? '');
+    this.publishState.set('success');
+    this.publishMessage.set(
+      isLocalMock
+        ? 'Save For All simulated locally (ng serve does not host /api/dev routes).'
+        : 'Published and archived the previous manifest.',
+    );
+    this.loadedManifest.set(structuredClone(draftManifest));
+  }
+
+  private isLocalDevPublishRouteMissing(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    );
+  }
+
+  private isRunningOnLocalhost(): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  }
+
+  private downloadManifestFile(
+    draftManifest: RuntimeLayerManifest,
+    editorName: string,
+    source: string,
+  ): string {
+    const exportedAt = new Date().toISOString();
+    const manualEdit: RuntimeLayerManifestManualEdit = {
+      editorName,
+      editedAt: exportedAt,
+      source,
+    };
+    const manifestToDownload: RuntimeLayerManifest = {
+      ...draftManifest,
+      manualEdit,
+    };
+
+    const fileSafeEditor = editorName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const timestamp = exportedAt.replace(/[:.]/g, '-');
+    const filename = `manifest.styled.${fileSafeEditor || 'unknown-editor'}.${timestamp}.json`;
+    const blob = new Blob([JSON.stringify(manifestToDownload, null, 2)], {
+      type: 'application/json',
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(objectUrl);
+    return filename;
   }
 
   private async loadManifest(): Promise<void> {

@@ -1,7 +1,6 @@
 import { copy, list, put } from '@vercel/blob';
 
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
-const WRITE_SECRET_ENV_VAR = 'MANIFEST_EDITOR_WRITE_SECRET';
 const WRITE_GUARD_ENV_VAR = 'ENABLE_MANIFEST_EDITOR_WRITES';
 const PRODUCTION_WRITE_GUARD_ENV_VAR = 'ALLOW_PRODUCTION_MANIFEST_EDITOR_WRITES';
 const TARGET_PATH = 'manifest/manifest.json';
@@ -46,15 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const token = process.env[BLOB_TOKEN_ENV_VAR];
-  const expectedSecret = process.env[WRITE_SECRET_ENV_VAR];
-  if (!token || !expectedSecret) {
+  if (!token) {
     res.status(500).json({ message: 'Manifest publish environment is not configured' });
-    return;
-  }
-
-  const providedSecret = getHeader(req, 'x-manifest-editor-secret');
-  if (!providedSecret || providedSecret !== expectedSecret) {
-    res.status(401).json({ message: 'Invalid manifest editor write secret' });
     return;
   }
 
@@ -69,12 +61,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     });
     return;
   }
+  const editorName = body.editorName?.trim();
+  if (!editorName) {
+    res.status(400).json({ message: 'editorName is required for manifest publishing' });
+    return;
+  }
 
   const timestamp = new Date().toISOString();
   const archivePath = `${ARCHIVE_PREFIX}manifest.${timestamp.replace(/[:.]/g, '-')}.json`;
   const manifestToPublish = {
     ...body.manifest,
     generatedAt: timestamp,
+    manualEdit: {
+      editorName,
+      editedAt: timestamp,
+      source: 'manifest-style-editor-save-for-all',
+    },
   };
 
   const currentManifest = await getCurrentManifestBlob(token);
@@ -102,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     archiveUrl,
     manifestUrl: publishedBlob.url,
     generatedAt: timestamp,
-    editorName: body.editorName?.trim() || 'unknown-editor',
+    editorName,
     sourceManifestUrl: body.sourceManifestUrl ?? null,
     diffSummary: body.diffSummary ?? null,
   });
@@ -150,14 +152,6 @@ async function getCurrentManifestBlob(token: string): Promise<{ url: string } | 
     token,
   });
   return result.blobs.find((blob) => blob.pathname === TARGET_PATH) ?? null;
-}
-
-function getHeader(req: VercelRequest, headerName: string): string | null {
-  const value = req.headers[headerName] ?? req.headers[headerName.toLowerCase()];
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-  return value ?? null;
 }
 
 function isTruthy(value: string | undefined): boolean {

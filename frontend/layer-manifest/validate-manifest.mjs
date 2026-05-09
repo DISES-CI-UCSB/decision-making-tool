@@ -192,6 +192,17 @@ async function validateManifest(manifest, manifestPath, options = {}) {
   assertString(manifest.generatedAt, 'generatedAt');
   assertString(manifest.publicBlobHost, 'publicBlobHost');
   assertString(manifest.sourceCsv, 'sourceCsv');
+  if ('manualEdit' in manifest && manifest.manualEdit !== undefined) {
+    assert(
+      manifest.manualEdit && typeof manifest.manualEdit === 'object' && !Array.isArray(manifest.manualEdit),
+      'manualEdit must be an object when provided',
+    );
+    assertString(manifest.manualEdit.editorName, 'manualEdit.editorName');
+    assertString(manifest.manualEdit.editedAt, 'manualEdit.editedAt');
+    if ('source' in manifest.manualEdit) {
+      assertNullableString(manifest.manualEdit.source, 'manualEdit.source');
+    }
+  }
   assert(Array.isArray(manifest.categories), 'categories must be an array');
   assert(Array.isArray(manifest.layers), 'layers must be an array');
 
