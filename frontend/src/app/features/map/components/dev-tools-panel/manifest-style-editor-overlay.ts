@@ -1173,6 +1173,7 @@ export class ManifestStyleEditorOverlayComponent {
         manifest?: RuntimeLayerManifest;
         editorName?: string;
         sourceManifestUrl?: string;
+        savedAt?: string;
       };
       if (parsed.manifest) {
         const loadedManifest = this.loadedManifest();
@@ -1215,12 +1216,27 @@ export class ManifestStyleEditorOverlayComponent {
 
         const draftGeneratedAt = parsed.manifest.generatedAt ?? null;
         const loadedGeneratedAt = loadedManifest?.generatedAt ?? null;
+        const draftEditFingerprint = this.manifestEditFingerprint(parsed.manifest);
+        const loadedEditFingerprint = loadedManifest
+          ? this.manifestEditFingerprint(loadedManifest)
+          : null;
+        const draftSavedAtMs = parsed.savedAt ? Date.parse(parsed.savedAt) : Number.NaN;
+        const loadedEditedAtMs = loadedManifest?.manualEdit?.editedAt
+          ? Date.parse(loadedManifest.manualEdit.editedAt)
+          : Number.NaN;
+        const draftPredatesLoadedEdit =
+          Number.isFinite(draftSavedAtMs) &&
+          Number.isFinite(loadedEditedAtMs) &&
+          draftSavedAtMs < loadedEditedAtMs;
         const isStaleAgainstLoaded =
           !!loadedManifest &&
           sourceMatchesCurrent &&
-          !!draftGeneratedAt &&
-          !!loadedGeneratedAt &&
-          draftGeneratedAt !== loadedGeneratedAt;
+          ((!!draftGeneratedAt && !!loadedGeneratedAt && draftGeneratedAt !== loadedGeneratedAt) ||
+            (!!draftEditFingerprint &&
+              !!loadedEditFingerprint &&
+              draftEditFingerprint !== loadedEditFingerprint) ||
+            (!draftEditFingerprint && !!loadedEditFingerprint) ||
+            draftPredatesLoadedEdit);
 
         if (isStaleAgainstLoaded) {
           localStorage.removeItem(this.localStorageKey);
@@ -1263,6 +1279,14 @@ export class ManifestStyleEditorOverlayComponent {
         );
       }
     }
+  }
+
+  private manifestEditFingerprint(manifest: RuntimeLayerManifest): string | null {
+    const manualEdit = manifest.manualEdit;
+    if (!manualEdit?.editedAt) {
+      return null;
+    }
+    return [manualEdit.editedAt, manualEdit.editorName, manualEdit.source ?? ''].join('|');
   }
 
   private assertManifestSolutions(manifest: RuntimeLayerManifest): void {
