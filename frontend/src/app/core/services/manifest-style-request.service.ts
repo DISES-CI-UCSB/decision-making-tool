@@ -3,7 +3,7 @@ import {
   MANIFEST_STYLE_REQUESTS_COLLECTION,
   type ManifestStyleRequestDraft,
 } from '@core/models/manifest-style-request.model';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { FirebaseClientService } from './firebase-client.service';
 
 @Injectable({ providedIn: 'root' })
@@ -18,8 +18,8 @@ export class ManifestStyleRequestService {
 
     const docRef = await addDoc(collection(firestore, MANIFEST_STYLE_REQUESTS_COLLECTION), {
       ...draft,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
 
     return docRef.id;

@@ -342,21 +342,28 @@ export class AuthRequestService {
       return;
     }
 
-    await addDoc(collection(firestore, 'mail'), {
-      to: [recipient],
-      message: {
-        subject: `Decision Making Tool access request: ${request.fullName}`,
-        text: [
-          `${request.fullName} (${request.email}) requested access to the Decision Making Tool.`,
-          request.organization ? `Organization: ${request.organization}` : null,
-          request.reason ? `Reason: ${request.reason}` : null,
-          `Request document: accessRequests/${request.requestId}`,
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      },
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(collection(firestore, 'mail'), {
+        to: [recipient],
+        message: {
+          subject: `Decision Making Tool access request: ${request.fullName}`,
+          text: [
+            `${request.fullName} (${request.email}) requested access to the Decision Making Tool.`,
+            request.organization ? `Organization: ${request.organization}` : null,
+            request.reason ? `Reason: ${request.reason}` : null,
+            `Request document: accessRequests/${request.requestId}`,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        },
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.warn(
+        'Access request was saved, but the admin notification could not be created.',
+        error,
+      );
+    }
   }
 
   private parseApprovedUser(uid: string, data: DocumentData): ApprovedUserRecord | null {

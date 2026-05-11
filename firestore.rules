@@ -1,0 +1,242 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function currentUserData() {
+      return userDoc(request.auth.uid).data;
+    }
+
+    function isActiveUserData(userData) {
+      return userData.status == 'active';
+    }
+
+    function isActiveAdmin() {
+      return signedIn()
+        && isActiveUserData(currentUserData())
+        && (currentUserData().isAdmin == true || currentUserData().role == 'admin');
+    }
+
+    function hasManifestStyleAccess() {
+      return signedIn()
+        && isActiveUserData(currentUserData())
+        && (
+          (currentUserData().tier is int && currentUserData().tier >= 3)
+          || currentUserData().role == 'science_publisher'
+          || currentUserData().role == 'admin'
+          || currentUserData().isAdmin == true
+        );
+    }
+
+    function isStringOrNull(value) {
+      return value == null || value is string;
+    }
+
+    function isOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    function isOptionalString(data, field) {
+      return !(field in data) || isStringOrNull(data[field]);
+    }
+
+    function accessRequestFields() {
+      return [
+        'uid',
+        'email',
+        'displayName',
+        'avatarInitials',
+        'provider',
+        'status',
+        'organization',
+        'reason',
+        'submittedAt',
+        'requestedAt',
+        'updatedAt'
+      ];
+    }
+
+    function validPendingAccessRequest(uid) {
+      return request.resource.data.keys().hasOnly(accessRequestFields())
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string
+        && isOptionalString(request.resource.data, 'avatarInitials')
+        && request.resource.data.provider == 'google'
+        && request.resource.data.status == 'pending'
+        && isOptionalString(request.resource.data, 'organization')
+        && isOptionalString(request.resource.data, 'reason')
+        && request.resource.data.submittedAt is int
+        && request.resource.data.requestedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validOwnAccessRequestUpdate(uid) {
+      return resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(accessRequestFields())
+        && validPendingAccessRequest(uid);
+    }
+
+    function validAdminAccessRequestUpdate() {
+      return request.resource.data.keys().hasOnly([
+          'uid',
+          'email',
+          'displayName',
+          'avatarInitials',
+          'provider',
+          'status',
+          'organization',
+          'reason',
+          'submittedAt',
+          'requestedAt',
+          'updatedAt',
+          'approvedAt',
+          'approvedBy',
+          'deniedAt',
+          'deniedBy'
+        ])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'approvedAt',
+          'approvedBy',
+          'deniedAt',
+          'deniedBy',
+          'updatedAt'
+        ])
+        && request.resource.data.status in ['pending', 'approved', 'denied']
+        && (
+          request.resource.data.status != 'approved'
+          || (
+            request.resource.data.approvedBy == request.auth.uid
+            && request.resource.data.approvedAt == request.time
+          )
+        )
+        && (
+          request.resource.data.status != 'denied'
+          || (
+            request.resource.data.deniedBy == request.auth.uid
+            && request.resource.data.deniedAt == request.time
+          )
+        )
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function userRecordFields() {
+      return [
+        'uid',
+        'email',
+        'displayName',
+        'status',
+        'role',
+        'tier',
+        'isAdmin',
+        'createdAt',
+        'updatedAt',
+        'updatedBy'
+      ];
+    }
+
+    function validUserRecord(uid) {
+      return request.resource.data.keys().hasOnly(userRecordFields())
+        && isOptionalString(request.resource.data, 'uid')
+        && (!('uid' in request.resource.data) || request.resource.data.uid == uid)
+        && isOptionalString(request.resource.data, 'email')
+        && isOptionalString(request.resource.data, 'displayName')
+        && request.resource.data.status in ['active', 'denied']
+        && request.resource.data.role in ['authorized_viewer', 'science_publisher', 'admin']
+        && request.resource.data.tier in [1, 2, 3]
+        && request.resource.data.isAdmin is bool
+        && isOptionalTimestamp(request.resource.data, 'createdAt')
+        && request.resource.data.updatedAt == request.time
+        && isOptionalString(request.resource.data, 'updatedBy');
+    }
+
+    function manifestStyleRequestFields() {
+      return [
+        'editorName',
+        'sourceManifestUrl',
+        'baseManifestVersion',
+        'baseManifestGeneratedAt',
+        'diffSummary',
+        'styleChanges',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ];
+    }
+
+    function validManifestStyleRequestCreate() {
+      return request.resource.data.keys().hasOnly(manifestStyleRequestFields())
+        && request.resource.data.editorName is string
+        && request.resource.data.sourceManifestUrl is string
+        && isStringOrNull(request.resource.data.baseManifestVersion)
+        && isStringOrNull(request.resource.data.baseManifestGeneratedAt)
+        && request.resource.data.diffSummary is map
+        && request.resource.data.styleChanges is map
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validManifestStyleRequestAdminUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'reviewedAt',
+          'reviewedBy',
+          'publishedAt',
+          'publishedBy',
+          'rejectedAt',
+          'rejectedBy',
+          'appliedAt',
+          'publishedManifestUrl',
+          'appliedManifestVersion',
+          'appliedManifestGeneratedAt',
+          'updatedAt'
+        ])
+        && request.resource.data.status in ['pending', 'published', 'rejected']
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /accessRequests/{uid} {
+      allow get: if isSelf(uid) || isActiveAdmin();
+      allow list: if isActiveAdmin();
+      allow create: if isSelf(uid) && validPendingAccessRequest(uid);
+      allow update: if (isSelf(uid) && validOwnAccessRequestUpdate(uid))
+        || (isActiveAdmin() && validAdminAccessRequestUpdate());
+      allow delete: if false;
+    }
+
+    match /users/{uid} {
+      allow get: if isSelf(uid) || isActiveAdmin();
+      allow list: if isActiveAdmin();
+      allow create, update: if isActiveAdmin() && validUserRecord(uid);
+      allow delete: if false;
+    }
+
+    match /manifestStyleRequests/{requestId} {
+      allow create: if hasManifestStyleAccess() && validManifestStyleRequestCreate();
+      allow get, list: if isActiveAdmin();
+      allow update: if isActiveAdmin() && validManifestStyleRequestAdminUpdate();
+      allow delete: if false;
+    }
+
+    match /mail/{mailId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
