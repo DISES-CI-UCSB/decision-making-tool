@@ -5,7 +5,7 @@
     "ng": "ng",
     "start": "npm run sync:solutions && npm run sync:boundaries && ng serve",
     "build": "ng build",
-    "build:vercel": "npm run sync:solutions && npm run sync:boundaries && npm run validate:deploy-assets && ng build",
+    "build:vercel": "node ./scripts/config/write-production-environment.mjs && npm run sync:solutions && npm run sync:boundaries && npm run validate:deploy-assets && ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
