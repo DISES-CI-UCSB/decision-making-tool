@@ -8,6 +8,11 @@ import { environment } from '../../../environments/environment';
 
 type ApprovedUserRole = 'authorized_viewer' | 'science_publisher' | 'admin';
 
+interface UserAccess {
+  tier: UserTier;
+  isAdmin: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -32,6 +37,7 @@ export class AuthService implements OnDestroy {
     this.explicitlyLoggedOut = true;
     await this.firebase.signOut();
     this.appState.userTier$.set(UserTier.Public);
+    this.appState.userIsAdmin$.set(false);
   }
 
   getCurrentTier(): UserTier {
@@ -52,25 +58,51 @@ export class AuthService implements OnDestroy {
     if (!user) {
       const fallbackTier = this.getFallbackTier();
       this.appState.userTier$.set(fallbackTier);
+      this.appState.userIsAdmin$.set(false);
       return fallbackTier;
     }
 
     this.explicitlyLoggedOut = false;
-    const tier = await this.getTierForFirebaseUser(user.uid);
-    this.appState.userTier$.set(tier);
-    return tier;
+    const access = await this.getAccessForFirebaseUser(user.uid);
+    this.appState.userTier$.set(access.tier);
+    this.appState.userIsAdmin$.set(access.isAdmin);
+    return access.tier;
   }
 
-  private async getTierForFirebaseUser(uid: string): Promise<UserTier> {
+  private async getAccessForFirebaseUser(uid: string): Promise<UserAccess> {
     const userData = await this.firebase.getUserDocument(uid);
-    const role = userData ? this.readApprovedRole(userData) : null;
-    return role ? this.roleToTier(role) : UserTier.Public;
+    if (!userData) {
+      return { tier: UserTier.Public, isAdmin: false };
+    }
+
+    return {
+      tier: this.readUserTier(userData),
+      isAdmin: this.readIsAdmin(userData),
+    };
   }
 
   private getFallbackTier(): UserTier {
     return environment.bypassLoginForDevelopment && !this.explicitlyLoggedOut
       ? UserTier.DecisionMaker
       : UserTier.Public;
+  }
+
+  private readUserTier(data: DocumentData): UserTier {
+    if (data['status'] !== 'active') {
+      return UserTier.Public;
+    }
+
+    const tier = data['tier'];
+    if (tier === UserTier.Public || tier === UserTier.DecisionMaker || tier === UserTier.Manager) {
+      return tier;
+    }
+
+    const legacyRole = this.readApprovedRole(data);
+    return legacyRole ? this.roleToTier(legacyRole) : UserTier.Public;
+  }
+
+  private readIsAdmin(data: DocumentData): boolean {
+    return data['status'] === 'active' && (data['role'] === 'admin' || data['isAdmin'] === true);
   }
 
   private readApprovedRole(data: DocumentData): ApprovedUserRole | null {
@@ -85,7 +117,7 @@ export class AuthService implements OnDestroy {
   }
 
   private roleToTier(role: ApprovedUserRole): UserTier {
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'science_publisher') {
       return UserTier.Manager;
     }
     return UserTier.DecisionMaker;

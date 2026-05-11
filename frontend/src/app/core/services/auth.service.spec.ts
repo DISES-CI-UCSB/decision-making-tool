@@ -53,9 +53,10 @@ describe('AuthService', () => {
     expect(authService.isAuthenticated()).toBe(false);
     expect(authService.getCurrentTier()).toBe(UserTier.Public);
     expect(appState.userTier$()).toBe(UserTier.Public);
+    expect(appState.userIsAdmin$()).toBe(false);
   });
 
-  it('derives manager tier from an active admin Firestore user', async () => {
+  it('derives admin flag and manager tier from a legacy active admin role', async () => {
     firebase.auth.currentUser = { uid: 'admin-uid' };
     firebase.userDocs.set('admin-uid', {
       status: 'active',
@@ -70,10 +71,26 @@ describe('AuthService', () => {
     expect(authService.isAuthenticated()).toBe(true);
     expect(authService.getCurrentTier()).toBe(UserTier.Manager);
     expect(appState.userTier$()).toBe(UserTier.Manager);
+    expect(appState.userIsAdmin$()).toBe(true);
     expect(localStorage.getItem('dmt.auth.session')).toBeNull();
   });
 
-  it('derives decision-maker tier from an active viewer Firestore user', async () => {
+  it('derives tier from an active Firestore tier field', async () => {
+    firebase.auth.currentUser = { uid: 'scientist-uid' };
+    firebase.userDocs.set('scientist-uid', {
+      status: 'active',
+      role: 'science_publisher',
+      tier: UserTier.Manager,
+    });
+    const authService = TestBed.inject(AuthService);
+    const appState = TestBed.inject(AppStateService);
+
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Manager);
+    expect(authService.isAuthenticated()).toBe(true);
+    expect(appState.userIsAdmin$()).toBe(false);
+  });
+
+  it('falls back to role-derived tier for active users without a tier field', async () => {
     firebase.auth.currentUser = { uid: 'viewer-uid' };
     firebase.userDocs.set('viewer-uid', {
       status: 'active',
@@ -114,5 +131,6 @@ describe('AuthService', () => {
     expect(authService.isAuthenticated()).toBe(false);
     expect(authService.getCurrentTier()).toBe(UserTier.Public);
     expect(appState.userTier$()).toBe(UserTier.Public);
+    expect(appState.userIsAdmin$()).toBe(false);
   });
 });

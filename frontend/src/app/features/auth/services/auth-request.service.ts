@@ -239,7 +239,7 @@ export class AuthRequestService {
   }
 
   roleToTier(role: ApprovedUserRole | undefined): UserTier {
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'science_publisher') {
       return UserTier.Manager;
     }
     return UserTier.DecisionMaker;
