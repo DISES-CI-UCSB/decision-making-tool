@@ -2678,7 +2678,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         countLabel: '3 layers',
         collapsed: false,
         rows: [
-          this.boundaryRow('sirap', 'SIRAP Regions', false, false),
+          this.boundaryRow('sirap', 'SIRAP Regions', true, true),
           this.boundaryRow('department', 'Departments', true, true),
           this.boundaryRow('municipality', 'Municipalities', false, false),
         ],

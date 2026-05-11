@@ -93,7 +93,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
     url: '/data/sirap-regions.geojson',
     idFields: ['sirap'],
     nameFields: ['sirap'],
-    visible: false,
+    visible: true,
     opacity: 0.95,
     minScale: 0,
     maxScale: 0,
@@ -124,7 +124,7 @@ export class AdminBoundaryService {
   private lastSelectionCandidate: HitTestCandidate | null = null;
   private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
-    sirap: false,
+    sirap: true,
     department: true,
     municipality: false,
   };

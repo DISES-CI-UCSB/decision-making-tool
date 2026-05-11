@@ -17,7 +17,7 @@ export const environment = {
   manifestBlobUrl: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json',
   ENABLE_MANIFEST_EDITOR: true,
   bypassLoginForDevelopment: false,
-  allowSirapWithoutAuth: false,
+  allowSirapWithoutAuth: true,
 } as const;
 
 export type AppEnvironment = typeof environment;
