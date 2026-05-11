@@ -4,6 +4,7 @@ import { UserTier } from '@core/models';
 import { environment } from '../../../environments/environment';
 
 const AUTH_STORAGE_KEY = 'dmt.auth.session';
+const AUTH_EXPLICIT_LOGOUT_STORAGE_KEY = 'dmt.auth.explicitLogout';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type AuthProvider = 'local' | 'google';
@@ -39,12 +40,14 @@ export class AuthService {
       expiresAt: Date.now() + SEVEN_DAYS_MS,
     };
 
+    localStorage.removeItem(AUTH_EXPLICIT_LOGOUT_STORAGE_KEY);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
     this.appState.userTier$.set(nextSession.tier);
   }
 
   logout(): void {
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.setItem(AUTH_EXPLICIT_LOGOUT_STORAGE_KEY, 'true');
     this.appState.userTier$.set(this.getLoggedOutTier());
   }
 
@@ -54,7 +57,7 @@ export class AuthService {
       return session.tier;
     }
 
-    if (environment.bypassLoginForDevelopment) {
+    if (environment.bypassLoginForDevelopment && !this.hasExplicitlyLoggedOut()) {
       return UserTier.DecisionMaker;
     }
 
@@ -63,16 +66,17 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    if (environment.bypassLoginForDevelopment) {
+    const session = this.readValidSession();
+    if (session) {
       return true;
     }
 
-    const session = this.readValidSession();
-    if (!session) {
-      this.logout();
-      return false;
+    if (environment.bypassLoginForDevelopment && !this.hasExplicitlyLoggedOut()) {
+      return true;
     }
-    return true;
+
+    this.logout();
+    return false;
   }
 
   private syncTierFromStoredSession(): void {
@@ -81,7 +85,11 @@ export class AuthService {
   }
 
   private getLoggedOutTier(): UserTier {
-    return environment.bypassLoginForDevelopment ? UserTier.DecisionMaker : UserTier.Public;
+    return UserTier.Public;
+  }
+
+  private hasExplicitlyLoggedOut(): boolean {
+    return localStorage.getItem(AUTH_EXPLICIT_LOGOUT_STORAGE_KEY) === 'true';
   }
 
   private readValidSession(): StoredAuthSession | null {

@@ -5,10 +5,12 @@ import { AppStateService } from './app-state.service';
 import { AuthService } from './auth.service';
 
 const AUTH_STORAGE_KEY = 'dmt.auth.session';
+const AUTH_EXPLICIT_LOGOUT_STORAGE_KEY = 'dmt.auth.explicitLogout';
 
 describe('AuthService', () => {
   beforeEach(() => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(AUTH_EXPLICIT_LOGOUT_STORAGE_KEY);
     TestBed.configureTestingModule({});
   });
 
@@ -41,13 +43,9 @@ describe('AuthService', () => {
 
     authService.logout();
 
-    expect(authService.isAuthenticated()).toBe(environment.bypassLoginForDevelopment);
-    expect(authService.getCurrentTier()).toBe(
-      environment.bypassLoginForDevelopment ? UserTier.DecisionMaker : UserTier.Public,
-    );
-    expect(appState.userTier$()).toBe(
-      environment.bypassLoginForDevelopment ? UserTier.DecisionMaker : UserTier.Public,
-    );
+    expect(authService.isAuthenticated()).toBe(false);
+    expect(authService.getCurrentTier()).toBe(UserTier.Public);
+    expect(appState.userTier$()).toBe(UserTier.Public);
   });
 
   it('expires stale sessions and falls back to public tier', () => {
