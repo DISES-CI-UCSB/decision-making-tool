@@ -1199,7 +1199,9 @@
                   (click)="saveStyleRequest()"
                 >
                   {{
-                    usesLocalStyleRequestWorkflow ? 'Legacy local export' : 'Save review request'
+                    usesLocalStyleRequestWorkflow
+                      ? 'Legacy local export'
+                      : 'Save and publish request'
                   }}
                 </button>
               }
@@ -1234,8 +1236,11 @@
                     fallback. Copy the command below from frontend only when you intentionally need
                     the legacy local publish flow.
                   } @else {
-                    Save review request writes style-only changes to Firestore for admin review.
-                    Nothing is published for everyone until the trusted publish step runs later.
+                    Save and publish request writes style-only changes to Firestore, then asks the
+                    trusted Vercel API route to verify access, apply the saved diff, archive the old
+                    manifest, and publish the update. If you are running Angular with ng serve, this
+                    local server will not host the Vercel API route; use the fallback command below
+                    to apply the saved request locally.
                   }
                 </p>
 
@@ -1250,7 +1255,7 @@
                 }
 
                 <p id="manifest-style-editor-publish-command-label" class="mt-2 font-semibold">
-                  Legacy publish command
+                  Legacy fallback publish command
                 </p>
                 <pre
                   id="manifest-style-editor-publish-command-codeblock"

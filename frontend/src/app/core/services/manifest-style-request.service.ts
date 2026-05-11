@@ -7,6 +7,16 @@ import {
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { FirebaseClientService } from './firebase-client.service';
 
+export interface ManifestStyleRequestPublishResult {
+  requestId: string;
+  targetPath?: string;
+  archivePath?: string;
+  archiveUrl?: string;
+  manifestUrl?: string;
+  publishedAt?: string;
+  message?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ManifestStyleRequestService {
   private readonly firebase = inject(FirebaseClientService);
@@ -26,6 +36,37 @@ export class ManifestStyleRequestService {
     });
 
     return docRef.id;
+  }
+
+  async publishSavedStyleRequest(requestId: string): Promise<ManifestStyleRequestPublishResult> {
+    const user = this.firebase.currentUser;
+    if (!user) {
+      throw new Error('Sign in before publishing a manifest style request.');
+    }
+
+    const idToken = await user.getIdToken();
+    const response = await fetch('/api/dev/manifest-style-publish', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ requestId }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | ManifestStyleRequestPublishResult
+      | { message?: string }
+      | null;
+
+    if (!response.ok) {
+      throw new Error(payload?.message ?? `Publish failed with HTTP ${response.status}`);
+    }
+
+    return {
+      requestId,
+      ...(payload ?? {}),
+    };
   }
 
   private getCurrentAuthor(): ManifestStyleRequestAuthor {

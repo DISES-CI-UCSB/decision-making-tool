@@ -129,7 +129,6 @@ export class ManifestStyleEditorOverlayComponent {
   protected readonly expandedCategoryIds = signal<Set<string>>(new Set());
   protected readonly searchQuery = signal('');
   protected readonly editorName = signal('');
-  protected readonly confirmPublishOpen = signal(false);
   protected readonly publishState = signal<'idle' | 'loading' | 'success' | 'error'>('idle');
   protected readonly publishMessage = signal<string | null>(null);
   protected readonly publishTargetPath = signal('');
@@ -407,7 +406,6 @@ export class ManifestStyleEditorOverlayComponent {
 
   protected closeEditor(): void {
     this.isOpen.set(false);
-    this.confirmPublishOpen.set(false);
   }
 
   protected selectCategory(categoryId: string): void {
@@ -654,9 +652,12 @@ export class ManifestStyleEditorOverlayComponent {
       return;
     }
 
+    let requestId: string | null = null;
     try {
+      this.publishState.set('loading');
+      this.publishMessage.set('Saving style request to Firestore...');
       this.saveDraftToLocalStorage(draftManifest, editorName);
-      const requestId = await this.styleRequestService.saveStyleRequest({
+      requestId = await this.styleRequestService.saveStyleRequest({
         editorName,
         status: 'pending',
         sourceManifestUrl: this.resolvedManifestUrl(),
@@ -665,10 +666,29 @@ export class ManifestStyleEditorOverlayComponent {
         diffSummary: this.diffSummary() as ManifestStyleRequestDiffSummary,
         styleChanges: this.buildStyleChanges(loadedManifest, draftManifest),
       });
+      this.publishState.set('loading');
+      this.publishMessage.set(
+        `Saved style request ${requestId}. Applying through trusted API route...`,
+      );
+      const publishResult = await this.styleRequestService.publishSavedStyleRequest(requestId);
+      this.completePublishSuccess(draftManifest, publishResult);
       this.localDraftMessage.set(
-        `Saved style request ${requestId} for admin review. Nothing has been published yet.`,
+        `Saved style request ${requestId} and published the updated manifest.`,
       );
     } catch (error) {
+      if (requestId) {
+        this.publishState.set('error');
+        const errorMessage = this.describeSavedRequestPublishError(error);
+        this.publishMessage.set(
+          errorMessage || 'Automatic publish failed after the style request was saved.',
+        );
+        this.localDraftMessage.set(
+          `Saved style request ${requestId}, but automatic publish failed. ${errorMessage}`,
+        );
+        return;
+      }
+
+      this.publishState.set('error');
       this.localDraftMessage.set(
         (error instanceof Error && error.message) ||
           'Style request save failed. Check Firebase configuration and Firestore permissions.',
@@ -709,64 +729,6 @@ export class ManifestStyleEditorOverlayComponent {
     this.localDraftMessage.set(
       `Downloaded legacy styled JSON ${filename}. Prefer Save review request for normal review.`,
     );
-  }
-
-  protected requestPublish(): void {
-    this.confirmPublishOpen.set(true);
-  }
-
-  protected cancelPublish(): void {
-    this.confirmPublishOpen.set(false);
-  }
-
-  protected async confirmPublish(): Promise<void> {
-    const draftManifest = this.draftManifest();
-    const editorName = this.editorName().trim();
-    if (!draftManifest || this.hasInvalidFields() || !editorName) {
-      return;
-    }
-
-    this.publishState.set('loading');
-    this.publishMessage.set('Publishing manifest to Vercel Blob...');
-    this.confirmPublishOpen.set(false);
-
-    try {
-      const response = await fetch('/api/dev/manifest-style-publish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          manifest: draftManifest,
-          editorName,
-          sourceManifestUrl: this.resolvedManifestUrl(),
-          diffSummary: this.diffSummary(),
-        }),
-      });
-
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-        targetPath?: string;
-        archivePath?: string;
-        manifestUrl?: string;
-      } | null;
-
-      if (!response.ok) {
-        if (response.status === 404 && this.isLocalDevPublishRouteMissing()) {
-          this.completePublishSuccess(draftManifest, null, true);
-          return;
-        }
-        throw new Error(payload?.message ?? `Publish failed with HTTP ${response.status}`);
-      }
-
-      this.completePublishSuccess(draftManifest, payload, false);
-    } catch (error) {
-      this.publishState.set('error');
-      this.publishMessage.set(
-        (error instanceof Error && error.message) ||
-          'Publish failed. Check server environment flags and blob token configuration.',
-      );
-    }
   }
 
   protected hasLayerValidationErrors(layerId: string): boolean {
@@ -878,24 +840,29 @@ export class ManifestStyleEditorOverlayComponent {
   private completePublishSuccess(
     draftManifest: RuntimeLayerManifest,
     payload: { targetPath?: string; archivePath?: string; manifestUrl?: string } | null,
-    isLocalMock: boolean,
   ): void {
     this.publishTargetPath.set(payload?.targetPath ?? 'manifest/manifest.json');
     this.publishArchivePath.set(payload?.archivePath ?? '');
     this.publishedManifestUrl.set(payload?.manifestUrl ?? '');
     this.publishState.set('success');
-    this.publishMessage.set(
-      isLocalMock
-        ? 'Direct publish simulated locally (ng serve does not host /api/dev routes).'
-        : 'Published and archived the previous manifest.',
-    );
+    this.publishMessage.set('Published and archived the previous manifest.');
     this.loadedManifest.set(structuredClone(draftManifest));
   }
 
-  private isLocalDevPublishRouteMissing(): boolean {
+  private describeSavedRequestPublishError(error: unknown): string {
+    if (this.isLocalDevApiRouteMissing(error)) {
+      return 'Angular ng serve does not host Vercel API routes, so /api/dev/manifest-style-publish returns 404 on localhost. To apply this saved request locally, run the legacy fallback command from frontend; otherwise test the automatic route in Vercel.';
+    }
+
     return (
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      (error instanceof Error && error.message) ||
+      'Use the legacy fallback only if the trusted API route cannot be fixed quickly.'
+    );
+  }
+
+  private isLocalDevApiRouteMissing(error: unknown): boolean {
+    return (
+      error instanceof Error && error.message.includes('HTTP 404') && this.isRunningOnLocalhost()
     );
   }
 
