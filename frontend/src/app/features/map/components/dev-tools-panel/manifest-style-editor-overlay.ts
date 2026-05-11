@@ -357,10 +357,10 @@ export class ManifestStyleEditorOverlayComponent {
       return 'Publishing in progress...';
     }
     if (!this.hasUnsavedChanges()) {
-      return 'Make a style change to enable Save style request.';
+      return 'Make a style change to enable Save review request.';
     }
     if (!this.editorName().trim()) {
-      return 'Enter editorName to enable Save style request.';
+      return 'Enter editorName to enable Save review request.';
     }
     if (this.hasInvalidFields()) {
       return 'Fix validation errors before publishing.';
@@ -649,7 +649,7 @@ export class ManifestStyleEditorOverlayComponent {
       );
       this.lastDownloadedStyledManifestFilename.set(filename);
       this.localDraftMessage.set(
-        `Login bypass is enabled, so Firestore was skipped. Downloaded ${filename}; run the command below from frontend.`,
+        `Login bypass is enabled, so Firestore was skipped. Exported legacy local JSON ${filename}.`,
       );
       return;
     }
@@ -666,7 +666,7 @@ export class ManifestStyleEditorOverlayComponent {
         styleChanges: this.buildStyleChanges(loadedManifest, draftManifest),
       });
       this.localDraftMessage.set(
-        `Saved Firestore style request ${requestId}. Run npm run publish:styled-manifest from frontend to apply it to the latest blob manifest.`,
+        `Saved style request ${requestId} for admin review. Nothing has been published yet.`,
       );
     } catch (error) {
       this.localDraftMessage.set(
@@ -706,7 +706,9 @@ export class ManifestStyleEditorOverlayComponent {
           }
         : manifest,
     );
-    this.localDraftMessage.set(`Downloaded ${filename}. Send it to an admin to publish.`);
+    this.localDraftMessage.set(
+      `Downloaded legacy styled JSON ${filename}. Prefer Save review request for normal review.`,
+    );
   }
 
   protected requestPublish(): void {

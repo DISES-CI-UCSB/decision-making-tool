@@ -1188,7 +1188,7 @@
                 class="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
                 (click)="resetAllLayers()"
               >
-                Reset all to loaded
+                Reset draft to loaded manifest
               </button>
               @if (isLocalDevHost()) {
                 <button
@@ -1199,9 +1199,7 @@
                   (click)="saveStyleRequest()"
                 >
                   {{
-                    usesLocalStyleRequestWorkflow
-                      ? 'Download style request (dev only)'
-                      : 'Save style request (dev only)'
+                    usesLocalStyleRequestWorkflow ? 'Legacy local export' : 'Save review request'
                   }}
                 </button>
               }
@@ -1211,7 +1209,7 @@
                 class="rounded-md border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100"
                 (click)="downloadStyledManifest()"
               >
-                Download styled JSON
+                Legacy: download styled JSON
               </button>
             </div>
 
@@ -1230,13 +1228,14 @@
                 class="mt-2 rounded-md border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600"
               >
                 <p id="manifest-style-editor-dev-workflow-copy">
-                  Dev workflow:
+                  Review workflow:
                   @if (usesLocalStyleRequestWorkflow) {
-                    Save style request downloads a styled JSON file because login bypass is enabled.
-                    Copy the command below from frontend to publish the style changes.
+                    Login bypass is enabled, so the review request is exported as a local JSON
+                    fallback. Copy the command below from frontend only when you intentionally need
+                    the legacy local publish flow.
                   } @else {
-                    Save style request writes style-only changes to Firestore. Copy the command
-                    below from frontend to apply the latest pending request.
+                    Save review request writes style-only changes to Firestore for admin review.
+                    Nothing is published for everyone until the trusted publish step runs later.
                   }
                 </p>
 
@@ -1251,7 +1250,7 @@
                 }
 
                 <p id="manifest-style-editor-publish-command-label" class="mt-2 font-semibold">
-                  Publish command
+                  Legacy publish command
                 </p>
                 <pre
                   id="manifest-style-editor-publish-command-codeblock"
