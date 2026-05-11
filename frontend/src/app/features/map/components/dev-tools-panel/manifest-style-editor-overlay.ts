@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import type {
   ManifestStyleRequestChanges,
   ManifestStyleRequestDiffSummary,
@@ -395,6 +395,12 @@ export class ManifestStyleEditorOverlayComponent {
     const sourceLabel = manualEdit.source ? ` (${manualEdit.source})` : '';
     return `${manualEdit.editorName} at ${editedAtLabel}${sourceLabel}`;
   });
+
+  constructor() {
+    effect(() => {
+      this.layerManifestService.setStylePreviewManifest(this.draftManifest());
+    });
+  }
 
   protected async openEditor(): Promise<void> {
     this.isOpen.set(true);

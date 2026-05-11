@@ -40,6 +40,20 @@ interface HitTestCandidate {
 
 export type SirapSelectionScope = 'part' | 'whole';
 
+interface BoundaryStyle {
+  color: [number, number, number, number];
+  width: number;
+  style: 'solid' | 'long-dash';
+}
+
+const DEFAULT_ADMIN_BOUNDARY_HEX = '#111827';
+const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [17, 24, 39, 235];
+const DEFAULT_BOUNDARY_STYLE_BY_TYPE: Record<AoiType, BoundaryStyle> = {
+  sirap: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 2, style: 'long-dash' },
+  department: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
+  municipality: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
+};
+
 const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-departments-colombia',
@@ -57,7 +71,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
         type: 'simple-fill',
         color: [0, 0, 0, 0],
         outline: {
-          color: [17, 24, 39, 235],
+          color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
           width: 1,
         },
       },
@@ -79,7 +93,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
         type: 'simple-fill',
         color: [0, 0, 0, 0],
         outline: {
-          color: [17, 24, 39, 235],
+          color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
           width: 1,
         },
       },
@@ -104,8 +118,8 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
         type: 'simple-fill',
         color: [0, 0, 0, 0],
         outline: {
-          color: [17, 24, 39, 235],
-          width: 1,
+          color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
+          width: 2,
           style: 'long-dash',
         },
       },
@@ -131,6 +145,9 @@ export class AdminBoundaryService {
   readonly layerVisibilityByType$ = signal<Record<AoiType, boolean>>(this.defaultVisibilityByType);
   readonly popupEnabled$ = signal(false);
   readonly sirapSelectionScope$ = signal<SirapSelectionScope>('part');
+  private readonly boundaryStyleByType = signal<Record<AoiType, BoundaryStyle>>(
+    DEFAULT_BOUNDARY_STYLE_BY_TYPE,
+  );
   private readonly unavailableBoundaryTypes = new Set<AoiType>();
 
   constructor() {
@@ -211,12 +228,25 @@ export class AdminBoundaryService {
     this.applyVisibilityToMapLayers(type, visible);
     if (visible) {
       this.bringTypeLayersToFront(type);
+      if (type !== 'sirap' && this.layerVisibilityByType$().sirap) {
+        this.bringTypeLayersToFront('sirap');
+      }
     }
   }
 
   toggleLayerVisibility(type: AoiType): void {
     const current = this.layerVisibilityByType$()[type];
     this.setLayerVisibility(type, !current);
+  }
+
+  setLayerStyle(type: AoiType, options: { color?: string | null }): void {
+    const color = this.hexToRgba(options.color ?? DEFAULT_ADMIN_BOUNDARY_HEX);
+    const nextStyle = {
+      ...this.boundaryStyleByType()[type],
+      color,
+    };
+    this.boundaryStyleByType.update((state) => ({ ...state, [type]: nextStyle }));
+    this.applyStyleToMapLayers(type);
   }
 
   setPopupEnabled(enabled: boolean): void {
@@ -248,7 +278,7 @@ export class AdminBoundaryService {
       opacity: config.opacity ?? 1,
       minScale: config.minScale ?? 0,
       maxScale: config.maxScale ?? 0,
-      renderer: config.renderer as never,
+      renderer: this.getBoundaryRenderer(config.type) as never,
     };
 
     if (config.sourceType === 'geojson') {
@@ -264,7 +294,6 @@ export class AdminBoundaryService {
       url: config.url,
       outFields: ['*'],
       definitionExpression: config.definitionExpression,
-      renderer: this.getBoundaryRenderer(config.type) as never,
     });
   }
 
@@ -475,6 +504,15 @@ export class AdminBoundaryService {
     }
   }
 
+  private applyStyleToMapLayers(type: AoiType): void {
+    for (const layer of this.boundaryLayers) {
+      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
+      if (config?.type === type) {
+        layer.renderer = this.getBoundaryRenderer(type) as never;
+      }
+    }
+  }
+
   private bringTypeLayersToFront(type: AoiType): void {
     if (!this.map) {
       return;
@@ -491,37 +529,28 @@ export class AdminBoundaryService {
   }
 
   private getBoundaryRenderer(type: AoiType): Record<string, unknown> | null {
-    if (type === 'department') {
-      return {
-        type: 'simple',
-        symbol: {
-          type: 'simple-fill',
-          color: [0, 0, 0, 0],
-          outline: {
-            color: [76, 0, 115, 255],
-            width: 1,
-            style: 'solid',
-          },
+    const boundaryStyle = this.boundaryStyleByType()[type];
+    return {
+      type: 'simple',
+      symbol: {
+        type: 'simple-fill',
+        color: [0, 0, 0, 0],
+        outline: {
+          color: [...boundaryStyle.color],
+          width: boundaryStyle.width,
+          style: boundaryStyle.style,
         },
-      };
-    }
+      },
+    };
+  }
 
-    if (type === 'municipality') {
-      return {
-        type: 'simple',
-        symbol: {
-          type: 'simple-fill',
-          color: [0, 0, 0, 0],
-          outline: {
-            color: [71, 85, 105, 220],
-            width: 1,
-            style: 'solid',
-          },
-        },
-      };
+  private hexToRgba(hexColor: string): BoundaryStyle['color'] {
+    const normalized = hexColor.trim().toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(normalized)) {
+      return DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR;
     }
-
-    return null;
+    const value = Number.parseInt(normalized.slice(1), 16);
+    return [(value >> 16) & 255, (value >> 8) & 255, value & 255, 235];
   }
 
   private setSelectionHighlight(selectionGeometry: Geometry | null): void {

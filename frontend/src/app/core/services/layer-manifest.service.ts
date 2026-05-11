@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import {
   buildManifestSidebarLayerGroups,
   groupManifestLayersBySidebarCategory,
@@ -24,6 +24,7 @@ export class LayerManifestService {
   private readonly http = inject(HttpClient);
   private readonly speciesManifestCache = new Map<string, Observable<RuntimeSpeciesManifest>>();
   private readonly prefetchedSpeciesManifestUrls = new Set<string>();
+  readonly stylePreviewManifest$ = signal<RuntimeLayerManifest | null>(null);
   private readonly resolvedManifestUrl = this.resolveManifestUrl();
   private readonly manifest$ = this.loadManifestWithFallback(
     this.buildManifestUrlCandidates(),
@@ -43,6 +44,10 @@ export class LayerManifestService {
 
   getResolvedManifestUrl(): Observable<string> {
     return of(this.resolvedManifestUrl);
+  }
+
+  setStylePreviewManifest(manifest: RuntimeLayerManifest | null): void {
+    this.stylePreviewManifest$.set(manifest ? structuredClone(manifest) : null);
   }
 
   getSpeciesManifest(speciesManifestUrl: string): Observable<RuntimeSpeciesManifest> {

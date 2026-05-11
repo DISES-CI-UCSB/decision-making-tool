@@ -15,6 +15,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
+  buildManifestSidebarLayerGroups,
   type AoiType,
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayerRow,
@@ -219,6 +220,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
+  private loadedSpeciesManifestUrl: string | null = null;
   /** Stable bound reference so we can removeEventListener exactly. */
   private readonly rainforestProximityHandler = (e: PointerEvent): void =>
     this.onSidebarProximityMove(e);
@@ -236,6 +238,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
+  private readonly sourceManifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
   protected readonly manifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
   protected readonly manifestSidebarLoadFailed = signal(false);
   protected readonly speciesCollectionManifestUrl = signal<string>(DEFAULT_SPECIES_MANIFEST_URL);
@@ -385,6 +388,15 @@ export class MapLayersPanelComponent implements OnDestroy {
       untracked(() => this.appState.setSelectedLegendLayers(entries));
     });
 
+    effect(() => {
+      const previewManifest = this.layerManifestService.stylePreviewManifest$();
+      const sourceGroups = this.sourceManifestSidebarLayerGroups();
+      const manifestGroups = previewManifest
+        ? buildManifestSidebarLayerGroups(previewManifest)
+        : sourceGroups;
+      untracked(() => this.applyManifestSidebarGroups(manifestGroups));
+    });
+
     // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
     effect(() => {
       if (this.selectSolutionHoverFx() === 'rainforestReveal') {
@@ -483,13 +495,26 @@ export class MapLayersPanelComponent implements OnDestroy {
         }),
       )
       .subscribe((groups) => {
-        this.manifestSidebarLayerGroups.set(groups);
-        this.syncSpeciesManifestPrefetch(groups);
-        this.loadSpeciesManifestRows(this.speciesCollectionManifestUrl());
-        this.reconcileGroupsWithManifest(groups);
-        this.reconcileOverlaysWithManifest(groups);
-        this.reconcileAdminBoundariesWithManifest(groups);
+        this.sourceManifestSidebarLayerGroups.set(groups);
       });
+  }
+
+  private applyManifestSidebarGroups(groups: ManifestSidebarLayerGroup[]): void {
+    if (groups.length === 0) {
+      return;
+    }
+
+    this.manifestSidebarLayerGroups.set(groups);
+    this.syncSpeciesManifestPrefetch(groups);
+    const speciesManifestUrl = this.speciesCollectionManifestUrl();
+    if (speciesManifestUrl !== this.loadedSpeciesManifestUrl) {
+      this.loadedSpeciesManifestUrl = speciesManifestUrl;
+      this.loadSpeciesManifestRows(speciesManifestUrl);
+    }
+    this.reconcileGroupsWithManifest(groups);
+    this.reconcileOverlaysWithManifest(groups);
+    this.reconcileAdminBoundariesWithManifest(groups);
+    this.syncAllRowsToMap();
   }
 
   private syncSpeciesManifestPrefetch(manifestGroups: ManifestSidebarLayerGroup[]): void {
@@ -630,6 +655,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             return {
               ...existingRow,
               name: manifestRow.name,
+              color: this.colorFromRendering(manifestRow.rendering) ?? existingRow.color,
             };
           })
           .filter((row): row is LayerControlRow => row !== null);
@@ -681,7 +707,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     // Sync swatch color with the manifest's selectedColor so the sidebar swatch
     // matches the raster fill (see ManifestRasterLayerService.rasterToCanvas).
-    const manifestSelectedColor = rendering.selectedColor ?? null;
+    const manifestSelectedColor = this.colorFromRendering(rendering);
     const nextColor =
       typeof manifestSelectedColor === 'string' && manifestSelectedColor.length > 0
         ? manifestSelectedColor
@@ -748,6 +774,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const isLiveRenderable = this.isManifestRowLiveRenderable(manifestRow);
     const rendering = this.normalizeManifestRendering(manifestRow);
     const existingSelected = existingRow?.selected ?? false;
+    const manifestColor = this.colorFromRendering(rendering);
 
     return {
       id: layerId,
@@ -756,7 +783,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
       expanded: existingRow?.expanded ?? false,
       opacity: existingRow?.opacity ?? this.manifestRowOpacity(manifestRow.dataRole),
-      color: existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
+      color: manifestColor ?? existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
       canReorder: true,
       hasStyleControls: true,
       hasColorControl: true,
@@ -834,6 +861,32 @@ export class MapLayersPanelComponent implements OnDestroy {
       return '#475569';
     }
     return palette[index % palette.length];
+  }
+
+  private colorFromRendering(rendering: RuntimeLayerManifestRenderingConfig): string | null {
+    if (rendering.renderMode === 'mask') {
+      return rendering.selectedColor ?? null;
+    }
+    if (rendering.renderMode === 'gradient') {
+      return rendering.endColor ?? rendering.startColor ?? null;
+    }
+    return rendering.classColors?.[0]?.color ?? null;
+  }
+
+  private applyRowColorToRendering(
+    rendering: RuntimeLayerManifestRenderingConfig,
+    color: string,
+  ): RuntimeLayerManifestRenderingConfig {
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+      return rendering;
+    }
+    if (rendering.renderMode === 'mask') {
+      return { ...rendering, selectedColor: color };
+    }
+    if (rendering.renderMode === 'gradient') {
+      return { ...rendering, endColor: color };
+    }
+    return rendering;
   }
 
   private isManifestRowLiveRenderable(manifestRow: ManifestSidebarLayerRow): boolean {
@@ -1780,6 +1833,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     if (mapSync.type === 'admin-boundary') {
+      this.adminBoundaryService.setLayerStyle(mapSync.boundaryType, { color: row.color });
       this.adminBoundaryService.setLayerVisibility(mapSync.boundaryType, row.visible);
       return;
     }
@@ -1792,7 +1846,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           visible: row.visible,
           opacity: row.opacity / 100,
           color: row.color,
-          rendering: mapSync.rendering,
+          rendering: this.applyRowColorToRendering(mapSync.rendering, row.color),
         },
         { selected: row.selected },
       );
@@ -2141,7 +2195,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: row.id,
         name: row.name,
         swatchType: 'line',
-        color: style.color,
+        color: row.color || style.color,
         lineStyle: style.lineStyle,
         lineWidth: style.lineWidth,
       };
@@ -2765,7 +2819,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       visible,
       expanded: false,
       opacity: 100,
-      color: '#000000',
+      color: '#111827',
       canReorder: false,
       hasStyleControls: false,
       hasColorControl: false,
