@@ -1190,21 +1190,17 @@
               >
                 Reset draft to loaded manifest
               </button>
-              @if (isLocalDevHost()) {
-                <button
-                  id="manifest-style-editor-save-draft-button"
-                  type="button"
-                  class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  [disabled]="!canPublish()"
-                  (click)="saveStyleRequest()"
-                >
-                  {{
-                    usesLocalStyleRequestWorkflow
-                      ? 'Legacy local export'
-                      : 'Save and publish request'
-                  }}
-                </button>
-              }
+              <button
+                id="manifest-style-editor-save-draft-button"
+                type="button"
+                class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="!canPublish()"
+                (click)="saveStyleRequest()"
+              >
+                {{
+                  usesLocalStyleRequestWorkflow ? 'Legacy local export' : 'Save and publish request'
+                }}
+              </button>
               <button
                 id="manifest-style-editor-download-styled-json-button"
                 type="button"
@@ -1215,7 +1211,7 @@
               </button>
             </div>
 
-            @if (isLocalDevHost() && !canPublish() && publishDisabledReason()) {
+            @if (!canPublish() && publishDisabledReason()) {
               <p
                 id="manifest-style-editor-publish-disabled-hint"
                 class="mt-2 text-[11px] text-slate-600"
