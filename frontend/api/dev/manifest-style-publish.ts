@@ -244,13 +244,23 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
   }
   const firestore = firebaseAdmin.firestore;
 
-  const userSnapshot = await firestore.collection('users').doc(decodedToken.uid).get();
+  const userSnapshot = await readFirestoreDocument(
+    firestore,
+    'users',
+    decodedToken.uid,
+    'reading the publishing user record',
+  );
   if (!hasManifestStylePublishAccess(userSnapshot.data())) {
     throw new HttpError(403, 'Your account does not have manifest style publish access');
   }
 
   const requestRef = firestore.collection(FIRESTORE_COLLECTION).doc(requestId);
-  const requestSnapshot = await requestRef.get();
+  const requestSnapshot = await readFirestoreDocument(
+    firestore,
+    FIRESTORE_COLLECTION,
+    requestId,
+    'reading the saved manifest style request',
+  );
   if (!requestSnapshot.exists) {
     throw new HttpError(404, `Manifest style request ${requestId} was not found`);
   }
@@ -294,16 +304,20 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
     token,
   });
 
-  await requestRef.update({
-    status: 'published',
-    appliedAt: firebaseAdmin.FieldValue.serverTimestamp(),
-    publishedAt: firebaseAdmin.FieldValue.serverTimestamp(),
-    publishedBy: decodedToken.uid,
-    publishedManifestUrl: publishedBlob.url,
-    appliedManifestVersion: manifestToPublish.version ?? null,
-    appliedManifestGeneratedAt: manifestToPublish.generatedAt ?? null,
-    updatedAt: firebaseAdmin.FieldValue.serverTimestamp(),
-  });
+  try {
+    await requestRef.update({
+      status: 'published',
+      appliedAt: firebaseAdmin.FieldValue.serverTimestamp(),
+      publishedAt: firebaseAdmin.FieldValue.serverTimestamp(),
+      publishedBy: decodedToken.uid,
+      publishedManifestUrl: publishedBlob.url,
+      appliedManifestVersion: manifestToPublish.version ?? null,
+      appliedManifestGeneratedAt: manifestToPublish.generatedAt ?? null,
+      updatedAt: firebaseAdmin.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    throwFirestorePermissionError(error, 'marking the manifest style request as published');
+  }
 
   res.status(200).json({
     message: 'Manifest style request published',
@@ -334,6 +348,37 @@ function parseRequestId(body: unknown): string {
     throw new HttpError(400, 'requestId is required');
   }
   return requestId.trim();
+}
+
+async function readFirestoreDocument(
+  firestore: FirebaseAdminContext['firestore'],
+  collectionPath: string,
+  documentPath: string,
+  actionLabel: string,
+): Promise<{ exists: boolean; data(): DocumentData | undefined }> {
+  try {
+    return await firestore.collection(collectionPath).doc(documentPath).get();
+  } catch (error) {
+    throwFirestorePermissionError(error, actionLabel);
+  }
+}
+
+function throwFirestorePermissionError(error: unknown, actionLabel: string): never {
+  if (isPermissionDeniedError(error)) {
+    throw new HttpError(
+      500,
+      `Firebase Admin was denied by Firestore while ${actionLabel}. Grant the service account in FIREBASE_SERVICE_ACCOUNT_JSON an IAM role with Firestore access, such as Cloud Datastore User.`,
+    );
+  }
+
+  throw error;
+}
+
+function isPermissionDeniedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes('PERMISSION_DENIED') || message.includes('Missing or insufficient permissions')
+  );
 }
 
 function parseRequestBody(body: unknown): ManifestPublishRequest {
