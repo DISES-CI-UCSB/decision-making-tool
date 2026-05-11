@@ -138,7 +138,7 @@ export class AdminBoundaryService {
   private lastSelectionCandidate: HitTestCandidate | null = null;
   private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
-    sirap: true,
+    sirap: false,
     department: true,
     municipality: false,
   };

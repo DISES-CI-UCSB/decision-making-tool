@@ -31,6 +31,16 @@ describe('AdminBoundaryService', () => {
     });
   });
 
+  it('defaults to a single visible administrative boundary (Departments)', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+
+    expect(service.layerVisibilityByType$()).toEqual({
+      sirap: false,
+      department: true,
+      municipality: false,
+    });
+  });
+
   it('keeps feature-layer boundary outlines aligned with the manifest/sidebar black style', () => {
     const service = TestBed.inject(AdminBoundaryService);
 
