@@ -74,6 +74,7 @@ export class AppStateService {
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
   readonly userTier$ = signal<UserTier>(UserTier.Public);
+  readonly userIsAdmin$ = signal(false);
   readonly mapExtent$ = signal<Extent | null>(null);
   readonly selectedLegendLayers$ = signal<MapLegendLayerEntry[]>([]);
   readonly selectSolutionButtonHoverFx$ = signal<SelectSolutionButtonHoverFxMode>(

@@ -9,7 +9,7 @@
   <section
     #panelCard
     id="admin-access-panel-card"
-    class="mt-8 w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+    class="mt-8 w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
   >
     <header
       id="admin-access-panel-header"
@@ -23,10 +23,10 @@
           Admin
         </p>
         <h2 id="admin-access-panel-title" class="text-lg font-semibold text-slate-900">
-          Access requests
+          Access management
         </h2>
         <p id="admin-access-panel-subtitle" class="mt-1 text-sm text-slate-500">
-          Review pending Firebase Auth requests and approve users into the default viewer role.
+          Review pending Firebase Auth requests, choose user tiers, and manage admin access.
         </p>
       </div>
 
@@ -35,7 +35,7 @@
           id="admin-access-panel-refresh-button"
           type="button"
           class="inline-flex min-h-9 items-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          [disabled]="isLoading() || !!approvingUid()"
+          [disabled]="isLoading() || !!approvingUid() || !!updatingUserUid()"
           (click)="refreshRequests()"
         >
           Refresh
@@ -45,7 +45,7 @@
           type="button"
           aria-label="Close access requests panel"
           class="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-          [disabled]="!!approvingUid()"
+          [disabled]="!!approvingUid() || !!updatingUserUid()"
           (click)="requestClose()"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true">
@@ -82,99 +82,306 @@
           ></span>
           Loading pending requests...
         </div>
-      } @else if (pendingRequests().length === 0) {
-        <section
-          id="admin-access-panel-empty-state"
-          class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
-        >
-          <h3 id="admin-access-panel-empty-title" class="text-sm font-semibold text-slate-900">
-            No pending requests
-          </h3>
-          <p id="admin-access-panel-empty-copy" class="mt-1 text-sm text-slate-500">
-            New Google access requests will appear here after users submit the request form.
-          </p>
-        </section>
       } @else {
-        <section id="admin-access-panel-request-list" class="space-y-4">
-          @for (request of pendingRequests(); track request.uid) {
-            <article
-              [id]="'admin-access-panel-request-card-' + request.uid"
-              class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        <section id="admin-access-panel-pending-section" class="space-y-4">
+          <div id="admin-access-panel-pending-heading-row">
+            <h3 id="admin-access-panel-pending-title" class="text-sm font-semibold text-slate-900">
+              Pending requests
+            </h3>
+            <p id="admin-access-panel-pending-copy" class="mt-1 text-sm text-slate-500">
+              Choose each requester&apos;s app tier and whether they can manage access.
+            </p>
+          </div>
+
+          @if (pendingRequests().length === 0) {
+            <section
+              id="admin-access-panel-empty-state"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
             >
-              <div
-                [id]="'admin-access-panel-request-header-' + request.uid"
-                class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
-              >
-                <div [id]="'admin-access-panel-request-identity-' + request.uid" class="min-w-0">
-                  <h3
-                    [id]="'admin-access-panel-request-name-' + request.uid"
-                    class="truncate text-base font-semibold text-slate-900"
-                  >
-                    {{ request.displayName }}
-                  </h3>
-                  <p
-                    [id]="'admin-access-panel-request-email-' + request.uid"
-                    class="truncate text-sm text-slate-500"
-                  >
-                    {{ request.email }}
-                  </p>
-                </div>
-
-                <button
-                  [id]="'admin-access-panel-approve-button-' + request.uid"
-                  type="button"
-                  class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                  [disabled]="!!approvingUid()"
-                  (click)="approveRequest(request)"
+              <h4 id="admin-access-panel-empty-title" class="text-sm font-semibold text-slate-900">
+                No pending requests
+              </h4>
+              <p id="admin-access-panel-empty-copy" class="mt-1 text-sm text-slate-500">
+                New Google access requests will appear here after users submit the request form.
+              </p>
+            </section>
+          } @else {
+            <section id="admin-access-panel-request-list" class="space-y-4">
+              @for (request of pendingRequests(); track request.uid) {
+                <article
+                  [id]="'admin-access-panel-request-card-' + request.uid"
+                  class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
-                  @if (approvingUid() === request.uid) {
-                    <span
-                      [id]="'admin-access-panel-approve-spinner-' + request.uid"
-                      class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                      aria-hidden="true"
-                    ></span>
-                    Approving...
-                  } @else {
-                    Approve
-                  }
-                </button>
-              </div>
+                  <div
+                    [id]="'admin-access-panel-request-header-' + request.uid"
+                    class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+                  >
+                    <div
+                      [id]="'admin-access-panel-request-identity-' + request.uid"
+                      class="min-w-0"
+                    >
+                      <h4
+                        [id]="'admin-access-panel-request-name-' + request.uid"
+                        class="truncate text-base font-semibold text-slate-900"
+                      >
+                        {{ request.displayName }}
+                      </h4>
+                      <p
+                        [id]="'admin-access-panel-request-email-' + request.uid"
+                        class="truncate text-sm text-slate-500"
+                      >
+                        {{ request.email }}
+                      </p>
+                    </div>
 
-              <dl
-                [id]="'admin-access-panel-request-meta-' + request.uid"
-                class="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3"
+                    <div
+                      [id]="'admin-access-panel-request-controls-' + request.uid"
+                      class="grid gap-3 sm:grid-cols-[minmax(240px,1fr)_auto_auto] sm:items-end"
+                    >
+                      <label
+                        [id]="'admin-access-panel-request-tier-label-' + request.uid"
+                        [attr.for]="'admin-access-panel-request-tier-select-' + request.uid"
+                        class="block text-xs font-semibold text-slate-600"
+                      >
+                        App tier
+                        <select
+                          [id]="'admin-access-panel-request-tier-select-' + request.uid"
+                          class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                          [value]="requestGrantFor(request).tier.toString()"
+                          [disabled]="!!approvingUid()"
+                          (change)="onRequestTierChange(request, $event)"
+                        >
+                          <option value="2">Tier 2 - Approved user</option>
+                          <option value="3">Tier 3 - Publisher / scientist</option>
+                        </select>
+                      </label>
+
+                      <label
+                        [id]="'admin-access-panel-request-admin-label-' + request.uid"
+                        class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
+                      >
+                        <input
+                          [id]="'admin-access-panel-request-admin-checkbox-' + request.uid"
+                          type="checkbox"
+                          class="h-4 w-4 rounded border-slate-300 text-slate-900"
+                          [checked]="requestGrantFor(request).isAdmin"
+                          [disabled]="!!approvingUid()"
+                          (change)="onRequestAdminChange(request, $event)"
+                        />
+                        Admin
+                      </label>
+
+                      <button
+                        [id]="'admin-access-panel-approve-button-' + request.uid"
+                        type="button"
+                        class="inline-flex h-10 min-w-24 shrink-0 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        [disabled]="!!approvingUid()"
+                        (click)="approveRequest(request)"
+                      >
+                        @if (approvingUid() === request.uid) {
+                          <span
+                            [id]="'admin-access-panel-approve-spinner-' + request.uid"
+                            class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                            aria-hidden="true"
+                          ></span>
+                          Approving...
+                        } @else {
+                          Approve
+                        }
+                      </button>
+                    </div>
+                  </div>
+
+                  <dl
+                    [id]="'admin-access-panel-request-meta-' + request.uid"
+                    class="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3"
+                  >
+                    <div [id]="'admin-access-panel-request-org-' + request.uid">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Organization
+                      </dt>
+                      <dd class="mt-0.5 text-slate-700">
+                        {{ formatOptional(request.organization) }}
+                      </dd>
+                    </div>
+                    <div [id]="'admin-access-panel-request-provider-' + request.uid">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Provider
+                      </dt>
+                      <dd class="mt-0.5 text-slate-700">{{ request.provider }}</dd>
+                    </div>
+                    <div [id]="'admin-access-panel-request-time-' + request.uid">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Requested
+                      </dt>
+                      <dd class="mt-0.5 text-slate-700">{{ formatRequestedAt(request) }}</dd>
+                    </div>
+                    <div
+                      [id]="'admin-access-panel-request-reason-' + request.uid"
+                      class="sm:col-span-2 lg:col-span-3"
+                    >
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Reason
+                      </dt>
+                      <dd class="mt-0.5 whitespace-pre-wrap text-slate-700">
+                        {{ formatOptional(request.reason) }}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              }
+            </section>
+          }
+        </section>
+
+        <section id="admin-access-panel-users-section" class="mt-8 border-t border-slate-200 pt-6">
+          <div
+            id="admin-access-panel-users-heading-row"
+            class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+          >
+            <div id="admin-access-panel-users-heading-copy">
+              <h3 id="admin-access-panel-users-title" class="text-sm font-semibold text-slate-900">
+                Active users
+              </h3>
+              <p id="admin-access-panel-users-copy" class="mt-1 text-sm text-slate-500">
+                Search existing users and update their tier or admin access.
+              </p>
+            </div>
+
+            <label
+              id="admin-access-panel-user-search-label"
+              for="admin-access-panel-user-search-input"
+              class="block text-xs font-semibold text-slate-600 sm:w-72"
+            >
+              Search users
+              <input
+                id="admin-access-panel-user-search-input"
+                type="search"
+                class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                placeholder="Name, email, role, tier"
+                [value]="userSearchQuery()"
+                (input)="onUserSearchChange($event)"
+              />
+            </label>
+          </div>
+
+          @if (activeUsers().length === 0) {
+            <section
+              id="admin-access-panel-users-empty-state"
+              class="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
+            >
+              <h4
+                id="admin-access-panel-users-empty-title"
+                class="text-sm font-semibold text-slate-900"
               >
-                <div [id]="'admin-access-panel-request-org-' + request.uid">
-                  <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Organization
-                  </dt>
-                  <dd class="mt-0.5 text-slate-700">{{ formatOptional(request.organization) }}</dd>
-                </div>
-                <div [id]="'admin-access-panel-request-provider-' + request.uid">
-                  <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Provider
-                  </dt>
-                  <dd class="mt-0.5 text-slate-700">{{ request.provider }}</dd>
-                </div>
-                <div [id]="'admin-access-panel-request-time-' + request.uid">
-                  <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Requested
-                  </dt>
-                  <dd class="mt-0.5 text-slate-700">{{ formatRequestedAt(request) }}</dd>
-                </div>
-                <div
-                  [id]="'admin-access-panel-request-reason-' + request.uid"
-                  class="sm:col-span-2 lg:col-span-3"
+                No active users
+              </h4>
+              <p id="admin-access-panel-users-empty-copy" class="mt-1 text-sm text-slate-500">
+                Approved users will appear here after their access requests are accepted.
+              </p>
+            </section>
+          } @else if (filteredUsers().length === 0) {
+            <section
+              id="admin-access-panel-users-no-results"
+              class="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
+            >
+              <h4
+                id="admin-access-panel-users-no-results-title"
+                class="text-sm font-semibold text-slate-900"
+              >
+                No matching users
+              </h4>
+              <p id="admin-access-panel-users-no-results-copy" class="mt-1 text-sm text-slate-500">
+                Try a different name, email, role, or tier.
+              </p>
+            </section>
+          } @else {
+            <section id="admin-access-panel-users-list" class="mt-4 space-y-3">
+              @for (user of filteredUsers(); track user.uid) {
+                <article
+                  [id]="'admin-access-panel-user-card-' + user.uid"
+                  class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
-                  <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Reason
-                  </dt>
-                  <dd class="mt-0.5 whitespace-pre-wrap text-slate-700">
-                    {{ formatOptional(request.reason) }}
-                  </dd>
-                </div>
-              </dl>
-            </article>
+                  <div
+                    [id]="'admin-access-panel-user-row-' + user.uid"
+                    class="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_minmax(240px,0.85fr)_auto_auto] lg:items-end"
+                  >
+                    <div [id]="'admin-access-panel-user-identity-' + user.uid" class="min-w-0">
+                      <h4
+                        [id]="'admin-access-panel-user-name-' + user.uid"
+                        class="truncate text-sm font-semibold text-slate-900"
+                      >
+                        {{ user.displayName }}
+                      </h4>
+                      <p
+                        [id]="'admin-access-panel-user-email-' + user.uid"
+                        class="truncate text-sm text-slate-500"
+                      >
+                        {{ user.email }}
+                      </p>
+                      <p
+                        [id]="'admin-access-panel-user-current-summary-' + user.uid"
+                        class="mt-1 text-xs text-slate-400"
+                      >
+                        Current: {{ tierLabel(user.tier) }} · {{ adminLabel(user.isAdmin) }}
+                      </p>
+                    </div>
+
+                    <label
+                      [id]="'admin-access-panel-user-tier-label-' + user.uid"
+                      [attr.for]="'admin-access-panel-user-tier-select-' + user.uid"
+                      class="block text-xs font-semibold text-slate-600"
+                    >
+                      App tier
+                      <select
+                        [id]="'admin-access-panel-user-tier-select-' + user.uid"
+                        class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                        [value]="userGrantFor(user).tier.toString()"
+                        [disabled]="!!updatingUserUid()"
+                        (change)="onUserTierChange(user, $event)"
+                      >
+                        <option value="2">Tier 2 - Approved user</option>
+                        <option value="3">Tier 3 - Publisher / scientist</option>
+                      </select>
+                    </label>
+
+                    <label
+                      [id]="'admin-access-panel-user-admin-label-' + user.uid"
+                      class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
+                    >
+                      <input
+                        [id]="'admin-access-panel-user-admin-checkbox-' + user.uid"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-slate-900"
+                        [checked]="userGrantFor(user).isAdmin"
+                        [disabled]="!!updatingUserUid()"
+                        (change)="onUserAdminChange(user, $event)"
+                      />
+                      Admin
+                    </label>
+
+                    <button
+                      [id]="'admin-access-panel-user-save-button-' + user.uid"
+                      type="button"
+                      class="inline-flex h-10 min-w-20 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      [disabled]="!!updatingUserUid() || !hasUserChanges(user)"
+                      (click)="saveUserAccess(user)"
+                    >
+                      @if (updatingUserUid() === user.uid) {
+                        <span
+                          [id]="'admin-access-panel-user-save-spinner-' + user.uid"
+                          class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
+                          aria-hidden="true"
+                        ></span>
+                        Saving...
+                      } @else {
+                        Save
+                      }
+                    </button>
+                  </div>
+                </article>
+              }
+            </section>
           }
         </section>
       }

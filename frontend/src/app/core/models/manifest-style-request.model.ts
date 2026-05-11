@@ -52,3 +52,9 @@ export interface ManifestStyleRequestDraft {
   styleChanges: ManifestStyleRequestChanges;
   status: ManifestStyleRequestStatus;
 }
+
+export interface ManifestStyleRequestAuthor {
+  createdByUid: string;
+  createdByEmail: string;
+  createdByDisplayName: string | null;
+}

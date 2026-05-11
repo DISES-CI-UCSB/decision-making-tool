@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T19:19:21.080Z",
+  "generatedAt": "2026-05-11T19:17:42.054Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -7,29 +7,25 @@
   },
   "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
   "policy": {
-    "includedRows": "Rows with en_uso_actual / in_use_now set to TRUE, plus metric-audit allowlisted layers needed for finalized metrics review",
-    "metricAuditAllowlistedLayerIds": [
-      "conflict",
-      "recarga_agua_subterranea_moderado_alto"
-    ],
+    "includedRows": "Only rows with en_uso_actual / in_use_now set to TRUE",
     "speciesHandling": "Species rasters are represented as one collection pointer, not one layer per TIFF",
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
     "csvRows": 22,
-    "includedRows": 18,
-    "generatedLayers": 18,
+    "includedRows": 16,
+    "generatedLayers": 16,
     "blobInventoryEntries": 47,
     "missingRequired": 0,
-    "extraAvailable": 13,
-    "includedRowMetadataGaps": 17,
-    "excludedRows": 4,
+    "extraAvailable": 15,
+    "includedRowMetadataGaps": 15,
+    "excludedRows": 6,
     "generatedSolutions": 18,
     "skippedSolutionMetadataFiles": 0,
     "unmatchedSolutionRasters": 0,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 1,
-    "renderingInferenceLowConfidence": 16
+    "renderingInferenceLowConfidence": 14
   },
   "missingRequired": [],
   "extraAvailable": [
@@ -79,6 +75,11 @@
       "bytes": 3213633
     },
     {
+      "pathname": "inputs/costs/conflict.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/conflict.tif",
+      "bytes": 12402324
+    },
+    {
       "pathname": "inputs/costs/human_footprint_2030.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2030.tif",
       "bytes": 12402302
@@ -92,6 +93,11 @@
       "pathname": "inputs/features/carbon/carbono_organico.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/carbon/carbono_organico.tif",
       "bytes": 6272115
+    },
+    {
+      "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "bytes": 166170
     },
     {
       "pathname": "inputs/includes/runap_categories.csv",
@@ -160,13 +166,6 @@
       ]
     },
     {
-      "layerId": "recarga_agua_subterranea_moderado_alto",
-      "displayName": "Recarga de aguas subterraneas",
-      "missingFields": [
-        "source_license"
-      ]
-    },
-    {
       "layerId": "human_footprint_2022",
       "displayName": "Índice de Huella Espacial Humana 2022",
       "missingFields": [
@@ -177,16 +176,6 @@
     {
       "layerId": "net_benefit",
       "displayName": "Beneficio neto (renta agropecuaria)",
-      "missingFields": [
-        "source_created_date",
-        "source_updated_date",
-        "source_license",
-        "source_contact"
-      ]
-    },
-    {
-      "layerId": "conflict",
-      "displayName": "Conflictos (coca muertes)",
       "missingFields": [
         "source_created_date",
         "source_updated_date",
@@ -264,30 +253,40 @@
     "byStrategy": {
       "manual_override": 2,
       "legacy_non_raster": 4,
-      "fallback_after_uncertain_sampling": 12
+      "fallback_after_uncertain_sampling": 10
     },
-    "lowConfidence": 16
+    "lowConfidence": 14
   },
   "excludedRows": [
     {
       "layerId": "biomasa_areara+subterranea_1km",
       "displayName": "Biomasa aérea y subterránea",
-      "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
+      "reason": "in_use_now is not TRUE"
+    },
+    {
+      "layerId": "recarga_agua_subterranea_moderado_alto",
+      "displayName": "Recarga de aguas subterraneas",
+      "reason": "in_use_now is not TRUE"
     },
     {
       "layerId": "human_footprint_2030",
       "displayName": "Índice de Huella Espacial Humana 2030",
-      "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
+      "reason": "in_use_now is not TRUE"
+    },
+    {
+      "layerId": "conflict",
+      "displayName": "Conflictos (coca muertes)",
+      "reason": "in_use_now is not TRUE"
     },
     {
       "layerId": "climate_refugia",
       "displayName": "Velocidad del cambio climático",
-      "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
+      "reason": "in_use_now is not TRUE"
     },
     {
       "layerId": "coberturas",
       "displayName": "Cobertura de la tierra",
-      "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
+      "reason": "in_use_now is not TRUE"
     }
   ]
 }

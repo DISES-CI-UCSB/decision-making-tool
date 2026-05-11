@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { UserTier } from '@core/models';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import {
   collection,
@@ -26,6 +27,20 @@ export interface AccessRequestRecord {
   submittedAt: number | null;
 }
 
+export interface UserAccessGrant {
+  tier: UserTier.DecisionMaker | UserTier.Manager;
+  isAdmin: boolean;
+}
+
+export interface AdminManagedUserRecord extends UserAccessGrant {
+  uid: string;
+  email: string;
+  displayName: string;
+  status: 'active';
+  role: string;
+  updatedAt: Date | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminAccessRequestsService {
   private readonly firebase = inject(FirebaseClientService);
@@ -43,7 +58,20 @@ export class AdminAccessRequestsService {
       .sort((a, b) => this.requestTimeMs(b) - this.requestTimeMs(a));
   }
 
-  async approveRequest(request: AccessRequestRecord): Promise<void> {
+  async listActiveUsers(): Promise<AdminManagedUserRecord[]> {
+    const firestore = this.requireFirestore();
+    await this.requireCurrentActiveAdmin();
+
+    const snapshot = await getDocs(
+      query(collection(firestore, 'users'), where('status', '==', 'active')),
+    );
+
+    return snapshot.docs
+      .map((userDoc) => this.parseManagedUser(userDoc.id, userDoc.data()))
+      .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
+  }
+
+  async approveRequest(request: AccessRequestRecord, grant: UserAccessGrant): Promise<void> {
     const firestore = this.requireFirestore();
     const approvedBy = await this.requireCurrentActiveAdmin();
     const batch = writeBatch(firestore);
@@ -54,7 +82,9 @@ export class AdminAccessRequestsService {
         email: request.email,
         displayName: request.displayName,
         status: 'active',
-        role: 'authorized_viewer',
+        role: this.roleForTier(grant.tier),
+        tier: grant.tier,
+        isAdmin: grant.isAdmin,
         updatedAt: serverTimestamp(),
       },
       { merge: true },
@@ -74,6 +104,25 @@ export class AdminAccessRequestsService {
     await batch.commit();
   }
 
+  async updateUserAccess(uid: string, grant: UserAccessGrant): Promise<void> {
+    const firestore = this.requireFirestore();
+    const updatedBy = await this.requireCurrentActiveAdmin();
+
+    await writeBatch(firestore)
+      .set(
+        doc(firestore, 'users', uid),
+        {
+          role: this.roleForTier(grant.tier),
+          tier: grant.tier,
+          isAdmin: grant.isAdmin,
+          updatedAt: serverTimestamp(),
+          updatedBy,
+        },
+        { merge: true },
+      )
+      .commit();
+  }
+
   private requireFirestore() {
     const firestore = this.firebase.firestore;
     if (!firestore) {
@@ -91,7 +140,8 @@ export class AdminAccessRequestsService {
 
     const adminSnapshot = await getDoc(doc(firestore, 'users', uid));
     const adminData = adminSnapshot.exists() ? adminSnapshot.data() : null;
-    if (adminData?.['status'] !== 'active' || adminData?.['role'] !== 'admin') {
+    const isAdmin = adminData?.['role'] === 'admin' || adminData?.['isAdmin'] === true;
+    if (adminData?.['status'] !== 'active' || !isAdmin) {
       throw new Error('Only active admins can review access requests.');
     }
 
@@ -109,6 +159,20 @@ export class AdminAccessRequestsService {
       status: this.readStatus(data),
       requestedAt: this.readDate(data, 'requestedAt'),
       submittedAt: this.readNumber(data, 'submittedAt'),
+    };
+  }
+
+  private parseManagedUser(uid: string, data: DocumentData): AdminManagedUserRecord {
+    const tier = this.readTier(data);
+    return {
+      uid,
+      email: this.readString(data, 'email'),
+      displayName: this.readString(data, 'displayName') || this.readString(data, 'email'),
+      status: 'active',
+      role: this.readString(data, 'role') || this.roleForTier(tier),
+      tier,
+      isAdmin: data['role'] === 'admin' || data['isAdmin'] === true,
+      updatedAt: this.readDate(data, 'updatedAt'),
     };
   }
 
@@ -147,7 +211,28 @@ export class AdminAccessRequestsService {
     return null;
   }
 
+  private readTier(data: DocumentData): UserAccessGrant['tier'] {
+    const tier = data['tier'];
+    if (tier === UserTier.Manager) {
+      return UserTier.Manager;
+    }
+    if (tier === UserTier.DecisionMaker) {
+      return UserTier.DecisionMaker;
+    }
+    return data['role'] === 'science_publisher' || data['role'] === 'admin'
+      ? UserTier.Manager
+      : UserTier.DecisionMaker;
+  }
+
   private requestTimeMs(request: AccessRequestRecord): number {
     return request.requestedAt?.getTime() ?? request.submittedAt ?? 0;
+  }
+
+  private roleForTier(tier: UserAccessGrant['tier']): 'authorized_viewer' | 'science_publisher' {
+    return tier >= UserTier.Manager ? 'science_publisher' : 'authorized_viewer';
+  }
+
+  private userDisplayLabel(user: AdminManagedUserRecord): string {
+    return user.displayName || user.email || user.uid;
   }
 }

@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
-import { type AoiType, type Solution, type SolutionScenario } from '@core/models';
+import { type AoiType, type Solution, type SolutionScenario, UserTier } from '@core/models';
 import {
   CHART_PALETTE_IDS,
   CHART_PALETTES,
@@ -102,7 +102,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               </button>
             </div>
 
-            @if (enableManifestEditor) {
+            @if (canAccessManifestStyleEditor()) {
               <section id="dev-tools-manifest-style-editor-section" class="mt-2">
                 <app-manifest-style-editor-overlay
                   id="dev-tools-manifest-style-editor-overlay"
@@ -880,7 +880,9 @@ export class DevToolsPanelComponent {
   readonly showOverviewInputsReminder = this.appState.showOverviewInputsReminder$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
-  readonly enableManifestEditor = environment.ENABLE_MANIFEST_EDITOR;
+  readonly canAccessManifestStyleEditor = computed(
+    () => environment.ENABLE_MANIFEST_EDITOR && this.appState.userTier$() >= UserTier.Manager,
+  );
 
   @Input() coordinateToolEnabled = false;
   @Output() readonly coordinateToolEnabledChange = new EventEmitter<boolean>();

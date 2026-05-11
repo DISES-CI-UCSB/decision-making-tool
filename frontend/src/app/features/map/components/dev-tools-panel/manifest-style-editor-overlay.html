@@ -2,7 +2,7 @@
   <button
     id="manifest-style-editor-open-button"
     type="button"
-    class="w-full rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-left text-[11px] font-semibold text-amber-800 transition hover:bg-amber-100"
+    class="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 transition hover:bg-amber-100"
     (click)="openEditor()"
   >
     Manifest Style Editor
@@ -1188,34 +1188,30 @@
                 class="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
                 (click)="resetAllLayers()"
               >
-                Reset all to loaded
+                Reset draft to loaded manifest
               </button>
-              @if (isLocalDevHost()) {
-                <button
-                  id="manifest-style-editor-save-draft-button"
-                  type="button"
-                  class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  [disabled]="!canPublish()"
-                  (click)="saveStyleRequest()"
-                >
-                  {{
-                    usesLocalStyleRequestWorkflow
-                      ? 'Download style request (dev only)'
-                      : 'Save style request (dev only)'
-                  }}
-                </button>
-              }
+              <button
+                id="manifest-style-editor-save-draft-button"
+                type="button"
+                class="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="!canPublish()"
+                (click)="saveStyleRequest()"
+              >
+                {{
+                  usesLocalStyleRequestWorkflow ? 'Legacy local export' : 'Save and publish request'
+                }}
+              </button>
               <button
                 id="manifest-style-editor-download-styled-json-button"
                 type="button"
                 class="rounded-md border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100"
                 (click)="downloadStyledManifest()"
               >
-                Download styled JSON
+                Legacy: download styled JSON
               </button>
             </div>
 
-            @if (isLocalDevHost() && !canPublish() && publishDisabledReason()) {
+            @if (!canPublish() && publishDisabledReason()) {
               <p
                 id="manifest-style-editor-publish-disabled-hint"
                 class="mt-2 text-[11px] text-slate-600"
@@ -1230,13 +1226,17 @@
                 class="mt-2 rounded-md border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600"
               >
                 <p id="manifest-style-editor-dev-workflow-copy">
-                  Dev workflow:
+                  Review workflow:
                   @if (usesLocalStyleRequestWorkflow) {
-                    Save style request downloads a styled JSON file because login bypass is enabled.
-                    Copy the command below from frontend to publish the style changes.
+                    Login bypass is enabled, so the review request is exported as a local JSON
+                    fallback. Copy the command below from frontend only when you intentionally need
+                    the legacy local publish flow.
                   } @else {
-                    Save style request writes style-only changes to Firestore. Copy the command
-                    below from frontend to apply the latest pending request.
+                    Save and publish request writes style-only changes to Firestore, then asks the
+                    trusted Vercel API route to verify access, apply the saved diff, archive the old
+                    manifest, and publish the update. If you are running Angular with ng serve, this
+                    local server will not host the Vercel API route; use the fallback command below
+                    to apply the saved request locally.
                   }
                 </p>
 
@@ -1251,7 +1251,7 @@
                 }
 
                 <p id="manifest-style-editor-publish-command-label" class="mt-2 font-semibold">
-                  Publish command
+                  Legacy fallback publish command
                 </p>
                 <pre
                   id="manifest-style-editor-publish-command-codeblock"
