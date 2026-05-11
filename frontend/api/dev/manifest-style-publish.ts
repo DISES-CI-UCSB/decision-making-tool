@@ -157,7 +157,15 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
   const requestId = parseRequestId(req.body);
   const idToken = readBearerToken(req.headers);
   const app = getFirebaseAdminApp();
-  const decodedToken = await getAuth(app).verifyIdToken(idToken);
+  let decodedToken: { uid: string };
+  try {
+    decodedToken = await getAuth(app).verifyIdToken(idToken);
+  } catch {
+    throw new HttpError(
+      500,
+      'Firebase Admin could not verify the signed-in user token. Check that FIREBASE_SERVICE_ACCOUNT_JSON belongs to the same Firebase project as FIREBASE_PROJECT_ID.',
+    );
+  }
   const firestore = getFirestore(app);
 
   const userSnapshot = await firestore.collection('users').doc(decodedToken.uid).get();
@@ -275,8 +283,16 @@ function getFirebaseAdminApp(): App {
   const projectId = process.env[FIREBASE_PROJECT_ID_ENV_VAR] ?? DEFAULT_FIREBASE_PROJECT_ID;
   const serviceAccountJson = process.env[FIREBASE_SERVICE_ACCOUNT_JSON_ENV_VAR]?.trim();
   if (serviceAccountJson) {
-    const serviceAccount = JSON.parse(serviceAccountJson) as Record<string, unknown>;
-    return initializeApp({
+    let serviceAccount: Record<string, unknown>;
+    try {
+      serviceAccount = JSON.parse(serviceAccountJson) as Record<string, unknown>;
+    } catch {
+      throw new HttpError(
+        500,
+        `${FIREBASE_SERVICE_ACCOUNT_JSON_ENV_VAR} is not valid JSON. Paste the full Firebase service account JSON into Vercel as a server-side environment variable.`,
+      );
+    }
+    return initializeFirebaseAdminApp({
       credential: cert(serviceAccount),
       projectId: readServiceAccountProjectId(serviceAccount) ?? projectId,
     });
@@ -285,13 +301,27 @@ function getFirebaseAdminApp(): App {
   const clientEmail = process.env[FIREBASE_CLIENT_EMAIL_ENV_VAR]?.trim();
   const privateKey = process.env[FIREBASE_PRIVATE_KEY_ENV_VAR]?.replace(/\\n/g, '\n');
   if (clientEmail && privateKey) {
-    return initializeApp({
+    return initializeFirebaseAdminApp({
       credential: cert({ projectId, clientEmail, privateKey }),
       projectId,
     });
   }
 
-  return initializeApp({ projectId });
+  throw new HttpError(
+    500,
+    `Firebase Admin credentials are not configured. Add ${FIREBASE_SERVICE_ACCOUNT_JSON_ENV_VAR} in Vercel, or add both ${FIREBASE_CLIENT_EMAIL_ENV_VAR} and ${FIREBASE_PRIVATE_KEY_ENV_VAR}.`,
+  );
+}
+
+function initializeFirebaseAdminApp(options: Parameters<typeof initializeApp>[0]): App {
+  try {
+    return initializeApp(options);
+  } catch {
+    throw new HttpError(
+      500,
+      'Firebase Admin credentials are present but invalid. Re-copy the Firebase service account JSON from Firebase Console and redeploy.',
+    );
+  }
 }
 
 function readServiceAccountProjectId(serviceAccount: Record<string, unknown>): string | null {

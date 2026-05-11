@@ -54,19 +54,33 @@ export class ManifestStyleRequestService {
       body: JSON.stringify({ requestId }),
     });
 
-    const payload = (await response.json().catch(() => null)) as
-      | ManifestStyleRequestPublishResult
-      | { message?: string }
-      | null;
+    const responseText = await response.text();
+    const payload = this.parsePublishResponse(responseText);
 
     if (!response.ok) {
-      throw new Error(payload?.message ?? `Publish failed with HTTP ${response.status}`);
+      throw new Error(
+        payload?.message ?? responseText.trim() ?? `Publish failed with HTTP ${response.status}`,
+      );
     }
 
     return {
       requestId,
       ...(payload ?? {}),
     };
+  }
+
+  private parsePublishResponse(
+    responseText: string,
+  ): ManifestStyleRequestPublishResult | { message?: string } | null {
+    if (!responseText.trim()) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(responseText) as ManifestStyleRequestPublishResult | { message?: string };
+    } catch {
+      return null;
+    }
   }
 
   private getCurrentAuthor(): ManifestStyleRequestAuthor {
