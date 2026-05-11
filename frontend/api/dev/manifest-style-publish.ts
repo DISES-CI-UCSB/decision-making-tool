@@ -1,8 +1,3 @@
-import { copy, list, put } from '@vercel/blob';
-import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore, type DocumentData } from 'firebase-admin/firestore';
-
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
 const WRITE_GUARD_ENV_VAR = 'ENABLE_MANIFEST_EDITOR_WRITES';
 const PRODUCTION_WRITE_GUARD_ENV_VAR = 'ALLOW_PRODUCTION_MANIFEST_EDITOR_WRITES';
@@ -30,6 +25,67 @@ interface VercelRequest {
 interface VercelResponse {
   status(statusCode: number): VercelResponse;
   json(payload: unknown): void;
+}
+
+type DocumentData = Record<string, unknown>;
+type FirebaseAdminApp = object;
+
+interface BlobModule {
+  copy(
+    fromUrlOrPathname: string,
+    toPathname: string,
+    options: { access: 'public'; token: string },
+  ): Promise<{ url: string }>;
+  list(options: { prefix: string; limit: number; token: string }): Promise<{
+    blobs: { pathname: string; url: string }[];
+  }>;
+  put(
+    pathname: string,
+    body: string,
+    options: {
+      access: 'public';
+      addRandomSuffix: boolean;
+      allowOverwrite: boolean;
+      contentType: 'application/json';
+      token: string;
+    },
+  ): Promise<{ url: string }>;
+}
+
+interface FirebaseAdminAppModule {
+  cert(serviceAccount: object): unknown;
+  getApps(): FirebaseAdminApp[];
+  initializeApp(options: object): FirebaseAdminApp;
+}
+
+interface FirebaseAdminAuthModule {
+  getAuth(app: FirebaseAdminApp): {
+    verifyIdToken(idToken: string): Promise<{ uid: string }>;
+  };
+}
+
+interface FirebaseAdminFirestoreModule {
+  FieldValue: {
+    serverTimestamp(): unknown;
+  };
+  getFirestore(app: FirebaseAdminApp): {
+    collection(collectionPath: string): {
+      doc(documentPath: string): {
+        get(): Promise<{
+          exists: boolean;
+          data(): DocumentData | undefined;
+        }>;
+        update(data: Record<string, unknown>): Promise<unknown>;
+      };
+    };
+  };
+}
+
+interface FirebaseAdminContext {
+  app: FirebaseAdminApp;
+  auth: FirebaseAdminAuthModule['getAuth'];
+  firestore: ReturnType<FirebaseAdminFirestoreModule['getFirestore']>;
+  FieldValue: FirebaseAdminFirestoreModule['FieldValue'];
 }
 
 interface RuntimeLayerManifest {
@@ -116,7 +172,7 @@ class HttpError extends Error {
   }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   try {
     await publishManifestStyleRequest(req, res);
   } catch (error) {
@@ -133,7 +189,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 }
 
+module.exports = handler;
+
 async function publishManifestStyleRequest(req: VercelRequest, res: VercelResponse): Promise<void> {
+  if (req.method === 'GET') {
+    res.status(200).json({
+      message: 'Manifest style publish route is reachable',
+      hasBlobToken: Boolean(process.env[BLOB_TOKEN_ENV_VAR]),
+      hasFirebaseProjectId: Boolean(process.env[FIREBASE_PROJECT_ID_ENV_VAR]),
+      hasFirebaseServiceAccountJson: Boolean(
+        process.env[FIREBASE_SERVICE_ACCOUNT_JSON_ENV_VAR]?.trim(),
+      ),
+      hasFirebaseClientEmail: Boolean(process.env[FIREBASE_CLIENT_EMAIL_ENV_VAR]?.trim()),
+      hasFirebasePrivateKey: Boolean(process.env[FIREBASE_PRIVATE_KEY_ENV_VAR]?.trim()),
+      manifestWritesEnabled: isTruthy(process.env[WRITE_GUARD_ENV_VAR]),
+      productionManifestWritesEnabled: isTruthy(process.env[PRODUCTION_WRITE_GUARD_ENV_VAR]),
+      vercelEnv: process.env['VERCEL_ENV'] ?? null,
+    });
+    return;
+  }
+
   if (req.method !== 'POST') {
     throw new HttpError(405, 'Method not allowed');
   }
@@ -153,20 +228,21 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
   if (!token) {
     throw new HttpError(500, 'Manifest publish environment is not configured');
   }
+  const blob = await getBlobClient();
 
   const requestId = parseRequestId(req.body);
   const idToken = readBearerToken(req.headers);
-  const app = getFirebaseAdminApp();
+  const firebaseAdmin = await getFirebaseAdminContext();
   let decodedToken: { uid: string };
   try {
-    decodedToken = await getAuth(app).verifyIdToken(idToken);
+    decodedToken = await firebaseAdmin.auth(firebaseAdmin.app).verifyIdToken(idToken);
   } catch {
     throw new HttpError(
       500,
       'Firebase Admin could not verify the signed-in user token. Check that FIREBASE_SERVICE_ACCOUNT_JSON belongs to the same Firebase project as FIREBASE_PROJECT_ID.',
     );
   }
-  const firestore = getFirestore(app);
+  const firestore = firebaseAdmin.firestore;
 
   const userSnapshot = await firestore.collection('users').doc(decodedToken.uid).get();
   if (!hasManifestStylePublishAccess(userSnapshot.data())) {
@@ -186,7 +262,7 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
 
   const styleChanges = parseStyleChanges(request.styleChanges);
   const editorName = readNonEmptyString(request.editorName, 'editorName');
-  const currentManifestBlob = await getCurrentManifestBlob(token);
+  const currentManifestBlob = await getCurrentManifestBlob(blob, token);
   if (!currentManifestBlob) {
     throw new HttpError(404, `No current Vercel Blob manifest found at ${TARGET_PATH}`);
   }
@@ -205,12 +281,12 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
   assertLayerCategoryPaths(manifestToPublish);
 
   const archivePath = `${ARCHIVE_PREFIX}manifest.${publishedAt.replace(/[:.]/g, '-')}.json`;
-  const archiveBlob = await copy(currentManifestBlob.url, archivePath, {
+  const archiveBlob = await blob.copy(currentManifestBlob.url, archivePath, {
     access: 'public',
     token,
   });
 
-  const publishedBlob = await put(TARGET_PATH, JSON.stringify(manifestToPublish, null, 2), {
+  const publishedBlob = await blob.put(TARGET_PATH, JSON.stringify(manifestToPublish, null, 2), {
     access: 'public',
     addRandomSuffix: false,
     allowOverwrite: true,
@@ -220,13 +296,13 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
 
   await requestRef.update({
     status: 'published',
-    appliedAt: FieldValue.serverTimestamp(),
-    publishedAt: FieldValue.serverTimestamp(),
+    appliedAt: firebaseAdmin.FieldValue.serverTimestamp(),
+    publishedAt: firebaseAdmin.FieldValue.serverTimestamp(),
     publishedBy: decodedToken.uid,
     publishedManifestUrl: publishedBlob.url,
     appliedManifestVersion: manifestToPublish.version ?? null,
     appliedManifestGeneratedAt: manifestToPublish.generatedAt ?? null,
-    updatedAt: FieldValue.serverTimestamp(),
+    updatedAt: firebaseAdmin.FieldValue.serverTimestamp(),
   });
 
   res.status(200).json({
@@ -241,6 +317,14 @@ async function publishManifestStyleRequest(req: VercelRequest, res: VercelRespon
     sourceManifestUrl: request.sourceManifestUrl ?? null,
     diffSummary: request.diffSummary ?? null,
   });
+}
+
+async function getBlobClient(): Promise<BlobModule> {
+  try {
+    return (await import('@vercel/blob')) as BlobModule;
+  } catch {
+    throw new HttpError(500, 'Vercel Blob client could not be loaded in the API function.');
+  }
 }
 
 function parseRequestId(body: unknown): string {
@@ -274,8 +358,23 @@ function readBearerToken(headers: VercelRequest['headers']): string {
   return match[1].trim();
 }
 
-function getFirebaseAdminApp(): App {
-  const existingApp = getApps()[0];
+async function getFirebaseAdminContext(): Promise<FirebaseAdminContext> {
+  const [appModule, authModule, firestoreModule] = await Promise.all([
+    import('firebase-admin/app') as Promise<FirebaseAdminAppModule>,
+    import('firebase-admin/auth') as Promise<FirebaseAdminAuthModule>,
+    import('firebase-admin/firestore') as Promise<FirebaseAdminFirestoreModule>,
+  ]);
+  const app = getFirebaseAdminApp(appModule);
+  return {
+    app,
+    auth: authModule.getAuth,
+    firestore: firestoreModule.getFirestore(app),
+    FieldValue: firestoreModule.FieldValue,
+  };
+}
+
+function getFirebaseAdminApp(appModule: FirebaseAdminAppModule): FirebaseAdminApp {
+  const existingApp = appModule.getApps()[0];
   if (existingApp) {
     return existingApp;
   }
@@ -292,8 +391,8 @@ function getFirebaseAdminApp(): App {
         `${FIREBASE_SERVICE_ACCOUNT_JSON_ENV_VAR} is not valid JSON. Paste the full Firebase service account JSON into Vercel as a server-side environment variable.`,
       );
     }
-    return initializeFirebaseAdminApp({
-      credential: cert(serviceAccount),
+    return initializeFirebaseAdminApp(appModule, {
+      credential: createFirebaseAdminCredential(appModule, serviceAccount),
       projectId: readServiceAccountProjectId(serviceAccount) ?? projectId,
     });
   }
@@ -301,8 +400,8 @@ function getFirebaseAdminApp(): App {
   const clientEmail = process.env[FIREBASE_CLIENT_EMAIL_ENV_VAR]?.trim();
   const privateKey = process.env[FIREBASE_PRIVATE_KEY_ENV_VAR]?.replace(/\\n/g, '\n');
   if (clientEmail && privateKey) {
-    return initializeFirebaseAdminApp({
-      credential: cert({ projectId, clientEmail, privateKey }),
+    return initializeFirebaseAdminApp(appModule, {
+      credential: createFirebaseAdminCredential(appModule, { projectId, clientEmail, privateKey }),
       projectId,
     });
   }
@@ -313,9 +412,26 @@ function getFirebaseAdminApp(): App {
   );
 }
 
-function initializeFirebaseAdminApp(options: Parameters<typeof initializeApp>[0]): App {
+function createFirebaseAdminCredential(
+  appModule: FirebaseAdminAppModule,
+  serviceAccount: object,
+): unknown {
   try {
-    return initializeApp(options);
+    return appModule.cert(serviceAccount);
+  } catch {
+    throw new HttpError(
+      500,
+      'Firebase Admin credentials are present but invalid. Re-copy the Firebase service account JSON from Firebase Console and redeploy.',
+    );
+  }
+}
+
+function initializeFirebaseAdminApp(
+  appModule: FirebaseAdminAppModule,
+  options: object,
+): FirebaseAdminApp {
+  try {
+    return appModule.initializeApp(options);
   } catch {
     throw new HttpError(
       500,
@@ -344,9 +460,10 @@ function hasManifestStylePublishAccess(userData: DocumentData | undefined): bool
 }
 
 async function getCurrentManifestBlob(
+  blob: BlobModule,
   token: string,
 ): Promise<{ pathname: string; url: string } | null> {
-  const result = await list({
+  const result = await blob.list({
     prefix: TARGET_PATH,
     limit: 10,
     token,
