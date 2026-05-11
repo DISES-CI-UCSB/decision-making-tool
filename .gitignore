@@ -63,6 +63,8 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 /frontend/.angular/
 # Development-only cache refreshed from the Blob layer manifest.
 /frontend/public/data/layer-manifest/manifest.json
+# Development-only styled manifest drafts saved from the local editor.
+/frontend/development-artifacts/layer-manifest/manual-edits/
 # Species secondary manifest is generated locally and published to Blob; not tracked (app loads from speciesManifestUrl).
 /frontend/public/data/layer-manifest/species.manifest.json
 .vercel

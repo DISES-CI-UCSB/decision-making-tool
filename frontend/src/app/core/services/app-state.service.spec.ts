@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
+import { environment } from '../../../environments/environment';
 import { AppStateService } from './app-state.service';
 
 describe('AppStateService', () => {
@@ -87,7 +88,7 @@ describe('AppStateService', () => {
     };
 
     expect(service.isComparing()).toBe(false);
-    expect(service.canAccessTier2()).toBe(false);
+    expect(service.canAccessTier2()).toBe(environment.bypassLoginForDevelopment);
 
     service.comparisonSolution$.set(comparisonSolution);
     service.userTier$.set(UserTier.DecisionMaker);

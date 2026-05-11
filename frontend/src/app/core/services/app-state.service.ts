@@ -82,7 +82,9 @@ export class AppStateService {
 
   readonly hasActiveSolution = computed(() => this.activeSolution$() !== null);
   readonly isComparing = computed(() => this.comparisonSolution$() !== null);
-  readonly canAccessTier2 = computed(() => this.userTier$() >= UserTier.DecisionMaker);
+  readonly canAccessTier2 = computed(
+    () => environment.bypassLoginForDevelopment || this.userTier$() >= UserTier.DecisionMaker,
+  );
   readonly canAccessSirapBoundaries = computed(
     () => this.canAccessTier2() || environment.allowSirapWithoutAuth,
   );

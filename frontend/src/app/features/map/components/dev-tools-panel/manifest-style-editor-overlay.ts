@@ -1,6 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import type {
+  ManifestStyleRequestChanges,
+  ManifestStyleRequestDiffSummary,
+} from '@core/models/manifest-style-request.model';
+import type {
   RuntimeLayerManifest,
   RuntimeLayerManifestCategory,
   RuntimeLayerManifestColorDefaults,
@@ -9,7 +13,10 @@ import type {
   RuntimeLayerManifestRenderingConfig,
   RuntimeLayerManifestSubcategory,
 } from '@core/models/layer-manifest.model';
+import { parseCategoryPath } from '@core/models/layer-manifest.model';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
+import { ManifestStyleRequestService } from '@core/services/manifest-style-request.service';
+import { environment } from '../../../../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import {
   applyCategoryColorDefaults,
@@ -70,6 +77,22 @@ type ManifestStyleEditorScope =
 type EditableRenderingNumberField = 'selectedValue' | 'noDataValue' | 'minValue' | 'maxValue';
 type EditableRenderingColorField = 'selectedColor' | 'startColor' | 'endColor';
 type EditableDefaultColorField = 'selectedColor' | 'startColor' | 'endColor';
+
+interface BrowserSaveFilePicker {
+  showSaveFilePicker?: (options: {
+    suggestedName: string;
+    types: {
+      description: string;
+      accept: Record<string, string[]>;
+    }[];
+  }) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: Blob) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+}
+
 const SIDEBAR_CATEGORY_ORDER = [
   'administrative_boundaries',
   'species_and_biodiversity',
@@ -93,6 +116,7 @@ const SIDEBAR_CATEGORY_ORDER = [
 })
 export class ManifestStyleEditorOverlayComponent {
   private readonly layerManifestService = inject(LayerManifestService);
+  private readonly styleRequestService = inject(ManifestStyleRequestService);
   private readonly localStorageKey = 'eco-plan:manifest-style-editor:draft';
 
   protected readonly isOpen = signal(false);
@@ -112,6 +136,7 @@ export class ManifestStyleEditorOverlayComponent {
   protected readonly publishArchivePath = signal('');
   protected readonly publishedManifestUrl = signal('');
   protected readonly localDraftMessage = signal<string | null>(null);
+  protected readonly lastDownloadedStyledManifestFilename = signal<string | null>(null);
 
   protected readonly validationByLayerId = computed(() => {
     const manifest = this.draftManifest();
@@ -332,10 +357,10 @@ export class ManifestStyleEditorOverlayComponent {
       return 'Publishing in progress...';
     }
     if (!this.hasUnsavedChanges()) {
-      return 'Make a style change to enable Save For All.';
+      return 'Make a style change to enable Save style request.';
     }
     if (!this.editorName().trim()) {
-      return 'Enter editorName to enable Save For All.';
+      return 'Enter editorName to enable Save style request.';
     }
     if (this.hasInvalidFields()) {
       return 'Fix validation errors before publishing.';
@@ -344,6 +369,14 @@ export class ManifestStyleEditorOverlayComponent {
   });
 
   protected readonly isLocalDevHost = computed(() => this.isRunningOnLocalhost());
+  protected readonly usesLocalStyleRequestWorkflow = environment.bypassLoginForDevelopment;
+  protected readonly localStyleRequestFileLocation = computed(
+    () => `~/Downloads/${this.lastDownloadedStyledManifestFilename() ?? 'DOWNLOADED_FILE.json'}`,
+  );
+  protected readonly localStyleRequestPublishCommand = computed(
+    () =>
+      `npm run publish:styled-manifest -- --source ${this.localStyleRequestFileLocation()} --publish`,
+  );
 
   protected readonly lastManualEdit = computed<RuntimeLayerManifestManualEdit | null>(() => {
     const draftManifest = this.draftManifest();
@@ -587,25 +620,59 @@ export class ManifestStyleEditorOverlayComponent {
     this.publishMessage.set(null);
   }
 
-  protected saveDraftLocally(): void {
+  protected async saveStyleRequest(): Promise<void> {
+    const loadedManifest = this.loadedManifest();
     const draftManifest = this.draftManifest();
-    if (!draftManifest) {
+    const editorName = this.editorName().trim();
+    if (!loadedManifest || !draftManifest) {
+      return;
+    }
+    if (!editorName) {
+      this.localDraftMessage.set('Enter editorName before saving a style request.');
+      return;
+    }
+    if (this.hasInvalidFields()) {
+      this.localDraftMessage.set('Fix validation errors before saving a style request.');
+      return;
+    }
+    if (!this.hasUnsavedChanges()) {
+      this.localDraftMessage.set('Make a style change before saving a style request.');
+      return;
+    }
+
+    if (environment.bypassLoginForDevelopment) {
+      this.saveDraftToLocalStorage(draftManifest, editorName);
+      const filename = this.downloadManifestFile(
+        draftManifest,
+        editorName,
+        'manifest-style-editor-local-dev-request',
+      );
+      this.lastDownloadedStyledManifestFilename.set(filename);
+      this.localDraftMessage.set(
+        `Login bypass is enabled, so Firestore was skipped. Downloaded ${filename}; run the command below from frontend.`,
+      );
       return;
     }
 
     try {
-      const payload = {
-        savedAt: new Date().toISOString(),
-        editorName: this.editorName().trim(),
+      this.saveDraftToLocalStorage(draftManifest, editorName);
+      const requestId = await this.styleRequestService.saveStyleRequest({
+        editorName,
+        status: 'pending',
         sourceManifestUrl: this.resolvedManifestUrl(),
-        manifest: draftManifest,
-      };
-      localStorage.setItem(this.localStorageKey, JSON.stringify(payload));
+        baseManifestVersion: loadedManifest.version ?? null,
+        baseManifestGeneratedAt: loadedManifest.generatedAt ?? null,
+        diffSummary: this.diffSummary() as ManifestStyleRequestDiffSummary,
+        styleChanges: this.buildStyleChanges(loadedManifest, draftManifest),
+      });
       this.localDraftMessage.set(
-        'Draft saved in local browser storage only. To update Vercel, download styled JSON and run `npm run publish:styled-manifest`.',
+        `Saved Firestore style request ${requestId}. Run npm run publish:styled-manifest from frontend to apply it to the latest blob manifest.`,
       );
-    } catch {
-      this.localDraftMessage.set('Draft save failed. Browser storage may be unavailable.');
+    } catch (error) {
+      this.localDraftMessage.set(
+        (error instanceof Error && error.message) ||
+          'Style request save failed. Check Firebase configuration and Firestore permissions.',
+      );
     }
   }
 
@@ -625,6 +692,7 @@ export class ManifestStyleEditorOverlayComponent {
       editorName,
       'manifest-style-editor-download',
     );
+    this.lastDownloadedStyledManifestFilename.set(filename);
 
     this.draftManifest.update((manifest) =>
       manifest
@@ -816,7 +884,7 @@ export class ManifestStyleEditorOverlayComponent {
     this.publishState.set('success');
     this.publishMessage.set(
       isLocalMock
-        ? 'Save For All simulated locally (ng serve does not host /api/dev routes).'
+        ? 'Direct publish simulated locally (ng serve does not host /api/dev routes).'
         : 'Published and archived the previous manifest.',
     );
     this.loadedManifest.set(structuredClone(draftManifest));
@@ -842,6 +910,16 @@ export class ManifestStyleEditorOverlayComponent {
     editorName: string,
     source: string,
   ): string {
+    const { filename, manifest } = this.buildStyledManifestFile(draftManifest, editorName, source);
+    this.downloadManifestBlob(manifest, filename);
+    return filename;
+  }
+
+  private buildStyledManifestFile(
+    draftManifest: RuntimeLayerManifest,
+    editorName: string,
+    source: string,
+  ): { filename: string; manifest: RuntimeLayerManifest } {
     const exportedAt = new Date().toISOString();
     const manualEdit: RuntimeLayerManifestManualEdit = {
       editorName,
@@ -859,7 +937,84 @@ export class ManifestStyleEditorOverlayComponent {
       .replace(/^-+|-+$/g, '');
     const timestamp = exportedAt.replace(/[:.]/g, '-');
     const filename = `manifest.styled.${fileSafeEditor || 'unknown-editor'}.${timestamp}.json`;
-    const blob = new Blob([JSON.stringify(manifestToDownload, null, 2)], {
+    return { filename, manifest: manifestToDownload };
+  }
+
+  private buildStyleChanges(
+    loadedManifest: RuntimeLayerManifest,
+    draftManifest: RuntimeLayerManifest,
+  ): ManifestStyleRequestChanges {
+    const categoryDefaults = [];
+    const subcategoryDefaults = [];
+    const loadedCategoriesById = new Map(
+      loadedManifest.categories.map((category) => [category.id, category]),
+    );
+
+    for (const draftCategory of draftManifest.categories) {
+      const loadedCategory = loadedCategoriesById.get(draftCategory.id);
+      if (
+        loadedCategory &&
+        !this.jsonEqual(loadedCategory.styleDefaults ?? null, draftCategory.styleDefaults ?? null)
+      ) {
+        categoryDefaults.push({
+          categoryId: draftCategory.id,
+          styleDefaults: structuredClone(draftCategory.styleDefaults ?? {}),
+        });
+      }
+
+      const loadedSubcategoriesById = new Map(
+        (loadedCategory?.subcategories ?? []).map((subcategory) => [subcategory.id, subcategory]),
+      );
+      for (const draftSubcategory of draftCategory.subcategories ?? []) {
+        const loadedSubcategory = loadedSubcategoriesById.get(draftSubcategory.id);
+        if (
+          loadedSubcategory &&
+          !this.jsonEqual(
+            loadedSubcategory.styleDefaults ?? null,
+            draftSubcategory.styleDefaults ?? null,
+          )
+        ) {
+          subcategoryDefaults.push({
+            categoryId: draftCategory.id,
+            subcategoryId: draftSubcategory.id,
+            styleDefaults: structuredClone(draftSubcategory.styleDefaults ?? {}),
+          });
+        }
+      }
+    }
+
+    const loadedLayersById = new Map(loadedManifest.layers.map((layer) => [layer.id, layer]));
+    const layerStyles = draftManifest.layers
+      .map((draftLayer) => {
+        const loadedLayer = loadedLayersById.get(draftLayer.id);
+        if (
+          !loadedLayer ||
+          (!draftLayer.rendering && !loadedLayer.rendering) ||
+          (this.jsonEqual(loadedLayer.rendering ?? null, draftLayer.rendering ?? null) &&
+            (loadedLayer.styleOverride ?? null) === (draftLayer.styleOverride ?? null))
+        ) {
+          return null;
+        }
+
+        return draftLayer.rendering
+          ? {
+              layerId: draftLayer.id,
+              rendering: structuredClone(draftLayer.rendering),
+              styleOverride: draftLayer.styleOverride ?? null,
+            }
+          : null;
+      })
+      .filter((change): change is ManifestStyleRequestChanges['layerStyles'][number] => !!change);
+
+    return { categoryDefaults, subcategoryDefaults, layerStyles };
+  }
+
+  private jsonEqual(left: unknown, right: unknown): boolean {
+    return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+  }
+
+  private downloadManifestBlob(manifest: RuntimeLayerManifest, filename: string): void {
+    const blob = new Blob([JSON.stringify(manifest, null, 2)], {
       type: 'application/json',
     });
     const objectUrl = URL.createObjectURL(blob);
@@ -868,7 +1023,54 @@ export class ManifestStyleEditorOverlayComponent {
     anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(objectUrl);
-    return filename;
+  }
+
+  private async saveManifestWithPicker(
+    manifest: RuntimeLayerManifest,
+    filename: string,
+  ): Promise<void> {
+    const pickerGlobal = globalThis as typeof globalThis & BrowserSaveFilePicker;
+    if (!pickerGlobal.showSaveFilePicker) {
+      throw new Error('Browser file picker is unavailable.');
+    }
+
+    const fileHandle = await pickerGlobal.showSaveFilePicker({
+      suggestedName: filename,
+      types: [
+        {
+          description: 'Styled layer manifest JSON',
+          accept: { 'application/json': ['.json'] },
+        },
+      ],
+    });
+    const writable = await fileHandle.createWritable();
+    await writable.write(
+      new Blob([JSON.stringify(manifest, null, 2)], {
+        type: 'application/json',
+      }),
+    );
+    await writable.close();
+  }
+
+  private canSaveToLocalFile(): boolean {
+    return (
+      typeof (globalThis as typeof globalThis & BrowserSaveFilePicker).showSaveFilePicker ===
+      'function'
+    );
+  }
+
+  private saveDraftToLocalStorage(manifest: RuntimeLayerManifest, editorName: string): void {
+    try {
+      const payload = {
+        savedAt: new Date().toISOString(),
+        editorName,
+        sourceManifestUrl: this.resolvedManifestUrl(),
+        manifest,
+      };
+      localStorage.setItem(this.localStorageKey, JSON.stringify(payload));
+    } catch {
+      // Firestore is the publish source of truth; browser storage is only a restore aid.
+    }
   }
 
   private async loadManifest(): Promise<void> {
@@ -880,6 +1082,8 @@ export class ManifestStyleEditorOverlayComponent {
         firstValueFrom(this.layerManifestService.getResolvedManifestUrl()),
       ]);
       const normalizedManifest = normalizeManifestForEditor(manifest);
+      this.assertManifestLayerCategories(normalizedManifest);
+      this.assertManifestSolutions(normalizedManifest);
       this.loadedManifest.set(structuredClone(normalizedManifest));
       this.draftManifest.set(structuredClone(normalizedManifest));
       this.resolvedManifestUrl.set(manifestUrl);
@@ -969,9 +1173,34 @@ export class ManifestStyleEditorOverlayComponent {
         manifest?: RuntimeLayerManifest;
         editorName?: string;
         sourceManifestUrl?: string;
+        savedAt?: string;
       };
       if (parsed.manifest) {
         const loadedManifest = this.loadedManifest();
+        const currentManifestUrl = this.resolvedManifestUrl();
+        const sourceMatchesCurrent =
+          !parsed.sourceManifestUrl || parsed.sourceManifestUrl === currentManifestUrl;
+
+        if (!sourceMatchesCurrent) {
+          localStorage.removeItem(this.localStorageKey);
+          this.localDraftMessage.set(
+            'Saved local draft came from a different manifest source and was dropped.',
+          );
+          return;
+        }
+
+        const normalizedManifest = normalizeManifestForEditor(parsed.manifest);
+        try {
+          this.assertManifestLayerCategories(normalizedManifest);
+          this.assertManifestSolutions(normalizedManifest);
+        } catch {
+          localStorage.removeItem(this.localStorageKey);
+          this.localDraftMessage.set(
+            'Saved local draft had invalid layer categories or missing solutions and was dropped.',
+          );
+          return;
+        }
+
         const draftVersion = parsed.manifest.version ?? null;
         const loadedVersion = loadedManifest?.version ?? null;
         const isVersionMismatch =
@@ -987,23 +1216,37 @@ export class ManifestStyleEditorOverlayComponent {
 
         const draftGeneratedAt = parsed.manifest.generatedAt ?? null;
         const loadedGeneratedAt = loadedManifest?.generatedAt ?? null;
-        const sourceMatchesCurrent =
-          !parsed.sourceManifestUrl || parsed.sourceManifestUrl === this.resolvedManifestUrl();
+        const draftEditFingerprint = this.manifestEditFingerprint(parsed.manifest);
+        const loadedEditFingerprint = loadedManifest
+          ? this.manifestEditFingerprint(loadedManifest)
+          : null;
+        const draftSavedAtMs = parsed.savedAt ? Date.parse(parsed.savedAt) : Number.NaN;
+        const loadedEditedAtMs = loadedManifest?.manualEdit?.editedAt
+          ? Date.parse(loadedManifest.manualEdit.editedAt)
+          : Number.NaN;
+        const draftPredatesLoadedEdit =
+          Number.isFinite(draftSavedAtMs) &&
+          Number.isFinite(loadedEditedAtMs) &&
+          draftSavedAtMs < loadedEditedAtMs;
         const isStaleAgainstLoaded =
           !!loadedManifest &&
           sourceMatchesCurrent &&
-          !!draftGeneratedAt &&
-          !!loadedGeneratedAt &&
-          draftGeneratedAt !== loadedGeneratedAt;
+          ((!!draftGeneratedAt && !!loadedGeneratedAt && draftGeneratedAt !== loadedGeneratedAt) ||
+            (!!draftEditFingerprint &&
+              !!loadedEditFingerprint &&
+              draftEditFingerprint !== loadedEditFingerprint) ||
+            (!draftEditFingerprint && !!loadedEditFingerprint) ||
+            draftPredatesLoadedEdit);
 
         if (isStaleAgainstLoaded) {
+          localStorage.removeItem(this.localStorageKey);
           this.localDraftMessage.set(
-            'Saved local draft targets an older manifest snapshot and was skipped.',
+            'Saved local draft targets an older manifest snapshot and was dropped.',
           );
         } else {
-          const normalizedManifest = normalizeManifestForEditor(parsed.manifest);
+          const initialScope = this.initialScopeForManifest(normalizedManifest);
           this.draftManifest.set(normalizedManifest);
-          this.selectedScope.set(this.initialScopeForManifest(normalizedManifest));
+          this.selectedScope.set(initialScope);
           this.expandInitialScope();
         }
       }
@@ -1012,6 +1255,43 @@ export class ManifestStyleEditorOverlayComponent {
       }
     } catch {
       this.localDraftMessage.set('Saved draft was unreadable and was ignored.');
+      localStorage.removeItem(this.localStorageKey);
+    }
+  }
+
+  private assertManifestLayerCategories(manifest: RuntimeLayerManifest): void {
+    const categoryIds = new Set(manifest.categories.map((category) => category.id));
+    const subcategoryIdsByCategory = new Map(
+      manifest.categories.map((category) => [
+        category.id,
+        new Set((category.subcategories ?? []).map((subcategory) => subcategory.id)),
+      ]),
+    );
+
+    for (const layer of manifest.layers) {
+      const { categoryId, subcategoryId } = parseCategoryPath(layer.category);
+      if (!categoryIds.has(categoryId)) {
+        throw new Error(`Layer "${layer.id}" references missing category "${categoryId}".`);
+      }
+      if (subcategoryId && !subcategoryIdsByCategory.get(categoryId)?.has(subcategoryId)) {
+        throw new Error(
+          `Layer "${layer.id}" references missing subcategory "${categoryId}.${subcategoryId}".`,
+        );
+      }
+    }
+  }
+
+  private manifestEditFingerprint(manifest: RuntimeLayerManifest): string | null {
+    const manualEdit = manifest.manualEdit;
+    if (!manualEdit?.editedAt) {
+      return null;
+    }
+    return [manualEdit.editedAt, manualEdit.editorName, manualEdit.source ?? ''].join('|');
+  }
+
+  private assertManifestSolutions(manifest: RuntimeLayerManifest): void {
+    if (!Array.isArray(manifest.solutions)) {
+      throw new Error('Manifest solutions must be an array.');
     }
   }
 

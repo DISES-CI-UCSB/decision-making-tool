@@ -7,9 +7,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../..');
 
-const generatedManifestPath = path.resolve(__dirname, '../public/data/layer-manifest/manifest.json');
+const generatedManifestPath = path.resolve(
+  __dirname,
+  '../public/data/layer-manifest/manifest.json',
+);
 const devLatestManifestPath = path.resolve(__dirname, './latest/manifest.latest.json');
 const MANIFEST_BLOB_URL_ENV_VAR = 'MANIFEST_BLOB_URL';
+const PUBLISHED_LAYER_MANIFEST_URL =
+  'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
 
 async function readJson(filePath) {
   const raw = await fs.readFile(filePath, 'utf-8');
@@ -17,7 +22,8 @@ async function readJson(filePath) {
 }
 
 async function fetchJson(url) {
-  const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+  const uncachedUrl = `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+  const response = await fetch(uncachedUrl, { method: 'GET', redirect: 'follow' });
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
   }
@@ -25,7 +31,8 @@ async function fetchJson(url) {
 }
 
 async function resolveManifestSource() {
-  const configuredBlobUrl = process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || null;
+  const configuredBlobUrl =
+    process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || PUBLISHED_LAYER_MANIFEST_URL;
 
   if (configuredBlobUrl) {
     try {
@@ -39,7 +46,9 @@ async function resolveManifestSource() {
       console.warn(
         `[sync-latest-manifest] Failed blob fetch from ${configuredBlobUrl}. Falling back to local generated manifest.`,
       );
-      console.warn(`[sync-latest-manifest] ${(error instanceof Error && error.message) || String(error)}`);
+      console.warn(
+        `[sync-latest-manifest] ${(error instanceof Error && error.message) || String(error)}`,
+      );
     }
   }
 
@@ -57,8 +66,7 @@ async function main() {
   const { manifest, sourceType, sourceUrl } = await resolveManifestSource();
   const payload = {
     _meta: {
-      note:
-        'This manifest is stored here to aid developers. While the runtime app reads the manifest.json stored at MANIFEST_BLOB_URL, the latest version retrieved by the runtime app is stored here for debugging purposes.',
+      note: 'This manifest is stored here to aid developers. While the runtime app reads the manifest.json stored at MANIFEST_BLOB_URL, the latest version retrieved by the runtime app is stored here for debugging purposes.',
       syncedAt: new Date().toISOString(),
       sourceType,
       sourceUrl,
@@ -76,6 +84,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`[sync-latest-manifest] ${(error instanceof Error && error.message) || String(error)}`);
+  console.error(
+    `[sync-latest-manifest] ${(error instanceof Error && error.message) || String(error)}`,
+  );
   process.exit(1);
 });

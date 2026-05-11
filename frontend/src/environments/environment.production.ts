@@ -16,6 +16,7 @@ export const environment = {
   googleClientId: '',
   manifestBlobUrl: '',
   ENABLE_MANIFEST_EDITOR: false,
+  bypassLoginForDevelopment: false,
   allowSirapWithoutAuth: false,
 } as const;
 
