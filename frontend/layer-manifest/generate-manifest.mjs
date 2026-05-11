@@ -241,6 +241,8 @@ const proposedLayerCategoryOverrides = {
   climate_refugia: 'prospective_models',
 };
 
+const metricAuditLayerIds = new Set(['conflict', 'recarga_agua_subterranea_moderado_alto']);
+
 const proposedCsvGroupCategoryIds = {
   biodiversidad: 'species_and_biodiversity',
   ecosistemas: 'ecosystems',
@@ -509,6 +511,10 @@ function toBlobPath(storageLocation, filename) {
 function isDisplayCandidate(row) {
   const normalizedFormat = row.data_format.toLowerCase();
   return [...displayAssetFormats].some((format) => normalizedFormat.includes(format));
+}
+
+function shouldIncludeManifestRow(row) {
+  return (isTrue(row.in_use_now) || metricAuditLayerIds.has(toLayerId(row.layer_id))) && isDisplayCandidate(row);
 }
 
 function parseBlobListOutput(output) {
@@ -1999,11 +2005,13 @@ function buildReport({
     }));
 
   const excludedRows = allRows
-    .filter((row) => !isTrue(row.in_use_now))
+    .filter((row) => !shouldIncludeManifestRow(row))
     .map((row) => ({
       layerId: row.layer_id,
       displayName: splitMultilineLabel(row.layer_name)[0] || row.layer_name,
-      reason: 'in_use_now is not TRUE',
+      reason: isTrue(row.in_use_now)
+        ? 'row is not a display candidate'
+        : 'in_use_now is not TRUE and layer is not metric-audit allowlisted',
     }));
 
   const includedRowMetadataGaps = includedRows
@@ -2048,7 +2056,9 @@ function buildReport({
     },
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     policy: {
-      includedRows: 'Only rows with en_uso_actual / in_use_now set to TRUE',
+      includedRows:
+        'Rows with en_uso_actual / in_use_now set to TRUE, plus metric-audit allowlisted layers needed for finalized metrics review',
+      metricAuditAllowlistedLayerIds: [...metricAuditLayerIds],
       speciesHandling:
         'Species rasters are represented as one collection pointer, not one layer per TIFF',
       liveManifest:
@@ -2144,7 +2154,7 @@ async function main() {
 
   const csvRaw = await fs.readFile(REQUIRED_LAYERS_CSV, 'utf-8');
   const rows = rowsToObjects(parseCsv(csvRaw));
-  const includedRows = rows.filter((row) => isTrue(row.in_use_now) && isDisplayCandidate(row));
+  const includedRows = rows.filter(shouldIncludeManifestRow);
   const blobInventory = await readBlobInventory();
   const solutionBlobInventory = await readSolutionBlobInventory();
   const blobByPath = new Map(blobInventory.map((blob) => [blob.pathname, blob]));
