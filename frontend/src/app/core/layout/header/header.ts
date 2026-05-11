@@ -61,7 +61,8 @@ export class HeaderComponent {
   }
 
   protected logout(): void {
+    this.authModalOpen.set(false);
     this.adminPanelOpen.set(false);
-    this.authService.logout();
+    void this.authService.logout();
   }
 }

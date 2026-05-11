@@ -9,7 +9,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { UserTier } from '@core/models';
 import { AuthService } from '@core/services/auth.service';
 import {
   AuthRequestService,
@@ -150,10 +149,7 @@ export class AuthModalComponent {
         provider: 'google',
       });
       if (loginResult === 'active') {
-        const approvedUser = profile.uid
-          ? await this.authRequest.getApprovedUser(profile.uid)
-          : null;
-        this.grantSessionAndClose('google', this.authRequest.roleToTier(approvedUser?.role));
+        await this.syncSessionAndClose();
         return;
       }
       if (loginResult === 'pending') {
@@ -207,7 +203,7 @@ export class AuthModalComponent {
         provider: 'local',
       });
       if (result === 'active') {
-        this.grantSessionAndClose('local');
+        this.loginError.set('Email login is not connected to Firebase yet. Please use Google.');
         return;
       }
       if (result === 'pending') {
@@ -389,12 +385,8 @@ export class AuthModalComponent {
   // Helpers
   // ------------------------------------------------------------------
 
-  private grantSessionAndClose(provider: 'local' | 'google', tier = UserTier.DecisionMaker): void {
-    this.authService.login({
-      token: `mock-${provider}-${Date.now()}`,
-      tier,
-      provider,
-    });
+  private async syncSessionAndClose(): Promise<void> {
+    await this.authService.refreshCurrentUserTier();
     this.resetForms();
     this.state.set('entry');
     this.closeRequested.emit();

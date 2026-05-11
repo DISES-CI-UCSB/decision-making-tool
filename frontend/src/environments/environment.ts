@@ -19,6 +19,8 @@ export const environment = {
   googleClientId: '',
   manifestBlobUrl: '',
   ENABLE_MANIFEST_EDITOR: true,
+  // Keep the real Firebase auth flow active during local development by default.
+  bypassLoginForDevelopment: false,
   // Temporary dev override: keep SIRAP boundaries testable while auth approval
   // flow remains mocked/pending (UCS-181 in progress).
   allowSirapWithoutAuth: true,

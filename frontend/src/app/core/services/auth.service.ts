@@ -1,90 +1,93 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
+import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { UserTier } from '@core/models';
+import { type Unsubscribe, type User } from 'firebase/auth';
+import { type DocumentData } from 'firebase/firestore';
+import { environment } from '../../../environments/environment';
 
-const AUTH_STORAGE_KEY = 'dmt.auth.session';
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-export type AuthProvider = 'local' | 'google';
-
-interface StoredAuthSession {
-  token: string;
-  tier: UserTier;
-  provider: AuthProvider;
-  expiresAt: number;
-}
-
-export interface LoginPayload {
-  token: string;
-  tier?: UserTier;
-  provider?: AuthProvider;
-}
+type ApprovedUserRole = 'authorized_viewer' | 'science_publisher' | 'admin';
 
 @Injectable({
   providedIn: 'root',
 })
-export class AuthService {
+export class AuthService implements OnDestroy {
   private readonly appState = inject(AppStateService);
+  private readonly firebase = inject(FirebaseClientService);
+  private authStateUnsubscribe: Unsubscribe | null = null;
+  private explicitlyLoggedOut = false;
 
   constructor() {
-    this.syncTierFromStoredSession();
+    this.appState.userTier$.set(this.getFallbackTier());
+    this.authStateUnsubscribe = this.firebase.subscribeToAuthState((user) => {
+      void this.syncTierFromFirebaseUser(user);
+    });
   }
 
-  login(payload: LoginPayload): void {
-    const nextSession: StoredAuthSession = {
-      token: payload.token,
-      tier: payload.tier ?? UserTier.DecisionMaker,
-      provider: payload.provider ?? 'local',
-      expiresAt: Date.now() + SEVEN_DAYS_MS,
-    };
-
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
-    this.appState.userTier$.set(nextSession.tier);
+  ngOnDestroy(): void {
+    this.authStateUnsubscribe?.();
   }
 
-  logout(): void {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+  async logout(): Promise<void> {
+    this.explicitlyLoggedOut = true;
+    await this.firebase.signOut();
     this.appState.userTier$.set(UserTier.Public);
   }
 
   getCurrentTier(): UserTier {
-    const session = this.readValidSession();
-    if (!session) {
-      this.logout();
-      return UserTier.Public;
-    }
-    return session.tier;
+    return this.appState.userTier$();
   }
 
   isAuthenticated(): boolean {
-    const session = this.readValidSession();
-    if (!session) {
-      this.logout();
-      return false;
-    }
-    return true;
+    return this.getCurrentTier() >= UserTier.DecisionMaker;
   }
 
-  private syncTierFromStoredSession(): void {
-    const tier = this.getCurrentTier();
+  async refreshCurrentUserTier(): Promise<UserTier> {
+    const tier = await this.syncTierFromFirebaseUser(this.firebase.currentUser);
     this.appState.userTier$.set(tier);
+    return tier;
   }
 
-  private readValidSession(): StoredAuthSession | null {
-    const rawValue = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!rawValue) {
-      return null;
+  private async syncTierFromFirebaseUser(user: User | null): Promise<UserTier> {
+    if (!user) {
+      const fallbackTier = this.getFallbackTier();
+      this.appState.userTier$.set(fallbackTier);
+      return fallbackTier;
     }
 
-    try {
-      const parsed = JSON.parse(rawValue) as StoredAuthSession;
-      const isExpired = parsed.expiresAt <= Date.now();
-      if (isExpired || !parsed.token) {
-        return null;
-      }
-      return parsed;
-    } catch {
+    this.explicitlyLoggedOut = false;
+    const tier = await this.getTierForFirebaseUser(user.uid);
+    this.appState.userTier$.set(tier);
+    return tier;
+  }
+
+  private async getTierForFirebaseUser(uid: string): Promise<UserTier> {
+    const userData = await this.firebase.getUserDocument(uid);
+    const role = userData ? this.readApprovedRole(userData) : null;
+    return role ? this.roleToTier(role) : UserTier.Public;
+  }
+
+  private getFallbackTier(): UserTier {
+    return environment.bypassLoginForDevelopment && !this.explicitlyLoggedOut
+      ? UserTier.DecisionMaker
+      : UserTier.Public;
+  }
+
+  private readApprovedRole(data: DocumentData): ApprovedUserRole | null {
+    if (data['status'] !== 'active') {
       return null;
     }
+    const role = data['role'];
+    if (role === 'authorized_viewer' || role === 'science_publisher' || role === 'admin') {
+      return role;
+    }
+    return null;
+  }
+
+  private roleToTier(role: ApprovedUserRole): UserTier {
+    if (role === 'admin') {
+      return UserTier.Manager;
+    }
+    return UserTier.DecisionMaker;
   }
 }
