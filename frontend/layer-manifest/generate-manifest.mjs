@@ -514,7 +514,10 @@ function isDisplayCandidate(row) {
 }
 
 function shouldIncludeManifestRow(row) {
-  return (isTrue(row.in_use_now) || metricAuditLayerIds.has(toLayerId(row.layer_id))) && isDisplayCandidate(row);
+  return (
+    (isTrue(row.in_use_now) || metricAuditLayerIds.has(toLayerId(row.layer_id))) &&
+    isDisplayCandidate(row)
+  );
 }
 
 function parseBlobListOutput(output) {
