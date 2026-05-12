@@ -196,9 +196,9 @@ const LEGEND_BOUNDARY_STYLES: Record<
   AdminBoundaryLayerKey,
   { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
 > = {
-  siraps: { lineStyle: 'dashed', lineWidth: 2, color: '#111827' },
-  siraps_territorial: { lineStyle: 'solid', lineWidth: 2, color: '#2563eb' },
-  siraps_thematic: { lineStyle: 'dashed', lineWidth: 2, color: '#9333ea' },
+  siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
+  siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#2563eb' },
+  siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#9333ea' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
 };
