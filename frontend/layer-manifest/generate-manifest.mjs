@@ -2197,6 +2197,16 @@ async function main() {
     categories,
     layers,
     solutions: solutionCatalog.solutions,
+    referenceData: {
+      speciesLookup: {
+        description:
+          'Species range lookup table with IUCN status and taxonomic class, used for biodiversity metric pre-calculation. Source: biomod species range model outputs with updated IUCN assessments.',
+        blobPathname: 'inputs/metadata/biomod_spp_ranges_updatedIUCN.csv',
+        url: `${PUBLIC_BLOB_HOST}/inputs/metadata/biomod_spp_ranges_updatedIUCN.csv`,
+        fields: ['scientific_name', 'class', 'iucn_status'],
+        note: 'Local copy at data/biomod_spp_ranges_updatedIUCN.csv is gitignored; download from url above.',
+      },
+    },
   };
 
   const nextManifestJson = `${JSON.stringify(manifest, null, 2)}\n`;

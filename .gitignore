@@ -78,3 +78,6 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 # Python generated files
 __pycache__/
 *.py[cod]
+
+# Large species lookup CSV — kept in Vercel Blob at inputs/metadata/biomod_spp_ranges_updatedIUCN.csv
+data/biomod_spp_ranges_updatedIUCN.csv
