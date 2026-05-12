@@ -408,24 +408,13 @@ function toDisplayLabel(value) {
     .join(' ');
 }
 
-function inferTaxonFromScientificName(scientificName) {
-  const genus = scientificName.trim().split(/\s+/)[0]?.trim();
-  if (!genus || genus.toLowerCase() === 'unknown') {
-    return { taxonId: null, taxonLabel: null };
-  }
-  return {
-    taxonId: toLayerId(genus),
-    taxonLabel: genus,
-  };
-}
-
-function inferTaxonFromPathname(pathname, scientificName) {
+function inferTaxonFromPathname(pathname) {
   const relativePath = pathname.startsWith(SPECIES_BLOB_PREFIX)
     ? pathname.slice(SPECIES_BLOB_PREFIX.length)
     : pathname;
   const pathSegments = relativePath.split('/').filter(Boolean);
   if (pathSegments.length < 2) {
-    return inferTaxonFromScientificName(scientificName);
+    return { taxonId: null, taxonLabel: null };
   }
 
   const taxonSlug = pathSegments[0];
@@ -543,7 +532,7 @@ async function inspectSpeciesRasterWithRetry(url, sampleGridSize, maxAttempts, p
 
 async function buildSpeciesLayer(blob, sampleGridSize, retryAttempts, pacing) {
   const scientificName = normalizeScientificName(blob.pathname);
-  const taxon = inferTaxonFromPathname(blob.pathname, scientificName);
+  const taxon = inferTaxonFromPathname(blob.pathname);
   const id = toLayerId(scientificName);
   const { rendering } = await inspectSpeciesRasterWithRetry(
     blob.url,

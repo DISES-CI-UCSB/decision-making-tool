@@ -2729,21 +2729,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (layer.taxonLabel?.trim()) {
       return `taxon-${this.toSlug(layer.taxonLabel)}`;
     }
-    const fallbackName = this.speciesTaxonFallbackName(layer);
-    return fallbackName ? `taxon-${this.toSlug(fallbackName)}` : 'taxon-unspecified';
+    return 'taxon-individual-species';
   }
 
   private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
-    return layer?.taxonLabel?.trim() || this.speciesTaxonFallbackName(layer) || 'Unspecified taxon';
-  }
-
-  private speciesTaxonFallbackName(layer: RuntimeSpeciesManifestLayer | undefined): string | null {
-    const scientificName = layer?.scientificName?.trim() || layer?.commonName?.trim() || '';
-    const genus = scientificName.split(/\s+/)[0]?.trim();
-    if (!genus || genus.toLowerCase() === 'unknown') {
-      return null;
-    }
-    return genus;
+    return layer?.taxonLabel?.trim() || 'Individual species';
   }
 
   /**
