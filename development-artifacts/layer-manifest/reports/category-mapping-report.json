@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T19:17:42.054Z",
+  "generatedAt": "2026-05-12T21:25:39.134Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -178,6 +178,8 @@
       "manifestSpanishLabel": "Límites administrativos",
       "layerIds": [
         "siraps",
+        "siraps_territorial",
+        "siraps_thematic",
         "admin_departments",
         "admin_municipalities"
       ],
@@ -192,7 +194,21 @@
       "layerMappings": [
         {
           "layerId": "siraps",
-          "spanishLabel": "Limites SIRAPS",
+          "spanishLabel": "Combined SIRAP review layer",
+          "dataRole": "administrative_boundary",
+          "frontendCategoryId": "group-admin-boundaries",
+          "frontendCategoryTitle": "Administrative Boundaries"
+        },
+        {
+          "layerId": "siraps_territorial",
+          "spanishLabel": "Territorial SIRAPs",
+          "dataRole": "administrative_boundary",
+          "frontendCategoryId": "group-admin-boundaries",
+          "frontendCategoryTitle": "Administrative Boundaries"
+        },
+        {
+          "layerId": "siraps_thematic",
+          "spanishLabel": "Thematic SIRAP additions",
           "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-admin-boundaries",
           "frontendCategoryTitle": "Administrative Boundaries"

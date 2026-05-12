@@ -50,6 +50,7 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 !/data/solutions/**/*.json
 !/data/boundaries/
 !/data/boundaries/**
+/data/boundaries/SIRAPS/
 !/data/**/*.py
 # Frontend deploy assets (bundled into Vercel build)
 !/data/frontend_deploy/

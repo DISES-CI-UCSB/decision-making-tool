@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T19:17:42.054Z",
+  "generatedAt": "2026-05-12T21:25:39.134Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -12,23 +12,63 @@
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
-    "csvRows": 22,
-    "includedRows": 16,
-    "generatedLayers": 16,
-    "blobInventoryEntries": 47,
+    "csvRows": 24,
+    "includedRows": 18,
+    "generatedLayers": 18,
+    "blobInventoryEntries": 74,
     "missingRequired": 0,
-    "extraAvailable": 15,
-    "includedRowMetadataGaps": 15,
+    "extraAvailable": 50,
+    "includedRowMetadataGaps": 17,
     "excludedRows": 6,
-    "generatedSolutions": 18,
-    "skippedSolutionMetadataFiles": 0,
-    "unmatchedSolutionRasters": 0,
+    "generatedSolutions": 0,
+    "skippedSolutionMetadataFiles": 18,
+    "unmatchedSolutionRasters": 18,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 1,
-    "renderingInferenceLowConfidence": 14
+    "renderingInferenceLowConfidence": 16
   },
   "missingRequired": [],
   "extraAvailable": [
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.cpg",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.cpg",
+      "bytes": 5
+    },
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.dbf",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.dbf",
+      "bytes": 1722
+    },
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.prj",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.prj",
+      "bytes": 139
+    },
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.sbn",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.sbn",
+      "bytes": 220
+    },
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.sbx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.sbx",
+      "bytes": 132
+    },
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.shp",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.shp",
+      "bytes": 6382840
+    },
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.shp.xml",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.shp.xml",
+      "bytes": 7447
+    },
+    {
+      "pathname": "boundaries/SIRAPS/shape_DTs.shx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/SIRAPS/shape_DTs.shx",
+      "bytes": 164
+    },
     {
       "pathname": "boundaries/coberturas.csv",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.csv",
@@ -68,6 +108,141 @@
       "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shx",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shx",
       "bytes": 5012
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/siraps_merged.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged.geojson",
+      "bytes": 3213695
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/siraps_territorial.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_territorial.geojson",
+      "bytes": 2471458
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/siraps_thematic.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_thematic.geojson",
+      "bytes": 447486
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.cpg",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.cpg",
+      "bytes": 5
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.dbf",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.dbf",
+      "bytes": 1722
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.prj",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.prj",
+      "bytes": 139
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.sbn",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.sbn",
+      "bytes": 220
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.sbx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.sbx",
+      "bytes": 132
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.shp",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.shp",
+      "bytes": 6382840
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.shp.xml",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.shp.xml",
+      "bytes": 7447
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/shape_DTs/shape_DTs.shx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/shape_DTs/shape_DTs.shx",
+      "bytes": 164
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/siraps_merged/siraps_merged.dbf",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/siraps_merged/siraps_merged.dbf",
+      "bytes": 1708
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/siraps_merged/siraps_merged.prj",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/siraps_merged/siraps_merged.prj",
+      "bytes": 139
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/siraps_merged/siraps_merged.shp",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/siraps_merged/siraps_merged.shp",
+      "bytes": 8855632
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/siraps_merged/siraps_merged.shx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/siraps_merged/siraps_merged.shx",
+      "bytes": 180
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.cpg",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.cpg",
+      "bytes": 5
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.dbf",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.dbf",
+      "bytes": 416552
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.prj",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.prj",
+      "bytes": 139
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.sbn",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.sbn",
+      "bytes": 11468
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.sbx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.sbx",
+      "bytes": 644
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.shp",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.shp",
+      "bytes": 77121784
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.shp.xml",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.shp.xml",
+      "bytes": 12726
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.shx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/Territoriales_y_SIRAPs/Territoriales_y_SIRAPs.shx",
+      "bytes": 9076
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.dbf",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.dbf",
+      "bytes": 228
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.prj",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.prj",
+      "bytes": 139
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.shp",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.shp",
+      "bytes": 1453364
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.shx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/source/thematic/eje_cafetero_macizo/eje_cafetero_macizo.shx",
+      "bytes": 116
     },
     {
       "pathname": "inputs/costs/climate_refugia.tif",
@@ -185,12 +360,26 @@
     },
     {
       "layerId": "siraps",
-      "displayName": "Limites SIRAPS",
+      "displayName": "Combined SIRAP review layer",
       "missingFields": [
         "source_created_date",
-        "source_updated_date",
-        "source_license",
-        "source_contact"
+        "source_license"
+      ]
+    },
+    {
+      "layerId": "siraps_territorial",
+      "displayName": "Territorial SIRAPs",
+      "missingFields": [
+        "source_created_date",
+        "source_license"
+      ]
+    },
+    {
+      "layerId": "siraps_thematic",
+      "displayName": "Thematic SIRAP additions",
+      "missingFields": [
+        "source_created_date",
+        "source_license"
       ]
     },
     {
@@ -245,17 +434,17 @@
   },
   "solutionCatalogSummary": {
     "reportPath": "development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json",
-    "generatedSolutions": 18,
-    "skippedSolutionMetadataFiles": 0,
-    "unmatchedSolutionRasters": 0
+    "generatedSolutions": 0,
+    "skippedSolutionMetadataFiles": 18,
+    "unmatchedSolutionRasters": 18
   },
   "renderingInferenceSummary": {
     "byStrategy": {
       "manual_override": 2,
-      "legacy_non_raster": 4,
+      "legacy_non_raster": 6,
       "fallback_after_uncertain_sampling": 10
     },
-    "lowConfidence": 14
+    "lowConfidence": 16
   },
   "excludedRows": [
     {

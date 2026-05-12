@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import Graphic from '@arcgis/core/Graphic';
 import type Geometry from '@arcgis/core/geometry/Geometry';
 import type Multipoint from '@arcgis/core/geometry/Multipoint';
@@ -18,6 +18,7 @@ import { AppStateService } from '@core/services/app-state.service';
 
 interface BoundaryConfig {
   id: string;
+  layerKey: AdminBoundaryLayerKey;
   title: string;
   type: AoiType;
   sourceType: 'feature' | 'geojson';
@@ -39,6 +40,12 @@ interface HitTestCandidate {
 }
 
 export type SirapSelectionScope = 'part' | 'whole';
+export type AdminBoundaryLayerKey =
+  | 'siraps'
+  | 'siraps_territorial'
+  | 'siraps_thematic'
+  | 'admin_departments'
+  | 'admin_municipalities';
 
 interface BoundaryStyle {
   color: [number, number, number, number];
@@ -46,17 +53,23 @@ interface BoundaryStyle {
   style: 'solid' | 'long-dash';
 }
 
+const PUBLIC_BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
 const DEFAULT_ADMIN_BOUNDARY_HEX = '#111827';
 const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [17, 24, 39, 235];
-const DEFAULT_BOUNDARY_STYLE_BY_TYPE: Record<AoiType, BoundaryStyle> = {
-  sirap: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 2, style: 'long-dash' },
-  department: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
-  municipality: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
+const DEFAULT_SIRAP_TERRITORIAL_COLOR: BoundaryStyle['color'] = [37, 99, 235, 235];
+const DEFAULT_SIRAP_THEMATIC_COLOR: BoundaryStyle['color'] = [147, 51, 234, 235];
+const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, BoundaryStyle> = {
+  siraps: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 2, style: 'long-dash' },
+  siraps_territorial: { color: DEFAULT_SIRAP_TERRITORIAL_COLOR, width: 2, style: 'solid' },
+  siraps_thematic: { color: DEFAULT_SIRAP_THEMATIC_COLOR, width: 2, style: 'long-dash' },
+  admin_departments: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
+  admin_municipalities: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
 };
 
 const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-departments-colombia',
+    layerKey: 'admin_departments',
     title: 'Colombia Departments (IGAC)',
     type: 'department',
     sourceType: 'feature',
@@ -79,6 +92,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   },
   {
     id: 'aoi-municipalities-colombia',
+    layerKey: 'admin_municipalities',
     title: 'Colombia Municipalities (IGAC)',
     type: 'municipality',
     sourceType: 'feature',
@@ -100,14 +114,15 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
     },
   },
   {
-    id: 'aoi-sirap-colombia',
-    title: 'Colombia SIRAP Regions',
+    id: 'aoi-siraps-combined-colombia',
+    layerKey: 'siraps',
+    title: 'Colombia SIRAPs - Combined Review Layer',
     type: 'sirap',
     sourceType: 'geojson',
-    url: '/data/sirap-regions.geojson',
-    idFields: ['sirap'],
-    nameFields: ['sirap'],
-    visible: true,
+    url: `${PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/siraps_merged.geojson`,
+    idFields: ['sirap_id', 'sirap_name', 'nombre', 'sirap'],
+    nameFields: ['sirap_name', 'nombre', 'sirap'],
+    visible: false,
     opacity: 0.95,
     minScale: 0,
     maxScale: 0,
@@ -125,6 +140,34 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
       },
     },
   },
+  {
+    id: 'aoi-siraps-territorial-colombia',
+    layerKey: 'siraps_territorial',
+    title: 'Colombia SIRAPs - Territorial',
+    type: 'sirap',
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/siraps_territorial.geojson`,
+    idFields: ['sirap_id', 'sirap_name', 'nombre', 'sirap'],
+    nameFields: ['sirap_name', 'nombre', 'sirap'],
+    visible: false,
+    opacity: 0.95,
+    minScale: 0,
+    maxScale: 0,
+  },
+  {
+    id: 'aoi-siraps-thematic-colombia',
+    layerKey: 'siraps_thematic',
+    title: 'Colombia SIRAPs - Thematic Additions',
+    type: 'sirap',
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/siraps_thematic.geojson`,
+    idFields: ['sirap_id', 'sirap_name', 'Tematico', 'sirap'],
+    nameFields: ['sirap_name', 'Tematico', 'sirap'],
+    visible: false,
+    opacity: 0.95,
+    minScale: 0,
+    maxScale: 0,
+  },
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -137,18 +180,30 @@ export class AdminBoundaryService {
   private viewClickHandle: { remove: () => void } | null = null;
   private lastSelectionCandidate: HitTestCandidate | null = null;
   private lastClickPoint: InstanceType<typeof Point> | null = null;
-  private readonly defaultVisibilityByType: Record<AoiType, boolean> = {
-    sirap: false,
-    department: true,
-    municipality: false,
+  private readonly defaultVisibilityByLayerKey: Record<AdminBoundaryLayerKey, boolean> = {
+    siraps: false,
+    siraps_territorial: false,
+    siraps_thematic: false,
+    admin_departments: true,
+    admin_municipalities: false,
   };
-  readonly layerVisibilityByType$ = signal<Record<AoiType, boolean>>(this.defaultVisibilityByType);
+  readonly layerVisibilityByLayerKey$ = signal<Record<AdminBoundaryLayerKey, boolean>>(
+    this.defaultVisibilityByLayerKey,
+  );
+  readonly layerVisibilityByType$ = computed<Record<AoiType, boolean>>(() => {
+    const state = this.layerVisibilityByLayerKey$();
+    return {
+      sirap: state.siraps || state.siraps_territorial || state.siraps_thematic,
+      department: state.admin_departments,
+      municipality: state.admin_municipalities,
+    };
+  });
   readonly popupEnabled$ = signal(false);
   readonly sirapSelectionScope$ = signal<SirapSelectionScope>('part');
-  private readonly boundaryStyleByType = signal<Record<AoiType, BoundaryStyle>>(
-    DEFAULT_BOUNDARY_STYLE_BY_TYPE,
+  private readonly boundaryStyleByLayerKey = signal<Record<AdminBoundaryLayerKey, BoundaryStyle>>(
+    DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY,
   );
-  private readonly unavailableBoundaryTypes = new Set<AoiType>();
+  private readonly unavailableBoundaryLayerKeys = new Set<AdminBoundaryLayerKey>();
 
   constructor() {
     effect(() => {
@@ -173,7 +228,7 @@ export class AdminBoundaryService {
     // Create only default-visible layers on startup. Remote IGAC FeatureLayers are loaded lazily
     // when users explicitly toggle them on, which avoids noisy startup CORS errors.
     this.boundaryLayers = COLOMBIA_BOUNDARY_CONFIGS.filter(
-      (config) => this.layerVisibilityByType$()[config.type] ?? config.visible ?? true,
+      (config) => this.layerVisibilityByLayerKey$()[config.layerKey] ?? config.visible ?? true,
     ).map((config) => this.buildLayer(config));
     if (this.boundaryLayers.length > 0) {
       map.addMany(this.boundaryLayers);
@@ -211,25 +266,35 @@ export class AdminBoundaryService {
     this.aoiHighlightLayer = null;
   }
 
-  setLayerVisibility(type: AoiType, visible: boolean): void {
-    if (type === 'sirap' && visible && !this.appState.canAccessSirapBoundaries()) {
-      this.layerVisibilityByType$.update((state) => ({ ...state, [type]: false }));
+  setLayerVisibility(target: AoiType | AdminBoundaryLayerKey, visible: boolean): void {
+    const configs = this.getConfigsForTarget(target);
+    if (
+      configs.some((config) => config.type === 'sirap') &&
+      visible &&
+      !this.appState.canAccessSirapBoundaries()
+    ) {
+      this.setVisibilityForConfigs(configs, false);
       return;
     }
 
     if (visible) {
-      this.ensureLayersForType(type);
-      if (this.unavailableBoundaryTypes.has(type)) {
-        this.layerVisibilityByType$.update((state) => ({ ...state, [type]: false }));
+      for (const config of configs) {
+        this.ensureLayerForConfig(config);
+      }
+      if (configs.some((config) => this.unavailableBoundaryLayerKeys.has(config.layerKey))) {
+        this.setVisibilityForConfigs(configs, false);
         return;
       }
     }
-    this.layerVisibilityByType$.update((state) => ({ ...state, [type]: visible }));
-    this.applyVisibilityToMapLayers(type, visible);
+    this.setVisibilityForConfigs(configs, visible);
+    this.applyVisibilityToMapLayers(configs, visible);
     if (visible) {
-      this.bringTypeLayersToFront(type);
-      if (type !== 'sirap' && this.layerVisibilityByType$().sirap) {
-        this.bringTypeLayersToFront('sirap');
+      this.bringLayersToFront(configs);
+      if (
+        !configs.some((config) => config.type === 'sirap') &&
+        this.layerVisibilityByType$().sirap
+      ) {
+        this.bringLayersToFront(this.getConfigsForTarget('sirap'));
       }
     }
   }
@@ -239,14 +304,22 @@ export class AdminBoundaryService {
     this.setLayerVisibility(type, !current);
   }
 
-  setLayerStyle(type: AoiType, options: { color?: string | null }): void {
+  setLayerStyle(target: AoiType | AdminBoundaryLayerKey, options: { color?: string | null }): void {
+    const configs = this.getConfigsForTarget(target);
     const color = this.hexToRgba(options.color ?? DEFAULT_ADMIN_BOUNDARY_HEX);
-    const nextStyle = {
-      ...this.boundaryStyleByType()[type],
-      color,
-    };
-    this.boundaryStyleByType.update((state) => ({ ...state, [type]: nextStyle }));
-    this.applyStyleToMapLayers(type);
+    this.boundaryStyleByLayerKey.update((state) =>
+      configs.reduce(
+        (nextState, config) => ({
+          ...nextState,
+          [config.layerKey]: {
+            ...nextState[config.layerKey],
+            color,
+          },
+        }),
+        state,
+      ),
+    );
+    this.applyStyleToMapLayers(configs);
   }
 
   setPopupEnabled(enabled: boolean): void {
@@ -270,7 +343,7 @@ export class AdminBoundaryService {
   }
 
   private buildLayer(config: BoundaryConfig): FeatureLayer | GeoJSONLayer {
-    const preferredVisibility = this.layerVisibilityByType$()[config.type];
+    const preferredVisibility = this.layerVisibilityByLayerKey$()[config.layerKey];
     const commonLayerProps = {
       id: config.id,
       title: config.title,
@@ -278,7 +351,7 @@ export class AdminBoundaryService {
       opacity: config.opacity ?? 1,
       minScale: config.minScale ?? 0,
       maxScale: config.maxScale ?? 0,
-      renderer: this.getBoundaryRenderer(config.type) as never,
+      renderer: this.getBoundaryRenderer(config.layerKey) as never,
     };
 
     if (config.sourceType === 'geojson') {
@@ -297,42 +370,34 @@ export class AdminBoundaryService {
     });
   }
 
-  private ensureLayersForType(type: AoiType): void {
+  private ensureLayerForConfig(config: BoundaryConfig): void {
     if (!this.map || !this.view) {
       return;
     }
-    if (this.unavailableBoundaryTypes.has(type)) {
+    if (this.unavailableBoundaryLayerKeys.has(config.layerKey)) {
       return;
     }
 
     const existing = this.boundaryLayers.some((layer) => {
-      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
-      return config?.type === type;
+      return layer.id === config.id;
     });
     if (existing) {
       return;
     }
 
-    const configsForType = COLOMBIA_BOUNDARY_CONFIGS.filter((config) => config.type === type);
-    if (configsForType.length === 0) {
-      return;
-    }
+    const newLayer = this.buildLayer(config);
+    this.boundaryLayers = [...this.boundaryLayers, newLayer];
+    this.map.add(newLayer);
 
-    const newLayers = configsForType.map((config) => this.buildLayer(config));
-    this.boundaryLayers = [...this.boundaryLayers, ...newLayers];
-    this.map.addMany(newLayers);
-
-    for (const layer of newLayers) {
-      void this.view.whenLayerView(layer).catch((error: unknown) => {
-        console.warn(
-          `[AdminBoundaryService] "${layer.id}" unavailable (likely CORS/remote service issue); disabling ${type} boundary.`,
-          error,
-        );
-        this.unavailableBoundaryTypes.add(type);
-        this.removeLayerById(layer.id);
-        this.layerVisibilityByType$.update((state) => ({ ...state, [type]: false }));
-      });
-    }
+    void this.view.whenLayerView(newLayer).catch((error: unknown) => {
+      console.warn(
+        `[AdminBoundaryService] "${newLayer.id}" unavailable (likely CORS/remote service issue); disabling ${config.layerKey} boundary.`,
+        error,
+      );
+      this.unavailableBoundaryLayerKeys.add(config.layerKey);
+      this.removeLayerById(newLayer.id);
+      this.setVisibilityForConfigs([config], false);
+    });
   }
 
   private removeLayerById(layerId: string): void {
@@ -495,41 +560,70 @@ export class AdminBoundaryService {
       .replaceAll("'", '&#39;');
   }
 
-  private applyVisibilityToMapLayers(type: AoiType, visible: boolean): void {
+  private getConfigsForTarget(target: AoiType | AdminBoundaryLayerKey): BoundaryConfig[] {
+    const layerKeyConfigs = COLOMBIA_BOUNDARY_CONFIGS.filter(
+      (config) => config.layerKey === target,
+    );
+    if (layerKeyConfigs.length > 0) {
+      return layerKeyConfigs;
+    }
+    return COLOMBIA_BOUNDARY_CONFIGS.filter((config) => config.type === target);
+  }
+
+  private setVisibilityForConfigs(configs: BoundaryConfig[], visible: boolean): void {
+    this.layerVisibilityByLayerKey$.update((state) =>
+      configs.reduce(
+        (nextState, config) => ({
+          ...nextState,
+          [config.layerKey]: visible,
+        }),
+        state,
+      ),
+    );
+  }
+
+  private applyVisibilityToMapLayers(configs: BoundaryConfig[], visible: boolean): void {
+    const layerIds = new Set(configs.map((config) => config.id));
     for (const layer of this.boundaryLayers) {
-      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
-      if (config?.type === type) {
+      if (layerIds.has(layer.id)) {
         layer.visible = visible;
       }
     }
   }
 
-  private applyStyleToMapLayers(type: AoiType): void {
+  private applyStyleToMapLayers(configs: BoundaryConfig[]): void {
+    const configsByLayerId = new Map(configs.map((config) => [config.id, config]));
     for (const layer of this.boundaryLayers) {
-      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
-      if (config?.type === type) {
-        layer.renderer = this.getBoundaryRenderer(type) as never;
+      const config = configsByLayerId.get(layer.id);
+      if (config) {
+        layer.renderer = this.getBoundaryRenderer(config.layerKey) as never;
       }
     }
   }
 
-  private bringTypeLayersToFront(type: AoiType): void {
+  private bringLayersToFront(configs: BoundaryConfig[]): void {
     if (!this.map) {
       return;
     }
 
-    const layersForType = this.boundaryLayers.filter((layer) => {
-      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
-      return config?.type === type;
-    });
+    const layerIds = new Set(configs.map((config) => config.id));
+    const layersForTarget = this.boundaryLayers.filter((layer) => layerIds.has(layer.id));
 
-    for (const layer of layersForType) {
+    for (const layer of layersForTarget) {
       this.map.reorder(layer, this.map.layers.length - 1);
     }
   }
 
-  private getBoundaryRenderer(type: AoiType): Record<string, unknown> | null {
-    const boundaryStyle = this.boundaryStyleByType()[type];
+  private getBoundaryRenderer(
+    target: AoiType | AdminBoundaryLayerKey,
+  ): Record<string, unknown> | null {
+    const config = this.getConfigsForTarget(target)[0];
+    const fallbackStyle: BoundaryStyle = {
+      color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
+      width: 1,
+      style: 'solid',
+    };
+    const boundaryStyle = config ? this.boundaryStyleByLayerKey()[config.layerKey] : fallbackStyle;
     return {
       type: 'simple',
       symbol: {

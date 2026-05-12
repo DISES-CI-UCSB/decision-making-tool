@@ -40,6 +40,7 @@ const GENERATED_AT = new Date().toISOString();
 
 const BLOB_PREFIXES = [
   'boundaries/',
+  'inputs/boundaries/',
   'inputs/costs/',
   'inputs/features/biomass/',
   'inputs/features/carbon/',
@@ -232,6 +233,8 @@ const proposedLayerCategoryOverrides = {
   comunidades: 'cultural_and_ethnic_territories',
   resguardos: 'cultural_and_ethnic_territories',
   siraps: 'administrative_boundaries',
+  siraps_territorial: 'administrative_boundaries',
+  siraps_thematic: 'administrative_boundaries',
   admin_departments: 'administrative_boundaries',
   admin_municipalities: 'administrative_boundaries',
   human_footprint_2022: 'socioeconomic',
@@ -239,6 +242,15 @@ const proposedLayerCategoryOverrides = {
   net_benefit: 'socioeconomic',
   conflict: 'conflict_and_security',
   climate_refugia: 'prospective_models',
+};
+
+const tooltipOverrideByLayerId = {
+  siraps:
+    'Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.',
+  siraps_territorial:
+    'Territorial SIRAPs are the broad regional conservation systems used as overarching SIRAP categories.',
+  siraps_thematic:
+    'Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs.',
 };
 
 const proposedCsvGroupCategoryIds = {
@@ -341,6 +353,7 @@ const displayAssetFormats = new Set([
   'arcgis feature service',
   'featureserver',
   'feature service',
+  'geojson',
   'geotiff',
   'geotiff or feature service',
   'shapefile',
@@ -1047,7 +1060,7 @@ async function createLayerEntry(row, blobByPath, existingManifestIndex) {
       spanishLabel: labels[0] || row.layer_name,
       englishLabel: labels[1] ?? null,
       description: row.layer_description,
-      tooltip: null,
+      tooltip: tooltipOverrideByLayerId[id] ?? null,
       dataRole,
       category: categoryId,
       roleInMetricCalculation,
@@ -2161,6 +2174,34 @@ async function main() {
     speciesTaxa,
   );
   const layers = layerEntries.map((entry) => entry.manifestLayer);
+  const solutions =
+    solutionCatalog.solutions.length > 0
+      ? solutionCatalog.solutions
+      : (existingManifestIndex?.manifest?.solutions ?? []);
+  const preservedExistingSolutions =
+    solutionCatalog.solutions.length === 0 && solutions.length > 0 ? solutions : [];
+  const solutionCatalogReport =
+    preservedExistingSolutions.length > 0
+      ? {
+          ...solutionCatalog.report,
+          counts: {
+            ...solutionCatalog.report.counts,
+            preservedExistingSolutions: preservedExistingSolutions.length,
+          },
+          preservedExistingSolutions: preservedExistingSolutions.map((solution) => ({
+            id: solution.id,
+            name: solution.name,
+            scope: solution.scope,
+            displayUrl: solution.displayUrl,
+            metadataUrl: solution.metadataUrl,
+          })),
+        }
+      : solutionCatalog.report;
+  if (solutionCatalog.solutions.length === 0 && solutions.length > 0) {
+    console.warn(
+      `[generate:layer-manifest] preserving ${solutions.length} existing solution(s) because Blob metadata fetch returned none`,
+    );
+  }
   const currentFrontendCategories = await extractCurrentFrontendCategories();
   const categoryMappingReport = buildCategoryMappingReport({
     categories,
@@ -2172,7 +2213,7 @@ async function main() {
     includedRows,
     layerEntries,
     blobInventory,
-    solutionCatalogReport: solutionCatalog.report,
+    solutionCatalogReport,
     categoryMappingReport,
   });
 
@@ -2183,7 +2224,7 @@ async function main() {
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     categories,
     layers,
-    solutions: solutionCatalog.solutions,
+    solutions,
   };
 
   const nextManifestJson = `${JSON.stringify(manifest, null, 2)}\n`;
@@ -2192,7 +2233,7 @@ async function main() {
   await writeJson(GENERATED_MANIFEST_PATH, manifest);
   await writeJson(CATEGORY_MAPPING_REPORT_PATH, categoryMappingReport);
   await writeJson(REPORT_PATH, report);
-  await writeJson(SOLUTION_RECONCILIATION_REPORT_PATH, solutionCatalog.report);
+  await writeJson(SOLUTION_RECONCILIATION_REPORT_PATH, solutionCatalogReport);
   await writeText(CATEGORY_REVIEW_CSV_PATH, toCsv(createCategoryReviewRows(rows)));
 
   console.log(
@@ -2214,7 +2255,7 @@ async function main() {
     `[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_REVIEW_CSV_PATH)}`,
   );
   console.log(
-    `[generate:layer-manifest] ${layers.length} layer(s), ${solutionCatalog.solutions.length} solution(s), ${report.counts.missingRequired} missing required, ${report.counts.extraAvailable} extra available`,
+    `[generate:layer-manifest] ${layers.length} layer(s), ${solutions.length} solution(s), ${report.counts.missingRequired} missing required, ${report.counts.extraAvailable} extra available`,
   );
 }
 

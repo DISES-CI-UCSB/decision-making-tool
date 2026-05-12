@@ -18,6 +18,7 @@ export const environment = {
   },
   googleClientId: '',
   manifestBlobUrl: '',
+  blobAssetProxyPath: '',
   ENABLE_MANIFEST_EDITOR: true,
   // Keep the real Firebase auth flow active during local development by default.
   bypassLoginForDevelopment: false,

@@ -26,7 +26,10 @@ import {
 } from '@core/models';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
-import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
+import {
+  AdminBoundaryService,
+  type AdminBoundaryLayerKey,
+} from '@features/map/services/admin-boundary.service';
 import { ManifestRasterLayerService } from '@features/map/services/manifest-raster-layer.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
@@ -63,7 +66,11 @@ interface LayerControlRow {
         displayUrl: string;
         rendering: RuntimeLayerManifestRenderingConfig;
       }
-    | { type: 'admin-boundary'; boundaryType: AoiType };
+    | {
+        type: 'admin-boundary';
+        boundaryType: AoiType;
+        boundaryLayerKey: AdminBoundaryLayerKey;
+      };
 }
 
 interface SpeciesSample {
@@ -142,10 +149,15 @@ const MANAGEMENT_FIGURE_CATEGORY_PALETTE = [
   '#0f766e',
   '#7c3aed',
 ] as const;
-const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_AOI_TYPE: Record<string, AoiType> = {
-  siraps: 'sirap',
-  admin_departments: 'department',
-  admin_municipalities: 'municipality',
+const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
+  string,
+  { boundaryType: AoiType; boundaryLayerKey: AdminBoundaryLayerKey }
+> = {
+  siraps: { boundaryType: 'sirap', boundaryLayerKey: 'siraps' },
+  siraps_territorial: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_territorial' },
+  siraps_thematic: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_thematic' },
+  admin_departments: { boundaryType: 'department', boundaryLayerKey: 'admin_departments' },
+  admin_municipalities: { boundaryType: 'municipality', boundaryLayerKey: 'admin_municipalities' },
 };
 const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
   'group-ecosystems': ['#0d9488', '#6d8e7e', '#0284c7', '#a16207', '#15803d'],
@@ -181,12 +193,14 @@ const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
 const COMPARISON_CANDIDATE_COLOR = DEFAULT_COMPARISON_CANDIDATE_HEX;
 const COMPARISON_OVERLAP_COLOR = DEFAULT_COMPARISON_OVERLAP_HEX;
 const LEGEND_BOUNDARY_STYLES: Record<
-  AoiType,
+  AdminBoundaryLayerKey,
   { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
 > = {
-  sirap: { lineStyle: 'dashed', lineWidth: 2, color: '#111827' },
-  department: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
-  municipality: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
+  siraps: { lineStyle: 'dashed', lineWidth: 2, color: '#111827' },
+  siraps_territorial: { lineStyle: 'solid', lineWidth: 2, color: '#2563eb' },
+  siraps_thematic: { lineStyle: 'dashed', lineWidth: 2, color: '#9333ea' },
+  admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
+  admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
 };
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
@@ -308,6 +322,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   );
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
   protected readonly canAccessSirapBoundaries = this.appState.canAccessSirapBoundaries;
+  protected readonly sirapTooltipCopy =
+    'Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.';
 
   constructor() {
     this.syncInitialBoundaryState();
@@ -632,23 +648,25 @@ export class MapLayersPanelComponent implements OnDestroy {
           return group;
         }
 
-        const existingRowsByBoundaryType = new Map(
+        const existingRowsByBoundaryKey = new Map(
           group.rows
             .map((row) =>
               row.mapSync?.type === 'admin-boundary'
-                ? ([row.mapSync.boundaryType, row] as const)
+                ? ([row.mapSync.boundaryLayerKey, row] as const)
                 : null,
             )
-            .filter((entry): entry is readonly [AoiType, LayerControlRow] => entry !== null),
+            .filter(
+              (entry): entry is readonly [AdminBoundaryLayerKey, LayerControlRow] => entry !== null,
+            ),
         );
 
         const rows = adminGroup.rows
           .map((manifestRow) => {
-            const boundaryType = MANIFEST_ADMIN_BOUNDARY_LAYER_TO_AOI_TYPE[manifestRow.id];
-            if (!boundaryType) {
+            const boundarySync = MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC[manifestRow.id];
+            if (!boundarySync) {
               return null;
             }
-            const existingRow = existingRowsByBoundaryType.get(boundaryType);
+            const existingRow = existingRowsByBoundaryKey.get(boundarySync.boundaryLayerKey);
             if (!existingRow) {
               return null;
             }
@@ -1833,8 +1851,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     if (mapSync.type === 'admin-boundary') {
-      this.adminBoundaryService.setLayerStyle(mapSync.boundaryType, { color: row.color });
-      this.adminBoundaryService.setLayerVisibility(mapSync.boundaryType, row.visible);
+      this.adminBoundaryService.setLayerStyle(mapSync.boundaryLayerKey, { color: row.color });
+      this.adminBoundaryService.setLayerVisibility(mapSync.boundaryLayerKey, row.visible);
       return;
     }
 
@@ -2190,7 +2208,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private toMasterLegendLayerEntry(row: LayerControlRow): MapLegendLayerEntry {
     if (row.mapSync?.type === 'admin-boundary') {
-      const style = LEGEND_BOUNDARY_STYLES[row.mapSync.boundaryType];
+      const style = LEGEND_BOUNDARY_STYLES[row.mapSync.boundaryLayerKey];
       return {
         id: row.id,
         name: row.name,
@@ -2729,12 +2747,14 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'group-admin-boundaries',
         title: 'Administrative Boundaries',
-        countLabel: '3 layers',
+        countLabel: '5 layers',
         collapsed: false,
         rows: [
-          this.boundaryRow('sirap', 'SIRAP Regions', false, false),
-          this.boundaryRow('department', 'Departments', true, true),
-          this.boundaryRow('municipality', 'Municipalities', false, false),
+          this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false),
+          this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false),
+          this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false),
+          this.boundaryRow('admin_departments', 'department', 'Departments', true, true),
+          this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
         ],
       },
       {
@@ -2807,13 +2827,14 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private boundaryRow(
+    boundaryLayerKey: AdminBoundaryLayerKey,
     boundaryType: AoiType,
     name: string,
     visible: boolean,
     selected: boolean,
   ): LayerControlRow {
     return {
-      id: `boundary-${boundaryType}`,
+      id: `boundary-${boundaryLayerKey}`,
       name,
       selected,
       visible,
@@ -2823,7 +2844,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       canReorder: false,
       hasStyleControls: false,
       hasColorControl: false,
-      mapSync: { type: 'admin-boundary', boundaryType },
+      mapSync: { type: 'admin-boundary', boundaryType, boundaryLayerKey },
     };
   }
 

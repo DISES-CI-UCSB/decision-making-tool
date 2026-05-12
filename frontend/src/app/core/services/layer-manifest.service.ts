@@ -107,6 +107,7 @@ export class LayerManifestService {
     }
 
     return this.http.get<RuntimeLayerManifest>(this.toManifestRequestUrl(primaryUrl)).pipe(
+      map((manifest) => this.withProxiedBlobUrls(manifest)),
       catchError((error) => {
         if (fallbackUrls.length === 0) {
           return throwError(() => error);
@@ -134,5 +135,45 @@ export class LayerManifestService {
 
   private isRemoteManifestUrl(manifestUrl: string): boolean {
     return /^https?:\/\//i.test(manifestUrl);
+  }
+
+  private withProxiedBlobUrls(manifest: RuntimeLayerManifest): RuntimeLayerManifest {
+    const proxyPath = environment.blobAssetProxyPath?.trim();
+    if (!proxyPath) {
+      return manifest;
+    }
+
+    return this.rewriteBlobUrls(structuredClone(manifest), manifest.publicBlobHost, proxyPath);
+  }
+
+  private rewriteBlobUrls<T>(value: T, publicBlobHost: string, proxyPath: string): T {
+    if (typeof value === 'string') {
+      return this.toProxiedBlobUrl(value, publicBlobHost, proxyPath) as T;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.rewriteBlobUrls(item, publicBlobHost, proxyPath)) as T;
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entryValue]) => [
+          key,
+          this.rewriteBlobUrls(entryValue, publicBlobHost, proxyPath),
+        ]),
+      ) as T;
+    }
+
+    return value;
+  }
+
+  private toProxiedBlobUrl(value: string, publicBlobHost: string, proxyPath: string): string {
+    if (!value.startsWith(`${publicBlobHost}/`)) {
+      return value;
+    }
+
+    const normalizedProxyPath = proxyPath.endsWith('/') ? proxyPath : `${proxyPath}/`;
+    const pathname = value.slice(publicBlobHost.length + 1);
+    return `${normalizedProxyPath}${pathname}`;
   }
 }
