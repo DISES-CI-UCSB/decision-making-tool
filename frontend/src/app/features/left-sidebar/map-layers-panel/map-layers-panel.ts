@@ -583,10 +583,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...group,
           title: manifestGroup.title,
-          countLabel:
-            group.id === 'group-species-biodiversity'
-              ? group.countLabel
-              : this.toLayerCountLabel(rows.length),
+          countLabel: this.toLayerCountLabel(rows.length),
           rows,
         };
       }),
@@ -2625,6 +2622,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const taxa = Array.from(manifestLayersByTaxonId.entries()).map(([taxonId, layers]) =>
       this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
     );
+    const speciesLayerCount = taxa.reduce((total, taxon) => total + taxon.speciesCount, 0);
 
     this.taxa.set(taxa);
     this.groups.update((groups) =>
@@ -2632,7 +2630,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         group.id === 'group-species-biodiversity'
           ? {
               ...group,
-              countLabel: this.toTaxonCountLabel(taxa.length),
+              countLabel: this.toLayerCountLabel(group.rows.length + speciesLayerCount),
               note: 'Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.',
             }
           : group,
@@ -2731,11 +2729,21 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (layer.taxonLabel?.trim()) {
       return `taxon-${this.toSlug(layer.taxonLabel)}`;
     }
-    return 'taxon-species';
+    const fallbackName = this.speciesTaxonFallbackName(layer);
+    return fallbackName ? `taxon-${this.toSlug(fallbackName)}` : 'taxon-unspecified';
   }
 
   private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
-    return layer?.taxonLabel?.trim() || 'Species';
+    return layer?.taxonLabel?.trim() || this.speciesTaxonFallbackName(layer) || 'Unspecified taxon';
+  }
+
+  private speciesTaxonFallbackName(layer: RuntimeSpeciesManifestLayer | undefined): string | null {
+    const scientificName = layer?.scientificName?.trim() || layer?.commonName?.trim() || '';
+    const genus = scientificName.split(/\s+/)[0]?.trim();
+    if (!genus || genus.toLowerCase() === 'unknown') {
+      return null;
+    }
+    return genus;
   }
 
   /**
@@ -2760,7 +2768,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'group-species-biodiversity',
         title: 'Species & Biodiversity',
-        countLabel: '5 taxon groups',
+        countLabel: '0 layers',
         collapsed: true,
         note: "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
         rows: [],
@@ -2884,11 +2892,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   private toSpeciesCountLabel(speciesCount: number): string {
     const noun = speciesCount === 1 ? 'species' : 'species';
     return `${speciesCount.toLocaleString()} ${noun}`;
-  }
-
-  private toTaxonCountLabel(taxonCount: number): string {
-    const noun = taxonCount === 1 ? 'taxon group' : 'taxon groups';
-    return `${taxonCount.toLocaleString()} ${noun}`;
   }
 
   private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
