@@ -1,8 +1,8 @@
 # GTIC System Architecture Slide Draft
 
-This draft is intended for a short side meeting with GTIC / PNN about infrastructure compatibility. The goal is not to present final system requirements yet. The goal is to show the current architecture, explain the data flow, identify what is already known, and surface the few decisions that may need GTIC input before the August delivery window.
+This draft is intended for a short side meeting with GTIC / PNN about infrastructure compatibility. The goal is to show what components exist, how we currently host them, what equivalent hosting options may work, and what we can say today about hardware/runtime requirements.
 
-Recommended length: **5 core slides plus 1 optional appendix slide**. Five slides should be enough for a 10-15 minute architecture walkthrough without overwhelming the audience. The appendix can hold the more detailed diagram if GTIC asks deeper technical questions.
+Recommended length: **4 core slides plus 1 optional appendix slide**. Keep the meeting focused on infrastructure fit: components, deployment options, provisional requirements, and what still needs testing.
 
 ## Copy-Paste Slide Diagram
 
@@ -106,27 +106,29 @@ graph LR
 
 ## Recommended Slide Sequence
 
-### Slide 1: Purpose Of The Architecture Conversation
+### Slide 1: What GTIC Needs To Know
 
-**Message:** The tool is still in development, but the major architecture direction is clear enough to review for infrastructure fit.
+**Message:** The application is mostly a static web tool with object storage for data assets. The main open infrastructure question is whether browser-side metrics stay fast enough, or whether we need a small metrics API.
 
-**What to say:**
+**Slide bullets:**
 
-- We want early alignment with GTIC / PNN infrastructure before final documentation is delivered.
-- The current design keeps the system flexible by relying mostly on static web hosting and blob/object storage.
-- Final software and platform requirements will be refined after scalability testing and live-metric performance checks.
+- Frontend: Angular web app.
+- Data: raster, metadata, and metric files in blob/object storage.
+- Auth: Firebase today, replaceable if GTIC requires another identity provider.
+- Compute: mostly browser-side; optional API only if live metrics are too slow.
 
-### Slide 2: Current High-Level Architecture
+### Slide 2: Components And Hosting Options
 
-**Message:** The application is a static-first web tool: an Angular frontend loads a manifest, retrieves spatial assets from blob storage, and renders them in the browser.
+**Message:** The current architecture maps cleanly to a small number of infrastructure components. Vercel/Firebase are current implementation choices, not hard requirements unless GTIC accepts them.
 
 Use the slide diagram above as the main slide visual; copy from the expanded **Copy diagram source** block for Mermaid Live.
 
-**Speaker notes:**
+**Slide bullets:**
 
-- Vercel Blob is the current storage provider, but this pattern can map to other blob/object storage providers.
-- The manifest avoids hardcoding thousands of data URLs in application code.
-- The map rendering path is browser-based: the frontend fetches GeoTIFFs, converts them to canvas-backed image overlays, and displays them with the ArcGIS JavaScript SDK.
+- Static frontend: Vercel now; could move to GTIC static hosting.
+- Blob/object storage: Vercel Blob now; could move to S3-compatible or institutional object storage.
+- Authentication: Firebase now; could move to institutional SSO if needed.
+- Optional metrics API: not required yet; only needed if browser-side custom AOI calculations miss performance targets.
 
 ### Slide 3: Data And Manifest Flow
 
@@ -157,14 +159,13 @@ graph TB
   classDef ui fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d
 ```
 
-**What the manifest currently indexes:**
+**What the manifest indexes:**
 
 - Mappable input rasters.
 - Solution rasters generated from prioritization scenarios.
-- Metadata URLs.
-- Precomputed metric JSON URLs.
-- Compressed data files for live-metric calculation.
-- A secondary species manifest, so thousands of species layers do not bloat the main manifest.
+- Metadata and precomputed metric URLs.
+- Compressed metric inputs for live calculations.
+- A secondary species manifest, so thousands of species layers stay out of the main manifest.
 
 ### Slide 4: Runtime User Flow
 
@@ -193,32 +194,32 @@ sequenceDiagram
   MetricsAPI-->>Blob: Reads cached compressed metric inputs
 ```
 
-**Speaker notes:**
+**Slide bullets:**
 
 - Precomputed metrics are preferred where boundaries or scenarios are known in advance.
-- Live metrics for arbitrary user-drawn polygons are the main performance uncertainty.
-- The decision point is empirical: if live calculations stay under the target interaction time, the browser-only architecture remains simpler.
+- Live metrics for user-drawn polygons are the main performance uncertainty.
+- If live calculations are fast enough, no metrics server is needed.
+- If they are too slow, add a small API that reads optimized cached inputs.
 
 ### Slide 5: Provisional Requirements And Open Decisions
 
-**Message:** We can share current assumptions and decision points, but final requirements should wait for scalability and performance testing.
+**Message:** These are working estimates, not final requirements. We are continuing to test data volume, browser memory, and custom AOI metric performance.
 
-**Current assumptions:**
+**Current estimate:**
 
-- Storage: 1-2 GB currently, with an estimated near-term ceiling of 4-5 GB.
-- Hosting: Angular frontend deployed on Vercel; equivalent static web hosting may be possible.
-- Data delivery: Blob/object storage for rasters, JSON, metadata, and compressed metric inputs.
-- Authentication: Firebase Authentication currently supports Google-based login and access tiers.
-- Map runtime: ArcGIS JavaScript SDK in the browser.
-- Browser runtime: modern browser with Canvas support and sufficient memory for selected raster operations.
+- Storage: roughly 1-2 GB today; likely 4-5 GB near-term.
+- Frontend hosting: static web hosting is sufficient.
+- Data hosting: blob/object storage for GeoTIFF, JSON, metadata, and compressed metric files.
+- Browser: modern browser with Canvas support; memory needs depend on selected rasters and live metric operations.
+- Server compute: none required today, unless custom AOI metrics exceed target response time.
 
-**Open decisions for GTIC / PNN discussion:**
+**Questions for GTIC / PNN:**
 
-- Whether Vercel hosting is acceptable, or whether the app should be deployable to GTIC / PNN-preferred hosting.
-- Whether Vercel Blob is acceptable, or whether assets should move to a preferred object storage provider.
-- Whether Firebase Authentication is acceptable, or whether a different institutional identity provider is required.
-- Whether GTIC requires private asset access, network restrictions, audit logging, or specific backup/retention policies.
-- Whether an optional metrics API is needed after browser-side performance testing.
+- Is Vercel acceptable, or should we target institutional static hosting?
+- Is Vercel Blob acceptable, or should assets move to GTIC-preferred object storage?
+- Are public asset URLs acceptable, or do assets need private/proxied access?
+- Is Firebase acceptable, or should we integrate institutional identity?
+- Are there required policies for backups, logs, monitoring, uptime, or data retention?
 
 ### Slide 6: Optional Appendix - More Detailed System Diagram
 
@@ -294,17 +295,9 @@ graph TB
 
 ## Recommended Framing For GTIC
 
-### English
+We should frame this as an infrastructure fit check, not a final requirements handoff. The current design is intentionally simple: static frontend, object storage for data assets, Firebase authentication for now, and browser-side map rendering.
 
-We are not yet presenting final software requirements. We are presenting the current architecture and the likely requirement envelope so GTIC can identify compatibility concerns early. The tool is currently designed as a static-first web application with object storage for data assets, Firebase for authentication, and browser-side spatial rendering through the ArcGIS JavaScript SDK.
-
-The main unresolved technical question is whether live metric calculations for custom user-drawn areas can run fast enough in the browser. If they cannot, we may introduce a small metrics API that keeps optimized metric inputs cached in memory. That decision should be based on scalability testing rather than assumed upfront.
-
-### Spanish Draft
-
-Todavia no estamos presentando los requisitos finales de software. Estamos presentando la arquitectura actual y el rango probable de requisitos para que GTIC pueda identificar posibles temas de compatibilidad con anticipacion. La herramienta esta disenada actualmente como una aplicacion web de tipo "static-first", con almacenamiento de objetos para los activos de datos, Firebase para autenticacion, y renderizado espacial en el navegador mediante el ArcGIS JavaScript SDK.
-
-La principal pregunta tecnica pendiente es si los calculos de metricas en vivo para areas personalizadas dibujadas por los usuarios pueden ejecutarse con suficiente rapidez en el navegador. Si no cumplen el objetivo de rendimiento, podriamos incorporar una API pequena de metricas que mantenga datos optimizados en memoria para calculos rapidos. Esa decision deberia basarse en pruebas de escalabilidad, no en una suposicion inicial.
+The main hardware question is still empirical: can custom AOI metrics run fast enough in the browser for the expected data sizes and user workflows? If yes, server requirements stay minimal. If no, the likely addition is a small metrics API, not a large geospatial processing backend.
 
 ## Questions To Ask GTIC
 
@@ -312,12 +305,12 @@ La principal pregunta tecnica pendiente es si los calculos de metricas en vivo p
 - Is object/blob storage acceptable for raster, JSON, metadata, and compressed metric assets?
 - Are public asset URLs acceptable, or must all data assets be private, proxied, or access-controlled?
 - Is Firebase Authentication acceptable for Google-based login, or is an institutional identity provider required?
+- If a metrics API is needed, what runtime/container/server options should we target?
 - Are there required policies for backups, logs, uptime, monitoring, or data retention?
-- Are there restrictions on using Vercel, Firebase, or other cloud-hosted services?
 
 ## What Not To Overclaim Yet
 
-- Do not promise final hosting requirements until GTIC confirms acceptable infrastructure.
-- Do not promise that all custom AOI metrics will run fully in the browser until performance testing is complete.
+- Do not present current estimates as final hardware requirements.
+- Do not promise all custom AOI metrics will run fully in the browser until performance testing is complete.
 - Do not imply that Vercel Blob is mandatory; the architecture depends on blob/object storage as a pattern.
 - Do not present the 4-5 GB estimate as a permanent ceiling; frame it as the current near-term estimate.
