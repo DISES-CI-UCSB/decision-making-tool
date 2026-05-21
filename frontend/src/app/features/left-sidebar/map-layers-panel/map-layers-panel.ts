@@ -235,6 +235,18 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
   private loadedSpeciesManifestUrl: string | null = null;
+
+  /**
+   * Per-mode color memory for the baseline/single-solution overlay.
+   * Allows the color picker choice to survive Overview↔AOI↔Comparison tab switches.
+   *
+   * Regression check: Change color → switch Overview/AOI → verify color remains changed.
+   * Regression check: Change color → switch Overview→Comparison→Overview → verify color restores.
+   */
+  private lastIsComparing: boolean | null = null;
+  private savedSingleSolutionColor: string | null = null;
+  private savedBaselineColor: string | null = null;
+
   /** Stable bound reference so we can removeEventListener exactly. */
   private readonly rainforestProximityHandler = (e: PointerEvent): void =>
     this.onSidebarProximityMove(e);
@@ -2362,7 +2374,25 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private syncBaselineOverlayColor(isComparing: boolean): void {
-    const targetColor = isComparing ? COMPARISON_BASELINE_COLOR : SINGLE_SOLUTION_COLOR;
+    if (isComparing === this.lastIsComparing) {
+      // Mode hasn't changed (e.g. Overview↔AOI); preserve the user's chosen color.
+      return;
+    }
+
+    // Save the current row color before switching modes so we can restore it on return.
+    const currentRow = this.overlays().find((r) => r.id === BASELINE_SOLUTION_OVERLAY_ID);
+    if (this.lastIsComparing === false) {
+      this.savedSingleSolutionColor = currentRow?.color ?? null;
+    } else if (this.lastIsComparing === true) {
+      this.savedBaselineColor = currentRow?.color ?? null;
+    }
+    this.lastIsComparing = isComparing;
+
+    // Restore the color last used in this mode, falling back to the per-mode default.
+    const targetColor = isComparing
+      ? (this.savedBaselineColor ?? COMPARISON_BASELINE_COLOR)
+      : (this.savedSingleSolutionColor ?? SINGLE_SOLUTION_COLOR);
+
     this.overlays.update((rows) =>
       rows.map((row) =>
         row.id === BASELINE_SOLUTION_OVERLAY_ID ? { ...row, color: targetColor } : row,

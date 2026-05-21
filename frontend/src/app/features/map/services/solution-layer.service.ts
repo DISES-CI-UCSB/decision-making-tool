@@ -56,6 +56,16 @@ export class SolutionLayerService {
   private solutionImageElement: InstanceType<typeof ImageElement> | null = null;
 
   /**
+   * Per-scenario color memory so that returning to a previously-viewed scenario during the
+   * same browsing session restores the user's chosen color rather than snapping back to the
+   * canonical default (Option B). Colors are reset to defaults only when the user explicitly
+   * removes the solution layer (removeSolutionLayer), which clears lastSingle/Comparison IDs.
+   */
+  private readonly userSingleColorByScenarioId = new Map<string, string>();
+  private readonly userBaselineColorByScenarioId = new Map<string, string>();
+  private readonly userCandidateColorByScenarioId = new Map<string, string>();
+
+  /**
    * Canonical source of truth for all four solution-layer colors.
    * Downstream consumers (legend, right-sidebar comparison panel) subscribe directly.
    * The left-sidebar layer-control rows write here via set*Color().
@@ -92,10 +102,11 @@ export class SolutionLayerService {
       this.removeAllLayers();
 
       const loaded = await this.loader.loadSolution(scenarioId);
-      // Option B: snap back to default green whenever the single-solution scenario changes.
-      if (this.lastSingleSolutionId !== loaded.scenario.id) {
-        this.solutionColor$.set(DEFAULT_SINGLE_SOLUTION_HEX);
-      }
+      // Restore the user-picked color for this scenario (if any), otherwise use the default.
+      // This lets returning to a previously-viewed scenario preserve the chosen color.
+      const restoredColor =
+        this.userSingleColorByScenarioId.get(loaded.scenario.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
+      this.solutionColor$.set(restoredColor);
       this.lastSingleSolutionId = loaded.scenario.id;
       this.solutionImageElement = this.createImageElement(loaded, this.solutionColor$());
       this.currentLayer = new MediaLayer({
@@ -160,16 +171,18 @@ export class SolutionLayerService {
 
       // Only clear existing map layers once both scenarios have loaded successfully.
       this.removeAllLayers();
-      // Option B: each side snaps back to its default only when its scenario actually changes.
-      // Overlap depends on both, so it resets whenever either side changes.
+      // Restore user-picked colors for each scenario side (if any), otherwise use the default.
+      // Overlap resets whenever either side changes since it depends on both scenarios.
       const baselineChanged = this.lastComparisonBaselineId !== baselineLoaded.scenario.id;
       const candidateChanged = this.lastComparisonCandidateId !== candidateLoaded.scenario.id;
-      if (baselineChanged) {
-        this.baselineColor$.set(DEFAULT_COMPARISON_BASELINE_HEX);
-      }
-      if (candidateChanged) {
-        this.candidateColor$.set(DEFAULT_COMPARISON_CANDIDATE_HEX);
-      }
+      this.baselineColor$.set(
+        this.userBaselineColorByScenarioId.get(baselineLoaded.scenario.id) ??
+          DEFAULT_COMPARISON_BASELINE_HEX,
+      );
+      this.candidateColor$.set(
+        this.userCandidateColorByScenarioId.get(candidateLoaded.scenario.id) ??
+          DEFAULT_COMPARISON_CANDIDATE_HEX,
+      );
       if (baselineChanged || candidateChanged) {
         this.overlapColor$.set(DEFAULT_COMPARISON_OVERLAP_HEX);
       }
@@ -355,6 +368,9 @@ export class SolutionLayerService {
       return;
     }
     this.solutionColor$.set(normalized);
+    if (this.lastSingleSolutionId) {
+      this.userSingleColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+    }
     const loaded = this.loadedSolution$();
     if (!loaded || !this.currentLayer) {
       return;
@@ -380,6 +396,12 @@ export class SolutionLayerService {
     // left sidebar's sole "Selected Solution" row and the comparison baseline stay coherent.
     this.solutionColor$.set(normalized);
     this.baselineColor$.set(normalized);
+    if (this.lastSingleSolutionId) {
+      this.userSingleColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+    }
+    if (this.lastComparisonBaselineId) {
+      this.userBaselineColorByScenarioId.set(this.lastComparisonBaselineId, normalized);
+    }
 
     const loaded = this.loadedSolution$();
     if (loaded && this.currentLayer) {
@@ -400,6 +422,9 @@ export class SolutionLayerService {
       return;
     }
     this.candidateColor$.set(normalized);
+    if (this.lastComparisonCandidateId) {
+      this.userCandidateColorByScenarioId.set(this.lastComparisonCandidateId, normalized);
+    }
     if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
       this.replaceLayerSourceColor(
         this.candidateComparisonLayer,
