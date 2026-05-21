@@ -38,6 +38,7 @@ from local_io import (
     cached_download,
     expected_blob_path,
     expected_public_url,
+    write_example_output,
     write_publish_report,
     write_solution_sidecar,
 )
@@ -51,10 +52,24 @@ from metric_definitions import (
 from raster_metrics import (
     RasterError,
     SolutionRaster,
-    overlap_km2,
     read_layer_mask,
     read_solution_raster,
 )
+from calculators import area as calc_area
+from calculators import ecosystem_coverage as calc_ecosystem
+from calculators import social_governance as calc_social
+
+# Maps each binary-overlap layer_id to its named calculator function so that
+# a reader can trace exactly which function computes each metric.
+_OVERLAP_CALCULATORS = {
+    "ecosistemas": calc_ecosystem.ecosystem_total_km2,
+    "paramos":     calc_ecosystem.paramo_km2,
+    "bosque_seco": calc_ecosystem.dry_forest_km2,
+    "wetlands":    calc_ecosystem.wetlands_km2,
+    "mangroves":   calc_ecosystem.mangroves_km2,
+    "resguardos":  calc_social.indigenous_reservations_km2,
+    "comunidades": calc_social.community_councils_km2,
+}
 
 
 def _utc_now_iso() -> str:
@@ -101,6 +116,17 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--validate-only",
         action="store_true",
         help="Fetch manifest + check required layers exist; do not compute or write.",
+    )
+    parser.add_argument(
+        "--examples-dir",
+        type=Path,
+        default=None,
+        help=(
+            "If set, also write a geography-wrapped inspectable JSON to this "
+            "directory alongside the blob-staged sidecar. Useful with --limit 1 "
+            "for a quick local sanity check. Example: "
+            "data/metrics/generated/examples"
+        ),
     )
     return parser.parse_args(argv)
 
@@ -203,9 +229,10 @@ def _compute_metadata_coverage(
 def _compute_selected_area(
     definition: MetricDefinition, raster: SolutionRaster
 ) -> dict[str, Any]:
+    value = calc_area.selected_area_km2(raster)
     return _metric_value(
         definition,
-        value=raster.selected_area_km2,
+        value=value,
         status="ready",
         notes=(
             f"{raster.selected_cells:,} selected cells; total area summed using "
@@ -218,7 +245,8 @@ def _compute_selected_area(
 def _compute_national_percent(
     definition: MetricDefinition, raster: SolutionRaster
 ) -> dict[str, Any]:
-    if raster.valid_area_km2 == 0:
+    pct = calc_area.national_contribution_pct(raster)
+    if pct is None:
         return _metric_value(
             definition,
             value=None,
@@ -226,7 +254,6 @@ def _compute_national_percent(
             notes="Solution raster has 0 valid area.",
             source="raster:solution",
         )
-    pct = (raster.selected_area_km2 / raster.valid_area_km2) * 100.0
     return _metric_value(
         definition,
         value=pct,
@@ -244,6 +271,17 @@ def _compute_overlap(
     force_download: bool,
 ) -> dict[str, Any]:
     layer_id = definition.layer_id or ""
+
+    calc_fn = _OVERLAP_CALCULATORS.get(layer_id)
+    if calc_fn is None:
+        return _metric_value(
+            definition,
+            value=None,
+            status="pending",
+            notes=f"No calculator registered for layer '{layer_id}'.",
+            source=f"raster:{layer_id}",
+        )
+
     try:
         layer_url = resolve_layer_display_url(manifest, layer_id)
     except ManifestError as exc:
@@ -268,7 +306,7 @@ def _compute_overlap(
             source=f"raster:{layer_id}",
         )
 
-    area = overlap_km2(raster.selected_mask, layer_mask, raster.pixel_area_km2_per_row)
+    area = calc_fn(raster, layer_mask)
     value_type = str(rendering.get("valueType") or "unknown").lower()
     if value_type == "binary":
         present_rule = f"cells equal to selectedValue={rendering.get('selectedValue', 1)}"
@@ -289,6 +327,7 @@ def _process_solution(
     cache_dir: Path,
     output_dir: Path,
     force_download: bool,
+    examples_dir: Path | None = None,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
@@ -323,12 +362,17 @@ def _process_solution(
                 )
             )
 
+    generated_at = _utc_now_iso()
     response = {
         "solutionId": solution_id,
-        "generatedAt": _utc_now_iso(),
+        "generatedAt": generated_at,
         "metrics": metric_values,
     }
     sidecar_path = write_solution_sidecar(output_dir, basename, response)
+
+    if examples_dir is not None:
+        example_path = write_example_output(examples_dir, solution_id, metric_values, generated_at)
+        print(f"[tier1-metrics]   example -> {example_path}")
 
     return {
         "solutionId": solution_id,
@@ -390,6 +434,8 @@ def main(argv: list[str] | None = None) -> int:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     args.cache_dir.mkdir(parents=True, exist_ok=True)
+    if args.examples_dir:
+        args.examples_dir.mkdir(parents=True, exist_ok=True)
 
     deferred = sorted(deferred_metric_ids())
     entries: list[dict[str, Any]] = []
@@ -406,6 +452,7 @@ def main(argv: list[str] | None = None) -> int:
                     args.cache_dir,
                     args.output_dir,
                     force_download=args.no_cache,
+                    examples_dir=args.examples_dir,
                 )
             )
         except Exception as exc:  # surface and continue so smoke runs aren't all-or-nothing

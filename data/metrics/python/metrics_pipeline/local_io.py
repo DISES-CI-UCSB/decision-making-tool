@@ -114,3 +114,47 @@ def write_publish_report(output_dir: Path, report: dict[str, Any]) -> Path:
         json.dump(report, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
     return target
+
+
+def write_example_output(
+    examples_dir: Path,
+    solution_id: str,
+    national_metrics: list[dict[str, Any]],
+    generated_at: str,
+) -> Path:
+    """Write a geography-wrapped example JSON for one solution.
+
+    The file lives at examples_dir/{solution_id}.metrics.json and uses a
+    geography-keyed structure so future boundary levels (departments,
+    municipalities, SIRAPs) can be added without changing the shape:
+
+        {
+          "solutionId": "...",
+          "generatedAt": "...",
+          "geographies": {
+            "national": {
+              "colombia": { "metrics": [...] }
+            }
+          }
+        }
+
+    This file is for local inspection only; it is not published to Vercel.
+    """
+    doc = {
+        "solutionId": solution_id,
+        "generatedAt": generated_at,
+        "geographies": {
+            "national": {
+                "colombia": {
+                    "metrics": national_metrics,
+                }
+            }
+        },
+    }
+    safe_id = solution_id.replace("/", "_").replace(" ", "_")
+    target = examples_dir / f"{safe_id}.metrics.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as handle:
+        json.dump(doc, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    return target

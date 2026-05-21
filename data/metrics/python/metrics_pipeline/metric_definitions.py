@@ -47,7 +47,7 @@ class MetricDefinition:
 # Order here is the order written into the per-solution sidecars.
 METRIC_CATALOG: tuple[MetricDefinition, ...] = (
     MetricDefinition(
-        metric_id="metric-1",
+        metric_id="conservation_goals_met",
         metric_number=1,
         label_key="metrics.tier1.conservation_goals_met",
         english_label="Conservation Goals Met",
@@ -58,7 +58,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="metadata_summary",
     ),
     MetricDefinition(
-        metric_id="metric-2",
+        metric_id="species_groups_protected",
         metric_number=2,
         label_key="metrics.tier1.species_groups_protected",
         english_label="Species Groups Protected",
@@ -72,7 +72,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="metadata_coverage",
     ),
     MetricDefinition(
-        metric_id="metric-4",
+        metric_id="ecosystem_coverage",
         metric_number=4,
         label_key="metrics.tier1.ecosystem_coverage",
         english_label="Ecosystem Coverage",
@@ -84,7 +84,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="ecosistemas",
     ),
     MetricDefinition(
-        metric_id="metric-17",
+        metric_id="national_contribution",
         metric_number=17,
         label_key="metrics.tier1.national_contribution",
         english_label="National Contribution",
@@ -95,7 +95,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="national_percent",
     ),
     MetricDefinition(
-        metric_id="metric-18",
+        metric_id="priority_area_in_region",
         metric_number=18,
         label_key="metrics.tier1.priority_area_total",
         english_label="Priority Area (Selected)",
@@ -106,7 +106,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="selected_area",
     ),
     MetricDefinition(
-        metric_id="metric-30",
+        metric_id="ecosystem_coverage_paramo",
         metric_number=30,
         label_key="metrics.tier1.ecosystem_paramo",
         english_label="Ecosystem Coverage - Paramo",
@@ -118,7 +118,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="paramos",
     ),
     MetricDefinition(
-        metric_id="metric-31",
+        metric_id="ecosystem_coverage_dry_forest",
         metric_number=31,
         label_key="metrics.tier1.ecosystem_dry_forest",
         english_label="Ecosystem Coverage - Dry Forest",
@@ -130,7 +130,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="bosque_seco",
     ),
     MetricDefinition(
-        metric_id="metric-32",
+        metric_id="ecosystem_coverage_wetlands",
         metric_number=32,
         label_key="metrics.tier1.ecosystem_wetlands",
         english_label="Ecosystem Coverage - Wetlands",
@@ -142,7 +142,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="wetlands",
     ),
     MetricDefinition(
-        metric_id="metric-36",
+        metric_id="mangrove_coverage",
         metric_number=36,
         label_key="metrics.tier1.ecosystem_mangroves",
         english_label="Mangrove Coverage",
@@ -154,7 +154,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="mangroves",
     ),
     MetricDefinition(
-        metric_id="metric-59",
+        metric_id="indigenous_reservations_area",
         metric_number=59,
         label_key="metrics.tier1.indigenous_reservations_area",
         english_label="Indigenous Reservations Area",
@@ -166,7 +166,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="resguardos",
     ),
     MetricDefinition(
-        metric_id="metric-60",
+        metric_id="community_councils_area",
         metric_number=60,
         label_key="metrics.tier1.community_councils_area",
         english_label="Community Councils Area",
@@ -179,7 +179,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
     ),
     # Deferred (definition-only; values omitted from MVP JSON, see write_solution_sidecar).
     MetricDefinition(
-        metric_id="metric-70",
+        metric_id="agreement_area",
         metric_number=70,
         label_key="metrics.tier1.agreement_area",
         english_label="Agreement Area",
@@ -190,7 +190,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="deferred_pairwise",
     ),
     MetricDefinition(
-        metric_id="metric-71",
+        metric_id="unique_to_scenario_a",
         metric_number=71,
         label_key="metrics.tier1.unique_to_a",
         english_label="Unique to Scenario A",
@@ -201,7 +201,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="deferred_pairwise",
     ),
     MetricDefinition(
-        metric_id="metric-72",
+        metric_id="unique_to_scenario_b",
         metric_number=72,
         label_key="metrics.tier1.unique_to_b",
         english_label="Unique to Scenario B",
