@@ -1,0 +1,66 @@
+{
+  "_description": "4×4 toy grid. Every cell is 1 km². All 16 cells are valid (no nodata). 5 cells are selected. Expected values are computed by hand and serve as ground truth for both Python and future JavaScript parity tests.",
+  "shape": [4, 4],
+  "pixel_area_km2": 1.0,
+  "selected": [
+    [0, 0, 1, 1],
+    [0, 1, 1, 0],
+    [1, 0, 0, 0],
+    [0, 0, 0, 0]
+  ],
+  "valid": [
+    [1, 1, 1, 1],
+    [1, 1, 1, 1],
+    [1, 1, 1, 1],
+    [1, 1, 1, 1]
+  ],
+  "expected": {
+    "selected_cells": 5,
+    "valid_cells": 16,
+    "selected_area_km2": 5.0,
+    "valid_area_km2": 16.0,
+    "national_contribution_pct": 31.25
+  },
+  "layers": {
+    "full_layer": {
+      "_description": "All cells present. Overlap with selected = all 5 selected cells.",
+      "mask": [
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1]
+      ],
+      "expected_overlap_km2": 5.0
+    },
+    "top_half": {
+      "_description": "Only rows 0–1 are present. Selected cells in those rows: (0,2),(0,3),(1,1),(1,2) = 4 cells.",
+      "mask": [
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+      ],
+      "expected_overlap_km2": 4.0
+    },
+    "empty_layer": {
+      "_description": "No cells present. Overlap = 0.",
+      "mask": [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+      ],
+      "expected_overlap_km2": 0.0
+    },
+    "unselected_only": {
+      "_description": "Layer covers exactly the 11 unselected cells. Overlap with selected = 0.",
+      "mask": [
+        [1, 1, 0, 0],
+        [1, 0, 0, 1],
+        [0, 1, 1, 1],
+        [1, 1, 1, 1]
+      ],
+      "expected_overlap_km2": 0.0
+    }
+  }
+}

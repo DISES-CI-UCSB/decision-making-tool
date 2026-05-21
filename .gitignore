@@ -60,8 +60,10 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 /data/metrics/generated/
 /data/metrics/cache/
 /data/metrics/python/**/.venv/
-# Tracked metrics pipeline dependency files and placeholder empty-dir markers.
+# Tracked metrics pipeline dependency files, test config, and shared fixtures.
 !/data/metrics/python/requirements.txt
+!/data/metrics/python/pytest.ini
+!/data/metrics/fixtures/*.json
 !/data/**/.gitkeep
 # Frontend deploy assets (bundled into Vercel build)
 !/data/frontend_deploy/

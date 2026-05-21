@@ -1,0 +1,36 @@
+{
+  "_description": "4×4 toy grid. Every cell is 1 km². Cells (0,2) and (0,3) are nodata (valid=0). 3 cells are selected (all from valid area). Tests that nodata cells are excluded from valid area and cannot be selected.",
+  "shape": [4, 4],
+  "pixel_area_km2": 1.0,
+  "selected": [
+    [0, 0, 0, 0],
+    [0, 1, 1, 0],
+    [1, 0, 0, 0],
+    [0, 0, 0, 0]
+  ],
+  "valid": [
+    [1, 1, 0, 0],
+    [1, 1, 1, 1],
+    [1, 1, 1, 1],
+    [1, 1, 1, 1]
+  ],
+  "expected": {
+    "selected_cells": 3,
+    "valid_cells": 14,
+    "selected_area_km2": 3.0,
+    "valid_area_km2": 14.0,
+    "national_contribution_pct": 21.428571428571427
+  },
+  "layers": {
+    "full_layer": {
+      "_description": "All cells nominally present. Overlap = only the 3 selected cells, because selected_mask already excludes nodata cells.",
+      "mask": [
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1]
+      ],
+      "expected_overlap_km2": 3.0
+    }
+  }
+}
