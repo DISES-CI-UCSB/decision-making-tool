@@ -350,9 +350,7 @@
         "humanFootprintLabel": "Presion humana",
         "humanFootprintHelp": "Huella humana proyectada 2030 (HF_2030): menor valor implica menor presion humana esperada.",
         "carbonOpportunityLabel": "Beneficio neto (renta agropecuaria)",
-        "carbonOpportunityHelp": "Superficie monetaria de beneficio neto / renta agropecuaria (CO, Renta_agropecuaria en archivos).",
-        "conflictLabel": "Exposicion al conflicto",
-        "conflictHelp": "Indice compuesto de conflicto (CONFLICTO): coca y muertes relacionadas (2016–2022)."
+        "carbonOpportunityHelp": "Superficie monetaria de beneficio neto / renta agropecuaria (CO, Renta_agropecuaria en archivos)."
       },
       "actions": {
         "reset": "Restablecer valores",

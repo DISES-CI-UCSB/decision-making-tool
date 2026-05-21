@@ -351,9 +351,7 @@
         "humanFootprintLabel": "Human pressure",
         "humanFootprintHelp": "Projected Human Footprint 2030 (HF_2030): lower score means less expected human pressure.",
         "carbonOpportunityLabel": "Net benefit (agricultural rent)",
-        "carbonOpportunityHelp": "Monetary net-benefit / agricultural-rent surface (CO, Renta_agropecuaria in filenames).",
-        "conflictLabel": "Conflict exposure",
-        "conflictHelp": "Composite conflict index (CONFLICTO): coca and conflict-related deaths (2016–2022)."
+        "carbonOpportunityHelp": "Monetary net-benefit / agricultural-rent surface (CO, Renta_agropecuaria in filenames)."
       },
       "actions": {
         "reset": "Reset to defaults",

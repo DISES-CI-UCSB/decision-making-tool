@@ -649,40 +649,6 @@
                 {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
               </span>
             </button>
-
-            <button
-              id="solution-finder-modal-step2b-option-conflict"
-              type="button"
-              class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.finder-selected-card-border]="selectedCostLayerId === 'conflict'"
-              [class.bg-sky-100]="selectedCostLayerId === 'conflict'"
-              [class.border-slate-200]="selectedCostLayerId !== 'conflict'"
-              [class.bg-white]="selectedCostLayerId !== 'conflict'"
-              [class.cursor-not-allowed]="!isStep2Unlocked()"
-              [class.opacity-60]="!isStep2Unlocked()"
-              [disabled]="!isStep2Unlocked()"
-              [attr.aria-pressed]="selectedCostLayerId === 'conflict'"
-              (click)="selectCostLayer('conflict')"
-            >
-              <span
-                id="solution-finder-modal-step2b-option-conflict-title"
-                class="text-sm font-semibold text-slate-900"
-              >
-                {{ 'solutionControls.finder.step2b.conflictLabel' | translate }}
-                <span
-                  id="solution-finder-modal-step2b-option-conflict-code"
-                  class="font-normal opacity-90"
-                >
-                  (CONFLICTO)
-                </span>
-              </span>
-              <span
-                id="solution-finder-modal-step2b-option-conflict-help"
-                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
-              >
-                {{ 'solutionControls.finder.step2b.conflictHelp' | translate }}
-              </span>
-            </button>
           </div>
         </article>
         <div

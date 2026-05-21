@@ -28,7 +28,7 @@ type FinderTargetType =
   | 'ecosystem-services'
   | 'other-natural-cultural-elements';
 
-type CostLayerChoice = 'human-footprint' | 'carbon-opportunity' | 'conflict';
+type CostLayerChoice = 'human-footprint' | 'carbon-opportunity';
 
 type SirapRegionId =
   | 'caribe'
@@ -622,10 +622,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
           costId.includes('renta') ||
           costId.includes('agropecuaria') ||
           costId.endsWith('-co')
-        );
-      case 'conflict':
-        return (
-          costId.includes('conflict') || costId.includes('conflicto') || costId.includes('coca')
         );
     }
   }
