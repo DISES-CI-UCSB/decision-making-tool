@@ -19,6 +19,15 @@ export const environment = {
   ENABLE_MANIFEST_EDITOR: true,
   bypassLoginForDevelopment: false,
   allowSirapWithoutAuth: true,
+  // SIRAP layer visibility flags — controls which boundary layer types appear
+  // in the sidebar and are registered on the map.
+  // Production: only the combined review layer is shown for now.
+  // Enable territorial/thematic once their data is fully verified production-ready.
+  sirapLayers: {
+    combined: true,
+    territorial: false,
+    thematic: false,
+  },
 } as const;
 
 export type AppEnvironment = typeof environment;

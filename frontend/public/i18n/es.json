@@ -34,7 +34,7 @@
   },
   "analysis": {
     "modes": {
-      "welcome": "Sin solucion seleccionada",
+      "welcome": "Sin escenario seleccionado",
       "overview": "Resumen",
       "aoi": "Area de interes",
       "comparison": "Comparacion"
@@ -50,22 +50,22 @@
       "deltaUnavailable": "Sin delta"
     },
     "empty": {
-      "title": "Selecciona una solucion",
+      "title": "Selecciona un escenario",
       "description": "Carga un escenario desde la barra izquierda."
     },
     "welcome": {
       "kicker": "Espacio de analisis",
-      "title": "Empieza con una solucion para activar los paneles de analisis.",
-      "description": "Usa el Buscador de Soluciones para cargar un escenario, revisar sus metricas y comparar compensaciones sin salir del espacio del mapa.",
+      "title": "Empieza con un escenario para activar los paneles de analisis.",
+      "description": "Usa el Buscador de Escenarios para cargar un escenario, revisar sus metricas y comparar compensaciones sin salir del espacio del mapa.",
       "heroTitle": "La guia del panel derecho acompana tu flujo de trabajo.",
-      "heroDescription": "Cuando hay una solucion activa, este panel puede cambiar entre vistas de resumen, AOI y comparacion a medida que el resto de la experiencia se activa.",
+      "heroDescription": "Cuando hay un escenario activo, este panel puede cambiar entre vistas de resumen, AOI y comparacion a medida que el resto de la experiencia se activa.",
       "getStarted": "Comenzar",
       "stepsTitle": "Como funciona este flujo",
       "stepsDescription": "Una secuencia de incorporacion ligera para personas que usan la herramienta por primera vez.",
       "steps": {
         "choose": {
-          "title": "Elegir una solucion",
-          "description": "Abre el Buscador de Soluciones para cargar una estrategia candidata para el contexto de planificacion actual."
+          "title": "Elegir un escenario",
+          "description": "Abre el Buscador de Escenarios para cargar un escenario para el contexto de planificacion actual."
         },
         "review": {
           "title": "Revisar el resumen",
@@ -73,22 +73,22 @@
         },
         "compare": {
           "title": "Comparar opciones",
-          "description": "Cambia al modo de comparacion cuando haya otra solucion disponible para una revision lado a lado."
+          "description": "Cambia al modo de comparacion cuando haya otro escenario disponible para una revision lado a lado."
         }
       }
     },
     "overview": {
-      "kicker": "Solucion activa",
-      "title": "Resumen de la solucion",
-      "description": "Un resumen compacto de la solucion actual y de las metricas disponibles para revisar.",
-      "solutionLabel": "Solucion cargada",
-      "noDescription": "Todavia no hay una descripcion disponible para esta solucion.",
+      "kicker": "Escenario activo",
+      "title": "Resumen del escenario",
+      "description": "Un resumen compacto del escenario actual y de las metricas disponibles para revisar.",
+      "solutionLabel": "Escenario cargado",
+      "noDescription": "Todavia no hay una descripcion disponible para este escenario.",
       "matchLabel": "Puntaje de ajuste",
       "sectionsLabel": "Grupos de metricas",
-      "emptyTitle": "Selecciona una solucion",
+      "emptyTitle": "Selecciona un escenario",
       "emptyDescription": "Carga un escenario desde la barra izquierda.",
       "loadErrorTitle": "No se pudo cargar el resumen",
-      "loadErrorDescription": "Intenta seleccionar la solucion otra vez u otra distinta.",
+      "loadErrorDescription": "Intenta seleccionar el escenario otra vez u otro distinto.",
       "matchBadge": "{{percent}}% Coincidencia",
       "goalsMet": "Metas cumplidas",
       "goalsMetSub": "Temas de conservacion logrados",
@@ -107,7 +107,7 @@
       "unavailableInfoLabel": "Por que esta metrica no esta disponible",
       "unavailableTooltip": "No disponible por ahora: esta metrica necesita una capa de datos adicional que aun no se ha entregado.",
       "inputsTooltip": {
-        "triggerLabel": "Mostrar los insumos usados para generar esta solucion",
+        "triggerLabel": "Mostrar los insumos usados para generar este escenario",
         "title": "Insumos usados",
         "targetLabel": "Meta",
         "constraintsLabel": "Restricciones",
@@ -121,8 +121,8 @@
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
       "nationalAnchor": {
         "title": "Huella nacional de conservacion",
-        "contributing": "Esta solucion destina {{percent}}% de Colombia para conservacion.",
-        "currentContribution": "Huella de la solucion: {{percent}}%",
+        "contributing": "Este escenario destina {{percent}}% de Colombia para conservacion.",
+        "currentContribution": "Huella del escenario: {{percent}}%",
         "targetLabel": "Referencia 30x30 (30%)",
         "minLabel": "0% de Colombia",
         "maxLabel": "100% de Colombia"
@@ -141,7 +141,7 @@
         "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
         "threatenedSpeciesSecuredDesc": "Metas de habitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",
-        "ecosystemCoverageDesc": "Ecosistemas clave dentro de la solucion",
+        "ecosystemCoverageDesc": "Ecosistemas clave dentro del escenario",
         "carbonStorageCapacity": "Capacidad de almacenamiento de carbono",
         "carbonStorageCapacityDesc": "Biomasa total en areas prioritarias",
         "waterRegulationServices": "Servicios de regulacion hidrica",
@@ -157,7 +157,7 @@
     "aoi": {
       "kicker": "Detalle de AOI",
       "title": "Detalle del area de interes",
-      "description": "Enfoca la solucion activa en una geografia seleccionada para inspeccionar metricas especificas del AOI.",
+      "description": "Enfoca el escenario activo en una geografia seleccionada para inspeccionar metricas especificas del AOI.",
       "selectedLabel": "AOI seleccionado",
       "typeLabel": "Tipo",
       "types": {
@@ -168,19 +168,19 @@
       "emptyTitle": "No hay un area de interes seleccionada",
       "emptyDescription": "Selecciona un AOI para completar este panel con metricas locales y contexto.",
       "emptyMetricsTitle": "Las metricas del AOI no estan listas",
-      "emptyMetricsDescription": "Las metricas del AOI aparecen aqui cuando hay una solucion y un area de interes disponibles."
+      "emptyMetricsDescription": "Las metricas del AOI aparecen aqui cuando hay un escenario y un area de interes disponibles."
     },
     "comparison": {
-      "kicker": "Comparar soluciones",
-      "description": "Revisa metricas de una solucion base y una candidata en un solo lugar antes de hacer una recomendacion.",
-      "baselineLabel": "Solucion base",
-      "candidateLabel": "Solucion candidata",
-      "baselineShort": "Base",
-      "candidateShort": "Candidata",
-      "emptyTitle": "No hay una solucion de comparacion cargada",
-      "emptyDescription": "Agrega una segunda solucion para comparar compensaciones con la solucion base actual.",
-      "noBaselineTitle": "Primero elige una solucion base",
-      "noBaselineDescription": "Carga una solucion activa antes de abrir el modo de comparacion."
+      "kicker": "Comparar escenarios",
+      "description": "Revisa metricas del Escenario A y el Escenario B en un solo lugar antes de hacer una recomendacion.",
+      "baselineLabel": "Escenario A",
+      "candidateLabel": "Escenario B",
+      "baselineShort": "Escenario A",
+      "candidateShort": "Escenario B",
+      "emptyTitle": "No hay un escenario de comparacion cargado",
+      "emptyDescription": "Agrega un segundo escenario para comparar compensaciones con la seleccion actual.",
+      "noBaselineTitle": "Primero elige un escenario",
+      "noBaselineDescription": "Carga un escenario antes de abrir el modo de comparacion."
     },
     "sections": {
       "ecology": "Ecologia",
@@ -190,7 +190,7 @@
   },
   "layout": {
     "leftSidebarTitle": "Barra lateral izquierda",
-    "leftSidebarPlaceholder": "Contenedor temporal para los controles de soluciones.",
+    "leftSidebarPlaceholder": "Contenedor temporal para los controles de escenarios.",
     "rightSidebarTitle": "Barra lateral derecha",
     "rightSidebarPlaceholder": "Contenedor temporal para paneles de analisis.",
     "mobile": {
@@ -207,34 +207,34 @@
   },
   "solutionControls": {
     "onboarding": {
-      "kicker": "Controles de soluciones",
-      "title": "Empieza aqui para elegir la solucion que quieres inspeccionar.",
-      "description": "Usa la barra lateral izquierda para abrir el Buscador de Soluciones, cambiar entre candidatas y controlar lo que aparece en el panel de analisis.",
+      "kicker": "Controles de escenarios",
+      "title": "Empieza aqui para elegir el escenario que quieres inspeccionar.",
+      "description": "Usa la barra lateral izquierda para abrir el Buscador de Escenarios, cambiar entre escenarios y controlar lo que aparece en el panel de analisis.",
       "heroTitle": "La seleccion debe vivir con los controles.",
-      "heroDescription": "Primero elige una solucion y luego revisa sus metricas y comparaciones en la barra lateral derecha.",
+      "heroDescription": "Primero elige un escenario y luego revisa sus metricas y comparaciones en la barra lateral derecha.",
       "getStarted": "Comenzar",
       "stepsTitle": "Flujo sugerido",
       "stepsDescription": "Una secuencia simple para personas que usan la herramienta por primera vez.",
       "steps": {
         "choose": {
-          "title": "Abrir el Buscador de Soluciones",
-          "description": "Inicia una busqueda guiada para encontrar la solucion con mejor ajuste para el contexto actual de planificacion."
+          "title": "Abrir el Buscador de Escenarios",
+          "description": "Inicia una busqueda guiada para encontrar el escenario con mejor ajuste para el contexto actual de planificacion."
         },
         "review": {
-          "title": "Cargar y cambiar soluciones",
-          "description": "Usa esta barra lateral para controlar cual solucion esta activa antes de revisar detalles."
+          "title": "Cargar y cambiar escenarios",
+          "description": "Usa esta barra lateral para controlar cual escenario esta activo antes de revisar detalles."
         },
         "compare": {
           "title": "Inspeccionar el analisis",
-          "description": "Cuando una solucion este activa, usa la barra lateral derecha para revisar resumen, AOI y comparaciones."
+          "description": "Cuando un escenario este activo, usa la barra lateral derecha para revisar resumen, AOI y comparaciones."
         }
       }
     },
     "modal": {
-      "openSolutionFinder": "Abrir modal de busqueda de soluciones",
+      "openSolutionFinder": "Abrir Buscador de Escenarios",
       "openPerspective": "Abrir modal de perspectivas",
-      "solutionFinderTitle": "Buscador de Soluciones",
-      "solutionFinderComparisonTitle": "Buscador de soluciones (seleccionar solucion candidata)",
+      "solutionFinderTitle": "Buscador de Escenarios",
+      "solutionFinderComparisonTitle": "Buscador de Escenarios (seleccionar escenario de comparacion)",
       "perspectiveTitle": "Selector de Perspectiva",
       "perspectiveHeading": "Shell modal estandar",
       "perspectiveDescription": "Este modal usa el modo estandar del shell y comparte el mismo comportamiento de cierre y funciones de accesibilidad."
@@ -244,9 +244,9 @@
       "title": "Encontrar un escenario de conservacion",
       "description": "Elija que proteger, areas incluidas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
       "comparison": {
-        "kicker": "Busqueda de solucion candidata",
-        "title": "Encontrar una solucion candidata",
-        "description": "Use el mismo flujo para elegir la solucion candidata en la comparacion."
+        "kicker": "Busqueda de escenario de comparacion",
+        "title": "Encontrar un escenario de comparacion",
+        "description": "Use el mismo flujo para elegir el escenario de comparacion para revisar lado a lado."
       },
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
@@ -255,7 +255,7 @@
         "nacional": "Nacional",
         "sirap": "SIRAP",
         "selectRegion": "— Seleccionar región SIRAP —",
-        "regionalBadge": "Soluciones regionales",
+        "regionalBadge": "Escenarios regionales",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
@@ -357,7 +357,7 @@
         "cancel": "Cancelar",
         "findMatches": "Actualizar escenarios",
         "apply": "Aplicar escenario seleccionado",
-        "loadAsCandidateSolution": "Cargar como solucion candidata"
+        "loadAsCandidateSolution": "Cargar como escenario de comparacion"
       },
       "empty": {
         "title": "Defina filtros para ver un escenario",
@@ -381,7 +381,7 @@
         "scenarioCarbonShield": "Prioriza densidad de carbono mientras excluye presion minera y bordes urbanos."
       },
       "toast": {
-        "solutionLoaded": "Solucion cargada"
+        "solutionLoaded": "Escenario cargado"
       }
     }
   }

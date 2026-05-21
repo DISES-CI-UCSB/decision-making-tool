@@ -292,8 +292,7 @@ export class PanelSwitcherComponent {
     biodiversity: {
       title: 'Biodiversity',
       toneClass: 'bio',
-      insight:
-        'Species indicators highlight sensitivity shifts between the baseline and candidate configuration.',
+      insight: 'Species indicators highlight sensitivity shifts between Scenario A and Scenario B.',
     },
     ecosystems: {
       title: 'Ecosystems & Carbon',
@@ -326,7 +325,7 @@ export class PanelSwitcherComponent {
       id: 'comp-priority-area',
       section: 'general',
       label: 'Priority Conservation Area',
-      description: 'Estimated protected footprint under each solution.',
+      description: 'Estimated protected footprint under each scenario.',
       dummyBaseline: '210 km²',
       dummyCandidate: '230 km²',
       dummyDelta: '+20 km²',
@@ -429,7 +428,7 @@ export class PanelSwitcherComponent {
       id: 'comp-protected-overlap',
       section: 'protection',
       label: 'Overlap with National Parks',
-      description: 'Candidate overlap with existing formal protected areas.',
+      description: 'Scenario B overlap with existing formal protected areas.',
       dummyBaseline: '14%',
       dummyCandidate: '18%',
       dummyDelta: '+4%',

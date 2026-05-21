@@ -39,6 +39,7 @@ import {
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
 import { catchError, of } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 interface LayerControlRow {
   id: string;
@@ -2062,9 +2063,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: overlay.name,
         sourceLabel:
           overlay.id === BASELINE_SOLUTION_OVERLAY_ID
-            ? 'Selected Solution'
+            ? 'Selected Scenario'
             : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
-              ? 'Comparison Solution'
+              ? 'Comparison Scenario'
               : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
                 ? 'Comparison Overlay'
                 : 'Available Layers',
@@ -2741,19 +2742,30 @@ export class MapLayersPanelComponent implements OnDestroy {
    * Management Figures itself uses `overlaysCollapsed` (default expanded).
    */
   private createDefaultGroups(): LayerGroup[] {
+    const sirapRows = [
+      ...(environment.sirapLayers.combined
+        ? [this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false)]
+        : []),
+      ...(environment.sirapLayers.territorial
+        ? [this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false)]
+        : []),
+      ...(environment.sirapLayers.thematic
+        ? [this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false)]
+        : []),
+    ];
+    const adminBoundaryRows = [
+      ...sirapRows,
+      this.boundaryRow('admin_departments', 'department', 'Departments', true, true),
+      this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
+    ];
+
     return [
       {
         id: 'group-admin-boundaries',
         title: 'Administrative Boundaries',
-        countLabel: '5 layers',
+        countLabel: `${adminBoundaryRows.length} layers`,
         collapsed: false,
-        rows: [
-          this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false),
-          this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false),
-          this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false),
-          this.boundaryRow('admin_departments', 'department', 'Departments', true, true),
-          this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
-        ],
+        rows: adminBoundaryRows,
       },
       {
         id: 'group-species-biodiversity',

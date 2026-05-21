@@ -15,6 +15,7 @@ import type { ViewHit } from '@arcgis/core/views/types';
 
 import { type AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
+import { environment } from '../../../../environments/environment';
 
 interface BoundaryConfig {
   id: string;
@@ -170,6 +171,17 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   },
 ];
 
+// Single enforcement point for SIRAP layer feature flags. Disabled layers are
+// excluded here and never registered on the map or reachable via hit-test.
+const SIRAP_LAYER_ENABLED_BY_KEY: Partial<Record<AdminBoundaryLayerKey, boolean>> = {
+  siraps: environment.sirapLayers.combined,
+  siraps_territorial: environment.sirapLayers.territorial,
+  siraps_thematic: environment.sirapLayers.thematic,
+};
+const ENABLED_BOUNDARY_CONFIGS = COLOMBIA_BOUNDARY_CONFIGS.filter(
+  (config) => config.type !== 'sirap' || (SIRAP_LAYER_ENABLED_BY_KEY[config.layerKey] ?? true),
+);
+
 @Injectable({ providedIn: 'root' })
 export class AdminBoundaryService {
   private readonly appState = inject(AppStateService);
@@ -227,7 +239,7 @@ export class AdminBoundaryService {
     this.view.popupEnabled = false;
     // Create only default-visible layers on startup. Remote IGAC FeatureLayers are loaded lazily
     // when users explicitly toggle them on, which avoids noisy startup CORS errors.
-    this.boundaryLayers = COLOMBIA_BOUNDARY_CONFIGS.filter(
+    this.boundaryLayers = ENABLED_BOUNDARY_CONFIGS.filter(
       (config) => this.layerVisibilityByLayerKey$()[config.layerKey] ?? config.visible ?? true,
     ).map((config) => this.buildLayer(config));
     if (this.boundaryLayers.length > 0) {
@@ -494,7 +506,7 @@ export class AdminBoundaryService {
         continue;
       }
 
-      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layerId);
+      const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layerId);
       if (!config) {
         continue;
       }
@@ -561,13 +573,11 @@ export class AdminBoundaryService {
   }
 
   private getConfigsForTarget(target: AoiType | AdminBoundaryLayerKey): BoundaryConfig[] {
-    const layerKeyConfigs = COLOMBIA_BOUNDARY_CONFIGS.filter(
-      (config) => config.layerKey === target,
-    );
+    const layerKeyConfigs = ENABLED_BOUNDARY_CONFIGS.filter((config) => config.layerKey === target);
     if (layerKeyConfigs.length > 0) {
       return layerKeyConfigs;
     }
-    return COLOMBIA_BOUNDARY_CONFIGS.filter((config) => config.type === target);
+    return ENABLED_BOUNDARY_CONFIGS.filter((config) => config.type === target);
   }
 
   private setVisibilityForConfigs(configs: BoundaryConfig[], visible: boolean): void {

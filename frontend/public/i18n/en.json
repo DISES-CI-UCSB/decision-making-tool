@@ -34,7 +34,7 @@
   },
   "analysis": {
     "modes": {
-      "welcome": "No solution selected",
+      "welcome": "No scenario selected",
       "overview": "Overview",
       "aoi": "Area of Interest",
       "comparison": "Comparison"
@@ -50,22 +50,22 @@
       "deltaUnavailable": "No delta"
     },
     "empty": {
-      "title": "Select a solution",
+      "title": "Select a scenario",
       "description": "Load a scenario from the left sidebar."
     },
     "welcome": {
       "kicker": "Analysis workspace",
-      "title": "Start with a solution to unlock analysis panels.",
-      "description": "Use the Solution Finder to load a scenario, review its metrics, and compare tradeoffs without leaving the map workspace.",
+      "title": "Start with a scenario to unlock analysis panels.",
+      "description": "Use the Scenario Finder to load a scenario, review its metrics, and compare tradeoffs without leaving the map workspace.",
       "heroTitle": "Right-side guidance stays in sync with your workflow.",
-      "heroDescription": "When a solution is active, this panel can switch between overview, AOI, and comparison views as the rest of the experience comes online.",
+      "heroDescription": "When a scenario is active, this panel can switch between overview, AOI, and comparison views as the rest of the experience comes online.",
       "getStarted": "Get Started",
       "stepsTitle": "How this flow works",
       "stepsDescription": "A lightweight onboarding sequence for first-time users.",
       "steps": {
         "choose": {
-          "title": "Choose a solution",
-          "description": "Open the Solution Finder to load a candidate strategy for the current planning context."
+          "title": "Choose a scenario",
+          "description": "Open the Scenario Finder to load a scenario for the current planning context."
         },
         "review": {
           "title": "Review the overview",
@@ -73,22 +73,22 @@
         },
         "compare": {
           "title": "Compare options",
-          "description": "Switch into comparison mode once another solution is available for side-by-side review."
+          "description": "Switch into comparison mode once another scenario is available for side-by-side review."
         }
       }
     },
     "overview": {
-      "kicker": "Active solution",
-      "title": "Solution overview",
-      "description": "A compact summary of the current solution and the metrics currently available for review.",
-      "solutionLabel": "Loaded solution",
-      "noDescription": "No description is available for this solution yet.",
+      "kicker": "Active scenario",
+      "title": "Scenario overview",
+      "description": "A compact summary of the current scenario and the metrics currently available for review.",
+      "solutionLabel": "Loaded scenario",
+      "noDescription": "No description is available for this scenario yet.",
       "matchLabel": "Match score",
       "sectionsLabel": "Metric groups",
-      "emptyTitle": "Select a solution",
+      "emptyTitle": "Select a scenario",
       "emptyDescription": "Load a scenario from the left sidebar.",
       "loadErrorTitle": "Couldn't load overview",
-      "loadErrorDescription": "Try selecting the solution again, or choose a different one.",
+      "loadErrorDescription": "Try selecting the scenario again, or choose a different one.",
       "matchBadge": "{{percent}}% Match",
       "goalsMet": "Goals Met",
       "goalsMetSub": "Conservation themes achieved",
@@ -107,7 +107,7 @@
       "unavailableInfoLabel": "Why this metric is unavailable",
       "unavailableTooltip": "Unavailable right now: this metric needs an additional source layer that has not been delivered yet.",
       "inputsTooltip": {
-        "triggerLabel": "Show the inputs used to generate this solution",
+        "triggerLabel": "Show the inputs used to generate this scenario",
         "title": "Inputs used",
         "targetLabel": "Target",
         "constraintsLabel": "Constraints",
@@ -121,8 +121,8 @@
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
       "nationalAnchor": {
         "title": "National Conservation Footprint",
-        "contributing": "This solution designates {{percent}}% of Colombia for conservation.",
-        "currentContribution": "Solution footprint: {{percent}}%",
+        "contributing": "This scenario designates {{percent}}% of Colombia for conservation.",
+        "currentContribution": "Scenario footprint: {{percent}}%",
         "targetLabel": "30x30 benchmark (30%)",
         "minLabel": "0% of Colombia",
         "maxLabel": "100% of Colombia"
@@ -141,7 +141,7 @@
         "threatenedSpeciesSecured": "Threatened Species Secured",
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",
-        "ecosystemCoverageDesc": "Key ecosystems within solution",
+        "ecosystemCoverageDesc": "Key ecosystems within scenario",
         "carbonStorageCapacity": "Carbon Storage Capacity",
         "carbonStorageCapacityDesc": "Total biomass in priority areas",
         "waterRegulationServices": "Water Regulation Services",
@@ -157,7 +157,7 @@
     "aoi": {
       "kicker": "AOI detail",
       "title": "Area of interest detail",
-      "description": "Focus the active solution on a selected geography to inspect AOI-specific metrics.",
+      "description": "Focus the active scenario on a selected geography to inspect AOI-specific metrics.",
       "selectedLabel": "Selected AOI",
       "typeLabel": "Type",
       "types": {
@@ -168,19 +168,19 @@
       "emptyTitle": "No area of interest selected",
       "emptyDescription": "Select an AOI to populate this panel with local metrics and context.",
       "emptyMetricsTitle": "AOI metrics are not ready",
-      "emptyMetricsDescription": "AOI metrics appear here once both a solution and an area of interest are available."
+      "emptyMetricsDescription": "AOI metrics appear here once both a scenario and an area of interest are available."
     },
     "comparison": {
-      "kicker": "Compare Solutions",
-      "description": "Review baseline and candidate solution metrics in one place before making a recommendation.",
-      "baselineLabel": "Baseline solution",
-      "candidateLabel": "Candidate solution",
-      "baselineShort": "Baseline",
-      "candidateShort": "Candidate",
-      "emptyTitle": "No comparison solution loaded",
-      "emptyDescription": "Add a second solution to compare tradeoffs against the current baseline.",
-      "noBaselineTitle": "Choose a baseline first",
-      "noBaselineDescription": "Load an active solution before opening comparison mode."
+      "kicker": "Compare Scenarios",
+      "description": "Review Scenario A and Scenario B metrics side by side before making a recommendation.",
+      "baselineLabel": "Scenario A",
+      "candidateLabel": "Scenario B",
+      "baselineShort": "Scenario A",
+      "candidateShort": "Scenario B",
+      "emptyTitle": "No comparison scenario loaded",
+      "emptyDescription": "Add a second scenario to compare tradeoffs against the current selection.",
+      "noBaselineTitle": "Choose a scenario first",
+      "noBaselineDescription": "Load a scenario before opening comparison mode."
     },
     "sections": {
       "ecology": "Ecology",
@@ -190,7 +190,7 @@
   },
   "layout": {
     "leftSidebarTitle": "Left Sidebar",
-    "leftSidebarPlaceholder": "Placeholder container for solution controls.",
+    "leftSidebarPlaceholder": "Placeholder container for scenario controls.",
     "rightSidebarTitle": "Right Sidebar",
     "rightSidebarPlaceholder": "Placeholder container for analysis dashboards.",
     "mobile": {
@@ -207,34 +207,34 @@
   },
   "solutionControls": {
     "onboarding": {
-      "kicker": "Solution controls",
-      "title": "Start here to choose the solution you want to inspect.",
-      "description": "Use the left sidebar to launch the Solution Finder, switch between candidates, and drive what appears in the analysis panel.",
+      "kicker": "Scenario controls",
+      "title": "Start here to choose the scenario you want to inspect.",
+      "description": "Use the left sidebar to launch the Scenario Finder, switch between scenarios, and drive what appears in the analysis panel.",
       "heroTitle": "Selection belongs with the controls.",
-      "heroDescription": "Choose a solution first, then review its metrics and comparisons in the right sidebar.",
+      "heroDescription": "Choose a scenario first, then review its metrics and comparisons in the right sidebar.",
       "getStarted": "Get Started",
       "stepsTitle": "Suggested flow",
       "stepsDescription": "A simple sequence for first-time users.",
       "steps": {
         "choose": {
-          "title": "Open Solution Finder",
-          "description": "Start a guided search for the best-fit solution for the current planning context."
+          "title": "Open Scenario Finder",
+          "description": "Start a guided search for the best-fit scenario for the current planning context."
         },
         "review": {
-          "title": "Load and switch solutions",
-          "description": "Use this sidebar to control which solution is active before reviewing details."
+          "title": "Load and switch scenarios",
+          "description": "Use this sidebar to control which scenario is active before reviewing details."
         },
         "compare": {
           "title": "Inspect the analysis",
-          "description": "Once a solution is active, use the right sidebar to read overview, AOI, and comparison details."
+          "description": "Once a scenario is active, use the right sidebar to read overview, AOI, and comparison details."
         }
       }
     },
     "modal": {
-      "openSolutionFinder": "Open Solution Finder Modal",
+      "openSolutionFinder": "Open Scenario Finder",
       "openPerspective": "Open Perspective Modal",
-      "solutionFinderTitle": "Solution Finder",
-      "solutionFinderComparisonTitle": "Solution Finder (Select Candidate Solution)",
+      "solutionFinderTitle": "Scenario Finder",
+      "solutionFinderComparisonTitle": "Scenario Finder (Select Comparison Scenario)",
       "perspectiveTitle": "Perspective Selector",
       "perspectiveHeading": "Standard modal shell",
       "perspectiveDescription": "This modal uses the standard shell mode and shares the same close behavior and accessibility features."
@@ -244,9 +244,9 @@
       "title": "Find a conservation scenario",
       "description": "Choose what to protect, optional included areas, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
       "comparison": {
-        "kicker": "Candidate solution search",
-        "title": "Find a candidate solution",
-        "description": "Use the same guided workflow to choose the candidate solution for side-by-side comparison."
+        "kicker": "Comparison scenario search",
+        "title": "Find a comparison scenario",
+        "description": "Use the same guided workflow to choose a comparison scenario for side-by-side comparison."
       },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
@@ -255,7 +255,7 @@
         "nacional": "Nacional",
         "sirap": "SIRAP",
         "selectRegion": "— Select SIRAP region —",
-        "regionalBadge": "Regional solutions",
+        "regionalBadge": "Regional scenarios",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
@@ -358,7 +358,7 @@
         "cancel": "Cancel",
         "findMatches": "Refresh scenarios",
         "apply": "Apply selected scenario",
-        "loadAsCandidateSolution": "Load as candidate solution"
+        "loadAsCandidateSolution": "Load as comparison scenario"
       },
       "empty": {
         "title": "Set filters to view a scenario",
@@ -382,7 +382,7 @@
         "scenarioCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."
       },
       "toast": {
-        "solutionLoaded": "Solution loaded"
+        "solutionLoaded": "Scenario loaded"
       }
     }
   }

@@ -34,9 +34,18 @@ const environmentFile = `export const environment = {
   },
   googleClientId: ${toTsString(readOptionalEnv('GOOGLE_CLIENT_ID'))},
   manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL'))},
+  blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH') || '/api/blob-proxy/')},
   ENABLE_MANIFEST_EDITOR: ${readBooleanEnv('ENABLE_MANIFEST_EDITOR', false)},
   bypassLoginForDevelopment: false,
   allowSirapWithoutAuth: false,
+  // SIRAP layer visibility flags — override via Vercel env vars when ready to enable.
+  // SIRAP_LAYER_TERRITORIAL and SIRAP_LAYER_THEMATIC default to false until data
+  // is verified production-ready.
+  sirapLayers: {
+    combined: ${readBooleanEnv('SIRAP_LAYER_COMBINED', true)},
+    territorial: ${readBooleanEnv('SIRAP_LAYER_TERRITORIAL', false)},
+    thematic: ${readBooleanEnv('SIRAP_LAYER_THEMATIC', false)},
+  },
 } as const;
 
 export type AppEnvironment = typeof environment;
