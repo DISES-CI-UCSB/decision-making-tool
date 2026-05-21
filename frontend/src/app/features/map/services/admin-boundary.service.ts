@@ -15,7 +15,7 @@ import type { ViewHit } from '@arcgis/core/views/types';
 
 import { type AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
-import { environment } from '../../../../environments/environment';
+import { FEATURE_FLAGS } from '@feature-flags';
 
 interface BoundaryConfig {
   id: string;
@@ -174,9 +174,9 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
 // Single enforcement point for SIRAP layer feature flags. Disabled layers are
 // excluded here and never registered on the map or reachable via hit-test.
 const SIRAP_LAYER_ENABLED_BY_KEY: Partial<Record<AdminBoundaryLayerKey, boolean>> = {
-  siraps: environment.sirapLayers.combined,
-  siraps_territorial: environment.sirapLayers.territorial,
-  siraps_thematic: environment.sirapLayers.thematic,
+  siraps: FEATURE_FLAGS.sirapLayers.combined,
+  siraps_territorial: FEATURE_FLAGS.sirapLayers.territorial,
+  siraps_thematic: FEATURE_FLAGS.sirapLayers.thematic,
 };
 const ENABLED_BOUNDARY_CONFIGS = COLOMBIA_BOUNDARY_CONFIGS.filter(
   (config) => config.type !== 'sirap' || (SIRAP_LAYER_ENABLED_BY_KEY[config.layerKey] ?? true),

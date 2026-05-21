@@ -25,15 +25,6 @@ export const environment = {
   // Temporary dev override: keep SIRAP boundaries testable while auth approval
   // flow remains mocked/pending (UCS-181 in progress).
   allowSirapWithoutAuth: true,
-  // SIRAP layer visibility flags — controls which boundary layer types appear
-  // in the sidebar and are registered on the map.
-  // Local dev: all three types enabled so they can be tested end-to-end.
-  // To simulate production locally, flip territorial/thematic to false here.
-  sirapLayers: {
-    combined: true,
-    territorial: true,
-    thematic: true,
-  },
 } as const;
 
 export type AppEnvironment = typeof environment;

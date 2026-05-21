@@ -39,7 +39,7 @@ import {
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
 import { catchError, of } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { FEATURE_FLAGS } from '@feature-flags';
 
 interface LayerControlRow {
   id: string;
@@ -2743,13 +2743,13 @@ export class MapLayersPanelComponent implements OnDestroy {
    */
   private createDefaultGroups(): LayerGroup[] {
     const sirapRows = [
-      ...(environment.sirapLayers.combined
+      ...(FEATURE_FLAGS.sirapLayers.combined
         ? [this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false)]
         : []),
-      ...(environment.sirapLayers.territorial
+      ...(FEATURE_FLAGS.sirapLayers.territorial
         ? [this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false)]
         : []),
-      ...(environment.sirapLayers.thematic
+      ...(FEATURE_FLAGS.sirapLayers.thematic
         ? [this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false)]
         : []),
     ];
