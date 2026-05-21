@@ -268,20 +268,20 @@
       "loading": "Finding scenario…",
       "stepPrefixes": {
         "step1": "Step 1",
-        "step2a": "Step 2",
-        "step2b": "Step 3",
+        "step2a": "Step 3",
+        "step2b": "Step 2",
         "step3": "Step 3"
       },
       "stepLabels": {
         "step1": "What to protect",
         "step2a": "Included areas (optional)",
-        "step2b": "Trade-off basis",
+        "step2b": "Costs",
         "step3": "Matching results"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "step2a": "Choose optional included areas to apply alongside the always-on RUNAP protected areas.",
-        "step2b": "Choose one cost layer to rank candidate sites (lower values are preferred).",
+        "step2b": "Choose a cost layer to evaluate potential conservation areas.",
         "step3": "Matching scenarios refresh automatically as you change filters."
       },
       "stepState": {
@@ -347,7 +347,7 @@
         "alwaysOnChip": "Always on"
       },
       "step2b": {
-        "intro": "Choose one cost layer to rank candidate sites (lower values are preferred).",
+        "intro": "Choose a cost layer to evaluate potential conservation areas.",
         "humanFootprintLabel": "Human pressure",
         "humanFootprintHelp": "Projected Human Footprint 2030 (HF_2030): lower score means less expected human pressure.",
         "carbonOpportunityLabel": "Net benefit (agricultural rent)",
