@@ -18,8 +18,12 @@ from typing import Any
 
 DEFAULT_CACHE_DIR = Path("data/metrics/cache/tier1")
 DEFAULT_OUTPUT_DIR = Path("data/metrics/generated/tier1")
+# Legacy sidecar (national-only flat format kept for backwards compatibility).
 SOLUTION_BLOB_DIRECTORY = "solutions/nacional"
 SIDECAR_SUFFIX = ".tier1-metrics.json"
+# Canonical multi-geography cache (T5+).
+CACHE_BLOB_DIRECTORY = "metrics/cache"
+CACHE_SUFFIX = ".metrics.json"
 
 
 class DownloadError(RuntimeError):
@@ -103,6 +107,38 @@ def write_solution_sidecar(
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("w", encoding="utf-8") as handle:
         json.dump(response, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    return target
+
+
+def cache_solution_path(output_dir: Path, solution_id: str) -> Path:
+    safe_id = solution_id.replace("/", "_").replace(" ", "_")
+    return output_dir / "cache" / f"{safe_id}{CACHE_SUFFIX}"
+
+
+def expected_cache_blob_path(solution_id: str) -> str:
+    safe_id = solution_id.replace("/", "_").replace(" ", "_")
+    return f"{CACHE_BLOB_DIRECTORY}/{safe_id}{CACHE_SUFFIX}"
+
+
+def expected_cache_public_url(public_blob_host: str, solution_id: str) -> str:
+    return f"{public_blob_host.rstrip('/')}/{expected_cache_blob_path(solution_id)}"
+
+
+def write_solution_cache(
+    output_dir: Path,
+    solution_id: str,
+    doc: dict[str, Any],
+) -> Path:
+    """Write the multi-geography wrapped metrics doc for one solution.
+
+    Writes to output_dir/cache/{solution_id}.metrics.json.
+    The Vercel blob target is metrics/cache/{solution_id}.metrics.json (T7).
+    """
+    target = cache_solution_path(output_dir, solution_id)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as handle:
+        json.dump(doc, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
     return target
 

@@ -71,6 +71,24 @@ class SolutionRaster:
     def valid_area_km2(self) -> float:
         return _area_km2(self.valid_mask, self.pixel_area_km2_per_row)
 
+    def with_boundary_mask(self, boundary: np.ndarray) -> "SolutionRaster":
+        """Return a new SolutionRaster with both masks AND'd with a boundary pixel mask.
+
+        The boundary array must be a 2D bool array with the same shape as the
+        solution raster. Typically produced by boundaries.boundary_mask.rasterize_boundary().
+        """
+        new_selected = self.selected_mask & boundary
+        new_valid = self.valid_mask & boundary
+        return SolutionRaster(
+            path=self.path,
+            selected_mask=new_selected,
+            valid_mask=new_valid,
+            pixel_area_km2_per_row=self.pixel_area_km2_per_row,
+            fingerprint=self.fingerprint,
+            selected_cells=int(new_selected.sum()),
+            valid_cells=int(new_valid.sum()),
+        )
+
 
 class RasterError(RuntimeError):
     pass
