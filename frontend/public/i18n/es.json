@@ -338,8 +338,8 @@
       "step2a": {
         "includeOmecsLabel": "Incluir OMEC",
         "includeOmecsHelp": "OMEC (WDPA/WDOECM, otras medidas efectivas) es opcional; los nombres incluyen +OMEC cuando esta activo.",
-        "includeComunidadesLabel": "Incluir territorios de comunidades",
-        "includeComunidadesHelp": "Territorios de comunidades afrocolombianas que pueden fijarse en una corrida si se activa.",
+        "includeComunidadesLabel": "Incluir territorios afrocolombianos e indígenas",
+        "includeComunidadesHelp": "Fija los territorios de comunidades afrocolombianas y las áreas indígenas junto con RUNAP cuando se activa.",
         "alwaysAppliedHeading": "Siempre aplicado",
         "alwaysRunapLabel": "Areas protegidas RUNAP",
         "alwaysRunapHelp": "La red nacional de areas protegidas (RUNAP) esta incluida en todos los escenarios precalculados de este catalogo.",

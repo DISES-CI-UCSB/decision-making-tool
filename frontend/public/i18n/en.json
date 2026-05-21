@@ -339,8 +339,8 @@
       "step2a": {
         "includeOmecsLabel": "Include OMECs",
         "includeOmecsHelp": "OMECs (WDPA/WDOECM “other effective conservation measures”) are optional; scenario filenames include +OMEC when on.",
-        "includeComunidadesLabel": "Include comunidades territories",
-        "includeComunidadesHelp": "Afro-Colombian community territories that can be locked into a run when enabled.",
+        "includeComunidadesLabel": "Include Afro-Colombian and Indigenous territories",
+        "includeComunidadesHelp": "Locks in Afro-Colombian community territories and Indigenous areas alongside RUNAP when enabled.",
         "alwaysAppliedHeading": "Always applied",
         "alwaysRunapLabel": "RUNAP protected areas",
         "alwaysRunapHelp": "National protected-area network (RUNAP) is included in every precomputed scenario in this catalog.",
