@@ -349,9 +349,10 @@
       "step2b": {
         "intro": "Choose one cost layer to rank candidate sites (lower values are preferred).",
         "humanFootprintLabel": "Human pressure",
-        "humanFootprintHelp": "Projected Human Footprint 2030 (HF_2030): lower score means less expected human pressure.",
+        "humanFootprintHelp": "Projected Human Footprint 2022 (HF_2022): lower score means less expected human pressure.",
         "carbonOpportunityLabel": "Net benefit (agricultural rent)",
-        "carbonOpportunityHelp": "Monetary net-benefit / agricultural-rent surface (CO, Renta_agropecuaria in filenames)."
+        "carbonOpportunityHelp": "Monetary net-benefit / agricultural-rent surface (CO, Renta_agropecuaria in filenames).",
+        "notAvailableBadge": "Not available"
       },
       "actions": {
         "reset": "Reset to defaults",

@@ -605,7 +605,7 @@
                   id="solution-finder-modal-step2b-option-hf-code"
                   class="font-normal opacity-90"
                 >
-                  (HF_2030)
+                  (HF_2022)
                 </span>
               </span>
               <span
@@ -619,32 +619,36 @@
             <button
               id="solution-finder-modal-step2b-option-carbon"
               type="button"
-              class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
-              [class.finder-selected-card-border]="selectedCostLayerId === 'carbon-opportunity'"
-              [class.bg-sky-100]="selectedCostLayerId === 'carbon-opportunity'"
-              [class.border-slate-200]="selectedCostLayerId !== 'carbon-opportunity'"
-              [class.bg-white]="selectedCostLayerId !== 'carbon-opportunity'"
-              [class.cursor-not-allowed]="!isStep2Unlocked()"
-              [class.opacity-60]="!isStep2Unlocked()"
-              [disabled]="!isStep2Unlocked()"
-              [attr.aria-pressed]="selectedCostLayerId === 'carbon-opportunity'"
-              (click)="selectCostLayer('carbon-opportunity')"
+              class="flex w-full cursor-not-allowed flex-col gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-2 text-left transition"
+              disabled
+              aria-disabled="true"
             >
-              <span
-                id="solution-finder-modal-step2b-option-co-title"
-                class="text-sm font-semibold text-slate-900"
+              <div
+                id="solution-finder-modal-step2b-option-co-header-row"
+                class="flex w-full items-start justify-between gap-2"
               >
-                {{ 'solutionControls.finder.step2b.carbonOpportunityLabel' | translate }}
                 <span
-                  id="solution-finder-modal-step2b-option-co-code"
-                  class="font-normal opacity-90"
+                  id="solution-finder-modal-step2b-option-co-title"
+                  class="text-sm font-semibold text-slate-500"
                 >
-                  (CO)
+                  {{ 'solutionControls.finder.step2b.carbonOpportunityLabel' | translate }}
+                  <span
+                    id="solution-finder-modal-step2b-option-co-code"
+                    class="font-normal opacity-90"
+                  >
+                    (CO)
+                  </span>
                 </span>
-              </span>
+                <span
+                  id="solution-finder-modal-step2b-option-co-not-available-badge"
+                  class="finder-all-caps-badge finder-all-caps-optical inline-flex shrink-0 rounded-md border border-slate-400 bg-transparent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                >
+                  {{ 'solutionControls.finder.step2b.notAvailableBadge' | translate }}
+                </span>
+              </div>
               <span
                 id="solution-finder-modal-step2b-option-co-help"
-                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                class="mt-1 text-xs font-normal leading-snug text-slate-400"
               >
                 {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
               </span>
