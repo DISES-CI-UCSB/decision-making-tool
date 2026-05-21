@@ -1,0 +1,118 @@
+"""Vercel Blob layer manifest fetching, validation, and lookup helpers.
+
+Validates only the fields the Tier 1 batch needs and fails clearly when
+required entries are missing.
+"""
+
+from __future__ import annotations
+
+import json
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from typing import Any
+
+DEFAULT_MANIFEST_URL = (
+    "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json"
+)
+
+
+class ManifestError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True)
+class ResolvedManifest:
+    url: str
+    raw: dict[str, Any]
+    public_blob_host: str
+    layers_by_id: dict[str, dict[str, Any]]
+    national_solutions: list[dict[str, Any]]
+
+
+def fetch_manifest(url: str | None = None, *, timeout: int = 30) -> ResolvedManifest:
+    target = (url or DEFAULT_MANIFEST_URL).strip()
+    if not target:
+        raise ManifestError("Manifest URL is empty.")
+
+    cache_buster_url = f"{target}{'&' if '?' in target else '?'}v={int(__import__('time').time())}"
+    req = urllib.request.Request(cache_buster_url, headers={"User-Agent": "tier1-metrics/0.1"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+        raise ManifestError(f"Failed to fetch manifest at {target}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ManifestError(f"Manifest at {target} is not valid JSON: {exc}") from exc
+
+    return _validate_and_index(target, payload)
+
+
+def _validate_and_index(url: str, payload: Any) -> ResolvedManifest:
+    if not isinstance(payload, dict):
+        raise ManifestError("Manifest root is not a JSON object.")
+    for key in ("publicBlobHost", "layers", "solutions"):
+        if key not in payload:
+            raise ManifestError(f"Manifest is missing required field '{key}'.")
+
+    public_host = str(payload["publicBlobHost"]).rstrip("/")
+
+    layers = payload["layers"]
+    if not isinstance(layers, list) or not layers:
+        raise ManifestError("Manifest 'layers' must be a non-empty list.")
+    layers_by_id: dict[str, dict[str, Any]] = {}
+    for layer in layers:
+        if not isinstance(layer, dict) or "id" not in layer:
+            raise ManifestError(f"Encountered a layer entry without an id: {layer!r}")
+        layers_by_id[str(layer["id"])] = layer
+
+    solutions = payload["solutions"]
+    if not isinstance(solutions, list):
+        raise ManifestError("Manifest 'solutions' must be a list.")
+
+    national: list[dict[str, Any]] = []
+    for sol in solutions:
+        if not isinstance(sol, dict):
+            continue
+        if str(sol.get("scope", "")).lower() == "nacional":
+            for key in ("id", "displayUrl", "blobPath"):
+                if not sol.get(key):
+                    raise ManifestError(
+                        f"National solution missing required field '{key}': {sol.get('id', '<unknown>')}"
+                    )
+            national.append(sol)
+
+    if not national:
+        raise ManifestError("Manifest contains no national-scope solutions.")
+
+    return ResolvedManifest(
+        url=url,
+        raw=payload,
+        public_blob_host=public_host,
+        layers_by_id=layers_by_id,
+        national_solutions=national,
+    )
+
+
+def resolve_layer_display_url(manifest: ResolvedManifest, layer_id: str) -> str:
+    layer = manifest.layers_by_id.get(layer_id)
+    if layer is None:
+        raise ManifestError(f"Manifest has no layer with id '{layer_id}'.")
+    url = layer.get("displayUrl")
+    if not url:
+        raise ManifestError(
+            f"Layer '{layer_id}' has no displayUrl; cannot read raster for overlap metrics."
+        )
+    return str(url)
+
+
+def solution_blob_basename(solution: dict[str, Any]) -> str:
+    """Return the file basename (no extension) for the solution's Blob raster."""
+
+    raster_file = solution.get("rasterFile") or ""
+    if raster_file:
+        return raster_file.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+    blob_path = solution.get("blobPath") or ""
+    if blob_path:
+        return blob_path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+    return str(solution.get("id", "unknown"))

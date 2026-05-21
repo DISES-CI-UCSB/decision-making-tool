@@ -57,9 +57,12 @@ export class AppStateService {
   readonly comparisonSolution$ = signal<Solution | null>(null);
   readonly comparisonVisualizationMode$ = signal<ComparisonVisualizationMode>('threeColorOverlay');
   readonly rightSidebarMode$ = signal<RightSidebarMode>('welcome');
-  readonly fillDummyOverviewMetrics$ = signal(true);
-  readonly fillDummyComparisonMetrics$ = signal(true);
-  readonly fillDummyAoiMetrics$ = signal(true);
+  // Default to OFF: rows without a real Tier 1 (or AOI/comparison) metric
+  // value render as `--` instead of fabricated demo numbers. Dev tools can
+  // flip these back on for design reviews that want fully populated mocks.
+  readonly fillDummyOverviewMetrics$ = signal(false);
+  readonly fillDummyComparisonMetrics$ = signal(false);
+  readonly fillDummyAoiMetrics$ = signal(false);
   /** Dev-only: toggle metric-row icons in Overview/AOI panels for iconography review. */
   readonly showMetricIcons$ = signal(true);
   readonly showFinderScenarioFilenames$ = signal(false);

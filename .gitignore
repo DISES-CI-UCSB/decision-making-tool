@@ -52,6 +52,17 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 !/data/boundaries/**
 /data/boundaries/SIRAPS/
 !/data/**/*.py
+# Tracked Python script dependency files.
+!/data/scripts/**/requirements.txt
+# Local virtualenvs created next to a tracked script (artifacts only).
+/data/scripts/**/.venv/
+# Metrics pipeline: track source + fixtures, ignore generated artifacts and raster cache.
+/data/metrics/generated/
+/data/metrics/cache/
+/data/metrics/python/**/.venv/
+# Tracked metrics pipeline dependency files and placeholder empty-dir markers.
+!/data/metrics/python/requirements.txt
+!/data/**/.gitkeep
 # Frontend deploy assets (bundled into Vercel build)
 !/data/frontend_deploy/
 !/data/frontend_deploy/**
