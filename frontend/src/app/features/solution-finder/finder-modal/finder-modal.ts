@@ -263,7 +263,14 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return 'solutionControls.finder.locked.constraints';
   }
 
+  protected isCostLayerAvailable(id: CostLayerChoice): boolean {
+    return id !== 'carbon-opportunity';
+  }
+
   protected selectCostLayer(id: CostLayerChoice): void {
+    if (!this.isCostLayerAvailable(id)) {
+      return;
+    }
     this.selectedCostLayerId = id;
     this.clearResultsIfNeeded();
   }

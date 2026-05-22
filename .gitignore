@@ -76,6 +76,9 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 /development-artifacts/experiments/**/cache/
 /development-artifacts/experiments/**/results*.json
 
+# Rolling manifest archive — history is in git log on manifest.json itself
+/development-artifacts/layer-manifest/archive/
+
 # Python generated files
 __pycache__/
 *.py[cod]

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T21:25:39.134Z",
+  "generatedAt": "2026-05-21T23:19:08.652Z",
   "whyThisReportExists": {
     "purpose": "Shows how Vercel Blob solution rasters and metadata files were converted into manifest.solutions.",
     "intendedAudience": "Developers and reviewers validating Solution Finder data readiness.",
@@ -9,206 +9,55 @@
     "solutions/"
   ],
   "counts": {
-    "blobInventoryEntries": 42,
-    "metadataFiles": 18,
+    "blobInventoryEntries": 43,
+    "metadataFiles": 19,
     "rasterFiles": 18,
-    "includedSolutions": 0,
-    "skippedMetadataFiles": 18,
-    "unmatchedRasters": 18,
-    "preservedExistingSolutions": 18
+    "includedSolutions": 18,
+    "skippedMetadataFiles": 1,
+    "unmatchedRasters": 0
   },
-  "included": [],
-  "skipped": [
+  "included": [
     {
-      "pathname": "solutions/nacional/ESTR17+RUNAP+Comunidades_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/ESTR17+RUNAP+OMEC_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/ESTR17+RUNAP_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/ESTR30+RUNAP+Comunidades_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/ESTR30+RUNAP+OMEC_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/ESTR30+RUNAP_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+Comunidades_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BComunidades_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+OMEC_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BOMEC_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+RUNAP+Comunidades_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BComunidades_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+RUNAP+OMEC_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+RUNAP_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+Comunidades_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BComunidades_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+OMEC_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+RUNAP+Comunidades_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BComunidades_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+RUNAP+OMEC_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC_HF.json: 403 Forbidden"
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+RUNAP_HF.json",
-      "reason": "malformed_or_unreadable_metadata",
-      "detail": "Failed to fetch https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.json: 403 Forbidden"
-    }
-  ],
-  "unmatchedRasters": [
-    {
-      "pathname": "solutions/nacional/ESTR17+RUNAP+Comunidades_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.tif",
-      "bytes": 725806
-    },
-    {
-      "pathname": "solutions/nacional/ESTR17+RUNAP+OMEC_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.tif",
-      "bytes": 699248
-    },
-    {
-      "pathname": "solutions/nacional/ESTR17+RUNAP_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.tif",
-      "bytes": 667622
-    },
-    {
-      "pathname": "solutions/nacional/ESTR30+RUNAP+Comunidades_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.tif",
-      "bytes": 727550
-    },
-    {
-      "pathname": "solutions/nacional/ESTR30+RUNAP+OMEC_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.tif",
-      "bytes": 704492
-    },
-    {
-      "pathname": "solutions/nacional/ESTR30+RUNAP_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.tif",
-      "bytes": 700660
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+Comunidades_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BComunidades_HF.tif",
-      "bytes": 727550
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+OMEC_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BOMEC_HF.tif",
-      "bytes": 703774
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif",
-      "bytes": 695334
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+RUNAP+Comunidades_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BComunidades_HF.tif",
-      "bytes": 725806
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+RUNAP+OMEC_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC_HF.tif",
-      "bytes": 699248
-    },
-    {
-      "pathname": "solutions/nacional/Ecos17+RUNAP_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.tif",
-      "bytes": 667622
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+Comunidades_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BComunidades_HF.tif",
-      "bytes": 727550
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+OMEC_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC_HF.tif",
-      "bytes": 704492
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.tif",
-      "bytes": 700554
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+RUNAP+Comunidades_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BComunidades_HF.tif",
-      "bytes": 727550
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+RUNAP+OMEC_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC_HF.tif",
-      "bytes": 704492
-    },
-    {
-      "pathname": "solutions/nacional/Ecos30+RUNAP_HF.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.tif",
-      "bytes": 700554
-    }
-  ],
-  "preservedExistingSolutions": [
-    {
-      "id": "ecos17_estr30_runap_hf",
-      "name": "Ecos17+ESTR30+RUNAP_HF",
+      "id": "estr17_runap_comunidades_hf",
+      "name": "ESTR17+RUNAP+Comunidades_HF",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.json"
+    },
+    {
+      "id": "estr17_runap_omec_hf",
+      "name": "ESTR17+RUNAP+OMEC_HF",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.json"
+    },
+    {
+      "id": "estr17_runap_hf",
+      "name": "ESTR17+RUNAP_HF",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.json"
+    },
+    {
+      "id": "estr30_runap_comunidades_hf",
+      "name": "ESTR30+RUNAP+Comunidades_HF",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.json"
+    },
+    {
+      "id": "estr30_runap_omec_hf",
+      "name": "ESTR30+RUNAP+OMEC_HF",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.json"
+    },
+    {
+      "id": "estr30_runap_hf",
+      "name": "ESTR30+RUNAP_HF",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.json"
     },
     {
       "id": "ecos17_estr30_runap_comunidades_hf",
@@ -225,11 +74,11 @@
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BOMEC_HF.json"
     },
     {
-      "id": "ecos17_runap_hf",
-      "name": "Ecos17+RUNAP_HF",
+      "id": "ecos17_estr30_runap_hf",
+      "name": "Ecos17+ESTR30+RUNAP_HF",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.json"
     },
     {
       "id": "ecos17_runap_comunidades_hf",
@@ -246,11 +95,11 @@
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC_HF.json"
     },
     {
-      "id": "ecos30_estr30_runap_hf",
-      "name": "Ecos30+ESTR30+RUNAP_HF",
+      "id": "ecos17_runap_hf",
+      "name": "Ecos17+RUNAP_HF",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.json"
     },
     {
       "id": "ecos30_estr30_runap_comunidades_hf",
@@ -267,11 +116,11 @@
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC_HF.json"
     },
     {
-      "id": "ecos30_runap_hf",
-      "name": "Ecos30+RUNAP_HF",
+      "id": "ecos30_estr30_runap_hf",
+      "name": "Ecos30+ESTR30+RUNAP_HF",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.json"
     },
     {
       "id": "ecos30_runap_comunidades_hf",
@@ -288,46 +137,19 @@
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC_HF.json"
     },
     {
-      "id": "estr17_runap_hf",
-      "name": "ESTR17+RUNAP_HF",
+      "id": "ecos30_runap_hf",
+      "name": "Ecos30+RUNAP_HF",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.json"
-    },
-    {
-      "id": "estr17_runap_comunidades_hf",
-      "name": "ESTR17+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.json"
-    },
-    {
-      "id": "estr17_runap_omec_hf",
-      "name": "ESTR17+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.json"
-    },
-    {
-      "id": "estr30_runap_hf",
-      "name": "ESTR30+RUNAP_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.json"
-    },
-    {
-      "id": "estr30_runap_comunidades_hf",
-      "name": "ESTR30+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.json"
-    },
-    {
-      "id": "estr30_runap_omec_hf",
-      "name": "ESTR30+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.json"
     }
-  ]
+  ],
+  "skipped": [
+    {
+      "pathname": "solutions/nacional/Ecos17+RUNAP_HF.tier1-metrics.json",
+      "reason": "missing_raster_pair",
+      "expectedRasterPath": "solutions/nacional/Ecos17+RUNAP_HF.tier1-metrics.tif"
+    }
+  ],
+  "unmatchedRasters": []
 }

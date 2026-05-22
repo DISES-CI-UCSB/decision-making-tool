@@ -447,9 +447,10 @@
       "step2b": {
         "intro": "Elija una capa de costo para evaluar areas de conservacion potenciales.",
         "humanFootprintLabel": "Presion humana",
-        "humanFootprintHelp": "Huella humana proyectada 2030 (HF_2030): menor valor implica menor presion humana esperada.",
+        "humanFootprintHelp": "Huella humana proyectada 2022 (HF_2022): menor valor implica menor presion humana esperada.",
         "carbonOpportunityLabel": "Beneficio neto (renta agropecuaria)",
-        "carbonOpportunityHelp": "Superficie monetaria de beneficio neto / renta agropecuaria (CO, Renta_agropecuaria en archivos)."
+        "carbonOpportunityHelp": "Superficie monetaria de beneficio neto / renta agropecuaria (CO, Renta_agropecuaria en archivos).",
+        "notAvailableBadge": "No disponible"
       },
       "actions": {
         "reset": "Restablecer valores",
