@@ -765,7 +765,7 @@ export class SolutionLayerService {
     ];
   }
 
-  private resolveLayerForSidebarType(
+  resolveLayerForSidebarType(
     layerType: SidebarSolutionLayerType,
   ): InstanceType<typeof MediaLayer> | null {
     if (layerType === 'solution-baseline') {
@@ -775,5 +775,19 @@ export class SolutionLayerService {
       return this.candidateComparisonLayer;
     }
     return this.overlapComparisonLayer;
+  }
+
+  /** Reorder an arbitrary set of ArcGIS layers by their IDs. `idsTopToBottom[0]` ends up on top. */
+  reorderLayersByIds(idsTopToBottom: string[]): void {
+    if (!this.map || idsTopToBottom.length === 0) {
+      return;
+    }
+    // ArcGIS draws higher indices on top; iterate bottom→top so the first entry ends on top.
+    for (const id of [...idsTopToBottom].reverse()) {
+      const layer = this.map.findLayerById(id);
+      if (layer) {
+        this.map.reorder(layer, this.map.layers.length - 1);
+      }
+    }
   }
 }

@@ -266,6 +266,14 @@ export class AdminBoundaryService {
     this.aoiHighlightLayer = null;
   }
 
+  /** Returns ArcGIS layer IDs currently loaded for the given boundary layer key. */
+  getLayerIdsByBoundaryKey(key: AdminBoundaryLayerKey): string[] {
+    const configIds = new Set(
+      COLOMBIA_BOUNDARY_CONFIGS.filter((c) => c.layerKey === key).map((c) => c.id),
+    );
+    return this.boundaryLayers.filter((layer) => configIds.has(layer.id)).map((layer) => layer.id);
+  }
+
   setLayerVisibility(target: AoiType | AdminBoundaryLayerKey, visible: boolean): void {
     const configs = this.getConfigsForTarget(target);
     if (

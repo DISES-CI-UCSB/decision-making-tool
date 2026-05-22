@@ -204,7 +204,6 @@ const LEGEND_BOUNDARY_STYLES: Record<
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
 };
-type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -398,8 +397,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     effect(() => {
       const order = this.selectedLayerOrder();
       const overlays = this.overlays();
+      const groups = this.groups();
+      const taxa = this.taxa();
       untracked(() => {
-        this.syncSelectedLayerStackingToMap(order, overlays);
+        this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
       });
     });
 
@@ -1812,32 +1813,70 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.colorSyncFrames.set(rowKey, frameId);
   }
 
-  private syncSelectedLayerStackingToMap(order: string[], overlays: LayerControlRow[]): void {
+  private syncSelectedLayerStackingToMap(
+    order: string[],
+    overlays: LayerControlRow[],
+    groups: LayerGroup[],
+    taxa: TaxonRow[],
+  ): void {
     const effectiveOrder = this.shouldPrioritizeComparisonLayers()
       ? this.normalizeSelectedLayerOrder(order)
       : order;
-    const overlaysById = new Map(overlays.map((overlay) => [overlay.id, overlay]));
-    const layerOrderTopToBottom: SidebarSolutionLayerType[] = [];
 
+    // Build a unified mapSync lookup covering all row sources.
+    const mapSyncById = new Map<string, LayerControlRow['mapSync']>();
+    for (const overlay of overlays) {
+      if (overlay.selected && overlay.mapSync) {
+        mapSyncById.set(overlay.id, overlay.mapSync);
+      }
+    }
+    for (const group of groups) {
+      for (const row of group.rows) {
+        if (row.selected && row.mapSync) {
+          mapSyncById.set(row.id, row.mapSync);
+        }
+      }
+    }
+    for (const taxon of taxa) {
+      if (taxon.selected && taxon.mapSync) {
+        mapSyncById.set(taxon.id, taxon.mapSync);
+      }
+      for (const species of taxon.species) {
+        if (species.selected && species.mapSync) {
+          mapSyncById.set(species.id, species.mapSync);
+        }
+      }
+    }
+
+    // Resolve each ordered row to the ArcGIS layer ID(s) it controls.
+    const idsTopToBottom: string[] = [];
     for (const rowId of effectiveOrder) {
-      const overlay = overlaysById.get(rowId);
-      const mapSync = overlay?.mapSync;
-      if (!overlay?.selected || !mapSync) {
+      const mapSync = mapSyncById.get(rowId);
+      if (!mapSync) {
         continue;
       }
-      if (
+      if (mapSync.type === 'manifest-raster' || mapSync.type === 'app-state-layer') {
+        idsTopToBottom.push(mapSync.layerId);
+      } else if (
         mapSync.type === 'solution-baseline' ||
         mapSync.type === 'solution-candidate' ||
         mapSync.type === 'solution-overlap'
       ) {
-        layerOrderTopToBottom.push(mapSync.type);
+        const layer = this.solutionLayerService.resolveLayerForSidebarType(mapSync.type);
+        if (layer) {
+          idsTopToBottom.push(layer.id);
+        }
+      } else if (mapSync.type === 'admin-boundary') {
+        idsTopToBottom.push(
+          ...this.adminBoundaryService.getLayerIdsByBoundaryKey(mapSync.boundaryLayerKey),
+        );
       }
     }
 
-    if (layerOrderTopToBottom.length === 0) {
+    if (idsTopToBottom.length === 0) {
       return;
     }
-    this.solutionLayerService.reorderSolutionLayersBySidebarOrder(layerOrderTopToBottom);
+    this.solutionLayerService.reorderLayersByIds(idsTopToBottom);
   }
 
   private syncRowToMap(row: LayerControlRow): void {
