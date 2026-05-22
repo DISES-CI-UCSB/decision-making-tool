@@ -7,6 +7,7 @@ import {
   type MetricValue,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
+import { nationalMetrics } from '@core/services/cached-metrics.utils';
 import {
   AppStateService,
   type ComparisonVisualizationMode,
@@ -198,10 +199,8 @@ export class PanelSwitcherComponent {
     'm-biodiversity': { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     'm-carbon': { id: 'climate', labelKey: 'analysis.sections.climate' },
     'm-cost': { id: 'finance', labelKey: 'analysis.sections.finance' },
-    // Tier 1 sidecar metric ids. We pass these through buildOverviewSections
-    // so they survive into metricsById and become bindable via realMetricId
-    // on the overview blueprints below. Section assignment is provisional —
-    // the blueprints control where each metric actually renders.
+    // Cached metric ids for the solution overview. Section assignment is
+    // provisional — the blueprints control where each metric actually renders.
     conservation_goals_met: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     species_groups_protected: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     ecosystem_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
@@ -714,7 +713,7 @@ export class PanelSwitcherComponent {
           this.overviewLoadFailed.set(false);
 
           return this.api.getSolutionMetrics(solutionId).pipe(
-            map((response) => response.metrics),
+            map((response) => nationalMetrics(response)),
             catchError(() => {
               this.overviewLoadFailed.set(true);
               return of<MetricValue[]>([]);

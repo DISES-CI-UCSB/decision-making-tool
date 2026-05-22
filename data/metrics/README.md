@@ -67,8 +67,16 @@ data/metrics/cache/tier1/
   <sha256-fingerprint>.tif      ← downloaded + cached rasters
 ```
 
-The staged sidecar path mirrors the Vercel Blob layout. A separate publish
-step (T7) uploads sidecars using `vercel blob put` with `BLOB_READ_WRITE_TOKEN`.
+Cached multi-geography outputs land in `generated/tier1/cache/*.metrics.json`.
+After local inspection, publish to Vercel with:
+
+```bash
+python data/metrics/python/metrics_pipeline/inspect_metrics.py
+python data/metrics/python/metrics_pipeline/publish.py
+```
+
+Requires `BLOB_READ_WRITE_TOKEN` in `.env.local` and the Vercel CLI on PATH.
+Use `publish.py --dry-run` to preview uploads without writing to Blob.
 
 ## Relationship to data/scripts/tier1-metrics/
 

@@ -6,6 +6,7 @@ import {
 } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
+import { wrapFlatMetricsResponse } from '@core/services/cached-metrics.utils';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import { PanelSwitcherComponent } from './panel-switcher';
@@ -18,12 +19,18 @@ describe('PanelSwitcherComponent', () => {
   beforeEach(async () => {
     mockData = new MockDataService();
     apiServiceSpy = {
-      getSolutionMetrics: (solutionId: string) =>
-        of({
-          solutionId,
-          generatedAt: '2026-03-17T00:00:00.000Z',
-          metrics: mockData.getSolutionMetrics(solutionId)?.metrics ?? [],
-        }),
+      getSolutionMetrics: (solutionId: string) => {
+        const flat = mockData.getSolutionMetrics(solutionId);
+        return of(
+          flat
+            ? wrapFlatMetricsResponse(flat)
+            : {
+                solutionId,
+                generatedAt: '2026-03-17T00:00:00.000Z',
+                geographies: { national: { colombia: { metrics: [] } } },
+              },
+        );
+      },
     };
 
     await TestBed.configureTestingModule({

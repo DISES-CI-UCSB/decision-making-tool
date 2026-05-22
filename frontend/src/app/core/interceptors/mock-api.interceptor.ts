@@ -7,6 +7,7 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { MockDataService } from '@core/services/mock-data.service';
+import { wrapFlatMetricsResponse } from '@core/services/cached-metrics.utils';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
@@ -39,7 +40,7 @@ export const mockApiInterceptor: HttpInterceptorFn = (
     if (!response) {
       return mockErrorResponse(404, 'Solution metrics not found');
     }
-    return mockSuccessResponse(response);
+    return mockSuccessResponse(wrapFlatMetricsResponse(response));
   }
 
   if (req.method === 'GET' && /^\/api\/solutions\/[^/]+\/aoi\/[^/]+\/metrics$/.test(path)) {

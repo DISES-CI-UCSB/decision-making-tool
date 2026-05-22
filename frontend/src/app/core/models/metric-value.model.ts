@@ -1,4 +1,10 @@
-export type MetricReadinessStatus = 'ready' | 'derivation_needed' | 'blocked' | 'pending';
+export type MetricReadinessStatus =
+  | 'ready'
+  | 'derivation_needed'
+  | 'blocked'
+  | 'pending'
+  | 'not_applicable'
+  | 'empty';
 
 export type MetricValueFormatHint = 'number' | 'percent' | 'currency' | 'ratio' | 'index';
 
@@ -18,6 +24,34 @@ export interface MetricValue {
   formatHint: MetricValueFormatHint;
 }
 
+/** One administrative scope (national Colombia, a department, municipality, SIRAP, …). */
+export interface GeographyMetricsScope {
+  name?: string;
+  kind?: string;
+  metrics: MetricValue[];
+}
+
+export type GeographyLevel = 'national' | 'departments' | 'municipalities' | 'siraps';
+
+export interface CachedSolutionMetricsGeographies {
+  national?: Record<string, GeographyMetricsScope>;
+  departments?: Record<string, GeographyMetricsScope>;
+  municipalities?: Record<string, GeographyMetricsScope>;
+  siraps?: Record<string, GeographyMetricsScope>;
+  [level: string]: Record<string, GeographyMetricsScope> | undefined;
+}
+
+/**
+ * Canonical cached metrics document published to Vercel Blob at
+ * `metrics/cache/{solutionId}.metrics.json`.
+ */
+export interface CachedSolutionMetricsDocument {
+  solutionId: string;
+  generatedAt: string;
+  geographies: CachedSolutionMetricsGeographies;
+}
+
+/** @deprecated Mock API only — real solutions use CachedSolutionMetricsDocument. */
 export interface SolutionMetricsResponse {
   solutionId: string;
   generatedAt: string;

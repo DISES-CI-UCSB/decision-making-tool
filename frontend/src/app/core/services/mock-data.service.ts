@@ -352,15 +352,19 @@ export class MockDataService {
         };
       }
 
-      const statusSourceMap: Record<Exclude<MetricReadinessStatus, 'ready'>, string> = {
+      const statusSourceMap: Partial<Record<Exclude<MetricReadinessStatus, 'ready'>, string>> = {
         derivation_needed: 'derivation-pipeline',
         blocked: 'blocked-upstream',
         pending: 'pending-ingestion',
+        not_applicable: 'scope-excluded',
+        empty: 'empty-boundary',
       };
-      const statusNotesMap: Record<Exclude<MetricReadinessStatus, 'ready'>, string> = {
+      const statusNotesMap: Partial<Record<Exclude<MetricReadinessStatus, 'ready'>, string>> = {
         derivation_needed: 'Requires derivation from dependent layers before release.',
         blocked: 'Blocked due to missing source layer for this solution.',
         pending: 'Pending source ingestion and quality checks.',
+        not_applicable: 'Metric is not available at this geography scope.',
+        empty: 'Boundary does not intersect the solution raster extent.',
       };
 
       return {
@@ -368,8 +372,8 @@ export class MockDataService {
         value: null,
         unit: metric.unit,
         status,
-        source: statusSourceMap[status],
-        notes: statusNotesMap[status],
+        source: statusSourceMap[status] ?? 'unknown',
+        notes: statusNotesMap[status] ?? null,
         labelKey: display.labelKey,
         formatHint: display.formatHint,
       };

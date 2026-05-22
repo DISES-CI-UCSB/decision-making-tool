@@ -26,6 +26,11 @@ For each solution, this script:
    data/metrics/generated/<output_dir>/cache/<solution_id>.metrics.json
 4. Writes a publish-report.json listing what was generated and the expected
    Vercel Blob upload target (metrics/cache/<solution_id>.metrics.json).
+
+After generation, inspect then publish (from repo root):
+
+    python data/metrics/python/metrics_pipeline/inspect_metrics.py
+    python data/metrics/python/metrics_pipeline/publish.py
 """
 
 from __future__ import annotations

@@ -3,13 +3,15 @@ import { Injectable, inject } from '@angular/core';
 import {
   type AnalysisMetricFixturesResponse,
   type AoiMetricsResponse,
+  type CachedSolutionMetricsDocument,
   type CompareSolutionsResponse,
   type LayerConfig,
   type Solution,
-  type SolutionMetricsResponse,
 } from '@core/models';
 import { Observable, switchMap, of } from 'rxjs';
 import { type LayerStats, type MatchingResult, type MatchingTarget } from './mock-data.service';
+import { MockDataService } from './mock-data.service';
+import { wrapFlatMetricsResponse } from './cached-metrics.utils';
 import { SolutionMetricsLoaderService } from './solution-metrics-loader.service';
 
 @Injectable({
@@ -18,24 +20,26 @@ import { SolutionMetricsLoaderService } from './solution-metrics-loader.service'
 export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly metricsLoader = inject(SolutionMetricsLoaderService);
+  private readonly mockData = inject(MockDataService);
   private readonly baseUrl = '/api';
 
   getSolution(id: string): Observable<Solution> {
     return this.http.get<Solution>(`${this.baseUrl}/solutions/${id}`);
   }
 
-  getSolutionMetrics(id: string): Observable<SolutionMetricsResponse> {
-    // Real prioritizr solutions ship a Tier 1 sidecar at a deterministic
-    // Vercel Blob URL derived from the solution's raster path. If the sidecar
-    // exists, prefer it; otherwise fall back to the legacy mock route used by
-    // the placeholder sol-001/002/003 scenarios so existing tests/dev flows
-    // keep working.
-    return this.metricsLoader.loadMetrics(id).pipe(
-      switchMap((sidecar) => {
-        if (sidecar) {
-          return of(sidecar);
+  getSolutionMetrics(id: string): Observable<CachedSolutionMetricsDocument> {
+    return this.metricsLoader.loadCachedMetrics(id).pipe(
+      switchMap((cached) => {
+        if (cached) {
+          return of(cached);
         }
-        return this.http.get<SolutionMetricsResponse>(`${this.baseUrl}/solutions/${id}/metrics`);
+        const mock = this.mockData.getSolutionMetrics(id);
+        if (mock) {
+          return of(wrapFlatMetricsResponse(mock));
+        }
+        return this.http.get<CachedSolutionMetricsDocument>(
+          `${this.baseUrl}/solutions/${id}/metrics`,
+        );
       }),
     );
   }
