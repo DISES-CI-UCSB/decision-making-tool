@@ -12,6 +12,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
@@ -208,7 +209,7 @@ type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'so
 @Component({
   selector: 'app-map-layers-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
   animations: [
@@ -233,6 +234,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
+  private readonly translate = inject(TranslateService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
   private loadedSpeciesManifestUrl: string | null = null;
@@ -323,8 +325,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   );
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
   protected readonly canAccessSirapBoundaries = this.appState.canAccessSirapBoundaries;
-  protected readonly sirapTooltipCopy =
-    'Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.';
 
   constructor() {
     this.syncInitialBoundaryState();
@@ -774,7 +774,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         value,
         color:
           MANAGEMENT_FIGURE_CATEGORY_PALETTE[index % MANAGEMENT_FIGURE_CATEGORY_PALETTE.length],
-        label: `Category ${value}`,
+        label: this.translate.instant('mapLayersPanel.categoryLabel', { value }),
       })),
     };
   }
@@ -931,7 +931,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private toLayerCountLabel(layerCount: number): string {
-    const noun = layerCount === 1 ? 'layer' : 'layers';
+    const noun =
+      layerCount === 1
+        ? this.translate.instant('mapLayersPanel.layerSingular')
+        : this.translate.instant('mapLayersPanel.layerPlural');
     return `${layerCount} ${noun}`;
   }
 
@@ -1384,18 +1387,28 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (group.id === 'group-species-biodiversity') {
       const parts: string[] = [];
       if (match.rowMatches > 0) {
-        parts.push(
-          `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`,
-        );
+        const noun =
+          match.rowMatches === 1
+            ? this.translate.instant('mapLayersPanel.layerMatchSingular')
+            : this.translate.instant('mapLayersPanel.layerMatchPlural');
+        parts.push(`${match.rowMatches} ${noun}`);
       }
       if (match.taxonMatches > 0) {
-        parts.push(
-          `${match.taxonMatches} ${match.taxonMatches === 1 ? 'taxon match' : 'taxon matches'}`,
-        );
+        const noun =
+          match.taxonMatches === 1
+            ? this.translate.instant('mapLayersPanel.taxonMatchSingular')
+            : this.translate.instant('mapLayersPanel.taxonMatchPlural');
+        parts.push(`${match.taxonMatches} ${noun}`);
       }
-      return parts.length > 0 ? parts.join(' · ') : '0 matches';
+      return parts.length > 0
+        ? parts.join(' · ')
+        : this.translate.instant('mapLayersPanel.noMatchesLabel');
     }
-    return `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`;
+    const noun =
+      match.rowMatches === 1
+        ? this.translate.instant('mapLayersPanel.layerMatchSingular')
+        : this.translate.instant('mapLayersPanel.layerMatchPlural');
+    return `${match.rowMatches} ${noun}`;
   }
 
   protected shouldShowTaxonShowAll(taxon: TaxonRow): boolean {
@@ -2063,12 +2076,12 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: overlay.name,
         sourceLabel:
           overlay.id === BASELINE_SOLUTION_OVERLAY_ID
-            ? 'Selected Scenario'
+            ? this.translate.instant('mapLayersPanel.sourceLabels.selectedScenario')
             : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
-              ? 'Comparison Scenario'
+              ? this.translate.instant('mapLayersPanel.sourceLabels.comparisonScenario')
               : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
-                ? 'Comparison Overlay'
-                : 'Available Layers',
+                ? this.translate.instant('mapLayersPanel.sourceLabels.comparisonOverlay')
+                : this.translate.instant('mapLayersPanel.sourceLabels.availableLayers'),
         sourceType: 'overlay',
         mapUnavailable: !!overlay.mapUnavailable,
       });
@@ -2094,7 +2107,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(taxon.id, {
           id: taxon.id,
           name: taxon.name,
-          sourceLabel: 'Species & Biodiversity',
+          sourceLabel: this.translate.instant('mapLayersPanel.sourceLabels.speciesBiodiversity'),
           sourceType: 'group',
           mapUnavailable: !!taxon.mapUnavailable,
         });
@@ -2106,7 +2119,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(species.id, {
           id: species.id,
           name: species.common,
-          sourceLabel: `Species & Biodiversity: ${taxon.name}`,
+          sourceLabel: this.translate.instant(
+            'mapLayersPanel.sourceLabels.speciesBiodiversityTaxon',
+            { taxon: taxon.name },
+          ),
           sourceType: 'group',
           mapUnavailable: !!species.mapUnavailable,
         });
@@ -2632,7 +2648,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           ? {
               ...group,
               countLabel: this.toLayerCountLabel(group.rows.length + speciesLayerCount),
-              note: 'Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.',
+              note: this.translate.instant('mapLayersPanel.speciesNote'),
             }
           : group,
       ),
@@ -2734,7 +2750,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
-    return layer?.taxonLabel?.trim() || 'Individual species';
+    return layer?.taxonLabel?.trim() || this.translate.instant('mapLayersPanel.individualSpecies');
   }
 
   /**
@@ -2770,9 +2786,9 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'group-species-biodiversity',
         title: 'Species & Biodiversity',
-        countLabel: '0 layers',
+        countLabel: this.toLayerCountLabel(0),
         collapsed: true,
-        note: "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
+        note: this.translate.instant('mapLayersPanel.scenarioNote'),
         rows: [],
       },
       {

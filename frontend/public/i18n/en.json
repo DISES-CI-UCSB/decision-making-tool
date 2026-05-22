@@ -4,7 +4,11 @@
   },
   "header": {
     "appTitle": "Decision Making Tool",
-    "languageToggleLabel": "Switch to {{lang}}"
+    "languageToggleLabel": "Switch to {{lang}}",
+    "adminAccess": "Admin access",
+    "logout": "Logout",
+    "loginRegister": "Login / Register",
+    "tierChip": "Tier {{tier}}"
   },
   "common": {
     "close": "Close"
@@ -32,7 +36,29 @@
       "label": "Implementation Cost"
     }
   },
+  "mapLegend": {
+    "title": "Legend",
+    "activeScenarioLabel": "Active scenario",
+    "comparison": "Comparison",
+    "selected": "Selected ({{pct}}%)",
+    "notSelected": "Not selected",
+    "aOnly": "A only: {{name}}",
+    "bOnly": "B only: {{name}}",
+    "overlap": "Overlap (A + B)",
+    "scenarioA": "Scenario A: {{name}} ({{pct}}%)",
+    "scenarioB": "Scenario B: {{name}} ({{pct}}%)",
+    "leftSide": "Left side: {{name}}",
+    "rightSide": "Right side: {{name}}",
+    "otherSelectedLayersLabel": "Other selected layers"
+  },
+  "mapView": {
+    "zoomControls": "Map zoom controls",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "loadingSolution": "Loading solution..."
+  },
   "analysis": {
+    "tabNavAriaLabel": "Right sidebar view tabs",
     "modes": {
       "welcome": "No scenario selected",
       "overview": "Overview",
@@ -154,6 +180,24 @@
         "conflictZoneOverlapDesc": "Historical conflict zones"
       }
     },
+    "comparison": {
+      "kicker": "Compare Scenarios",
+      "description": "Review Scenario A and Scenario B metrics side by side before making a recommendation.",
+      "baselineLabel": "Scenario A",
+      "candidateLabel": "Scenario B",
+      "baselineShort": "Scenario A",
+      "candidateShort": "Scenario B",
+      "emptyTitle": "No comparison scenario loaded",
+      "emptyDescription": "Add a second scenario to compare tradeoffs against the current selection.",
+      "noBaselineTitle": "Choose a scenario first",
+      "noBaselineDescription": "Load a scenario before opening comparison mode.",
+      "selectScenario": "Select scenario",
+      "visualizationTitle": "Comparison Visualization",
+      "visualizationDescription": "Pick how Scenario A and B are visualized on the map.",
+      "visualizationAriaLabel": "Comparison visualization mode",
+      "metricColumn": "Metric",
+      "differenceColumn": "Difference"
+    },
     "aoi": {
       "kicker": "AOI detail",
       "title": "Area of interest detail",
@@ -168,19 +212,73 @@
       "emptyTitle": "No area of interest selected",
       "emptyDescription": "Select an AOI to populate this panel with local metrics and context.",
       "emptyMetricsTitle": "AOI metrics are not ready",
-      "emptyMetricsDescription": "AOI metrics appear here once both a scenario and an area of interest are available."
-    },
-    "comparison": {
-      "kicker": "Compare Scenarios",
-      "description": "Review Scenario A and Scenario B metrics side by side before making a recommendation.",
-      "baselineLabel": "Scenario A",
-      "candidateLabel": "Scenario B",
-      "baselineShort": "Scenario A",
-      "candidateShort": "Scenario B",
-      "emptyTitle": "No comparison scenario loaded",
-      "emptyDescription": "Add a second scenario to compare tradeoffs against the current selection.",
-      "noBaselineTitle": "Choose a scenario first",
-      "noBaselineDescription": "Load a scenario before opening comparison mode."
+      "emptyMetricsDescription": "AOI metrics appear here once both a scenario and an area of interest are available.",
+      "sirapScopeLabel": "SIRAP selection scope",
+      "scopePolygon": "Polygon",
+      "scopeFull": "Full SIRAP",
+      "sections": {
+        "conservation": "Conservation Summary",
+        "biodiversity": "Biodiversity",
+        "ecosystems": "Ecosystems & Carbon",
+        "land": "Land Use & Socio-Economic",
+        "cultural": "Cultural & Indigenous Territories",
+        "marine": "Marine"
+      },
+      "allConditional": "All Conditional",
+      "generateReport": "Generate Regional Report",
+      "hero": {
+        "priorityAreaLabel": "Priority Area in Region",
+        "ofMunicipality": "of this municipality",
+        "nationalContributionLabel": "30×30 Contribution",
+        "existingAdds": "Existing {{existing}} + adds {{added}}"
+      },
+      "stats": {
+        "totalProtectedArea": "Total Protected Area",
+        "parksOverlap": "Overlap w/ Nat'l Parks",
+        "ofAoiPriorityArea": "Of AOI priority area",
+        "speciesChartAxisLabel": "Species count by taxa",
+        "threatenedSpecies": "Threatened Species",
+        "iucnLabel": "IUCN CR / EN / VU",
+        "endemicSpecies": "Endemic Species",
+        "colombiaEndemics": "Colombia endemics",
+        "nationalSpeciesTotal": "% of National Species Total",
+        "nationalSpeciesTotalDesc": "Share of Colombia's total species found in this AOI",
+        "totalCarbonBiomass": "Total Carbon Biomass",
+        "nationalCarbon": "% of National Carbon",
+        "nationalCarbonDesc": "Of Colombian stocks",
+        "aboveGroundCarbon": "Above-ground Carbon",
+        "soilOrganicCarbon": "Soil Organic Carbon",
+        "waterRegulation": "Water Regulation Capacity",
+        "waterRegulationDesc": "Hydrological service provision for downstream communities",
+        "waterIndex": "Index 78 / 100",
+        "agOpportunityCost": "Ag. Opportunity Cost",
+        "agOpportunityCostDesc": "Economic value of agricultural production foregone",
+        "conflictZoneOverlap": "Conflict Zone Overlap",
+        "conflictZoneOverlapDesc": "Priority area overlapping historical conflict zones",
+        "indigenousReservations": "Indigenous Reservations",
+        "indigenousReservationsDesc": "Area within AOI priority zones",
+        "communityCounsils": "Community Councils",
+        "communityCouncilsDesc": "Afro-Colombian community council territories",
+        "indigenousOverlap": "Overlap w/ Indigenous Territories",
+        "indigenousOverlapDesc": "Share of scenario in indigenous territories",
+        "mpaOverlap": "MPA Overlap",
+        "mpaOverlapDesc": "Scenario overlapping existing Marine Protected Areas",
+        "coralReef": "Coral Reef Coverage",
+        "coralReefDesc": "Coral reef ecosystems within marine scenario",
+        "mangrove": "Mangrove Coverage",
+        "mangroveDesc": "Mangrove ecosystems within scenario",
+        "seagrass": "Seagrass Bed Coverage",
+        "seagrassDesc": "Seagrass ecosystems within scenario",
+        "eez": "% of Scenario in EEZ",
+        "eezDesc": "Scenario within Colombia's Exclusive Economic Zone",
+        "marineNarrative": "Marine metrics are displayed when a marine conservation scenario is active. Currently no marine scenario is loaded.",
+        "highValue": "High",
+        "usdEquivalent": "USD equivalent",
+        "historicalZones": "Historical zones",
+        "consultationSensitive": "Consultation-sensitive",
+        "kmAndPct": "km² and %",
+        "requestId": "Request ID"
+      }
     },
     "sections": {
       "ecology": "Ecology",
@@ -385,5 +483,63 @@
         "solutionLoaded": "Scenario loaded"
       }
     }
+  },
+  "mapLayersPanel": {
+    "title": "Map Layers",
+    "selectScenario": "Select scenario",
+    "activeScenarioLabel": "Active Scenario",
+    "changeButton": "Change",
+    "selectedLayersTitle": "Selected Layers",
+    "selectedLayersEmpty": "No layers selected yet. Add layers from Available Layers to control stack order.",
+    "dragToReorder": "Drag to reorder {{name}}",
+    "noMapLayerAvailable": "No map layer available",
+    "noMapLayerYet": "{{name}} does not have a map layer yet",
+    "toggleVisibility": "Toggle visibility for {{name}}",
+    "styleControlsUnavailable": "Style controls are not available for {{name}}",
+    "toggleControls": "Toggle controls for {{name}}",
+    "removeLayer": "Remove {{name}} from selected layers",
+    "addLayer": "Add {{name}}",
+    "loginRequired": "{{name}} requires login to add",
+    "expandTaxon": "Expand {{name}}",
+    "collapseTaxon": "Collapse {{name}}",
+    "opacityLabel": "Opacity",
+    "colorLabel": "Color",
+    "availableLayersTitle": "Available Layers",
+    "searchMatchSingular": "match",
+    "searchMatchPlural": "matches",
+    "typeToFilter": "Type to filter",
+    "searchAriaLabel": "Search available layers",
+    "searchPlaceholder": "Search layers...",
+    "clearButton": "Clear",
+    "styleControlsHint": "Visibility and style controls live in Selected Layers.",
+    "addedButton": "Added",
+    "addButton": "Add",
+    "sirapLoginHint": "Login / Register in the header to unlock SIRAP.",
+    "layerSingular": "layer",
+    "layerPlural": "layers",
+    "comingSoon": "Coming soon",
+    "showAllLabel": "Show all {{count}} {{name}}...",
+    "searchNoResults": "No layers match your search.",
+    "searchNoResultsHint": "Try a broader term such as \"carbon\", \"wetlands\", or \"protected\".",
+    "resetDefaults": "Reset Defaults",
+    "sirapTooltip": "Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.",
+    "speciesSearchPlaceholder": "Search {{taxon}}...",
+    "sourceLabels": {
+      "selectedScenario": "Selected Scenario",
+      "comparisonScenario": "Comparison Scenario",
+      "comparisonOverlay": "Comparison Overlay",
+      "availableLayers": "Available Layers",
+      "speciesBiodiversity": "Species & Biodiversity",
+      "speciesBiodiversityTaxon": "Species & Biodiversity: {{taxon}}"
+    },
+    "layerMatchSingular": "layer match",
+    "layerMatchPlural": "layer matches",
+    "taxonMatchSingular": "taxon match",
+    "taxonMatchPlural": "taxon matches",
+    "noMatchesLabel": "0 matches",
+    "speciesNote": "Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.",
+    "scenarioNote": "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
+    "individualSpecies": "Individual species",
+    "categoryLabel": "Category {{value}}"
   }
 }

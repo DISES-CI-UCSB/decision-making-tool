@@ -26,6 +26,7 @@ import { ManifestRasterLayerService } from '@features/map/services/manifest-rast
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { MasterLegendComponent } from '@features/map/components/master-legend/master-legend';
+import { TranslatePipe } from '@ngx-translate/core';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
@@ -37,7 +38,7 @@ type SwipeConstructor = new (properties: Record<string, unknown>) => SwipeInstan
 @Component({
   selector: 'app-map-view',
   standalone: true,
-  imports: [MasterLegendComponent],
+  imports: [MasterLegendComponent, TranslatePipe],
   templateUrl: './map-view.html',
   styleUrl: './map-view.scss',
   host: {

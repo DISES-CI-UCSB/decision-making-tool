@@ -6,7 +6,7 @@
   <nav
     id="right-sidebar-panel-tab-nav"
     class="bg-white"
-    aria-label="Right sidebar view tabs"
+    [attr.aria-label]="'analysis.tabNavAriaLabel' | translate"
     role="tablist"
   >
     <div id="right-sidebar-panel-tab-nav-content" class="grid h-12 grid-cols-3">
@@ -713,7 +713,7 @@
                   id="aoi-dashboard-scope-strip"
                   class="aoi-scope-strip"
                   role="group"
-                  aria-label="SIRAP selection scope"
+                  [attr.aria-label]="'analysis.aoi.sirapScopeLabel' | translate"
                 >
                   <button
                     id="aoi-dashboard-scope-polygon-btn"
@@ -722,7 +722,8 @@
                     [class.aoi-scope-btn-active]="isSirapScopeSelected('part')"
                     (click)="setSirapSelectionScope('part')"
                   >
-                    <i class="fas fa-draw-polygon" aria-hidden="true"></i> Polygon
+                    <i class="fas fa-draw-polygon" aria-hidden="true"></i>
+                    {{ 'analysis.aoi.scopePolygon' | translate }}
                   </button>
                   <button
                     id="aoi-dashboard-scope-whole-btn"
@@ -731,7 +732,8 @@
                     [class.aoi-scope-btn-active]="isSirapScopeSelected('whole')"
                     (click)="setSirapSelectionScope('whole')"
                   >
-                    <i class="fas fa-layer-group" aria-hidden="true"></i> Full SIRAP
+                    <i class="fas fa-layer-group" aria-hidden="true"></i>
+                    {{ 'analysis.aoi.scopeFull' | translate }}
                   </button>
                 </div>
               }
@@ -749,9 +751,9 @@
                   (click)="toggleAoiSection('general')"
                 >
                   <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge"
-                    >Conservation Summary</span
-                  >
+                  <span class="aoi-section-label rs-header-optical-nudge">{{
+                    'analysis.aoi.sections.conservation' | translate
+                  }}</span>
                   <span
                     id="aoi-chevron-general"
                     class="aoi-section-chevron"
@@ -780,7 +782,9 @@
                   <div id="aoi-body-general-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-hero-grid" class="aoi-hero-grid">
                       <div id="aoi-hero-priority" class="aoi-hero-card aoi-hero-card-priority">
-                        <div class="aoi-hero-kicker">Priority Area in Region</div>
+                        <div class="aoi-hero-kicker">
+                          {{ 'analysis.aoi.hero.priorityAreaLabel' | translate }}
+                        </div>
                         <div class="aoi-hero-value aoi-hero-value-green">
                           {{ aoiVal('230') }} <small>km²</small>
                         </div>
@@ -793,11 +797,14 @@
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
-                          <strong>{{ aoiVal('45%') }}</strong> of this municipality
+                          <strong>{{ aoiVal('45%') }}</strong>
+                          {{ 'analysis.aoi.hero.ofMunicipality' | translate }}
                         </div>
                       </div>
                       <div id="aoi-hero-national" class="aoi-hero-card aoi-hero-card-national">
-                        <div class="aoi-hero-kicker">30×30 Contribution</div>
+                        <div class="aoi-hero-kicker">
+                          {{ 'analysis.aoi.hero.nationalContributionLabel' | translate }}
+                        </div>
                         <div class="aoi-hero-value aoi-hero-value-blue">
                           {{ aoiVal('1.9') }}<small>%</small>
                         </div>
@@ -816,22 +823,30 @@
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
-                          Existing <strong>{{ aoiVal('0.9%') }}</strong> + adds
-                          <strong>{{ aoiVal('1.0%') }}</strong>
+                          {{
+                            'analysis.aoi.hero.existingAdds'
+                              | translate: { existing: aoiVal('0.9%'), added: aoiVal('1.0%') }
+                          }}
                         </div>
                       </div>
                     </div>
 
                     <div id="aoi-protect-stats" class="aoi-stat-grid">
                       <div id="aoi-stat-total-protected" class="aoi-stat-card">
-                        <p class="aoi-stat-label">Total Protected Area</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.totalProtectedArea' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('72 km²') }}</p>
                         <p class="aoi-stat-unit">{{ aoiVal('31% of AOI under protection') }}</p>
                       </div>
                       <div id="aoi-stat-parks-overlap" class="aoi-stat-card">
-                        <p class="aoi-stat-label">Overlap w/ Nat'l Parks</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.parksOverlap' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('18%') }}</p>
-                        <p class="aoi-stat-unit">Of AOI priority area</p>
+                        <p class="aoi-stat-unit">
+                          {{ 'analysis.aoi.stats.ofAoiPriorityArea' | translate }}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -848,9 +863,9 @@
                   (click)="toggleAoiSection('bio')"
                 >
                   <span class="aoi-section-dot"></span>
-                  <span id="aoi-label-bio" class="aoi-section-label rs-header-optical-nudge"
-                    >Biodiversity</span
-                  >
+                  <span id="aoi-label-bio" class="aoi-section-label rs-header-optical-nudge">{{
+                    'analysis.aoi.sections.biodiversity' | translate
+                  }}</span>
                   <span
                     id="aoi-chevron-bio"
                     class="aoi-section-chevron"
@@ -882,7 +897,7 @@
                         id="aoi-species-chart-axis-label"
                         class="m-0 mb-0.5 ml-19 w-full text-start text-[13px] font-medium leading-[1.2] tracking-[0.01em] text-slate-600"
                       >
-                        Species count by taxa
+                        {{ 'analysis.aoi.stats.speciesChartAxisLabel' | translate }}
                       </p>
                       @for (entry of aoiBiodiversityBars(); track entry.id) {
                         <div
@@ -917,22 +932,32 @@
 
                     <div id="aoi-bio-stats" class="aoi-stat-grid">
                       <div id="aoi-stat-threatened" class="aoi-stat-card">
-                        <p class="aoi-stat-label">Threatened Species</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.threatenedSpecies' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('5') }}</p>
-                        <p class="aoi-stat-unit">IUCN CR / EN / VU</p>
+                        <p class="aoi-stat-unit">
+                          {{ 'analysis.aoi.stats.iucnLabel' | translate }}
+                        </p>
                       </div>
                       <div id="aoi-stat-endemic" class="aoi-stat-card">
-                        <p class="aoi-stat-label">Endemic Species</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.endemicSpecies' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('12') }}</p>
-                        <p class="aoi-stat-unit">Colombia endemics</p>
+                        <p class="aoi-stat-unit">
+                          {{ 'analysis.aoi.stats.colombiaEndemics' | translate }}
+                        </p>
                       </div>
                     </div>
 
                     <div id="aoi-stat-national-species" class="aoi-stat-card">
-                      <p class="aoi-stat-label">% of National Species Total</p>
+                      <p class="aoi-stat-label">
+                        {{ 'analysis.aoi.stats.nationalSpeciesTotal' | translate }}
+                      </p>
                       <p class="aoi-stat-value">{{ aoiVal('7%') }}</p>
                       <p class="aoi-stat-unit">
-                        Share of Colombia's total species found in this AOI
+                        {{ 'analysis.aoi.stats.nationalSpeciesTotalDesc' | translate }}
                       </p>
                     </div>
 
@@ -959,7 +984,9 @@
                   (click)="toggleAoiSection('eco')"
                 >
                   <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge">Ecosystems & Carbon</span>
+                  <span class="aoi-section-label rs-header-optical-nudge">{{
+                    'analysis.aoi.sections.ecosystems' | translate
+                  }}</span>
                   <span
                     id="aoi-chevron-eco"
                     class="aoi-section-chevron"
@@ -1012,22 +1039,32 @@
 
                     <div id="aoi-carbon-stats" class="aoi-stat-grid">
                       <div id="aoi-stat-total-carbon" class="aoi-stat-card">
-                        <p class="aoi-stat-label">Total Carbon Biomass</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.totalCarbonBiomass' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('85M') }}</p>
                         <p class="aoi-stat-unit">tCO₂e</p>
                       </div>
                       <div id="aoi-stat-national-carbon" class="aoi-stat-card">
-                        <p class="aoi-stat-label">% of National Carbon</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.nationalCarbon' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('7%') }}</p>
-                        <p class="aoi-stat-unit">Of Colombian stocks</p>
+                        <p class="aoi-stat-unit">
+                          {{ 'analysis.aoi.stats.nationalCarbonDesc' | translate }}
+                        </p>
                       </div>
                       <div id="aoi-stat-above-carbon" class="aoi-stat-card">
-                        <p class="aoi-stat-label">Above-ground Carbon</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.aboveGroundCarbon' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('52M') }}</p>
                         <p class="aoi-stat-unit">tCO₂e</p>
                       </div>
                       <div id="aoi-stat-soil-carbon" class="aoi-stat-card">
-                        <p class="aoi-stat-label">Soil Organic Carbon</p>
+                        <p class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.soilOrganicCarbon' | translate }}
+                        </p>
                         <p class="aoi-stat-value">{{ aoiVal('33M') }}</p>
                         <p class="aoi-stat-unit">tCO₂e</p>
                       </div>
@@ -1039,9 +1076,11 @@
                           <i class="fas fa-droplet" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">Water Regulation Capacity</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.waterRegulation' | translate }}
+                          </div>
                           <div class="aoi-m-desc">
-                            Hydrological service provision for downstream communities
+                            {{ 'analysis.aoi.stats.waterRegulationDesc' | translate }}
                           </div>
                         </div>
                         <div>
@@ -1072,9 +1111,9 @@
                   (click)="toggleAoiSection('land')"
                 >
                   <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge"
-                    >Land Use & Socio-Economic</span
-                  >
+                  <span class="aoi-section-label rs-header-optical-nudge">{{
+                    'analysis.aoi.sections.land' | translate
+                  }}</span>
                   <span
                     id="aoi-chevron-land"
                     class="aoi-section-chevron"
@@ -1129,11 +1168,13 @@
                         </div>
                         <div class="aoi-m-body">
                           <div class="aoi-m-name">
-                            Ag. Opportunity Cost
-                            <span class="v3-tag-conditional">Conditional</span>
+                            {{ 'analysis.aoi.stats.agOpportunityCost' | translate }}
+                            <span class="v3-tag-conditional">{{
+                              'analysis.overview.conditional' | translate
+                            }}</span>
                           </div>
                           <div class="aoi-m-desc">
-                            Economic value of agricultural production foregone
+                            {{ 'analysis.aoi.stats.agOpportunityCostDesc' | translate }}
                           </div>
                         </div>
                         <div>
@@ -1147,11 +1188,13 @@
                         </div>
                         <div class="aoi-m-body">
                           <div class="aoi-m-name">
-                            Conflict Zone Overlap
-                            <span class="v3-tag-conditional">Conditional</span>
+                            {{ 'analysis.aoi.stats.conflictZoneOverlap' | translate }}
+                            <span class="v3-tag-conditional">{{
+                              'analysis.overview.conditional' | translate
+                            }}</span>
                           </div>
                           <div class="aoi-m-desc">
-                            Priority area overlapping historical conflict zones
+                            {{ 'analysis.aoi.stats.conflictZoneOverlapDesc' | translate }}
                           </div>
                         </div>
                         <div>
@@ -1182,9 +1225,9 @@
                   (click)="toggleAoiSection('cultural')"
                 >
                   <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge"
-                    >Cultural & Indigenous Territories</span
-                  >
+                  <span class="aoi-section-label rs-header-optical-nudge">{{
+                    'analysis.aoi.sections.cultural' | translate
+                  }}</span>
                   <span
                     id="aoi-chevron-cultural"
                     class="aoi-section-chevron"
@@ -1217,8 +1260,12 @@
                           <i class="fas fa-map-pin" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">Indigenous Reservations</div>
-                          <div class="aoi-m-desc">Area within AOI priority zones</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.indigenousReservations' | translate }}
+                          </div>
+                          <div class="aoi-m-desc">
+                            {{ 'analysis.aoi.stats.indigenousReservationsDesc' | translate }}
+                          </div>
                         </div>
                         <div>
                           <div class="aoi-m-val">{{ aoiVal('41 km²') }}</div>
@@ -1230,8 +1277,12 @@
                           <i class="fas fa-people-group" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">Community Councils</div>
-                          <div class="aoi-m-desc">Afro-Colombian community council territories</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.communityCounsils' | translate }}
+                          </div>
+                          <div class="aoi-m-desc">
+                            {{ 'analysis.aoi.stats.communityCouncilsDesc' | translate }}
+                          </div>
                         </div>
                         <div>
                           <div class="aoi-m-val">{{ aoiVal('27 km²') }}</div>
@@ -1243,8 +1294,12 @@
                           <i class="fas fa-percent" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">Overlap w/ Indigenous Territories</div>
-                          <div class="aoi-m-desc">Share of scenario in indigenous territories</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.indigenousOverlap' | translate }}
+                          </div>
+                          <div class="aoi-m-desc">
+                            {{ 'analysis.aoi.stats.indigenousOverlapDesc' | translate }}
+                          </div>
                         </div>
                         <div>
                           <div class="aoi-m-val">{{ aoiVal('12%') }}</div>
@@ -1273,8 +1328,12 @@
                   (click)="toggleAoiSection('marine')"
                 >
                   <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge">Marine</span>
-                  <span class="v3-tag-conditional">All Conditional</span>
+                  <span class="aoi-section-label rs-header-optical-nudge">{{
+                    'analysis.aoi.sections.marine' | translate
+                  }}</span>
+                  <span class="v3-tag-conditional">{{
+                    'analysis.aoi.allConditional' | translate
+                  }}</span>
                   <span
                     id="aoi-chevron-marine"
                     class="aoi-section-chevron"
@@ -1307,9 +1366,11 @@
                           <i class="fas fa-water" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">MPA Overlap</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.mpaOverlap' | translate }}
+                          </div>
                           <div class="aoi-m-desc">
-                            Scenario overlapping existing Marine Protected Areas
+                            {{ 'analysis.aoi.stats.mpaOverlapDesc' | translate }}
                           </div>
                         </div>
                         <div>
@@ -1322,8 +1383,12 @@
                           <i class="fas fa-fish" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">Coral Reef Coverage</div>
-                          <div class="aoi-m-desc">Coral reef ecosystems within marine scenario</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.coralReef' | translate }}
+                          </div>
+                          <div class="aoi-m-desc">
+                            {{ 'analysis.aoi.stats.coralReefDesc' | translate }}
+                          </div>
                         </div>
                         <div>
                           <div class="aoi-m-val">—</div>
@@ -1335,8 +1400,12 @@
                           <i class="fas fa-seedling" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">Mangrove Coverage</div>
-                          <div class="aoi-m-desc">Mangrove ecosystems within scenario</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.mangrove' | translate }}
+                          </div>
+                          <div class="aoi-m-desc">
+                            {{ 'analysis.aoi.stats.mangroveDesc' | translate }}
+                          </div>
                         </div>
                         <div>
                           <div class="aoi-m-val">—</div>
@@ -1348,8 +1417,12 @@
                           <i class="fas fa-wheat-awn" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">Seagrass Bed Coverage</div>
-                          <div class="aoi-m-desc">Seagrass ecosystems within scenario</div>
+                          <div class="aoi-m-name">
+                            {{ 'analysis.aoi.stats.seagrass' | translate }}
+                          </div>
+                          <div class="aoi-m-desc">
+                            {{ 'analysis.aoi.stats.seagrassDesc' | translate }}
+                          </div>
                         </div>
                         <div>
                           <div class="aoi-m-val">—</div>
@@ -1361,9 +1434,9 @@
                           <i class="fas fa-anchor" aria-hidden="true"></i>
                         </div>
                         <div class="aoi-m-body">
-                          <div class="aoi-m-name">% of Scenario in EEZ</div>
+                          <div class="aoi-m-name">{{ 'analysis.aoi.stats.eez' | translate }}</div>
                           <div class="aoi-m-desc">
-                            Scenario within Colombia's Exclusive Economic Zone
+                            {{ 'analysis.aoi.stats.eezDesc' | translate }}
                           </div>
                         </div>
                         <div>
@@ -1374,8 +1447,7 @@
                     </div>
 
                     <div id="aoi-marine-narrative" class="aoi-narrative">
-                      Marine metrics are displayed when a marine conservation scenario is active.
-                      Currently no marine scenario is loaded.
+                      {{ 'analysis.aoi.stats.marineNarrative' | translate }}
                     </div>
                   </div>
                 </div>
@@ -1396,7 +1468,8 @@
             @if (showGenerateRegionalReportButton()) {
               <footer id="aoi-dashboard-footer" class="aoi-panel-footer">
                 <button id="aoi-btn-report" type="button" class="aoi-btn aoi-btn-primary">
-                  <i class="fas fa-file-pdf" aria-hidden="true"></i> Generate Regional Report
+                  <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                  {{ 'analysis.aoi.generateReport' | translate }}
                 </button>
               </footer>
             }
@@ -1477,7 +1550,7 @@
                       id="right-sidebar-comparison-candidate-name-empty"
                       class="c2-summary-name c2-summary-name-muted"
                     >
-                      Select scenario
+                      {{ 'analysis.comparison.selectScenario' | translate }}
                     </h4>
                   }
                 </article>
@@ -1496,20 +1569,20 @@
                       id="right-sidebar-comparison-visualization-title"
                       class="c2-viz-mode-title rs-header-optical-nudge"
                     >
-                      Comparison Visualization
+                      {{ 'analysis.comparison.visualizationTitle' | translate }}
                     </h4>
                     <p
                       id="right-sidebar-comparison-visualization-description"
                       class="c2-viz-mode-description"
                     >
-                      Pick how Scenario A and B are visualized on the map.
+                      {{ 'analysis.comparison.visualizationDescription' | translate }}
                     </p>
                   </header>
                   <div
                     id="right-sidebar-comparison-visualization-options"
                     class="c2-viz-mode-options"
                     role="radiogroup"
-                    aria-label="Comparison visualization mode"
+                    [attr.aria-label]="'analysis.comparison.visualizationAriaLabel' | translate"
                   >
                     @for (option of comparisonVisualizationOptions; track option.id) {
                       <button
@@ -1608,7 +1681,7 @@
                             <span
                               [id]="'right-sidebar-comparison-table-col-metric-' + section.id"
                               class="rs-header-optical-nudge"
-                              >Metric</span
+                              >{{ 'analysis.comparison.metricColumn' | translate }}</span
                             >
                             <span
                               [id]="'right-sidebar-comparison-table-col-baseline-' + section.id"
@@ -1623,7 +1696,7 @@
                             <span
                               [id]="'right-sidebar-comparison-table-col-diff-' + section.id"
                               class="rs-header-optical-nudge"
-                              >Difference</span
+                              >{{ 'analysis.comparison.differenceColumn' | translate }}</span
                             >
                           </div>
 
