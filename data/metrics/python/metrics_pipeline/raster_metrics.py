@@ -218,3 +218,71 @@ def overlap_km2(
 ) -> float:
     overlap = np.logical_and(selected, layer_mask)
     return _area_km2(overlap, pixel_area_per_row)
+
+
+def read_layer_values(
+    path: Path,
+    expected: RasterFingerprint,
+) -> np.ndarray:
+    """Read a continuous feature layer and return a float64 array (NaN for nodata).
+
+    Used for weighted-sum metrics where we need the raw pixel magnitudes (carbon
+    density, biomass, etc.) rather than a binary presence/absence mask.
+    Raises RasterError if the layer does not align with the solution raster.
+    """
+    with rasterio.open(path) as dataset:
+        observed = _fingerprint(dataset)
+        if not observed.matches(expected):
+            raise RasterError(
+                f"Layer raster {path} does not align with the solution raster.\n"
+                f"  expected: {expected}\n  observed: {observed}"
+            )
+        band = dataset.read(1, masked=False).astype(np.float64)
+        nodata = dataset.nodata
+        if nodata is not None:
+            band[band == nodata] = np.nan
+        # Guard against inf/non-finite values regardless of dtype.
+        band[~np.isfinite(band)] = np.nan
+        return band
+
+
+def weighted_sum_km2(
+    mask: np.ndarray,
+    layer_values: np.ndarray,
+    pixel_area_per_row: np.ndarray,
+) -> float:
+    """Sum (pixel_value × pixel_area_km²) over cells in *mask* with finite layer values.
+
+    Args:
+        mask: 2-D boolean array marking cells to include (e.g. selected_mask).
+        layer_values: 2-D float64 array from read_layer_values (NaN = excluded).
+        pixel_area_per_row: 1-D array of km²/pixel values, one per raster row.
+
+    Returns:
+        Scalar float sum.  Returns 0.0 for an empty or all-NaN selection.
+    """
+    valid = mask & np.isfinite(layer_values)
+    if not valid.any():
+        return 0.0
+    area_2d = pixel_area_per_row[:, np.newaxis]  # (H,1) broadcasts to (H,W)
+    return float((layer_values * area_2d)[valid].sum())
+
+
+def weighted_percent_of_valid(
+    selected: np.ndarray,
+    valid: np.ndarray,
+    layer_values: np.ndarray,
+    pixel_area_per_row: np.ndarray,
+) -> float | None:
+    """(selected weighted_sum / valid weighted_sum) × 100.
+
+    Used for #43 "% of national carbon": the denominator is the sum over ALL
+    valid raster cells (not just the selected ones).
+
+    Returns None when the denominator is zero (degenerate / empty raster).
+    """
+    national = weighted_sum_km2(valid, layer_values, pixel_area_per_row)
+    if national == 0.0:
+        return None
+    sel = weighted_sum_km2(selected, layer_values, pixel_area_per_row)
+    return (sel / national) * 100.0

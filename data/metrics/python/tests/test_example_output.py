@@ -31,7 +31,7 @@ _METRIC_KEYS = {
     "formatHint",
 }
 
-_VALID_STATUSES = {"ready", "blocked", "pending", "derivation_needed"}
+_VALID_STATUSES = {"ready", "blocked", "pending", "derivation_needed", "not_applicable", "empty"}
 
 # Metric IDs whose overlap areas must not exceed total selected area.
 _OVERLAP_METRIC_IDS = {
@@ -42,6 +42,9 @@ _OVERLAP_METRIC_IDS = {
     "mangrove_coverage",
     "indigenous_reservations_area",
     "community_councils_area",
+    # T6 additions
+    "water_regulation_area",
+    "protected_area_runap_km2",
 }
 
 

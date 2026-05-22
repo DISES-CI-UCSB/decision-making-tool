@@ -64,17 +64,25 @@ from metric_definitions import (
     MetricDefinition,
     computable_metrics,
     deferred_metric_ids,
+    off_manifest_layer_renderings,
+    off_manifest_layer_urls,
     required_layer_ids,
 )
 from raster_metrics import (
     RasterError,
     SolutionRaster,
     read_layer_mask,
+    read_layer_values,
     read_solution_raster,
+    weighted_percent_of_valid,
+    weighted_sum_km2,
 )
 from calculators import area as calc_area
+from calculators import carbon as calc_carbon
 from calculators import ecosystem_coverage as calc_ecosystem
+from calculators import protected_areas as calc_protected
 from calculators import social_governance as calc_social
+from calculators import water as calc_water
 
 _OVERLAP_CALCULATORS = {
     "ecosistemas": calc_ecosystem.ecosystem_total_km2,
@@ -84,10 +92,62 @@ _OVERLAP_CALCULATORS = {
     "mangroves":   calc_ecosystem.mangroves_km2,
     "resguardos":  calc_social.indigenous_reservations_km2,
     "comunidades": calc_social.community_councils_km2,
+    # T6 additions
+    "runap":           calc_protected.runap_overlap_km2,
+    "runap_protegidas": calc_protected.runap_overlap_km2,
+    "recarga_agua":    calc_water.water_recharge_overlap_km2,
+}
+
+# binary_overlap_percent_of_selected: same layer lookup as above, different calc fn.
+_OVERLAP_PERCENT_CALCULATORS = {
+    "runap_parques": calc_protected.national_parks_percent_of_selected,
+    "resguardos":   calc_protected.indigenous_territory_percent_of_selected,
+    "recarga_agua": calc_water.water_recharge_percent_of_selected,
+}
+
+# weighted_sum: layer_id → fn(raster, float_values_array) → float
+_WEIGHTED_SUM_CALCULATORS = {
+    "biomasa":          calc_carbon.carbon_storage_biomass,
+    "carbono_organico": calc_carbon.soil_organic_carbon,
+}
+
+# Special mapping for metrics that share a layer but use a different calc fn.
+# Keyed by metric_id because two metrics (#5/#39) share the same layer_id.
+_WEIGHTED_SUM_BY_METRIC_ID = {
+    "carbon_storage_biomass": calc_carbon.carbon_storage_biomass,
+    "carbon_biomass_total":   calc_carbon.carbon_biomass_total,
+    "soil_organic_carbon":    calc_carbon.soil_organic_carbon,
+}
+
+# weighted_percent_of_national: layer_id → fn(raster, float_values_array) → float|None
+_WEIGHTED_PERCENT_CALCULATORS = {
+    "biomasa": calc_carbon.national_carbon_percent,
 }
 
 # Metric kinds that are only meaningful at national scope (sourced from manifest metadata).
 _NATIONAL_ONLY_KINDS = frozenset({"metadata_summary", "metadata_coverage"})
+
+# Off-manifest layer URLs and renderings, computed once at import time.
+_OFF_MANIFEST_URLS: dict[str, str] = off_manifest_layer_urls()
+_OFF_MANIFEST_RENDERINGS: dict[str, dict] = off_manifest_layer_renderings()
+
+
+def _resolve_layer_url(manifest: ResolvedManifest, layer_id: str) -> str:
+    """Return the display URL for a layer, falling back to off-manifest blob URL."""
+    try:
+        return resolve_layer_display_url(manifest, layer_id)
+    except ManifestError:
+        if layer_id in _OFF_MANIFEST_URLS:
+            return _OFF_MANIFEST_URLS[layer_id]
+        raise
+
+
+def _layer_rendering(manifest: ResolvedManifest, layer_id: str) -> dict:
+    """Return the rendering dict for a layer (manifest preferred; off-manifest fallback)."""
+    rendering = manifest.layers_by_id.get(layer_id, {}).get("rendering")
+    if rendering:
+        return rendering
+    return _OFF_MANIFEST_RENDERINGS.get(layer_id, {})
 
 
 def _utc_now_iso() -> str:
@@ -126,6 +186,36 @@ class _LayerMaskCache:
             dl = cached_download(url, cache_dir, force=force)
             self._masks[layer_id] = read_layer_mask(dl.path, fingerprint, rendering=rendering)
         return self._masks[layer_id]
+
+
+class _LayerValueCache:
+    """Caches continuous-layer float arrays (for weighted-sum metrics) in memory.
+
+    Analogous to _LayerMaskCache but stores float64 arrays via read_layer_values
+    instead of boolean masks.  Cleared automatically when the raster fingerprint
+    changes (i.e. across solution grids — though in practice the grid is constant).
+    """
+
+    def __init__(self) -> None:
+        self._arrays: dict[str, np.ndarray] = {}
+        self._last_fingerprint = None
+
+    def get(
+        self,
+        layer_id: str,
+        url: str,
+        fingerprint,
+        cache_dir: Path,
+        force: bool,
+    ) -> np.ndarray:
+        if self._last_fingerprint is not None and not self._last_fingerprint.matches(fingerprint):
+            self._arrays.clear()
+        self._last_fingerprint = fingerprint
+
+        if layer_id not in self._arrays:
+            dl = cached_download(url, cache_dir, force=force)
+            self._arrays[layer_id] = read_layer_values(dl.path, fingerprint)
+        return self._arrays[layer_id]
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +298,7 @@ def _validate_required_layers(manifest: ResolvedManifest) -> list[str]:
     missing: list[str] = []
     for layer_id in required_layer_ids():
         try:
-            resolve_layer_display_url(manifest, layer_id)
+            _resolve_layer_url(manifest, layer_id)
         except ManifestError:
             missing.append(layer_id)
     return missing
@@ -256,6 +346,50 @@ def _empty_boundary(definition: MetricDefinition) -> dict[str, Any]:
         status="empty",
         notes="Boundary does not intersect the solution raster extent.",
         source="raster:boundary_mask",
+    )
+
+
+def _blocked_no_data(definition: MetricDefinition) -> dict[str, Any]:
+    return _metric_value(
+        definition,
+        value=None,
+        status="blocked",
+        notes=definition.source_note,
+        source="n/a",
+    )
+
+
+def _compute_aoi_percent(
+    definition: MetricDefinition, raster: SolutionRaster, subnational: bool
+) -> dict[str, Any]:
+    """#19 — selected / valid × 100 within the current scope.
+
+    At national scope this duplicates #17, so we mark it not_applicable there.
+    At boundary scope it answers "what % of this region is selected?".
+    """
+    if not subnational:
+        return _metric_value(
+            definition, value=None, status="not_applicable",
+            notes="Same as national_contribution (#17) at national scope; reported there.",
+            source="n/a",
+        )
+    if raster.valid_cells == 0:
+        return _metric_value(
+            definition, value=None, status="blocked",
+            notes="Boundary has no valid cells.",
+            source="raster:solution",
+        )
+    pct = calc_area.national_contribution_pct(raster)
+    if pct is None:
+        return _metric_value(
+            definition, value=None, status="blocked",
+            notes="Raster has 0 valid area in this region.",
+            source="raster:solution",
+        )
+    return _metric_value(
+        definition, value=pct, status="ready",
+        notes="selectedArea / boundaryValidArea × 100.",
+        source="raster:solution",
     )
 
 
@@ -338,6 +472,28 @@ def _compute_overlap_from_mask(
     layer_id: str,
     rendering: dict,
 ) -> dict[str, Any]:
+    if definition.kind == "binary_overlap_percent_of_selected":
+        calc_fn = _OVERLAP_PERCENT_CALCULATORS.get(layer_id)
+        if calc_fn is None:
+            return _metric_value(
+                definition, value=None, status="pending",
+                notes=f"No percent calculator registered for layer '{layer_id}'.",
+                source=f"raster:{layer_id}",
+            )
+        pct = calc_fn(raster, layer_mask)
+        if pct is None:
+            return _metric_value(
+                definition, value=None, status="blocked",
+                notes="Selected area is zero; cannot compute percent.",
+                source=f"raster:{layer_id}",
+            )
+        return _metric_value(
+            definition, value=pct, status="ready",
+            notes=f"(Selected ∩ '{layer_id}') / selected_area × 100.",
+            source=f"raster:{layer_id}",
+        )
+
+    # binary_overlap_area
     calc_fn = _OVERLAP_CALCULATORS.get(layer_id)
     if calc_fn is None:
         return _metric_value(
@@ -369,15 +525,15 @@ def _compute_overlap_download(
     """Download (or retrieve cached) layer mask, compute overlap, return (metric, mask)."""
     layer_id = definition.layer_id or ""
     try:
-        layer_url = resolve_layer_display_url(manifest, layer_id)
+        layer_url = _resolve_layer_url(manifest, layer_id)
     except ManifestError as exc:
         return _metric_value(
             definition, value=None, status="blocked",
-            notes=f"Layer '{layer_id}' unavailable in manifest: {exc}",
+            notes=f"Layer '{layer_id}' unavailable: {exc}",
             source=f"raster:{layer_id}",
         ), None
 
-    rendering = manifest.layers_by_id.get(layer_id, {}).get("rendering") or {}
+    rendering = _layer_rendering(manifest, layer_id)
     try:
         mask = layer_cache.get(layer_id, layer_url, raster.fingerprint, rendering, cache_dir, force_download)
     except (RasterError, OSError) as exc:
@@ -391,6 +547,73 @@ def _compute_overlap_download(
     return metric, mask
 
 
+def _compute_weighted_download(
+    definition: MetricDefinition,
+    raster: SolutionRaster,
+    manifest: ResolvedManifest,
+    value_cache: _LayerValueCache,
+    cache_dir: Path,
+    force_download: bool,
+) -> tuple[dict[str, Any], np.ndarray | None]:
+    """Download (or retrieve cached) continuous layer values and compute weighted metric."""
+    layer_id = definition.layer_id or ""
+    try:
+        layer_url = _resolve_layer_url(manifest, layer_id)
+    except ManifestError as exc:
+        return _metric_value(
+            definition, value=None, status="blocked",
+            notes=f"Layer '{layer_id}' unavailable: {exc}",
+            source=f"raster:{layer_id}",
+        ), None
+
+    try:
+        values = value_cache.get(layer_id, layer_url, raster.fingerprint, cache_dir, force_download)
+    except (RasterError, OSError) as exc:
+        return _metric_value(
+            definition, value=None, status="blocked",
+            notes=f"Could not read layer '{layer_id}': {exc}",
+            source=f"raster:{layer_id}",
+        ), None
+
+    if definition.kind == "weighted_percent_of_national":
+        calc_fn = _WEIGHTED_PERCENT_CALCULATORS.get(layer_id)
+        if calc_fn is None:
+            return _metric_value(
+                definition, value=None, status="pending",
+                notes=f"No weighted-percent calculator for layer '{layer_id}'.",
+                source=f"raster:{layer_id}",
+            ), values
+        result = calc_fn(raster, values)
+        if result is None:
+            return _metric_value(
+                definition, value=None, status="blocked",
+                notes="National weighted total is zero; cannot compute percent.",
+                source=f"raster:{layer_id}",
+            ), values
+        return _metric_value(
+            definition, value=result, status="ready",
+            notes=f"selectedWeightedSum('{layer_id}') / nationalWeightedSum × 100.",
+            source=f"raster:{layer_id}",
+        ), values
+
+    # weighted_sum
+    calc_fn = _WEIGHTED_SUM_BY_METRIC_ID.get(definition.metric_id)
+    if calc_fn is None:
+        calc_fn = _WEIGHTED_SUM_CALCULATORS.get(layer_id)
+    if calc_fn is None:
+        return _metric_value(
+            definition, value=None, status="pending",
+            notes=f"No weighted-sum calculator for layer '{layer_id}'.",
+            source=f"raster:{layer_id}",
+        ), values
+    result = calc_fn(raster, values)
+    return _metric_value(
+        definition, value=result, status="ready",
+        notes=f"sum(pixel_value × pixel_area_km²) for selected ∩ finite cells of '{layer_id}'.",
+        source=f"raster:{layer_id}",
+    ), values
+
+
 # ---------------------------------------------------------------------------
 # Build metrics list for a given raster scope
 # ---------------------------------------------------------------------------
@@ -400,16 +623,19 @@ def _build_metrics(
     solution: dict[str, Any],
     manifest: ResolvedManifest,
     layer_cache: _LayerMaskCache,
+    value_cache: _LayerValueCache,
     cache_dir: Path,
     force_download: bool,
     *,
     subnational: bool = False,
     preloaded_layer_masks: dict[str, np.ndarray] | None = None,
+    preloaded_layer_values: dict[str, np.ndarray] | None = None,
 ) -> list[dict[str, Any]]:
     """Compute all computable Tier 1 metrics for one raster scope.
 
     - subnational=True: skip manifest-sourced metadata metrics (mark not_applicable).
-    - preloaded_layer_masks: if provided, skip layer downloads and use these directly.
+    - preloaded_layer_masks: if provided, skip mask layer downloads and use these directly.
+    - preloaded_layer_values: if provided, skip value layer downloads and use these directly.
     """
     results: list[dict[str, Any]] = []
 
@@ -431,15 +657,66 @@ def _build_metrics(
         elif defn.kind == "national_percent":
             results.append(_compute_national_percent(defn, raster, subnational=subnational))
 
-        elif defn.kind == "binary_overlap_area":
+        elif defn.kind == "aoi_percent":
+            results.append(_compute_aoi_percent(defn, raster, subnational))
+
+        elif defn.kind == "blocked_no_data":
+            results.append(_blocked_no_data(defn))
+
+        elif defn.kind in ("binary_overlap_area", "binary_overlap_percent_of_selected"):
             layer_id = defn.layer_id or ""
             if preloaded_layer_masks and layer_id in preloaded_layer_masks:
-                rendering = manifest.layers_by_id.get(layer_id, {}).get("rendering") or {}
+                rendering = _layer_rendering(manifest, layer_id)
                 results.append(
                     _compute_overlap_from_mask(defn, raster, preloaded_layer_masks[layer_id], layer_id, rendering)
                 )
             else:
                 metric, _ = _compute_overlap_download(defn, raster, manifest, layer_cache, cache_dir, force_download)
+                results.append(metric)
+
+        elif defn.kind in ("weighted_sum", "weighted_percent_of_national"):
+            layer_id = defn.layer_id or ""
+            if preloaded_layer_values and layer_id in preloaded_layer_values:
+                values = preloaded_layer_values[layer_id]
+                if defn.kind == "weighted_percent_of_national":
+                    calc_fn = _WEIGHTED_PERCENT_CALCULATORS.get(layer_id)
+                    if calc_fn is None:
+                        results.append(_metric_value(
+                            defn, value=None, status="pending",
+                            notes=f"No weighted-percent calculator for '{layer_id}'.",
+                            source=f"raster:{layer_id}",
+                        ))
+                        continue
+                    result = calc_fn(raster, values)
+                    if result is None:
+                        results.append(_metric_value(
+                            defn, value=None, status="blocked",
+                            notes="National weighted total is zero.",
+                            source=f"raster:{layer_id}",
+                        ))
+                    else:
+                        results.append(_metric_value(
+                            defn, value=result, status="ready",
+                            notes=f"selectedWeightedSum / nationalWeightedSum × 100 ('{layer_id}').",
+                            source=f"raster:{layer_id}",
+                        ))
+                else:
+                    calc_fn = _WEIGHTED_SUM_BY_METRIC_ID.get(defn.metric_id) or _WEIGHTED_SUM_CALCULATORS.get(layer_id)
+                    if calc_fn is None:
+                        results.append(_metric_value(
+                            defn, value=None, status="pending",
+                            notes=f"No weighted-sum calculator for '{layer_id}'.",
+                            source=f"raster:{layer_id}",
+                        ))
+                        continue
+                    result = calc_fn(raster, values)
+                    results.append(_metric_value(
+                        defn, value=result, status="ready",
+                        notes=f"sum(pixel_value × pixel_area_km²) over selected finite cells of '{layer_id}'.",
+                        source=f"raster:{layer_id}",
+                    ))
+            else:
+                metric, _ = _compute_weighted_download(defn, raster, manifest, value_cache, cache_dir, force_download)
                 results.append(metric)
 
         else:
@@ -469,20 +746,51 @@ def _preload_layer_masks(
     cache_dir: Path,
     force_download: bool,
 ) -> dict[str, np.ndarray]:
-    """Load all layer TIFs into the in-memory cache and return a dict of masks.
+    """Load all mask-based layer TIFs into the in-memory cache and return a dict.
 
     These masks are then passed directly to sub-national metric computation,
     avoiding repeated disk reads for each of the 1000+ boundary features.
     """
+    # Determine which layer_ids are used by mask-based metric kinds.
+    mask_kinds = frozenset({"binary_overlap_area", "binary_overlap_percent_of_selected"})
+    mask_layer_ids = {
+        m.layer_id for m in computable_metrics()
+        if m.layer_id and m.kind in mask_kinds
+    }
+
     masks: dict[str, np.ndarray] = {}
-    for layer_id in required_layer_ids():
+    for layer_id in mask_layer_ids:
         try:
-            url = resolve_layer_display_url(manifest, layer_id)
-            rendering = manifest.layers_by_id.get(layer_id, {}).get("rendering") or {}
+            url = _resolve_layer_url(manifest, layer_id)
+            rendering = _layer_rendering(manifest, layer_id)
             masks[layer_id] = layer_cache.get(layer_id, url, raster.fingerprint, rendering, cache_dir, force_download)
         except (ManifestError, RasterError, OSError) as exc:
-            print(f"[tier1-metrics]   WARNING: could not preload layer '{layer_id}': {exc}", file=sys.stderr)
+            print(f"[tier1-metrics]   WARNING: could not preload mask layer '{layer_id}': {exc}", file=sys.stderr)
     return masks
+
+
+def _preload_layer_values(
+    raster: SolutionRaster,
+    manifest: ResolvedManifest,
+    value_cache: _LayerValueCache,
+    cache_dir: Path,
+    force_download: bool,
+) -> dict[str, np.ndarray]:
+    """Load all continuous (weighted-sum) layer TIFs and return a dict of float arrays."""
+    value_kinds = frozenset({"weighted_sum", "weighted_percent_of_national"})
+    value_layer_ids = {
+        m.layer_id for m in computable_metrics()
+        if m.layer_id and m.kind in value_kinds
+    }
+
+    arrays: dict[str, np.ndarray] = {}
+    for layer_id in value_layer_ids:
+        try:
+            url = _resolve_layer_url(manifest, layer_id)
+            arrays[layer_id] = value_cache.get(layer_id, url, raster.fingerprint, cache_dir, force_download)
+        except (ManifestError, RasterError, OSError) as exc:
+            print(f"[tier1-metrics]   WARNING: could not preload value layer '{layer_id}': {exc}", file=sys.stderr)
+    return arrays
 
 
 def _process_solution(
@@ -492,6 +800,7 @@ def _process_solution(
     output_dir: Path,
     force_download: bool,
     layer_cache: _LayerMaskCache,
+    value_cache: _LayerValueCache,
     boundary_mask_cache: BoundaryMaskCache,
     boundaries_by_level: dict[str, list[BoundaryFeature]],
     national_only: bool = False,
@@ -505,7 +814,7 @@ def _process_solution(
 
     # --- National level ---
     national_metrics = _build_metrics(
-        raster, solution, manifest, layer_cache, cache_dir, force_download
+        raster, solution, manifest, layer_cache, value_cache, cache_dir, force_download
     )
 
     geographies: dict[str, Any] = {
@@ -519,9 +828,18 @@ def _process_solution(
 
     # --- Sub-national levels ---
     if not national_only and boundaries_by_level:
-        # Preload all layer masks into memory once per solution.
-        print(f"[tier1-metrics]   preloading {len(required_layer_ids())} layer mask(s)…")
+        # Preload all layer TIFs into memory once per solution.
+        mask_count = sum(
+            1 for m in computable_metrics()
+            if m.layer_id and m.kind in ("binary_overlap_area", "binary_overlap_percent_of_selected")
+        )
+        value_count = sum(
+            1 for m in computable_metrics()
+            if m.layer_id and m.kind in ("weighted_sum", "weighted_percent_of_national")
+        )
+        print(f"[tier1-metrics]   preloading {mask_count} mask layer(s) + {value_count} value layer(s)…")
         layer_masks = _preload_layer_masks(raster, manifest, layer_cache, cache_dir, force_download)
+        layer_values = _preload_layer_values(raster, manifest, value_cache, cache_dir, force_download)
 
         # Rasterize all boundary polygons if not already cached (first solution).
         print(f"[tier1-metrics]   rasterizing boundaries…")
@@ -535,9 +853,10 @@ def _process_solution(
                 )
                 masked = raster.with_boundary_mask(px_mask)
                 metrics = _build_metrics(
-                    masked, solution, manifest, layer_cache, cache_dir, force_download,
+                    masked, solution, manifest, layer_cache, value_cache, cache_dir, force_download,
                     subnational=True,
                     preloaded_layer_masks=layer_masks,
+                    preloaded_layer_values=layer_values,
                 )
                 entry: dict[str, Any] = {"name": feat.name, "metrics": metrics}
                 # Include sirap_kind if present.
@@ -627,6 +946,7 @@ def main(argv: list[str] | None = None) -> int:
     args.cache_dir.mkdir(parents=True, exist_ok=True)
 
     layer_cache = _LayerMaskCache()
+    value_cache = _LayerValueCache()
     boundary_mask_cache = BoundaryMaskCache()
 
     deferred = sorted(deferred_metric_ids())
@@ -645,6 +965,7 @@ def main(argv: list[str] | None = None) -> int:
                     output_dir=args.output_dir,
                     force_download=args.no_cache,
                     layer_cache=layer_cache,
+                    value_cache=value_cache,
                     boundary_mask_cache=boundary_mask_cache,
                     boundaries_by_level=boundaries_by_level,
                     national_only=args.national_only,
