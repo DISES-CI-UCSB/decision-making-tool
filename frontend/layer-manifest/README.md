@@ -81,6 +81,29 @@ La entrada `species` del manifest principal no representa una sola especie. Repr
 
 El manifest secundario de especies debe describir las especies individuales, sus taxones, nombres de busqueda y URLs de capas. Asi evitamos poner miles de especies en el manifest principal. La copia canonica esta en Blob (`speciesManifestUrl`); el archivo local bajo `public/data/layer-manifest/` es solo artefacto de generacion si lo necesitas.
 
+### Como Funcionan Las Etiquetas Bilingues
+
+Cada capa y categoria del manifest tiene dos campos de nombre para mostrar:
+
+- `spanishLabel` — siempre requerido; se usa como ultimo recurso si falta el otro.
+- `englishLabel` — requerido por el esquema; la UI usa `spanishLabel` como fallback si es null.
+
+La logica de seleccion de etiquetas esta en `src/app/core/models/layer-manifest.model.ts` (`resolveLayerLabel`). El locale activo es gestionado por `AppLocaleService` (`src/app/core/services/app-locale.service.ts`).
+
+### De Donde Vienen Las Etiquetas (Y Como Editarlas)
+
+Las etiquetas se obtienen de tres fuentes, aplicadas en este orden de prioridad durante la generacion:
+
+| Prioridad | Fuente                                                     | Que cubre                                                                                                                                                         |
+| --------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1         | Columna `layer_name` del CSV (linea 2)                     | Etiqueta en ingles para capas rastreadas por el CSV. Si la celda tiene dos lineas separadas por salto de linea, linea 1 = espanol, linea 2 = ingles.              |
+| 2         | `englishLabelOverrideByLayerId` en `generate-manifest.mjs` | Etiquetas en ingles hardcodeadas para capas cuya fila CSV no tiene linea en ingles. Edita este mapa para corregir o agregar etiquetas en ingles sin tocar el CSV. |
+| 3         | `proposedManifestCategories` en `generate-manifest.mjs`    | Etiquetas de categoria (hardcodeadas, siempre bilingues).                                                                                                         |
+
+**Para cambiar el nombre de una capa:** buscarla en `englishLabelOverrideByLayerId` (para las 7 capas actualmente sobreescritas) o agregar una celda `layer_name` de dos lineas en el CSV. Luego ejecutar `npm run generate:layer-manifest`.
+
+**Limitacion conocida:** la edicion de etiquetas esta actualmente dividida entre el CSV y dos ubicaciones en el generador. Una tarea de limpieza futura consolidaria todas las etiquetas en un unico archivo `layer-labels.json` que el generador leeria.
+
 ### Regenerar y validar
 
 ```bash
@@ -168,6 +191,29 @@ The reconciliation report is not for the application. It is for humans and devel
 The `species` entry in the main manifest does not represent one species. It is the entry point for loading `species.manifest.json`.
 
 The secondary species manifest should describe individual species, taxa, search names, and layer URLs. This avoids putting thousands of species in the main manifest. The canonical copy lives on Blob (`speciesManifestUrl`); the file under `public/data/layer-manifest/` is only a generated local artifact when you run the hydrator for debugging or builds.
+
+### How Bilingual Labels Work
+
+Every layer and category in the manifest has two display name fields:
+
+- `spanishLabel` — always required; used as the last-resort fallback.
+- `englishLabel` — required by the schema; the UI falls back to `spanishLabel` if null.
+
+The runtime label selection policy lives in `src/app/core/models/layer-manifest.model.ts` (`resolveLayerLabel`). The active locale is managed by `AppLocaleService` (`src/app/core/services/app-locale.service.ts`).
+
+### Where Labels Come From (And How To Edit Them)
+
+Labels are populated from three sources, applied in this order of precedence during generation:
+
+| Priority | Source                                                     | What it covers                                                                                                                              |
+| -------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | CSV `layer_name` column (line 2)                           | English label for CSV-tracked layers. If the cell has two newline-separated lines, line 1 = Spanish, line 2 = English.                      |
+| 2        | `englishLabelOverrideByLayerId` in `generate-manifest.mjs` | Hardcoded English labels for layers whose CSV row has no English line. Edit this map to fix or add English labels without touching the CSV. |
+| 3        | `proposedManifestCategories` in `generate-manifest.mjs`    | Category-level labels (hardcoded, always bilingual).                                                                                        |
+
+**To change a layer's display name:** find it in `englishLabelOverrideByLayerId` (for the 7 currently overridden layers) or add a two-line `layer_name` cell to the CSV. Then re-run `npm run generate:layer-manifest`.
+
+**Known limitation:** label editing is currently split across the CSV and two locations in the generator. A future cleanup task would consolidate all labels into a single `layer-labels.json` file that the generator reads.
 
 ### Regenerate And Validate
 

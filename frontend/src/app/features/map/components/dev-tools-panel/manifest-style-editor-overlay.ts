@@ -13,7 +13,7 @@ import type {
   RuntimeLayerManifestRenderingConfig,
   RuntimeLayerManifestSubcategory,
 } from '@core/models/layer-manifest.model';
-import { parseCategoryPath } from '@core/models/layer-manifest.model';
+import { parseCategoryPath, resolveLayerLabel } from '@core/models/layer-manifest.model';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { ManifestStyleRequestService } from '@core/services/manifest-style-request.service';
 import { environment } from '../../../../../environments/environment';
@@ -1338,7 +1338,7 @@ export class ManifestStyleEditorOverlayComponent {
 
     return {
       id: category.id,
-      title: category.englishLabel ?? category.spanishLabel,
+      title: resolveLayerLabel(category.englishLabel, category.spanishLabel),
       layerCount: orderedLayers.length,
       editableLayerCount: editableLayers.length,
       overrideCount: editableLayers.filter((layer) => layer.styleOverride).length,
@@ -1355,7 +1355,7 @@ export class ManifestStyleEditorOverlayComponent {
         const layerValidation = this.validationByLayerId().get(layer.id);
         return {
           id: layer.id,
-          title: layer.englishLabel ?? layer.spanishLabel,
+          title: resolveLayerLabel(layer.englishLabel, layer.spanishLabel),
           dataRole: layer.dataRole,
           renderMode: rendering?.renderMode ?? 'unconfigured',
           valueType: rendering?.valueType ?? 'unconfigured',
@@ -1378,7 +1378,10 @@ export class ManifestStyleEditorOverlayComponent {
     return {
       id: subcategory.id,
       categoryId: category.id,
-      title: subcategory.englishLabel ?? subcategory.spanishLabel ?? subcategory.id,
+      title: resolveLayerLabel(
+        subcategory.englishLabel,
+        subcategory.spanishLabel ?? subcategory.id,
+      ),
       layerCount: subcategory.layerIds?.length ?? 0,
       swatchStyle: this.renderDefaultSwatchStyle(
         getSubcategoryColorDefaults(manifest, category.id, subcategory.id),

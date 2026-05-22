@@ -1,3 +1,23 @@
+export type LayerLocale = 'en' | 'es';
+export const DEFAULT_LOCALE: LayerLocale = 'en';
+
+/**
+ * Resolves a display label for a layer or category using a consistent locale-aware policy:
+ *   1. Primary locale label (if available and non-empty)
+ *   2. Fallback locale label
+ *   3. `spanishLabel` as last resort (it is always required in the schema)
+ */
+export function resolveLayerLabel(
+  englishLabel: string | null | undefined,
+  spanishLabel: string,
+  locale: LayerLocale = DEFAULT_LOCALE,
+): string {
+  if (locale === 'es') {
+    return spanishLabel || englishLabel || spanishLabel;
+  }
+  return englishLabel || spanishLabel;
+}
+
 export type RuntimeLayerManifestDataRole =
   | 'feature_layer'
   | 'manifest_for_species_layers'
@@ -225,11 +245,12 @@ export function parseCategoryPath(category: string): ParsedCategoryPath {
 
 export function mapManifestLayerToSidebarRow(
   layer: RuntimeLayerManifestLayer,
+  locale: LayerLocale = DEFAULT_LOCALE,
 ): ManifestSidebarLayerRow {
   const { categoryId, subcategoryId } = parseCategoryPath(layer.category);
   return {
     id: layer.id,
-    name: layer.englishLabel ?? layer.spanishLabel,
+    name: resolveLayerLabel(layer.englishLabel, layer.spanishLabel, locale),
     spanishLabel: layer.spanishLabel,
     englishLabel: layer.englishLabel,
     description: layer.description,
@@ -249,8 +270,9 @@ export function mapManifestLayerToSidebarRow(
 
 export function groupManifestLayersBySidebarCategory(
   manifest: RuntimeLayerManifest,
+  locale: LayerLocale = DEFAULT_LOCALE,
 ): ManifestSidebarLayersByCategory {
-  return buildManifestSidebarLayerGroups(manifest).reduce<ManifestSidebarLayersByCategory>(
+  return buildManifestSidebarLayerGroups(manifest, locale).reduce<ManifestSidebarLayersByCategory>(
     (groupsByCategory, group) => ({
       ...groupsByCategory,
       [group.sidebarCategoryId]: group.rows,
@@ -261,6 +283,7 @@ export function groupManifestLayersBySidebarCategory(
 
 export function buildManifestSidebarLayerGroups(
   manifest: RuntimeLayerManifest,
+  locale: LayerLocale = DEFAULT_LOCALE,
 ): ManifestSidebarLayerGroup[] {
   const layersById = new Map(manifest.layers.map((layer) => [layer.id, layer]));
   const layerCategoryIdById = new Map(
@@ -279,13 +302,13 @@ export function buildManifestSidebarLayerGroups(
       (layer) =>
         layerCategoryIdById.get(layer.id) === category.id && !orderedLayerIds.has(layer.id),
     );
-    const rows = [...orderedCategoryLayers, ...remainingCategoryLayers].map(
-      mapManifestLayerToSidebarRow,
+    const rows = [...orderedCategoryLayers, ...remainingCategoryLayers].map((layer) =>
+      mapManifestLayerToSidebarRow(layer, locale),
     );
 
     return {
       sidebarCategoryId: category.id,
-      title: category.englishLabel ?? category.spanishLabel,
+      title: resolveLayerLabel(category.englishLabel, category.spanishLabel, locale),
       spanishLabel: category.spanishLabel,
       englishLabel: category.englishLabel ?? null,
       rows,

@@ -19,11 +19,13 @@ import {
   type AoiType,
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayerRow,
+  type RuntimeLayerManifest,
   type RuntimeLayerManifestRenderingConfig,
   type RuntimeLayerManifestDataRole,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
 } from '@core/models';
+import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import {
@@ -232,6 +234,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
+  private readonly appLocaleService = inject(AppLocaleService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
   private loadedSpeciesManifestUrl: string | null = null;
@@ -264,9 +267,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
-  private readonly sourceManifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
+  private readonly manifestSidebarLoadFailed = signal(false);
+  /** Raw manifest stored so groups can be rebuilt reactively when the locale changes. */
+  private readonly rawManifest = signal<RuntimeLayerManifest | null>(null);
   protected readonly manifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
-  protected readonly manifestSidebarLoadFailed = signal(false);
   protected readonly speciesCollectionManifestUrl = signal<string>(DEFAULT_SPECIES_MANIFEST_URL);
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
@@ -417,10 +421,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     });
 
     effect(() => {
+      const rawManifest = this.rawManifest();
       const previewManifest = this.layerManifestService.stylePreviewManifest$();
-      const sourceGroups = this.sourceManifestSidebarLayerGroups();
+      const locale = this.appLocaleService.locale();
+      const sourceGroups = rawManifest ? buildManifestSidebarLayerGroups(rawManifest, locale) : [];
       const manifestGroups = previewManifest
-        ? buildManifestSidebarLayerGroups(previewManifest)
+        ? buildManifestSidebarLayerGroups(previewManifest, locale)
         : sourceGroups;
       untracked(() => this.applyManifestSidebarGroups(manifestGroups));
     });
@@ -514,16 +520,18 @@ export class MapLayersPanelComponent implements OnDestroy {
   private loadManifestSidebarRows(): void {
     this.manifestSidebarLoadFailed.set(false);
     this.layerManifestService
-      .getSidebarLayerGroups()
+      .getManifest()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         catchError(() => {
           this.manifestSidebarLoadFailed.set(true);
-          return of<ManifestSidebarLayerGroup[]>([]);
+          return of<RuntimeLayerManifest | null>(null);
         }),
       )
-      .subscribe((groups) => {
-        this.sourceManifestSidebarLayerGroups.set(groups);
+      .subscribe((manifest) => {
+        if (manifest) {
+          this.rawManifest.set(manifest);
+        }
       });
   }
 
@@ -2272,8 +2280,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
-    const normalizedName = row.name.trim().toLowerCase();
-    return normalizedName === 'human footprint';
+    // Match by layer ID (locale-independent) rather than by the display name string.
+    return (
+      row.id.toLowerCase().includes('human_footprint') || row.id === 'layer-soc-human-footprint'
+    );
   }
 
   private isSolutionLayerRow(row: LayerControlRow): boolean {
