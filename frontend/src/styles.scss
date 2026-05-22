@@ -50,3 +50,124 @@ body {
   border: none !important;
   box-shadow: none !important;
 }
+
+/*
+  ngx-color-picker popup — Map Layers panel customization.
+  Top row is one line: [eyedropper, always black] [current color swatch] [hue strip].
+  Hex input + preset chips below; "Quick picks" label is hidden.
+  Pinned above ArcGIS map panes via z-index.
+
+  The library uses ViewEncapsulation.None and injects its baseline styles into
+  <head> at runtime, so its rules win the cascade over this global stylesheet.
+  We use !important on layout-critical rules to reliably override defaults like
+  `.selected-color { position: absolute; border-radius: 50% }`.
+*/
+.color-picker {
+  z-index: 2000 !important;
+  width: 226px !important;
+}
+
+.color-picker .hue-alpha {
+  margin-bottom: 0 !important;
+}
+
+.color-picker .hue-alpha.box {
+  padding: 8px !important;
+  gap: 8px;
+}
+
+.color-picker .left {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+.color-picker .right {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  padding: 0 !important;
+}
+
+/* The library injects a 16px-tall spacer above the hue when alpha is disabled. */
+.color-picker .right > div[style*='height: 16px'] {
+  display: none !important;
+}
+
+/* Drop the dotted checker pattern that sat behind the round swatch. */
+.color-picker .selected-color-background {
+  display: none !important;
+}
+
+/*
+  Combined eyedropper + swatch button, sized to match the hue strip (~16px tall).
+  Left half: white plate with a black eyedropper icon.
+  Right half: current color (library sets `background-color` inline here).
+  Whole element keeps its native click handler, so clicking anywhere triggers
+  the OS eyedropper.
+*/
+.color-picker .selected-color {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  width: 56px !important;
+  height: 16px !important;
+  border: 1px solid rgb(148 163 184) !important;
+  border-radius: 4px !important;
+  overflow: hidden;
+}
+
+.color-picker .selected-color::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: #ffffff;
+  border-right: 1px solid rgb(148 163 184);
+}
+
+.color-picker .eyedropper-icon {
+  z-index: 2;
+  top: 50% !important;
+  left: 14px !important; /* center of the left (28px) half */
+  width: 12px !important;
+  height: 12px !important;
+  transform: translate(-50%, -50%) !important;
+  fill: #111827 !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+.color-picker .hue {
+  margin: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.color-picker .hex-text {
+  padding: 4px 8px 0 !important;
+}
+
+.color-picker .hex-text .box {
+  padding: 0 22px 2px 8px !important;
+}
+
+.color-picker .preset-area {
+  padding: 0 12px 8px !important;
+}
+
+.color-picker .preset-area .preset-label {
+  display: none !important;
+}
+
+.color-picker .preset-area hr {
+  margin: 4px 0 !important;
+}
+
+.color-picker .preset-area .preset-color {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 2px 5px 4px !important;
+}

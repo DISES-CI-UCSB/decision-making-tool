@@ -13,6 +13,7 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ColorPickerComponent, ColorPickerDirective } from 'ngx-color-picker';
 
 import {
   buildManifestSidebarLayerGroups,
@@ -120,6 +121,18 @@ interface SelectedLayerRow {
 }
 
 const SPECIES_VISIBLE_LIMIT = 6;
+/**
+ * ngx-color-picker remembers whichever input format (Hex / R G B / H S L) the
+ * user last selected and does not reset it across reopens. The directive's
+ * `dialog` field is the live `ColorPickerComponent` instance — declared
+ * `private` for TS but reachable at runtime — and `format` on that component
+ * is the numeric input mode (0 = HEX). We reset to 0 on every open below so
+ * the popup always greets the user with the hex input.
+ */
+const COLOR_PICKER_HEX_FORMAT = 0;
+interface ColorPickerDirectiveWithPrivateDialog {
+  dialog: ColorPickerComponent | null;
+}
 type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
@@ -208,7 +221,7 @@ const LEGEND_BOUNDARY_STYLES: Record<
 @Component({
   selector: 'app-map-layers-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ColorPickerDirective],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
   animations: [
@@ -252,6 +265,18 @@ export class MapLayersPanelComponent implements OnDestroy {
   /** Stable bound reference so we can removeEventListener exactly. */
   private readonly rainforestProximityHandler = (e: PointerEvent): void =>
     this.onSidebarProximityMove(e);
+
+  /** Preset swatches shown beneath the saturation/hue grid in the color picker popup. */
+  protected readonly colorPresetHexValues: string[] = [
+    '#16A34A',
+    '#2563EB',
+    '#7C3AED',
+    '#EA580C',
+    '#DC2626',
+    '#0891B2',
+    '#475569',
+    '#111827',
+  ];
 
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
@@ -1725,6 +1750,18 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (groupId) {
       this.updateLayerColor(groupId, rowId, color);
       return;
+    }
+  }
+
+  /**
+   * Forces the picker popup to greet the user with the hex input every time it
+   * opens. Without this, ngx-color-picker keeps the last input mode the user
+   * picked (e.g. R G B) sticky across reopens of the same swatch.
+   */
+  protected onColorPickerOpen(picker: ColorPickerDirective): void {
+    const dialog = (picker as unknown as ColorPickerDirectiveWithPrivateDialog).dialog;
+    if (dialog) {
+      dialog.format = COLOR_PICKER_HEX_FORMAT;
     }
   }
 
