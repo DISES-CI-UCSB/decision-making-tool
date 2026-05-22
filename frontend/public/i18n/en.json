@@ -55,6 +55,9 @@
     "zoomControls": "Map zoom controls",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
+    "exportControls": "Map export controls",
+    "exportPng": "Export PNG",
+    "exporting": "Exporting...",
     "loadingSolution": "Loading solution..."
   },
   "analysis": {

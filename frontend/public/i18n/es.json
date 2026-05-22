@@ -55,6 +55,9 @@
     "zoomControls": "Controles de zoom del mapa",
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
+    "exportControls": "Controles de exportacion del mapa",
+    "exportPng": "Exportar PNG",
+    "exporting": "Exportando...",
     "loadingSolution": "Cargando solución..."
   },
   "analysis": {
