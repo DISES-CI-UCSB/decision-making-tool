@@ -37,7 +37,6 @@ const environmentFile = `export const environment = {
   blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH') || '/api/blob-proxy/')},
   ENABLE_MANIFEST_EDITOR: ${readBooleanEnv('ENABLE_MANIFEST_EDITOR', false)},
   bypassLoginForDevelopment: false,
-  allowSirapWithoutAuth: false,
 } as const;
 
 export type AppEnvironment = typeof environment;

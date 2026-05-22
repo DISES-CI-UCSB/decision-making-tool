@@ -340,7 +340,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.buildSelectedLayers(),
   );
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
-  protected readonly canAccessSirapBoundaries = this.appState.canAccessSirapBoundaries;
 
   constructor() {
     this.syncInitialBoundaryState();
@@ -1058,7 +1057,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           rows: g.rows.map((row) =>
             row.id === rowId
               ? (() => {
-                  if (row.mapUnavailable || this.isAuthLockedRow(row)) {
+                  if (row.mapUnavailable) {
                     return row;
                   }
                   nextVisible = !row.visible;
@@ -1090,9 +1089,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           ...group,
           rows: group.rows.map((row) => {
             if (row.id !== rowId) {
-              return row;
-            }
-            if (this.isAuthLockedRow(row)) {
               return row;
             }
             nextSelected = !row.selected;
@@ -2954,14 +2950,6 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
     return name.toLowerCase().includes(normalizedQuery);
-  }
-
-  protected isAuthLockedRow(row: LayerControlRow): boolean {
-    return (
-      row.mapSync?.type === 'admin-boundary' &&
-      row.mapSync.boundaryType === 'sirap' &&
-      !this.canAccessSirapBoundaries()
-    );
   }
 
   private speciesMatchesSearch(species: SpeciesRow, normalizedQuery: string): boolean {

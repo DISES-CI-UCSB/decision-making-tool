@@ -86,9 +86,6 @@ export class AppStateService {
   readonly canAccessTier2 = computed(
     () => environment.bypassLoginForDevelopment || this.userTier$() >= UserTier.DecisionMaker,
   );
-  readonly canAccessSirapBoundaries = computed(
-    () => this.canAccessTier2() || environment.allowSirapWithoutAuth,
-  );
 
   loadSolution(solution: Solution): void {
     this.activeSolution$.set(solution);

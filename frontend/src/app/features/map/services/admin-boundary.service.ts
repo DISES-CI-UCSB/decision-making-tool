@@ -280,14 +280,6 @@ export class AdminBoundaryService {
 
   setLayerVisibility(target: AoiType | AdminBoundaryLayerKey, visible: boolean): void {
     const configs = this.getConfigsForTarget(target);
-    if (
-      configs.some((config) => config.type === 'sirap') &&
-      visible &&
-      !this.appState.canAccessSirapBoundaries()
-    ) {
-      this.setVisibilityForConfigs(configs, false);
-      return;
-    }
 
     if (visible) {
       for (const config of configs) {
@@ -445,10 +437,6 @@ export class AdminBoundaryService {
 
     const candidate = this.resolveCandidate(hit.results);
     if (!candidate) {
-      this.clearSelectionState();
-      return;
-    }
-    if (candidate.config.type === 'sirap' && !this.appState.canAccessSirapBoundaries()) {
       this.clearSelectionState();
       return;
     }

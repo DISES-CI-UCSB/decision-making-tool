@@ -612,8 +612,6 @@
                           [id]="'map-layers-boundary-selected-button-' + row.id"
                           type="button"
                           class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                          [class.cursor-not-allowed]="isAuthLockedRow(row)"
-                          [class.opacity-50]="isAuthLockedRow(row)"
                           [class.border-blue-200]="row.selected"
                           [class.bg-blue-50]="row.selected"
                           [class.text-blue-700]="row.selected"
@@ -621,14 +619,11 @@
                           [class.bg-white]="!row.selected"
                           [class.text-slate-600]="!row.selected"
                           [attr.aria-label]="
-                            isAuthLockedRow(row)
-                              ? ('mapLayersPanel.loginRequired' | translate: { name: row.name })
-                              : row.selected
-                                ? ('mapLayersPanel.removeLayer' | translate: { name: row.name })
-                                : ('mapLayersPanel.addLayer' | translate: { name: row.name })
+                            row.selected
+                              ? ('mapLayersPanel.removeLayer' | translate: { name: row.name })
+                              : ('mapLayersPanel.addLayer' | translate: { name: row.name })
                           "
                           [attr.aria-pressed]="row.selected"
-                          [disabled]="isAuthLockedRow(row)"
                           (click)="toggleLayerSelected(abGroup.id, row.id)"
                         >
                           {{
@@ -638,14 +633,6 @@
                           }}
                         </button>
                       </div>
-                      @if (isAuthLockedRow(row)) {
-                        <p
-                          [id]="'map-layers-boundary-auth-locked-note-' + row.id"
-                          class="px-3 pb-2 text-[11px] text-amber-700"
-                        >
-                          {{ 'mapLayersPanel.sirapLoginHint' | translate }}
-                        </p>
-                      }
                     </article>
                   }
                 </div>
