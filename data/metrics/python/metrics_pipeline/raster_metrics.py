@@ -206,8 +206,12 @@ def read_layer_mask(
         if np.issubdtype(band.dtype, np.floating):
             valid &= np.isfinite(band)
 
-        if value_type == "binary" and selected_value is not None:
-            return valid & (band == selected_value)
+        selected_values = rendering.get("selectedValues")
+        if value_type == "binary":
+            if selected_values is not None:
+                return valid & np.isin(band, selected_values)
+            if selected_value is not None:
+                return valid & (band == selected_value)
         return valid
 
 

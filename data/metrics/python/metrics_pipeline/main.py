@@ -85,6 +85,7 @@ from raster_metrics import (
 from calculators import area as calc_area
 from calculators import carbon as calc_carbon
 from calculators import ecosystem_coverage as calc_ecosystem
+from calculators import land_cover as calc_land_cover
 from calculators import protected_areas as calc_protected
 from calculators import social_governance as calc_social
 from calculators import water as calc_water
@@ -101,6 +102,7 @@ _OVERLAP_CALCULATORS = {
     "runap":           calc_protected.runap_overlap_km2,
     "runap_protegidas": calc_protected.runap_overlap_km2,
     "recarga_agua":    calc_water.water_recharge_overlap_km2,
+    "coberturas_agriculture": calc_land_cover.agricultural_area_km2,
 }
 
 # binary_overlap_percent_of_selected: same layer lookup as above, different calc fn.
@@ -108,6 +110,9 @@ _OVERLAP_PERCENT_CALCULATORS = {
     "runap_parques": calc_protected.national_parks_percent_of_selected,
     "resguardos":   calc_protected.indigenous_territory_percent_of_selected,
     "recarga_agua": calc_water.water_recharge_percent_of_selected,
+    "coberturas_forest":      calc_land_cover.forest_pct,
+    "coberturas_agriculture": calc_land_cover.agriculture_pct,
+    "coberturas_other":       calc_land_cover.other_land_use_pct,
 }
 
 # weighted_sum: layer_id → fn(raster, float_values_array) → float

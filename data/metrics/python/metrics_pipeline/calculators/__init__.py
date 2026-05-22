@@ -12,6 +12,7 @@ ecosystem_coverage — #4, #30, #31, #32, #36 (ecosystem overlap metrics)
 social_governance  — #59, #60 (territory/governance overlap metrics)
 carbon            — #5, #39, #41, #43 (carbon/biomass weighted-sum metrics)
 water             — #6, #44 (water regulation overlap metrics)
+land_cover        — #9, #51, #52/#53, #54 (coberturas.tif CORINE Level 1 land-cover metrics)
 protected_areas   — #63, #64, #66 (protected area overlap and percent metrics)
 comparison        — #70, #71, #72 (pairwise deferred: requires two solution rasters)
 """

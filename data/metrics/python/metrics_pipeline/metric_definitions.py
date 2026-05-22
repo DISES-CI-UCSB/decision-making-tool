@@ -12,7 +12,7 @@ T6 metrics added (17 additional):
   Water:              6, 44
   Protected areas:    63, 64, 66
   AOI percentage:     19
-  Land cover:         9, 51, 52/53, 54  (blocked — no land cover raster available)
+  Land cover:         9, 51, 52/53, 54  (coberturas.tif — class IDs 1=forest, 2=agri, 3=urban, 4=wetland, 5=water)
   Comparison:         70, 71, 72  (deferred pairwise)
 
 Edit METRIC_CATALOG below if the Tier 1 scope changes.
@@ -156,11 +156,15 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         unit="km2",
         format_hint="number",
         source_note=(
-            "Requires an ecosistemas class-code crosswalk to identify agricultural pixels. "
-            "The ecosistemas raster (int16, ~396 classes) is available but the class-to-land-cover "
-            "mapping has not yet been defined. Blocked until crosswalk is delivered."
+            "km² of selected area classified as Territorios Agrícolas (class 2) in coberturas.tif. "
+            "CORINE Land Cover Level 1 adapted for Colombia. "
+            "Note: original CSV had classes 1 and 3 swapped; corrected version in blob. "
+            "Class 2 = agriculture (pasture + crops combined at Level 1 resolution)."
         ),
-        kind="blocked_no_data",
+        kind="binary_overlap_area",
+        layer_id="coberturas_agriculture",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering={"valueType": "binary", "selectedValue": 2},
     ),
     # --- T2 (continued) ---
     MetricDefinition(
@@ -334,10 +338,14 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         unit="%",
         format_hint="percent",
         source_note=(
-            "Requires a classified land use/land cover raster. "
-            "No such layer found in blob storage. Blocked until land cover data is available."
+            "% of selected area classified as Bosques y Áreas Seminaturales (class 1) in coberturas.tif. "
+            "CORINE Land Cover Level 1. Note: original CSV classes 1 and 3 were swapped; class 1 in the "
+            "TIF is forest/seminatural, confirmed by spatial inspection."
         ),
-        kind="blocked_no_data",
+        kind="binary_overlap_percent_of_selected",
+        layer_id="coberturas_forest",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering={"valueType": "binary", "selectedValue": 1},
     ),
     MetricDefinition(
         metric_id="land_use_agriculture_pct",
@@ -348,11 +356,14 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         unit="%",
         format_hint="percent",
         source_note=(
-            "Combined pasture (#52) and crop agriculture (#53). "
-            "Requires a classified land use/land cover raster that distinguishes agricultural types. "
-            "No such layer found in blob storage. Blocked until land cover data is available."
+            "% of selected area classified as Territorios Agrícolas (class 2) in coberturas.tif. "
+            "CORINE Level 1 combines pasture (#52) and crop agriculture (#53) into one class. "
+            "A finer-resolution raster would be needed to distinguish them."
         ),
-        kind="blocked_no_data",
+        kind="binary_overlap_percent_of_selected",
+        layer_id="coberturas_agriculture",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering={"valueType": "binary", "selectedValue": 2},
     ),
     MetricDefinition(
         metric_id="land_use_other_pct",
@@ -363,10 +374,13 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         unit="%",
         format_hint="percent",
         source_note=(
-            "Requires a classified land use/land cover raster. "
-            "No such layer found in blob storage. Blocked until land cover data is available."
+            "% of selected area classified as Artificializados, Áreas Húmedas, or Superficies de Agua "
+            "(classes 3+4+5) in coberturas.tif. Represents the remainder after forest and agriculture."
         ),
-        kind="blocked_no_data",
+        kind="binary_overlap_percent_of_selected",
+        layer_id="coberturas_other",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering={"valueType": "binary", "selectedValues": [3, 4, 5]},
     ),
     # --- T2 (continued) ---
     MetricDefinition(

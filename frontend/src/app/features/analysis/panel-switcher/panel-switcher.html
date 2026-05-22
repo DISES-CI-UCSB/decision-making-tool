@@ -782,24 +782,28 @@
                       <div id="aoi-hero-priority" class="aoi-hero-card aoi-hero-card-priority">
                         <div class="aoi-hero-kicker">Priority Area in Region</div>
                         <div class="aoi-hero-value aoi-hero-value-green">
-                          {{ aoiVal('230') }} <small>km²</small>
+                          {{ getAoiMetricValue('priority_area_in_region', '230 km²') }}
                         </div>
                         <div class="aoi-hero-bar">
                           <span
                             id="aoi-hero-fill-priority"
                             class="aoi-hero-fill-green"
-                            [style.width.%]="aoiBarWidth(45)"
+                            [style.width.%]="getAoiMetricPercent('priority_area_pct_of_region', 45)"
                             [style.background-color]="aoiHeroPriorityBarColor()"
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
-                          <strong>{{ aoiVal('45%') }}</strong> of this municipality
+                          <strong>{{
+                            getAoiMetricValue('priority_area_pct_of_region', '45%')
+                          }}</strong>
+                          ·
+                          {{ getAoiMetricStatus('priority_area_pct_of_region') }}
                         </div>
                       </div>
                       <div id="aoi-hero-national" class="aoi-hero-card aoi-hero-card-national">
                         <div class="aoi-hero-kicker">30×30 Contribution</div>
                         <div class="aoi-hero-value aoi-hero-value-blue">
-                          {{ aoiVal('1.9') }}<small>%</small>
+                          {{ getAoiMetricValue('national_contribution', '1.9%') }}
                         </div>
                         <div class="aoi-hero-bar">
                           <span
@@ -816,8 +820,7 @@
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
-                          Existing <strong>{{ aoiVal('0.9%') }}</strong> + adds
-                          <strong>{{ aoiVal('1.0%') }}</strong>
+                          {{ getAoiMetricStatus('national_contribution') }}
                         </div>
                       </div>
                     </div>
@@ -825,13 +828,19 @@
                     <div id="aoi-protect-stats" class="aoi-stat-grid">
                       <div id="aoi-stat-total-protected" class="aoi-stat-card">
                         <p class="aoi-stat-label">Total Protected Area</p>
-                        <p class="aoi-stat-value">{{ aoiVal('72 km²') }}</p>
-                        <p class="aoi-stat-unit">{{ aoiVal('31% of AOI under protection') }}</p>
+                        <p class="aoi-stat-value">
+                          {{ getAoiMetricValue('protected_area_runap_km2', '72 km²') }}
+                        </p>
+                        <p class="aoi-stat-unit">
+                          {{ getAoiMetricStatus('protected_area_runap_km2') }}
+                        </p>
                       </div>
                       <div id="aoi-stat-parks-overlap" class="aoi-stat-card">
                         <p class="aoi-stat-label">Overlap w/ Nat'l Parks</p>
-                        <p class="aoi-stat-value">{{ aoiVal('18%') }}</p>
-                        <p class="aoi-stat-unit">Of AOI priority area</p>
+                        <p class="aoi-stat-value">
+                          {{ getAoiMetricValue('national_parks_pct', '18%') }}
+                        </p>
+                        <p class="aoi-stat-unit">{{ getAoiMetricStatus('national_parks_pct') }}</p>
                       </div>
                     </div>
                   </div>
@@ -1003,7 +1012,7 @@
                             ></span>
                             <span [id]="'aoi-legend-label-' + segment.id">{{ segment.label }}</span>
                             <span [id]="'aoi-legend-pct-' + segment.id" class="aoi-legend-pct">
-                              {{ aoiVal(segment.percent + '%') }}
+                              {{ getAoiEcosystemLegendValue(segment.id, segment.percent + '%') }}
                             </span>
                           </div>
                         }
@@ -1013,23 +1022,37 @@
                     <div id="aoi-carbon-stats" class="aoi-stat-grid">
                       <div id="aoi-stat-total-carbon" class="aoi-stat-card">
                         <p class="aoi-stat-label">Total Carbon Biomass</p>
-                        <p class="aoi-stat-value">{{ aoiVal('85M') }}</p>
-                        <p class="aoi-stat-unit">tCO₂e</p>
+                        <p class="aoi-stat-value">
+                          {{ getAoiMetricValue('carbon_biomass_total', '85M tCO₂e') }}
+                        </p>
+                        <p class="aoi-stat-unit">
+                          {{ getAoiMetricStatus('carbon_biomass_total') }}
+                        </p>
                       </div>
                       <div id="aoi-stat-national-carbon" class="aoi-stat-card">
                         <p class="aoi-stat-label">% of National Carbon</p>
-                        <p class="aoi-stat-value">{{ aoiVal('7%') }}</p>
-                        <p class="aoi-stat-unit">Of Colombian stocks</p>
+                        <p class="aoi-stat-value">
+                          {{ getAoiMetricValue('carbon_pct_of_national', '7%') }}
+                        </p>
+                        <p class="aoi-stat-unit">
+                          {{ getAoiMetricStatus('carbon_pct_of_national') }}
+                        </p>
                       </div>
                       <div id="aoi-stat-above-carbon" class="aoi-stat-card">
                         <p class="aoi-stat-label">Above-ground Carbon</p>
-                        <p class="aoi-stat-value">{{ aoiVal('52M') }}</p>
-                        <p class="aoi-stat-unit">tCO₂e</p>
+                        <p class="aoi-stat-value">
+                          {{ getAoiMetricValue('carbon_storage_biomass', '52M tCO₂e') }}
+                        </p>
+                        <p class="aoi-stat-unit">
+                          {{ getAoiMetricStatus('carbon_storage_biomass') }}
+                        </p>
                       </div>
                       <div id="aoi-stat-soil-carbon" class="aoi-stat-card">
                         <p class="aoi-stat-label">Soil Organic Carbon</p>
-                        <p class="aoi-stat-value">{{ aoiVal('33M') }}</p>
-                        <p class="aoi-stat-unit">tCO₂e</p>
+                        <p class="aoi-stat-value">
+                          {{ getAoiMetricValue('soil_organic_carbon', '33M tCO₂e') }}
+                        </p>
+                        <p class="aoi-stat-unit">{{ getAoiMetricStatus('soil_organic_carbon') }}</p>
                       </div>
                     </div>
 
@@ -1045,8 +1068,13 @@
                           </div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">{{ aoiVal('High') }}</div>
-                          <div class="aoi-m-unit">{{ aoiVal('Index 78 / 100') }}</div>
+                          <div class="aoi-m-val">
+                            {{ getAoiMetricValue('water_regulation_area', 'High') }}
+                          </div>
+                          <div class="aoi-m-unit">
+                            {{ getAoiMetricValue('water_regulation_pct', 'Index 78 / 100') }} ·
+                            {{ getAoiMetricStatus('water_regulation_pct') }}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1111,12 +1139,30 @@
                             <span
                               [id]="'aoi-bar-fill-' + bar.id"
                               class="aoi-bar-fill"
-                              [style.width.%]="aoiBarWidth(bar.percent)"
+                              [style.width.%]="
+                                getAoiMetricPercent(
+                                  bar.id === 'forest'
+                                    ? 'land_use_forest_pct'
+                                    : bar.id === 'agriculture'
+                                      ? 'land_use_agriculture_pct'
+                                      : 'land_use_other_pct',
+                                  bar.percent
+                                )
+                              "
                               [style.background-color]="bar.color"
                             ></span>
                           </div>
                           <span [id]="'aoi-bar-val-' + bar.id" class="aoi-bar-val">
-                            {{ aoiVal(bar.percent + '%') }}
+                            {{
+                              getAoiMetricValue(
+                                bar.id === 'forest'
+                                  ? 'land_use_forest_pct'
+                                  : bar.id === 'agriculture'
+                                    ? 'land_use_agriculture_pct'
+                                    : 'land_use_other_pct',
+                                bar.percent + '%'
+                              )
+                            }}
                           </span>
                         </div>
                       }
@@ -1137,8 +1183,12 @@
                           </div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">{{ aoiVal('$125M') }}</div>
-                          <div class="aoi-m-unit">USD equivalent</div>
+                          <div class="aoi-m-val">
+                            {{ getAoiMetricValue('agricultural_area', '$125M') }}
+                          </div>
+                          <div class="aoi-m-unit">
+                            {{ getAoiMetricStatus('agricultural_area') }}
+                          </div>
                         </div>
                       </div>
                       <div id="aoi-row-conflict" class="aoi-metric-row">
@@ -1221,8 +1271,12 @@
                           <div class="aoi-m-desc">Area within AOI priority zones</div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">{{ aoiVal('41 km²') }}</div>
-                          <div class="aoi-m-unit">Resguardos indígenas</div>
+                          <div class="aoi-m-val">
+                            {{ getAoiMetricValue('indigenous_reservations_area', '41 km²') }}
+                          </div>
+                          <div class="aoi-m-unit">
+                            {{ getAoiMetricStatus('indigenous_reservations_area') }}
+                          </div>
                         </div>
                       </div>
                       <div id="aoi-row-community" class="aoi-metric-row">
@@ -1234,8 +1288,12 @@
                           <div class="aoi-m-desc">Afro-Colombian community council territories</div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">{{ aoiVal('27 km²') }}</div>
-                          <div class="aoi-m-unit">Consejos comunitarios</div>
+                          <div class="aoi-m-val">
+                            {{ getAoiMetricValue('community_councils_area', '27 km²') }}
+                          </div>
+                          <div class="aoi-m-unit">
+                            {{ getAoiMetricStatus('community_councils_area') }}
+                          </div>
                         </div>
                       </div>
                       <div id="aoi-row-indigenous-pct" class="aoi-metric-row">
@@ -1247,8 +1305,12 @@
                           <div class="aoi-m-desc">Share of solution in indigenous territories</div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">{{ aoiVal('12%') }}</div>
-                          <div class="aoi-m-unit">Consultation-sensitive</div>
+                          <div class="aoi-m-val">
+                            {{ getAoiMetricValue('indigenous_territory_pct', '12%') }}
+                          </div>
+                          <div class="aoi-m-unit">
+                            {{ getAoiMetricStatus('indigenous_territory_pct') }}
+                          </div>
                         </div>
                       </div>
                     </div>

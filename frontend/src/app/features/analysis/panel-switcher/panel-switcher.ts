@@ -1,13 +1,16 @@
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
+  type AOI,
   type AnalysisMetricSectionFixture,
+  type CachedSolutionMetricsDocument,
+  type GeographyLevel,
   type MetricComparisonValue,
   type MetricReadinessStatus,
   type MetricValue,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
-import { nationalMetrics } from '@core/services/cached-metrics.utils';
+import { metricsForScope, nationalMetrics } from '@core/services/cached-metrics.utils';
 import {
   AppStateService,
   type ComparisonVisualizationMode,
@@ -178,9 +181,8 @@ export class PanelSwitcherComponent {
   ];
   private readonly aoiLandUseBaseBars: readonly { id: string; label: string; percent: number }[] = [
     { id: 'forest', label: 'Natural Forest', percent: 60 },
-    { id: 'pasture', label: 'Pasture', percent: 25 },
-    { id: 'crops', label: 'Crops', percent: 10 },
-    { id: 'other-land', label: 'Other', percent: 5 },
+    { id: 'agriculture', label: 'Agriculture', percent: 25 },
+    { id: 'other-land', label: 'Other', percent: 15 },
   ];
   private readonly appState = inject(AppStateService);
   private readonly api = inject(ApiService);
@@ -212,6 +214,10 @@ export class PanelSwitcherComponent {
     mangrove_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     indigenous_reservations_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     community_councils_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
+    // T6 additions
+    carbon_storage_biomass: { id: 'climate', labelKey: 'analysis.sections.climate' },
+    water_regulation_area: { id: 'climate', labelKey: 'analysis.sections.climate' },
+    agricultural_area: { id: 'finance', labelKey: 'analysis.sections.finance' },
   };
   private readonly overviewSectionOrder = ['ecology', 'climate', 'finance'];
   private readonly overviewMetricBlueprints: OverviewMetricBlueprint[] = [
@@ -340,7 +346,7 @@ export class PanelSwitcherComponent {
       labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
       descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
       iconClass: 'fas fa-leaf',
-      realMetricId: 'm-carbon',
+      realMetricId: 'carbon_storage_biomass',
       dummyValue: '2.3B',
       dummyUnit: 'tCO2e',
     },
@@ -350,9 +356,9 @@ export class PanelSwitcherComponent {
       labelKey: 'analysis.overview.metrics.waterRegulationServices',
       descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
       iconClass: 'fas fa-droplet',
+      realMetricId: 'water_regulation_area',
       dummyValue: '450M',
       dummyUnit: 'm³ index',
-      conditional: true,
     },
     {
       id: 'metric-09-affected-agricultural-area',
@@ -360,6 +366,7 @@ export class PanelSwitcherComponent {
       labelKey: 'analysis.overview.metrics.affectedAgriculturalArea',
       descriptionKey: 'analysis.overview.metrics.affectedAgriculturalAreaDesc',
       iconClass: 'fas fa-wheat-awn',
+      realMetricId: 'agricultural_area',
       dummyValue: '8,500 km²',
       dummyUnit: '15% overlap',
     },
@@ -571,6 +578,7 @@ export class PanelSwitcherComponent {
   protected readonly isNotImplementedDialogOpen = signal(false);
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
+  protected readonly cachedMetricsDocument = signal<CachedSolutionMetricsDocument | null>(null);
   protected readonly isOverviewLoading = signal(false);
   protected readonly overviewLoadFailed = signal(false);
   protected readonly overviewGainMetrics = computed<OverviewMetricDisplayEntry[]>(() =>
@@ -585,14 +593,15 @@ export class PanelSwitcherComponent {
   });
 
   protected readonly aoiMetrics = computed(() => {
-    const solution = this.activeSolution();
     const aoi = this.selectedAoi();
-    if (!solution || !aoi) {
+    if (!aoi) {
       return [];
     }
-
-    return this.mockData.getAoiMetrics(solution.id, aoi.id)?.metrics ?? [];
+    return this.resolveAoiMetrics(this.cachedMetricsDocument(), aoi);
   });
+  protected readonly aoiMetricsById = computed<Map<string, MetricValue>>(
+    () => new Map(this.aoiMetrics().map((metric) => [metric.metricId, metric] as const)),
+  );
   protected readonly isSirapAoiSelected = computed(() => this.selectedAoi()?.type === 'sirap');
 
   protected readonly comparisonMetrics = computed(() => {
@@ -704,30 +713,28 @@ export class PanelSwitcherComponent {
         switchMap((solutionId) => {
           if (!solutionId) {
             this.overviewSections.set([]);
+            this.cachedMetricsDocument.set(null);
             this.isOverviewLoading.set(false);
             this.overviewLoadFailed.set(false);
-            return of<MetricValue[] | null>(null);
+            return of<CachedSolutionMetricsDocument | null>(null);
           }
 
           this.isOverviewLoading.set(true);
           this.overviewLoadFailed.set(false);
 
           return this.api.getSolutionMetrics(solutionId).pipe(
-            map((response) => nationalMetrics(response)),
             catchError(() => {
               this.overviewLoadFailed.set(true);
-              return of<MetricValue[]>([]);
+              return of<CachedSolutionMetricsDocument | null>(null);
             }),
             finalize(() => this.isOverviewLoading.set(false)),
           );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((metrics) => {
-        if (metrics === null) {
-          return;
-        }
-        this.overviewSections.set(this.buildOverviewSections(metrics));
+      .subscribe((document) => {
+        this.cachedMetricsDocument.set(document);
+        this.overviewSections.set(this.buildOverviewSections(nationalMetrics(document)));
       });
   }
 
@@ -871,6 +878,45 @@ export class PanelSwitcherComponent {
     return this.fillDummyAoiMetrics() ? dummyValue : '--';
   }
 
+  protected getAoiMetricValue(metricId: string, fallbackWhenMissing = '--'): string {
+    const metric = this.aoiMetricsById().get(metricId);
+    if (metric && metric.status === 'ready' && metric.value !== null) {
+      return this.formatMetricForPanel(metric);
+    }
+    if (this.fillDummyAoiMetrics()) {
+      return fallbackWhenMissing;
+    }
+    return '--';
+  }
+
+  protected getAoiMetricStatus(metricId: string): string {
+    const metric = this.aoiMetricsById().get(metricId);
+    return metric && metric.status === 'ready' && metric.value !== null ? 'Ready' : '--';
+  }
+
+  protected getAoiMetricPercent(metricId: string, fallbackWhenMissing = 0): number {
+    const metric = this.aoiMetricsById().get(metricId);
+    if (metric?.status === 'ready' && metric.value !== null) {
+      return Math.max(0, Math.min(100, metric.value));
+    }
+    return this.fillDummyAoiMetrics() ? fallbackWhenMissing : 0;
+  }
+
+  protected getAoiEcosystemLegendValue(segmentId: string, fallbackWhenMissing = '--'): string {
+    const metricIdBySegmentId: Record<string, string> = {
+      'cloud-forest': 'ecosystem_coverage',
+      paramo: 'ecosystem_coverage_paramo',
+      'dry-forest': 'ecosystem_coverage_dry_forest',
+      wetlands: 'ecosystem_coverage_wetlands',
+      other: 'mangrove_coverage',
+    };
+    const metricId = metricIdBySegmentId[segmentId];
+    if (!metricId) {
+      return this.fillDummyAoiMetrics() ? fallbackWhenMissing : '--';
+    }
+    return this.getAoiMetricValue(metricId, fallbackWhenMissing);
+  }
+
   protected aoiBarWidth(dummyPercent: number): number {
     return this.fillDummyAoiMetrics() ? dummyPercent : 0;
   }
@@ -962,7 +1008,27 @@ export class PanelSwitcherComponent {
   }
 
   private appendUnit(value: string, unit: string | null): string {
+    if (unit === '%') {
+      return `${value}%`;
+    }
     return unit ? `${value} ${unit}` : value;
+  }
+
+  private formatMetricUnit(unit: string | null): string | null {
+    if (!unit) {
+      return null;
+    }
+
+    return unit.replace(/Mg\s*[·x*]\s*km\^?2\b/g, 'Mg·km²').replace(/km\^?2\b/g, 'km²');
+  }
+
+  private formatMetricForPanel(metric: MetricValue): string {
+    const formattedUnit = this.formatMetricUnit(metric.unit);
+    const number = this.formatNumber(metric.value ?? 0, 0, metric.formatHint === 'percent' ? 1 : 2);
+    if (metric.formatHint === 'percent' || formattedUnit === '%') {
+      return `${number}%`;
+    }
+    return formattedUnit ? `${number} ${formattedUnit}` : number;
   }
 
   private resolveLocale(): string {
@@ -1085,6 +1151,74 @@ export class PanelSwitcherComponent {
       .filter((section): section is AnalysisMetricSectionFixture => section !== undefined);
   }
 
+  private resolveAoiMetrics(
+    document: CachedSolutionMetricsDocument | null,
+    aoi: AOI,
+  ): MetricValue[] {
+    if (!document) {
+      return [];
+    }
+
+    const level = this.aoiTypeToGeographyLevel(aoi.type);
+    if (!level) {
+      return [];
+    }
+
+    const geographies = document.geographies[level] ?? {};
+    const rawId = this.extractRawAoiScopeId(aoi.id);
+    const directCandidates = [rawId, aoi.name].filter((candidate): candidate is string =>
+      Boolean(candidate?.trim()),
+    );
+
+    for (const scopeId of directCandidates) {
+      const metrics = metricsForScope(document, level, scopeId);
+      if (metrics.length > 0) {
+        return metrics;
+      }
+    }
+
+    const normalizedAoiName = this.normalizeScopeLabel(aoi.name);
+    for (const [scopeId, scope] of Object.entries(geographies)) {
+      if (this.normalizeScopeLabel(scopeId) === normalizedAoiName) {
+        return scope.metrics ?? [];
+      }
+      if (this.normalizeScopeLabel(scope.name ?? '') === normalizedAoiName) {
+        return scope.metrics ?? [];
+      }
+    }
+
+    return [];
+  }
+
+  private aoiTypeToGeographyLevel(type: AOI['type']): GeographyLevel | null {
+    switch (type) {
+      case 'department':
+        return 'departments';
+      case 'municipality':
+        return 'municipalities';
+      case 'sirap':
+        return 'siraps';
+      default:
+        return null;
+    }
+  }
+
+  private extractRawAoiScopeId(prefixedAoiId: string): string {
+    const separatorIndex = prefixedAoiId.indexOf(':');
+    if (separatorIndex === -1) {
+      return prefixedAoiId.trim();
+    }
+    return prefixedAoiId.slice(separatorIndex + 1).trim();
+  }
+
+  private normalizeScopeLabel(label: string): string {
+    return label
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
   private buildOverviewMetricDisplayEntries(
     section: OverviewMetricSection,
   ): OverviewMetricDisplayEntry[] {
@@ -1115,12 +1249,13 @@ export class PanelSwitcherComponent {
         const realValueAvailable = realMetric?.status === 'ready' && realMetric.value !== null;
 
         if (realMetric && realValueAvailable) {
+          const formattedUnit = this.formatMetricUnit(realMetric.unit);
           return {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
-            value: this.formatMetricValue(realMetric),
+            value: this.appendUnit(this.formatMetricValue(realMetric), formattedUnit),
             unit: 'Ready',
             conditional: Boolean(metric.conditional),
             unavailable: false,
