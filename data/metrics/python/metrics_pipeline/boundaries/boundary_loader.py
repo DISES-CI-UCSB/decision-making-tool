@@ -32,6 +32,24 @@ from typing import Any
 
 from boundaries.igac_crosswalk import build_crosswalks, normalize_name
 
+# Manual GADM → DANE overrides for features that IGAC and GADM name differently
+# enough that whitespace+accent+punctuation normalization can't bridge them.
+# Each key is (normalized GADM NAME_1, normalized GADM NAME_2 or None for dept).
+#
+# Bogotá D.C.: IGAC files it only as municipality 11001 under "Cundinamarca";
+#   there is no separate IGAC department row, but DANE assigns dept code 11.
+# San Andrés y Providencia: IGAC depto name is "San Andrés Providencia y Santa
+#   Catalina" (no leading "y" before Providencia, plus a trailing "Santa
+#   Catalina"); IGAC muni "Providencia y Santa Catalina" likewise gets a
+#   trailing modifier vs GADM's "Providencia".
+_GADM_TO_DANE_OVERRIDES: dict[tuple[str, str | None], str] = {
+    ("bogotadc", None): "11",
+    ("bogotadc", "bogotadc"): "11001",
+    ("sanandresyprovidencia", None): "88",
+    ("sanandresyprovidencia", "sanandres"): "88001",
+    ("sanandresyprovidencia", "providencia"): "88564",
+}
+
 # GADM 4.1 direct-download GeoJSON for Colombia admin levels.
 GADM_DEPT_URL = "https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_COL_1.json"
 GADM_MUNI_URL = "https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_COL_2.json"
@@ -193,10 +211,21 @@ def _apply_dane_crosswalk(
         print(f"[boundaries] WARN: DANE crosswalk unavailable ({exc}); keeping GADM IDs.")
         return
 
+    def dept_lookup_fn(feat):
+        norm = normalize_name(feat.name)
+        return dept_lookup.get(norm) or _GADM_TO_DANE_OVERRIDES.get((norm, None))
+
+    def muni_lookup_fn(feat):
+        norm_dept = normalize_name(feat.properties.get("NAME_1") or "")
+        norm_muni = normalize_name(feat.name)
+        return (
+            muni_lookup.get((norm_dept, norm_muni))
+            or _GADM_TO_DANE_OVERRIDES.get((norm_dept, norm_muni))
+        )
+
     if "departments" in by_level:
         by_level["departments"], unmatched_depts = _remap_features(
-            by_level["departments"],
-            lookup_fn=lambda feat: dept_lookup.get(normalize_name(feat.name)),
+            by_level["departments"], lookup_fn=dept_lookup_fn,
         )
         if unmatched_depts:
             print(f"[boundaries] WARN: {len(unmatched_depts)} dept(s) without DANE match: "
@@ -204,16 +233,13 @@ def _apply_dane_crosswalk(
 
     if "municipalities" in by_level:
         by_level["municipalities"], unmatched_munis = _remap_features(
-            by_level["municipalities"],
-            lookup_fn=lambda feat: muni_lookup.get((
-                normalize_name(feat.properties.get("NAME_1") or ""),
-                normalize_name(feat.name),
-            )),
+            by_level["municipalities"], lookup_fn=muni_lookup_fn,
         )
         if unmatched_munis:
-            print(f"[boundaries] WARN: {len(unmatched_munis)}/{len(by_level['municipalities']) + len(unmatched_munis)} "
-                  f"municipality(ies) without DANE match (kept GADM ID); "
-                  f"first few: {[(f.properties.get('NAME_1'), f.name) for f in unmatched_munis[:5]]}")
+            total = len(by_level['municipalities'])
+            print(f"[boundaries] WARN: {len(unmatched_munis)}/{total} municipality(ies) "
+                  f"without DANE match (kept GADM ID); first few: "
+                  f"{[(f.properties.get('NAME_1'), f.name) for f in unmatched_munis[:5]]}")
 
 
 def _remap_features(
