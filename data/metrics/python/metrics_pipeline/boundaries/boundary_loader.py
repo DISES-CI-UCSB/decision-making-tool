@@ -6,9 +6,16 @@ Supported geography levels:
 - siraps:         Colombia SIRAPs from Vercel Blob (siraps_merged.geojson)
 
 IGAC ArcGIS REST (mapas2.igac.gov.co) is unreliable for full-geometry queries
-(HTTP 500 for page sizes > 3), so GADM is used as the primary source for admin
-boundaries. GADM IDs (GID_1, GID_2) are used as boundary_id values in the
-output; the IGAC DIVIPOLA codes can be added as a future enrichment if needed.
+(HTTP 500 for page sizes > 3), so GADM is used as the primary geometry source
+for admin boundaries. IGAC attribute-only queries (returnGeometry=false) DO
+paginate reliably, so we use those to build a name → DANE code crosswalk and
+remap each GADM boundary_id to the official Colombian DANE code (DeCodigo for
+departments, MpCodigo for municipalities). That keeps the frontend's AOI
+lookups working with the same codes the IGAC map layers emit.
+
+GADM features that fail to match an IGAC record (rare; usually corregimientos
+in Amazonas / Vaupés / Guainía that aren't true municipalities) keep their
+GADM ID as boundary_id and are flagged in properties.
 
 All downloads are cached locally so subsequent pipeline runs skip the fetch.
 """
@@ -22,6 +29,8 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from boundaries.igac_crosswalk import build_crosswalks, normalize_name
 
 # GADM 4.1 direct-download GeoJSON for Colombia admin levels.
 GADM_DEPT_URL = "https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_COL_1.json"
@@ -164,4 +173,71 @@ def load_all_boundaries(
         except BoundaryLoadError as exc:
             errors[level_name] = str(exc)
 
+    _apply_dane_crosswalk(result, bdir)
+
     return result, errors
+
+
+def _apply_dane_crosswalk(
+    by_level: dict[str, list[BoundaryFeature]],
+    cache_dir: Path,
+) -> None:
+    """Remap department / municipality boundary_id from GADM IDs to DANE codes.
+
+    Mutates `by_level` in place. SIRAPs are untouched (already use sirap_id).
+    Unmatched features keep their GADM ID so the pipeline still runs end-to-end.
+    """
+    try:
+        dept_lookup, muni_lookup = build_crosswalks(cache_dir)
+    except Exception as exc:
+        print(f"[boundaries] WARN: DANE crosswalk unavailable ({exc}); keeping GADM IDs.")
+        return
+
+    if "departments" in by_level:
+        by_level["departments"], unmatched_depts = _remap_features(
+            by_level["departments"],
+            lookup_fn=lambda feat: dept_lookup.get(normalize_name(feat.name)),
+        )
+        if unmatched_depts:
+            print(f"[boundaries] WARN: {len(unmatched_depts)} dept(s) without DANE match: "
+                  f"{[f.name for f in unmatched_depts[:5]]}")
+
+    if "municipalities" in by_level:
+        by_level["municipalities"], unmatched_munis = _remap_features(
+            by_level["municipalities"],
+            lookup_fn=lambda feat: muni_lookup.get((
+                normalize_name(feat.properties.get("NAME_1") or ""),
+                normalize_name(feat.name),
+            )),
+        )
+        if unmatched_munis:
+            print(f"[boundaries] WARN: {len(unmatched_munis)}/{len(by_level['municipalities']) + len(unmatched_munis)} "
+                  f"municipality(ies) without DANE match (kept GADM ID); "
+                  f"first few: {[(f.properties.get('NAME_1'), f.name) for f in unmatched_munis[:5]]}")
+
+
+def _remap_features(
+    features: list[BoundaryFeature],
+    *,
+    lookup_fn,
+) -> tuple[list[BoundaryFeature], list[BoundaryFeature]]:
+    """Return (remapped_features, unmatched_features). Unmatched keep original boundary_id."""
+    remapped: list[BoundaryFeature] = []
+    unmatched: list[BoundaryFeature] = []
+    for feat in features:
+        dane_code = lookup_fn(feat)
+        if dane_code:
+            enriched_props = dict(feat.properties)
+            enriched_props["_gadm_id"] = feat.boundary_id
+            enriched_props["_dane_code"] = dane_code
+            remapped.append(BoundaryFeature(
+                boundary_id=dane_code,
+                name=feat.name,
+                geo_level=feat.geo_level,
+                geometry=feat.geometry,
+                properties=enriched_props,
+            ))
+        else:
+            unmatched.append(feat)
+            remapped.append(feat)
+    return remapped, unmatched
