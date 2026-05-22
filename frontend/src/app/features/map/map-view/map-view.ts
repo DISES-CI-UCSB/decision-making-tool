@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import ArcGISMap from '@arcgis/core/Map';
 import ArcGISMapView from '@arcgis/core/views/MapView';
+import Extent from '@arcgis/core/geometry/Extent';
 import Point from '@arcgis/core/geometry/Point';
 import Attribution from '@arcgis/core/widgets/Attribution';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
@@ -30,6 +31,13 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
+const COLOMBIA_EXTENT = new Extent({
+  xmin: -79.1,
+  ymin: -4.3,
+  xmax: -66.8,
+  ymax: 13.7,
+  spatialReference: { wkid: 4326 },
+});
 type SwipeInstance = {
   destroy: () => void;
 } & Widget;
@@ -132,6 +140,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     void this.animateZoomBy(-1);
   }
 
+  protected zoomToCountry(): void {
+    void this.animateZoomToCountry();
+  }
+
   protected exportCurrentView(): void {
     void this.downloadCurrentMapViewAsPng();
   }
@@ -165,6 +177,31 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       }
 
       console.error(`[MapView][${this.debugMarker}] zoom animation failed:`, error);
+    }
+  }
+
+  private async animateZoomToCountry(): Promise<void> {
+    if (!this.view) {
+      return;
+    }
+
+    try {
+      await this.view.goTo(
+        {
+          target: COLOMBIA_EXTENT,
+        },
+        {
+          animate: true,
+          duration: 300,
+          easing: 'ease-in-out',
+        },
+      );
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      console.error(`[MapView][${this.debugMarker}] country zoom reset failed:`, error);
     }
   }
 

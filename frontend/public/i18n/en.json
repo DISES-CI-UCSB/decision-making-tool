@@ -55,6 +55,7 @@
     "zoomControls": "Map zoom controls",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
+    "zoomToCountry": "Zoom to full country",
     "exportControls": "Map export controls",
     "exportPng": "Export PNG",
     "exporting": "Exporting...",

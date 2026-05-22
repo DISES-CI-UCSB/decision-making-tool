@@ -55,6 +55,7 @@
     "zoomControls": "Controles de zoom del mapa",
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
+    "zoomToCountry": "Ver todo el pais",
     "exportControls": "Controles de exportacion del mapa",
     "exportPng": "Exportar PNG",
     "exporting": "Exportando...",
