@@ -927,7 +927,9 @@
                     <div id="aoi-bio-stats" class="aoi-stat-grid">
                       <div id="aoi-stat-threatened" class="aoi-stat-card">
                         <p class="aoi-stat-label">Threatened Species</p>
-                        <p class="aoi-stat-value">{{ aoiVal('5') }}</p>
+                        <p class="aoi-stat-value">
+                          {{ getAoiMetricValue('threatened_species_count', '5') }}
+                        </p>
                         <p class="aoi-stat-unit">IUCN CR / EN / VU</p>
                       </div>
                       <div id="aoi-stat-endemic" class="aoi-stat-card">
@@ -939,7 +941,9 @@
 
                     <div id="aoi-stat-national-species" class="aoi-stat-card">
                       <p class="aoi-stat-label">% of National Species Total</p>
-                      <p class="aoi-stat-value">{{ aoiVal('7%') }}</p>
+                      <p class="aoi-stat-value">
+                        {{ getAoiMetricValue('species_pct_of_national', '7%') }}
+                      </p>
                       <p class="aoi-stat-unit">
                         Share of Colombia's total species found in this AOI
                       </p>

@@ -15,6 +15,11 @@ T6 metrics added (17 additional):
   Land cover:         9, 51, 52/53, 54  (coberturas.tif — class IDs 1=forest, 2=agri, 3=urban, 4=wetland, 5=water)
   Comparison:         70, 71, 72  (deferred pairwise)
 
+T10 metrics added (8 additional, species):
+  Richness:           21, 22, 23, 24, 25  (per-class species counts)
+  Threatened:         26, 3                (CR/EN/VU non-fish; secured @ scenario target %)
+  Country share:      28                   (selected species count / non-fish pool × 100)
+
 Edit METRIC_CATALOG below if the Tier 1 scope changes.
 """
 
@@ -40,10 +45,21 @@ MetricKind = Literal[
     "weighted_sum",
     # Continuous layer: (selected weighted_sum / valid weighted_sum) × 100.
     "weighted_percent_of_national",
+    # Species range overlap (computed by the species accumulator, not per-scope rasters).
+    # Distinct kinds let the frontend label/format each consistently with its number.
+    "species_richness",                  # #21–#25: count of species in a class bucket
+    "species_threatened_count",          # #26: count of CR/EN/VU non-fish present
+    "species_threatened_secured",        # #3:  threatened species with coverage >= scenario target %
+    "species_pct_of_national",           # #28: present species / non-fish pool × 100
     # Metric defined but required data layer not yet available.
     "blocked_no_data",
     "deferred_pairwise",
 ]
+
+# Class-bucket discriminator for the five richness metrics (#21–#25).
+# Aligned with species_data.CLASS_BUCKETS.  Values are the keys main.py uses
+# to look up SpeciesScopeMetrics fields.
+SpeciesBucket = Literal["mammals", "birds", "amphibians", "reptiles", "plants"]
 
 
 @dataclass(frozen=True)
@@ -63,6 +79,9 @@ class MetricDefinition:
     # Rendering hint for off-manifest layers (e.g. {"valueType":"binary","selectedValue":3}).
     # Falls back to manifest rendering when the layer IS in the manifest.
     off_manifest_rendering: dict[str, Any] | None = field(default=None, compare=False)
+    # For species_richness metrics (#21–#25): which class bucket this entry counts.
+    # Ignored for all other kinds.
+    species_bucket: SpeciesBucket | None = None
 
 
 # Order here is the order written into the per-solution JSON output.
@@ -104,6 +123,26 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         source_note="Selected area intersected with the manifest 'ecosistemas' layer.",
         kind="binary_overlap_area",
         layer_id="ecosistemas",
+    ),
+    # --- T10: species (#3 grouped with the other threatened-species metric) ---
+    MetricDefinition(
+        metric_id="threatened_species_secured",
+        metric_number=3,
+        label_key="metrics.tier1.threatened_species_secured",
+        english_label="Threatened Species Secured",
+        spanish_label="Especies amenazadas aseguradas",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of CR/EN/VU non-fish species (Actinopteri excluded) where "
+            "(species range ∩ priority area within scope) / (species range within scope) "
+            "× 100 ≥ the scenario target percent (parsed from the solution name: "
+            "ESTR<NN> takes precedence over Ecos<NN>).  Pool of 213 threatened "
+            "species from biomod_spp_ranges_updatedIUCN.csv.  Per-scope denominator "
+            "means a species is 'secured in this region' when ≥ target % of its "
+            "range *within this region* falls inside the priority area."
+        ),
+        kind="species_threatened_secured",
     ),
     # --- T6: additional metrics ---
     MetricDefinition(
@@ -253,6 +292,124 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         source_note="Selected area intersected with the manifest 'mangroves' layer.",
         kind="binary_overlap_area",
         layer_id="mangroves",
+    ),
+    # --- T10: species richness (#21–#25) ---
+    # Each entry counts how many species of one taxonomic class have any range
+    # pixel inside the priority area within the current geography scope. Pool
+    # sizes match biomod_spp_ranges_updatedIUCN.csv (Actinopteri excluded).
+    MetricDefinition(
+        metric_id="species_richness_mammals",
+        metric_number=21,
+        label_key="metrics.tier1.species_richness_mammals",
+        english_label="Species Richness — Mammals",
+        spanish_label="Riqueza de especies — Mamíferos",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of Mammalia species whose modelled range raster overlaps the "
+            "priority area within the current scope. Pool of 256 species from "
+            "biomod_spp_ranges_updatedIUCN.csv (class == 'Mammalia')."
+        ),
+        kind="species_richness",
+        species_bucket="mammals",
+    ),
+    MetricDefinition(
+        metric_id="species_richness_birds",
+        metric_number=22,
+        label_key="metrics.tier1.species_richness_birds",
+        english_label="Species Richness — Birds",
+        spanish_label="Riqueza de especies — Aves",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of Aves species whose modelled range raster overlaps the priority "
+            "area within the current scope. Pool of 1,552 species from "
+            "biomod_spp_ranges_updatedIUCN.csv (class == 'Aves')."
+        ),
+        kind="species_richness",
+        species_bucket="birds",
+    ),
+    MetricDefinition(
+        metric_id="species_richness_amphibians",
+        metric_number=23,
+        label_key="metrics.tier1.species_richness_amphibians",
+        english_label="Species Richness — Amphibians",
+        spanish_label="Riqueza de especies — Anfibios",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of Amphibia species whose modelled range raster overlaps the "
+            "priority area within the current scope. Pool of 184 species from "
+            "biomod_spp_ranges_updatedIUCN.csv (class == 'Amphibia')."
+        ),
+        kind="species_richness",
+        species_bucket="amphibians",
+    ),
+    MetricDefinition(
+        metric_id="species_richness_reptiles",
+        metric_number=24,
+        label_key="metrics.tier1.species_richness_reptiles",
+        english_label="Species Richness — Reptiles",
+        spanish_label="Riqueza de especies — Reptiles",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of reptile species (class IN ('Squamata', 'Crocodylia')) whose "
+            "modelled range overlaps the priority area within the current scope. "
+            "Pool of 160 species from biomod_spp_ranges_updatedIUCN.csv (155 "
+            "Squamata + 5 Crocodylia)."
+        ),
+        kind="species_richness",
+        species_bucket="reptiles",
+    ),
+    MetricDefinition(
+        metric_id="species_richness_plants",
+        metric_number=25,
+        label_key="metrics.tier1.species_richness_plants",
+        english_label="Species Richness — Plants",
+        spanish_label="Riqueza de especies — Plantas",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of Magnoliopsida species whose modelled range overlaps the "
+            "priority area within the current scope. Pool of 6,148 species from "
+            "biomod_spp_ranges_updatedIUCN.csv (class == 'Magnoliopsida')."
+        ),
+        kind="species_richness",
+        species_bucket="plants",
+    ),
+    # --- T10: threatened species count (#26) ---
+    MetricDefinition(
+        metric_id="threatened_species_count",
+        metric_number=26,
+        label_key="metrics.tier1.threatened_species_count",
+        english_label="Threatened Species Count",
+        spanish_label="Conteo de especies amenazadas",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of CR/EN/VU non-fish species (Actinopteri excluded) whose "
+            "modelled range overlaps the priority area within the current scope. "
+            "Pool of 213 threatened species from biomod_spp_ranges_updatedIUCN.csv."
+        ),
+        kind="species_threatened_count",
+    ),
+    # --- T10: % of national species total (#28) ---
+    MetricDefinition(
+        metric_id="species_pct_of_national",
+        metric_number=28,
+        label_key="metrics.tier1.species_pct_of_national",
+        english_label="% of National Species Total",
+        spanish_label="% del total nacional de especies",
+        unit="%",
+        format_hint="percent",
+        source_note=(
+            "Number of non-fish species whose modelled range overlaps the priority "
+            "area within the current scope, divided by the total non-fish species "
+            "pool (8,300 in biomod_spp_ranges_updatedIUCN.csv) × 100. Excludes "
+            "Actinopteri."
+        ),
+        kind="species_pct_of_national",
     ),
     # --- T6 ---
     MetricDefinition(
@@ -511,8 +668,25 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
 )
 
 
+_SPECIES_KINDS = frozenset({
+    "species_richness",
+    "species_threatened_count",
+    "species_threatened_secured",
+    "species_pct_of_national",
+})
+
+
 def deferred_metric_ids() -> set[str]:
     return {m.metric_id for m in METRIC_CATALOG if m.kind == "deferred_pairwise"}
+
+
+def species_metric_ids() -> tuple[str, ...]:
+    """metric_ids of every catalog entry computed by the species accumulator."""
+    return tuple(m.metric_id for m in METRIC_CATALOG if m.kind in _SPECIES_KINDS)
+
+
+def is_species_metric_kind(kind: str) -> bool:
+    return kind in _SPECIES_KINDS
 
 
 def computable_metrics() -> tuple[MetricDefinition, ...]:

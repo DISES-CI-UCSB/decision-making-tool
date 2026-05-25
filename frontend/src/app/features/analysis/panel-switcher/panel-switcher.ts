@@ -214,6 +214,8 @@ export class PanelSwitcherComponent {
     mangrove_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     indigenous_reservations_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     community_councils_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
+    // T10 additions
+    threatened_species_secured: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
     // T6 additions
     carbon_storage_biomass: { id: 'climate', labelKey: 'analysis.sections.climate' },
     water_regulation_area: { id: 'climate', labelKey: 'analysis.sections.climate' },
@@ -247,6 +249,7 @@ export class PanelSwitcherComponent {
       labelKey: 'analysis.overview.metrics.threatenedSpeciesSecured',
       descriptionKey: 'analysis.overview.metrics.threatenedSpeciesSecuredDesc',
       iconClass: 'fas fa-triangle-exclamation',
+      realMetricId: 'threatened_species_secured',
       dummyValue: '28 / 32',
       dummyUnit: '88% secured',
     },
@@ -634,22 +637,43 @@ export class PanelSwitcherComponent {
     if (!this.fillDummyAoiMetrics()) return '#e2e8f0';
     return this.buildDonutGradient();
   });
+  private readonly aoiBiodiversityMetricIds: Record<string, string> = {
+    mammals: 'species_richness_mammals',
+    birds: 'species_richness_birds',
+    amphibians: 'species_richness_amphibians',
+    reptiles: 'species_richness_reptiles',
+    plants: 'species_richness_plants',
+  };
+
   protected readonly aoiBiodiversityBars = computed<AoiBiodiversityBar[]>(() => {
-    if (!this.fillDummyAoiMetrics()) {
+    const metricsById = this.aoiMetricsById();
+    const hasCachedSpecies = this.aoiBiodiversityBaseCounts.some((item) => {
+      const metric = metricsById.get(this.aoiBiodiversityMetricIds[item.id]);
+      return metric?.status === 'ready' && metric.value !== null;
+    });
+
+    if (hasCachedSpecies) {
+      return this.aoiBiodiversityBaseCounts.map((item) => {
+        const metric = metricsById.get(this.aoiBiodiversityMetricIds[item.id]);
+        const value = metric?.status === 'ready' && metric.value !== null ? metric.value : null;
+        return { id: item.id, label: item.label, count: value };
+      });
+    }
+
+    if (this.fillDummyAoiMetrics()) {
+      const selectedAoi = this.selectedAoi();
+      const scale = selectedAoi ? this.getAoiBiodiversityScale(selectedAoi.id) : 1;
       return this.aoiBiodiversityBaseCounts.map((item) => ({
         id: item.id,
         label: item.label,
-        count: null,
+        count: Math.max(0, Math.round(item.count * scale)),
       }));
     }
-
-    const selectedAoi = this.selectedAoi();
-    const scale = selectedAoi ? this.getAoiBiodiversityScale(selectedAoi.id) : 1;
 
     return this.aoiBiodiversityBaseCounts.map((item) => ({
       id: item.id,
       label: item.label,
-      count: Math.max(0, Math.round(item.count * scale)),
+      count: null,
     }));
   });
   protected readonly aoiBiodiversityMaxCount = computed<number>(() =>
@@ -1249,13 +1273,12 @@ export class PanelSwitcherComponent {
         const realValueAvailable = realMetric?.status === 'ready' && realMetric.value !== null;
 
         if (realMetric && realValueAvailable) {
-          const formattedUnit = this.formatMetricUnit(realMetric.unit);
           return {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
-            value: this.appendUnit(this.formatMetricValue(realMetric), formattedUnit),
+            value: this.formatMetricForPanel(realMetric),
             unit: 'Ready',
             conditional: Boolean(metric.conditional),
             unavailable: false,

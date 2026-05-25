@@ -53,6 +53,7 @@ from blob_manifest import (
     resolve_layer_display_url,
     solution_blob_basename,
 )
+from boundaries.boundary_id_grid import BoundaryIdGrid, build_grids_for_levels
 from boundaries.boundary_loader import BoundaryFeature, load_all_boundaries
 from boundaries.boundary_mask import BoundaryMaskCache
 from local_io import (
@@ -69,9 +70,11 @@ from metric_definitions import (
     MetricDefinition,
     computable_metrics,
     deferred_metric_ids,
+    is_species_metric_kind,
     off_manifest_layer_renderings,
     off_manifest_layer_urls,
     required_layer_ids,
+    species_metric_ids,
 )
 from raster_metrics import (
     RasterError,
@@ -82,6 +85,15 @@ from raster_metrics import (
     weighted_percent_of_valid,
     weighted_sum_km2,
 )
+from species_data import (
+    SPECIES_CSV_URL,
+    SpeciesPoolSizes,
+    SpeciesRecord,
+    compute_pool_sizes,
+    load_species_records,
+    parse_scenario_target_percent,
+    read_species_mask,
+)
 from calculators import area as calc_area
 from calculators import carbon as calc_carbon
 from calculators import ecosystem_coverage as calc_ecosystem
@@ -89,6 +101,11 @@ from calculators import land_cover as calc_land_cover
 from calculators import protected_areas as calc_protected
 from calculators import social_governance as calc_social
 from calculators import water as calc_water
+from calculators.species import (
+    SpeciesAccumulator,
+    SpeciesScopeCounts,
+    SpeciesScopeMetrics,
+)
 
 _OVERLAP_CALCULATORS = {
     "ecosistemas": calc_ecosystem.ecosystem_total_km2,
@@ -140,6 +157,9 @@ _NATIONAL_ONLY_KINDS = frozenset({"metadata_summary", "metadata_coverage"})
 # Off-manifest layer URLs and renderings, computed once at import time.
 _OFF_MANIFEST_URLS: dict[str, str] = off_manifest_layer_urls()
 _OFF_MANIFEST_RENDERINGS: dict[str, dict] = off_manifest_layer_renderings()
+
+# How frequently to print species progress (every Nth species).
+_SPECIES_PROGRESS_INTERVAL = 1000
 
 
 def _resolve_layer_url(manifest: ResolvedManifest, layer_id: str) -> str:
@@ -277,6 +297,16 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--validate-only",
         action="store_true",
         help="Fetch manifest + check required layers exist; do not compute or write.",
+    )
+    parser.add_argument(
+        "--skip-species",
+        action="store_true",
+        help="Skip the species pass (#3, #21–#26, #28). Useful for fast smoke tests.",
+    )
+    parser.add_argument(
+        "--species-csv-url",
+        default=SPECIES_CSV_URL,
+        help=f"Override the species CSV URL (default: {SPECIES_CSV_URL}).",
     )
     return parser.parse_args(argv)
 
@@ -625,6 +655,206 @@ def _compute_weighted_download(
 
 
 # ---------------------------------------------------------------------------
+# Species metric value extraction
+# ---------------------------------------------------------------------------
+
+# species_richness uses metric.species_bucket to pick a SpeciesScopeMetrics field.
+_SPECIES_BUCKET_TO_FIELD: dict[str, str] = {
+    "mammals":    "mammals_present",
+    "birds":      "birds_present",
+    "amphibians": "amphibians_present",
+    "reptiles":   "reptiles_present",
+    "plants":     "plants_present",
+}
+
+
+def _compute_species_metric(
+    definition: MetricDefinition,
+    species_metrics: SpeciesScopeMetrics | None,
+    target_pct: float | None,
+) -> dict[str, Any]:
+    """Pull the right field out of a precomputed SpeciesScopeMetrics bundle."""
+    if species_metrics is None:
+        return _metric_value(
+            definition, value=None, status="derivation_needed",
+            notes="Species accumulator unavailable; CSV or species TIFs missing.",
+            source="csv:biomod_spp_ranges_updatedIUCN",
+        )
+
+    if definition.kind == "species_richness":
+        bucket = definition.species_bucket
+        field_name = _SPECIES_BUCKET_TO_FIELD.get(bucket or "")
+        if not field_name:
+            return _metric_value(
+                definition, value=None, status="pending",
+                notes=f"Unknown species_bucket '{bucket}' for {definition.metric_id}.",
+                source="csv:biomod_spp_ranges_updatedIUCN",
+            )
+        value = int(getattr(species_metrics, field_name))
+        return _metric_value(
+            definition, value=value, status="ready",
+            notes=f"Species count where (range ∩ priority area) > 0 in this scope (bucket: {bucket}).",
+            source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
+        )
+
+    if definition.kind == "species_threatened_count":
+        return _metric_value(
+            definition, value=int(species_metrics.threatened_present), status="ready",
+            notes="CR/EN/VU non-fish species with any range pixel in the priority area.",
+            source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
+        )
+
+    if definition.kind == "species_threatened_secured":
+        if target_pct is None:
+            return _metric_value(
+                definition, value=None, status="derivation_needed",
+                notes=(
+                    "Could not derive scenario target percent from solution name "
+                    "(no ESTR<NN> or Ecos<NN> token found); secured count cannot be computed."
+                ),
+                source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
+            )
+        return _metric_value(
+            definition, value=int(species_metrics.threatened_secured), status="ready",
+            notes=(
+                f"CR/EN/VU non-fish species where (range ∩ priority area within scope) "
+                f"/ (range within scope) ≥ {target_pct:g}%."
+            ),
+            source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
+        )
+
+    if definition.kind == "species_pct_of_national":
+        return _metric_value(
+            definition, value=float(species_metrics.pct_of_national), status="ready",
+            notes="(non-fish species present in scope) / (8,300 non-fish pool) × 100.",
+            source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
+        )
+
+    return _metric_value(
+        definition, value=None, status="pending",
+        notes=f"Unhandled species kind '{definition.kind}'.",
+        source="script",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Species accumulator pass (computes #3, #21–#26, #28 across all scopes)
+# ---------------------------------------------------------------------------
+
+def _process_species_for_solution(
+    raster: SolutionRaster,
+    solution: dict[str, Any],
+    species_records: list[SpeciesRecord],
+    pool_sizes: SpeciesPoolSizes,
+    boundary_grids: dict[str, BoundaryIdGrid],
+    cache_dir: Path,
+    force_download: bool,
+) -> SpeciesAccumulator:
+    """Read every species range raster once and accumulate counts across scopes.
+
+    For each species:
+
+    - Download (cached) the species TIF, place it into a solution-grid-shaped
+      bool mask, and convert to flat range pixel indices.
+    - Index into the solution's selected mask at those indices to get the
+      cells that are both in-range and in the priority area.
+    - National counters are updated directly from those cells.
+    - Sub-national counters are updated by indexing each level's
+      ``BoundaryIdGrid`` at the same range indices and using ``np.bincount``
+      to fan out per-boundary totals in one call.
+
+    The caller is responsible for passing the parsed scenario target percent;
+    when None, the secured-count metric (#3) is reported as 'derivation_needed'.
+    """
+    target_pct = parse_scenario_target_percent(solution.get("name") or solution.get("id") or "")
+
+    sub_sizes = {level: g.num_boundaries for level, g in boundary_grids.items()}
+    accumulator = SpeciesAccumulator(target_pct=target_pct, pool_sizes=pool_sizes)
+    accumulator.init_sub(sub_sizes)
+
+    selected_flat = raster.selected_mask.ravel()
+
+    # Cache flat boundary-id arrays for direct dict access in the inner loop.
+    bid_flats = {level: g.flat for level, g in boundary_grids.items()}
+
+    started = time.time()
+    for idx, sp in enumerate(species_records, start=1):
+        if idx % _SPECIES_PROGRESS_INTERVAL == 0:
+            elapsed = time.time() - started
+            print(
+                f"[tier1-metrics]   species: {idx}/{len(species_records)} "
+                f"({elapsed:.1f}s, present_nat={accumulator.national.all_present})"
+            )
+
+        accumulator.species_processed += 1
+
+        try:
+            url = sp.blob_url
+            dl = cached_download(url, cache_dir, force=force_download)
+        except Exception as exc:
+            accumulator.species_missing_tif += 1
+            if accumulator.species_missing_tif <= 5:
+                print(
+                    f"[tier1-metrics]   WARN: failed to fetch species TIF '{sp.blob_filename}': {exc}",
+                    file=sys.stderr,
+                )
+            continue
+
+        try:
+            mask = read_species_mask(dl.path, raster.fingerprint)
+        except (RasterError, OSError) as exc:
+            accumulator.species_missing_tif += 1
+            if accumulator.species_missing_tif <= 5:
+                print(
+                    f"[tier1-metrics]   WARN: failed to read species TIF '{sp.blob_filename}': {exc}",
+                    file=sys.stderr,
+                )
+            continue
+
+        range_indices = np.flatnonzero(mask.ravel())
+        total_range = int(range_indices.size)
+        if total_range == 0:
+            continue
+
+        accumulator.species_with_range += 1
+
+        selected_at_range = selected_flat[range_indices]
+        n_selected_in_range = int(selected_at_range.sum())
+
+        accumulator.record_species_national(sp, n_selected_in_range, total_range)
+
+        if n_selected_in_range == 0:
+            continue
+
+        selected_range_indices = range_indices[selected_at_range]
+
+        for level, bid_arr in bid_flats.items():
+            bids_at_range = bid_arr[range_indices]
+            bids_at_selected = bid_arr[selected_range_indices]
+
+            n_levels = boundary_grids[level].num_boundaries
+            mask_total = bids_at_range >= 0
+            mask_sel = bids_at_selected >= 0
+            if not mask_sel.any():
+                continue
+
+            total_per = np.bincount(
+                bids_at_range[mask_total] if mask_total.any() else np.empty(0, dtype=np.int32),
+                minlength=n_levels,
+            )
+            sel_per = np.bincount(bids_at_selected[mask_sel], minlength=n_levels)
+            accumulator.record_species_sub_level(sp, level, sel_per, total_per)
+
+    elapsed = time.time() - started
+    print(
+        f"[tier1-metrics]   species: done in {elapsed:.1f}s "
+        f"(processed={accumulator.species_processed}, with_range={accumulator.species_with_range}, "
+        f"missing={accumulator.species_missing_tif}, target_pct={target_pct})"
+    )
+    return accumulator
+
+
+# ---------------------------------------------------------------------------
 # Build metrics list for a given raster scope
 # ---------------------------------------------------------------------------
 
@@ -640,12 +870,18 @@ def _build_metrics(
     subnational: bool = False,
     preloaded_layer_masks: dict[str, np.ndarray] | None = None,
     preloaded_layer_values: dict[str, np.ndarray] | None = None,
+    species_metrics: SpeciesScopeMetrics | None = None,
+    species_target_pct: float | None = None,
 ) -> list[dict[str, Any]]:
     """Compute all computable Tier 1 metrics for one raster scope.
 
     - subnational=True: skip manifest-sourced metadata metrics (mark not_applicable).
     - preloaded_layer_masks: if provided, skip mask layer downloads and use these directly.
     - preloaded_layer_values: if provided, skip value layer downloads and use these directly.
+    - species_metrics: precomputed species values for this scope (None means species
+      metrics will be marked 'derivation_needed').
+    - species_target_pct: parsed scenario target (17.0 / 30.0). None means
+      'threatened_secured' is reported as 'derivation_needed'.
     """
     results: list[dict[str, Any]] = []
 
@@ -653,6 +889,10 @@ def _build_metrics(
         return [_empty_boundary(defn) for defn in computable_metrics()]
 
     for defn in computable_metrics():
+        if is_species_metric_kind(defn.kind):
+            results.append(_compute_species_metric(defn, species_metrics, species_target_pct))
+            continue
+
         if defn.kind in _NATIONAL_ONLY_KINDS:
             if subnational:
                 results.append(_not_applicable(defn))
@@ -814,6 +1054,10 @@ def _process_solution(
     boundary_mask_cache: BoundaryMaskCache,
     boundaries_by_level: dict[str, list[BoundaryFeature]],
     national_only: bool = False,
+    species_records: list[SpeciesRecord] | None = None,
+    species_pool_sizes: SpeciesPoolSizes | None = None,
+    boundary_grids: dict[str, BoundaryIdGrid] | None = None,
+    skip_species: bool = False,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
@@ -822,9 +1066,43 @@ def _process_solution(
     download = cached_download(solution["displayUrl"], cache_dir, force=force_download)
     raster = read_solution_raster(download.path)
 
+    # --- Sub-national setup (rasterize boundaries + build boundary_id grids if needed) ---
+    if not national_only and boundaries_by_level:
+        print(f"[tier1-metrics]   rasterizing boundaries…")
+        boundary_mask_cache.precompute_all(boundaries_by_level, raster.fingerprint)
+        # Build boundary_id grids for sub-national species fan-out (once per pipeline run).
+        if boundary_grids is not None and not boundary_grids:
+            boundary_grids.update(
+                build_grids_for_levels(boundaries_by_level, raster.fingerprint, boundary_mask_cache)
+            )
+
+    # --- Species pass: compute counters across all scopes for this solution ---
+    species_accumulator: SpeciesAccumulator | None = None
+    if not skip_species and species_records and species_pool_sizes:
+        print(
+            f"[tier1-metrics]   running species pass over {len(species_records):,} records…"
+        )
+        species_accumulator = _process_species_for_solution(
+            raster=raster,
+            solution=solution,
+            species_records=species_records,
+            pool_sizes=species_pool_sizes,
+            boundary_grids=boundary_grids if not national_only else {},
+            cache_dir=cache_dir,
+            force_download=force_download,
+        )
+
     # --- National level ---
+    national_species = (
+        SpeciesScopeMetrics.from_counts(species_accumulator.national, species_pool_sizes)
+        if species_accumulator and species_pool_sizes
+        else None
+    )
+    species_target = species_accumulator.target_pct if species_accumulator else None
     national_metrics = _build_metrics(
-        raster, solution, manifest, layer_cache, value_cache, cache_dir, force_download
+        raster, solution, manifest, layer_cache, value_cache, cache_dir, force_download,
+        species_metrics=national_species,
+        species_target_pct=species_target,
     )
 
     geographies: dict[str, Any] = {
@@ -851,22 +1129,35 @@ def _process_solution(
         layer_masks = _preload_layer_masks(raster, manifest, layer_cache, cache_dir, force_download)
         layer_values = _preload_layer_values(raster, manifest, value_cache, cache_dir, force_download)
 
-        # Rasterize all boundary polygons if not already cached (first solution).
-        print(f"[tier1-metrics]   rasterizing boundaries…")
-        boundary_mask_cache.precompute_all(boundaries_by_level, raster.fingerprint)
-
         for geo_level, features in boundaries_by_level.items():
             level_out: dict[str, Any] = {}
+            grid = boundary_grids.get(geo_level) if boundary_grids else None
+            counts_list = (
+                species_accumulator.sub.get(geo_level)
+                if species_accumulator else None
+            )
             for feat in features:
                 px_mask = boundary_mask_cache.get(
                     feat.geo_level, feat.boundary_id, feat.geometry, raster.fingerprint
                 )
                 masked = raster.with_boundary_mask(px_mask)
+                # Look up the precomputed species counts for this boundary, if any.
+                feat_species: SpeciesScopeMetrics | None = None
+                if grid is not None and counts_list is not None and species_pool_sizes:
+                    try:
+                        bidx = grid.boundary_ids.index(feat.boundary_id)
+                        feat_species = SpeciesScopeMetrics.from_counts(
+                            counts_list[bidx], species_pool_sizes
+                        )
+                    except ValueError:
+                        feat_species = None
                 metrics = _build_metrics(
                     masked, solution, manifest, layer_cache, value_cache, cache_dir, force_download,
                     subnational=True,
                     preloaded_layer_masks=layer_masks,
                     preloaded_layer_values=layer_values,
+                    species_metrics=feat_species,
+                    species_target_pct=species_target,
                 )
                 entry: dict[str, Any] = {"name": feat.name, "metrics": metrics}
                 # Include sirap_kind if present.
@@ -894,6 +1185,10 @@ def _process_solution(
         "validAreaKm2": raster.valid_area_km2,
         "geographyLevels": list(geographies.keys()),
         "nationalMetricStatusCounts": _status_counts(national_metrics),
+        "speciesTargetPct": species_target,
+        "speciesProcessed": species_accumulator.species_processed if species_accumulator else 0,
+        "speciesWithRange": species_accumulator.species_with_range if species_accumulator else 0,
+        "speciesMissingTif": species_accumulator.species_missing_tif if species_accumulator else 0,
         "elapsedSeconds": round(time.time() - started, 2),
     }
 
@@ -958,6 +1253,29 @@ def main(argv: list[str] | None = None) -> int:
     layer_cache = _LayerMaskCache()
     value_cache = _LayerValueCache()
     boundary_mask_cache = BoundaryMaskCache()
+    boundary_grids: dict[str, BoundaryIdGrid] = {}
+
+    # --- Species data loaded once (shared across all 18 solutions) ---
+    species_records: list[SpeciesRecord] | None = None
+    species_pool_sizes: SpeciesPoolSizes | None = None
+    species_load_error: str | None = None
+    if not args.skip_species:
+        try:
+            print(f"[tier1-metrics] fetching species CSV: {args.species_csv_url}")
+            csv_dl = cached_download(args.species_csv_url, args.cache_dir, force=args.no_cache)
+            species_records = load_species_records(csv_dl.path)
+            species_pool_sizes = compute_pool_sizes(species_records)
+            print(
+                f"[tier1-metrics] species CSV: {len(species_records):,} non-fish records "
+                f"(pool: {species_pool_sizes.by_bucket})"
+            )
+        except Exception as exc:
+            species_load_error = str(exc)
+            print(
+                f"[tier1-metrics] WARNING: could not load species CSV ({exc}); "
+                "species metrics will be marked 'derivation_needed'.",
+                file=sys.stderr,
+            )
 
     deferred = sorted(deferred_metric_ids())
     entries: list[dict[str, Any]] = []
@@ -979,6 +1297,10 @@ def main(argv: list[str] | None = None) -> int:
                     boundary_mask_cache=boundary_mask_cache,
                     boundaries_by_level=boundaries_by_level,
                     national_only=args.national_only,
+                    species_records=species_records,
+                    species_pool_sizes=species_pool_sizes,
+                    boundary_grids=boundary_grids,
+                    skip_species=args.skip_species,
                 )
             )
         except Exception as exc:
@@ -1002,6 +1324,17 @@ def main(argv: list[str] | None = None) -> int:
         "metricCatalog": [m.metric_id for m in METRIC_CATALOG],
         "deferredMetricIds": deferred,
         "missingRequiredLayers": missing_layers,
+        "speciesMetricIds": list(species_metric_ids()),
+        "speciesPoolSizes": (
+            {
+                "totalNonFish": species_pool_sizes.total_non_fish,
+                "threatenedTotal": species_pool_sizes.threatened_total,
+                "byBucket": dict(species_pool_sizes.by_bucket),
+            }
+            if species_pool_sizes else None
+        ),
+        "speciesLoadError": species_load_error,
+        "speciesSkipped": bool(args.skip_species),
         "entries": entries,
         "failures": failures,
     }
