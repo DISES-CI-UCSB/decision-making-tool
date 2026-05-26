@@ -74,7 +74,7 @@ body {
 }
 
 .color-picker .hue-alpha.box {
-  padding: 8px 12px 8px 12px !important;
+  padding: 8px 12px !important;
   gap: 8px;
 }
 
@@ -84,9 +84,14 @@ body {
   padding: 0 !important;
 }
 
+/*
+  Keep `.right` as a block (library default) so the hue strip's element width
+  matches what the user sees. The library's SliderDirective computes drag/cursor
+  positions from the hue element's bounding rect — wrapping `.right` in flex was
+  inflating the visual width vs. the rect the slider measures, which capped drag
+  prematurely (cursor stopped well before the strip's visible right edge).
+*/
 .color-picker .right {
-  display: flex !important;
-  align-items: center !important;
   flex: 1 1 auto !important;
   padding: 0 !important;
 }
@@ -145,7 +150,6 @@ body {
 
 .color-picker .hue {
   margin: 0 !important;
-  flex: 1 1 auto !important;
 }
 
 .color-picker .hex-text {

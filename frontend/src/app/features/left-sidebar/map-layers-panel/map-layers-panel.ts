@@ -144,6 +144,23 @@ interface ColorPickerDirectiveWithPrivateDialog {
 interface ColorPickerComponentWithPrivateDialogElement {
   dialogElement?: { nativeElement: HTMLElement | null } | null;
 }
+/**
+ * `sliderDimMax` is captured by the library in `ngOnInit` from
+ * `hueSlider.offsetWidth` and `alphaSlider.offsetWidth`, then used to compute
+ * the hue cursor's visual `left.px` (cursor.left = hue * sliderDimMax.h - 8).
+ * The library only re-measures in `ngAfterViewInit` when `cpWidth !== 230`, and
+ * the popup is positioned in a `setTimeout(0)` *after* `ngOnInit` runs, so the
+ * captured width can be stale by the time our CSS has actually laid out the
+ * strip. Result: the strip is visually wide but the cursor "true range" is
+ * narrow — drag math (which uses live `offsetWidth`) reaches max hue, but the
+ * cursor renders well short of the visual right edge.
+ *
+ * We remeasure on every open through this private surface to fix that.
+ */
+interface ColorPickerComponentWithPrivateSliderDims {
+  sliderDimMax?: { h: number; s: number; v: number; a: number } | null;
+  updateColorPicker: (emit?: boolean, update?: boolean, cmykInput?: boolean) => void;
+}
 type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
@@ -1775,9 +1792,53 @@ export class MapLayersPanelComponent implements OnDestroy {
     const dialog = (picker as unknown as ColorPickerDirectiveWithPrivateDialog).dialog;
     if (dialog) {
       dialog.format = COLOR_PICKER_HEX_FORMAT;
-      // Wait one frame for the popup DOM to exist, then inline the format control.
-      requestAnimationFrame(() => this.inlineColorPickerFormatControl(dialog));
+      // Wait one frame for the popup DOM to exist + be positioned, then inline
+      // the format control AND remeasure the hue slider so the cursor's visual
+      // range matches the strip's actual rendered width. See
+      // `ColorPickerComponentWithPrivateSliderDims` for the why.
+      requestAnimationFrame(() => {
+        this.inlineColorPickerFormatControl(dialog);
+        this.remeasureColorPickerSliderDimensions(dialog);
+      });
     }
+  }
+
+  /**
+   * Forces ngx-color-picker to recompute its internal `sliderDimMax` against
+   * the popup's *actual* rendered slider widths, then redraws the cursor.
+   *
+   * The library captures slider widths once in `ngOnInit` (before the dialog
+   * has been positioned and our overrides applied) and only refreshes them in
+   * `ngAfterViewInit` if `cpWidth !== 230` — which it does, so the captured
+   * widths are stale. Without this, the hue cursor's visual position is
+   * computed against the stale narrow width while drag math uses the live
+   * (wider) width, making the cursor appear to "stop" before the right edge
+   * even though the underlying hue value reaches the max.
+   */
+  private remeasureColorPickerSliderDimensions(dialog: ColorPickerComponent): void {
+    const host = this.colorPickerDialogHost(dialog);
+    if (!host) {
+      return;
+    }
+    const dialogWithDims = dialog as unknown as ColorPickerComponentWithPrivateSliderDims;
+    if (!dialogWithDims.sliderDimMax) {
+      return;
+    }
+    const hueWidth = host.querySelector<HTMLElement>('.hue')?.offsetWidth ?? 0;
+    const satLightnessEl = host.querySelector<HTMLElement>('.saturation-lightness');
+    const satLightnessWidth = satLightnessEl?.offsetWidth ?? 0;
+    const satLightnessHeight = satLightnessEl?.offsetHeight ?? 0;
+    if (hueWidth > 0) {
+      dialogWithDims.sliderDimMax.h = hueWidth;
+    }
+    if (satLightnessWidth > 0) {
+      dialogWithDims.sliderDimMax.s = satLightnessWidth;
+    }
+    if (satLightnessHeight > 0) {
+      dialogWithDims.sliderDimMax.v = satLightnessHeight;
+    }
+    // Recompute slider cursor positions (and re-emit nothing) with the corrected dims.
+    dialogWithDims.updateColorPicker(false, true);
   }
 
   /**
