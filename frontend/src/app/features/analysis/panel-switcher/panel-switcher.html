@@ -414,9 +414,6 @@
                           </article>
                         }
                       </div>
-                      <p id="right-sidebar-v3-overview-gains-insight" class="v3-insight">
-                        {{ 'analysis.overview.insightGains' | translate }}
-                      </p>
                     </div>
                   </div>
                 </section>
@@ -559,9 +556,6 @@
                           </article>
                         }
                       </div>
-                      <p id="right-sidebar-v3-overview-costs-insight" class="v3-insight">
-                        {{ 'analysis.overview.insightCosts' | translate }}
-                      </p>
                     </div>
                   </div>
                 </section>
@@ -701,11 +695,6 @@
                 <h3 id="aoi-dashboard-region-name" class="aoi-region-name rs-header-optical-nudge">
                   {{ aoi.name }}
                 </h3>
-                @if (fillDummyAoiMetrics()) {
-                  <p id="aoi-dashboard-region-meta" class="aoi-region-meta">
-                    512 km² · Cauca Department
-                  </p>
-                }
               </div>
 
               @if (isSirapAoiSelected()) {
@@ -1069,34 +1058,6 @@
                         <p class="aoi-stat-unit">tCO₂e</p>
                       </div>
                     </div>
-
-                    <div id="aoi-stat-water" class="aoi-metric-table">
-                      <div class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-droplet" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.waterRegulation' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.waterRegulationDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">{{ aoiVal('High') }}</div>
-                          <div class="aoi-m-unit">{{ aoiVal('Index 78 / 100') }}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    @if (fillDummyAoiMetrics()) {
-                      <div id="aoi-eco-narrative" class="aoi-narrative">
-                        This AOI stores <strong>7% of Colombia's carbon stocks</strong> and provides
-                        <strong>above-average water regulation</strong> for the Cauca River basin.
-                        Cloud forest accounts for the largest share of ecosystem coverage.
-                      </div>
-                    }
                   </div>
                 </div>
               </section>

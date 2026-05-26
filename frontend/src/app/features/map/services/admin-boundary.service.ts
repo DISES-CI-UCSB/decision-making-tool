@@ -22,6 +22,7 @@ interface BoundaryConfig {
   layerKey: AdminBoundaryLayerKey;
   title: string;
   type: AoiType;
+  selectable?: boolean;
   sourceType: 'feature' | 'geojson';
   url: string;
   idFields: string[];
@@ -45,6 +46,7 @@ export type AdminBoundaryLayerKey =
   | 'siraps'
   | 'siraps_territorial'
   | 'siraps_thematic'
+  | 'admin_country_outline'
   | 'admin_departments'
   | 'admin_municipalities';
 
@@ -63,6 +65,11 @@ const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, Boundar
   siraps: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   siraps_territorial: { color: DEFAULT_SIRAP_TERRITORIAL_COLOR, width: 1.25, style: 'solid' },
   siraps_thematic: { color: DEFAULT_SIRAP_THEMATIC_COLOR, width: 1.25, style: 'long-dash' },
+  admin_country_outline: {
+    color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
+    width: 1.6,
+    style: 'solid',
+  },
   admin_departments: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
   admin_municipalities: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
 };
@@ -113,6 +120,21 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
         },
       },
     },
+  },
+  {
+    id: 'aoi-country-outline-colombia',
+    layerKey: 'admin_country_outline',
+    title: 'Colombia Country Outline (IGAC)',
+    // Keep country outline non-interactive so clicks only target AOI layers.
+    selectable: false,
+    type: 'department',
+    sourceType: 'feature',
+    url: 'https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/0',
+    idFields: ['LLIdentif', 'OBJECTID'],
+    nameFields: ['LLNombre'],
+    definitionExpression: 'LLJerarqui = 5',
+    visible: true,
+    opacity: 1,
   },
   {
     id: 'aoi-siraps-combined-colombia',
@@ -196,7 +218,8 @@ export class AdminBoundaryService {
     siraps: false,
     siraps_territorial: false,
     siraps_thematic: false,
-    admin_departments: true,
+    admin_country_outline: true,
+    admin_departments: false,
     admin_municipalities: false,
   };
   readonly layerVisibilityByLayerKey$ = signal<Record<AdminBoundaryLayerKey, boolean>>(
@@ -503,7 +526,7 @@ export class AdminBoundaryService {
       }
 
       const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layerId);
-      if (!config) {
+      if (!config || config.selectable === false) {
         continue;
       }
 
@@ -630,6 +653,18 @@ export class AdminBoundaryService {
       style: 'solid',
     };
     const boundaryStyle = config ? this.boundaryStyleByLayerKey()[config.layerKey] : fallbackStyle;
+    if (config?.layerKey === 'admin_country_outline') {
+      return {
+        type: 'simple',
+        symbol: {
+          type: 'simple-line',
+          color: [...boundaryStyle.color],
+          width: boundaryStyle.width,
+          style: boundaryStyle.style,
+        },
+      };
+    }
+
     return {
       type: 'simple',
       symbol: {

@@ -130,7 +130,7 @@
         "avg": "prom"
       },
       "sections": {
-        "conservationGains": "Ganancias de conservacion",
+        "conservationGains": "Resumen de conservacion",
         "costsAndTradeoffs": "Costos y compensaciones"
       },
       "conditional": "Condicional",
@@ -167,7 +167,7 @@
       },
       "metrics": {
         "speciesGroupsProtected": "Grupos de especies protegidos",
-        "speciesGroupsProtectedDesc": "Proteccion adecuada del habitat",
+        "speciesGroupsProtectedDesc": "Proteccion del habitat",
         "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
         "threatenedSpeciesSecuredDesc": "Metas de habitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",

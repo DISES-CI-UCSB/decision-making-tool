@@ -130,7 +130,7 @@
         "avg": "avg"
       },
       "sections": {
-        "conservationGains": "Conservation Gains",
+        "conservationGains": "Conservation Summary",
         "costsAndTradeoffs": "Costs & Trade-offs"
       },
       "conditional": "Conditional",
@@ -167,7 +167,7 @@
       },
       "metrics": {
         "speciesGroupsProtected": "Species Groups Protected",
-        "speciesGroupsProtectedDesc": "Adequate habitat protection",
+        "speciesGroupsProtectedDesc": "Habitat protection",
         "threatenedSpeciesSecured": "Threatened Species Secured",
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",

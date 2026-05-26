@@ -174,6 +174,9 @@ const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], st
   'group-cultural-ethnic': 'cultural_and_ethnic_territories',
   'group-species-biodiversity': 'species_and_biodiversity',
 };
+const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<Record<string, { en: string; es: string }>> = {
+  socioeconomic: { en: 'Costs', es: 'Costos' },
+};
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
   omecs: 'overlay-omecs',
@@ -201,6 +204,10 @@ const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
   siraps: { boundaryType: 'sirap', boundaryLayerKey: 'siraps' },
   siraps_territorial: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_territorial' },
   siraps_thematic: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_thematic' },
+  admin_country_outline: {
+    boundaryType: 'department',
+    boundaryLayerKey: 'admin_country_outline',
+  },
   admin_departments: { boundaryType: 'department', boundaryLayerKey: 'admin_departments' },
   admin_municipalities: { boundaryType: 'municipality', boundaryLayerKey: 'admin_municipalities' },
 };
@@ -244,6 +251,7 @@ const LEGEND_BOUNDARY_STYLES: Record<
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
   siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#2563eb' },
   siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#9333ea' },
+  admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
 };
@@ -658,7 +666,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
         return {
           ...group,
-          title: manifestGroup.title,
+          title: this.manifestCategoryTitle(manifestCategoryId) ?? manifestGroup.title,
           countLabel: this.toLayerCountLabel(rows.length),
           rows,
         };
@@ -1011,6 +1019,14 @@ export class MapLayersPanelComponent implements OnDestroy {
         ? this.translate.instant('mapLayersPanel.layerSingular')
         : this.translate.instant('mapLayersPanel.layerPlural');
     return `${layerCount} ${noun}`;
+  }
+
+  private manifestCategoryTitle(manifestCategoryId: string): string | undefined {
+    const override = MANIFEST_CATEGORY_TITLE_OVERRIDES[manifestCategoryId];
+    if (!override) {
+      return undefined;
+    }
+    return this.appLocaleService.locale() === 'es' ? override.es : override.en;
   }
 
   private selectSolutionHoverUsesPointerTracking(): boolean {
@@ -1449,6 +1465,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected visibleGroupCountLabel(group: LayerGroup): string | undefined {
+    if (group.id === 'group-species-biodiversity') {
+      return undefined;
+    }
     if (!this.hasLayerSearchQuery()) {
       return group.countLabel;
     }
@@ -2933,7 +2952,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           ? {
               ...group,
               countLabel: this.toLayerCountLabel(group.rows.length + speciesLayerCount),
-              note: this.translate.instant('mapLayersPanel.speciesNote'),
             }
           : group,
       ),
@@ -3056,7 +3074,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     ];
     const adminBoundaryRows = [
       ...sirapRows,
-      this.boundaryRow('admin_departments', 'department', 'Departments', true, true),
+      this.boundaryRow('admin_country_outline', 'department', 'Colombia Outline', true, true),
+      this.boundaryRow('admin_departments', 'department', 'Departments', false, false),
       this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
     ];
 
@@ -3073,7 +3092,6 @@ export class MapLayersPanelComponent implements OnDestroy {
         title: 'Species & Biodiversity',
         countLabel: this.toLayerCountLabel(0),
         collapsed: true,
-        note: this.translate.instant('mapLayersPanel.scenarioNote'),
         rows: [],
       },
       {
@@ -3101,7 +3119,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'group-socio-economic',
-        title: 'Socio-economic',
+        title: 'Costs',
         countLabel: '3 layers',
         collapsed: true,
         rows: [
@@ -3109,14 +3127,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           this.layerRow('soc-ag-opportunity-cost', 'Agricultural Opportunity Cost', '#ea580c', 55),
           this.layerRow('soc-land-use', 'Land Use', '#78716c', 50),
         ],
-      },
-      {
-        id: 'group-prospective-models',
-        title: 'Prospective models',
-        collapsed: true,
-        disabled: true,
-        comingSoon: true,
-        rows: [],
       },
     ];
   }

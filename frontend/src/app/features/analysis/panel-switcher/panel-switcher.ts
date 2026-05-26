@@ -292,32 +292,28 @@ export class PanelSwitcherComponent {
     biodiversity: {
       title: 'Biodiversity',
       toneClass: 'bio',
-      insight: 'Species indicators highlight sensitivity shifts between Scenario A and Scenario B.',
+      insight: '',
     },
     ecosystems: {
       title: 'Ecosystems & Carbon',
       toneClass: 'eco',
-      insight:
-        'Ecosystem and carbon metrics indicate whether trade-offs preserve climate benefits while improving biodiversity.',
+      insight: '',
     },
     socio: {
       title: 'Land Use & Socio-Economic',
       toneClass: 'socio',
-      insight:
-        'Socio-economic cards keep conditional indicators visible to support policy and implementation review.',
+      insight: '',
     },
     protection: {
       title: 'Cultural & Protection',
       toneClass: 'protect',
-      insight:
-        'Governance and overlap metrics help flag consultation-sensitive areas before final selection decisions.',
+      insight: '',
     },
   };
   private readonly comparisonSectionOrder: ComparisonSectionId[] = [
     'general',
     'biodiversity',
     'ecosystems',
-    'socio',
     'protection',
   ];
   private readonly comparisonMetricBlueprints: ComparisonMetricBlueprint[] = [
