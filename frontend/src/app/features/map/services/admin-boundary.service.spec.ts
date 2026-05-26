@@ -24,7 +24,6 @@ describe('AdminBoundaryService', () => {
           provide: AppStateService,
           useValue: {
             selectedAOI$: signal(null),
-            canAccessSirapBoundaries: signal(true),
           },
         },
       ],

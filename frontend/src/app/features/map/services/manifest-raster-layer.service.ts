@@ -24,7 +24,7 @@ interface ManifestRasterLayerState {
 }
 
 const DEFAULT_BBOX: [number, number, number, number] = [-79.0, -4.5, -66.0, 13.5];
-const RASTER_ALPHA = 170;
+const RASTER_ALPHA = 255;
 
 @Injectable({ providedIn: 'root' })
 export class ManifestRasterLayerService {

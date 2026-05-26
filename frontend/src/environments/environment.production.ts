@@ -18,7 +18,6 @@ export const environment = {
   blobAssetProxyPath: '/api/blob-proxy/',
   ENABLE_MANIFEST_EDITOR: true,
   bypassLoginForDevelopment: false,
-  allowSirapWithoutAuth: true,
 } as const;
 
 export type AppEnvironment = typeof environment;

@@ -12,6 +12,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ColorPickerComponent, ColorPickerDirective } from 'ngx-color-picker';
 
@@ -42,6 +43,7 @@ import {
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
 import { catchError, of } from 'rxjs';
+import { FEATURE_FLAGS } from '@feature-flags';
 
 interface LayerControlRow {
   id: string;
@@ -249,7 +251,7 @@ const LEGEND_BOUNDARY_STYLES: Record<
 @Component({
   selector: 'app-map-layers-panel',
   standalone: true,
-  imports: [CommonModule, ColorPickerDirective],
+  imports: [CommonModule, TranslatePipe, ColorPickerDirective],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
   animations: [
@@ -274,6 +276,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
+  private readonly translate = inject(TranslateService);
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
@@ -391,9 +394,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.buildSelectedLayers(),
   );
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
-  protected readonly canAccessSirapBoundaries = this.appState.canAccessSirapBoundaries;
-  protected readonly sirapTooltipCopy =
-    'Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.';
 
   constructor() {
     this.syncInitialBoundaryState();
@@ -849,7 +849,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         value,
         color:
           MANAGEMENT_FIGURE_CATEGORY_PALETTE[index % MANAGEMENT_FIGURE_CATEGORY_PALETTE.length],
-        label: `Category ${value}`,
+        label: this.translate.instant('mapLayersPanel.categoryLabel', { value }),
       })),
     };
   }
@@ -1006,7 +1006,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private toLayerCountLabel(layerCount: number): string {
-    const noun = layerCount === 1 ? 'layer' : 'layers';
+    const noun =
+      layerCount === 1
+        ? this.translate.instant('mapLayersPanel.layerSingular')
+        : this.translate.instant('mapLayersPanel.layerPlural');
     return `${layerCount} ${noun}`;
   }
 
@@ -1110,7 +1113,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           rows: g.rows.map((row) =>
             row.id === rowId
               ? (() => {
-                  if (row.mapUnavailable || this.isAuthLockedRow(row)) {
+                  if (row.mapUnavailable) {
                     return row;
                   }
                   nextVisible = !row.visible;
@@ -1142,9 +1145,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           ...group,
           rows: group.rows.map((row) => {
             if (row.id !== rowId) {
-              return row;
-            }
-            if (this.isAuthLockedRow(row)) {
               return row;
             }
             nextSelected = !row.selected;
@@ -1459,18 +1459,28 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (group.id === 'group-species-biodiversity') {
       const parts: string[] = [];
       if (match.rowMatches > 0) {
-        parts.push(
-          `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`,
-        );
+        const noun =
+          match.rowMatches === 1
+            ? this.translate.instant('mapLayersPanel.layerMatchSingular')
+            : this.translate.instant('mapLayersPanel.layerMatchPlural');
+        parts.push(`${match.rowMatches} ${noun}`);
       }
       if (match.taxonMatches > 0) {
-        parts.push(
-          `${match.taxonMatches} ${match.taxonMatches === 1 ? 'taxon match' : 'taxon matches'}`,
-        );
+        const noun =
+          match.taxonMatches === 1
+            ? this.translate.instant('mapLayersPanel.taxonMatchSingular')
+            : this.translate.instant('mapLayersPanel.taxonMatchPlural');
+        parts.push(`${match.taxonMatches} ${noun}`);
       }
-      return parts.length > 0 ? parts.join(' · ') : '0 matches';
+      return parts.length > 0
+        ? parts.join(' · ')
+        : this.translate.instant('mapLayersPanel.noMatchesLabel');
     }
-    return `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`;
+    const noun =
+      match.rowMatches === 1
+        ? this.translate.instant('mapLayersPanel.layerMatchSingular')
+        : this.translate.instant('mapLayersPanel.layerMatchPlural');
+    return `${match.rowMatches} ${noun}`;
   }
 
   protected shouldShowTaxonShowAll(taxon: TaxonRow): boolean {
@@ -2311,12 +2321,12 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: overlay.name,
         sourceLabel:
           overlay.id === BASELINE_SOLUTION_OVERLAY_ID
-            ? 'Selected Solution'
+            ? this.translate.instant('mapLayersPanel.sourceLabels.selectedScenario')
             : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
-              ? 'Comparison Solution'
+              ? this.translate.instant('mapLayersPanel.sourceLabels.comparisonScenario')
               : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
-                ? 'Comparison Overlay'
-                : 'Available Layers',
+                ? this.translate.instant('mapLayersPanel.sourceLabels.comparisonOverlay')
+                : this.translate.instant('mapLayersPanel.sourceLabels.availableLayers'),
         sourceType: 'overlay',
         mapUnavailable: !!overlay.mapUnavailable,
       });
@@ -2342,7 +2352,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(taxon.id, {
           id: taxon.id,
           name: taxon.name,
-          sourceLabel: 'Species & Biodiversity',
+          sourceLabel: this.translate.instant('mapLayersPanel.sourceLabels.speciesBiodiversity'),
           sourceType: 'group',
           mapUnavailable: !!taxon.mapUnavailable,
         });
@@ -2354,7 +2364,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(species.id, {
           id: species.id,
           name: species.common,
-          sourceLabel: `Species & Biodiversity: ${taxon.name}`,
+          sourceLabel: this.translate.instant(
+            'mapLayersPanel.sourceLabels.speciesBiodiversityTaxon',
+            { taxon: taxon.name },
+          ),
           sourceType: 'group',
           mapUnavailable: !!species.mapUnavailable,
         });
@@ -2465,7 +2478,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       };
     }
 
-    if (this.isHumanFootprintLayerRow(row)) {
+    if (this.isContinuousGradientRaster(row)) {
+      const gradientRendering = row.mapSync.rendering;
       return {
         id: row.id,
         name: row.name,
@@ -2473,6 +2487,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         color: row.color,
         lineStyle: 'solid',
         lineWidth: 1,
+        gradientStartColor: gradientRendering?.startColor ?? '#dbeafe',
+        gradientEndColor: gradientRendering?.endColor ?? row.color ?? '#7f1d1d',
+        gradientMinLabel: this.formatLegendValue(gradientRendering?.minValue),
+        gradientMaxLabel: this.formatLegendValue(gradientRendering?.maxValue),
       };
     }
 
@@ -2508,11 +2526,26 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
-  private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
-    // Match by layer ID (locale-independent) rather than by the display name string.
+  private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
+    mapSync: {
+      type: 'manifest-raster';
+      layerId: string;
+      displayUrl: string;
+      rendering: RuntimeLayerManifestRenderingConfig;
+    };
+  } {
     return (
-      row.id.toLowerCase().includes('human_footprint') || row.id === 'layer-soc-human-footprint'
+      row.mapSync?.type === 'manifest-raster' &&
+      row.mapSync.rendering.renderMode === 'gradient' &&
+      row.mapSync.rendering.valueType === 'continuous'
     );
+  }
+
+  private formatLegendValue(value: number | null | undefined): string | undefined {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return undefined;
+    }
+    return Number.isInteger(value) ? `${value}` : value.toFixed(2);
   }
 
   private isSolutionLayerRow(row: LayerControlRow): boolean {
@@ -2900,7 +2933,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           ? {
               ...group,
               countLabel: this.toLayerCountLabel(group.rows.length + speciesLayerCount),
-              note: 'Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.',
+              note: this.translate.instant('mapLayersPanel.speciesNote'),
             }
           : group,
       ),
@@ -3002,7 +3035,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
-    return layer?.taxonLabel?.trim() || 'Individual species';
+    return layer?.taxonLabel?.trim() || this.translate.instant('mapLayersPanel.individualSpecies');
   }
 
   /**
@@ -3010,26 +3043,37 @@ export class MapLayersPanelComponent implements OnDestroy {
    * Management Figures itself uses `overlaysCollapsed` (default expanded).
    */
   private createDefaultGroups(): LayerGroup[] {
+    const sirapRows = [
+      ...(FEATURE_FLAGS.sirapLayers.combined
+        ? [this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false)]
+        : []),
+      ...(FEATURE_FLAGS.sirapLayers.territorial
+        ? [this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false)]
+        : []),
+      ...(FEATURE_FLAGS.sirapLayers.thematic
+        ? [this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false)]
+        : []),
+    ];
+    const adminBoundaryRows = [
+      ...sirapRows,
+      this.boundaryRow('admin_departments', 'department', 'Departments', true, true),
+      this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
+    ];
+
     return [
       {
         id: 'group-admin-boundaries',
         title: 'Administrative Boundaries',
-        countLabel: '5 layers',
+        countLabel: `${adminBoundaryRows.length} layers`,
         collapsed: false,
-        rows: [
-          this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false),
-          this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false),
-          this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false),
-          this.boundaryRow('admin_departments', 'department', 'Departments', true, true),
-          this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
-        ],
+        rows: adminBoundaryRows,
       },
       {
         id: 'group-species-biodiversity',
         title: 'Species & Biodiversity',
-        countLabel: '0 layers',
+        countLabel: this.toLayerCountLabel(0),
         collapsed: true,
-        note: "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
+        note: this.translate.instant('mapLayersPanel.scenarioNote'),
         rows: [],
       },
       {
@@ -3155,14 +3199,6 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
     return name.toLowerCase().includes(normalizedQuery);
-  }
-
-  protected isAuthLockedRow(row: LayerControlRow): boolean {
-    return (
-      row.mapSync?.type === 'admin-boundary' &&
-      row.mapSync.boundaryType === 'sirap' &&
-      !this.canAccessSirapBoundaries()
-    );
   }
 
   private speciesMatchesSearch(species: SpeciesRow, normalizedQuery: string): boolean {

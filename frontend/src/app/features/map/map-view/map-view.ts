@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import ArcGISMap from '@arcgis/core/Map';
 import ArcGISMapView from '@arcgis/core/views/MapView';
+import Extent from '@arcgis/core/geometry/Extent';
 import Point from '@arcgis/core/geometry/Point';
 import Attribution from '@arcgis/core/widgets/Attribution';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
@@ -26,9 +27,17 @@ import { ManifestRasterLayerService } from '@features/map/services/manifest-rast
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { MasterLegendComponent } from '@features/map/components/master-legend/master-legend';
+import { TranslatePipe } from '@ngx-translate/core';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
+const COLOMBIA_EXTENT = new Extent({
+  xmin: -79.1,
+  ymin: -4.3,
+  xmax: -66.8,
+  ymax: 13.7,
+  spatialReference: { wkid: 4326 },
+});
 type SwipeInstance = {
   destroy: () => void;
 } & Widget;
@@ -37,7 +46,7 @@ type SwipeConstructor = new (properties: Record<string, unknown>) => SwipeInstan
 @Component({
   selector: 'app-map-view',
   standalone: true,
-  imports: [MasterLegendComponent],
+  imports: [MasterLegendComponent, TranslatePipe],
   templateUrl: './map-view.html',
   styleUrl: './map-view.scss',
   host: {
@@ -45,6 +54,8 @@ type SwipeConstructor = new (properties: Record<string, unknown>) => SwipeInstan
   },
 })
 export class MapViewComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('mapRootContainer')
+  private mapRootContainerRef!: ElementRef<HTMLElement>;
   @ViewChild('mapViewContainer')
   private mapViewContainerRef!: ElementRef<HTMLDivElement>;
   @ViewChild('comparisonSwipeContainer')
@@ -70,6 +81,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly debugMarker = 'UCS-40-layer-infra-v1';
   protected mapErrorMessage = '';
+  protected isExportInProgress = false;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
 
@@ -128,6 +140,14 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     void this.animateZoomBy(-1);
   }
 
+  protected zoomToCountry(): void {
+    void this.animateZoomToCountry();
+  }
+
+  protected exportCurrentView(): void {
+    void this.downloadCurrentMapViewAsPng();
+  }
+
   private async animateZoomBy(delta: number): Promise<void> {
     if (!this.view) {
       return;
@@ -158,6 +178,158 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
       console.error(`[MapView][${this.debugMarker}] zoom animation failed:`, error);
     }
+  }
+
+  private async animateZoomToCountry(): Promise<void> {
+    if (!this.view) {
+      return;
+    }
+
+    try {
+      await this.view.goTo(
+        {
+          target: COLOMBIA_EXTENT,
+        },
+        {
+          animate: true,
+          duration: 300,
+          easing: 'ease-in-out',
+        },
+      );
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      console.error(`[MapView][${this.debugMarker}] country zoom reset failed:`, error);
+    }
+  }
+
+  private async downloadCurrentMapViewAsPng(): Promise<void> {
+    if (!this.view || this.isExportInProgress) {
+      return;
+    }
+
+    this.isExportInProgress = true;
+    try {
+      const screenshot = await this.view.takeScreenshot({
+        format: 'png',
+      });
+      const exportDataUrl = await this.composeExportImageDataUrl(screenshot.dataUrl);
+      const link = document.createElement('a');
+      link.href = exportDataUrl;
+      link.download = this.buildScreenshotFilename();
+      link.click();
+    } catch (error: unknown) {
+      console.error(`[MapView][${this.debugMarker}] export screenshot failed:`, error);
+    } finally {
+      this.isExportInProgress = false;
+    }
+  }
+
+  private buildScreenshotFilename(): string {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return `solution-view-${timestamp}.png`;
+  }
+
+  private async composeExportImageDataUrl(baseMapDataUrl: string): Promise<string> {
+    const baseImage = await this.loadImage(baseMapDataUrl);
+    const canvas = document.createElement('canvas');
+    canvas.width = baseImage.width;
+    canvas.height = baseImage.height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return baseMapDataUrl;
+    }
+
+    context.drawImage(baseImage, 0, 0);
+    await this.drawLegendOverlay(context, canvas.width, canvas.height);
+    return canvas.toDataURL('image/png');
+  }
+
+  private async drawLegendOverlay(
+    context: CanvasRenderingContext2D,
+    targetWidth: number,
+    targetHeight: number,
+  ): Promise<void> {
+    const mapRoot = this.mapRootContainerRef?.nativeElement;
+    const legendHost = document.getElementById('map-view-master-legend') as HTMLElement | null;
+    if (!mapRoot || !legendHost || legendHost.offsetParent === null) {
+      return;
+    }
+
+    const legendToggle = document.getElementById('master-legend-toggle');
+    if (legendToggle?.getAttribute('aria-expanded') === 'false') {
+      return;
+    }
+
+    const mapBounds = mapRoot.getBoundingClientRect();
+    const legendBounds = legendHost.getBoundingClientRect();
+    if (legendBounds.width <= 0 || legendBounds.height <= 0) {
+      return;
+    }
+
+    const scaleX = targetWidth / mapBounds.width;
+    const scaleY = targetHeight / mapBounds.height;
+    const legendX = (legendBounds.left - mapBounds.left) * scaleX;
+    const legendY = (legendBounds.top - mapBounds.top) * scaleY;
+    const legendWidth = legendBounds.width * scaleX;
+    const legendHeight = legendBounds.height * scaleY;
+
+    try {
+      const legendDataUrl = this.buildLegendDataUrl(
+        legendHost,
+        legendBounds.width,
+        legendBounds.height,
+      );
+      const legendImage = await this.loadImage(legendDataUrl);
+      context.drawImage(legendImage, legendX, legendY, legendWidth, legendHeight);
+    } catch (error: unknown) {
+      console.warn(`[MapView][${this.debugMarker}] legend overlay capture failed:`, error);
+    }
+  }
+
+  private buildLegendDataUrl(legendHost: HTMLElement, width: number, height: number): string {
+    const legendClone = this.cloneElementWithInlineStyles(legendHost);
+    const serializer = new XMLSerializer();
+    const legendMarkup = serializer.serializeToString(legendClone);
+    const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${legendMarkup}</div></foreignObject></svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+  }
+
+  private cloneElementWithInlineStyles(sourceElement: Element): Element {
+    const clonedElement = sourceElement.cloneNode(false) as Element;
+    clonedElement.setAttribute('style', this.serializeComputedStyle(sourceElement));
+
+    sourceElement.childNodes.forEach((childNode) => {
+      if (childNode.nodeType === Node.ELEMENT_NODE && childNode instanceof Element) {
+        if (childNode.getAttribute('data-export-ignore') === 'true') {
+          return;
+        }
+        clonedElement.appendChild(this.cloneElementWithInlineStyles(childNode));
+        return;
+      }
+
+      clonedElement.appendChild(childNode.cloneNode(true));
+    });
+
+    return clonedElement;
+  }
+
+  private serializeComputedStyle(element: Element): string {
+    const computedStyle = window.getComputedStyle(element);
+    return Array.from(computedStyle)
+      .map((propertyName) => `${propertyName}:${computedStyle.getPropertyValue(propertyName)};`)
+      .join('');
+  }
+
+  private async loadImage(dataUrl: string): Promise<HTMLImageElement> {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('Failed to load image'));
+      image.src = dataUrl;
+    });
   }
 
   private initMapWhenReady(retries = 15): void {

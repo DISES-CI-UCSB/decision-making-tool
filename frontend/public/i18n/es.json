@@ -4,7 +4,11 @@
   },
   "header": {
     "appTitle": "Herramienta de Toma de Decisiones",
-    "languageToggleLabel": "Cambiar a {{lang}}"
+    "languageToggleLabel": "Cambiar a {{lang}}",
+    "adminAccess": "Acceso de administrador",
+    "logout": "Cerrar sesión",
+    "loginRegister": "Iniciar sesión / Registrarse",
+    "tierChip": "Nivel {{tier}}"
   },
   "common": {
     "close": "Cerrar"
@@ -32,9 +36,35 @@
       "label": "Costo de implementacion"
     }
   },
+  "mapLegend": {
+    "title": "Leyenda",
+    "activeScenarioLabel": "Escenario activo",
+    "comparison": "Comparación",
+    "selected": "Seleccionado ({{pct}}%)",
+    "notSelected": "No seleccionado",
+    "aOnly": "Solo A: {{name}}",
+    "bOnly": "Solo B: {{name}}",
+    "overlap": "Superposición (A + B)",
+    "scenarioA": "Escenario A: {{name}} ({{pct}}%)",
+    "scenarioB": "Escenario B: {{name}} ({{pct}}%)",
+    "leftSide": "Lado izquierdo: {{name}}",
+    "rightSide": "Lado derecho: {{name}}",
+    "otherSelectedLayersLabel": "Otras capas seleccionadas"
+  },
+  "mapView": {
+    "zoomControls": "Controles de zoom del mapa",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "zoomToCountry": "Ver todo el pais",
+    "exportControls": "Controles de exportacion del mapa",
+    "exportPng": "Exportar PNG",
+    "exporting": "Exportando...",
+    "loadingSolution": "Cargando solución..."
+  },
   "analysis": {
+    "tabNavAriaLabel": "Pestañas del panel lateral derecho",
     "modes": {
-      "welcome": "Sin solucion seleccionada",
+      "welcome": "Sin escenario seleccionado",
       "overview": "Resumen",
       "aoi": "Area de interes",
       "comparison": "Comparacion"
@@ -50,22 +80,22 @@
       "deltaUnavailable": "Sin delta"
     },
     "empty": {
-      "title": "Selecciona una solucion",
+      "title": "Selecciona un escenario",
       "description": "Carga un escenario desde la barra izquierda."
     },
     "welcome": {
       "kicker": "Espacio de analisis",
-      "title": "Empieza con una solucion para activar los paneles de analisis.",
-      "description": "Usa el Buscador de Soluciones para cargar un escenario, revisar sus metricas y comparar compensaciones sin salir del espacio del mapa.",
+      "title": "Empieza con un escenario para activar los paneles de analisis.",
+      "description": "Usa el Buscador de Escenarios para cargar un escenario, revisar sus metricas y comparar compensaciones sin salir del espacio del mapa.",
       "heroTitle": "La guia del panel derecho acompana tu flujo de trabajo.",
-      "heroDescription": "Cuando hay una solucion activa, este panel puede cambiar entre vistas de resumen, AOI y comparacion a medida que el resto de la experiencia se activa.",
+      "heroDescription": "Cuando hay un escenario activo, este panel puede cambiar entre vistas de resumen, AOI y comparacion a medida que el resto de la experiencia se activa.",
       "getStarted": "Comenzar",
       "stepsTitle": "Como funciona este flujo",
       "stepsDescription": "Una secuencia de incorporacion ligera para personas que usan la herramienta por primera vez.",
       "steps": {
         "choose": {
-          "title": "Elegir una solucion",
-          "description": "Abre el Buscador de Soluciones para cargar una estrategia candidata para el contexto de planificacion actual."
+          "title": "Elegir un escenario",
+          "description": "Abre el Buscador de Escenarios para cargar un escenario para el contexto de planificacion actual."
         },
         "review": {
           "title": "Revisar el resumen",
@@ -73,22 +103,22 @@
         },
         "compare": {
           "title": "Comparar opciones",
-          "description": "Cambia al modo de comparacion cuando haya otra solucion disponible para una revision lado a lado."
+          "description": "Cambia al modo de comparacion cuando haya otro escenario disponible para una revision lado a lado."
         }
       }
     },
     "overview": {
-      "kicker": "Solucion activa",
-      "title": "Resumen de la solucion",
-      "description": "Un resumen compacto de la solucion actual y de las metricas disponibles para revisar.",
-      "solutionLabel": "Solucion cargada",
-      "noDescription": "Todavia no hay una descripcion disponible para esta solucion.",
+      "kicker": "Escenario activo",
+      "title": "Resumen del escenario",
+      "description": "Un resumen compacto del escenario actual y de las metricas disponibles para revisar.",
+      "solutionLabel": "Escenario cargado",
+      "noDescription": "Todavia no hay una descripcion disponible para este escenario.",
       "matchLabel": "Puntaje de ajuste",
       "sectionsLabel": "Grupos de metricas",
-      "emptyTitle": "Selecciona una solucion",
+      "emptyTitle": "Selecciona un escenario",
       "emptyDescription": "Carga un escenario desde la barra izquierda.",
       "loadErrorTitle": "No se pudo cargar el resumen",
-      "loadErrorDescription": "Intenta seleccionar la solucion otra vez u otra distinta.",
+      "loadErrorDescription": "Intenta seleccionar el escenario otra vez u otro distinto.",
       "matchBadge": "{{percent}}% Coincidencia",
       "goalsMet": "Metas cumplidas",
       "goalsMetSub": "Temas de conservacion logrados",
@@ -107,7 +137,7 @@
       "unavailableInfoLabel": "Por que esta metrica no esta disponible",
       "unavailableTooltip": "No disponible por ahora: esta metrica necesita una capa de datos adicional que aun no se ha entregado.",
       "inputsTooltip": {
-        "triggerLabel": "Mostrar los insumos usados para generar esta solucion",
+        "triggerLabel": "Mostrar los insumos usados para generar este escenario",
         "title": "Insumos usados",
         "targetLabel": "Meta",
         "constraintsLabel": "Restricciones",
@@ -121,8 +151,8 @@
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
       "nationalAnchor": {
         "title": "Huella nacional de conservacion",
-        "contributing": "Esta solucion destina {{percent}}% de Colombia para conservacion.",
-        "currentContribution": "Huella de la solucion: {{percent}}%",
+        "contributing": "Este escenario destina {{percent}}% de Colombia para conservacion.",
+        "currentContribution": "Huella del escenario: {{percent}}%",
         "targetLabel": "Referencia 30x30 (30%)",
         "minLabel": "0% de Colombia",
         "maxLabel": "100% de Colombia"
@@ -141,7 +171,7 @@
         "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
         "threatenedSpeciesSecuredDesc": "Metas de habitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",
-        "ecosystemCoverageDesc": "Ecosistemas clave dentro de la solucion",
+        "ecosystemCoverageDesc": "Ecosistemas clave dentro del escenario",
         "carbonStorageCapacity": "Capacidad de almacenamiento de carbono",
         "carbonStorageCapacityDesc": "Biomasa total en areas prioritarias",
         "waterRegulationServices": "Servicios de regulacion hidrica",
@@ -157,7 +187,7 @@
     "aoi": {
       "kicker": "Detalle de AOI",
       "title": "Detalle del area de interes",
-      "description": "Enfoca la solucion activa en una geografia seleccionada para inspeccionar metricas especificas del AOI.",
+      "description": "Enfoca el escenario activo en una geografia seleccionada para inspeccionar metricas especificas del AOI.",
       "selectedLabel": "AOI seleccionado",
       "typeLabel": "Tipo",
       "types": {
@@ -168,19 +198,91 @@
       "emptyTitle": "No hay un area de interes seleccionada",
       "emptyDescription": "Selecciona un AOI para completar este panel con metricas locales y contexto.",
       "emptyMetricsTitle": "Las metricas del AOI no estan listas",
-      "emptyMetricsDescription": "Las metricas del AOI aparecen aqui cuando hay una solucion y un area de interes disponibles."
+      "emptyMetricsDescription": "Las metricas del AOI aparecen aqui cuando hay un escenario y un area de interes disponibles.",
+      "sirapScopeLabel": "Alcance de selección SIRAP",
+      "scopePolygon": "Polígono",
+      "scopeFull": "SIRAP completo",
+      "sections": {
+        "conservation": "Resumen de conservación",
+        "biodiversity": "Biodiversidad",
+        "ecosystems": "Ecosistemas y carbono",
+        "land": "Uso del suelo y socioeconómico",
+        "cultural": "Territorios culturales e indígenas",
+        "marine": "Marino"
+      },
+      "allConditional": "Todo condicional",
+      "generateReport": "Generar informe regional",
+      "hero": {
+        "priorityAreaLabel": "Área prioritaria en la región",
+        "ofMunicipality": "de este municipio",
+        "nationalContributionLabel": "Contribución 30×30",
+        "existingAdds": "Existente {{existing}} + agrega {{added}}"
+      },
+      "stats": {
+        "totalProtectedArea": "Área protegida total",
+        "parksOverlap": "Superposición con parques nacionales",
+        "ofAoiPriorityArea": "Del área prioritaria del AOI",
+        "speciesChartAxisLabel": "Conteo de especies por taxa",
+        "threatenedSpecies": "Especies amenazadas",
+        "iucnLabel": "UICN CR / EN / VU",
+        "endemicSpecies": "Especies endémicas",
+        "colombiaEndemics": "Endémicas de Colombia",
+        "nationalSpeciesTotal": "% del total nacional de especies",
+        "nationalSpeciesTotalDesc": "Proporción de las especies totales de Colombia encontradas en este AOI",
+        "totalCarbonBiomass": "Biomasa total de carbono",
+        "nationalCarbon": "% del carbono nacional",
+        "nationalCarbonDesc": "De las reservas colombianas",
+        "aboveGroundCarbon": "Carbono sobre el suelo",
+        "soilOrganicCarbon": "Carbono orgánico del suelo",
+        "waterRegulation": "Capacidad de regulación hídrica",
+        "waterRegulationDesc": "Provisión de servicios hidrológicos para comunidades aguas abajo",
+        "waterIndex": "Índice 78 / 100",
+        "agOpportunityCost": "Costo de oportunidad agrícola",
+        "agOpportunityCostDesc": "Valor económico de la producción agrícola sacrificada",
+        "conflictZoneOverlap": "Superposición con zonas de conflicto",
+        "conflictZoneOverlapDesc": "Área prioritaria con superposición en zonas de conflicto histórico",
+        "indigenousReservations": "Reservaciones indígenas",
+        "indigenousReservationsDesc": "Área dentro de las zonas prioritarias del AOI",
+        "communityCounsils": "Consejos comunitarios",
+        "communityCouncilsDesc": "Territorios de consejos comunitarios afrocolombianos",
+        "indigenousOverlap": "Superposición con territorios indígenas",
+        "indigenousOverlapDesc": "Proporción del escenario en territorios indígenas",
+        "mpaOverlap": "Superposición con AMP",
+        "mpaOverlapDesc": "Escenario superpuesto con Áreas Marinas Protegidas existentes",
+        "coralReef": "Cobertura de arrecifes de coral",
+        "coralReefDesc": "Ecosistemas de arrecife de coral dentro del escenario marino",
+        "mangrove": "Cobertura de manglares",
+        "mangroveDesc": "Ecosistemas de manglar dentro del escenario",
+        "seagrass": "Cobertura de pastos marinos",
+        "seagrassDesc": "Ecosistemas de pastos marinos dentro del escenario",
+        "eez": "% del escenario en ZEE",
+        "eezDesc": "Escenario dentro de la Zona Económica Exclusiva de Colombia",
+        "marineNarrative": "Las métricas marinas se muestran cuando hay un escenario de conservación marina activo. Actualmente no hay ningún escenario marino cargado.",
+        "highValue": "Alto",
+        "usdEquivalent": "Equivalente en USD",
+        "historicalZones": "Zonas históricas",
+        "consultationSensitive": "Sensible a consulta previa",
+        "kmAndPct": "km² y %",
+        "requestId": "ID de solicitud"
+      }
     },
     "comparison": {
-      "kicker": "Comparar soluciones",
-      "description": "Revisa metricas de una solucion base y una candidata en un solo lugar antes de hacer una recomendacion.",
-      "baselineLabel": "Solucion base",
-      "candidateLabel": "Solucion candidata",
-      "baselineShort": "Base",
-      "candidateShort": "Candidata",
-      "emptyTitle": "No hay una solucion de comparacion cargada",
-      "emptyDescription": "Agrega una segunda solucion para comparar compensaciones con la solucion base actual.",
-      "noBaselineTitle": "Primero elige una solucion base",
-      "noBaselineDescription": "Carga una solucion activa antes de abrir el modo de comparacion."
+      "kicker": "Comparar escenarios",
+      "description": "Revisa metricas del Escenario A y el Escenario B en un solo lugar antes de hacer una recomendacion.",
+      "baselineLabel": "Escenario A",
+      "candidateLabel": "Escenario B",
+      "baselineShort": "Escenario A",
+      "candidateShort": "Escenario B",
+      "emptyTitle": "No hay un escenario de comparacion cargado",
+      "emptyDescription": "Agrega un segundo escenario para comparar compensaciones con la seleccion actual.",
+      "noBaselineTitle": "Primero elige un escenario",
+      "noBaselineDescription": "Carga un escenario antes de abrir el modo de comparacion.",
+      "selectScenario": "Seleccionar escenario",
+      "visualizationTitle": "Visualización de comparación",
+      "visualizationDescription": "Elige cómo se visualizan el Escenario A y B en el mapa.",
+      "visualizationAriaLabel": "Modo de visualización de comparación",
+      "metricColumn": "Métrica",
+      "differenceColumn": "Diferencia"
     },
     "sections": {
       "ecology": "Ecologia",
@@ -190,7 +292,7 @@
   },
   "layout": {
     "leftSidebarTitle": "Barra lateral izquierda",
-    "leftSidebarPlaceholder": "Contenedor temporal para los controles de soluciones.",
+    "leftSidebarPlaceholder": "Contenedor temporal para los controles de escenarios.",
     "rightSidebarTitle": "Barra lateral derecha",
     "rightSidebarPlaceholder": "Contenedor temporal para paneles de analisis.",
     "mobile": {
@@ -207,34 +309,34 @@
   },
   "solutionControls": {
     "onboarding": {
-      "kicker": "Controles de soluciones",
-      "title": "Empieza aqui para elegir la solucion que quieres inspeccionar.",
-      "description": "Usa la barra lateral izquierda para abrir el Buscador de Soluciones, cambiar entre candidatas y controlar lo que aparece en el panel de analisis.",
+      "kicker": "Controles de escenarios",
+      "title": "Empieza aqui para elegir el escenario que quieres inspeccionar.",
+      "description": "Usa la barra lateral izquierda para abrir el Buscador de Escenarios, cambiar entre escenarios y controlar lo que aparece en el panel de analisis.",
       "heroTitle": "La seleccion debe vivir con los controles.",
-      "heroDescription": "Primero elige una solucion y luego revisa sus metricas y comparaciones en la barra lateral derecha.",
+      "heroDescription": "Primero elige un escenario y luego revisa sus metricas y comparaciones en la barra lateral derecha.",
       "getStarted": "Comenzar",
       "stepsTitle": "Flujo sugerido",
       "stepsDescription": "Una secuencia simple para personas que usan la herramienta por primera vez.",
       "steps": {
         "choose": {
-          "title": "Abrir el Buscador de Soluciones",
-          "description": "Inicia una busqueda guiada para encontrar la solucion con mejor ajuste para el contexto actual de planificacion."
+          "title": "Abrir el Buscador de Escenarios",
+          "description": "Inicia una busqueda guiada para encontrar el escenario con mejor ajuste para el contexto actual de planificacion."
         },
         "review": {
-          "title": "Cargar y cambiar soluciones",
-          "description": "Usa esta barra lateral para controlar cual solucion esta activa antes de revisar detalles."
+          "title": "Cargar y cambiar escenarios",
+          "description": "Usa esta barra lateral para controlar cual escenario esta activo antes de revisar detalles."
         },
         "compare": {
           "title": "Inspeccionar el analisis",
-          "description": "Cuando una solucion este activa, usa la barra lateral derecha para revisar resumen, AOI y comparaciones."
+          "description": "Cuando un escenario este activo, usa la barra lateral derecha para revisar resumen, AOI y comparaciones."
         }
       }
     },
     "modal": {
-      "openSolutionFinder": "Abrir modal de busqueda de soluciones",
+      "openSolutionFinder": "Abrir Buscador de Escenarios",
       "openPerspective": "Abrir modal de perspectivas",
-      "solutionFinderTitle": "Buscador de Soluciones",
-      "solutionFinderComparisonTitle": "Buscador de soluciones (seleccionar solucion candidata)",
+      "solutionFinderTitle": "Buscador de Escenarios",
+      "solutionFinderComparisonTitle": "Buscador de Escenarios (seleccionar escenario de comparacion)",
       "perspectiveTitle": "Selector de Perspectiva",
       "perspectiveHeading": "Shell modal estandar",
       "perspectiveDescription": "Este modal usa el modo estandar del shell y comparte el mismo comportamiento de cierre y funciones de accesibilidad."
@@ -244,9 +346,9 @@
       "title": "Encontrar un escenario de conservacion",
       "description": "Elija que proteger, areas incluidas opcionales y la base del compromiso (costo). Los escenarios coincidentes se actualizan automaticamente al cambiar filtros.",
       "comparison": {
-        "kicker": "Busqueda de solucion candidata",
-        "title": "Encontrar una solucion candidata",
-        "description": "Use el mismo flujo para elegir la solucion candidata en la comparacion."
+        "kicker": "Busqueda de escenario de comparacion",
+        "title": "Encontrar un escenario de comparacion",
+        "description": "Use el mismo flujo para elegir el escenario de comparacion para revisar lado a lado."
       },
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
@@ -255,7 +357,7 @@
         "nacional": "Nacional",
         "sirap": "SIRAP",
         "selectRegion": "— Seleccionar región SIRAP —",
-        "regionalBadge": "Soluciones regionales",
+        "regionalBadge": "Escenarios regionales",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
@@ -268,20 +370,20 @@
       "loading": "Buscando escenario…",
       "stepPrefixes": {
         "step1": "Paso 1",
-        "step2a": "Paso 2",
-        "step2b": "Paso 3",
+        "step2a": "Paso 3",
+        "step2b": "Paso 2",
         "step3": "Paso 3"
       },
       "stepLabels": {
         "step1": "Que proteger",
         "step2a": "Areas incluidas (opcional)",
-        "step2b": "Base del compromiso",
+        "step2b": "Costos",
         "step3": "Resultados coincidentes"
       },
       "stepIntros": {
         "step1": "Seleccione uno o mas grupos objetivo para definir que proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
         "step2a": "Elija areas incluidas opcionales para aplicar junto con las areas protegidas RUNAP siempre activas.",
-        "step2b": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
+        "step2b": "Elija una capa de costo para evaluar areas de conservacion potenciales.",
         "step3": "Los escenarios coincidentes se actualizan automaticamente al cambiar filtros."
       },
       "stepState": {
@@ -322,6 +424,7 @@
         "targetLevelRequiredTitle": "Nivel de cobertura (obligatorio)",
         "coverageLevelLabel": "Nivel de cobertura",
         "requiredInline": "(obligatorio)",
+        "targetLevelRequiredHint": "Seleccione uno o más tipos de meta. Cada tipo seleccionado también necesita un nivel de cobertura (17% o 30%) antes de que el Paso 2 se desbloquee.",
         "selectLevelToContinue": "Seleccione 17% o 30% para completar este tipo de meta.",
         "selectedBadge": "Seleccionado",
         "readyBadge": "Listo",
@@ -338,15 +441,15 @@
       "step2a": {
         "includeOmecsLabel": "Incluir OMEC",
         "includeOmecsHelp": "OMEC (WDPA/WDOECM, otras medidas efectivas) es opcional; los nombres incluyen +OMEC cuando esta activo.",
-        "includeComunidadesLabel": "Incluir territorios de comunidades",
-        "includeComunidadesHelp": "Territorios de comunidades afrocolombianas que pueden fijarse en una corrida si se activa.",
+        "includeComunidadesLabel": "Incluir territorios afrocolombianos e indígenas",
+        "includeComunidadesHelp": "Fija los territorios de comunidades afrocolombianas y las áreas indígenas junto con RUNAP cuando se activa.",
         "alwaysAppliedHeading": "Siempre aplicado",
         "alwaysRunapLabel": "Areas protegidas RUNAP",
         "alwaysRunapHelp": "La red nacional de areas protegidas (RUNAP) esta incluida en todos los escenarios precalculados de este catalogo.",
         "alwaysOnChip": "Siempre activo"
       },
       "step2b": {
-        "intro": "Elija una capa de costo para ordenar sitios candidatos (se prefieren valores mas bajos).",
+        "intro": "Elija una capa de costo para evaluar areas de conservacion potenciales.",
         "humanFootprintLabel": "Presion humana",
         "humanFootprintHelp": "Huella humana proyectada 2022 (HF_2022): menor valor implica menor presion humana esperada.",
         "carbonOpportunityLabel": "Beneficio neto (renta agropecuaria)",
@@ -358,7 +461,7 @@
         "cancel": "Cancelar",
         "findMatches": "Actualizar escenarios",
         "apply": "Aplicar escenario seleccionado",
-        "loadAsCandidateSolution": "Cargar como solucion candidata"
+        "loadAsCandidateSolution": "Cargar como escenario de comparacion"
       },
       "empty": {
         "title": "Defina filtros para ver un escenario",
@@ -382,8 +485,64 @@
         "scenarioCarbonShield": "Prioriza densidad de carbono mientras excluye presion minera y bordes urbanos."
       },
       "toast": {
-        "solutionLoaded": "Solucion cargada"
+        "solutionLoaded": "Escenario cargado"
       }
     }
+  },
+  "mapLayersPanel": {
+    "title": "Capas del mapa",
+    "selectScenario": "Seleccionar escenario",
+    "activeScenarioLabel": "Escenario activo",
+    "changeButton": "Cambiar",
+    "selectedLayersTitle": "Capas seleccionadas",
+    "selectedLayersEmpty": "No hay capas seleccionadas aún. Agrega capas desde Capas disponibles para controlar el orden de la pila.",
+    "dragToReorder": "Arrastrar para reordenar {{name}}",
+    "noMapLayerAvailable": "Capa de mapa no disponible",
+    "noMapLayerYet": "{{name}} aún no tiene una capa de mapa",
+    "toggleVisibility": "Alternar visibilidad de {{name}}",
+    "styleControlsUnavailable": "Controles de estilo no disponibles para {{name}}",
+    "toggleControls": "Alternar controles de {{name}}",
+    "removeLayer": "Eliminar {{name}} de las capas seleccionadas",
+    "addLayer": "Agregar {{name}}",
+    "expandTaxon": "Expandir {{name}}",
+    "collapseTaxon": "Colapsar {{name}}",
+    "opacityLabel": "Opacidad",
+    "colorLabel": "Color",
+    "availableLayersTitle": "Capas disponibles",
+    "searchMatchSingular": "coincidencia",
+    "searchMatchPlural": "coincidencias",
+    "typeToFilter": "Escribe para filtrar",
+    "searchAriaLabel": "Buscar capas disponibles",
+    "searchPlaceholder": "Buscar capas...",
+    "clearButton": "Limpiar",
+    "styleControlsHint": "Los controles de visibilidad y estilo están en Capas seleccionadas.",
+    "addedButton": "Agregado",
+    "addButton": "Agregar",
+    "layerSingular": "capa",
+    "layerPlural": "capas",
+    "comingSoon": "Próximamente",
+    "showAllLabel": "Ver todos {{count}} {{name}}...",
+    "searchNoResults": "Ninguna capa coincide con la búsqueda.",
+    "searchNoResultsHint": "Prueba términos más amplios como \"carbon\", \"wetlands\" o \"protected\".",
+    "resetDefaults": "Restablecer predeterminados",
+    "sirapTooltip": "Los SIRAP territoriales son amplios sistemas regionales de conservación. Los SIRAP temáticos son adiciones especiales, como Eje Cafetero y Macizo, que pueden superponerse con los SIRAP territoriales. La capa combinada muestra ambos juntos para revisión.",
+    "speciesSearchPlaceholder": "Buscar {{taxon}}...",
+    "sourceLabels": {
+      "selectedScenario": "Escenario seleccionado",
+      "comparisonScenario": "Escenario de comparación",
+      "comparisonOverlay": "Superposición de comparación",
+      "availableLayers": "Capas disponibles",
+      "speciesBiodiversity": "Especies y biodiversidad",
+      "speciesBiodiversityTaxon": "Especies y biodiversidad: {{taxon}}"
+    },
+    "layerMatchSingular": "capa coincidente",
+    "layerMatchPlural": "capas coincidentes",
+    "taxonMatchSingular": "taxón coincidente",
+    "taxonMatchPlural": "taxones coincidentes",
+    "noMatchesLabel": "0 coincidencias",
+    "speciesNote": "Las distribuciones de especies se cargan desde el manifiesto de especies. Busca dentro de un grupo taxonómico para encontrar rásters de especies individuales.",
+    "scenarioNote": "Las distribuciones mostradas son las incluidas en el cálculo de este escenario. Explora hasta las especies individuales cuando la solución incluya rásters a nivel de especie.",
+    "individualSpecies": "Especies individuales",
+    "categoryLabel": "Categoría {{value}}"
   }
 }

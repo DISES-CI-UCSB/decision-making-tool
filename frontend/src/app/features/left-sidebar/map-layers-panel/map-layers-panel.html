@@ -5,7 +5,7 @@
   <header id="map-layers-sidebar-header" class="border-b border-slate-200 px-5 pb-4 pt-5">
     <div id="map-layers-sidebar-header-content" class="flex flex-col gap-3">
       <h2 id="map-layers-sidebar-title" class="text-xl font-bold tracking-tight text-slate-900">
-        Map Layers
+        {{ 'mapLayersPanel.title' | translate }}
       </h2>
 
       @if (!hasActiveSolution()) {
@@ -28,9 +28,9 @@
             (pointerenter)="onSelectSolutionSpotlightEnter($event)"
             (pointermove)="onSelectSolutionSpotlightMove($event)"
           >
-            <span id="map-layers-select-solution-button-label" class="relative z-10"
-              >Select solution</span
-            >
+            <span id="map-layers-select-solution-button-label" class="relative z-10">{{
+              'mapLayersPanel.selectScenario' | translate
+            }}</span>
           </button>
         </div>
       } @else {
@@ -43,7 +43,7 @@
               id="map-layers-active-scenario-label"
               class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
             >
-              Active Scenario
+              {{ 'mapLayersPanel.activeScenarioLabel' | translate }}
             </p>
             <p
               id="map-layers-active-scenario-name"
@@ -60,7 +60,9 @@
             (click)="requestSolutionFinder()"
           >
             <span id="map-layers-change-scenario-button-icon" aria-hidden="true">⇄</span>
-            <span id="map-layers-change-scenario-button-label">Change</span>
+            <span id="map-layers-change-scenario-button-label">{{
+              'mapLayersPanel.changeButton' | translate
+            }}</span>
           </button>
         </section>
       }
@@ -78,7 +80,7 @@
           id="map-layers-selected-layers-section-title"
           class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
         >
-          Selected Layers
+          {{ 'mapLayersPanel.selectedLayersTitle' | translate }}
         </span>
         <div
           id="map-layers-selected-layers-card"
@@ -90,7 +92,7 @@
               id="map-layers-selected-layers-empty-copy"
               class="px-3 py-2.5 text-[11px] text-slate-600"
             >
-              No layers selected yet. Add layers from Available Layers to control stack order.
+              {{ 'mapLayersPanel.selectedLayersEmpty' | translate }}
             </p>
           } @else {
             @for (selected of selectedLayers(); track selected.id; let isLast = $last) {
@@ -127,7 +129,9 @@
                     draggable="true"
                     data-selected-layer-drag-handle="true"
                     class="flex w-full cursor-grab items-center justify-center text-center text-[13px] font-extrabold leading-none text-slate-500"
-                    [attr.aria-label]="'Drag to reorder ' + selected.name"
+                    [attr.aria-label]="
+                      'mapLayersPanel.dragToReorder' | translate: { name: selected.name }
+                    "
                     (dragstart)="onSelectedLayerDragStart($event, selected.id)"
                     (dragend)="onSelectedLayerDragEnd()"
                   >
@@ -163,7 +167,7 @@
                       <div
                         [id]="'map-layers-selected-layer-row-map-unavailable-wrap-' + selected.id"
                         class="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500"
-                        title="No map layer is currently available for this selection"
+                        [title]="'mapLayersPanel.noMapLayerAvailable' | translate"
                       >
                         <svg
                           [id]="'map-layers-selected-layer-row-map-unavailable-icon-' + selected.id"
@@ -182,7 +186,7 @@
                         <span
                           [id]="'map-layers-selected-layer-row-map-unavailable-copy-' + selected.id"
                         >
-                          No map layer available
+                          {{ 'mapLayersPanel.noMapLayerAvailable' | translate }}
                         </span>
                       </div>
                     }
@@ -192,7 +196,9 @@
                       [id]="'map-layers-selected-layer-row-remove-button-' + selected.id"
                       type="button"
                       class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:border-red-300 hover:text-red-500"
-                      [attr.aria-label]="'Remove ' + selected.name + ' from selected layers'"
+                      [attr.aria-label]="
+                        'mapLayersPanel.removeLayer' | translate: { name: selected.name }
+                      "
                       (click)="removeSelectedLayer(selected.id)"
                     >
                       <svg
@@ -222,8 +228,8 @@
                       [class.opacity-50]="selected.mapUnavailable"
                       [attr.aria-label]="
                         selected.mapUnavailable
-                          ? selected.name + ' does not have a map layer yet'
-                          : 'Toggle visibility for ' + selected.name
+                          ? ('mapLayersPanel.noMapLayerYet' | translate: { name: selected.name })
+                          : ('mapLayersPanel.toggleVisibility' | translate: { name: selected.name })
                       "
                       [attr.aria-pressed]="isSelectedLayerVisible(selected.id)"
                       [disabled]="selected.mapUnavailable"
@@ -281,8 +287,9 @@
                       [disabled]="selected.mapUnavailable"
                       [attr.aria-label]="
                         selected.mapUnavailable
-                          ? 'Style controls are not available for ' + selected.name
-                          : 'Toggle controls for ' + selected.name
+                          ? ('mapLayersPanel.styleControlsUnavailable'
+                            | translate: { name: selected.name })
+                          : ('mapLayersPanel.toggleControls' | translate: { name: selected.name })
                       "
                       [attr.aria-expanded]="
                         selected.mapUnavailable ? false : isSelectedLayerExpanded(selected.id)
@@ -328,7 +335,7 @@
                             [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
                             class="shrink-0 text-[10px] text-slate-600"
                           >
-                            Opacity
+                            {{ 'mapLayersPanel.opacityLabel' | translate }}
                           </label>
                           <div
                             [id]="
@@ -368,7 +375,7 @@
                               [for]="'map-layers-selected-layer-row-color-input-' + selected.id"
                               class="inline-flex h-5 w-7 shrink-0 items-center justify-center whitespace-nowrap text-[10px] text-slate-600"
                             >
-                              Color
+                              {{ 'mapLayersPanel.colorLabel' | translate }}
                             </label>
                             <span
                               [id]="
@@ -413,7 +420,7 @@
                               "
                               class="inline-flex h-5 w-7 shrink-0 items-center justify-center whitespace-nowrap text-[10px] text-slate-600"
                             >
-                              Color
+                              {{ 'mapLayersPanel.colorLabel' | translate }}
                             </span>
                             <span
                               [id]="
@@ -444,7 +451,7 @@
             id="map-layers-overlays-section-title"
             class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
           >
-            Available Layers
+            {{ 'mapLayersPanel.availableLayersTitle' | translate }}
           </span>
           @if (hasLayerSearchQuery()) {
             <span
@@ -452,11 +459,15 @@
               class="text-[10px] font-semibold text-slate-500"
             >
               {{ layerSearchResultCount() }}
-              {{ layerSearchResultCount() === 1 ? 'match' : 'matches' }}
+              {{
+                layerSearchResultCount() === 1
+                  ? ('mapLayersPanel.searchMatchSingular' | translate)
+                  : ('mapLayersPanel.searchMatchPlural' | translate)
+              }}
             </span>
           } @else {
             <span id="map-layers-overlays-search-hint" class="text-[10px] text-slate-500">
-              Type to filter
+              {{ 'mapLayersPanel.typeToFilter' | translate }}
             </span>
           }
         </div>
@@ -469,7 +480,7 @@
             for="map-layers-overlays-search-input"
             class="sr-only"
           >
-            Search available layers
+            {{ 'mapLayersPanel.searchAriaLabel' | translate }}
           </label>
           <div id="map-layers-overlays-search-row" class="flex items-center gap-2">
             <span
@@ -496,7 +507,7 @@
               id="map-layers-overlays-search-input"
               type="text"
               class="relative top-px h-6 flex-1 border-0 bg-transparent text-xs leading-6 text-slate-700 placeholder:text-slate-600 focus-visible:outline-none"
-              placeholder="Search layers..."
+              [placeholder]="'mapLayersPanel.searchPlaceholder' | translate"
               [value]="layerSearchQuery()"
               (input)="updateLayerSearchQuery($any($event.target).value)"
             />
@@ -508,7 +519,7 @@
               [attr.aria-hidden]="!hasLayerSearchQuery()"
               (click)="clearLayerSearchQuery()"
             >
-              Clear
+              {{ 'mapLayersPanel.clearButton' | translate }}
             </button>
           </div>
         </div>
@@ -516,7 +527,7 @@
           id="map-layers-overlays-visibility-helper-copy"
           class="px-0.5 text-[10px] font-medium text-slate-500"
         >
-          Visibility and style controls live in Selected Layers.
+          {{ 'mapLayersPanel.styleControlsHint' | translate }}
         </p>
 
         <!-- ─── ADMINISTRATIVE BOUNDARIES (above Management Figures) ─── -->
@@ -560,8 +571,8 @@
                 <span
                   id="map-layers-admin-boundaries-sirap-info"
                   class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] font-bold text-slate-600"
-                  [attr.title]="sirapTooltipCopy"
-                  [attr.aria-label]="sirapTooltipCopy"
+                  [attr.title]="'mapLayersPanel.sirapTooltip' | translate"
+                  [attr.aria-label]="'mapLayersPanel.sirapTooltip' | translate"
                   role="img"
                 >
                   i
@@ -591,7 +602,7 @@
                     id="map-layers-admin-boundaries-sirap-help-copy"
                     class="border-b border-slate-100 px-3 py-2 text-[11px] leading-5 text-slate-600"
                   >
-                    {{ sirapTooltipCopy }}
+                    {{ 'mapLayersPanel.sirapTooltip' | translate }}
                   </p>
                   @for (row of visibleGroupRows(abGroup); track row.id; let isLast = $last) {
                     <article
@@ -612,8 +623,6 @@
                           [id]="'map-layers-boundary-selected-button-' + row.id"
                           type="button"
                           class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                          [class.cursor-not-allowed]="isAuthLockedRow(row)"
-                          [class.opacity-50]="isAuthLockedRow(row)"
                           [class.border-blue-200]="row.selected"
                           [class.bg-blue-50]="row.selected"
                           [class.text-blue-700]="row.selected"
@@ -621,25 +630,20 @@
                           [class.bg-white]="!row.selected"
                           [class.text-slate-600]="!row.selected"
                           [attr.aria-label]="
-                            isAuthLockedRow(row)
-                              ? row.name + ' requires login to add'
-                              : (row.selected ? 'Remove ' : 'Add ') + row.name
+                            row.selected
+                              ? ('mapLayersPanel.removeLayer' | translate: { name: row.name })
+                              : ('mapLayersPanel.addLayer' | translate: { name: row.name })
                           "
                           [attr.aria-pressed]="row.selected"
-                          [disabled]="isAuthLockedRow(row)"
                           (click)="toggleLayerSelected(abGroup.id, row.id)"
                         >
-                          {{ row.selected ? 'Added' : 'Add' }}
+                          {{
+                            row.selected
+                              ? ('mapLayersPanel.addedButton' | translate)
+                              : ('mapLayersPanel.addButton' | translate)
+                          }}
                         </button>
                       </div>
-                      @if (isAuthLockedRow(row)) {
-                        <p
-                          [id]="'map-layers-boundary-auth-locked-note-' + row.id"
-                          class="px-3 pb-2 text-[11px] text-amber-700"
-                        >
-                          Login / Register in the header to unlock SIRAP.
-                        </p>
-                      }
                     </article>
                   }
                 </div>
@@ -688,7 +692,11 @@
               class="text-[11px] font-semibold text-slate-600"
             >
               {{ filteredAvailableOverlays().length }}
-              {{ filteredAvailableOverlays().length === 1 ? 'layer' : 'layers' }}
+              {{
+                filteredAvailableOverlays().length === 1
+                  ? ('mapLayersPanel.layerSingular' | translate)
+                  : ('mapLayersPanel.layerPlural' | translate)
+              }}
             </span>
           </button>
 
@@ -735,7 +743,11 @@
                       [attr.aria-pressed]="overlay.selected"
                       (click)="toggleOverlaySelected(overlay.id)"
                     >
-                      {{ overlay.selected ? 'Added' : 'Add' }}
+                      {{
+                        overlay.selected
+                          ? ('mapLayersPanel.addedButton' | translate)
+                          : ('mapLayersPanel.addButton' | translate)
+                      }}
                     </button>
                   </div>
 
@@ -759,7 +771,7 @@
                             [for]="'map-layers-overlay-opacity-slider-' + overlay.id"
                             class="shrink-0 text-[10px] text-slate-600"
                           >
-                            Opacity
+                            {{ 'mapLayersPanel.opacityLabel' | translate }}
                           </label>
                           <input
                             [id]="'map-layers-overlay-opacity-slider-' + overlay.id"
@@ -787,7 +799,7 @@
                             [for]="'map-layers-overlay-color-input-' + overlay.id"
                             class="text-[10px] text-slate-600"
                           >
-                            Color
+                            {{ 'mapLayersPanel.colorLabel' | translate }}
                           </label>
                           <span
                             [id]="'map-layers-overlay-color-swatch-wrap-' + overlay.id"
@@ -871,7 +883,7 @@
                     [id]="'map-layers-group-coming-soon-badge-' + group.id"
                     class="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-slate-600"
                   >
-                    Coming soon
+                    {{ 'mapLayersPanel.comingSoon' | translate }}
                   </span>
                 } @else {
                   @if (visibleGroupCountLabel(group)) {
@@ -947,7 +959,11 @@
                               [attr.aria-pressed]="row.selected"
                               (click)="toggleLayerSelected(group.id, row.id)"
                             >
-                              {{ row.selected ? 'Added' : 'Add' }}
+                              {{
+                                row.selected
+                                  ? ('mapLayersPanel.addedButton' | translate)
+                                  : ('mapLayersPanel.addButton' | translate)
+                              }}
                             </button>
                           }
                         </div>
@@ -985,8 +1001,9 @@
                             [class.rotate-180]="!taxon.expanded && !hasLayerSearchQuery()"
                             [attr.aria-expanded]="taxon.expanded || hasLayerSearchQuery()"
                             [attr.aria-label]="
-                              (taxon.expanded || hasLayerSearchQuery() ? 'Collapse ' : 'Expand ') +
-                              taxon.name
+                              taxon.expanded || hasLayerSearchQuery()
+                                ? ('mapLayersPanel.collapseTaxon' | translate: { name: taxon.name })
+                                : ('mapLayersPanel.expandTaxon' | translate: { name: taxon.name })
                             "
                             (click)="toggleTaxonExpanded(taxon.id)"
                           >
@@ -1033,7 +1050,10 @@
                                 [id]="'map-layers-taxon-search-input-' + taxon.id"
                                 type="text"
                                 class="min-h-7 flex-1 rounded border border-slate-200 px-2 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                                [placeholder]="'Search ' + taxon.name.toLowerCase() + '...'"
+                                [placeholder]="
+                                  'mapLayersPanel.speciesSearchPlaceholder'
+                                    | translate: { taxon: taxon.name.toLowerCase() }
+                                "
                                 [value]="taxon.searchQuery"
                                 (input)="updateTaxonSearch(taxon.id, $any($event.target).value)"
                               />
@@ -1088,7 +1108,11 @@
                                       [attr.aria-pressed]="species.selected"
                                       (click)="toggleSpeciesSelected(taxon.id, species.id)"
                                     >
-                                      {{ species.selected ? 'Added' : 'Add' }}
+                                      {{
+                                        species.selected
+                                          ? ('mapLayersPanel.addedButton' | translate)
+                                          : ('mapLayersPanel.addButton' | translate)
+                                      }}
                                     </button>
                                   </div>
 
@@ -1114,7 +1138,7 @@
                                             "
                                             class="shrink-0 text-[10px] text-slate-600"
                                           >
-                                            Opacity
+                                            {{ 'mapLayersPanel.opacityLabel' | translate }}
                                           </label>
                                           <input
                                             [id]="'map-layers-species-opacity-slider-' + species.id"
@@ -1155,8 +1179,14 @@
                                 class="w-full border-t border-slate-100 px-3 py-1.5 pl-7 text-left text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-700"
                                 (click)="showAllTaxonSpecies(taxon.id)"
                               >
-                                Show all {{ taxon.speciesCount.toLocaleString() }}
-                                {{ taxon.name.toLowerCase() }}...
+                                {{
+                                  'mapLayersPanel.showAllLabel'
+                                    | translate
+                                      : {
+                                          count: taxon.speciesCount.toLocaleString(),
+                                          name: taxon.name.toLowerCase(),
+                                        }
+                                }}
                               </button>
                             }
                           </div>
@@ -1208,7 +1238,11 @@
                               [attr.aria-pressed]="row.selected"
                               (click)="toggleLayerSelected(group.id, row.id)"
                             >
-                              {{ row.selected ? 'Added' : 'Add' }}
+                              {{
+                                row.selected
+                                  ? ('mapLayersPanel.addedButton' | translate)
+                                  : ('mapLayersPanel.addButton' | translate)
+                              }}
                             </button>
                           }
                         </div>
@@ -1248,7 +1282,7 @@
                                     "
                                     class="shrink-0 text-[10px] text-slate-600"
                                   >
-                                    Opacity
+                                    {{ 'mapLayersPanel.opacityLabel' | translate }}
                                   </label>
                                   <input
                                     [id]="
@@ -1298,7 +1332,7 @@
                                     "
                                     class="text-[10px] text-slate-600"
                                   >
-                                    Color
+                                    {{ 'mapLayersPanel.colorLabel' | translate }}
                                   </label>
                                   <span
                                     [id]="
@@ -1357,10 +1391,10 @@
           class="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-center"
         >
           <p id="map-layers-search-empty-state-title" class="text-xs font-semibold text-slate-700">
-            No layers match your search.
+            {{ 'mapLayersPanel.searchNoResults' | translate }}
           </p>
           <p id="map-layers-search-empty-state-copy" class="mt-1 text-[11px] text-slate-600">
-            Try a broader term such as "carbon", "wetlands", or "protected".
+            {{ 'mapLayersPanel.searchNoResultsHint' | translate }}
           </p>
         </div>
       }
@@ -1377,7 +1411,9 @@
         (click)="resetDefaults()"
       >
         <span id="map-layers-reset-defaults-icon" aria-hidden="true">↺</span>
-        <span id="map-layers-reset-defaults-label">Reset Defaults</span>
+        <span id="map-layers-reset-defaults-label">{{
+          'mapLayersPanel.resetDefaults' | translate
+        }}</span>
       </button>
     </footer>
   }

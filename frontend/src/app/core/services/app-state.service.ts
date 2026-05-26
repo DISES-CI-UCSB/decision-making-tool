@@ -23,6 +23,10 @@ export interface MapLegendLayerEntry {
   lineStyle: 'solid' | 'dashed';
   lineWidth: number;
   categories?: MapLegendLayerCategoryEntry[];
+  gradientStartColor?: string;
+  gradientEndColor?: string;
+  gradientMinLabel?: string;
+  gradientMaxLabel?: string;
 }
 
 /** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */
@@ -85,9 +89,6 @@ export class AppStateService {
   readonly isComparing = computed(() => this.comparisonSolution$() !== null);
   readonly canAccessTier2 = computed(
     () => environment.bypassLoginForDevelopment || this.userTier$() >= UserTier.DecisionMaker,
-  );
-  readonly canAccessSirapBoundaries = computed(
-    () => this.canAccessTier2() || environment.allowSirapWithoutAuth,
   );
 
   loadSolution(solution: Solution): void {

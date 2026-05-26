@@ -4,7 +4,11 @@
   },
   "header": {
     "appTitle": "Decision Making Tool",
-    "languageToggleLabel": "Switch to {{lang}}"
+    "languageToggleLabel": "Switch to {{lang}}",
+    "adminAccess": "Admin access",
+    "logout": "Logout",
+    "loginRegister": "Login / Register",
+    "tierChip": "Tier {{tier}}"
   },
   "common": {
     "close": "Close"
@@ -32,9 +36,35 @@
       "label": "Implementation Cost"
     }
   },
+  "mapLegend": {
+    "title": "Legend",
+    "activeScenarioLabel": "Active scenario",
+    "comparison": "Comparison",
+    "selected": "Selected ({{pct}}%)",
+    "notSelected": "Not selected",
+    "aOnly": "A only: {{name}}",
+    "bOnly": "B only: {{name}}",
+    "overlap": "Overlap (A + B)",
+    "scenarioA": "Scenario A: {{name}} ({{pct}}%)",
+    "scenarioB": "Scenario B: {{name}} ({{pct}}%)",
+    "leftSide": "Left side: {{name}}",
+    "rightSide": "Right side: {{name}}",
+    "otherSelectedLayersLabel": "Other selected layers"
+  },
+  "mapView": {
+    "zoomControls": "Map zoom controls",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "zoomToCountry": "Zoom to full country",
+    "exportControls": "Map export controls",
+    "exportPng": "Export PNG",
+    "exporting": "Exporting...",
+    "loadingSolution": "Loading solution..."
+  },
   "analysis": {
+    "tabNavAriaLabel": "Right sidebar view tabs",
     "modes": {
-      "welcome": "No solution selected",
+      "welcome": "No scenario selected",
       "overview": "Overview",
       "aoi": "Area of Interest",
       "comparison": "Comparison"
@@ -50,22 +80,22 @@
       "deltaUnavailable": "No delta"
     },
     "empty": {
-      "title": "Select a solution",
+      "title": "Select a scenario",
       "description": "Load a scenario from the left sidebar."
     },
     "welcome": {
       "kicker": "Analysis workspace",
-      "title": "Start with a solution to unlock analysis panels.",
-      "description": "Use the Solution Finder to load a scenario, review its metrics, and compare tradeoffs without leaving the map workspace.",
+      "title": "Start with a scenario to unlock analysis panels.",
+      "description": "Use the Scenario Finder to load a scenario, review its metrics, and compare tradeoffs without leaving the map workspace.",
       "heroTitle": "Right-side guidance stays in sync with your workflow.",
-      "heroDescription": "When a solution is active, this panel can switch between overview, AOI, and comparison views as the rest of the experience comes online.",
+      "heroDescription": "When a scenario is active, this panel can switch between overview, AOI, and comparison views as the rest of the experience comes online.",
       "getStarted": "Get Started",
       "stepsTitle": "How this flow works",
       "stepsDescription": "A lightweight onboarding sequence for first-time users.",
       "steps": {
         "choose": {
-          "title": "Choose a solution",
-          "description": "Open the Solution Finder to load a candidate strategy for the current planning context."
+          "title": "Choose a scenario",
+          "description": "Open the Scenario Finder to load a scenario for the current planning context."
         },
         "review": {
           "title": "Review the overview",
@@ -73,22 +103,22 @@
         },
         "compare": {
           "title": "Compare options",
-          "description": "Switch into comparison mode once another solution is available for side-by-side review."
+          "description": "Switch into comparison mode once another scenario is available for side-by-side review."
         }
       }
     },
     "overview": {
-      "kicker": "Active solution",
-      "title": "Solution overview",
-      "description": "A compact summary of the current solution and the metrics currently available for review.",
-      "solutionLabel": "Loaded solution",
-      "noDescription": "No description is available for this solution yet.",
+      "kicker": "Active scenario",
+      "title": "Scenario overview",
+      "description": "A compact summary of the current scenario and the metrics currently available for review.",
+      "solutionLabel": "Loaded scenario",
+      "noDescription": "No description is available for this scenario yet.",
       "matchLabel": "Match score",
       "sectionsLabel": "Metric groups",
-      "emptyTitle": "Select a solution",
+      "emptyTitle": "Select a scenario",
       "emptyDescription": "Load a scenario from the left sidebar.",
       "loadErrorTitle": "Couldn't load overview",
-      "loadErrorDescription": "Try selecting the solution again, or choose a different one.",
+      "loadErrorDescription": "Try selecting the scenario again, or choose a different one.",
       "matchBadge": "{{percent}}% Match",
       "goalsMet": "Goals Met",
       "goalsMetSub": "Conservation themes achieved",
@@ -107,7 +137,7 @@
       "unavailableInfoLabel": "Why this metric is unavailable",
       "unavailableTooltip": "Unavailable right now: this metric needs an additional source layer that has not been delivered yet.",
       "inputsTooltip": {
-        "triggerLabel": "Show the inputs used to generate this solution",
+        "triggerLabel": "Show the inputs used to generate this scenario",
         "title": "Inputs used",
         "targetLabel": "Target",
         "constraintsLabel": "Constraints",
@@ -121,8 +151,8 @@
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
       "nationalAnchor": {
         "title": "National Conservation Footprint",
-        "contributing": "This solution designates {{percent}}% of Colombia for conservation.",
-        "currentContribution": "Solution footprint: {{percent}}%",
+        "contributing": "This scenario designates {{percent}}% of Colombia for conservation.",
+        "currentContribution": "Scenario footprint: {{percent}}%",
         "targetLabel": "30x30 benchmark (30%)",
         "minLabel": "0% of Colombia",
         "maxLabel": "100% of Colombia"
@@ -141,7 +171,7 @@
         "threatenedSpeciesSecured": "Threatened Species Secured",
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",
-        "ecosystemCoverageDesc": "Key ecosystems within solution",
+        "ecosystemCoverageDesc": "Key ecosystems within scenario",
         "carbonStorageCapacity": "Carbon Storage Capacity",
         "carbonStorageCapacityDesc": "Total biomass in priority areas",
         "waterRegulationServices": "Water Regulation Services",
@@ -154,10 +184,28 @@
         "conflictZoneOverlapDesc": "Historical conflict zones"
       }
     },
+    "comparison": {
+      "kicker": "Compare Scenarios",
+      "description": "Review Scenario A and Scenario B metrics side by side before making a recommendation.",
+      "baselineLabel": "Scenario A",
+      "candidateLabel": "Scenario B",
+      "baselineShort": "Scenario A",
+      "candidateShort": "Scenario B",
+      "emptyTitle": "No comparison scenario loaded",
+      "emptyDescription": "Add a second scenario to compare tradeoffs against the current selection.",
+      "noBaselineTitle": "Choose a scenario first",
+      "noBaselineDescription": "Load a scenario before opening comparison mode.",
+      "selectScenario": "Select scenario",
+      "visualizationTitle": "Comparison Visualization",
+      "visualizationDescription": "Pick how Scenario A and B are visualized on the map.",
+      "visualizationAriaLabel": "Comparison visualization mode",
+      "metricColumn": "Metric",
+      "differenceColumn": "Difference"
+    },
     "aoi": {
       "kicker": "AOI detail",
       "title": "Area of interest detail",
-      "description": "Focus the active solution on a selected geography to inspect AOI-specific metrics.",
+      "description": "Focus the active scenario on a selected geography to inspect AOI-specific metrics.",
       "selectedLabel": "Selected AOI",
       "typeLabel": "Type",
       "types": {
@@ -168,19 +216,73 @@
       "emptyTitle": "No area of interest selected",
       "emptyDescription": "Select an AOI to populate this panel with local metrics and context.",
       "emptyMetricsTitle": "AOI metrics are not ready",
-      "emptyMetricsDescription": "AOI metrics appear here once both a solution and an area of interest are available."
-    },
-    "comparison": {
-      "kicker": "Compare Solutions",
-      "description": "Review baseline and candidate solution metrics in one place before making a recommendation.",
-      "baselineLabel": "Baseline solution",
-      "candidateLabel": "Candidate solution",
-      "baselineShort": "Baseline",
-      "candidateShort": "Candidate",
-      "emptyTitle": "No comparison solution loaded",
-      "emptyDescription": "Add a second solution to compare tradeoffs against the current baseline.",
-      "noBaselineTitle": "Choose a baseline first",
-      "noBaselineDescription": "Load an active solution before opening comparison mode."
+      "emptyMetricsDescription": "AOI metrics appear here once both a scenario and an area of interest are available.",
+      "sirapScopeLabel": "SIRAP selection scope",
+      "scopePolygon": "Polygon",
+      "scopeFull": "Full SIRAP",
+      "sections": {
+        "conservation": "Conservation Summary",
+        "biodiversity": "Biodiversity",
+        "ecosystems": "Ecosystems & Carbon",
+        "land": "Land Use & Socio-Economic",
+        "cultural": "Cultural & Indigenous Territories",
+        "marine": "Marine"
+      },
+      "allConditional": "All Conditional",
+      "generateReport": "Generate Regional Report",
+      "hero": {
+        "priorityAreaLabel": "Priority Area in Region",
+        "ofMunicipality": "of this municipality",
+        "nationalContributionLabel": "30×30 Contribution",
+        "existingAdds": "Existing {{existing}} + adds {{added}}"
+      },
+      "stats": {
+        "totalProtectedArea": "Total Protected Area",
+        "parksOverlap": "Overlap w/ Nat'l Parks",
+        "ofAoiPriorityArea": "Of AOI priority area",
+        "speciesChartAxisLabel": "Species count by taxa",
+        "threatenedSpecies": "Threatened Species",
+        "iucnLabel": "IUCN CR / EN / VU",
+        "endemicSpecies": "Endemic Species",
+        "colombiaEndemics": "Colombia endemics",
+        "nationalSpeciesTotal": "% of National Species Total",
+        "nationalSpeciesTotalDesc": "Share of Colombia's total species found in this AOI",
+        "totalCarbonBiomass": "Total Carbon Biomass",
+        "nationalCarbon": "% of National Carbon",
+        "nationalCarbonDesc": "Of Colombian stocks",
+        "aboveGroundCarbon": "Above-ground Carbon",
+        "soilOrganicCarbon": "Soil Organic Carbon",
+        "waterRegulation": "Water Regulation Capacity",
+        "waterRegulationDesc": "Hydrological service provision for downstream communities",
+        "waterIndex": "Index 78 / 100",
+        "agOpportunityCost": "Ag. Opportunity Cost",
+        "agOpportunityCostDesc": "Economic value of agricultural production foregone",
+        "conflictZoneOverlap": "Conflict Zone Overlap",
+        "conflictZoneOverlapDesc": "Priority area overlapping historical conflict zones",
+        "indigenousReservations": "Indigenous Reservations",
+        "indigenousReservationsDesc": "Area within AOI priority zones",
+        "communityCounsils": "Community Councils",
+        "communityCouncilsDesc": "Afro-Colombian community council territories",
+        "indigenousOverlap": "Overlap w/ Indigenous Territories",
+        "indigenousOverlapDesc": "Share of scenario in indigenous territories",
+        "mpaOverlap": "MPA Overlap",
+        "mpaOverlapDesc": "Scenario overlapping existing Marine Protected Areas",
+        "coralReef": "Coral Reef Coverage",
+        "coralReefDesc": "Coral reef ecosystems within marine scenario",
+        "mangrove": "Mangrove Coverage",
+        "mangroveDesc": "Mangrove ecosystems within scenario",
+        "seagrass": "Seagrass Bed Coverage",
+        "seagrassDesc": "Seagrass ecosystems within scenario",
+        "eez": "% of Scenario in EEZ",
+        "eezDesc": "Scenario within Colombia's Exclusive Economic Zone",
+        "marineNarrative": "Marine metrics are displayed when a marine conservation scenario is active. Currently no marine scenario is loaded.",
+        "highValue": "High",
+        "usdEquivalent": "USD equivalent",
+        "historicalZones": "Historical zones",
+        "consultationSensitive": "Consultation-sensitive",
+        "kmAndPct": "km² and %",
+        "requestId": "Request ID"
+      }
     },
     "sections": {
       "ecology": "Ecology",
@@ -190,7 +292,7 @@
   },
   "layout": {
     "leftSidebarTitle": "Left Sidebar",
-    "leftSidebarPlaceholder": "Placeholder container for solution controls.",
+    "leftSidebarPlaceholder": "Placeholder container for scenario controls.",
     "rightSidebarTitle": "Right Sidebar",
     "rightSidebarPlaceholder": "Placeholder container for analysis dashboards.",
     "mobile": {
@@ -207,34 +309,34 @@
   },
   "solutionControls": {
     "onboarding": {
-      "kicker": "Solution controls",
-      "title": "Start here to choose the solution you want to inspect.",
-      "description": "Use the left sidebar to launch the Solution Finder, switch between candidates, and drive what appears in the analysis panel.",
+      "kicker": "Scenario controls",
+      "title": "Start here to choose the scenario you want to inspect.",
+      "description": "Use the left sidebar to launch the Scenario Finder, switch between scenarios, and drive what appears in the analysis panel.",
       "heroTitle": "Selection belongs with the controls.",
-      "heroDescription": "Choose a solution first, then review its metrics and comparisons in the right sidebar.",
+      "heroDescription": "Choose a scenario first, then review its metrics and comparisons in the right sidebar.",
       "getStarted": "Get Started",
       "stepsTitle": "Suggested flow",
       "stepsDescription": "A simple sequence for first-time users.",
       "steps": {
         "choose": {
-          "title": "Open Solution Finder",
-          "description": "Start a guided search for the best-fit solution for the current planning context."
+          "title": "Open Scenario Finder",
+          "description": "Start a guided search for the best-fit scenario for the current planning context."
         },
         "review": {
-          "title": "Load and switch solutions",
-          "description": "Use this sidebar to control which solution is active before reviewing details."
+          "title": "Load and switch scenarios",
+          "description": "Use this sidebar to control which scenario is active before reviewing details."
         },
         "compare": {
           "title": "Inspect the analysis",
-          "description": "Once a solution is active, use the right sidebar to read overview, AOI, and comparison details."
+          "description": "Once a scenario is active, use the right sidebar to read overview, AOI, and comparison details."
         }
       }
     },
     "modal": {
-      "openSolutionFinder": "Open Solution Finder Modal",
+      "openSolutionFinder": "Open Scenario Finder",
       "openPerspective": "Open Perspective Modal",
-      "solutionFinderTitle": "Solution Finder",
-      "solutionFinderComparisonTitle": "Solution Finder (Select Candidate Solution)",
+      "solutionFinderTitle": "Scenario Finder",
+      "solutionFinderComparisonTitle": "Scenario Finder (Select Comparison Scenario)",
       "perspectiveTitle": "Perspective Selector",
       "perspectiveHeading": "Standard modal shell",
       "perspectiveDescription": "This modal uses the standard shell mode and shares the same close behavior and accessibility features."
@@ -244,9 +346,9 @@
       "title": "Find a conservation scenario",
       "description": "Choose what to protect, optional included areas, and a trade-off basis. Matching scenarios refresh automatically as you change filters.",
       "comparison": {
-        "kicker": "Candidate solution search",
-        "title": "Find a candidate solution",
-        "description": "Use the same guided workflow to choose the candidate solution for side-by-side comparison."
+        "kicker": "Comparison scenario search",
+        "title": "Find a comparison scenario",
+        "description": "Use the same guided workflow to choose a comparison scenario for side-by-side comparison."
       },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
@@ -255,7 +357,7 @@
         "nacional": "Nacional",
         "sirap": "SIRAP",
         "selectRegion": "— Select SIRAP region —",
-        "regionalBadge": "Regional solutions",
+        "regionalBadge": "Regional scenarios",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
@@ -268,20 +370,20 @@
       "loading": "Finding scenario…",
       "stepPrefixes": {
         "step1": "Step 1",
-        "step2a": "Step 2",
-        "step2b": "Step 3",
+        "step2a": "Step 3",
+        "step2b": "Step 2",
         "step3": "Step 3"
       },
       "stepLabels": {
         "step1": "What to protect",
         "step2a": "Included areas (optional)",
-        "step2b": "Trade-off basis",
+        "step2b": "Costs",
         "step3": "Matching results"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "step2a": "Choose optional included areas to apply alongside the always-on RUNAP protected areas.",
-        "step2b": "Choose one cost layer to rank candidate sites (lower values are preferred).",
+        "step2b": "Choose a cost layer to evaluate potential conservation areas.",
         "step3": "Matching scenarios refresh automatically as you change filters."
       },
       "stepState": {
@@ -339,15 +441,15 @@
       "step2a": {
         "includeOmecsLabel": "Include OMECs",
         "includeOmecsHelp": "OMECs (WDPA/WDOECM “other effective conservation measures”) are optional; scenario filenames include +OMEC when on.",
-        "includeComunidadesLabel": "Include comunidades territories",
-        "includeComunidadesHelp": "Afro-Colombian community territories that can be locked into a run when enabled.",
+        "includeComunidadesLabel": "Include Afro-Colombian and Indigenous territories",
+        "includeComunidadesHelp": "Locks in Afro-Colombian community territories and Indigenous areas alongside RUNAP when enabled.",
         "alwaysAppliedHeading": "Always applied",
         "alwaysRunapLabel": "RUNAP protected areas",
         "alwaysRunapHelp": "National protected-area network (RUNAP) is included in every precomputed scenario in this catalog.",
         "alwaysOnChip": "Always on"
       },
       "step2b": {
-        "intro": "Choose one cost layer to rank candidate sites (lower values are preferred).",
+        "intro": "Choose a cost layer to evaluate potential conservation areas.",
         "humanFootprintLabel": "Human pressure",
         "humanFootprintHelp": "Projected Human Footprint 2022 (HF_2022): lower score means less expected human pressure.",
         "carbonOpportunityLabel": "Net benefit (agricultural rent)",
@@ -359,7 +461,7 @@
         "cancel": "Cancel",
         "findMatches": "Refresh scenarios",
         "apply": "Apply selected scenario",
-        "loadAsCandidateSolution": "Load as candidate solution"
+        "loadAsCandidateSolution": "Load as comparison scenario"
       },
       "empty": {
         "title": "Set filters to view a scenario",
@@ -383,8 +485,64 @@
         "scenarioCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."
       },
       "toast": {
-        "solutionLoaded": "Solution loaded"
+        "solutionLoaded": "Scenario loaded"
       }
     }
+  },
+  "mapLayersPanel": {
+    "title": "Map Layers",
+    "selectScenario": "Select scenario",
+    "activeScenarioLabel": "Active Scenario",
+    "changeButton": "Change",
+    "selectedLayersTitle": "Selected Layers",
+    "selectedLayersEmpty": "No layers selected yet. Add layers from Available Layers to control stack order.",
+    "dragToReorder": "Drag to reorder {{name}}",
+    "noMapLayerAvailable": "No map layer available",
+    "noMapLayerYet": "{{name}} does not have a map layer yet",
+    "toggleVisibility": "Toggle visibility for {{name}}",
+    "styleControlsUnavailable": "Style controls are not available for {{name}}",
+    "toggleControls": "Toggle controls for {{name}}",
+    "removeLayer": "Remove {{name}} from selected layers",
+    "addLayer": "Add {{name}}",
+    "expandTaxon": "Expand {{name}}",
+    "collapseTaxon": "Collapse {{name}}",
+    "opacityLabel": "Opacity",
+    "colorLabel": "Color",
+    "availableLayersTitle": "Available Layers",
+    "searchMatchSingular": "match",
+    "searchMatchPlural": "matches",
+    "typeToFilter": "Type to filter",
+    "searchAriaLabel": "Search available layers",
+    "searchPlaceholder": "Search layers...",
+    "clearButton": "Clear",
+    "styleControlsHint": "Visibility and style controls live in Selected Layers.",
+    "addedButton": "Added",
+    "addButton": "Add",
+    "layerSingular": "layer",
+    "layerPlural": "layers",
+    "comingSoon": "Coming soon",
+    "showAllLabel": "Show all {{count}} {{name}}...",
+    "searchNoResults": "No layers match your search.",
+    "searchNoResultsHint": "Try a broader term such as \"carbon\", \"wetlands\", or \"protected\".",
+    "resetDefaults": "Reset Defaults",
+    "sirapTooltip": "Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.",
+    "speciesSearchPlaceholder": "Search {{taxon}}...",
+    "sourceLabels": {
+      "selectedScenario": "Selected Scenario",
+      "comparisonScenario": "Comparison Scenario",
+      "comparisonOverlay": "Comparison Overlay",
+      "availableLayers": "Available Layers",
+      "speciesBiodiversity": "Species & Biodiversity",
+      "speciesBiodiversityTaxon": "Species & Biodiversity: {{taxon}}"
+    },
+    "layerMatchSingular": "layer match",
+    "layerMatchPlural": "layer matches",
+    "taxonMatchSingular": "taxon match",
+    "taxonMatchPlural": "taxon matches",
+    "noMatchesLabel": "0 matches",
+    "speciesNote": "Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.",
+    "scenarioNote": "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
+    "individualSpecies": "Individual species",
+    "categoryLabel": "Category {{value}}"
   }
 }
