@@ -154,6 +154,44 @@ body {
   padding: 0 22px 2px 8px !important;
 }
 
+/*
+  Format input row: lay [code input(s)] and the format <select> on a single line.
+  The <select> is injected by the panel component; see inlineColorPickerFormatControl.
+*/
+.color-picker .hex-text .box.map-layers-format-row,
+.color-picker .rgba-text .box.map-layers-format-row,
+.color-picker .hsla-text .box.map-layers-format-row {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 8px 2px !important;
+}
+
+.color-picker .map-layers-format-select {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  width: 72px;
+  height: 28px;
+  padding: 0 22px 0 8px;
+  border: 1px solid rgb(148 163 184);
+  border-radius: 6px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23334155' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #1f2933;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.color-picker .map-layers-format-select:focus {
+  outline: 2px solid rgb(30 111 168 / 0.4);
+  outline-offset: 1px;
+}
+
 .color-picker .preset-area {
   padding: 0 12px 8px !important;
 }

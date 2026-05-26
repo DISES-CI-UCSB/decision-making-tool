@@ -130,8 +130,19 @@ const SPECIES_VISIBLE_LIMIT = 6;
  * the popup always greets the user with the hex input.
  */
 const COLOR_PICKER_HEX_FORMAT = 0;
+/** Formats exposed in the inlined dropdown; values match ngx-color-picker's `format` field. */
+const COLOR_PICKER_FORMAT_OPTIONS = [
+  { format: 0, label: 'Hex' },
+  { format: 1, label: 'RGB' },
+  { format: 2, label: 'HSL' },
+] as const;
+/** Class names of the per-format input containers ngx-color-picker renders into the dialog. */
+const COLOR_PICKER_FORMAT_CONTAINER_CLASSES = ['hex-text', 'rgba-text', 'hsla-text'] as const;
 interface ColorPickerDirectiveWithPrivateDialog {
   dialog: ColorPickerComponent | null;
+}
+interface ColorPickerComponentWithPrivateDialogElement {
+  dialogElement?: { nativeElement: HTMLElement | null } | null;
 }
 type SelectedLayerDropPosition = 'before' | 'after';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
@@ -1762,7 +1773,85 @@ export class MapLayersPanelComponent implements OnDestroy {
     const dialog = (picker as unknown as ColorPickerDirectiveWithPrivateDialog).dialog;
     if (dialog) {
       dialog.format = COLOR_PICKER_HEX_FORMAT;
+      // Wait one frame for the popup DOM to exist, then inline the format control.
+      requestAnimationFrame(() => this.inlineColorPickerFormatControl(dialog));
     }
+  }
+
+  /**
+   * Replaces ngx-color-picker's up/down format arrows with a real <select>
+   * dropdown rendered inline to the right of the code input.
+   *
+   * The library renders one `<div class="hex-text|rgba-text|hsla-text|cmyk-text">`
+   * per format and shows only the active one via `[style.display]`. We inject one
+   * <select> into the input row of each supported container; only the active
+   * container's select is visible at any time, and they all stay in sync.
+   */
+  private inlineColorPickerFormatControl(dialog: ColorPickerComponent): void {
+    const host = this.colorPickerDialogHost(dialog);
+    if (!host) {
+      return;
+    }
+
+    // Hide the original up/down format arrows; they're replaced by the dropdown.
+    const typePolicy = host.querySelector<HTMLElement>('.type-policy');
+    if (typePolicy) {
+      typePolicy.style.display = 'none';
+    }
+
+    for (const containerClass of COLOR_PICKER_FORMAT_CONTAINER_CLASSES) {
+      const container = host.querySelector<HTMLElement>(`.${containerClass}`);
+      if (!container) {
+        continue;
+      }
+      const inputBox = container.querySelector<HTMLElement>(':scope > .box:first-child');
+      const labelBox = container.querySelector<HTMLElement>(':scope > .box:nth-child(2)');
+      if (!inputBox) {
+        continue;
+      }
+      // Drop the under-input format label ("Hex" / "R G B" / ...); the dropdown is the label.
+      if (labelBox) {
+        labelBox.style.display = 'none';
+      }
+      inputBox.classList.add('map-layers-format-row');
+
+      if (!inputBox.querySelector('.map-layers-format-select')) {
+        inputBox.appendChild(this.createColorPickerFormatSelect(dialog, host));
+      }
+    }
+
+    // Sync every select to the current format on each (re)open.
+    host.querySelectorAll<HTMLSelectElement>('.map-layers-format-select').forEach((select) => {
+      select.value = String(dialog.format);
+    });
+  }
+
+  private createColorPickerFormatSelect(
+    dialog: ColorPickerComponent,
+    host: HTMLElement,
+  ): HTMLSelectElement {
+    const select = document.createElement('select');
+    select.className = 'map-layers-format-select';
+    for (const option of COLOR_PICKER_FORMAT_OPTIONS) {
+      const optionEl = document.createElement('option');
+      optionEl.value = String(option.format);
+      optionEl.textContent = option.label;
+      select.appendChild(optionEl);
+    }
+    select.value = String(dialog.format);
+    select.addEventListener('change', () => {
+      dialog.format = Number(select.value);
+      // Mirror the new value across the (hidden) sibling selects in other format containers.
+      host.querySelectorAll<HTMLSelectElement>('.map-layers-format-select').forEach((other) => {
+        other.value = select.value;
+      });
+    });
+    return select;
+  }
+
+  private colorPickerDialogHost(dialog: ColorPickerComponent): HTMLElement | null {
+    const dialogWithElement = dialog as unknown as ColorPickerComponentWithPrivateDialogElement;
+    return dialogWithElement.dialogElement?.nativeElement ?? null;
   }
 
   private syncAllRowsToMap(): void {
