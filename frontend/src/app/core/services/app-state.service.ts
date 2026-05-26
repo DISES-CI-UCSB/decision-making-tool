@@ -23,6 +23,10 @@ export interface MapLegendLayerEntry {
   lineStyle: 'solid' | 'dashed';
   lineWidth: number;
   categories?: MapLegendLayerCategoryEntry[];
+  gradientStartColor?: string;
+  gradientEndColor?: string;
+  gradientMinLabel?: string;
+  gradientMaxLabel?: string;
 }
 
 /** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */

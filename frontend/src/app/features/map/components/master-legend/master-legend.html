@@ -220,10 +220,34 @@
                     ></span>
                   } @else if (entry.swatchType === 'gradient') {
                     <span
-                      [id]="'master-legend-layer-gradient-swatch-' + entry.id"
-                      class="mt-0.5 inline-block h-3 w-3 rounded-[3px] border border-slate-300"
-                      style="background-image: linear-gradient(to right, #dbeafe, #f97316, #7f1d1d)"
-                    ></span>
+                      [id]="'master-legend-layer-gradient-container-' + entry.id"
+                      class="mt-0.5 inline-flex min-w-0 flex-col gap-1"
+                    >
+                      <span
+                        [id]="'master-legend-layer-gradient-swatch-' + entry.id"
+                        class="inline-block h-3 w-16 rounded-[3px] border border-slate-300"
+                        [style.background-image]="
+                          'linear-gradient(to right, ' +
+                          (entry.gradientStartColor ?? '#dbeafe') +
+                          ', ' +
+                          (entry.gradientEndColor ?? '#7f1d1d') +
+                          ')'
+                        "
+                      ></span>
+                      @if (entry.gradientMinLabel || entry.gradientMaxLabel) {
+                        <span
+                          [id]="'master-legend-layer-gradient-labels-' + entry.id"
+                          class="inline-flex w-16 justify-between text-[10px] leading-none text-slate-500"
+                        >
+                          <span [id]="'master-legend-layer-gradient-min-' + entry.id">
+                            {{ entry.gradientMinLabel ?? '' }}
+                          </span>
+                          <span [id]="'master-legend-layer-gradient-max-' + entry.id">
+                            {{ entry.gradientMaxLabel ?? '' }}
+                          </span>
+                        </span>
+                      }
+                    </span>
                   } @else {
                     <span
                       [id]="'master-legend-layer-fill-swatch-' + entry.id"

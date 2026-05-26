@@ -2249,7 +2249,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       };
     }
 
-    if (this.isHumanFootprintLayerRow(row)) {
+    if (this.isContinuousGradientRaster(row)) {
+      const gradientRendering = row.mapSync.rendering;
       return {
         id: row.id,
         name: row.name,
@@ -2257,6 +2258,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         color: row.color,
         lineStyle: 'solid',
         lineWidth: 1,
+        gradientStartColor: gradientRendering?.startColor ?? '#dbeafe',
+        gradientEndColor: gradientRendering?.endColor ?? row.color ?? '#7f1d1d',
+        gradientMinLabel: this.formatLegendValue(gradientRendering?.minValue),
+        gradientMaxLabel: this.formatLegendValue(gradientRendering?.maxValue),
       };
     }
 
@@ -2292,11 +2297,26 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
-  private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
-    // Match by layer ID (locale-independent) rather than by the display name string.
+  private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
+    mapSync: {
+      type: 'manifest-raster';
+      layerId: string;
+      displayUrl: string;
+      rendering: RuntimeLayerManifestRenderingConfig;
+    };
+  } {
     return (
-      row.id.toLowerCase().includes('human_footprint') || row.id === 'layer-soc-human-footprint'
+      row.mapSync?.type === 'manifest-raster' &&
+      row.mapSync.rendering.renderMode === 'gradient' &&
+      row.mapSync.rendering.valueType === 'continuous'
     );
+  }
+
+  private formatLegendValue(value: number | null | undefined): string | undefined {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return undefined;
+    }
+    return Number.isInteger(value) ? `${value}` : value.toFixed(2);
   }
 
   private isSolutionLayerRow(row: LayerControlRow): boolean {
