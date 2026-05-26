@@ -59,7 +59,8 @@
     "exportControls": "Map export controls",
     "exportPng": "Export PNG",
     "exporting": "Exporting...",
-    "loadingSolution": "Loading solution..."
+    "loadingSolution": "Loading solution...",
+    "loadingOmecs": "Loading OMECs..."
   },
   "analysis": {
     "tabNavAriaLabel": "Right sidebar view tabs",
@@ -211,7 +212,8 @@
       "types": {
         "municipality": "Municipality",
         "department": "Department",
-        "sirap": "SIRAP"
+        "sirap": "SIRAP",
+        "omec": "OMEC"
       },
       "emptyTitle": "No area of interest selected",
       "emptyDescription": "Select an AOI to populate this panel with local metrics and context.",

@@ -181,22 +181,6 @@ const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
   omecs: 'overlay-omecs',
 };
-const MANAGEMENT_FIGURE_CATEGORY_VALUES: Record<string, number[]> = {
-  runap: Array.from({ length: 15 }, (_, index) => index + 1),
-  omecs: Array.from({ length: 20 }, (_, index) => index + 1),
-};
-const MANAGEMENT_FIGURE_CATEGORY_PALETTE = [
-  '#1d4ed8',
-  '#16a34a',
-  '#9333ea',
-  '#ea580c',
-  '#0891b2',
-  '#be123c',
-  '#65a30d',
-  '#f59e0b',
-  '#0f766e',
-  '#7c3aed',
-] as const;
 const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
   string,
   { boundaryType: AoiType; boundaryLayerKey: AdminBoundaryLayerKey }
@@ -812,9 +796,16 @@ export class MapLayersPanelComponent implements OnDestroy {
         ? manifestSelectedColor
         : existingOverlay.color;
 
+    // OMECs render as smooth vector polygons (see MapView), so strip the
+    // misleading "(raster)" suffix that the published manifest still carries.
+    const displayName =
+      existingOverlay.id === 'overlay-omecs'
+        ? manifestRow.name.replace(/\s*\(raster\)\s*/i, '').trim() || 'OMECs'
+        : manifestRow.name;
+
     return {
       ...existingOverlay,
-      name: manifestRow.name,
+      name: displayName,
       color: nextColor,
       mapUnavailable: false,
       mapSync: {
@@ -827,13 +818,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   /**
-   * Management figure rasters (RUNAP, OMECs) are categorical mode-code grids
-   * (values like 1..15 / 0..20) even though the manifest declares them as a binary
-   * mask. `selectedValue: 1` therefore drops most/all of the meaningful coverage —
-   * for OMECs there are zero pixels with value=1, so nothing renders.
-   *
-   * We render these as categorical classes so map + legend can communicate
-   * the encoded category values instead of flattening everything to one color.
+   * Management figure rasters (RUNAP, OMECs) are mode-code grids rather than strict
+   * binary 0/1 masks, so `selectedValue: 1` drops valid coverage. We intentionally
+   * treat these as presence masks (any non-zero value) so they render as a single
+   * category/color in the map and legend.
    */
   private normalizeManagementFigureRendering(
     manifestLayerId: string,
@@ -843,22 +831,9 @@ export class MapLayersPanelComponent implements OnDestroy {
       return rendering;
     }
 
-    const classValues = MANAGEMENT_FIGURE_CATEGORY_VALUES[manifestLayerId] ?? [];
-    if (classValues.length === 0) {
-      // Fallback for unknown layers: show presence rather than hide everything.
-      return { ...rendering, selectedValue: null };
-    }
-
     return {
       ...rendering,
-      valueType: 'categorical',
-      renderMode: 'categorical',
-      classColors: classValues.map((value, index) => ({
-        value,
-        color:
-          MANAGEMENT_FIGURE_CATEGORY_PALETTE[index % MANAGEMENT_FIGURE_CATEGORY_PALETTE.length],
-        label: this.translate.instant('mapLayersPanel.categoryLabel', { value }),
-      })),
+      selectedValue: null,
     };
   }
 

@@ -231,6 +231,7 @@ export class AdminBoundaryService {
       sirap: state.siraps || state.siraps_territorial || state.siraps_thematic,
       department: state.admin_departments,
       municipality: state.admin_municipalities,
+      omec: false,
     };
   });
   readonly popupEnabled$ = signal(false);
@@ -686,6 +687,14 @@ export class AdminBoundaryService {
     }
     const value = Number.parseInt(normalized.slice(1), 16);
     return [(value >> 16) & 255, (value >> 8) & 255, value & 255, 235];
+  }
+
+  /**
+   * Public hook for non-boundary AOI selections (e.g. OMEC polygons selected via
+   * MapView's identify flow) to reuse the existing AOI highlight graphics layer.
+   */
+  highlightAoiGeometry(geometry: Geometry | null): void {
+    this.setSelectionHighlight(geometry);
   }
 
   private setSelectionHighlight(selectionGeometry: Geometry | null): void {

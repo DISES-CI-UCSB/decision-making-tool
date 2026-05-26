@@ -1,4 +1,4 @@
-export type AoiType = 'municipality' | 'department' | 'sirap';
+export type AoiType = 'municipality' | 'department' | 'sirap' | 'omec';
 
 export interface AOI {
   id: string;
