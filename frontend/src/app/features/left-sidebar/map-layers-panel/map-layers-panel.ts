@@ -260,6 +260,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
+  private formatSelectIdSequence = 0;
   private loadedSpeciesManifestUrl: string | null = null;
 
   /**
@@ -287,6 +288,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     '#0891B2',
     '#475569',
     '#111827',
+    '#F59E0B',
   ];
 
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
@@ -1831,6 +1833,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     host: HTMLElement,
   ): HTMLSelectElement {
     const select = document.createElement('select');
+    select.id = `map-layers-color-picker-format-select-${this.formatSelectIdSequence++}`;
     select.className = 'map-layers-format-select';
     for (const option of COLOR_PICKER_FORMAT_OPTIONS) {
       const optionEl = document.createElement('option');

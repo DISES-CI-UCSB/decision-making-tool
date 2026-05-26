@@ -65,6 +65,8 @@ body {
 .color-picker {
   z-index: 2000 !important;
   width: 226px !important;
+  /* Align popup arrow closer to swatch vertical midpoint. */
+  transform: translateY(-6px);
 }
 
 .color-picker .hue-alpha {
@@ -72,7 +74,7 @@ body {
 }
 
 .color-picker .hue-alpha.box {
-  padding: 8px !important;
+  padding: 8px 12px 8px 12px !important;
   gap: 8px;
 }
 
@@ -147,7 +149,7 @@ body {
 }
 
 .color-picker .hex-text {
-  padding: 4px 8px 0 !important;
+  padding: 4px 12px 0 !important;
 }
 
 .color-picker .hex-text .box {
@@ -164,6 +166,18 @@ body {
   display: flex !important;
   align-items: center !important;
   padding: 0 8px 2px !important;
+}
+
+.color-picker .hex-text .box.map-layers-format-row {
+  width: 100%;
+  padding: 0 !important;
+  gap: 8px;
+}
+
+.color-picker .hex-text .box.map-layers-format-row input {
+  flex: 1 1 64% !important;
+  width: auto !important;
+  min-width: 0 !important;
 }
 
 .color-picker .map-layers-format-select {
@@ -187,6 +201,12 @@ body {
   cursor: pointer;
 }
 
+.color-picker .hex-text .map-layers-format-select {
+  flex: 1 1 36%;
+  width: auto;
+  margin-left: 0;
+}
+
 .color-picker .map-layers-format-select:focus {
   outline: 2px solid rgb(30 111 168 / 0.4);
   outline-offset: 1px;
@@ -205,7 +225,25 @@ body {
 }
 
 .color-picker .preset-area .preset-color {
-  width: 16px !important;
-  height: 16px !important;
-  margin: 2px 5px 4px !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  flex: 0 0 18px !important;
+  width: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  margin: 2px 0 4px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+.color-picker .preset-area .cp-preset-colors-class {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0;
 }
