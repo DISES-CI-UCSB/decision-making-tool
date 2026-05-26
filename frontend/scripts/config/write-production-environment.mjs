@@ -34,9 +34,9 @@ const environmentFile = `export const environment = {
   },
   googleClientId: ${toTsString(readOptionalEnv('GOOGLE_CLIENT_ID'))},
   manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL'))},
+  blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH') || '/api/blob-proxy/')},
   ENABLE_MANIFEST_EDITOR: ${readBooleanEnv('ENABLE_MANIFEST_EDITOR', false)},
   bypassLoginForDevelopment: false,
-  allowSirapWithoutAuth: false,
 } as const;
 
 export type AppEnvironment = typeof environment;

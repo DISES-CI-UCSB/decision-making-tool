@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T21:25:39.134Z",
+  "generatedAt": "2026-05-21T23:19:08.652Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -8,9 +8,9 @@
   "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
   "frontendSource": "frontend/src/app/features/left-sidebar/map-layers-panel/map-layers-panel.ts",
   "counts": {
-    "manifestCategories": 6,
+    "manifestCategories": 8,
     "currentFrontendCategories": 7,
-    "mappedManifestCategories": 6,
+    "mappedManifestCategories": 8,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 1
   },
@@ -53,6 +53,30 @@
     }
   ],
   "manifestCategoryMappings": [
+    {
+      "manifestCategoryId": "conflict_and_security",
+      "manifestSpanishLabel": "Conflicto y seguridad",
+      "layerIds": [
+        "conflict"
+      ],
+      "frontendCategoryIds": [
+        "group-conflict-security"
+      ],
+      "frontendCategoryTitles": [
+        null
+      ],
+      "status": "maps_cleanly",
+      "notes": "Conflict and security layers map to the existing Conflict & Security sidebar group.",
+      "layerMappings": [
+        {
+          "layerId": "conflict",
+          "spanishLabel": "Conflictos (coca muertes)",
+          "dataRole": "cost_layer",
+          "frontendCategoryId": "group-conflict-security",
+          "frontendCategoryTitle": null
+        }
+      ]
+    },
     {
       "manifestCategoryId": "ecosystems",
       "manifestSpanishLabel": "Ecosistemas",
@@ -226,6 +250,30 @@
           "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-admin-boundaries",
           "frontendCategoryTitle": "Administrative Boundaries"
+        }
+      ]
+    },
+    {
+      "manifestCategoryId": "environmental_services",
+      "manifestSpanishLabel": "Servicios ecosistémicos",
+      "layerIds": [
+        "recarga_agua_subterranea_moderado_alto"
+      ],
+      "frontendCategoryIds": [
+        "group-environmental-services"
+      ],
+      "frontendCategoryTitles": [
+        null
+      ],
+      "status": "maps_cleanly",
+      "notes": "Environmental service layers map to the existing Environmental Services sidebar group.",
+      "layerMappings": [
+        {
+          "layerId": "recarga_agua_subterranea_moderado_alto",
+          "spanishLabel": "Recarga de aguas subterraneas",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-environmental-services",
+          "frontendCategoryTitle": null
         }
       ]
     },

@@ -407,33 +407,28 @@ export class PanelSwitcherComponent {
     biodiversity: {
       title: 'Biodiversity',
       toneClass: 'bio',
-      insight:
-        'Species indicators highlight sensitivity shifts between the baseline and candidate configuration.',
+      insight: '',
     },
     ecosystems: {
       title: 'Ecosystems & Carbon',
       toneClass: 'eco',
-      insight:
-        'Ecosystem and carbon metrics indicate whether trade-offs preserve climate benefits while improving biodiversity.',
+      insight: '',
     },
     socio: {
       title: 'Land Use & Socio-Economic',
       toneClass: 'socio',
-      insight:
-        'Socio-economic cards keep conditional indicators visible to support policy and implementation review.',
+      insight: '',
     },
     protection: {
       title: 'Cultural & Protection',
       toneClass: 'protect',
-      insight:
-        'Governance and overlap metrics help flag consultation-sensitive areas before final selection decisions.',
+      insight: '',
     },
   };
   private readonly comparisonSectionOrder: ComparisonSectionId[] = [
     'general',
     'biodiversity',
     'ecosystems',
-    'socio',
     'protection',
   ];
   private readonly comparisonMetricBlueprints: ComparisonMetricBlueprint[] = [
@@ -441,7 +436,7 @@ export class PanelSwitcherComponent {
       id: 'comp-priority-area',
       section: 'general',
       label: 'Priority Conservation Area',
-      description: 'Estimated protected footprint under each solution.',
+      description: 'Estimated protected footprint under each scenario.',
       dummyBaseline: '210 km²',
       dummyCandidate: '230 km²',
       dummyDelta: '+20 km²',
@@ -544,7 +539,7 @@ export class PanelSwitcherComponent {
       id: 'comp-protected-overlap',
       section: 'protection',
       label: 'Overlap with National Parks',
-      description: 'Candidate overlap with existing formal protected areas.',
+      description: 'Scenario B overlap with existing formal protected areas.',
       dummyBaseline: '14%',
       dummyCandidate: '18%',
       dummyDelta: '+4%',

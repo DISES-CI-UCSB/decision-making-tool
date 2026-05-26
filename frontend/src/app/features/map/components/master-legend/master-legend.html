@@ -14,10 +14,11 @@
         id="master-legend-title"
         class="master-legend-heading-trim flex-1 text-xs font-bold uppercase tracking-wide text-slate-900 leading-none"
       >
-        Legend
+        {{ 'mapLegend.title' | translate }}
       </h3>
       <svg
         id="master-legend-chevron"
+        data-export-ignore="true"
         class="h-3 w-3 text-slate-400 transition-transform duration-200"
         [class.rotate-180]="collapsed()"
         viewBox="0 0 12 12"
@@ -50,14 +51,14 @@
                 id="master-legend-solution-section-title"
                 class="master-legend-section-label text-sm font-medium"
               >
-                {{ legendText.activeScenarioLabel }}
+                {{ 'mapLegend.activeScenarioLabel' | translate }}
               </p>
               @if (shouldShowActiveScenarioName()) {
                 <p
                   id="master-legend-solution-name"
                   class="truncate text-sm font-medium text-slate-500"
                 >
-                  {{ isComparing() ? 'Comparison' : sol.scenario.name }}
+                  {{ isComparing() ? ('mapLegend.comparison' | translate) : sol.scenario.name }}
                 </p>
               }
             </div>
@@ -71,9 +72,12 @@
                   <span
                     id="master-legend-solution-selected-swatch"
                     class="inline-block h-3 w-3 rounded-[3px]"
-                    style="background-color: rgba(22, 163, 74, 0.7)"
+                    [style.background-color]="solutionColor()"
+                    style="opacity: 0.7"
                   ></span>
-                  Selected ({{ sol.rasterMeta.selectedPct.toFixed(1) }}%)
+                  {{
+                    'mapLegend.selected' | translate: { pct: sol.rasterMeta.selectedPct.toFixed(1) }
+                  }}
                 </li>
                 <li id="master-legend-solution-not-selected-item" class="flex items-center gap-2">
                   <span
@@ -81,7 +85,7 @@
                     class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
                     style="background-color: transparent"
                   ></span>
-                  Not selected
+                  {{ 'mapLegend.notSelected' | translate }}
                 </li>
               </ul>
             } @else if (comparisonMode() === 'threeColorOverlay') {
@@ -99,7 +103,7 @@
                     [style.background-color]="baselineColor()"
                     [style.opacity]="baselineOpacity()"
                   ></span>
-                  A only: {{ baselineName() }}
+                  {{ 'mapLegend.aOnly' | translate: { name: baselineName() } }}
                 </li>
                 <li
                   id="master-legend-solution-candidate-item-three-color"
@@ -111,7 +115,7 @@
                     [style.background-color]="candidateColor()"
                     [style.opacity]="candidateOpacity()"
                   ></span>
-                  B only: {{ candidateName() }}
+                  {{ 'mapLegend.bOnly' | translate: { name: candidateName() } }}
                 </li>
                 <li
                   id="master-legend-solution-overlap-item-three-color"
@@ -123,7 +127,7 @@
                     [style.background-color]="overlapColor()"
                     [style.opacity]="overlapOpacity()"
                   ></span>
-                  Overlap (A + B)
+                  {{ 'mapLegend.overlap' | translate }}
                 </li>
               </ul>
             } @else if (comparisonMode() === 'twoColorOpacity') {
@@ -141,7 +145,10 @@
                     [style.background-color]="baselineColor()"
                     [style.opacity]="baselineOpacity()"
                   ></span>
-                  Scenario A: {{ baselineName() }} ({{ baselineOpacityPercent() }}%)
+                  {{
+                    'mapLegend.scenarioA'
+                      | translate: { name: baselineName(), pct: baselineOpacityPercent() }
+                  }}
                 </li>
                 <li
                   id="master-legend-solution-candidate-item-two-color"
@@ -153,7 +160,10 @@
                     [style.background-color]="candidateColor()"
                     [style.opacity]="candidateOpacity()"
                   ></span>
-                  Scenario B: {{ candidateName() }} ({{ candidateOpacityPercent() }}%)
+                  {{
+                    'mapLegend.scenarioB'
+                      | translate: { name: candidateName(), pct: candidateOpacityPercent() }
+                  }}
                 </li>
               </ul>
             } @else {
@@ -168,7 +178,7 @@
                     [style.background-color]="baselineColor()"
                     [style.opacity]="baselineOpacity()"
                   ></span>
-                  Left side: {{ baselineName() }}
+                  {{ 'mapLegend.leftSide' | translate: { name: baselineName() } }}
                 </li>
                 <li
                   id="master-legend-solution-candidate-item-swipe"
@@ -180,7 +190,7 @@
                     [style.background-color]="candidateColor()"
                     [style.opacity]="candidateOpacity()"
                   ></span>
-                  Right side: {{ candidateName() }}
+                  {{ 'mapLegend.rightSide' | translate: { name: candidateName() } }}
                 </li>
               </ul>
             }
@@ -193,7 +203,9 @@
               id="master-legend-layer-section-title"
               class="master-legend-section-label text-sm font-medium"
             >
-              {{ legendText.otherSelectedLayersLabel }} ({{ selectedLayerEntries().length }})
+              {{ 'mapLegend.otherSelectedLayersLabel' | translate }} ({{
+                selectedLayerEntries().length
+              }})
             </p>
             <ul id="master-legend-layer-list" class="space-y-1.5 text-xs text-slate-700">
               @for (entry of selectedLayerEntries(); track entry.id) {
@@ -208,10 +220,34 @@
                     ></span>
                   } @else if (entry.swatchType === 'gradient') {
                     <span
-                      [id]="'master-legend-layer-gradient-swatch-' + entry.id"
-                      class="mt-0.5 inline-block h-3 w-3 rounded-[3px] border border-slate-300"
-                      style="background-image: linear-gradient(to right, #dbeafe, #f97316, #7f1d1d)"
-                    ></span>
+                      [id]="'master-legend-layer-gradient-container-' + entry.id"
+                      class="mt-0.5 inline-flex min-w-0 flex-col gap-1"
+                    >
+                      <span
+                        [id]="'master-legend-layer-gradient-swatch-' + entry.id"
+                        class="inline-block h-3 w-16 rounded-[3px] border border-slate-300"
+                        [style.background-image]="
+                          'linear-gradient(to right, ' +
+                          (entry.gradientStartColor ?? '#dbeafe') +
+                          ', ' +
+                          (entry.gradientEndColor ?? '#7f1d1d') +
+                          ')'
+                        "
+                      ></span>
+                      @if (entry.gradientMinLabel || entry.gradientMaxLabel) {
+                        <span
+                          [id]="'master-legend-layer-gradient-labels-' + entry.id"
+                          class="inline-flex w-16 justify-between text-[10px] leading-none text-slate-500"
+                        >
+                          <span [id]="'master-legend-layer-gradient-min-' + entry.id">
+                            {{ entry.gradientMinLabel ?? '' }}
+                          </span>
+                          <span [id]="'master-legend-layer-gradient-max-' + entry.id">
+                            {{ entry.gradientMaxLabel ?? '' }}
+                          </span>
+                        </span>
+                      }
+                    </span>
                   } @else {
                     <span
                       [id]="'master-legend-layer-fill-swatch-' + entry.id"

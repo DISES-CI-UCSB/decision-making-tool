@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import Extent from '@arcgis/core/geometry/Extent';
 import MediaLayer from '@arcgis/core/layers/MediaLayer';
 import ImageElement from '@arcgis/core/layers/support/ImageElement';
@@ -6,6 +6,20 @@ import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAnd
 import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaElementSource';
 import type ArcGISMap from '@arcgis/core/Map';
 import type { RuntimeLayerManifestRenderingConfig } from '@core/models/layer-manifest.model';
+
+/**
+ * The OMEC overlay is special-cased: instead of rendering the 1 km
+ * `omecs.tif` raster (which produces chunky stair-stepped polygon edges),
+ * MapView draws the original vector polygons via a GeoJSONLayer and mirrors
+ * the sidebar state below. The raster file is kept for live metrics only.
+ */
+export const OMEC_OVERLAY_LAYER_ID = 'overlay-omecs';
+
+export interface OmecOverlayState {
+  visible: boolean;
+  opacity: number;
+  color: string;
+}
 
 interface LoadedManifestRaster {
   width: number;
@@ -24,7 +38,7 @@ interface ManifestRasterLayerState {
 }
 
 const DEFAULT_BBOX: [number, number, number, number] = [-79.0, -4.5, -66.0, 13.5];
-const RASTER_ALPHA = 170;
+const RASTER_ALPHA = 255;
 
 @Injectable({ providedIn: 'root' })
 export class ManifestRasterLayerService {
@@ -32,6 +46,12 @@ export class ManifestRasterLayerService {
   private readonly layersById = new Map<string, InstanceType<typeof MediaLayer>>();
   private readonly rasterByUrl = new Map<string, Promise<LoadedManifestRaster>>();
   private readonly latestStateByLayerId = new Map<string, ManifestRasterLayerState>();
+
+  /**
+   * Latest OMEC overlay sidebar state, consumed by MapView to drive the
+   * vector display layer. `null` until the row is first synced.
+   */
+  readonly omecOverlayState$ = signal<OmecOverlayState | null>(null);
 
   initialize(map: InstanceType<typeof ArcGISMap>): void {
     this.map = map;
@@ -42,6 +62,18 @@ export class ManifestRasterLayerService {
     state: ManifestRasterLayerState,
     options: { selected: boolean } = { selected: false },
   ): void {
+    if (layerId === OMEC_OVERLAY_LAYER_ID) {
+      // MapView renders OMECs from the vector GeoJSON instead of this raster
+      // so we only forward sidebar state and ensure no MediaLayer lingers.
+      this.removeRenderedLayer(layerId);
+      this.omecOverlayState$.set({
+        visible: options.selected && state.visible,
+        opacity: state.opacity,
+        color: state.color,
+      });
+      return;
+    }
+
     this.latestStateByLayerId.set(layerId, state);
 
     if (!options.selected) {
@@ -52,6 +84,18 @@ export class ManifestRasterLayerService {
     void this.ensureRenderedLayer(layerId, state).catch((error) => {
       console.error(`[ManifestRasterLayerService] failed to render "${layerId}"`, error);
     });
+  }
+
+  private removeRenderedLayer(layerId: string): void {
+    const layer = this.layersById.get(layerId);
+    if (!layer) {
+      return;
+    }
+    if (this.map) {
+      this.map.remove(layer);
+    }
+    this.layersById.delete(layerId);
+    this.latestStateByLayerId.delete(layerId);
   }
 
   private async ensureRenderedLayer(
@@ -101,6 +145,14 @@ export class ManifestRasterLayerService {
       return;
     }
     layer.visible = visible;
+  }
+
+  isLayerVisible(layerId: string): boolean {
+    if (layerId === OMEC_OVERLAY_LAYER_ID) {
+      return !!this.omecOverlayState$()?.visible;
+    }
+    const layer = this.layersById.get(layerId);
+    return !!layer?.visible;
   }
 
   private async loadRaster(displayUrl: string): Promise<LoadedManifestRaster> {

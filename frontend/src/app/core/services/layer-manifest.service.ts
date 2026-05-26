@@ -3,6 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import {
   buildManifestSidebarLayerGroups,
   groupManifestLayersBySidebarCategory,
+  type LayerLocale,
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayersByCategory,
   type RuntimeLayerManifest,
@@ -34,12 +35,18 @@ export class LayerManifestService {
     return this.manifest$;
   }
 
-  getSidebarLayerGroups(): Observable<ManifestSidebarLayerGroup[]> {
-    return this.manifest$.pipe(map((manifest) => buildManifestSidebarLayerGroups(manifest)));
+  getSidebarLayerGroups(locale: LayerLocale = 'en'): Observable<ManifestSidebarLayerGroup[]> {
+    return this.manifest$.pipe(
+      map((manifest) => buildManifestSidebarLayerGroups(manifest, locale)),
+    );
   }
 
-  getLayersBySidebarCategory(): Observable<ManifestSidebarLayersByCategory> {
-    return this.manifest$.pipe(map((manifest) => groupManifestLayersBySidebarCategory(manifest)));
+  getLayersBySidebarCategory(
+    locale: LayerLocale = 'en',
+  ): Observable<ManifestSidebarLayersByCategory> {
+    return this.manifest$.pipe(
+      map((manifest) => groupManifestLayersBySidebarCategory(manifest, locale)),
+    );
   }
 
   getResolvedManifestUrl(): Observable<string> {

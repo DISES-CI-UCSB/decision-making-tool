@@ -9,13 +9,14 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { UI_TEXT_TOKENS } from '@core/config/ui-text-tokens';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-master-legend',
   standalone: true,
+  imports: [TranslatePipe],
   templateUrl: './master-legend.html',
   styleUrl: './master-legend.scss',
 })
@@ -26,7 +27,6 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   private readonly compactViewportMaxWidthPx = 1280;
   private readonly onWindowResize = (): void => this.syncViewportMode();
   private resizeObserver: ResizeObserver | null = null;
-  protected readonly legendText = UI_TEXT_TOKENS.mapLegend;
   private readonly appState = inject(AppStateService);
   private readonly solutionLayer = inject(SolutionLayerService);
 
@@ -46,6 +46,7 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly candidateName = computed(
     () => this.appState.comparisonSolution$()?.name ?? 'Scenario B',
   );
+  readonly solutionColor = this.solutionLayer.solutionColor$;
   readonly baselineColor = this.solutionLayer.baselineColor$;
   readonly candidateColor = this.solutionLayer.candidateColor$;
   readonly overlapColor = this.solutionLayer.overlapColor$;
