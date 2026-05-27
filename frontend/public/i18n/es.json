@@ -203,6 +203,25 @@
         "agriculturalOpportunityCostDesc": "Produccion sacrificada",
         "conflictZoneOverlap": "Superposicion con zonas de conflicto",
         "conflictZoneOverlapDesc": "Zonas de conflicto historicas"
+      },
+      "metricUnits": {
+        "ofTargets": "de las metas",
+        "ninetyPercentOfTotal": "90% del total",
+        "eightyEightPercentSecured": "88% asegurado",
+        "eightyFivePercentOfTarget": "85% de la meta",
+        "ofColombia": "de Colombia",
+        "selected": "seleccionado",
+        "paramo": "paramo",
+        "dryForest": "bosque seco",
+        "wetlands": "humedales",
+        "mangrove": "manglar",
+        "resguardos": "resguardos",
+        "communities": "comunidades",
+        "tco2e": "tCO2e",
+        "cubicMeterIndex": "indice m³",
+        "fifteenPercentOverlap": "15% de superposicion",
+        "usd": "USD",
+        "areaAffected": "Area afectada"
       }
     },
     "aoi": {
@@ -304,7 +323,28 @@
         "historicalZones": "Zonas históricas",
         "consultationSensitive": "Sensible a consulta previa",
         "kmAndPct": "km² y %",
-        "requestId": "ID de solicitud"
+        "requestId": "ID de solicitud",
+        "protectedAreaUnit": "31% del AOI bajo protección",
+        "speciesCountBarAriaLabel": "Barra de conteo de especies para {{label}}",
+        "ecosystemDistributionAriaLabel": "Distribución de cobertura de ecosistemas"
+      },
+      "narratives": {
+        "threatenedSpeciesValue": "5 especies amenazadas",
+        "threatenedSpeciesSuffix": "(CR/EN/VU) tienen habitat dentro de las areas prioritarias de este AOI.",
+        "ecosystemPrefix": "Este AOI almacena ",
+        "ecosystemCarbonValue": "7% de las reservas de carbono de Colombia",
+        "ecosystemMiddle": " y ofrece ",
+        "ecosystemWaterRegulationValue": "regulacion hidrica superior al promedio",
+        "ecosystemSuffix": " para la cuenca del rio Cauca. El bosque nublado representa la mayor parte de la cobertura ecosistemica.",
+        "landPrefix": "60% del area prioritaria de este AOI es bosque natural. El costo de oportunidad agricola es ",
+        "landMiddle": ", con ",
+        "landSuffix": " en zonas de conflicto historicas.",
+        "culturalSuffix": " del area prioritaria de este AOI se superpone con territorios indigenas. Puede requerirse consulta previa bajo el Convenio 169 de la OIT.",
+        "contextAfterName": " aporta ",
+        "contextAfterContribution": " a la meta de conservacion 30x30 de Colombia. Con ",
+        "contextCarbonValue": "7% de las reservas nacionales de carbono",
+        "contextSpeciesValue": "7% de las especies nacionales",
+        "contextSuffix": " y regulacion hidrica superior al promedio, este municipio es un contribuyente moderado a las metas nacionales de conservacion."
       }
     },
     "comparison": {
@@ -323,7 +363,54 @@
       "visualizationDescription": "Elige cómo se visualizan el Escenario A y B en el mapa.",
       "visualizationAriaLabel": "Modo de visualización de comparación",
       "metricColumn": "Métrica",
-      "differenceColumn": "Diferencia"
+      "differenceColumn": "Diferencia",
+      "actions": {
+        "select": "Seleccionar",
+        "change": "Cambiar"
+      },
+      "visualizationModes": {
+        "threeColorOverlay": {
+          "label": "Superposicion de 3 colores",
+          "description": "Solo A, solo B y la superposicion se muestran con colores separados."
+        },
+        "swipe": {
+          "label": "Control deslizante",
+          "description": "Compara lado a lado con un divisor arrastrable."
+        }
+      },
+      "sections": {
+        "general": "Resumen de conservacion",
+        "biodiversity": "Biodiversidad",
+        "ecosystems": "Ecosistemas y carbono",
+        "socio": "Uso del suelo y socioeconomico",
+        "protection": "Cultural y proteccion"
+      },
+      "metrics": {
+        "priorityArea": "Area prioritaria de conservacion",
+        "priorityAreaDesc": "Huella protegida estimada en cada escenario.",
+        "nationalTarget": "Contribucion a la meta 30x30",
+        "nationalTargetDesc": "Contribucion relativa a los compromisos nacionales de conservacion.",
+        "biodiversity": "Biodiversidad",
+        "biodiversityDesc": "Puntaje compuesto de desempeno en biodiversidad.",
+        "threatenedSpecies": "Cobertura de especies amenazadas",
+        "threatenedSpeciesDesc": "Especies CR/EN/VU con habitat representado en zonas prioritarias.",
+        "endemicSpecies": "Cobertura de especies endemicas",
+        "endemicSpeciesDesc": "Especies endemicas de Colombia representadas en areas seleccionadas.",
+        "carbonStorage": "Almacenamiento de carbono",
+        "carbonStorageDesc": "Almacenamiento de carbono estimado retenido en areas seleccionadas.",
+        "waterRegulation": "Capacidad de regulacion hidrica",
+        "waterRegulationDesc": "Apoyo de servicios hidrologicos para comunidades aguas abajo.",
+        "implementationCost": "Costo de implementacion",
+        "implementationCostDesc": "Rango estimado de costos de implementacion.",
+        "agriculturalOpportunityCost": "Costo de oportunidad agricola",
+        "agriculturalOpportunityCostDesc": "Compensacion agricola estimada en zonas afectadas.",
+        "conflictZoneOverlap": "Superposicion con zonas de conflicto",
+        "conflictZoneOverlapDesc": "Superposicion con areas historicamente afectadas por el conflicto.",
+        "protectedOverlap": "Superposicion con parques nacionales",
+        "protectedOverlapDesc": "Superposicion del Escenario B con areas protegidas formales existentes.",
+        "indigenousOverlap": "Superposicion con territorios indigenas",
+        "indigenousOverlapDesc": "Superposicion sensible a consulta previa en territorios indigenas."
+      }
     },
     "sections": {
       "ecology": "Ecologia",

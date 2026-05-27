@@ -46,7 +46,7 @@ interface OverviewMetricBlueprint {
   iconClass?: string;
   realMetricId?: string;
   dummyValue: string;
-  dummyUnit: string;
+  dummyUnitKey?: string;
   conditional?: boolean;
 }
 
@@ -64,8 +64,8 @@ interface OverviewMetricDisplayEntry {
 interface ComparisonMetricBlueprint {
   id: string;
   section: ComparisonSectionId;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   metricId?: string;
   dummyBaseline: string;
   dummyCandidate: string;
@@ -76,8 +76,8 @@ interface ComparisonMetricBlueprint {
 
 interface ComparisonMetricDisplayEntry {
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   baseline: string;
   candidate: string;
   delta: string;
@@ -88,7 +88,7 @@ interface ComparisonMetricDisplayEntry {
 
 interface ComparisonMetricSection {
   id: ComparisonSectionId;
-  title: string;
+  titleKey: string;
   toneClass: 'general' | 'bio' | 'eco' | 'socio' | 'protect';
   insight: string;
   metrics: ComparisonMetricDisplayEntry[];
@@ -109,8 +109,8 @@ interface AoiLandUseBar {
 
 interface ComparisonVisualizationOption {
   id: ComparisonVisualizationMode;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
 }
 
 /**
@@ -237,7 +237,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-bullseye',
       realMetricId: 'conservation_goals_met',
       dummyValue: '92%',
-      dummyUnit: 'of targets',
+      dummyUnitKey: 'analysis.overview.metricUnits.ofTargets',
     },
     {
       id: 'metric-02-species-groups-protected',
@@ -247,7 +247,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-paw',
       realMetricId: 'species_groups_protected',
       dummyValue: '45 / 50',
-      dummyUnit: '90% of total',
+      dummyUnitKey: 'analysis.overview.metricUnits.ninetyPercentOfTotal',
     },
     {
       id: 'metric-03-threatened-species-secured',
@@ -257,7 +257,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-triangle-exclamation',
       realMetricId: 'threatened_species_secured',
       dummyValue: '28 / 32',
-      dummyUnit: '88% secured',
+      dummyUnitKey: 'analysis.overview.metricUnits.eightyEightPercentSecured',
     },
     {
       id: 'metric-04-ecosystem-coverage',
@@ -267,7 +267,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-seedling',
       realMetricId: 'ecosystem_coverage',
       dummyValue: '125k km²',
-      dummyUnit: '85% of target',
+      dummyUnitKey: 'analysis.overview.metricUnits.eightyFivePercentOfTarget',
     },
     {
       id: 'metric-17-national-contribution',
@@ -277,7 +277,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-flag',
       realMetricId: 'national_contribution',
       dummyValue: '17%',
-      dummyUnit: 'of Colombia',
+      dummyUnitKey: 'analysis.overview.metricUnits.ofColombia',
     },
     {
       id: 'metric-18-priority-area-total',
@@ -287,7 +287,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-square-check',
       realMetricId: 'priority_area_in_region',
       dummyValue: '199k km²',
-      dummyUnit: 'selected',
+      dummyUnitKey: 'analysis.overview.metricUnits.selected',
     },
     {
       id: 'metric-30-paramo-coverage',
@@ -297,7 +297,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-mountain',
       realMetricId: 'ecosystem_coverage_paramo',
       dummyValue: '14k km²',
-      dummyUnit: 'paramo',
+      dummyUnitKey: 'analysis.overview.metricUnits.paramo',
     },
     {
       id: 'metric-31-dry-forest-coverage',
@@ -307,7 +307,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-tree',
       realMetricId: 'ecosystem_coverage_dry_forest',
       dummyValue: '1.7k km²',
-      dummyUnit: 'dry forest',
+      dummyUnitKey: 'analysis.overview.metricUnits.dryForest',
     },
     {
       id: 'metric-32-wetlands-coverage',
@@ -317,7 +317,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-water',
       realMetricId: 'ecosystem_coverage_wetlands',
       dummyValue: '30k km²',
-      dummyUnit: 'wetlands',
+      dummyUnitKey: 'analysis.overview.metricUnits.wetlands',
     },
     {
       id: 'metric-36-mangrove-coverage',
@@ -327,7 +327,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-spa',
       realMetricId: 'mangrove_coverage',
       dummyValue: '866 km²',
-      dummyUnit: 'mangrove',
+      dummyUnitKey: 'analysis.overview.metricUnits.mangrove',
     },
     {
       id: 'metric-59-indigenous-reservations',
@@ -337,7 +337,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-people-group',
       realMetricId: 'indigenous_reservations_area',
       dummyValue: '47k km²',
-      dummyUnit: 'resguardos',
+      dummyUnitKey: 'analysis.overview.metricUnits.resguardos',
     },
     {
       id: 'metric-60-community-councils',
@@ -347,7 +347,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-handshake',
       realMetricId: 'community_councils_area',
       dummyValue: '2.8k km²',
-      dummyUnit: 'comunidades',
+      dummyUnitKey: 'analysis.overview.metricUnits.communities',
     },
     {
       id: 'metric-05-carbon-storage-capacity',
@@ -357,7 +357,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-leaf',
       realMetricId: 'carbon_storage_biomass',
       dummyValue: '2.3B',
-      dummyUnit: 'tCO2e',
+      dummyUnitKey: 'analysis.overview.metricUnits.tco2e',
     },
     {
       id: 'metric-06-water-regulation-services',
@@ -367,7 +367,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-droplet',
       realMetricId: 'water_regulation_area',
       dummyValue: '450M',
-      dummyUnit: 'm³ index',
+      dummyUnitKey: 'analysis.overview.metricUnits.cubicMeterIndex',
     },
     {
       id: 'metric-09-affected-agricultural-area',
@@ -377,7 +377,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-wheat-awn',
       realMetricId: 'agricultural_area',
       dummyValue: '8,500 km²',
-      dummyUnit: '15% overlap',
+      dummyUnitKey: 'analysis.overview.metricUnits.fifteenPercentOverlap',
     },
     {
       id: 'metric-08-agricultural-opportunity-cost',
@@ -387,7 +387,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-coins',
       realMetricId: 'm-cost',
       dummyValue: '$350M',
-      dummyUnit: 'USD',
+      dummyUnitKey: 'analysis.overview.metricUnits.usd',
       conditional: true,
     },
     {
@@ -397,36 +397,36 @@ export class PanelSwitcherComponent {
       descriptionKey: 'analysis.overview.metrics.conflictZoneOverlapDesc',
       iconClass: 'fas fa-triangle-exclamation',
       dummyValue: '95,000 km²',
-      dummyUnit: 'Area affected',
+      dummyUnitKey: 'analysis.overview.metricUnits.areaAffected',
       conditional: true,
     },
   ];
   private readonly comparisonSectionMeta: Record<
     ComparisonSectionId,
-    Pick<ComparisonMetricSection, 'title' | 'toneClass' | 'insight'>
+    Pick<ComparisonMetricSection, 'titleKey' | 'toneClass' | 'insight'>
   > = {
     general: {
-      title: 'Conservation Summary',
+      titleKey: 'analysis.comparison.sections.general',
       toneClass: 'general',
       insight: '',
     },
     biodiversity: {
-      title: 'Biodiversity',
+      titleKey: 'analysis.comparison.sections.biodiversity',
       toneClass: 'bio',
       insight: '',
     },
     ecosystems: {
-      title: 'Ecosystems & Carbon',
+      titleKey: 'analysis.comparison.sections.ecosystems',
       toneClass: 'eco',
       insight: '',
     },
     socio: {
-      title: 'Land Use & Socio-Economic',
+      titleKey: 'analysis.comparison.sections.socio',
       toneClass: 'socio',
       insight: '',
     },
     protection: {
-      title: 'Cultural & Protection',
+      titleKey: 'analysis.comparison.sections.protection',
       toneClass: 'protect',
       insight: '',
     },
@@ -441,8 +441,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-priority-area',
       section: 'general',
-      label: 'Priority Conservation Area',
-      description: 'Estimated protected footprint under each scenario.',
+      labelKey: 'analysis.comparison.metrics.priorityArea',
+      descriptionKey: 'analysis.comparison.metrics.priorityAreaDesc',
       dummyBaseline: '210 km²',
       dummyCandidate: '230 km²',
       dummyDelta: '+20 km²',
@@ -451,8 +451,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-national-target',
       section: 'general',
-      label: 'Contribution to 30x30 Target',
-      description: 'Relative contribution toward national conservation commitments.',
+      labelKey: 'analysis.comparison.metrics.nationalTarget',
+      descriptionKey: 'analysis.comparison.metrics.nationalTargetDesc',
       dummyBaseline: '1.3%',
       dummyCandidate: '1.9%',
       dummyDelta: '+0.6%',
@@ -461,8 +461,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-biodiversity',
       section: 'biodiversity',
-      label: 'Biodiversity',
-      description: 'Composite biodiversity performance score.',
+      labelKey: 'analysis.comparison.metrics.biodiversity',
+      descriptionKey: 'analysis.comparison.metrics.biodiversityDesc',
       metricId: 'm-biodiversity',
       dummyBaseline: '83%',
       dummyCandidate: '92%',
@@ -471,8 +471,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-threatened-species',
       section: 'biodiversity',
-      label: 'Threatened Species Coverage',
-      description: 'CR/EN/VU species with habitat represented in priority zones.',
+      labelKey: 'analysis.comparison.metrics.threatenedSpecies',
+      descriptionKey: 'analysis.comparison.metrics.threatenedSpeciesDesc',
       dummyBaseline: '4 species',
       dummyCandidate: '5 species',
       dummyDelta: '+1',
@@ -481,8 +481,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-endemic-species',
       section: 'biodiversity',
-      label: 'Endemic Species Coverage',
-      description: 'Colombia endemic species represented in selected areas.',
+      labelKey: 'analysis.comparison.metrics.endemicSpecies',
+      descriptionKey: 'analysis.comparison.metrics.endemicSpeciesDesc',
       dummyBaseline: '10 species',
       dummyCandidate: '12 species',
       dummyDelta: '+2',
@@ -491,8 +491,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-carbon',
       section: 'ecosystems',
-      label: 'Carbon Storage',
-      description: 'Estimated carbon storage retained in selected areas.',
+      labelKey: 'analysis.comparison.metrics.carbonStorage',
+      descriptionKey: 'analysis.comparison.metrics.carbonStorageDesc',
       metricId: 'm-carbon',
       dummyBaseline: '69 t/ha',
       dummyCandidate: '74 t/ha',
@@ -501,8 +501,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-water-regulation',
       section: 'ecosystems',
-      label: 'Water Regulation Capacity',
-      description: 'Hydrological service support for downstream communities.',
+      labelKey: 'analysis.comparison.metrics.waterRegulation',
+      descriptionKey: 'analysis.comparison.metrics.waterRegulationDesc',
       dummyBaseline: '72 / 100',
       dummyCandidate: '78 / 100',
       dummyDelta: '+6',
@@ -511,8 +511,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-cost',
       section: 'socio',
-      label: 'Implementation Cost',
-      description: 'Estimated implementation cost envelope.',
+      labelKey: 'analysis.comparison.metrics.implementationCost',
+      descriptionKey: 'analysis.comparison.metrics.implementationCostDesc',
       metricId: 'm-cost',
       dummyBaseline: '$1.7M COP',
       dummyCandidate: '$2.1M COP',
@@ -522,8 +522,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-ag-opportunity',
       section: 'socio',
-      label: 'Agricultural Opportunity Cost',
-      description: 'Estimated agricultural trade-off in affected zones.',
+      labelKey: 'analysis.comparison.metrics.agriculturalOpportunityCost',
+      descriptionKey: 'analysis.comparison.metrics.agriculturalOpportunityCostDesc',
       dummyBaseline: '$108M USD',
       dummyCandidate: '$125M USD',
       dummyDelta: '+$17M USD',
@@ -533,8 +533,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-conflict-overlap',
       section: 'socio',
-      label: 'Conflict Zone Overlap',
-      description: 'Overlap with historically conflict-affected areas.',
+      labelKey: 'analysis.comparison.metrics.conflictZoneOverlap',
+      descriptionKey: 'analysis.comparison.metrics.conflictZoneOverlapDesc',
       dummyBaseline: '31 km²',
       dummyCandidate: '38 km²',
       dummyDelta: '+7 km²',
@@ -544,8 +544,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-protected-overlap',
       section: 'protection',
-      label: 'Overlap with National Parks',
-      description: 'Scenario B overlap with existing formal protected areas.',
+      labelKey: 'analysis.comparison.metrics.protectedOverlap',
+      descriptionKey: 'analysis.comparison.metrics.protectedOverlapDesc',
       dummyBaseline: '14%',
       dummyCandidate: '18%',
       dummyDelta: '+4%',
@@ -554,8 +554,8 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-indigenous-overlap',
       section: 'protection',
-      label: 'Overlap with Indigenous Territories',
-      description: 'Consultation-sensitive overlap across indigenous territories.',
+      labelKey: 'analysis.comparison.metrics.indigenousOverlap',
+      descriptionKey: 'analysis.comparison.metrics.indigenousOverlapDesc',
       dummyBaseline: '10%',
       dummyCandidate: '12%',
       dummyDelta: '+2%',
@@ -723,13 +723,13 @@ export class PanelSwitcherComponent {
   protected readonly comparisonVisualizationOptions: ComparisonVisualizationOption[] = [
     {
       id: 'threeColorOverlay',
-      label: '3-color overlay',
-      description: 'A-only, B-only, and overlap shown as separate colors.',
+      labelKey: 'analysis.comparison.visualizationModes.threeColorOverlay.label',
+      descriptionKey: 'analysis.comparison.visualizationModes.threeColorOverlay.description',
     },
     {
       id: 'swipe',
-      label: 'Swipe slider',
-      description: 'Compare side-by-side with a draggable divider.',
+      labelKey: 'analysis.comparison.visualizationModes.swipe.label',
+      descriptionKey: 'analysis.comparison.visualizationModes.swipe.description',
     },
   ];
 
@@ -919,7 +919,9 @@ export class PanelSwitcherComponent {
 
   protected getAoiMetricStatus(metricId: string): string {
     const metric = this.aoiMetricsById().get(metricId);
-    return metric && metric.status === 'ready' && metric.value !== null ? 'Ready' : '--';
+    return metric && metric.status === 'ready' && metric.value !== null
+      ? this.localizedText('analysis.status.ready')
+      : '--';
   }
 
   protected getAoiMetricPercent(metricId: string, fallbackWhenMissing = 0): number {
@@ -991,8 +993,10 @@ export class PanelSwitcherComponent {
     this.appState.setRightSidebarMode('comparison');
   }
 
-  protected getComparisonActionLabel(): string {
-    return this.comparisonSolution() ? 'Change' : 'Select';
+  protected getComparisonActionLabelKey(): string {
+    return this.comparisonSolution()
+      ? 'analysis.comparison.actions.change'
+      : 'analysis.comparison.actions.select';
   }
 
   protected isComparisonVisualizationModeSelected(mode: ComparisonVisualizationMode): boolean {
@@ -1300,7 +1304,7 @@ export class PanelSwitcherComponent {
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
             value: this.formatMetricForPanel(realMetric),
-            unit: 'Ready',
+            unit: this.localizedText('analysis.status.ready'),
             conditional: Boolean(metric.conditional),
             unavailable: false,
           };
@@ -1313,7 +1317,7 @@ export class PanelSwitcherComponent {
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
             value: metric.dummyValue,
-            unit: metric.dummyUnit,
+            unit: this.localizedText(metric.dummyUnitKey ?? ''),
             conditional: Boolean(metric.conditional),
             unavailable: false,
           };
@@ -1348,7 +1352,7 @@ export class PanelSwitcherComponent {
 
       return {
         id: sectionId,
-        title: sectionMeta.title,
+        titleKey: sectionMeta.titleKey,
         toneClass: sectionMeta.toneClass,
         insight: sectionMeta.insight,
         metrics,
@@ -1366,8 +1370,8 @@ export class PanelSwitcherComponent {
     if (realMetric && this.isComparisonMetricReady(realMetric)) {
       return {
         id: blueprint.id,
-        label: blueprint.label,
-        description: blueprint.description,
+        labelKey: blueprint.labelKey,
+        descriptionKey: blueprint.descriptionKey,
         baseline: this.formatMetricValue(realMetric.baseline),
         candidate: this.formatMetricValue(realMetric.candidate),
         delta: this.formatDelta(realMetric),
@@ -1385,8 +1389,8 @@ export class PanelSwitcherComponent {
     if (shouldFillDummy) {
       return {
         id: blueprint.id,
-        label: blueprint.label,
-        description: blueprint.description,
+        labelKey: blueprint.labelKey,
+        descriptionKey: blueprint.descriptionKey,
         baseline: blueprint.dummyBaseline,
         candidate: blueprint.dummyCandidate,
         delta: blueprint.dummyDelta,
@@ -1399,8 +1403,8 @@ export class PanelSwitcherComponent {
     if (realMetric) {
       return {
         id: blueprint.id,
-        label: blueprint.label,
-        description: blueprint.description,
+        labelKey: blueprint.labelKey,
+        descriptionKey: blueprint.descriptionKey,
         baseline: this.formatMetricValue(realMetric.baseline),
         candidate: this.formatMetricValue(realMetric.candidate),
         delta: this.formatDelta(realMetric),
@@ -1412,8 +1416,8 @@ export class PanelSwitcherComponent {
 
     return {
       id: blueprint.id,
-      label: blueprint.label,
-      description: blueprint.description,
+      labelKey: blueprint.labelKey,
+      descriptionKey: blueprint.descriptionKey,
       baseline: '--',
       candidate: '--',
       delta: '--',
