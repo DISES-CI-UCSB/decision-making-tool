@@ -923,15 +923,30 @@ export class MapLayersPanelComponent implements OnDestroy {
           })
           .filter((row): row is LayerControlRow => row !== null);
 
-        if (rows.length === 0) {
+        const manifestBoundaryKeys = new Set(
+          rows
+            .map((row) =>
+              row.mapSync?.type === 'admin-boundary' ? row.mapSync.boundaryLayerKey : null,
+            )
+            .filter((key): key is AdminBoundaryLayerKey => key !== null),
+        );
+        const preservedRows = group.rows.filter(
+          (row) =>
+            row.mapSync?.type === 'admin-boundary' &&
+            row.mapSync.boundaryLayerKey === 'admin_country_outline' &&
+            !manifestBoundaryKeys.has(row.mapSync.boundaryLayerKey),
+        );
+        const reconciledRows = [...preservedRows, ...rows];
+
+        if (reconciledRows.length === 0) {
           return group;
         }
 
         return {
           ...group,
           title: adminGroup.title,
-          countLabel: this.toLayerCountLabel(rows.length),
-          rows,
+          countLabel: this.toLayerCountLabel(reconciledRows.length),
+          rows: reconciledRows,
         };
       }),
     );
@@ -3667,8 +3682,18 @@ export class MapLayersPanelComponent implements OnDestroy {
       'boundary-admin_departments': 'mapLayersPanel.boundaryNames.departments',
       'boundary-admin_municipalities': 'mapLayersPanel.boundaryNames.municipalities',
     };
+    const boundaryNameFallbacks: Record<string, string> = {
+      'boundary-siraps': 'Combined SIRAP review layer',
+      'boundary-siraps_territorial': 'Territorial SIRAPs',
+      'boundary-siraps_thematic': 'Thematic SIRAP additions',
+      'boundary-admin_country_outline': 'Colombia Outline',
+      'boundary-admin_departments': 'Departments',
+      'boundary-admin_municipalities': 'Municipalities',
+    };
     const key = boundaryNameKeys[rowId];
-    return key ? this.localizedText(key) : undefined;
+    return key
+      ? this.localizedTextOrFallback(key, boundaryNameFallbacks[rowId] ?? rowId)
+      : undefined;
   }
 
   private taxonNameForId(taxonId: string): string | undefined {

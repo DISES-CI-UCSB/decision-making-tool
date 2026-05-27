@@ -2,16 +2,18 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
-import { AdminBoundaryService } from './admin-boundary.service';
+import { AdminBoundaryService, type AdminBoundaryLayerKey } from './admin-boundary.service';
 
 describe('AdminBoundaryService', () => {
   function boundaryRenderer(
     service: AdminBoundaryService,
-    type: AoiType,
+    type: AoiType | AdminBoundaryLayerKey,
   ): Record<string, unknown> | null {
     return (
       service as unknown as {
-        getBoundaryRenderer(boundaryType: AoiType): Record<string, unknown> | null;
+        getBoundaryRenderer(
+          boundaryType: AoiType | AdminBoundaryLayerKey,
+        ): Record<string, unknown> | null;
       }
     ).getBoundaryRenderer(type);
   }
@@ -37,6 +39,8 @@ describe('AdminBoundaryService', () => {
       sirap: false,
       department: false,
       municipality: false,
+      runap: false,
+      omec: false,
     });
   });
 
@@ -68,6 +72,23 @@ describe('AdminBoundaryService', () => {
             color: [17, 24, 39, 235],
             style: 'long-dash',
             width: 1.25,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('renders the default country outline as a transparent polygon boundary', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+
+    expect(boundaryRenderer(service, 'admin_country_outline')).toEqual(
+      expect.objectContaining({
+        symbol: expect.objectContaining({
+          type: 'simple-fill',
+          color: [0, 0, 0, 0],
+          outline: expect.objectContaining({
+            color: [17, 24, 39, 235],
+            width: 1.6,
           }),
         }),
       }),
