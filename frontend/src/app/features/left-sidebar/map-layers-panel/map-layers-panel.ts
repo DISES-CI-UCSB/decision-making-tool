@@ -38,6 +38,7 @@ import {
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
+import { TranslateService } from '@ngx-translate/core';
 import { catchError, of } from 'rxjs';
 
 interface LayerControlRow {
@@ -119,6 +120,7 @@ interface SelectedLayerRow {
 
 const SPECIES_VISIBLE_LIMIT = 6;
 type SelectedLayerDropPosition = 'before' | 'after';
+type SupportedLanguage = 'en' | 'es';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
@@ -164,6 +166,100 @@ const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
   'group-socio-economic': ['#d97706', '#ea580c', '#78716c'],
   'group-cultural-ethnic': ['#6366f1', '#a855f7'],
 };
+const IAVH_ECOSYSTEM_LAYER_ID = 'ecosistemas';
+const STRATEGIC_ECOSYSTEM_LAYER_IDS = new Set(['paramos', 'wetlands', 'bosque_seco', 'mangroves']);
+const ECOSYSTEMS_COPY = {
+  en: {
+    groupTitle: 'Ecosystems',
+    groupNote:
+      'Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. IAVH Ecosystems Classification is a 430-class national reference layer, grouped into broad biome families for display.',
+    iavhRowName: 'IAVH Ecosystems Classification (2024)',
+    strategicPrefix: 'Strategic',
+    otherBiomeFamily: 'Other / N.A.',
+  },
+  es: {
+    groupTitle: 'Ecosistemas',
+    groupNote:
+      'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. La Clasificación de ecosistemas IAVH es una capa nacional de referencia con 430 clases, agrupada en grandes familias de biomas para su visualización.',
+    iavhRowName: 'Clasificación de ecosistemas IAVH (2024)',
+    strategicPrefix: 'Estratégico',
+    otherBiomeFamily: 'Otro / N.A.',
+  },
+} as const;
+const IAVH_ECOSYSTEM_NO_DATA_VALUE = 4294967295;
+const IAVH_ECOSYSTEM_BIOME_GROUPS = [
+  {
+    label: { en: 'Orobioma', es: 'Orobioma' },
+    color: '#4d7c0f',
+    values: [
+      14, 29, 33, 37, 38, 39, 41, 42, 43, 45, 46, 48, 49, 52, 53, 54, 55, 63, 64, 68, 74, 76, 77,
+      80, 82, 84, 86, 87, 89, 90, 92, 93, 96, 97, 98, 99, 100, 101, 111, 112, 114, 116, 118, 122,
+      124, 125, 126, 129, 132, 133, 134, 135, 136, 168, 176, 181, 182, 183, 184, 185, 187, 188, 189,
+      197, 217, 218, 220, 221, 223, 224, 226, 227, 228, 231, 239, 241, 246, 248, 249, 250, 261, 264,
+      265, 271, 278, 279, 280, 283, 292, 293, 312, 313, 314, 317, 318, 319, 320, 321, 322, 325, 327,
+      328, 335, 336, 353, 355, 356, 357, 360, 361, 362, 363, 364, 365, 371, 373, 406, 409, 410, 411,
+      413, 415, 416, 417, 419, 420, 421, 422, 423, 425, 426, 427, 428,
+    ],
+  },
+  {
+    label: { en: 'Zonobioma', es: 'Zonobioma' },
+    color: '#15803d',
+    values: [
+      4, 5, 9, 15, 17, 21, 27, 34, 35, 47, 60, 78, 81, 83, 85, 91, 95, 102, 105, 106, 108, 110, 115,
+      117, 120, 121, 123, 127, 139, 143, 147, 152, 154, 162, 165, 170, 177, 193, 196, 199, 206, 212,
+      219, 230, 234, 240, 243, 245, 251, 252, 254, 263, 266, 272, 275, 277, 286, 288, 296, 297, 301,
+      302, 305, 309, 323, 326, 332, 333, 334, 340, 342, 347, 350, 352, 359, 367, 368, 372, 379, 384,
+      385, 386, 388, 389, 392, 393, 394, 398, 399, 404,
+    ],
+  },
+  {
+    label: { en: 'Hidrobioma', es: 'Hidrobioma' },
+    color: '#0369a1',
+    values: [
+      1, 11, 13, 19, 23, 25, 26, 31, 40, 44, 57, 59, 62, 66, 73, 75, 88, 104, 107, 113, 131, 142,
+      146, 150, 151, 160, 172, 174, 180, 194, 201, 204, 209, 211, 215, 216, 225, 233, 244, 247, 256,
+      257, 258, 262, 274, 276, 285, 295, 298, 310, 316, 324, 331, 345, 351, 358, 374, 377, 382, 383,
+      387, 396, 401, 405,
+    ],
+  },
+  {
+    label: { en: 'Helobioma', es: 'Helobioma' },
+    color: '#0f766e',
+    values: [
+      2, 7, 8, 12, 16, 20, 24, 30, 32, 36, 50, 51, 56, 61, 65, 79, 94, 103, 109, 128, 130, 138, 141,
+      145, 148, 149, 161, 164, 169, 179, 191, 198, 203, 210, 214, 232, 237, 238, 242, 253, 259, 260,
+      267, 268, 282, 287, 294, 299, 311, 315, 330, 341, 344, 346, 349, 354, 376, 381, 390, 395, 402,
+      407, 408,
+    ],
+  },
+  {
+    label: { en: 'Peinobioma', es: 'Peinobioma' },
+    color: '#a16207',
+    values: [
+      3, 6, 10, 18, 28, 67, 69, 71, 119, 140, 144, 156, 157, 158, 163, 166, 171, 178, 186, 192, 202,
+      207, 213, 229, 236, 269, 270, 281, 284, 289, 290, 303, 306, 308, 338, 339, 343, 369, 370, 380,
+      391, 412, 430,
+    ],
+  },
+  {
+    label: { en: 'Litobioma', es: 'Litobioma' },
+    color: '#78716c',
+    values: [
+      137, 153, 155, 159, 167, 173, 175, 190, 195, 200, 205, 208, 222, 235, 307, 329, 337, 348, 366,
+      375, 378, 418, 424, 429,
+    ],
+  },
+  {
+    label: { en: 'Halobioma', es: 'Halobioma' },
+    color: '#0e7490',
+    values: [22, 58, 72, 255, 273, 291, 300, 304, 397, 400, 403, 414],
+  },
+  {
+    label: { en: ECOSYSTEMS_COPY.en.otherBiomeFamily, es: ECOSYSTEMS_COPY.es.otherBiomeFamily },
+    color: '#64748b',
+    values: [70],
+  },
+] as const;
 const MANIFEST_LIVE_RENDER_POLICY = {
   enabledCategoryIds: new Set<string>([
     'ecosystems',
@@ -232,6 +328,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
+  private readonly translate = inject(TranslateService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
   private loadedSpeciesManifestUrl: string | null = null;
@@ -251,6 +348,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   /** Management Figures card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
+  private readonly activeLanguage = signal<SupportedLanguage>(this.resolveActiveLanguage());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
   private readonly sourceManifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
   protected readonly manifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
@@ -326,6 +424,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     'Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.';
 
   constructor() {
+    this.translate.onLangChange
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.activeLanguage.set(this.resolveActiveLanguage()));
+
     this.syncInitialBoundaryState();
     this.loadManifestSidebarRows();
     this.selectedLayerOrder.set(
@@ -400,11 +502,13 @@ export class MapLayersPanelComponent implements OnDestroy {
     });
 
     effect(() => {
+      this.activeLanguage();
       const entries = this.buildMasterLegendLayerEntries();
       untracked(() => this.appState.setSelectedLegendLayers(entries));
     });
 
     effect(() => {
+      this.activeLanguage();
       const previewManifest = this.layerManifestService.stylePreviewManifest$();
       const sourceGroups = this.sourceManifestSidebarLayerGroups();
       const manifestGroups = previewManifest
@@ -440,6 +544,14 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
+  }
+
+  private resolveActiveLanguage(): SupportedLanguage {
+    return this.translate.getCurrentLang() === 'es' ? 'es' : 'en';
+  }
+
+  private ecosystemsCopy(): (typeof ECOSYSTEMS_COPY)[SupportedLanguage] {
+    return ECOSYSTEMS_COPY[this.activeLanguage()];
   }
 
   /** Updates --select-solution-spotlight-* for cursor-follow green and rainforest mask. */
@@ -582,8 +694,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
         return {
           ...group,
-          title: manifestGroup.title,
+          title: this.manifestSidebarGroupTitle(manifestGroup),
           countLabel: this.toLayerCountLabel(rows.length),
+          note: group.id === 'group-ecosystems' ? this.ecosystemsCopy().groupNote : group.note,
           rows,
         };
       }),
@@ -793,7 +906,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     return {
       id: layerId,
-      name: manifestRow.name,
+      name: this.manifestSidebarLayerName(manifestRow),
       selected: existingSelected,
       visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
       expanded: existingRow?.expanded ?? false,
@@ -801,7 +914,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       color: manifestColor ?? existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
       canReorder: true,
       hasStyleControls: true,
-      hasColorControl: true,
+      hasColorControl: rendering.renderMode !== 'categorical',
       mapUnavailable: !isLiveRenderable,
       mapSync:
         isLiveRenderable && manifestRow.displayUrl
@@ -813,6 +926,35 @@ export class MapLayersPanelComponent implements OnDestroy {
             }
           : undefined,
     };
+  }
+
+  private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
+    if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
+      return this.ecosystemsCopy().iavhRowName;
+    }
+    if (STRATEGIC_ECOSYSTEM_LAYER_IDS.has(manifestRow.id)) {
+      return `${this.ecosystemsCopy().strategicPrefix}: ${this.localizedManifestLayerName(
+        manifestRow,
+      )}`;
+    }
+    return this.localizedManifestLayerName(manifestRow);
+  }
+
+  private manifestSidebarGroupTitle(manifestGroup: ManifestSidebarLayerGroup): string {
+    if (manifestGroup.sidebarCategoryId === 'ecosystems') {
+      return this.ecosystemsCopy().groupTitle;
+    }
+    if (this.activeLanguage() === 'es') {
+      return manifestGroup.spanishLabel;
+    }
+    return manifestGroup.englishLabel ?? manifestGroup.spanishLabel;
+  }
+
+  private localizedManifestLayerName(manifestRow: ManifestSidebarLayerRow): string {
+    if (this.activeLanguage() === 'es') {
+      return manifestRow.spanishLabel;
+    }
+    return manifestRow.englishLabel ?? manifestRow.spanishLabel;
   }
 
   private normalizeManifestRendering(
@@ -829,6 +971,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
     if (!manifestRow.rendering) {
       return fallbackRendering;
+    }
+
+    if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
+      return this.iavhEcosystemGroupedRendering();
     }
 
     if (manifestRow.id !== 'species_richness') {
@@ -855,6 +1001,21 @@ export class MapLayersPanelComponent implements OnDestroy {
       maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
       startColor: '#fef3c7',
       endColor: '#854d0e',
+    };
+  }
+
+  private iavhEcosystemGroupedRendering(): RuntimeLayerManifestRenderingConfig {
+    return {
+      valueType: 'categorical',
+      renderMode: 'categorical',
+      noDataValue: IAVH_ECOSYSTEM_NO_DATA_VALUE,
+      classColors: IAVH_ECOSYSTEM_BIOME_GROUPS.flatMap((group) =>
+        group.values.map((value) => ({
+          value,
+          color: group.color,
+          label: group.label[this.activeLanguage()],
+        })),
+      ),
     };
   }
 
@@ -2233,11 +2394,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       Array.isArray(row.mapSync.rendering.classColors) &&
       row.mapSync.rendering.classColors.length > 0
     ) {
-      const categories = row.mapSync.rendering.classColors.map((entry) => ({
-        id: `${row.id}-class-${entry.value}`,
-        label: entry.label?.trim() || `Category ${entry.value}`,
-        color: entry.color,
-      }));
+      const categories = this.groupLegendCategories(row);
       return {
         id: row.id,
         name: row.name,
@@ -2257,6 +2414,28 @@ export class MapLayersPanelComponent implements OnDestroy {
       lineStyle: 'solid',
       lineWidth: 1,
     };
+  }
+
+  private groupLegendCategories(
+    row: LayerControlRow,
+  ): NonNullable<MapLegendLayerEntry['categories']> {
+    if (row.mapSync?.type !== 'manifest-raster') {
+      return [];
+    }
+
+    const categoryByLabel = new Map<string, { id: string; label: string; color: string }>();
+    for (const entry of row.mapSync.rendering.classColors ?? []) {
+      const label = entry.label?.trim() || `Category ${entry.value}`;
+      if (categoryByLabel.has(label)) {
+        continue;
+      }
+      categoryByLabel.set(label, {
+        id: `${row.id}-class-${this.toSlug(label)}`,
+        label,
+        color: entry.color,
+      });
+    }
+    return [...categoryByLabel.values()];
   }
 
   private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
@@ -2765,15 +2944,44 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'group-ecosystems',
-        title: 'Ecosystems',
+        title: this.ecosystemsCopy().groupTitle,
         countLabel: '5 layers',
         collapsed: true,
+        note: this.ecosystemsCopy().groupNote,
         rows: [
-          this.layerRow('eco-types', 'Ecosystem Types', '#0d9488', 60),
-          this.layerRow('eco-paramos', 'Paramos', '#6d8e7e', 55),
-          this.layerRow('eco-wetlands', 'Wetlands', '#0284c7', 55),
-          this.layerRow('eco-dry-forest', 'Dry Forest', '#a16207', 55),
-          this.layerRow('eco-mangroves', 'Mangroves', '#15803d', 55),
+          this.layerRow('eco-types', this.ecosystemsCopy().iavhRowName, '#0d9488', 60),
+          this.layerRow(
+            'eco-paramos',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Páramos' : 'Paramos'
+            }`,
+            '#6d8e7e',
+            55,
+          ),
+          this.layerRow(
+            'eco-wetlands',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Humedales' : 'Wetlands'
+            }`,
+            '#0284c7',
+            55,
+          ),
+          this.layerRow(
+            'eco-dry-forest',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Bosque seco' : 'Dry Forest'
+            }`,
+            '#a16207',
+            55,
+          ),
+          this.layerRow(
+            'eco-mangroves',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Manglares' : 'Mangroves'
+            }`,
+            '#15803d',
+            55,
+          ),
         ],
       },
       {

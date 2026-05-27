@@ -150,7 +150,7 @@ const renderingOverrideByLayerId = {
   ecosistemas: {
     valueType: 'continuous',
     renderMode: 'gradient',
-    noDataValue: -32768,
+    noDataValue: 4294967295,
     minValue: null,
     maxValue: null,
     startColor: DEFAULT_CONTINUOUS_START_COLOR,

@@ -1259,52 +1259,60 @@
                                     {{ row.opacity }}%
                                   </span>
                                 </div>
-                                <div
-                                  [id]="
-                                    'map-layers-layer-row-color-group-' + group.id + '-' + row.id
-                                  "
-                                  class="flex shrink-0 items-center gap-1"
-                                >
-                                  <label
+                                @if (row.hasColorControl) {
+                                  <div
                                     [id]="
-                                      'map-layers-layer-row-color-label-' + group.id + '-' + row.id
+                                      'map-layers-layer-row-color-group-' + group.id + '-' + row.id
                                     "
-                                    [for]="
-                                      'map-layers-layer-row-color-input-' + group.id + '-' + row.id
-                                    "
-                                    class="text-[10px] text-slate-600"
+                                    class="flex shrink-0 items-center gap-1"
                                   >
-                                    Color
-                                  </label>
-                                  <span
-                                    [id]="
-                                      'map-layers-layer-row-color-swatch-wrap-' +
-                                      group.id +
-                                      '-' +
-                                      row.id
-                                    "
-                                    class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
-                                  >
-                                    <input
+                                    <label
                                       [id]="
+                                        'map-layers-layer-row-color-label-' +
+                                        group.id +
+                                        '-' +
+                                        row.id
+                                      "
+                                      [for]="
                                         'map-layers-layer-row-color-input-' +
                                         group.id +
                                         '-' +
                                         row.id
                                       "
-                                      type="color"
-                                      class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                                      [value]="row.color"
-                                      (input)="
-                                        updateLayerColor(
-                                          group.id,
-                                          row.id,
-                                          $any($event.target).value
-                                        )
+                                      class="text-[10px] text-slate-600"
+                                    >
+                                      Color
+                                    </label>
+                                    <span
+                                      [id]="
+                                        'map-layers-layer-row-color-swatch-wrap-' +
+                                        group.id +
+                                        '-' +
+                                        row.id
                                       "
-                                    />
-                                  </span>
-                                </div>
+                                      class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
+                                    >
+                                      <input
+                                        [id]="
+                                          'map-layers-layer-row-color-input-' +
+                                          group.id +
+                                          '-' +
+                                          row.id
+                                        "
+                                        type="color"
+                                        class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
+                                        [value]="row.color"
+                                        (input)="
+                                          updateLayerColor(
+                                            group.id,
+                                            row.id,
+                                            $any($event.target).value
+                                          )
+                                        "
+                                      />
+                                    </span>
+                                  </div>
+                                }
                               </div>
                             </div>
                           </div>
