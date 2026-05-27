@@ -34,7 +34,7 @@ import {
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type OverviewMetricSection = 'gains' | 'costs';
-type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'socio' | 'protection';
+type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'protection';
 type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
 type AoiSectionId = 'general' | 'bio' | 'eco' | 'land' | 'cultural' | 'marine';
 
@@ -420,11 +420,6 @@ export class PanelSwitcherComponent {
       toneClass: 'eco',
       insight: '',
     },
-    socio: {
-      titleKey: 'analysis.comparison.sections.socio',
-      toneClass: 'socio',
-      insight: '',
-    },
     protection: {
       titleKey: 'analysis.comparison.sections.protection',
       toneClass: 'protect',
@@ -507,39 +502,6 @@ export class PanelSwitcherComponent {
       dummyCandidate: '78 / 100',
       dummyDelta: '+6',
       deltaTone: 'positive',
-    },
-    {
-      id: 'comp-cost',
-      section: 'socio',
-      labelKey: 'analysis.comparison.metrics.implementationCost',
-      descriptionKey: 'analysis.comparison.metrics.implementationCostDesc',
-      metricId: 'm-cost',
-      dummyBaseline: '$1.7M COP',
-      dummyCandidate: '$2.1M COP',
-      dummyDelta: '+$0.4M COP',
-      conditional: true,
-    },
-    {
-      id: 'comp-ag-opportunity',
-      section: 'socio',
-      labelKey: 'analysis.comparison.metrics.agriculturalOpportunityCost',
-      descriptionKey: 'analysis.comparison.metrics.agriculturalOpportunityCostDesc',
-      dummyBaseline: '$108M USD',
-      dummyCandidate: '$125M USD',
-      dummyDelta: '+$17M USD',
-      conditional: true,
-      deltaTone: 'negative',
-    },
-    {
-      id: 'comp-conflict-overlap',
-      section: 'socio',
-      labelKey: 'analysis.comparison.metrics.conflictZoneOverlap',
-      descriptionKey: 'analysis.comparison.metrics.conflictZoneOverlapDesc',
-      dummyBaseline: '31 km²',
-      dummyCandidate: '38 km²',
-      dummyDelta: '+7 km²',
-      conditional: true,
-      deltaTone: 'negative',
     },
     {
       id: 'comp-protected-overlap',
@@ -714,7 +676,6 @@ export class PanelSwitcherComponent {
     general: true,
     biodiversity: true,
     ecosystems: true,
-    socio: false,
     protection: false,
   });
   protected readonly comparisonSections = computed<ComparisonMetricSection[]>(() =>
