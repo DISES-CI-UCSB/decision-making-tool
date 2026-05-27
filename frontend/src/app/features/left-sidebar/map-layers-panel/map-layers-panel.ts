@@ -1,5 +1,6 @@
 import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import {
   Component,
   DestroyRef,
@@ -42,7 +43,7 @@ import {
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
-import { catchError, of } from 'rxjs';
+import { catchError, map, of, switchMap } from 'rxjs';
 import { FEATURE_FLAGS } from '@feature-flags';
 
 interface LayerControlRow {
@@ -164,10 +165,14 @@ interface ColorPickerComponentWithPrivateSliderDims {
   updateColorPicker: (emit?: boolean, update?: boolean, cmykInput?: boolean) => void;
 }
 type SelectedLayerDropPosition = 'before' | 'after';
+type SupportedLanguage = 'en' | 'es';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
 const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manifest.json';
+const SPECIES_COLLECTION_ROW_ID = 'layer-species';
+const SPECIES_TAXONOMY_CSV_URL =
+  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv';
 const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
   'group-ecosystems': 'ecosystems',
   'group-socio-economic': 'socioeconomic',
@@ -177,6 +182,21 @@ const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], st
 const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<Record<string, { en: string; es: string }>> = {
   socioeconomic: { en: 'Costs', es: 'Costos' },
 };
+const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabel: string }> = {
+  Mammalia: { taxonId: 'mammals', taxonLabel: 'Mammals' },
+  Aves: { taxonId: 'birds', taxonLabel: 'Birds' },
+  Amphibia: { taxonId: 'amphibians', taxonLabel: 'Amphibians' },
+  Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
+};
+const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
+  ['taxon-mammals', 0],
+  ['taxon-birds', 1],
+  ['taxon-amphibians', 2],
+  ['taxon-reptiles', 3],
+  ['taxon-plants', 4],
+]);
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
   omecs: 'overlay-omecs',
@@ -200,6 +220,100 @@ const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
   'group-socio-economic': ['#d97706', '#ea580c', '#78716c'],
   'group-cultural-ethnic': ['#6366f1', '#a855f7'],
 };
+const IAVH_ECOSYSTEM_LAYER_ID = 'ecosistemas';
+const STRATEGIC_ECOSYSTEM_LAYER_IDS = new Set(['paramos', 'wetlands', 'bosque_seco', 'mangroves']);
+const ECOSYSTEMS_COPY = {
+  en: {
+    groupTitle: 'Ecosystems',
+    groupNote:
+      'Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. IAVH Ecosystems Classification is a 430-class national reference layer, grouped into broad biome families for display.',
+    iavhRowName: 'IAVH Ecosystems Classification (2024)',
+    strategicPrefix: 'Strategic',
+    otherBiomeFamily: 'Other / N.A.',
+  },
+  es: {
+    groupTitle: 'Ecosistemas',
+    groupNote:
+      'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. La Clasificación de ecosistemas IAVH es una capa nacional de referencia con 430 clases, agrupada en grandes familias de biomas para su visualización.',
+    iavhRowName: 'Clasificación de ecosistemas IAVH (2024)',
+    strategicPrefix: 'Estratégico',
+    otherBiomeFamily: 'Otro / N.A.',
+  },
+} as const;
+const IAVH_ECOSYSTEM_NO_DATA_VALUE = 4294967295;
+const IAVH_ECOSYSTEM_BIOME_GROUPS = [
+  {
+    label: { en: 'Orobioma', es: 'Orobioma' },
+    color: '#4d7c0f',
+    values: [
+      14, 29, 33, 37, 38, 39, 41, 42, 43, 45, 46, 48, 49, 52, 53, 54, 55, 63, 64, 68, 74, 76, 77,
+      80, 82, 84, 86, 87, 89, 90, 92, 93, 96, 97, 98, 99, 100, 101, 111, 112, 114, 116, 118, 122,
+      124, 125, 126, 129, 132, 133, 134, 135, 136, 168, 176, 181, 182, 183, 184, 185, 187, 188, 189,
+      197, 217, 218, 220, 221, 223, 224, 226, 227, 228, 231, 239, 241, 246, 248, 249, 250, 261, 264,
+      265, 271, 278, 279, 280, 283, 292, 293, 312, 313, 314, 317, 318, 319, 320, 321, 322, 325, 327,
+      328, 335, 336, 353, 355, 356, 357, 360, 361, 362, 363, 364, 365, 371, 373, 406, 409, 410, 411,
+      413, 415, 416, 417, 419, 420, 421, 422, 423, 425, 426, 427, 428,
+    ],
+  },
+  {
+    label: { en: 'Zonobioma', es: 'Zonobioma' },
+    color: '#15803d',
+    values: [
+      4, 5, 9, 15, 17, 21, 27, 34, 35, 47, 60, 78, 81, 83, 85, 91, 95, 102, 105, 106, 108, 110, 115,
+      117, 120, 121, 123, 127, 139, 143, 147, 152, 154, 162, 165, 170, 177, 193, 196, 199, 206, 212,
+      219, 230, 234, 240, 243, 245, 251, 252, 254, 263, 266, 272, 275, 277, 286, 288, 296, 297, 301,
+      302, 305, 309, 323, 326, 332, 333, 334, 340, 342, 347, 350, 352, 359, 367, 368, 372, 379, 384,
+      385, 386, 388, 389, 392, 393, 394, 398, 399, 404,
+    ],
+  },
+  {
+    label: { en: 'Hidrobioma', es: 'Hidrobioma' },
+    color: '#0369a1',
+    values: [
+      1, 11, 13, 19, 23, 25, 26, 31, 40, 44, 57, 59, 62, 66, 73, 75, 88, 104, 107, 113, 131, 142,
+      146, 150, 151, 160, 172, 174, 180, 194, 201, 204, 209, 211, 215, 216, 225, 233, 244, 247, 256,
+      257, 258, 262, 274, 276, 285, 295, 298, 310, 316, 324, 331, 345, 351, 358, 374, 377, 382, 383,
+      387, 396, 401, 405,
+    ],
+  },
+  {
+    label: { en: 'Helobioma', es: 'Helobioma' },
+    color: '#0f766e',
+    values: [
+      2, 7, 8, 12, 16, 20, 24, 30, 32, 36, 50, 51, 56, 61, 65, 79, 94, 103, 109, 128, 130, 138, 141,
+      145, 148, 149, 161, 164, 169, 179, 191, 198, 203, 210, 214, 232, 237, 238, 242, 253, 259, 260,
+      267, 268, 282, 287, 294, 299, 311, 315, 330, 341, 344, 346, 349, 354, 376, 381, 390, 395, 402,
+      407, 408,
+    ],
+  },
+  {
+    label: { en: 'Peinobioma', es: 'Peinobioma' },
+    color: '#a16207',
+    values: [
+      3, 6, 10, 18, 28, 67, 69, 71, 119, 140, 144, 156, 157, 158, 163, 166, 171, 178, 186, 192, 202,
+      207, 213, 229, 236, 269, 270, 281, 284, 289, 290, 303, 306, 308, 338, 339, 343, 369, 370, 380,
+      391, 412, 430,
+    ],
+  },
+  {
+    label: { en: 'Litobioma', es: 'Litobioma' },
+    color: '#78716c',
+    values: [
+      137, 153, 155, 159, 167, 173, 175, 190, 195, 200, 205, 208, 222, 235, 307, 329, 337, 348, 366,
+      375, 378, 418, 424, 429,
+    ],
+  },
+  {
+    label: { en: 'Halobioma', es: 'Halobioma' },
+    color: '#0e7490',
+    values: [22, 58, 72, 255, 273, 291, 300, 304, 397, 400, 403, 414],
+  },
+  {
+    label: { en: ECOSYSTEMS_COPY.en.otherBiomeFamily, es: ECOSYSTEMS_COPY.es.otherBiomeFamily },
+    color: '#64748b',
+    values: [70],
+  },
+] as const;
 const MANIFEST_LIVE_RENDER_POLICY = {
   enabledCategoryIds: new Set<string>([
     'ecosystems',
@@ -266,6 +380,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly adminBoundaryService = inject(AdminBoundaryService);
   private readonly manifestRasterLayerService = inject(ManifestRasterLayerService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
@@ -306,7 +421,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
-  protected readonly managementFiguresTitle = signal('Management Figures');
+  protected readonly managementFiguresTitle = signal(
+    this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+  );
   protected readonly availableOverlays = computed(() =>
     this.overlays().filter(
       (row) => row.id !== BASELINE_SOLUTION_OVERLAY_ID && row.id !== CANDIDATE_SOLUTION_OVERLAY_ID,
@@ -315,6 +432,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   /** Management Figures card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
+  private readonly activeLanguage = signal<SupportedLanguage>(this.resolveActiveLanguage());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
   private readonly manifestSidebarLoadFailed = signal(false);
   /** Raw manifest stored so groups can be rebuilt reactively when the locale changes. */
@@ -388,6 +506,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
 
   constructor() {
+    this.translate.onLangChange
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.activeLanguage.set(this.resolveActiveLanguage()));
+
     this.syncInitialBoundaryState();
     this.loadManifestSidebarRows();
     this.selectedLayerOrder.set(
@@ -464,11 +586,13 @@ export class MapLayersPanelComponent implements OnDestroy {
     });
 
     effect(() => {
+      this.activeLanguage();
       const entries = this.buildMasterLegendLayerEntries();
       untracked(() => this.appState.setSelectedLegendLayers(entries));
     });
 
     effect(() => {
+      this.activeLanguage();
       const rawManifest = this.rawManifest();
       const previewManifest = this.layerManifestService.stylePreviewManifest$();
       const locale = this.appLocaleService.locale();
@@ -476,7 +600,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       const manifestGroups = previewManifest
         ? buildManifestSidebarLayerGroups(previewManifest, locale)
         : sourceGroups;
-      untracked(() => this.applyManifestSidebarGroups(manifestGroups));
+      untracked(() => {
+        this.syncLocaleSensitiveSidebarLabels();
+        this.applyManifestSidebarGroups(manifestGroups);
+      });
     });
 
     // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
@@ -506,6 +633,14 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
+  }
+
+  private resolveActiveLanguage(): SupportedLanguage {
+    return this.translate.getCurrentLang() === 'es' ? 'es' : 'en';
+  }
+
+  private ecosystemsCopy(): (typeof ECOSYSTEMS_COPY)[SupportedLanguage] {
+    return ECOSYSTEMS_COPY[this.activeLanguage()];
   }
 
   /** Updates --select-solution-spotlight-* for cursor-follow green and rainforest mask. */
@@ -617,6 +752,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       .getSpeciesManifest(speciesManifestUrl)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
+        switchMap((manifest) =>
+          this.loadSpeciesTaxonomyLookup().pipe(
+            map((taxonomyLookup) => this.withSpeciesTaxonomy(manifest, taxonomyLookup)),
+            catchError(() => of(manifest)),
+          ),
+        ),
         catchError(() => of<RuntimeSpeciesManifest>({ layers: [] })),
       )
       .subscribe((manifest) => {
@@ -625,6 +766,39 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
         this.reconcileTaxaWithSpeciesManifest(manifest.layers);
       });
+  }
+
+  private loadSpeciesTaxonomyLookup() {
+    return this.http.get(SPECIES_TAXONOMY_CSV_URL, { responseType: 'text' }).pipe(
+      map((csvText) => this.parseSpeciesTaxonomyLookup(csvText)),
+      catchError(() => of(new Map<string, { taxonId: string; taxonLabel: string }>())),
+    );
+  }
+
+  private withSpeciesTaxonomy(
+    manifest: RuntimeSpeciesManifest,
+    taxonomyLookup: Map<string, { taxonId: string; taxonLabel: string }>,
+  ): RuntimeSpeciesManifest {
+    if (taxonomyLookup.size === 0) {
+      return manifest;
+    }
+    return {
+      ...manifest,
+      layers: manifest.layers.map((layer) => {
+        if (layer.taxonId?.trim() && layer.taxonLabel?.trim()) {
+          return layer;
+        }
+        const taxonomy = taxonomyLookup.get(this.normalizeSpeciesLookupKey(layer.scientificName));
+        if (!taxonomy) {
+          return layer;
+        }
+        return {
+          ...layer,
+          taxonId: taxonomy.taxonId,
+          taxonLabel: taxonomy.taxonLabel,
+        };
+      }),
+    };
   }
 
   private reconcileGroupsWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
@@ -644,14 +818,17 @@ export class MapLayersPanelComponent implements OnDestroy {
           return group;
         }
 
-        const rows = manifestGroup.rows
-          .filter((row) => !row.isSpeciesCollection)
-          .map((row, index) => this.manifestSidebarLayerRow(group.id, row, index, group.rows));
+        const rows = manifestGroup.rows.map((row, index) =>
+          this.manifestSidebarLayerRow(group.id, row, index, group.rows),
+        );
 
         return {
           ...group,
-          title: this.manifestCategoryTitle(manifestCategoryId) ?? manifestGroup.title,
+          title:
+            this.manifestCategoryTitle(manifestCategoryId) ??
+            this.manifestSidebarGroupTitle(manifestGroup),
           countLabel: this.toLayerCountLabel(rows.length),
+          note: group.id === 'group-ecosystems' ? this.ecosystemsCopy().groupNote : group.note,
           rows,
         };
       }),
@@ -843,6 +1020,25 @@ export class MapLayersPanelComponent implements OnDestroy {
     index: number,
     existingRows: LayerControlRow[],
   ): LayerControlRow {
+    if (sidebarGroupId === 'group-species-biodiversity' && manifestRow.isSpeciesCollection) {
+      const layerId = `layer-${manifestRow.id}`;
+      const existingRow = existingRows.find((row) => row.id === layerId);
+      return {
+        id: layerId,
+        name: this.localizedText('mapLayersPanel.individualSpecies'),
+        selected: false,
+        visible: false,
+        expanded: existingRow?.expanded ?? false,
+        opacity: 60,
+        color: '#854d0e',
+        canReorder: false,
+        hasStyleControls: false,
+        hasColorControl: false,
+        mapUnavailable: true,
+        hideAddButton: true,
+      };
+    }
+
     const layerId = `layer-${manifestRow.id}`;
     const existingRow = existingRows.find((row) => row.id === layerId);
     const isLiveRenderable = this.isManifestRowLiveRenderable(manifestRow);
@@ -852,7 +1048,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     return {
       id: layerId,
-      name: manifestRow.name,
+      name: this.manifestSidebarLayerName(manifestRow),
       selected: existingSelected,
       visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
       expanded: existingRow?.expanded ?? false,
@@ -860,7 +1056,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       color: manifestColor ?? existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
       canReorder: true,
       hasStyleControls: true,
-      hasColorControl: true,
+      hasColorControl: rendering.renderMode !== 'categorical',
       mapUnavailable: !isLiveRenderable,
       mapSync:
         isLiveRenderable && manifestRow.displayUrl
@@ -872,6 +1068,35 @@ export class MapLayersPanelComponent implements OnDestroy {
             }
           : undefined,
     };
+  }
+
+  private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
+    if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
+      return this.ecosystemsCopy().iavhRowName;
+    }
+    if (STRATEGIC_ECOSYSTEM_LAYER_IDS.has(manifestRow.id)) {
+      return `${this.ecosystemsCopy().strategicPrefix}: ${this.localizedManifestLayerName(
+        manifestRow,
+      )}`;
+    }
+    return this.localizedManifestLayerName(manifestRow);
+  }
+
+  private manifestSidebarGroupTitle(manifestGroup: ManifestSidebarLayerGroup): string {
+    if (manifestGroup.sidebarCategoryId === 'ecosystems') {
+      return this.ecosystemsCopy().groupTitle;
+    }
+    if (this.activeLanguage() === 'es') {
+      return manifestGroup.spanishLabel;
+    }
+    return manifestGroup.englishLabel ?? manifestGroup.spanishLabel;
+  }
+
+  private localizedManifestLayerName(manifestRow: ManifestSidebarLayerRow): string {
+    if (this.activeLanguage() === 'es') {
+      return manifestRow.spanishLabel;
+    }
+    return manifestRow.englishLabel ?? manifestRow.spanishLabel;
   }
 
   private normalizeManifestRendering(
@@ -888,6 +1113,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
     if (!manifestRow.rendering) {
       return fallbackRendering;
+    }
+
+    if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
+      return this.iavhEcosystemGroupedRendering();
     }
 
     if (manifestRow.id !== 'species_richness') {
@@ -914,6 +1143,21 @@ export class MapLayersPanelComponent implements OnDestroy {
       maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
       startColor: '#fef3c7',
       endColor: '#854d0e',
+    };
+  }
+
+  private iavhEcosystemGroupedRendering(): RuntimeLayerManifestRenderingConfig {
+    return {
+      valueType: 'categorical',
+      renderMode: 'categorical',
+      noDataValue: IAVH_ECOSYSTEM_NO_DATA_VALUE,
+      classColors: IAVH_ECOSYSTEM_BIOME_GROUPS.flatMap((group) =>
+        group.values.map((value) => ({
+          value,
+          color: group.color,
+          label: group.label[this.activeLanguage()],
+        })),
+      ),
     };
   }
 
@@ -991,8 +1235,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   private toLayerCountLabel(layerCount: number): string {
     const noun =
       layerCount === 1
-        ? this.translate.instant('mapLayersPanel.layerSingular')
-        : this.translate.instant('mapLayersPanel.layerPlural');
+        ? this.localizedTextOrFallback('mapLayersPanel.layerSingular', 'layer')
+        : this.localizedTextOrFallback('mapLayersPanel.layerPlural', 'layers');
     return `${layerCount} ${noun}`;
   }
 
@@ -1419,7 +1663,23 @@ export class MapLayersPanelComponent implements OnDestroy {
       return group.rows;
     }
     const query = this.normalizedLayerSearchQuery();
-    return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
+    if (group.id !== 'group-species-biodiversity') {
+      return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
+    }
+    return group.rows.filter(
+      (row) => this.isSpeciesCollectionRow(row) || this.nameMatchesSearch(row.name, query),
+    );
+  }
+
+  protected shouldShowSpeciesTaxa(group: LayerGroup): boolean {
+    if (this.hasLayerSearchQuery()) {
+      return true;
+    }
+    const speciesCollectionRow = group.rows.find((row) => this.isSpeciesCollectionRow(row));
+    if (!speciesCollectionRow) {
+      return true;
+    }
+    return speciesCollectionRow.expanded;
   }
 
   protected visibleSpeciesForTaxon(taxon: TaxonRow): SpeciesRow[] {
@@ -1450,30 +1710,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (!match) {
       return undefined;
     }
-    if (group.id === 'group-species-biodiversity') {
-      const parts: string[] = [];
-      if (match.rowMatches > 0) {
-        const noun =
-          match.rowMatches === 1
-            ? this.translate.instant('mapLayersPanel.layerMatchSingular')
-            : this.translate.instant('mapLayersPanel.layerMatchPlural');
-        parts.push(`${match.rowMatches} ${noun}`);
-      }
-      if (match.taxonMatches > 0) {
-        const noun =
-          match.taxonMatches === 1
-            ? this.translate.instant('mapLayersPanel.taxonMatchSingular')
-            : this.translate.instant('mapLayersPanel.taxonMatchPlural');
-        parts.push(`${match.taxonMatches} ${noun}`);
-      }
-      return parts.length > 0
-        ? parts.join(' · ')
-        : this.translate.instant('mapLayersPanel.noMatchesLabel');
-    }
     const noun =
       match.rowMatches === 1
-        ? this.translate.instant('mapLayersPanel.layerMatchSingular')
-        : this.translate.instant('mapLayersPanel.layerMatchPlural');
+        ? this.localizedText('mapLayersPanel.layerMatchSingular')
+        : this.localizedText('mapLayersPanel.layerMatchPlural');
     return `${match.rowMatches} ${noun}`;
   }
 
@@ -2315,12 +2555,12 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: overlay.name,
         sourceLabel:
           overlay.id === BASELINE_SOLUTION_OVERLAY_ID
-            ? this.translate.instant('mapLayersPanel.sourceLabels.selectedScenario')
+            ? this.localizedText('mapLayersPanel.sourceLabels.selectedScenario')
             : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
-              ? this.translate.instant('mapLayersPanel.sourceLabels.comparisonScenario')
+              ? this.localizedText('mapLayersPanel.sourceLabels.comparisonScenario')
               : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
-                ? this.translate.instant('mapLayersPanel.sourceLabels.comparisonOverlay')
-                : this.translate.instant('mapLayersPanel.sourceLabels.availableLayers'),
+                ? this.localizedText('mapLayersPanel.sourceLabels.comparisonOverlay')
+                : this.localizedText('mapLayersPanel.sourceLabels.availableLayers'),
         sourceType: 'overlay',
         mapUnavailable: !!overlay.mapUnavailable,
       });
@@ -2346,7 +2586,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(taxon.id, {
           id: taxon.id,
           name: taxon.name,
-          sourceLabel: this.translate.instant('mapLayersPanel.sourceLabels.speciesBiodiversity'),
+          sourceLabel: this.localizedText('mapLayersPanel.sourceLabels.speciesBiodiversity'),
           sourceType: 'group',
           mapUnavailable: !!taxon.mapUnavailable,
         });
@@ -2358,10 +2598,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(species.id, {
           id: species.id,
           name: species.common,
-          sourceLabel: this.translate.instant(
-            'mapLayersPanel.sourceLabels.speciesBiodiversityTaxon',
-            { taxon: taxon.name },
-          ),
+          sourceLabel: this.localizedText('mapLayersPanel.sourceLabels.speciesBiodiversityTaxon', {
+            taxon: taxon.name,
+          }),
           sourceType: 'group',
           mapUnavailable: !!species.mapUnavailable,
         });
@@ -2494,11 +2733,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       Array.isArray(row.mapSync.rendering.classColors) &&
       row.mapSync.rendering.classColors.length > 0
     ) {
-      const categories = row.mapSync.rendering.classColors.map((entry) => ({
-        id: `${row.id}-class-${entry.value}`,
-        label: entry.label?.trim() || `Category ${entry.value}`,
-        color: entry.color,
-      }));
+      const categories = this.groupLegendCategories(row);
       return {
         id: row.id,
         name: row.name,
@@ -2518,6 +2753,33 @@ export class MapLayersPanelComponent implements OnDestroy {
       lineStyle: 'solid',
       lineWidth: 1,
     };
+  }
+
+  private groupLegendCategories(
+    row: LayerControlRow,
+  ): NonNullable<MapLegendLayerEntry['categories']> {
+    if (row.mapSync?.type !== 'manifest-raster') {
+      return [];
+    }
+
+    const categoryByLabel = new Map<string, { id: string; label: string; color: string }>();
+    for (const entry of row.mapSync.rendering.classColors ?? []) {
+      const label = entry.label?.trim() || `Category ${entry.value}`;
+      if (categoryByLabel.has(label)) {
+        continue;
+      }
+      categoryByLabel.set(label, {
+        id: `${row.id}-class-${this.toSlug(label)}`,
+        label,
+        color: entry.color,
+      });
+    }
+    return [...categoryByLabel.values()];
+  }
+
+  private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
+    const normalizedName = row.name.trim().toLowerCase();
+    return normalizedName === 'human footprint';
   }
 
   private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
@@ -2589,7 +2851,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     return [
       {
         id: BASELINE_SOLUTION_OVERLAY_ID,
-        name: 'Conservation Solution',
+        name: this.localizedText('mapLayersPanel.overlayNames.conservationSolution'),
         selected: true,
         visible: true,
         expanded: true,
@@ -2602,7 +2864,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'overlay-runap',
-        name: 'Protected Areas (RUNAP)',
+        name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
         selected: false,
         visible: false,
         expanded: false,
@@ -2615,7 +2877,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'overlay-omecs',
-        name: 'OMECs',
+        name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
         selected: false,
         visible: false,
         expanded: false,
@@ -2761,7 +3023,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         ...nextRows,
         {
           id: OVERLAP_SOLUTION_OVERLAY_ID,
-          name: 'Agreement / Overlap',
+          name: this.localizedText('mapLayersPanel.overlayNames.agreementOverlap'),
           selected: true,
           visible: true,
           expanded: true,
@@ -2782,8 +3044,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     return [
       {
         id: 'taxon-mammals',
-        name: 'Mammals',
-        countLabel: '412 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.mammals'),
+        countLabel: this.toSpeciesCountLabel(412),
         speciesCount: 412,
         selected: false,
         visible: false,
@@ -2808,8 +3070,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-birds',
-        name: 'Birds',
-        countLabel: '1,932 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.birds'),
+        countLabel: this.toSpeciesCountLabel(1932),
         speciesCount: 1932,
         selected: false,
         visible: false,
@@ -2834,8 +3096,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-amphibians',
-        name: 'Amphibians',
-        countLabel: '803 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.amphibians'),
+        countLabel: this.toSpeciesCountLabel(803),
         speciesCount: 803,
         selected: false,
         visible: false,
@@ -2860,8 +3122,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-reptiles',
-        name: 'Reptiles',
-        countLabel: '590 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.reptiles'),
+        countLabel: this.toSpeciesCountLabel(590),
         speciesCount: 590,
         selected: false,
         visible: false,
@@ -2885,8 +3147,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-plants',
-        name: 'Plants',
-        countLabel: '4,963 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.plants'),
+        countLabel: this.toSpeciesCountLabel(4963),
         speciesCount: 4963,
         selected: false,
         visible: false,
@@ -2915,9 +3177,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   private reconcileTaxaWithSpeciesManifest(manifestLayers: RuntimeSpeciesManifestLayer[]): void {
     const existingTaxaById = new Map(this.taxa().map((taxon) => [taxon.id, taxon]));
     const manifestLayersByTaxonId = this.groupSpeciesManifestLayersByTaxon(manifestLayers);
-    const taxa = Array.from(manifestLayersByTaxonId.entries()).map(([taxonId, layers]) =>
-      this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
-    );
+    const taxa = Array.from(manifestLayersByTaxonId.entries())
+      .map(([taxonId, layers]) =>
+        this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
+      )
+      .sort((left, right) => this.compareSpeciesTaxa(left, right));
     const speciesLayerCount = taxa.reduce((total, taxon) => total + taxon.speciesCount, 0);
 
     this.taxa.set(taxa);
@@ -2927,6 +3191,11 @@ export class MapLayersPanelComponent implements OnDestroy {
           ? {
               ...group,
               countLabel: this.toLayerCountLabel(group.rows.length + speciesLayerCount),
+              rows: group.rows.map((row) =>
+                this.isSpeciesCollectionRow(row)
+                  ? { ...row, countLabel: this.toSpeciesCountLabel(speciesLayerCount) }
+                  : row,
+              ),
             }
           : group,
       ),
@@ -2973,6 +3242,15 @@ export class MapLayersPanelComponent implements OnDestroy {
       showAll: existingTaxon?.showAll ?? false,
       species,
     };
+  }
+
+  private compareSpeciesTaxa(left: TaxonRow, right: TaxonRow): number {
+    const leftOrder = SPECIES_TAXON_SORT_ORDER.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = SPECIES_TAXON_SORT_ORDER.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+    return left.name.localeCompare(right.name);
   }
 
   private speciesManifestLayerRow(
@@ -3028,7 +3306,82 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
-    return layer?.taxonLabel?.trim() || this.translate.instant('mapLayersPanel.individualSpecies');
+    return layer?.taxonLabel?.trim() || 'Unclassified species';
+  }
+
+  private isSpeciesCollectionRow(row: LayerControlRow): boolean {
+    return row.id === SPECIES_COLLECTION_ROW_ID;
+  }
+
+  private parseSpeciesTaxonomyLookup(
+    csvText: string,
+  ): Map<string, { taxonId: string; taxonLabel: string }> {
+    const rows = csvText.split(/\r?\n/).filter((row) => row.trim().length > 0);
+    if (rows.length === 0) {
+      return new Map();
+    }
+
+    const header = this.parseCsvRow(rows[0]);
+    const scientificNameIndex = header.indexOf('scientific_name');
+    const classIndex = header.indexOf('class');
+    if (scientificNameIndex < 0 || classIndex < 0) {
+      return new Map();
+    }
+
+    const taxonomyLookup = new Map<string, { taxonId: string; taxonLabel: string }>();
+    for (const row of rows.slice(1)) {
+      const cells = this.parseCsvRow(row);
+      const scientificName = cells[scientificNameIndex] ?? '';
+      const speciesClass = cells[classIndex] ?? '';
+      const taxonomy = SPECIES_CLASS_TO_TAXON[speciesClass.trim()];
+      const lookupKey = this.normalizeSpeciesLookupKey(scientificName);
+      if (!lookupKey || !taxonomy) {
+        continue;
+      }
+      taxonomyLookup.set(lookupKey, taxonomy);
+    }
+    return taxonomyLookup;
+  }
+
+  private parseCsvRow(row: string): string[] {
+    const fields: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < row.length; index += 1) {
+      const char = row[index];
+      if (char === '"') {
+        const nextChar = row[index + 1];
+        if (inQuotes && nextChar === '"') {
+          currentField += '"';
+          index += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (char === ',' && !inQuotes) {
+        fields.push(currentField.trim());
+        currentField = '';
+        continue;
+      }
+
+      currentField += char;
+    }
+
+    fields.push(currentField.trim());
+    return fields;
+  }
+
+  private normalizeSpeciesLookupKey(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ');
   }
 
   /**
@@ -3038,54 +3391,125 @@ export class MapLayersPanelComponent implements OnDestroy {
   private createDefaultGroups(): LayerGroup[] {
     const sirapRows = [
       ...(FEATURE_FLAGS.sirapLayers.combined
-        ? [this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false)]
+        ? [
+            this.boundaryRow(
+              'siraps',
+              'sirap',
+              this.localizedText('mapLayersPanel.boundaryNames.combinedSirapReviewLayer'),
+              false,
+              false,
+            ),
+          ]
         : []),
       ...(FEATURE_FLAGS.sirapLayers.territorial
-        ? [this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false)]
+        ? [
+            this.boundaryRow(
+              'siraps_territorial',
+              'sirap',
+              this.localizedText('mapLayersPanel.boundaryNames.territorialSiraps'),
+              false,
+              false,
+            ),
+          ]
         : []),
       ...(FEATURE_FLAGS.sirapLayers.thematic
-        ? [this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false)]
+        ? [
+            this.boundaryRow(
+              'siraps_thematic',
+              'sirap',
+              this.localizedText('mapLayersPanel.boundaryNames.thematicSirapAdditions'),
+              false,
+              false,
+            ),
+          ]
         : []),
     ];
     const adminBoundaryRows = [
       ...sirapRows,
-      this.boundaryRow('admin_country_outline', 'department', 'Colombia Outline', true, true),
-      this.boundaryRow('admin_departments', 'department', 'Departments', false, false),
-      this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
+      this.boundaryRow(
+        'admin_country_outline',
+        'department',
+        this.localizedText('mapLayersPanel.boundaryNames.colombiaOutline'),
+        true,
+        true,
+      ),
+      this.boundaryRow(
+        'admin_departments',
+        'department',
+        this.localizedText('mapLayersPanel.boundaryNames.departments'),
+        false,
+        false,
+      ),
+      this.boundaryRow(
+        'admin_municipalities',
+        'municipality',
+        this.localizedText('mapLayersPanel.boundaryNames.municipalities'),
+        false,
+        false,
+      ),
     ];
 
     return [
       {
         id: 'group-admin-boundaries',
-        title: 'Administrative Boundaries',
-        countLabel: `${adminBoundaryRows.length} layers`,
+        title: this.localizedText('mapLayersPanel.groupTitles.administrativeBoundaries'),
+        countLabel: this.toLayerCountLabel(adminBoundaryRows.length),
         collapsed: false,
         rows: adminBoundaryRows,
       },
       {
         id: 'group-species-biodiversity',
-        title: 'Species & Biodiversity',
+        title: this.localizedText('mapLayersPanel.groupTitles.speciesBiodiversity'),
         countLabel: this.toLayerCountLabel(0),
         collapsed: true,
         rows: [],
       },
       {
         id: 'group-ecosystems',
-        title: 'Ecosystems',
-        countLabel: '5 layers',
+        title: this.ecosystemsCopy().groupTitle,
+        countLabel: this.toLayerCountLabel(5),
         collapsed: true,
+        note: this.ecosystemsCopy().groupNote,
         rows: [
-          this.layerRow('eco-types', 'Ecosystem Types', '#0d9488', 60),
-          this.layerRow('eco-paramos', 'Paramos', '#6d8e7e', 55),
-          this.layerRow('eco-wetlands', 'Wetlands', '#0284c7', 55),
-          this.layerRow('eco-dry-forest', 'Dry Forest', '#a16207', 55),
-          this.layerRow('eco-mangroves', 'Mangroves', '#15803d', 55),
+          this.layerRow('eco-types', this.ecosystemsCopy().iavhRowName, '#0d9488', 60),
+          this.layerRow(
+            'eco-paramos',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Páramos' : 'Paramos'
+            }`,
+            '#6d8e7e',
+            55,
+          ),
+          this.layerRow(
+            'eco-wetlands',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Humedales' : 'Wetlands'
+            }`,
+            '#0284c7',
+            55,
+          ),
+          this.layerRow(
+            'eco-dry-forest',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Bosque seco' : 'Dry Forest'
+            }`,
+            '#a16207',
+            55,
+          ),
+          this.layerRow(
+            'eco-mangroves',
+            `${this.ecosystemsCopy().strategicPrefix}: ${
+              this.activeLanguage() === 'es' ? 'Manglares' : 'Mangroves'
+            }`,
+            '#15803d',
+            55,
+          ),
         ],
       },
       {
         id: 'group-cultural-ethnic',
-        title: 'Cultural & Ethnic Territories',
-        countLabel: '2 layers',
+        title: this.localizedText('mapLayersPanel.groupTitles.culturalEthnicTerritories'),
+        countLabel: this.toLayerCountLabel(2),
         collapsed: true,
         rows: [
           this.layerRow('cult-indigenous', 'Indigenous Reserves', '#6366f1', 60),
@@ -3094,8 +3518,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'group-socio-economic',
-        title: 'Costs',
-        countLabel: '3 layers',
+        title: this.localizedText('mapLayersPanel.groupTitles.costs'),
+        countLabel: this.toLayerCountLabel(3),
         collapsed: true,
         rows: [
           this.layerRow('soc-human-footprint', 'Human Footprint', '#d97706', 55),
@@ -3144,6 +3568,131 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
+  private syncLocaleSensitiveSidebarLabels(): void {
+    const activeSolutionName = this.appState.activeSolution$()?.name ?? null;
+    const speciesLayerCount = this.taxa().reduce((total, taxon) => total + taxon.speciesCount, 0);
+
+    this.managementFiguresTitle.set(
+      this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+    );
+
+    this.overlays.update((rows) =>
+      rows.map((row) => {
+        if (row.id === BASELINE_SOLUTION_OVERLAY_ID && !activeSolutionName) {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.conservationSolution'),
+          };
+        }
+        if (row.id === 'overlay-runap') {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
+          };
+        }
+        if (row.id === 'overlay-omecs') {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
+          };
+        }
+        if (row.id === OVERLAP_SOLUTION_OVERLAY_ID) {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.agreementOverlap'),
+          };
+        }
+        return row;
+      }),
+    );
+
+    this.groups.update((groups) =>
+      groups.map((group) => {
+        const translatedTitle = this.groupTitleForId(group.id);
+        const translatedRows =
+          group.id === 'group-admin-boundaries'
+            ? group.rows.map((row) => ({
+                ...row,
+                name: this.boundaryNameForId(row.id) ?? row.name,
+              }))
+            : group.rows;
+        const nextCountLabel =
+          group.id === 'group-species-biodiversity'
+            ? this.toLayerCountLabel(group.rows.length + speciesLayerCount)
+            : this.toLayerCountLabel(group.rows.length);
+
+        return {
+          ...group,
+          title: translatedTitle ?? group.title,
+          countLabel: nextCountLabel,
+          rows: translatedRows,
+        };
+      }),
+    );
+
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => ({
+        ...taxon,
+        name: this.taxonNameForId(taxon.id) ?? taxon.name,
+        countLabel: this.toSpeciesCountLabel(taxon.speciesCount),
+      })),
+    );
+  }
+
+  private groupTitleForId(groupId: string): string | undefined {
+    const titleKeys: Record<string, string> = {
+      'group-admin-boundaries': 'mapLayersPanel.groupTitles.administrativeBoundaries',
+      'group-species-biodiversity': 'mapLayersPanel.groupTitles.speciesBiodiversity',
+      'group-ecosystems': 'mapLayersPanel.groupTitles.ecosystems',
+      'group-cultural-ethnic': 'mapLayersPanel.groupTitles.culturalEthnicTerritories',
+      'group-socio-economic': 'mapLayersPanel.groupTitles.costs',
+    };
+    const key = titleKeys[groupId];
+    return key ? this.localizedText(key) : undefined;
+  }
+
+  private boundaryNameForId(rowId: string): string | undefined {
+    const boundaryNameKeys: Record<string, string> = {
+      'boundary-siraps': 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
+      'boundary-siraps_territorial': 'mapLayersPanel.boundaryNames.territorialSiraps',
+      'boundary-siraps_thematic': 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
+      'boundary-admin_country_outline': 'mapLayersPanel.boundaryNames.colombiaOutline',
+      'boundary-admin_departments': 'mapLayersPanel.boundaryNames.departments',
+      'boundary-admin_municipalities': 'mapLayersPanel.boundaryNames.municipalities',
+    };
+    const key = boundaryNameKeys[rowId];
+    return key ? this.localizedText(key) : undefined;
+  }
+
+  private taxonNameForId(taxonId: string): string | undefined {
+    const taxonNameKeys: Record<string, string> = {
+      'taxon-mammals': 'mapLayersPanel.taxaNames.mammals',
+      'taxon-birds': 'mapLayersPanel.taxaNames.birds',
+      'taxon-amphibians': 'mapLayersPanel.taxaNames.amphibians',
+      'taxon-reptiles': 'mapLayersPanel.taxaNames.reptiles',
+      'taxon-plants': 'mapLayersPanel.taxaNames.plants',
+    };
+    const key = taxonNameKeys[taxonId];
+    return key ? this.localizedText(key) : undefined;
+  }
+
+  private localizedText(key: string, params?: Record<string, string | number>): string {
+    this.appLocaleService.locale();
+    return this.translate.instant(key, params);
+  }
+
+  private localizedTextOrFallback(
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number>,
+  ): string {
+    const localizedValue = this.localizedText(key, params);
+    if (!localizedValue || localizedValue === key) {
+      return fallback;
+    }
+    return localizedValue;
+  }
+
   private createSpeciesRows(taxonId: string, species: SpeciesSample[]): SpeciesRow[] {
     return species.map((sample) => this.speciesRow(taxonId, sample.common, sample.latin));
   }
@@ -3178,7 +3727,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private toSpeciesCountLabel(speciesCount: number): string {
-    const noun = speciesCount === 1 ? 'species' : 'species';
+    const noun = this.localizedTextOrFallback('mapLayersPanel.speciesNoun', 'species');
     return `${speciesCount.toLocaleString()} ${noun}`;
   }
 

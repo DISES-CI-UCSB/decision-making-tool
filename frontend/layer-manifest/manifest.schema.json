@@ -294,6 +294,10 @@
           "type": "string",
           "format": "uri"
         },
+        "displayCogUrl": {
+          "type": ["string", "null"],
+          "format": "uri"
+        },
         "metadataUrl": {
           "type": "string",
           "format": "uri"

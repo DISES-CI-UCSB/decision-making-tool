@@ -165,7 +165,7 @@ const renderingOverrideByLayerId = {
   ecosistemas: {
     valueType: 'continuous',
     renderMode: 'gradient',
-    noDataValue: -32768,
+    noDataValue: 4294967295,
     minValue: null,
     maxValue: null,
     startColor: DEFAULT_CONTINUOUS_START_COLOR,
@@ -1623,6 +1623,25 @@ function hashStringToPositiveInt(value) {
   return hash;
 }
 
+function preserveSolutionCogUrls(solutions, existingManifestIndex) {
+  const existingSolutions = new Map(
+    (existingManifestIndex?.manifest?.solutions ?? [])
+      .filter((solution) => solution && typeof solution.id === 'string')
+      .map((solution) => [solution.id, solution]),
+  );
+
+  return solutions.map((solution) => {
+    const displayCogUrl = existingSolutions.get(solution.id)?.displayCogUrl;
+    if (typeof displayCogUrl !== 'string' || displayCogUrl.length === 0) {
+      return solution;
+    }
+    return {
+      ...solution,
+      displayCogUrl,
+    };
+  });
+}
+
 function hslToHex(h, s, l) {
   const hue = ((h % 360) + 360) % 360;
   const saturation = Math.max(0, Math.min(100, s)) / 100;
@@ -2204,7 +2223,7 @@ async function main() {
   const layers = layerEntries.map((entry) => entry.manifestLayer);
   const solutions =
     solutionCatalog.solutions.length > 0
-      ? solutionCatalog.solutions
+      ? preserveSolutionCogUrls(solutionCatalog.solutions, existingManifestIndex)
       : (existingManifestIndex?.manifest?.solutions ?? []);
   const preservedExistingSolutions =
     solutionCatalog.solutions.length === 0 && solutions.length > 0 ? solutions : [];

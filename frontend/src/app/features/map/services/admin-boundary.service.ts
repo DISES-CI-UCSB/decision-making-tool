@@ -78,12 +78,12 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-departments-colombia',
     layerKey: 'admin_departments',
-    title: 'Colombia Departments (IGAC)',
+    title: 'Colombia Departments',
     type: 'department',
-    sourceType: 'feature',
-    url: 'https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/2',
-    idFields: ['DeCodigo', 'OBJECTID'],
-    nameFields: ['DeNombre'],
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/boundaries/igac_departments_detailed.geojson`,
+    idFields: ['boundary_id', 'DeCodigo', 'OBJECTID'],
+    nameFields: ['boundary_name', 'DeNombre'],
     visible: false,
     opacity: 0.7,
     renderer: {
@@ -101,12 +101,12 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-municipalities-colombia',
     layerKey: 'admin_municipalities',
-    title: 'Colombia Municipalities (IGAC)',
+    title: 'Colombia Municipalities',
     type: 'municipality',
-    sourceType: 'feature',
-    url: 'https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/1',
-    idFields: ['MpCodigo', 'OBJECTID'],
-    nameFields: ['MpNombre'],
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/boundaries/igac_municipalities_detailed.geojson`,
+    idFields: ['boundary_id', 'MpCodigo', 'OBJECTID'],
+    nameFields: ['boundary_name', 'MpNombre'],
     visible: false,
     opacity: 0.45,
     renderer: {
@@ -262,8 +262,8 @@ export class AdminBoundaryService {
     // Always false — we open popups manually via openPopup() so the
     // built-in click handler doesn't race with ours.
     this.view.popupEnabled = false;
-    // Create only default-visible layers on startup. Remote IGAC FeatureLayers are loaded lazily
-    // when users explicitly toggle them on, which avoids noisy startup CORS errors.
+    // Create only default-visible layers on startup. Remote boundary layers are loaded lazily
+    // when users explicitly toggle them on, which avoids noisy startup network errors.
     this.boundaryLayers = ENABLED_BOUNDARY_CONFIGS.filter(
       (config) => this.layerVisibilityByLayerKey$()[config.layerKey] ?? config.visible ?? true,
     ).map((config) => this.buildLayer(config));

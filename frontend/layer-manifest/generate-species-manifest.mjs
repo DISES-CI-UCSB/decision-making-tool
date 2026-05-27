@@ -23,6 +23,19 @@ const DEFAULT_RASTER_READ_RETRY_ATTEMPTS = 4;
 const DEFAULT_BASE_REQUEST_DELAY_MS = 300;
 const DEFAULT_REQUEST_JITTER_MS = 900;
 const PROGRESS_LOG_INTERVAL = 50;
+const DEFAULT_SPECIES_TAXONOMY_CSV_PATH = path.resolve(
+  repoRoot,
+  'data/biomod_spp_ranges_updatedIUCN.csv',
+);
+const DEFAULT_SPECIES_TAXONOMY_CSV_URL = `${PUBLIC_BLOB_HOST}/${SPECIES_BLOB_PREFIX}biomod_spp_ranges_updatedIUCN.csv`;
+const CLASS_TO_TAXON = {
+  Mammalia: { taxonId: 'mammals', taxonLabel: 'Mammals' },
+  Aves: { taxonId: 'birds', taxonLabel: 'Birds' },
+  Amphibia: { taxonId: 'amphibians', taxonLabel: 'Amphibians' },
+  Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
+};
 
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
 const DEFAULT_SPECIES_MANIFEST_BLOB_PATHNAME = 'manifests/species.manifest.json';
@@ -408,6 +421,102 @@ function toDisplayLabel(value) {
     .join(' ');
 }
 
+function parseCsvRow(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"') {
+      const nextChar = line[index + 1];
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        index += 1;
+        continue;
+      }
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (char === ',' && !inQuotes) {
+      fields.push(current);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  fields.push(current);
+  return fields.map((field) => field.trim());
+}
+
+function normalizeSpeciesLookupKey(value) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function resolveTaxonFromCsvClass(csvClass) {
+  const normalizedClass = (csvClass || '').trim();
+  if (!normalizedClass) {
+    return null;
+  }
+  const mapped = CLASS_TO_TAXON[normalizedClass];
+  if (mapped) {
+    return mapped;
+  }
+  return {
+    taxonId: toLayerId(normalizedClass),
+    taxonLabel: normalizedClass,
+  };
+}
+
+async function loadSpeciesTaxonomyLookup(csvPath, csvUrl) {
+  let csvText = '';
+  try {
+    csvText = await fs.readFile(csvPath, 'utf-8');
+    console.log(`[generate:species-manifest] loaded taxonomy CSV from ${path.relative(repoRoot, csvPath)}`);
+  } catch (localCsvError) {
+    const response = await fetch(csvUrl, { method: 'GET' });
+    if (!response.ok) {
+      throw new Error(
+        `failed to read local taxonomy CSV (${csvPath}) and failed to fetch ${csvUrl} (${response.status} ${response.statusText})`,
+      );
+    }
+    csvText = await response.text();
+    console.log('[generate:species-manifest] loaded taxonomy CSV from blob URL fallback');
+  }
+
+  const rows = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (rows.length === 0) {
+    throw new Error('species taxonomy CSV is empty');
+  }
+
+  const header = parseCsvRow(rows[0]);
+  const scientificNameIndex = header.indexOf('scientific_name');
+  const classIndex = header.indexOf('class');
+  if (scientificNameIndex < 0 || classIndex < 0) {
+    throw new Error('species taxonomy CSV must include scientific_name and class columns');
+  }
+
+  const lookup = new Map();
+  for (const row of rows.slice(1)) {
+    const cells = parseCsvRow(row);
+    const scientificName = cells[scientificNameIndex] || '';
+    const taxon = resolveTaxonFromCsvClass(cells[classIndex] || '');
+    const key = normalizeSpeciesLookupKey(scientificName);
+    if (!key || !taxon) {
+      continue;
+    }
+    lookup.set(key, taxon);
+  }
+
+  console.log(`[generate:species-manifest] taxonomy lookup prepared with ${lookup.size} species`);
+  return lookup;
+}
+
 function inferTaxonFromPathname(pathname) {
   const relativePath = pathname.startsWith(SPECIES_BLOB_PREFIX)
     ? pathname.slice(SPECIES_BLOB_PREFIX.length)
@@ -532,7 +641,15 @@ async function inspectSpeciesRasterWithRetry(url, sampleGridSize, maxAttempts, p
 
 async function buildSpeciesLayer(blob, sampleGridSize, retryAttempts, pacing) {
   const scientificName = normalizeScientificName(blob.pathname);
-  const taxon = inferTaxonFromPathname(blob.pathname);
+  const taxonomyKey = normalizeSpeciesLookupKey(scientificName);
+  const csvTaxon = pacing.speciesTaxonomyLookup.get(taxonomyKey);
+  const inferredTaxon = inferTaxonFromPathname(blob.pathname);
+  const taxon = csvTaxon ?? inferredTaxon;
+  const taxonSource = csvTaxon
+    ? 'csv'
+    : inferredTaxon.taxonId || inferredTaxon.taxonLabel
+      ? 'pathname'
+      : 'none';
   const id = toLayerId(scientificName);
   const { rendering } = await inspectSpeciesRasterWithRetry(
     blob.url,
@@ -542,21 +659,34 @@ async function buildSpeciesLayer(blob, sampleGridSize, retryAttempts, pacing) {
   );
 
   return {
-    id,
-    taxonId: taxon.taxonId,
-    taxonLabel: taxon.taxonLabel,
-    commonName: scientificName,
-    scientificName,
-    displayUrl: blob.url,
-    rendering,
+    layer: {
+      id,
+      taxonId: taxon.taxonId,
+      taxonLabel: taxon.taxonLabel,
+      commonName: scientificName,
+      scientificName,
+      displayUrl: blob.url,
+      rendering,
+    },
+    taxonSource,
   };
 }
 
-async function processWithConcurrency(blobs, sampleGridSize, concurrency, retryAttempts, pacing) {
+async function processWithConcurrency(
+  blobs,
+  sampleGridSize,
+  concurrency,
+  retryAttempts,
+  speciesTaxonomyLookup,
+  pacing,
+) {
   const results = new Array(blobs.length);
   let cursor = 0;
   let completed = 0;
   let failures = 0;
+  let csvTaxonCount = 0;
+  let pathnameTaxonCount = 0;
+  let missingTaxonCount = 0;
 
   async function worker() {
     while (true) {
@@ -568,7 +698,18 @@ async function processWithConcurrency(blobs, sampleGridSize, concurrency, retryA
 
       const blob = blobs[index];
       try {
-        results[index] = await buildSpeciesLayer(blob, sampleGridSize, retryAttempts, pacing);
+        const builtLayer = await buildSpeciesLayer(blob, sampleGridSize, retryAttempts, {
+          ...pacing,
+          speciesTaxonomyLookup,
+        });
+        results[index] = builtLayer.layer;
+        if (builtLayer.taxonSource === 'csv') {
+          csvTaxonCount += 1;
+        } else if (builtLayer.taxonSource === 'pathname') {
+          pathnameTaxonCount += 1;
+        } else {
+          missingTaxonCount += 1;
+        }
       } catch (error) {
         failures += 1;
         console.error(
@@ -593,6 +734,9 @@ async function processWithConcurrency(blobs, sampleGridSize, concurrency, retryA
   return {
     layers: results.filter((entry) => entry !== undefined),
     failures,
+    csvTaxonCount,
+    pathnameTaxonCount,
+    missingTaxonCount,
   };
 }
 
@@ -621,9 +765,21 @@ async function main() {
     DEFAULT_REQUEST_JITTER_MS,
   );
   const maxLayers = readOptionalPositiveIntEnv('SPECIES_MANIFEST_MAX_LAYERS');
+  const speciesTaxonomyCsvPath = readOptionalStringEnv(
+    'SPECIES_TAXONOMY_CSV_PATH',
+    DEFAULT_SPECIES_TAXONOMY_CSV_PATH,
+  );
+  const speciesTaxonomyCsvUrl = readOptionalStringEnv(
+    'SPECIES_TAXONOMY_CSV_URL',
+    DEFAULT_SPECIES_TAXONOMY_CSV_URL,
+  );
 
   console.log(
     `[generate:species-manifest] starting (concurrency=${concurrency}, sampleGrid=${sampleGridSize}, retries=${retryAttempts}, baseDelayMs=${baseRequestDelayMs}, requestJitterMs=${requestJitterMs}, retryJitterMs=${retryJitterMs})`,
+  );
+  const speciesTaxonomyLookup = await loadSpeciesTaxonomyLookup(
+    speciesTaxonomyCsvPath,
+    speciesTaxonomyCsvUrl,
   );
   const blobs = await listAllSpeciesBlobs();
   const targetBlobs = maxLayers ? blobs.slice(0, maxLayers) : blobs;
@@ -631,11 +787,13 @@ async function main() {
     `[generate:species-manifest] discovered ${blobs.length} species raster(s); processing ${targetBlobs.length}`,
   );
 
-  const { layers, failures } = await processWithConcurrency(
+  const { layers, failures, csvTaxonCount, pathnameTaxonCount, missingTaxonCount } =
+    await processWithConcurrency(
     targetBlobs,
     sampleGridSize,
     concurrency,
     retryAttempts,
+    speciesTaxonomyLookup,
     {
       baseRequestDelayMs,
       requestJitterMs,
@@ -655,6 +813,9 @@ async function main() {
   await fs.writeFile(OUTPUT_PATH, `${JSON.stringify(manifest, null, 2)}\n`, 'utf-8');
 
   console.log(`[generate:species-manifest] wrote ${path.relative(repoRoot, OUTPUT_PATH)}`);
+  console.log(
+    `[generate:species-manifest] taxon coverage: csv=${csvTaxonCount}, pathname=${pathnameTaxonCount}, missing=${missingTaxonCount}`,
+  );
 
   const skipBlobUpload = readTruthyEnv('SPECIES_MANIFEST_SKIP_BLOB_UPLOAD');
   const partialRun = maxLayers !== null;

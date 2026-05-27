@@ -131,17 +131,9 @@ export class LayerManifestService {
   }
 
   private toManifestRequestUrl(manifestUrl: string): string {
-    if (!this.isRemoteManifestUrl(manifestUrl)) {
-      return manifestUrl;
-    }
-
     const cacheBust = Date.now().toString();
     const separator = manifestUrl.includes('?') ? '&' : '?';
     return `${manifestUrl}${separator}v=${cacheBust}`;
-  }
-
-  private isRemoteManifestUrl(manifestUrl: string): boolean {
-    return /^https?:\/\//i.test(manifestUrl);
   }
 
   private withProxiedBlobUrls(manifest: RuntimeLayerManifest): RuntimeLayerManifest {

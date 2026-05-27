@@ -40,6 +40,8 @@
     "title": "Legend",
     "activeScenarioLabel": "Active scenario",
     "comparison": "Comparison",
+    "scenarioAFallback": "Scenario A",
+    "scenarioBFallback": "Scenario B",
     "selected": "Selected ({{pct}}%)",
     "notSelected": "Not selected",
     "aOnly": "A only: {{name}}",
@@ -202,6 +204,25 @@
         "agriculturalOpportunityCostDesc": "Production foregone",
         "conflictZoneOverlap": "Conflict Zone Overlap",
         "conflictZoneOverlapDesc": "Historical conflict zones"
+      },
+      "metricUnits": {
+        "ofTargets": "of targets",
+        "ninetyPercentOfTotal": "90% of total",
+        "eightyEightPercentSecured": "88% secured",
+        "eightyFivePercentOfTarget": "85% of target",
+        "ofColombia": "of Colombia",
+        "selected": "selected",
+        "paramo": "paramo",
+        "dryForest": "dry forest",
+        "wetlands": "wetlands",
+        "mangrove": "mangrove",
+        "resguardos": "resguardos",
+        "communities": "communities",
+        "tco2e": "tCO2e",
+        "cubicMeterIndex": "m³ index",
+        "fifteenPercentOverlap": "15% overlap",
+        "usd": "USD",
+        "areaAffected": "Area affected"
       }
     },
     "comparison": {
@@ -220,7 +241,54 @@
       "visualizationDescription": "Pick how Scenario A and B are visualized on the map.",
       "visualizationAriaLabel": "Comparison visualization mode",
       "metricColumn": "Metric",
-      "differenceColumn": "Difference"
+      "differenceColumn": "Difference",
+      "actions": {
+        "select": "Select",
+        "change": "Change"
+      },
+      "visualizationModes": {
+        "threeColorOverlay": {
+          "label": "3-color overlay",
+          "description": "A-only, B-only, and overlap shown as separate colors."
+        },
+        "swipe": {
+          "label": "Swipe slider",
+          "description": "Compare side-by-side with a draggable divider."
+        }
+      },
+      "sections": {
+        "general": "Conservation Summary",
+        "biodiversity": "Biodiversity",
+        "ecosystems": "Ecosystems & Carbon",
+        "socio": "Land Use & Socio-Economic",
+        "protection": "Cultural & Protection"
+      },
+      "metrics": {
+        "priorityArea": "Priority Conservation Area",
+        "priorityAreaDesc": "Estimated protected footprint under each scenario.",
+        "nationalTarget": "Contribution to 30x30 Target",
+        "nationalTargetDesc": "Relative contribution toward national conservation commitments.",
+        "biodiversity": "Biodiversity",
+        "biodiversityDesc": "Composite biodiversity performance score.",
+        "threatenedSpecies": "Threatened Species Coverage",
+        "threatenedSpeciesDesc": "CR/EN/VU species with habitat represented in priority zones.",
+        "endemicSpecies": "Endemic Species Coverage",
+        "endemicSpeciesDesc": "Colombia endemic species represented in selected areas.",
+        "carbonStorage": "Carbon Storage",
+        "carbonStorageDesc": "Estimated carbon storage retained in selected areas.",
+        "waterRegulation": "Water Regulation Capacity",
+        "waterRegulationDesc": "Hydrological service support for downstream communities.",
+        "implementationCost": "Implementation Cost",
+        "implementationCostDesc": "Estimated implementation cost envelope.",
+        "agriculturalOpportunityCost": "Agricultural Opportunity Cost",
+        "agriculturalOpportunityCostDesc": "Estimated agricultural trade-off in affected zones.",
+        "conflictZoneOverlap": "Conflict Zone Overlap",
+        "conflictZoneOverlapDesc": "Overlap with historically conflict-affected areas.",
+        "protectedOverlap": "Overlap with National Parks",
+        "protectedOverlapDesc": "Scenario B overlap with existing formal protected areas.",
+        "indigenousOverlap": "Overlap with Indigenous Territories",
+        "indigenousOverlapDesc": "Consultation-sensitive overlap across indigenous territories."
+      }
     },
     "aoi": {
       "kicker": "AOI detail",
@@ -257,6 +325,25 @@
         "ofMunicipality": "of this municipality",
         "nationalContributionLabel": "30×30 Contribution",
         "existingAdds": "Existing {{existing}} + adds {{added}}"
+      },
+      "biodiversityTaxa": {
+        "mammals": "Mammals",
+        "birds": "Birds",
+        "amphibians": "Amphibians",
+        "reptiles": "Reptiles",
+        "plants": "Plants"
+      },
+      "ecosystemLegend": {
+        "cloudForest": "Cloud Forest",
+        "paramo": "Paramo",
+        "dryForest": "Dry Forest",
+        "wetlands": "Wetlands",
+        "other": "Other"
+      },
+      "landUseLabels": {
+        "forest": "Natural Forest",
+        "agriculture": "Agriculture",
+        "other": "Other"
       },
       "stats": {
         "totalProtectedArea": "Total Protected Area",
@@ -303,7 +390,28 @@
         "historicalZones": "Historical zones",
         "consultationSensitive": "Consultation-sensitive",
         "kmAndPct": "km² and %",
-        "requestId": "Request ID"
+        "requestId": "Request ID",
+        "protectedAreaUnit": "31% of AOI under protection",
+        "speciesCountBarAriaLabel": "{{label}} species count bar",
+        "ecosystemDistributionAriaLabel": "Ecosystem coverage distribution"
+      },
+      "narratives": {
+        "threatenedSpeciesValue": "5 threatened species",
+        "threatenedSpeciesSuffix": "(CR/EN/VU) have habitat within this AOI's priority areas.",
+        "ecosystemPrefix": "This AOI stores ",
+        "ecosystemCarbonValue": "7% of Colombia's carbon stocks",
+        "ecosystemMiddle": " and provides ",
+        "ecosystemWaterRegulationValue": "above-average water regulation",
+        "ecosystemSuffix": " for the Cauca River basin. Cloud forest accounts for the largest share of ecosystem coverage.",
+        "landPrefix": "60% of this AOI's priority area is natural forest. Agricultural opportunity cost is ",
+        "landMiddle": ", with ",
+        "landSuffix": " in historical conflict zones.",
+        "culturalSuffix": " of this AOI's priority area overlaps indigenous territories. Prior consultation may be required under ILO Convention 169.",
+        "contextAfterName": " contributes ",
+        "contextAfterContribution": " toward Colombia's 30x30 conservation target. With ",
+        "contextCarbonValue": "7% of national carbon stocks",
+        "contextSpeciesValue": "7% of national species",
+        "contextSuffix": ", and above-average water regulation, this municipality is a moderate contributor to national conservation goals."
       }
     },
     "sections": {
@@ -549,6 +657,37 @@
     "resetDefaults": "Reset Defaults",
     "sirapTooltip": "Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.",
     "speciesSearchPlaceholder": "Search {{taxon}}...",
+    "chooseColorFor": "Choose color for {{name}}",
+    "speciesNoun": "species",
+    "overlayNames": {
+      "conservationSolution": "Conservation Solution",
+      "protectedAreasRunap": "Protected Areas (RUNAP)",
+      "omecs": "OMECs",
+      "agreementOverlap": "Agreement / Overlap"
+    },
+    "groupTitles": {
+      "managementFigures": "Management Figures",
+      "administrativeBoundaries": "Administrative Boundaries",
+      "speciesBiodiversity": "Species & Biodiversity",
+      "ecosystems": "Ecosystems",
+      "culturalEthnicTerritories": "Cultural & Ethnic Territories",
+      "costs": "Costs"
+    },
+    "boundaryNames": {
+      "combinedSirapReviewLayer": "Combined SIRAP review layer",
+      "territorialSiraps": "Territorial SIRAPs",
+      "thematicSirapAdditions": "Thematic SIRAP additions",
+      "colombiaOutline": "Colombia Outline",
+      "departments": "Departments",
+      "municipalities": "Municipalities"
+    },
+    "taxaNames": {
+      "mammals": "Mammals",
+      "birds": "Birds",
+      "amphibians": "Amphibians",
+      "reptiles": "Reptiles",
+      "plants": "Plants"
+    },
     "sourceLabels": {
       "selectedScenario": "Selected Scenario",
       "comparisonScenario": "Comparison Scenario",
@@ -562,6 +701,7 @@
     "taxonMatchSingular": "taxon match",
     "taxonMatchPlural": "taxon matches",
     "noMatchesLabel": "0 matches",
+    "taxaHeading": "Taxa",
     "speciesNote": "Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.",
     "scenarioNote": "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
     "individualSpecies": "Individual species",

@@ -3,9 +3,18 @@ import type { LoadedSolution } from '@core/models/solution-scenario.model';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
-import { SolutionLayerService } from './solution-layer.service';
+import {
+  DEFAULT_COMPARISON_BASELINE_HEX,
+  DEFAULT_COMPARISON_CANDIDATE_HEX,
+  DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_SINGLE_SOLUTION_HEX,
+  SolutionLayerService,
+} from './solution-layer.service';
 
-function createLoadedSolution(id: string): LoadedSolution {
+function createLoadedSolution(
+  id: string,
+  overrides: Partial<LoadedSolution['scenario']> = {},
+): LoadedSolution {
   return {
     scenario: {
       id,
@@ -37,6 +46,7 @@ function createLoadedSolution(id: string): LoadedSolution {
       nSelected: 100,
       totalCost: 2500,
       pctTargetsMet: 70,
+      ...overrides,
     },
     rasterMeta: {
       width: 2,
@@ -121,6 +131,24 @@ describe('SolutionLayerService', () => {
     expect(service.isComparisonModeActive()).toBe(false);
   });
 
+  it('uses an imagery tile layer when the scenario has a COG display URL', async () => {
+    const loaded = createLoadedSolution('baseline', {
+      displayCogUrl: 'https://example.com/baseline.cog.tif',
+    });
+    loaderMock.loadSolution.mockResolvedValue(loaded);
+
+    await service.showSolution('baseline');
+
+    const addedLayer = mapMock.add.mock.calls[0]?.[0] as {
+      url?: string;
+      interpolation?: string;
+      renderer?: unknown;
+    };
+    expect(addedLayer.url).toBe('https://example.com/baseline.cog.tif');
+    expect(addedLayer.interpolation).toBe('nearest');
+    expect(addedLayer.renderer).toBeTruthy();
+  });
+
   it('loads two scenarios for comparison and exposes both layers', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
@@ -146,6 +174,45 @@ describe('SolutionLayerService', () => {
       baselineLayer,
       candidateLayer,
     });
+  });
+
+  it('keeps the baseline default color distinct from the other comparison defaults', async () => {
+    const baselineLoaded = createLoadedSolution('baseline');
+    const candidateLoaded = createLoadedSolution('candidate');
+    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
+      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce({ id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 } as never)
+      .mockReturnValueOnce({ id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 } as never);
+
+    await service.showComparison('baseline', 'candidate');
+
+    expect(DEFAULT_COMPARISON_BASELINE_HEX).toBe(DEFAULT_SINGLE_SOLUTION_HEX);
+    expect(service.baselineColor$()).toBe(DEFAULT_SINGLE_SOLUTION_HEX);
+    expect(service.candidateColor$()).toBe(DEFAULT_COMPARISON_CANDIDATE_HEX);
+    expect(service.overlapColor$()).toBe(DEFAULT_COMPARISON_OVERLAP_HEX);
+    expect(
+      new Set([service.baselineColor$(), service.candidateColor$(), service.overlapColor$()]).size,
+    ).toBe(3);
+    expect(createLayerSpy).toHaveBeenNthCalledWith(
+      1,
+      baselineLoaded,
+      expect.any(String),
+      expect.any(String),
+      DEFAULT_SINGLE_SOLUTION_HEX,
+    );
+    expect(createLayerSpy).toHaveBeenNthCalledWith(
+      2,
+      candidateLoaded,
+      expect.any(String),
+      expect.any(String),
+      DEFAULT_COMPARISON_CANDIDATE_HEX,
+    );
   });
 
   it('updates baseline and candidate layer visibility/opacities independently in comparison mode', async () => {
@@ -174,6 +241,26 @@ describe('SolutionLayerService', () => {
     expect(candidateLayer.visible).toBe(true);
     expect(baselineLayer.opacity).toBe(0.35);
     expect(candidateLayer.opacity).toBe(0.9);
+  });
+
+  it('restores overlap visibility after switching from swipe back to overlay mode', () => {
+    const overlapLayer = { visible: true };
+    const serviceInternals = service as unknown as {
+      comparisonMode: boolean;
+      overlapComparisonLayer: { visible: boolean };
+      ensureOverlapLayer: () => void;
+    };
+    serviceInternals.comparisonMode = true;
+    serviceInternals.overlapComparisonLayer = overlapLayer;
+    const ensureOverlapLayerSpy = vi
+      .spyOn(serviceInternals, 'ensureOverlapLayer')
+      .mockImplementation(() => undefined);
+
+    service.applyComparisonVisualizationMode('swipe');
+    service.applyComparisonVisualizationMode('threeColorOverlay');
+
+    expect(overlapLayer.visible).toBe(true);
+    expect(ensureOverlapLayerSpy).toHaveBeenCalledTimes(1);
   });
 
   it('replaces the solution image element when color changes', async () => {

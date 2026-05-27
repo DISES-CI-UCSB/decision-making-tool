@@ -144,6 +144,7 @@ const DATA_ROLES = [
 const METRIC_CALCULATION_ROLES = [
   'none',
   'data_used_for_live_metric_calculation',
+  'data_used_for_cached_metric_calculation',
   'boundary_used_for_precomputed_metric_lookup',
   'data_used_for_live_metric_calculation_and_precomputed_metric_lookup',
 ];
@@ -475,6 +476,9 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
   assertNullableString(solution.sirapId, `solutions[${index}].sirapId`);
   assertString(solution.displayUrl, `solutions[${index}].displayUrl`);
   assertValidUrl(solution.displayUrl, `solutions[${index}].displayUrl`);
+  if ('displayCogUrl' in solution) {
+    assertUrlOrNull(solution.displayCogUrl, `solutions[${index}].displayCogUrl`);
+  }
   assertString(solution.metadataUrl, `solutions[${index}].metadataUrl`);
   assertValidUrl(solution.metadataUrl, `solutions[${index}].metadataUrl`);
   assertString(solution.rasterFile, `solutions[${index}].rasterFile`);
@@ -489,6 +493,9 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
 
   if (options.checkRemoteDisplayUrls) {
     remoteDisplayUrls.push({ url: solution.displayUrl, label: `solutions[${index}].displayUrl` });
+    if (solution.displayCogUrl) {
+      remoteDisplayUrls.push({ url: solution.displayCogUrl, label: `solutions[${index}].displayCogUrl` });
+    }
     remoteDisplayUrls.push({ url: solution.metadataUrl, label: `solutions[${index}].metadataUrl` });
   }
 }

@@ -830,7 +830,13 @@
                         <p class="aoi-stat-value">
                           {{ getAoiMetricValue('protected_area_runap_km2', '72 km²') }}
                         </p>
-                        <p class="aoi-stat-unit">{{ aoiVal('31% of AOI under protection') }}</p>
+                        <p class="aoi-stat-unit">
+                          {{
+                            fillDummyAoiMetrics()
+                              ? ('analysis.aoi.stats.protectedAreaUnit' | translate)
+                              : '--'
+                          }}
+                        </p>
                       </div>
                       <div id="aoi-stat-parks-overlap" class="aoi-stat-card">
                         <p class="aoi-stat-label">
@@ -913,7 +919,10 @@
                               class="aoi-species-fill block h-full transition-[width] duration-300 ease-out"
                               [style.width.%]="aoiSpeciesBarWidth(entry.count)"
                               [style.background-color]="aoiSpeciesBarColor(entry.id)"
-                              [attr.aria-label]="entry.label + ' species count bar'"
+                              [attr.aria-label]="
+                                'analysis.aoi.stats.speciesCountBarAriaLabel'
+                                  | translate: { label: entry.label }
+                              "
                             ></span>
                           </div>
                           <span
@@ -964,8 +973,10 @@
                       <div id="aoi-bio-alert" class="aoi-alert">
                         <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
                         <span>
-                          <strong>5 threatened species</strong> (CR/EN/VU) have habitat within this
-                          AOI's priority areas.
+                          <strong>{{
+                            'analysis.aoi.narratives.threatenedSpeciesValue' | translate
+                          }}</strong>
+                          {{ 'analysis.aoi.narratives.threatenedSpeciesSuffix' | translate }}
                         </span>
                       </div>
                     }
@@ -1017,7 +1028,9 @@
                         id="aoi-donut"
                         class="aoi-donut"
                         [style.background]="aoiDonutGradient()"
-                        aria-label="Ecosystem coverage distribution"
+                        [attr.aria-label]="
+                          'analysis.aoi.stats.ecosystemDistributionAriaLabel' | translate
+                        "
                       ></div>
                       <div id="aoi-legend" class="aoi-legend">
                         @for (segment of aoiEcosystemLegend(); track segment.id) {
@@ -1077,35 +1090,17 @@
                       </div>
                     </div>
 
-                    <div id="aoi-stat-water" class="aoi-metric-table">
-                      <div class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-droplet" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.waterRegulation' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.waterRegulationDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">
-                            {{ getAoiMetricValue('water_regulation_area', 'High') }}
-                          </div>
-                          <div class="aoi-m-unit">
-                            {{ getAoiMetricValue('water_regulation_pct', 'Index 78 / 100') }}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     @if (fillDummyAoiMetrics()) {
                       <div id="aoi-eco-narrative" class="aoi-narrative">
-                        This AOI stores <strong>7% of Colombia's carbon stocks</strong> and provides
-                        <strong>above-average water regulation</strong> for the Cauca River basin.
-                        Cloud forest accounts for the largest share of ecosystem coverage.
+                        {{ 'analysis.aoi.narratives.ecosystemPrefix' | translate }}
+                        <strong>{{
+                          'analysis.aoi.narratives.ecosystemCarbonValue' | translate
+                        }}</strong>
+                        {{ 'analysis.aoi.narratives.ecosystemMiddle' | translate }}
+                        <strong>{{
+                          'analysis.aoi.narratives.ecosystemWaterRegulationValue' | translate
+                        }}</strong>
+                        {{ 'analysis.aoi.narratives.ecosystemSuffix' | translate }}
                       </div>
                     }
                   </div>
@@ -1232,16 +1227,20 @@
                         </div>
                         <div>
                           <div class="aoi-m-val">{{ aoiVal('38 km²') }}</div>
-                          <div class="aoi-m-unit">Historical zones</div>
+                          <div class="aoi-m-unit">
+                            {{ 'analysis.aoi.stats.historicalZones' | translate }}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     @if (fillDummyAoiMetrics()) {
                       <div id="aoi-land-narrative" class="aoi-narrative">
-                        60% of this AOI's priority area is natural forest. Agricultural opportunity
-                        cost is <strong>$125M USD</strong>, with <strong>38 km²</strong> in
-                        historical conflict zones.
+                        {{ 'analysis.aoi.narratives.landPrefix' | translate }}
+                        <strong>$125M USD</strong
+                        >{{ 'analysis.aoi.narratives.landMiddle' | translate }}
+                        <strong>38 km²</strong
+                        >{{ 'analysis.aoi.narratives.landSuffix' | translate }}
                       </div>
                     }
                   </div>
@@ -1355,8 +1354,8 @@
 
                     @if (fillDummyAoiMetrics()) {
                       <div id="aoi-cultural-narrative" class="aoi-narrative">
-                        <strong>12%</strong> of this AOI's priority area overlaps indigenous
-                        territories. Prior consultation may be required under ILO Convention 169.
+                        <strong>12%</strong>
+                        {{ 'analysis.aoi.narratives.culturalSuffix' | translate }}
                       </div>
                     }
                   </div>
@@ -1420,7 +1419,9 @@
                         </div>
                         <div>
                           <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">km² and %</div>
+                          <div class="aoi-m-unit">
+                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
+                          </div>
                         </div>
                       </div>
                       <div id="aoi-row-coral" class="aoi-metric-row">
@@ -1437,7 +1438,9 @@
                         </div>
                         <div>
                           <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">km² and %</div>
+                          <div class="aoi-m-unit">
+                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
+                          </div>
                         </div>
                       </div>
                       <div id="aoi-row-mangrove" class="aoi-metric-row">
@@ -1454,7 +1457,9 @@
                         </div>
                         <div>
                           <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">km² and %</div>
+                          <div class="aoi-m-unit">
+                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
+                          </div>
                         </div>
                       </div>
                       <div id="aoi-row-seagrass" class="aoi-metric-row">
@@ -1471,7 +1476,9 @@
                         </div>
                         <div>
                           <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">km² and %</div>
+                          <div class="aoi-m-unit">
+                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
+                          </div>
                         </div>
                       </div>
                       <div id="aoi-row-eez" class="aoi-metric-row">
@@ -1501,11 +1508,13 @@
               <!-- ─── National Context Summary ─── -->
               @if (fillDummyAoiMetrics()) {
                 <div id="aoi-context-narrative" class="aoi-narrative aoi-narrative-blue">
-                  <strong>{{ aoi.name }}</strong> contributes <strong>1.9%</strong> toward
-                  Colombia's 30×30 conservation target. With
-                  <strong>7% of national carbon stocks</strong>,
-                  <strong>7% of national species</strong>, and above-average water regulation, this
-                  municipality is a moderate contributor to national conservation goals.
+                  <strong>{{ aoi.name }}</strong>
+                  {{ 'analysis.aoi.narratives.contextAfterName' | translate }}
+                  <strong>1.9%</strong>
+                  {{ 'analysis.aoi.narratives.contextAfterContribution' | translate }}
+                  <strong>{{ 'analysis.aoi.narratives.contextCarbonValue' | translate }}</strong
+                  >, <strong>{{ 'analysis.aoi.narratives.contextSpeciesValue' | translate }}</strong
+                  >{{ 'analysis.aoi.narratives.contextSuffix' | translate }}
                 </div>
               }
             </div>
@@ -1583,7 +1592,7 @@
                       class="c2-action-btn"
                       (click)="openComparisonSolutionFinder()"
                     >
-                      {{ getComparisonActionLabel() }}
+                      {{ getComparisonActionLabelKey() | translate }}
                     </button>
                   </div>
                   @if (comparisonSolution(); as candidateSolution) {
@@ -1645,7 +1654,7 @@
                           [id]="'right-sidebar-comparison-visualization-option-label-' + option.id"
                           class="c2-viz-mode-option-label"
                         >
-                          {{ option.label }}
+                          {{ option.labelKey | translate }}
                         </span>
                         <span
                           [id]="
@@ -1653,7 +1662,7 @@
                           "
                           class="c2-viz-mode-option-description"
                         >
-                          {{ option.description }}
+                          {{ option.descriptionKey | translate }}
                         </span>
                       </button>
                     }
@@ -1681,7 +1690,7 @@
                         [id]="'right-sidebar-comparison-section-title-' + section.id"
                         class="c2-section-title rs-header-optical-nudge"
                       >
-                        {{ section.title }}
+                        {{ section.titleKey | translate }}
                       </span>
                       <span
                         [id]="'right-sidebar-comparison-section-chevron-' + section.id"
@@ -1755,7 +1764,7 @@
                                   [id]="'right-sidebar-comparison-metric-label-' + metric.id"
                                   class="c2-compare-metric-name"
                                 >
-                                  {{ metric.label }}
+                                  {{ metric.labelKey | translate }}
                                   @if (metric.conditional) {
                                     <span
                                       [id]="'right-sidebar-comparison-metric-tag-' + metric.id"
@@ -1769,7 +1778,7 @@
                                   [id]="'right-sidebar-comparison-metric-description-' + metric.id"
                                   class="c2-compare-metric-description"
                                 >
-                                  {{ metric.description }}
+                                  {{ metric.descriptionKey | translate }}
                                 </p>
                               </div>
                               <span

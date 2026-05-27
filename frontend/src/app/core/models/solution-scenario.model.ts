@@ -11,6 +11,7 @@ export interface SolutionScenario {
   scope: string;
   sirapId: string | null;
   displayUrl: string;
+  displayCogUrl?: string | null;
   metadataUrl: string;
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;
