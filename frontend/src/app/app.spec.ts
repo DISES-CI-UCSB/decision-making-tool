@@ -133,6 +133,15 @@ function buildManifestScenario(): SolutionScenario {
     sirapId: null,
     displayUrl: 'https://example.test/Ecos30+RUNAP_HF.tif',
     metadataUrl: 'https://example.test/Ecos30+RUNAP_HF.json',
+    rendering: {
+      valueType: 'categorical',
+      renderMode: 'categorical',
+      noDataValue: 255,
+      classColors: [
+        { value: 1, color: '#2563eb', label: 'Existing protected areas' },
+        { value: 2, color: '#16a34a', label: 'New coverage' },
+      ],
+    },
     finderInputs: {
       scope: 'nacional',
       targetFeatureSet: 'ecosystems',

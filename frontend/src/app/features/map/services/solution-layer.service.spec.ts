@@ -25,6 +25,15 @@ function createLoadedSolution(
       sirapId: null,
       displayUrl: `https://example.com/${id}.tif`,
       metadataUrl: `https://example.com/${id}.json`,
+      rendering: {
+        valueType: 'categorical',
+        renderMode: 'categorical',
+        noDataValue: 255,
+        classColors: [
+          { value: 1, color: '#2563eb', label: 'Existing protected areas' },
+          { value: 2, color: '#16a34a', label: 'New coverage' },
+        ],
+      },
       finderInputs: {
         scope: 'nacional',
         targetFeatureSet: 'ecosystems',
@@ -61,7 +70,7 @@ function createLoadedSolution(
       totalValidCells: 4,
       selectedPct: 50,
     },
-    rasterData: new Float64Array([1, 0, 1, 0]),
+    rasterData: new Float64Array([2, 1, 2, 0]),
     canvas: document.createElement('canvas'),
     loadTimeMs: 3,
   };

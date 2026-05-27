@@ -211,6 +211,15 @@ function buildScenario(
     sirapId: null,
     displayUrl: `https://example.test/${overrides.name}.tif`,
     metadataUrl: `https://example.test/${overrides.name}.json`,
+    rendering: {
+      valueType: 'categorical',
+      renderMode: 'categorical',
+      noDataValue: 255,
+      classColors: [
+        { value: 1, color: '#2563eb', label: 'Existing protected areas' },
+        { value: 2, color: '#16a34a', label: 'New coverage' },
+      ],
+    },
     finderInputs: {
       scope: 'nacional',
       targetFeatureSet: overrides.targetFeatureSet,

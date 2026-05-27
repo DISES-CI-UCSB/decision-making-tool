@@ -56,6 +56,7 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
       this.localizedText('mapLegend.scenarioBFallback', 'Scenario B'),
   );
   readonly solutionColor = this.solutionLayer.solutionColor$;
+  readonly existingProtectedColor = this.solutionLayer.existingProtectedColor$;
   readonly baselineColor = this.solutionLayer.baselineColor$;
   readonly candidateColor = this.solutionLayer.candidateColor$;
   readonly overlapColor = this.solutionLayer.overlapColor$;

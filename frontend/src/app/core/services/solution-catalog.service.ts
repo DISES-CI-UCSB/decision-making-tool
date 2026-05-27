@@ -70,6 +70,7 @@ export class SolutionCatalogService {
       displayUrl: solution.displayUrl,
       displayCogUrl: solution.displayCogUrl ?? null,
       metadataUrl: solution.metadataUrl,
+      rendering: solution.rendering,
       finderInputs: solution.finderInputs,
       inputLayerIds: solution.inputLayerIds,
       ecosystemTargets: targetPercent,

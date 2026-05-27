@@ -43,6 +43,8 @@
     "scenarioAFallback": "Scenario A",
     "scenarioBFallback": "Scenario B",
     "selected": "Areas included in this scenario ({{pct}}% of the nation)",
+    "existingProtected": "Existing protected areas (RUNAP / OMEC)",
+    "newCoverage": "New coverage added by this scenario ({{pct}}% of the nation)",
     "aOnly": "A only: {{name}}",
     "bOnly": "B only: {{name}}",
     "overlap": "Overlap (A + B)",

@@ -10,6 +10,7 @@ import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 
 import type ArcGISMap from '@arcgis/core/Map';
 import type { Solution } from '@core/models';
+import type { RuntimeLayerManifestClassColor } from '@core/models/layer-manifest.model';
 import {
   AppStateService,
   type ComparisonVisualizationMode,
@@ -25,11 +26,14 @@ const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
 
 /** Canonical default colors. Any module that needs a default must import from here. */
 export const DEFAULT_SINGLE_SOLUTION_HEX = '#16a34a';
+export const DEFAULT_EXISTING_PROTECTED_HEX = '#2563eb';
 export const DEFAULT_COMPARISON_BASELINE_HEX = DEFAULT_SINGLE_SOLUTION_HEX;
 export const DEFAULT_COMPARISON_CANDIDATE_HEX = '#7c3aed';
 export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
 
 const SOLUTION_ALPHA = 180;
+const EXISTING_PROTECTED_VALUE = 1;
+const NEW_COVERAGE_VALUE = 2;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
@@ -74,6 +78,7 @@ export class SolutionLayerService {
    * The left-sidebar layer-control rows write here via set*Color().
    */
   readonly solutionColor$ = signal(DEFAULT_SINGLE_SOLUTION_HEX);
+  readonly existingProtectedColor$ = signal(DEFAULT_EXISTING_PROTECTED_HEX);
   readonly baselineColor$ = signal(DEFAULT_COMPARISON_BASELINE_HEX);
   readonly candidateColor$ = signal(DEFAULT_COMPARISON_CANDIDATE_HEX);
   readonly overlapColor$ = signal(DEFAULT_COMPARISON_OVERLAP_HEX);
@@ -110,6 +115,7 @@ export class SolutionLayerService {
       const restoredColor =
         this.userSingleColorByScenarioId.get(loaded.scenario.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
       this.solutionColor$.set(restoredColor);
+      this.existingProtectedColor$.set(this.solutionClassColors(loaded, restoredColor)[0].color);
       this.lastSingleSolutionId = loaded.scenario.id;
       this.currentLayer = this.createLayerFromLoaded(
         loaded,
@@ -561,7 +567,12 @@ export class SolutionLayerService {
   }
 
   private createImageElement(loaded: LoadedSolution, colorHex: string): ImageElement {
-    const canvas = this.rasterToCanvasWithColor(loaded.rasterData, loaded.rasterMeta, colorHex);
+    const canvas = this.rasterToCanvasWithColor(
+      loaded.rasterData,
+      loaded.rasterMeta,
+      colorHex,
+      loaded,
+    );
     const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
     return new ImageElement({
       image: canvas,
@@ -587,31 +598,34 @@ export class SolutionLayerService {
       id: layerId,
       url: loaded.scenario.displayCogUrl ?? loaded.scenario.displayUrl,
       interpolation: 'nearest',
-      renderer: this.createSolutionRenderer(colorHex),
+      renderer: this.createSolutionRenderer(loaded, colorHex),
       opacity: 0.7,
       title,
     });
   }
 
-  private createSolutionRenderer(colorHex: string): InstanceType<typeof ClassBreaksRenderer> {
-    const [r, g, b] = this.hexToRgb(colorHex) ?? [22, 163, 74];
+  private createSolutionRenderer(
+    loaded: LoadedSolution,
+    newCoverageColorHex: string,
+  ): InstanceType<typeof ClassBreaksRenderer> {
     return new ClassBreaksRenderer({
       field: 'Value',
       defaultSymbol: new SimpleFillSymbol({
         color: [0, 0, 0, 0],
         outline: null,
       }),
-      classBreakInfos: [
-        {
-          minValue: 0.5,
-          maxValue: 1.5,
-          label: 'Selected solution cells',
+      classBreakInfos: this.solutionClassColors(loaded, newCoverageColorHex).map((entry) => {
+        const [r, g, b] = this.hexToRgb(entry.color) ?? [22, 163, 74];
+        return {
+          minValue: entry.value - 0.5,
+          maxValue: entry.value + 0.5,
+          label: entry.label ?? undefined,
           symbol: new SimpleFillSymbol({
             color: [r, g, b, 1],
             outline: null,
           }),
-        },
-      ],
+        };
+      }),
     });
   }
 
@@ -621,7 +635,7 @@ export class SolutionLayerService {
     colorHex: string,
   ): void {
     if (this.isImageryTileLayer(layer)) {
-      layer.renderer = this.createSolutionRenderer(colorHex);
+      layer.renderer = this.createSolutionRenderer(loaded, colorHex);
       return;
     }
     this.replaceLayerSourceColor(layer, loaded, colorHex);
@@ -732,9 +746,16 @@ export class SolutionLayerService {
     const overlapRaster = new Float64Array(length);
     for (let index = 0; index < length; index++) {
       overlapRaster[index] =
-        baselineRasterData[index] === 1 && candidateRasterData[index] === 1 ? 1 : 0;
+        this.isSolutionCoverageValue(baselineRasterData[index]) &&
+        this.isSolutionCoverageValue(candidateRasterData[index])
+          ? NEW_COVERAGE_VALUE
+          : 0;
     }
     return overlapRaster;
+  }
+
+  private isSolutionCoverageValue(value: number): boolean {
+    return value === EXISTING_PROTECTED_VALUE || value === NEW_COVERAGE_VALUE;
   }
 
   private createImageElementWithRaster(
@@ -765,8 +786,14 @@ export class SolutionLayerService {
     rasterData: LoadedSolution['rasterData'],
     rasterMeta: LoadedSolution['rasterMeta'],
     colorHex: string,
+    loaded?: LoadedSolution,
   ): HTMLCanvasElement {
-    const [r, g, b] = this.hexToRgb(colorHex) ?? [22, 163, 74];
+    const classColorByValue = new Map(
+      (loaded
+        ? this.solutionClassColors(loaded, colorHex)
+        : this.defaultSolutionClassColors(colorHex)
+      ).map((entry) => [entry.value, entry.color]),
+    );
     const canvas = document.createElement('canvas');
     canvas.width = rasterMeta.width;
     canvas.height = rasterMeta.height;
@@ -778,8 +805,14 @@ export class SolutionLayerService {
     const imageData = context.createImageData(rasterMeta.width, rasterMeta.height);
     const pixels = imageData.data;
     for (let index = 0; index < rasterData.length; index++) {
+      const value = rasterData[index];
       const pixelOffset = index * 4;
-      if (rasterData[index] === 1) {
+      const isNoData =
+        !Number.isFinite(value) ||
+        (typeof rasterMeta.noDataValue === 'number' && value === rasterMeta.noDataValue);
+      const color = isNoData ? undefined : classColorByValue.get(value);
+      if (color) {
+        const [r, g, b] = this.hexToRgb(color) ?? [22, 163, 74];
         pixels[pixelOffset] = r;
         pixels[pixelOffset + 1] = g;
         pixels[pixelOffset + 2] = b;
@@ -793,6 +826,45 @@ export class SolutionLayerService {
     }
     context.putImageData(imageData, 0, 0);
     return canvas;
+  }
+
+  private solutionClassColors(
+    loaded: LoadedSolution,
+    newCoverageColorHex: string,
+  ): RuntimeLayerManifestClassColor[] {
+    const classColors =
+      loaded.scenario.rendering.renderMode === 'categorical'
+        ? (loaded.scenario.rendering.classColors ?? [])
+        : [];
+    const existingProtectedClass = classColors.find(
+      (entry) => entry.value === EXISTING_PROTECTED_VALUE,
+    );
+    const newCoverageClass = classColors.find((entry) => entry.value === NEW_COVERAGE_VALUE);
+
+    return [
+      {
+        value: EXISTING_PROTECTED_VALUE,
+        color: existingProtectedClass?.color ?? DEFAULT_EXISTING_PROTECTED_HEX,
+        label: existingProtectedClass?.label ?? 'Existing protected areas',
+      },
+      {
+        value: NEW_COVERAGE_VALUE,
+        color: newCoverageColorHex || newCoverageClass?.color || DEFAULT_SINGLE_SOLUTION_HEX,
+        label: newCoverageClass?.label ?? 'New coverage',
+      },
+    ];
+  }
+
+  private defaultSolutionClassColors(
+    newCoverageColorHex: string,
+  ): RuntimeLayerManifestClassColor[] {
+    return [
+      {
+        value: NEW_COVERAGE_VALUE,
+        color: newCoverageColorHex || DEFAULT_SINGLE_SOLUTION_HEX,
+        label: 'New coverage',
+      },
+    ];
   }
 
   private normalizeHexColor(color: string): string | null {

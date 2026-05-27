@@ -416,11 +416,13 @@
         "byMunicipality": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/precomputed/solution_national_30/by-municipality.json"
       },
       "rendering": {
-        "valueType": "binary",
-        "renderMode": "mask",
-        "selectedColor": "#9d174d",
-        "selectedValue": 1,
-        "noDataValue": -9999
+        "valueType": "categorical",
+        "renderMode": "categorical",
+        "noDataValue": -9999,
+        "classColors": [
+          { "value": 1, "color": "#2563eb", "label": "Existing protected areas" },
+          { "value": 2, "color": "#16a34a", "label": "New coverage" }
+        ]
       }
     }
   ]

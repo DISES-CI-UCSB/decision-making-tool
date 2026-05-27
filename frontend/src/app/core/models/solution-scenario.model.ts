@@ -1,4 +1,5 @@
 import type {
+  RuntimeLayerManifestRenderingConfig,
   RuntimeSolutionManifestFinderInputs,
   RuntimeSolutionManifestInputLayerIds,
 } from './layer-manifest.model';
@@ -13,6 +14,7 @@ export interface SolutionScenario {
   displayUrl: string;
   displayCogUrl?: string | null;
   metadataUrl: string;
+  rendering: RuntimeLayerManifestRenderingConfig;
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;
   ecosystemTargets: number;

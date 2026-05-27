@@ -135,11 +135,13 @@ export function getCategoryPalette(categoryId) {
   return CATEGORY_PALETTE[categoryId] ?? CATEGORY_PALETTE_FALLBACK;
 }
 const DEFAULT_SOLUTION_RENDERING = {
-  valueType: 'binary',
-  renderMode: 'mask',
+  valueType: 'categorical',
+  renderMode: 'categorical',
   noDataValue: 255,
-  selectedValue: 1,
-  selectedColor: '#2563eb',
+  classColors: [
+    { value: 1, color: '#2563eb', label: 'Existing protected areas' },
+    { value: 2, color: '#16a34a', label: 'New coverage' },
+  ],
 };
 
 /**
