@@ -91,6 +91,9 @@ describe('SolutionLayerService', () => {
     add: vi.fn(),
     addMany: vi.fn(),
     remove: vi.fn(),
+    reorder: vi.fn(),
+    findLayerById: vi.fn(),
+    layers: { length: 4 },
   };
 
   beforeEach(() => {
@@ -174,6 +177,25 @@ describe('SolutionLayerService', () => {
       baselineLayer,
       candidateLayer,
     });
+  });
+
+  it('reorders arbitrary map layers from bottom to top so the first id ends up above the rest', () => {
+    const topLayer = { id: 'map-view-runap-vector-layer' };
+    const bottomLayer = { id: 'solution-raster-layer' };
+    mapMock.findLayerById.mockImplementation((id: string) => {
+      if (id === topLayer.id) {
+        return topLayer;
+      }
+      if (id === bottomLayer.id) {
+        return bottomLayer;
+      }
+      return null;
+    });
+
+    service.reorderLayersByIds([topLayer.id, bottomLayer.id]);
+
+    expect(mapMock.reorder).toHaveBeenNthCalledWith(1, bottomLayer, mapMock.layers.length - 1);
+    expect(mapMock.reorder).toHaveBeenNthCalledWith(2, topLayer, mapMock.layers.length - 1);
   });
 
   it('keeps the baseline default color distinct from the other comparison defaults', async () => {

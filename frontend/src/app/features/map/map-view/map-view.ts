@@ -28,7 +28,9 @@ import { AdminBoundaryService } from '@features/map/services/admin-boundary.serv
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
 import {
   ManifestRasterLayerService,
+  OMEC_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
   OMEC_OVERLAY_LAYER_ID,
+  RUNAP_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
   RUNAP_OVERLAY_LAYER_ID,
   type VectorOverlayState,
 } from '@features/map/services/manifest-raster-layer.service';
@@ -73,7 +75,7 @@ interface VectorOverlayConfig {
 const VECTOR_OVERLAY_CONFIGS: readonly VectorOverlayConfig[] = [
   {
     overlayId: OMEC_OVERLAY_LAYER_ID,
-    arcgisLayerId: 'map-view-omec-vector-layer',
+    arcgisLayerId: OMEC_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
     geojsonUrl:
       'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/omecs_identify.geojson',
     outFields: ['SITE_ID', 'NAME', 'DESIG', 'STATUS'],
@@ -90,7 +92,7 @@ const VECTOR_OVERLAY_CONFIGS: readonly VectorOverlayConfig[] = [
   },
   {
     overlayId: RUNAP_OVERLAY_LAYER_ID,
-    arcgisLayerId: 'map-view-runap-vector-layer',
+    arcgisLayerId: RUNAP_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
     geojsonUrl:
       'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
     outFields: [

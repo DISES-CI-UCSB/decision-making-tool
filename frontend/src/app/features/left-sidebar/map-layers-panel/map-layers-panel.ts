@@ -35,7 +35,10 @@ import {
   AdminBoundaryService,
   type AdminBoundaryLayerKey,
 } from '@features/map/services/admin-boundary.service';
-import { ManifestRasterLayerService } from '@features/map/services/manifest-raster-layer.service';
+import {
+  ManifestRasterLayerService,
+  VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID,
+} from '@features/map/services/manifest-raster-layer.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
@@ -2290,7 +2293,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         continue;
       }
       if (mapSync.type === 'manifest-raster' || mapSync.type === 'app-state-layer') {
-        idsTopToBottom.push(mapSync.layerId);
+        idsTopToBottom.push(this.resolveArcGisLayerId(mapSync.layerId));
       } else if (
         mapSync.type === 'solution-baseline' ||
         mapSync.type === 'solution-candidate' ||
@@ -2311,6 +2314,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
     this.solutionLayerService.reorderLayersByIds(idsTopToBottom);
+  }
+
+  private resolveArcGisLayerId(layerId: string): string {
+    return VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID[layerId] ?? layerId;
   }
 
   private syncRowToMap(row: LayerControlRow): void {
