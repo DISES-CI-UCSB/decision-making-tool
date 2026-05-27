@@ -50,3 +50,204 @@ body {
   border: none !important;
   box-shadow: none !important;
 }
+
+/*
+  ngx-color-picker popup — Map Layers panel customization.
+  Top row is one line: [eyedropper, always black] [current color swatch] [hue strip].
+  Hex input + preset chips below; "Quick picks" label is hidden.
+  Pinned above ArcGIS map panes via z-index.
+
+  The library uses ViewEncapsulation.None and injects its baseline styles into
+  <head> at runtime, so its rules win the cascade over this global stylesheet.
+  We use !important on layout-critical rules to reliably override defaults like
+  `.selected-color { position: absolute; border-radius: 50% }`.
+*/
+.color-picker {
+  z-index: 2000 !important;
+  width: 226px !important;
+  /* Align popup arrow closer to swatch vertical midpoint. */
+  transform: translateY(-6px);
+}
+
+.color-picker .hue-alpha {
+  margin-bottom: 0 !important;
+}
+
+.color-picker .hue-alpha.box {
+  padding: 8px 12px !important;
+  gap: 8px;
+}
+
+.color-picker .left {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+/*
+  Keep `.right` as a block (library default) so the hue strip's element width
+  matches what the user sees. The library's SliderDirective computes drag/cursor
+  positions from the hue element's bounding rect — wrapping `.right` in flex was
+  inflating the visual width vs. the rect the slider measures, which capped drag
+  prematurely (cursor stopped well before the strip's visible right edge).
+*/
+.color-picker .right {
+  flex: 1 1 auto !important;
+  padding: 0 !important;
+}
+
+/* The library injects a 16px-tall spacer above the hue when alpha is disabled. */
+.color-picker .right > div[style*='height: 16px'] {
+  display: none !important;
+}
+
+/* Drop the dotted checker pattern that sat behind the round swatch. */
+.color-picker .selected-color-background {
+  display: none !important;
+}
+
+/*
+  Combined eyedropper + swatch button, sized to match the hue strip (~16px tall).
+  Left half: white plate with a black eyedropper icon.
+  Right half: current color (library sets `background-color` inline here).
+  Whole element keeps its native click handler, so clicking anywhere triggers
+  the OS eyedropper.
+*/
+.color-picker .selected-color {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  width: 56px !important;
+  height: 16px !important;
+  border: 1px solid rgb(148 163 184) !important;
+  border-radius: 4px !important;
+  overflow: hidden;
+}
+
+.color-picker .selected-color::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: #ffffff;
+  border-right: 1px solid rgb(148 163 184);
+}
+
+.color-picker .eyedropper-icon {
+  z-index: 2;
+  top: 50% !important;
+  left: 14px !important; /* center of the left (28px) half */
+  width: 12px !important;
+  height: 12px !important;
+  transform: translate(-50%, -50%) !important;
+  fill: #111827 !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+.color-picker .hue {
+  margin: 0 !important;
+}
+
+.color-picker .hex-text {
+  padding: 4px 12px 0 !important;
+}
+
+.color-picker .hex-text .box {
+  padding: 0 22px 2px 8px !important;
+}
+
+/*
+  Format input row: lay [code input(s)] and the format <select> on a single line.
+  The <select> is injected by the panel component; see inlineColorPickerFormatControl.
+*/
+.color-picker .hex-text .box.map-layers-format-row,
+.color-picker .rgba-text .box.map-layers-format-row,
+.color-picker .hsla-text .box.map-layers-format-row {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 8px 2px !important;
+}
+
+.color-picker .hex-text .box.map-layers-format-row {
+  width: 100%;
+  padding: 0 !important;
+  gap: 8px;
+}
+
+.color-picker .hex-text .box.map-layers-format-row input {
+  flex: 1 1 64% !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+.color-picker .map-layers-format-select {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  width: 72px;
+  height: 28px;
+  padding: 0 22px 0 8px;
+  border: 1px solid rgb(148 163 184);
+  border-radius: 6px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23334155' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #1f2933;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.color-picker .hex-text .map-layers-format-select {
+  flex: 1 1 36%;
+  width: auto;
+  margin-left: 0;
+}
+
+.color-picker .map-layers-format-select:focus {
+  outline: 2px solid rgb(30 111 168 / 0.4);
+  outline-offset: 1px;
+}
+
+.color-picker .preset-area {
+  padding: 0 12px 8px !important;
+}
+
+.color-picker .preset-area .preset-label {
+  display: none !important;
+}
+
+.color-picker .preset-area hr {
+  margin: 4px 0 !important;
+}
+
+.color-picker .preset-area .preset-color {
+  display: block !important;
+  box-sizing: border-box !important;
+  flex: 0 0 18px !important;
+  width: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  margin: 2px 0 4px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+.color-picker .preset-area .cp-preset-colors-class {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0;
+}

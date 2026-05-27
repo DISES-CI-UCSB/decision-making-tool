@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewContainerRef, inject } from '@angular/core';
 import type { Solution, SolutionScenario } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
@@ -32,6 +32,12 @@ import { TranslatePipe } from '@ngx-translate/core';
   styleUrl: './app.scss',
 })
 export class App implements OnInit, OnDestroy {
+  /**
+   * Exposed for ngx-color-picker `cpUseRootViewContainer`.
+   * This lets popup dialogs render from the app root instead of being clipped
+   * by nested containers with overflow rules.
+   */
+  public readonly viewContainerRef = inject(ViewContainerRef);
   private readonly appState = inject(AppStateService);
   private readonly mockData = inject(MockDataService);
   private readonly solutionCatalog = inject(SolutionCatalogService);

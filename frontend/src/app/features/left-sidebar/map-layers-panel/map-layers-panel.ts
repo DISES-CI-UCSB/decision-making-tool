@@ -1,5 +1,6 @@
 import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import {
   Component,
   DestroyRef,
@@ -12,18 +13,22 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ColorPickerComponent, ColorPickerDirective } from 'ngx-color-picker';
 
 import {
   buildManifestSidebarLayerGroups,
   type AoiType,
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayerRow,
+  type RuntimeLayerManifest,
   type RuntimeLayerManifestRenderingConfig,
   type RuntimeLayerManifestDataRole,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
 } from '@core/models';
+import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import {
@@ -38,8 +43,8 @@ import {
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
-import { TranslateService } from '@ngx-translate/core';
-import { catchError, of } from 'rxjs';
+import { catchError, map, of, switchMap } from 'rxjs';
+import { FEATURE_FLAGS } from '@feature-flags';
 
 interface LayerControlRow {
   id: string;
@@ -119,38 +124,83 @@ interface SelectedLayerRow {
 }
 
 const SPECIES_VISIBLE_LIMIT = 6;
+/**
+ * ngx-color-picker remembers whichever input format (Hex / R G B / H S L) the
+ * user last selected and does not reset it across reopens. The directive's
+ * `dialog` field is the live `ColorPickerComponent` instance — declared
+ * `private` for TS but reachable at runtime — and `format` on that component
+ * is the numeric input mode (0 = HEX). We reset to 0 on every open below so
+ * the popup always greets the user with the hex input.
+ */
+const COLOR_PICKER_HEX_FORMAT = 0;
+/** Formats exposed in the inlined dropdown; values match ngx-color-picker's `format` field. */
+const COLOR_PICKER_FORMAT_OPTIONS = [
+  { format: 0, label: 'Hex' },
+  { format: 1, label: 'RGB' },
+  { format: 2, label: 'HSL' },
+] as const;
+/** Class names of the per-format input containers ngx-color-picker renders into the dialog. */
+const COLOR_PICKER_FORMAT_CONTAINER_CLASSES = ['hex-text', 'rgba-text', 'hsla-text'] as const;
+interface ColorPickerDirectiveWithPrivateDialog {
+  dialog: ColorPickerComponent | null;
+}
+interface ColorPickerComponentWithPrivateDialogElement {
+  dialogElement?: { nativeElement: HTMLElement | null } | null;
+}
+/**
+ * `sliderDimMax` is captured by the library in `ngOnInit` from
+ * `hueSlider.offsetWidth` and `alphaSlider.offsetWidth`, then used to compute
+ * the hue cursor's visual `left.px` (cursor.left = hue * sliderDimMax.h - 8).
+ * The library only re-measures in `ngAfterViewInit` when `cpWidth !== 230`, and
+ * the popup is positioned in a `setTimeout(0)` *after* `ngOnInit` runs, so the
+ * captured width can be stale by the time our CSS has actually laid out the
+ * strip. Result: the strip is visually wide but the cursor "true range" is
+ * narrow — drag math (which uses live `offsetWidth`) reaches max hue, but the
+ * cursor renders well short of the visual right edge.
+ *
+ * We remeasure on every open through this private surface to fix that.
+ */
+interface ColorPickerComponentWithPrivateSliderDims {
+  sliderDimMax?: { h: number; s: number; v: number; a: number } | null;
+  updateColorPicker: (emit?: boolean, update?: boolean, cmykInput?: boolean) => void;
+}
 type SelectedLayerDropPosition = 'before' | 'after';
 type SupportedLanguage = 'en' | 'es';
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
 const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manifest.json';
+const SPECIES_COLLECTION_ROW_ID = 'layer-species';
+const SPECIES_TAXONOMY_CSV_URL =
+  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv';
 const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
   'group-ecosystems': 'ecosystems',
   'group-socio-economic': 'socioeconomic',
   'group-cultural-ethnic': 'cultural_and_ethnic_territories',
   'group-species-biodiversity': 'species_and_biodiversity',
 };
+const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<Record<string, { en: string; es: string }>> = {
+  socioeconomic: { en: 'Costs', es: 'Costos' },
+};
+const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabel: string }> = {
+  Mammalia: { taxonId: 'mammals', taxonLabel: 'Mammals' },
+  Aves: { taxonId: 'birds', taxonLabel: 'Birds' },
+  Amphibia: { taxonId: 'amphibians', taxonLabel: 'Amphibians' },
+  Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
+};
+const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
+  ['taxon-mammals', 0],
+  ['taxon-birds', 1],
+  ['taxon-amphibians', 2],
+  ['taxon-reptiles', 3],
+  ['taxon-plants', 4],
+]);
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
   omecs: 'overlay-omecs',
 };
-const MANAGEMENT_FIGURE_CATEGORY_VALUES: Record<string, number[]> = {
-  runap: Array.from({ length: 15 }, (_, index) => index + 1),
-  omecs: Array.from({ length: 20 }, (_, index) => index + 1),
-};
-const MANAGEMENT_FIGURE_CATEGORY_PALETTE = [
-  '#1d4ed8',
-  '#16a34a',
-  '#9333ea',
-  '#ea580c',
-  '#0891b2',
-  '#be123c',
-  '#65a30d',
-  '#f59e0b',
-  '#0f766e',
-  '#7c3aed',
-] as const;
 const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
   string,
   { boundaryType: AoiType; boundaryLayerKey: AdminBoundaryLayerKey }
@@ -158,6 +208,10 @@ const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
   siraps: { boundaryType: 'sirap', boundaryLayerKey: 'siraps' },
   siraps_territorial: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_territorial' },
   siraps_thematic: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_thematic' },
+  admin_country_outline: {
+    boundaryType: 'department',
+    boundaryLayerKey: 'admin_country_outline',
+  },
   admin_departments: { boundaryType: 'department', boundaryLayerKey: 'admin_departments' },
   admin_municipalities: { boundaryType: 'municipality', boundaryLayerKey: 'admin_municipalities' },
 };
@@ -295,15 +349,15 @@ const LEGEND_BOUNDARY_STYLES: Record<
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
   siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#2563eb' },
   siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#9333ea' },
+  admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
 };
-type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 
 @Component({
   selector: 'app-map-layers-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe, ColorPickerDirective],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
   animations: [
@@ -326,20 +380,50 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly adminBoundaryService = inject(AdminBoundaryService);
   private readonly manifestRasterLayerService = inject(ManifestRasterLayerService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
+  private readonly appLocaleService = inject(AppLocaleService);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
+  private formatSelectIdSequence = 0;
   private loadedSpeciesManifestUrl: string | null = null;
+
+  /**
+   * Per-mode color memory for the baseline/single-solution overlay.
+   * Allows the color picker choice to survive Overview↔AOI↔Comparison tab switches.
+   *
+   * Regression check: Change color → switch Overview/AOI → verify color remains changed.
+   * Regression check: Change color → switch Overview→Comparison→Overview → verify color restores.
+   */
+  private lastIsComparing: boolean | null = null;
+  private savedSingleSolutionColor: string | null = null;
+  private savedBaselineColor: string | null = null;
+
   /** Stable bound reference so we can removeEventListener exactly. */
   private readonly rainforestProximityHandler = (e: PointerEvent): void =>
     this.onSidebarProximityMove(e);
 
+  /** Preset swatches shown beneath the saturation/hue grid in the color picker popup. */
+  protected readonly colorPresetHexValues: string[] = [
+    '#16A34A',
+    '#2563EB',
+    '#7C3AED',
+    '#EA580C',
+    '#DC2626',
+    '#0891B2',
+    '#475569',
+    '#111827',
+    '#F59E0B',
+  ];
+
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
-  protected readonly managementFiguresTitle = signal('Management Figures');
+  protected readonly managementFiguresTitle = signal(
+    this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+  );
   protected readonly availableOverlays = computed(() =>
     this.overlays().filter(
       (row) => row.id !== BASELINE_SOLUTION_OVERLAY_ID && row.id !== CANDIDATE_SOLUTION_OVERLAY_ID,
@@ -350,9 +434,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   private readonly activeLanguage = signal<SupportedLanguage>(this.resolveActiveLanguage());
   protected readonly groups = signal<LayerGroup[]>(this.createDefaultGroups());
-  private readonly sourceManifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
+  private readonly manifestSidebarLoadFailed = signal(false);
+  /** Raw manifest stored so groups can be rebuilt reactively when the locale changes. */
+  private readonly rawManifest = signal<RuntimeLayerManifest | null>(null);
   protected readonly manifestSidebarLayerGroups = signal<ManifestSidebarLayerGroup[]>([]);
-  protected readonly manifestSidebarLoadFailed = signal(false);
   protected readonly speciesCollectionManifestUrl = signal<string>(DEFAULT_SPECIES_MANIFEST_URL);
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
@@ -419,9 +504,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.buildSelectedLayers(),
   );
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
-  protected readonly canAccessSirapBoundaries = this.appState.canAccessSirapBoundaries;
-  protected readonly sirapTooltipCopy =
-    'Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.';
 
   constructor() {
     this.translate.onLangChange
@@ -484,8 +566,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     effect(() => {
       const order = this.selectedLayerOrder();
       const overlays = this.overlays();
+      const groups = this.groups();
+      const taxa = this.taxa();
       untracked(() => {
-        this.syncSelectedLayerStackingToMap(order, overlays);
+        this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
       });
     });
 
@@ -509,12 +593,17 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       this.activeLanguage();
+      const rawManifest = this.rawManifest();
       const previewManifest = this.layerManifestService.stylePreviewManifest$();
-      const sourceGroups = this.sourceManifestSidebarLayerGroups();
+      const locale = this.appLocaleService.locale();
+      const sourceGroups = rawManifest ? buildManifestSidebarLayerGroups(rawManifest, locale) : [];
       const manifestGroups = previewManifest
-        ? buildManifestSidebarLayerGroups(previewManifest)
+        ? buildManifestSidebarLayerGroups(previewManifest, locale)
         : sourceGroups;
-      untracked(() => this.applyManifestSidebarGroups(manifestGroups));
+      untracked(() => {
+        this.syncLocaleSensitiveSidebarLabels();
+        this.applyManifestSidebarGroups(manifestGroups);
+      });
     });
 
     // Register / unregister a viewport-wide pointer listener for the rainforest reveal mode.
@@ -614,16 +703,18 @@ export class MapLayersPanelComponent implements OnDestroy {
   private loadManifestSidebarRows(): void {
     this.manifestSidebarLoadFailed.set(false);
     this.layerManifestService
-      .getSidebarLayerGroups()
+      .getManifest()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         catchError(() => {
           this.manifestSidebarLoadFailed.set(true);
-          return of<ManifestSidebarLayerGroup[]>([]);
+          return of<RuntimeLayerManifest | null>(null);
         }),
       )
-      .subscribe((groups) => {
-        this.sourceManifestSidebarLayerGroups.set(groups);
+      .subscribe((manifest) => {
+        if (manifest) {
+          this.rawManifest.set(manifest);
+        }
       });
   }
 
@@ -661,6 +752,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       .getSpeciesManifest(speciesManifestUrl)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
+        switchMap((manifest) =>
+          this.loadSpeciesTaxonomyLookup().pipe(
+            map((taxonomyLookup) => this.withSpeciesTaxonomy(manifest, taxonomyLookup)),
+            catchError(() => of(manifest)),
+          ),
+        ),
         catchError(() => of<RuntimeSpeciesManifest>({ layers: [] })),
       )
       .subscribe((manifest) => {
@@ -669,6 +766,39 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
         this.reconcileTaxaWithSpeciesManifest(manifest.layers);
       });
+  }
+
+  private loadSpeciesTaxonomyLookup() {
+    return this.http.get(SPECIES_TAXONOMY_CSV_URL, { responseType: 'text' }).pipe(
+      map((csvText) => this.parseSpeciesTaxonomyLookup(csvText)),
+      catchError(() => of(new Map<string, { taxonId: string; taxonLabel: string }>())),
+    );
+  }
+
+  private withSpeciesTaxonomy(
+    manifest: RuntimeSpeciesManifest,
+    taxonomyLookup: Map<string, { taxonId: string; taxonLabel: string }>,
+  ): RuntimeSpeciesManifest {
+    if (taxonomyLookup.size === 0) {
+      return manifest;
+    }
+    return {
+      ...manifest,
+      layers: manifest.layers.map((layer) => {
+        if (layer.taxonId?.trim() && layer.taxonLabel?.trim()) {
+          return layer;
+        }
+        const taxonomy = taxonomyLookup.get(this.normalizeSpeciesLookupKey(layer.scientificName));
+        if (!taxonomy) {
+          return layer;
+        }
+        return {
+          ...layer,
+          taxonId: taxonomy.taxonId,
+          taxonLabel: taxonomy.taxonLabel,
+        };
+      }),
+    };
   }
 
   private reconcileGroupsWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
@@ -688,13 +818,15 @@ export class MapLayersPanelComponent implements OnDestroy {
           return group;
         }
 
-        const rows = manifestGroup.rows
-          .filter((row) => !row.isSpeciesCollection)
-          .map((row, index) => this.manifestSidebarLayerRow(group.id, row, index, group.rows));
+        const rows = manifestGroup.rows.map((row, index) =>
+          this.manifestSidebarLayerRow(group.id, row, index, group.rows),
+        );
 
         return {
           ...group,
-          title: this.manifestSidebarGroupTitle(manifestGroup),
+          title:
+            this.manifestCategoryTitle(manifestCategoryId) ??
+            this.manifestSidebarGroupTitle(manifestGroup),
           countLabel: this.toLayerCountLabel(rows.length),
           note: group.id === 'group-ecosystems' ? this.ecosystemsCopy().groupNote : group.note,
           rows,
@@ -841,9 +973,16 @@ export class MapLayersPanelComponent implements OnDestroy {
         ? manifestSelectedColor
         : existingOverlay.color;
 
+    // OMECs render as smooth vector polygons (see MapView), so strip the
+    // misleading "(raster)" suffix that the published manifest still carries.
+    const displayName =
+      existingOverlay.id === 'overlay-omecs'
+        ? manifestRow.name.replace(/\s*\(raster\)\s*/i, '').trim() || 'OMECs'
+        : manifestRow.name;
+
     return {
       ...existingOverlay,
-      name: manifestRow.name,
+      name: displayName,
       color: nextColor,
       mapUnavailable: false,
       mapSync: {
@@ -856,13 +995,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   /**
-   * Management figure rasters (RUNAP, OMECs) are categorical mode-code grids
-   * (values like 1..15 / 0..20) even though the manifest declares them as a binary
-   * mask. `selectedValue: 1` therefore drops most/all of the meaningful coverage —
-   * for OMECs there are zero pixels with value=1, so nothing renders.
-   *
-   * We render these as categorical classes so map + legend can communicate
-   * the encoded category values instead of flattening everything to one color.
+   * Management figure rasters (RUNAP, OMECs) are mode-code grids rather than strict
+   * binary 0/1 masks, so `selectedValue: 1` drops valid coverage. We intentionally
+   * treat these as presence masks (any non-zero value) so they render as a single
+   * category/color in the map and legend.
    */
   private normalizeManagementFigureRendering(
     manifestLayerId: string,
@@ -872,22 +1008,9 @@ export class MapLayersPanelComponent implements OnDestroy {
       return rendering;
     }
 
-    const classValues = MANAGEMENT_FIGURE_CATEGORY_VALUES[manifestLayerId] ?? [];
-    if (classValues.length === 0) {
-      // Fallback for unknown layers: show presence rather than hide everything.
-      return { ...rendering, selectedValue: null };
-    }
-
     return {
       ...rendering,
-      valueType: 'categorical',
-      renderMode: 'categorical',
-      classColors: classValues.map((value, index) => ({
-        value,
-        color:
-          MANAGEMENT_FIGURE_CATEGORY_PALETTE[index % MANAGEMENT_FIGURE_CATEGORY_PALETTE.length],
-        label: `Category ${value}`,
-      })),
+      selectedValue: null,
     };
   }
 
@@ -897,6 +1020,25 @@ export class MapLayersPanelComponent implements OnDestroy {
     index: number,
     existingRows: LayerControlRow[],
   ): LayerControlRow {
+    if (sidebarGroupId === 'group-species-biodiversity' && manifestRow.isSpeciesCollection) {
+      const layerId = `layer-${manifestRow.id}`;
+      const existingRow = existingRows.find((row) => row.id === layerId);
+      return {
+        id: layerId,
+        name: this.localizedText('mapLayersPanel.individualSpecies'),
+        selected: false,
+        visible: false,
+        expanded: existingRow?.expanded ?? false,
+        opacity: 60,
+        color: '#854d0e',
+        canReorder: false,
+        hasStyleControls: false,
+        hasColorControl: false,
+        mapUnavailable: true,
+        hideAddButton: true,
+      };
+    }
+
     const layerId = `layer-${manifestRow.id}`;
     const existingRow = existingRows.find((row) => row.id === layerId);
     const isLiveRenderable = this.isManifestRowLiveRenderable(manifestRow);
@@ -1091,8 +1233,19 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private toLayerCountLabel(layerCount: number): string {
-    const noun = layerCount === 1 ? 'layer' : 'layers';
+    const noun =
+      layerCount === 1
+        ? this.localizedTextOrFallback('mapLayersPanel.layerSingular', 'layer')
+        : this.localizedTextOrFallback('mapLayersPanel.layerPlural', 'layers');
     return `${layerCount} ${noun}`;
+  }
+
+  private manifestCategoryTitle(manifestCategoryId: string): string | undefined {
+    const override = MANIFEST_CATEGORY_TITLE_OVERRIDES[manifestCategoryId];
+    if (!override) {
+      return undefined;
+    }
+    return this.appLocaleService.locale() === 'es' ? override.es : override.en;
   }
 
   private selectSolutionHoverUsesPointerTracking(): boolean {
@@ -1195,7 +1348,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           rows: g.rows.map((row) =>
             row.id === rowId
               ? (() => {
-                  if (row.mapUnavailable || this.isAuthLockedRow(row)) {
+                  if (row.mapUnavailable) {
                     return row;
                   }
                   nextVisible = !row.visible;
@@ -1227,9 +1380,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           ...group,
           rows: group.rows.map((row) => {
             if (row.id !== rowId) {
-              return row;
-            }
-            if (this.isAuthLockedRow(row)) {
               return row;
             }
             nextSelected = !row.selected;
@@ -1513,7 +1663,23 @@ export class MapLayersPanelComponent implements OnDestroy {
       return group.rows;
     }
     const query = this.normalizedLayerSearchQuery();
-    return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
+    if (group.id !== 'group-species-biodiversity') {
+      return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
+    }
+    return group.rows.filter(
+      (row) => this.isSpeciesCollectionRow(row) || this.nameMatchesSearch(row.name, query),
+    );
+  }
+
+  protected shouldShowSpeciesTaxa(group: LayerGroup): boolean {
+    if (this.hasLayerSearchQuery()) {
+      return true;
+    }
+    const speciesCollectionRow = group.rows.find((row) => this.isSpeciesCollectionRow(row));
+    if (!speciesCollectionRow) {
+      return true;
+    }
+    return speciesCollectionRow.expanded;
   }
 
   protected visibleSpeciesForTaxon(taxon: TaxonRow): SpeciesRow[] {
@@ -1534,6 +1700,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected visibleGroupCountLabel(group: LayerGroup): string | undefined {
+    if (group.id === 'group-species-biodiversity') {
+      return undefined;
+    }
     if (!this.hasLayerSearchQuery()) {
       return group.countLabel;
     }
@@ -1541,21 +1710,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (!match) {
       return undefined;
     }
-    if (group.id === 'group-species-biodiversity') {
-      const parts: string[] = [];
-      if (match.rowMatches > 0) {
-        parts.push(
-          `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`,
-        );
-      }
-      if (match.taxonMatches > 0) {
-        parts.push(
-          `${match.taxonMatches} ${match.taxonMatches === 1 ? 'taxon match' : 'taxon matches'}`,
-        );
-      }
-      return parts.length > 0 ? parts.join(' · ') : '0 matches';
-    }
-    return `${match.rowMatches} ${match.rowMatches === 1 ? 'layer match' : 'layer matches'}`;
+    const noun =
+      match.rowMatches === 1
+        ? this.localizedText('mapLayersPanel.layerMatchSingular')
+        : this.localizedText('mapLayersPanel.layerMatchPlural');
+    return `${match.rowMatches} ${noun}`;
   }
 
   protected shouldShowTaxonShowAll(taxon: TaxonRow): boolean {
@@ -1868,6 +2027,141 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
   }
 
+  /**
+   * Forces the picker popup to greet the user with the hex input every time it
+   * opens. Without this, ngx-color-picker keeps the last input mode the user
+   * picked (e.g. R G B) sticky across reopens of the same swatch.
+   */
+  protected onColorPickerOpen(picker: ColorPickerDirective): void {
+    const dialog = (picker as unknown as ColorPickerDirectiveWithPrivateDialog).dialog;
+    if (dialog) {
+      dialog.format = COLOR_PICKER_HEX_FORMAT;
+      // Wait one frame for the popup DOM to exist + be positioned, then inline
+      // the format control AND remeasure the hue slider so the cursor's visual
+      // range matches the strip's actual rendered width. See
+      // `ColorPickerComponentWithPrivateSliderDims` for the why.
+      requestAnimationFrame(() => {
+        this.inlineColorPickerFormatControl(dialog);
+        this.remeasureColorPickerSliderDimensions(dialog);
+      });
+    }
+  }
+
+  /**
+   * Forces ngx-color-picker to recompute its internal `sliderDimMax` against
+   * the popup's *actual* rendered slider widths, then redraws the cursor.
+   *
+   * The library captures slider widths once in `ngOnInit` (before the dialog
+   * has been positioned and our overrides applied) and only refreshes them in
+   * `ngAfterViewInit` if `cpWidth !== 230` — which it does, so the captured
+   * widths are stale. Without this, the hue cursor's visual position is
+   * computed against the stale narrow width while drag math uses the live
+   * (wider) width, making the cursor appear to "stop" before the right edge
+   * even though the underlying hue value reaches the max.
+   */
+  private remeasureColorPickerSliderDimensions(dialog: ColorPickerComponent): void {
+    const host = this.colorPickerDialogHost(dialog);
+    if (!host) {
+      return;
+    }
+    const dialogWithDims = dialog as unknown as ColorPickerComponentWithPrivateSliderDims;
+    if (!dialogWithDims.sliderDimMax) {
+      return;
+    }
+    const hueWidth = host.querySelector<HTMLElement>('.hue')?.offsetWidth ?? 0;
+    const satLightnessEl = host.querySelector<HTMLElement>('.saturation-lightness');
+    const satLightnessWidth = satLightnessEl?.offsetWidth ?? 0;
+    const satLightnessHeight = satLightnessEl?.offsetHeight ?? 0;
+    if (hueWidth > 0) {
+      dialogWithDims.sliderDimMax.h = hueWidth;
+    }
+    if (satLightnessWidth > 0) {
+      dialogWithDims.sliderDimMax.s = satLightnessWidth;
+    }
+    if (satLightnessHeight > 0) {
+      dialogWithDims.sliderDimMax.v = satLightnessHeight;
+    }
+    // Recompute slider cursor positions (and re-emit nothing) with the corrected dims.
+    dialogWithDims.updateColorPicker(false, true);
+  }
+
+  /**
+   * Replaces ngx-color-picker's up/down format arrows with a real <select>
+   * dropdown rendered inline to the right of the code input.
+   *
+   * The library renders one `<div class="hex-text|rgba-text|hsla-text|cmyk-text">`
+   * per format and shows only the active one via `[style.display]`. We inject one
+   * <select> into the input row of each supported container; only the active
+   * container's select is visible at any time, and they all stay in sync.
+   */
+  private inlineColorPickerFormatControl(dialog: ColorPickerComponent): void {
+    const host = this.colorPickerDialogHost(dialog);
+    if (!host) {
+      return;
+    }
+
+    // Hide the original up/down format arrows; they're replaced by the dropdown.
+    const typePolicy = host.querySelector<HTMLElement>('.type-policy');
+    if (typePolicy) {
+      typePolicy.style.display = 'none';
+    }
+
+    for (const containerClass of COLOR_PICKER_FORMAT_CONTAINER_CLASSES) {
+      const container = host.querySelector<HTMLElement>(`.${containerClass}`);
+      if (!container) {
+        continue;
+      }
+      const inputBox = container.querySelector<HTMLElement>(':scope > .box:first-child');
+      const labelBox = container.querySelector<HTMLElement>(':scope > .box:nth-child(2)');
+      if (!inputBox) {
+        continue;
+      }
+      // Drop the under-input format label ("Hex" / "R G B" / ...); the dropdown is the label.
+      if (labelBox) {
+        labelBox.style.display = 'none';
+      }
+      inputBox.classList.add('map-layers-format-row');
+
+      if (!inputBox.querySelector('.map-layers-format-select')) {
+        inputBox.appendChild(this.createColorPickerFormatSelect(dialog, host));
+      }
+    }
+
+    // Sync every select to the current format on each (re)open.
+    host.querySelectorAll<HTMLSelectElement>('.map-layers-format-select').forEach((select) => {
+      select.value = String(dialog.format);
+    });
+  }
+
+  private createColorPickerFormatSelect(
+    dialog: ColorPickerComponent,
+    host: HTMLElement,
+  ): HTMLSelectElement {
+    const select = document.createElement('select');
+    select.id = `map-layers-color-picker-format-select-${this.formatSelectIdSequence++}`;
+    select.className = 'map-layers-format-select';
+    for (const option of COLOR_PICKER_FORMAT_OPTIONS) {
+      const optionEl = document.createElement('option');
+      optionEl.value = String(option.format);
+      optionEl.textContent = option.label;
+      select.appendChild(optionEl);
+    }
+    select.value = String(dialog.format);
+    select.addEventListener('change', () => {
+      dialog.format = Number(select.value);
+      // Mirror the new value across the (hidden) sibling selects in other format containers.
+      host.querySelectorAll<HTMLSelectElement>('.map-layers-format-select').forEach((other) => {
+        other.value = select.value;
+      });
+    });
+    return select;
+  }
+
+  private colorPickerDialogHost(dialog: ColorPickerComponent): HTMLElement | null {
+    const dialogWithElement = dialog as unknown as ColorPickerComponentWithPrivateDialogElement;
+    return dialogWithElement.dialogElement?.nativeElement ?? null;
+  }
+
   private syncAllRowsToMap(): void {
     for (const overlay of this.overlays()) {
       this.syncRowToMap(overlay);
@@ -1953,32 +2247,70 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.colorSyncFrames.set(rowKey, frameId);
   }
 
-  private syncSelectedLayerStackingToMap(order: string[], overlays: LayerControlRow[]): void {
+  private syncSelectedLayerStackingToMap(
+    order: string[],
+    overlays: LayerControlRow[],
+    groups: LayerGroup[],
+    taxa: TaxonRow[],
+  ): void {
     const effectiveOrder = this.shouldPrioritizeComparisonLayers()
       ? this.normalizeSelectedLayerOrder(order)
       : order;
-    const overlaysById = new Map(overlays.map((overlay) => [overlay.id, overlay]));
-    const layerOrderTopToBottom: SidebarSolutionLayerType[] = [];
 
+    // Build a unified mapSync lookup covering all row sources.
+    const mapSyncById = new Map<string, LayerControlRow['mapSync']>();
+    for (const overlay of overlays) {
+      if (overlay.selected && overlay.mapSync) {
+        mapSyncById.set(overlay.id, overlay.mapSync);
+      }
+    }
+    for (const group of groups) {
+      for (const row of group.rows) {
+        if (row.selected && row.mapSync) {
+          mapSyncById.set(row.id, row.mapSync);
+        }
+      }
+    }
+    for (const taxon of taxa) {
+      if (taxon.selected && taxon.mapSync) {
+        mapSyncById.set(taxon.id, taxon.mapSync);
+      }
+      for (const species of taxon.species) {
+        if (species.selected && species.mapSync) {
+          mapSyncById.set(species.id, species.mapSync);
+        }
+      }
+    }
+
+    // Resolve each ordered row to the ArcGIS layer ID(s) it controls.
+    const idsTopToBottom: string[] = [];
     for (const rowId of effectiveOrder) {
-      const overlay = overlaysById.get(rowId);
-      const mapSync = overlay?.mapSync;
-      if (!overlay?.selected || !mapSync) {
+      const mapSync = mapSyncById.get(rowId);
+      if (!mapSync) {
         continue;
       }
-      if (
+      if (mapSync.type === 'manifest-raster' || mapSync.type === 'app-state-layer') {
+        idsTopToBottom.push(mapSync.layerId);
+      } else if (
         mapSync.type === 'solution-baseline' ||
         mapSync.type === 'solution-candidate' ||
         mapSync.type === 'solution-overlap'
       ) {
-        layerOrderTopToBottom.push(mapSync.type);
+        const layer = this.solutionLayerService.resolveLayerForSidebarType(mapSync.type);
+        if (layer) {
+          idsTopToBottom.push(layer.id);
+        }
+      } else if (mapSync.type === 'admin-boundary') {
+        idsTopToBottom.push(
+          ...this.adminBoundaryService.getLayerIdsByBoundaryKey(mapSync.boundaryLayerKey),
+        );
       }
     }
 
-    if (layerOrderTopToBottom.length === 0) {
+    if (idsTopToBottom.length === 0) {
       return;
     }
-    this.solutionLayerService.reorderSolutionLayersBySidebarOrder(layerOrderTopToBottom);
+    this.solutionLayerService.reorderLayersByIds(idsTopToBottom);
   }
 
   private syncRowToMap(row: LayerControlRow): void {
@@ -2223,12 +2555,12 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: overlay.name,
         sourceLabel:
           overlay.id === BASELINE_SOLUTION_OVERLAY_ID
-            ? 'Selected Solution'
+            ? this.localizedText('mapLayersPanel.sourceLabels.selectedScenario')
             : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
-              ? 'Comparison Solution'
+              ? this.localizedText('mapLayersPanel.sourceLabels.comparisonScenario')
               : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
-                ? 'Comparison Overlay'
-                : 'Available Layers',
+                ? this.localizedText('mapLayersPanel.sourceLabels.comparisonOverlay')
+                : this.localizedText('mapLayersPanel.sourceLabels.availableLayers'),
         sourceType: 'overlay',
         mapUnavailable: !!overlay.mapUnavailable,
       });
@@ -2254,7 +2586,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(taxon.id, {
           id: taxon.id,
           name: taxon.name,
-          sourceLabel: 'Species & Biodiversity',
+          sourceLabel: this.localizedText('mapLayersPanel.sourceLabels.speciesBiodiversity'),
           sourceType: 'group',
           mapUnavailable: !!taxon.mapUnavailable,
         });
@@ -2266,7 +2598,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         rowLookup.set(species.id, {
           id: species.id,
           name: species.common,
-          sourceLabel: `Species & Biodiversity: ${taxon.name}`,
+          sourceLabel: this.localizedText('mapLayersPanel.sourceLabels.speciesBiodiversityTaxon', {
+            taxon: taxon.name,
+          }),
           sourceType: 'group',
           mapUnavailable: !!species.mapUnavailable,
         });
@@ -2377,7 +2711,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       };
     }
 
-    if (this.isHumanFootprintLayerRow(row)) {
+    if (this.isContinuousGradientRaster(row)) {
+      const gradientRendering = row.mapSync.rendering;
       return {
         id: row.id,
         name: row.name,
@@ -2385,6 +2720,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         color: row.color,
         lineStyle: 'solid',
         lineWidth: 1,
+        gradientStartColor: gradientRendering?.startColor ?? '#dbeafe',
+        gradientEndColor: gradientRendering?.endColor ?? row.color ?? '#7f1d1d',
+        gradientMinLabel: this.formatLegendValue(gradientRendering?.minValue),
+        gradientMaxLabel: this.formatLegendValue(gradientRendering?.maxValue),
       };
     }
 
@@ -2443,6 +2782,28 @@ export class MapLayersPanelComponent implements OnDestroy {
     return normalizedName === 'human footprint';
   }
 
+  private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
+    mapSync: {
+      type: 'manifest-raster';
+      layerId: string;
+      displayUrl: string;
+      rendering: RuntimeLayerManifestRenderingConfig;
+    };
+  } {
+    return (
+      row.mapSync?.type === 'manifest-raster' &&
+      row.mapSync.rendering.renderMode === 'gradient' &&
+      row.mapSync.rendering.valueType === 'continuous'
+    );
+  }
+
+  private formatLegendValue(value: number | null | undefined): string | undefined {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return undefined;
+    }
+    return Number.isInteger(value) ? `${value}` : value.toFixed(2);
+  }
+
   private isSolutionLayerRow(row: LayerControlRow): boolean {
     const mapType = row.mapSync?.type;
     return (
@@ -2490,7 +2851,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     return [
       {
         id: BASELINE_SOLUTION_OVERLAY_ID,
-        name: 'Conservation Solution',
+        name: this.localizedText('mapLayersPanel.overlayNames.conservationSolution'),
         selected: true,
         visible: true,
         expanded: true,
@@ -2503,7 +2864,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'overlay-runap',
-        name: 'Protected Areas (RUNAP)',
+        name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
         selected: false,
         visible: false,
         expanded: false,
@@ -2516,7 +2877,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'overlay-omecs',
-        name: 'OMECs',
+        name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
         selected: false,
         visible: false,
         expanded: false,
@@ -2541,7 +2902,25 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private syncBaselineOverlayColor(isComparing: boolean): void {
-    const targetColor = isComparing ? COMPARISON_BASELINE_COLOR : SINGLE_SOLUTION_COLOR;
+    if (isComparing === this.lastIsComparing) {
+      // Mode hasn't changed (e.g. Overview↔AOI); preserve the user's chosen color.
+      return;
+    }
+
+    // Save the current row color before switching modes so we can restore it on return.
+    const currentRow = this.overlays().find((r) => r.id === BASELINE_SOLUTION_OVERLAY_ID);
+    if (this.lastIsComparing === false) {
+      this.savedSingleSolutionColor = currentRow?.color ?? null;
+    } else if (this.lastIsComparing === true) {
+      this.savedBaselineColor = currentRow?.color ?? null;
+    }
+    this.lastIsComparing = isComparing;
+
+    // Restore the color last used in this mode, falling back to the per-mode default.
+    const targetColor = isComparing
+      ? (this.savedBaselineColor ?? COMPARISON_BASELINE_COLOR)
+      : (this.savedSingleSolutionColor ?? SINGLE_SOLUTION_COLOR);
+
     this.overlays.update((rows) =>
       rows.map((row) =>
         row.id === BASELINE_SOLUTION_OVERLAY_ID ? { ...row, color: targetColor } : row,
@@ -2644,7 +3023,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         ...nextRows,
         {
           id: OVERLAP_SOLUTION_OVERLAY_ID,
-          name: 'Agreement / Overlap',
+          name: this.localizedText('mapLayersPanel.overlayNames.agreementOverlap'),
           selected: true,
           visible: true,
           expanded: true,
@@ -2665,8 +3044,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     return [
       {
         id: 'taxon-mammals',
-        name: 'Mammals',
-        countLabel: '412 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.mammals'),
+        countLabel: this.toSpeciesCountLabel(412),
         speciesCount: 412,
         selected: false,
         visible: false,
@@ -2691,8 +3070,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-birds',
-        name: 'Birds',
-        countLabel: '1,932 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.birds'),
+        countLabel: this.toSpeciesCountLabel(1932),
         speciesCount: 1932,
         selected: false,
         visible: false,
@@ -2717,8 +3096,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-amphibians',
-        name: 'Amphibians',
-        countLabel: '803 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.amphibians'),
+        countLabel: this.toSpeciesCountLabel(803),
         speciesCount: 803,
         selected: false,
         visible: false,
@@ -2743,8 +3122,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-reptiles',
-        name: 'Reptiles',
-        countLabel: '590 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.reptiles'),
+        countLabel: this.toSpeciesCountLabel(590),
         speciesCount: 590,
         selected: false,
         visible: false,
@@ -2768,8 +3147,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'taxon-plants',
-        name: 'Plants',
-        countLabel: '4,963 species',
+        name: this.localizedText('mapLayersPanel.taxaNames.plants'),
+        countLabel: this.toSpeciesCountLabel(4963),
         speciesCount: 4963,
         selected: false,
         visible: false,
@@ -2798,9 +3177,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   private reconcileTaxaWithSpeciesManifest(manifestLayers: RuntimeSpeciesManifestLayer[]): void {
     const existingTaxaById = new Map(this.taxa().map((taxon) => [taxon.id, taxon]));
     const manifestLayersByTaxonId = this.groupSpeciesManifestLayersByTaxon(manifestLayers);
-    const taxa = Array.from(manifestLayersByTaxonId.entries()).map(([taxonId, layers]) =>
-      this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
-    );
+    const taxa = Array.from(manifestLayersByTaxonId.entries())
+      .map(([taxonId, layers]) =>
+        this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
+      )
+      .sort((left, right) => this.compareSpeciesTaxa(left, right));
     const speciesLayerCount = taxa.reduce((total, taxon) => total + taxon.speciesCount, 0);
 
     this.taxa.set(taxa);
@@ -2810,7 +3191,11 @@ export class MapLayersPanelComponent implements OnDestroy {
           ? {
               ...group,
               countLabel: this.toLayerCountLabel(group.rows.length + speciesLayerCount),
-              note: 'Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.',
+              rows: group.rows.map((row) =>
+                this.isSpeciesCollectionRow(row)
+                  ? { ...row, countLabel: this.toSpeciesCountLabel(speciesLayerCount) }
+                  : row,
+              ),
             }
           : group,
       ),
@@ -2857,6 +3242,15 @@ export class MapLayersPanelComponent implements OnDestroy {
       showAll: existingTaxon?.showAll ?? false,
       species,
     };
+  }
+
+  private compareSpeciesTaxa(left: TaxonRow, right: TaxonRow): number {
+    const leftOrder = SPECIES_TAXON_SORT_ORDER.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = SPECIES_TAXON_SORT_ORDER.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+    return left.name.localeCompare(right.name);
   }
 
   private speciesManifestLayerRow(
@@ -2912,7 +3306,82 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
-    return layer?.taxonLabel?.trim() || 'Individual species';
+    return layer?.taxonLabel?.trim() || 'Unclassified species';
+  }
+
+  private isSpeciesCollectionRow(row: LayerControlRow): boolean {
+    return row.id === SPECIES_COLLECTION_ROW_ID;
+  }
+
+  private parseSpeciesTaxonomyLookup(
+    csvText: string,
+  ): Map<string, { taxonId: string; taxonLabel: string }> {
+    const rows = csvText.split(/\r?\n/).filter((row) => row.trim().length > 0);
+    if (rows.length === 0) {
+      return new Map();
+    }
+
+    const header = this.parseCsvRow(rows[0]);
+    const scientificNameIndex = header.indexOf('scientific_name');
+    const classIndex = header.indexOf('class');
+    if (scientificNameIndex < 0 || classIndex < 0) {
+      return new Map();
+    }
+
+    const taxonomyLookup = new Map<string, { taxonId: string; taxonLabel: string }>();
+    for (const row of rows.slice(1)) {
+      const cells = this.parseCsvRow(row);
+      const scientificName = cells[scientificNameIndex] ?? '';
+      const speciesClass = cells[classIndex] ?? '';
+      const taxonomy = SPECIES_CLASS_TO_TAXON[speciesClass.trim()];
+      const lookupKey = this.normalizeSpeciesLookupKey(scientificName);
+      if (!lookupKey || !taxonomy) {
+        continue;
+      }
+      taxonomyLookup.set(lookupKey, taxonomy);
+    }
+    return taxonomyLookup;
+  }
+
+  private parseCsvRow(row: string): string[] {
+    const fields: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < row.length; index += 1) {
+      const char = row[index];
+      if (char === '"') {
+        const nextChar = row[index + 1];
+        if (inQuotes && nextChar === '"') {
+          currentField += '"';
+          index += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (char === ',' && !inQuotes) {
+        fields.push(currentField.trim());
+        currentField = '';
+        continue;
+      }
+
+      currentField += char;
+    }
+
+    fields.push(currentField.trim());
+    return fields;
+  }
+
+  private normalizeSpeciesLookupKey(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ');
   }
 
   /**
@@ -2920,32 +3389,85 @@ export class MapLayersPanelComponent implements OnDestroy {
    * Management Figures itself uses `overlaysCollapsed` (default expanded).
    */
   private createDefaultGroups(): LayerGroup[] {
+    const sirapRows = [
+      ...(FEATURE_FLAGS.sirapLayers.combined
+        ? [
+            this.boundaryRow(
+              'siraps',
+              'sirap',
+              this.localizedText('mapLayersPanel.boundaryNames.combinedSirapReviewLayer'),
+              false,
+              false,
+            ),
+          ]
+        : []),
+      ...(FEATURE_FLAGS.sirapLayers.territorial
+        ? [
+            this.boundaryRow(
+              'siraps_territorial',
+              'sirap',
+              this.localizedText('mapLayersPanel.boundaryNames.territorialSiraps'),
+              false,
+              false,
+            ),
+          ]
+        : []),
+      ...(FEATURE_FLAGS.sirapLayers.thematic
+        ? [
+            this.boundaryRow(
+              'siraps_thematic',
+              'sirap',
+              this.localizedText('mapLayersPanel.boundaryNames.thematicSirapAdditions'),
+              false,
+              false,
+            ),
+          ]
+        : []),
+    ];
+    const adminBoundaryRows = [
+      ...sirapRows,
+      this.boundaryRow(
+        'admin_country_outline',
+        'department',
+        this.localizedText('mapLayersPanel.boundaryNames.colombiaOutline'),
+        true,
+        true,
+      ),
+      this.boundaryRow(
+        'admin_departments',
+        'department',
+        this.localizedText('mapLayersPanel.boundaryNames.departments'),
+        false,
+        false,
+      ),
+      this.boundaryRow(
+        'admin_municipalities',
+        'municipality',
+        this.localizedText('mapLayersPanel.boundaryNames.municipalities'),
+        false,
+        false,
+      ),
+    ];
+
     return [
       {
         id: 'group-admin-boundaries',
-        title: 'Administrative Boundaries',
-        countLabel: '5 layers',
+        title: this.localizedText('mapLayersPanel.groupTitles.administrativeBoundaries'),
+        countLabel: this.toLayerCountLabel(adminBoundaryRows.length),
         collapsed: false,
-        rows: [
-          this.boundaryRow('siraps', 'sirap', 'Combined SIRAP review layer', false, false),
-          this.boundaryRow('siraps_territorial', 'sirap', 'Territorial SIRAPs', false, false),
-          this.boundaryRow('siraps_thematic', 'sirap', 'Thematic SIRAP additions', false, false),
-          this.boundaryRow('admin_departments', 'department', 'Departments', true, true),
-          this.boundaryRow('admin_municipalities', 'municipality', 'Municipalities', false, false),
-        ],
+        rows: adminBoundaryRows,
       },
       {
         id: 'group-species-biodiversity',
-        title: 'Species & Biodiversity',
-        countLabel: '0 layers',
+        title: this.localizedText('mapLayersPanel.groupTitles.speciesBiodiversity'),
+        countLabel: this.toLayerCountLabel(0),
         collapsed: true,
-        note: "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
         rows: [],
       },
       {
         id: 'group-ecosystems',
         title: this.ecosystemsCopy().groupTitle,
-        countLabel: '5 layers',
+        countLabel: this.toLayerCountLabel(5),
         collapsed: true,
         note: this.ecosystemsCopy().groupNote,
         rows: [
@@ -2986,8 +3508,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'group-cultural-ethnic',
-        title: 'Cultural & Ethnic Territories',
-        countLabel: '2 layers',
+        title: this.localizedText('mapLayersPanel.groupTitles.culturalEthnicTerritories'),
+        countLabel: this.toLayerCountLabel(2),
         collapsed: true,
         rows: [
           this.layerRow('cult-indigenous', 'Indigenous Reserves', '#6366f1', 60),
@@ -2996,22 +3518,14 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: 'group-socio-economic',
-        title: 'Socio-economic',
-        countLabel: '3 layers',
+        title: this.localizedText('mapLayersPanel.groupTitles.costs'),
+        countLabel: this.toLayerCountLabel(3),
         collapsed: true,
         rows: [
           this.layerRow('soc-human-footprint', 'Human Footprint', '#d97706', 55),
           this.layerRow('soc-ag-opportunity-cost', 'Agricultural Opportunity Cost', '#ea580c', 55),
           this.layerRow('soc-land-use', 'Land Use', '#78716c', 50),
         ],
-      },
-      {
-        id: 'group-prospective-models',
-        title: 'Prospective models',
-        collapsed: true,
-        disabled: true,
-        comingSoon: true,
-        rows: [],
       },
     ];
   }
@@ -3054,6 +3568,131 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
+  private syncLocaleSensitiveSidebarLabels(): void {
+    const activeSolutionName = this.appState.activeSolution$()?.name ?? null;
+    const speciesLayerCount = this.taxa().reduce((total, taxon) => total + taxon.speciesCount, 0);
+
+    this.managementFiguresTitle.set(
+      this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+    );
+
+    this.overlays.update((rows) =>
+      rows.map((row) => {
+        if (row.id === BASELINE_SOLUTION_OVERLAY_ID && !activeSolutionName) {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.conservationSolution'),
+          };
+        }
+        if (row.id === 'overlay-runap') {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
+          };
+        }
+        if (row.id === 'overlay-omecs') {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
+          };
+        }
+        if (row.id === OVERLAP_SOLUTION_OVERLAY_ID) {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.agreementOverlap'),
+          };
+        }
+        return row;
+      }),
+    );
+
+    this.groups.update((groups) =>
+      groups.map((group) => {
+        const translatedTitle = this.groupTitleForId(group.id);
+        const translatedRows =
+          group.id === 'group-admin-boundaries'
+            ? group.rows.map((row) => ({
+                ...row,
+                name: this.boundaryNameForId(row.id) ?? row.name,
+              }))
+            : group.rows;
+        const nextCountLabel =
+          group.id === 'group-species-biodiversity'
+            ? this.toLayerCountLabel(group.rows.length + speciesLayerCount)
+            : this.toLayerCountLabel(group.rows.length);
+
+        return {
+          ...group,
+          title: translatedTitle ?? group.title,
+          countLabel: nextCountLabel,
+          rows: translatedRows,
+        };
+      }),
+    );
+
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => ({
+        ...taxon,
+        name: this.taxonNameForId(taxon.id) ?? taxon.name,
+        countLabel: this.toSpeciesCountLabel(taxon.speciesCount),
+      })),
+    );
+  }
+
+  private groupTitleForId(groupId: string): string | undefined {
+    const titleKeys: Record<string, string> = {
+      'group-admin-boundaries': 'mapLayersPanel.groupTitles.administrativeBoundaries',
+      'group-species-biodiversity': 'mapLayersPanel.groupTitles.speciesBiodiversity',
+      'group-ecosystems': 'mapLayersPanel.groupTitles.ecosystems',
+      'group-cultural-ethnic': 'mapLayersPanel.groupTitles.culturalEthnicTerritories',
+      'group-socio-economic': 'mapLayersPanel.groupTitles.costs',
+    };
+    const key = titleKeys[groupId];
+    return key ? this.localizedText(key) : undefined;
+  }
+
+  private boundaryNameForId(rowId: string): string | undefined {
+    const boundaryNameKeys: Record<string, string> = {
+      'boundary-siraps': 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
+      'boundary-siraps_territorial': 'mapLayersPanel.boundaryNames.territorialSiraps',
+      'boundary-siraps_thematic': 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
+      'boundary-admin_country_outline': 'mapLayersPanel.boundaryNames.colombiaOutline',
+      'boundary-admin_departments': 'mapLayersPanel.boundaryNames.departments',
+      'boundary-admin_municipalities': 'mapLayersPanel.boundaryNames.municipalities',
+    };
+    const key = boundaryNameKeys[rowId];
+    return key ? this.localizedText(key) : undefined;
+  }
+
+  private taxonNameForId(taxonId: string): string | undefined {
+    const taxonNameKeys: Record<string, string> = {
+      'taxon-mammals': 'mapLayersPanel.taxaNames.mammals',
+      'taxon-birds': 'mapLayersPanel.taxaNames.birds',
+      'taxon-amphibians': 'mapLayersPanel.taxaNames.amphibians',
+      'taxon-reptiles': 'mapLayersPanel.taxaNames.reptiles',
+      'taxon-plants': 'mapLayersPanel.taxaNames.plants',
+    };
+    const key = taxonNameKeys[taxonId];
+    return key ? this.localizedText(key) : undefined;
+  }
+
+  private localizedText(key: string, params?: Record<string, string | number>): string {
+    this.appLocaleService.locale();
+    return this.translate.instant(key, params);
+  }
+
+  private localizedTextOrFallback(
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number>,
+  ): string {
+    const localizedValue = this.localizedText(key, params);
+    if (!localizedValue || localizedValue === key) {
+      return fallback;
+    }
+    return localizedValue;
+  }
+
   private createSpeciesRows(taxonId: string, species: SpeciesSample[]): SpeciesRow[] {
     return species.map((sample) => this.speciesRow(taxonId, sample.common, sample.latin));
   }
@@ -3088,20 +3727,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private toSpeciesCountLabel(speciesCount: number): string {
-    const noun = speciesCount === 1 ? 'species' : 'species';
+    const noun = this.localizedTextOrFallback('mapLayersPanel.speciesNoun', 'species');
     return `${speciesCount.toLocaleString()} ${noun}`;
   }
 
   private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
     return name.toLowerCase().includes(normalizedQuery);
-  }
-
-  protected isAuthLockedRow(row: LayerControlRow): boolean {
-    return (
-      row.mapSync?.type === 'admin-boundary' &&
-      row.mapSync.boundaryType === 'sirap' &&
-      !this.canAccessSirapBoundaries()
-    );
   }
 
   private speciesMatchesSearch(species: SpeciesRow, normalizedQuery: string): boolean {

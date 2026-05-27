@@ -28,7 +28,7 @@ type FinderTargetType =
   | 'ecosystem-services'
   | 'other-natural-cultural-elements';
 
-type CostLayerChoice = 'human-footprint' | 'carbon-opportunity' | 'conflict';
+type CostLayerChoice = 'human-footprint' | 'carbon-opportunity';
 
 type SirapRegionId =
   | 'caribe'
@@ -263,7 +263,14 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return 'solutionControls.finder.locked.constraints';
   }
 
+  protected isCostLayerAvailable(id: CostLayerChoice): boolean {
+    return id !== 'carbon-opportunity';
+  }
+
   protected selectCostLayer(id: CostLayerChoice): void {
+    if (!this.isCostLayerAvailable(id)) {
+      return;
+    }
     this.selectedCostLayerId = id;
     this.clearResultsIfNeeded();
   }
@@ -622,10 +629,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
           costId.includes('renta') ||
           costId.includes('agropecuaria') ||
           costId.endsWith('-co')
-        );
-      case 'conflict':
-        return (
-          costId.includes('conflict') || costId.includes('conflicto') || costId.includes('coca')
         );
     }
   }

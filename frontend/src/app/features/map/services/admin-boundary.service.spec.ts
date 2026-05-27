@@ -24,19 +24,18 @@ describe('AdminBoundaryService', () => {
           provide: AppStateService,
           useValue: {
             selectedAOI$: signal(null),
-            canAccessSirapBoundaries: signal(true),
           },
         },
       ],
     });
   });
 
-  it('defaults to a single visible administrative boundary (Departments)', () => {
+  it('defaults to country outline only (departments hidden)', () => {
     const service = TestBed.inject(AdminBoundaryService);
 
     expect(service.layerVisibilityByType$()).toEqual({
       sirap: false,
-      department: true,
+      department: false,
       municipality: false,
     });
   });
@@ -68,7 +67,7 @@ describe('AdminBoundaryService', () => {
           outline: expect.objectContaining({
             color: [17, 24, 39, 235],
             style: 'long-dash',
-            width: 2,
+            width: 1.25,
           }),
         }),
       }),

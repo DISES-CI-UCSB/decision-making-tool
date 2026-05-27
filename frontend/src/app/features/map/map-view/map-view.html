@@ -1,4 +1,4 @@
-<section id="map-view-root" class="relative h-full w-full min-w-0 min-h-[320px]">
+<section id="map-view-root" #mapRootContainer class="relative h-full w-full min-w-0 min-h-[320px]">
   <div id="map-view-container" #mapViewContainer class="h-full w-full"></div>
   <div
     id="map-view-comparison-swipe-container"
@@ -7,28 +7,135 @@
   ></div>
 
   <section
-    id="map-view-custom-zoom-controls"
-    class="pointer-events-none absolute right-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white/95 shadow-sm"
-    aria-label="Map zoom controls"
+    id="map-view-top-right-controls"
+    class="pointer-events-none absolute right-3 top-3 z-10 flex flex-col items-end gap-2"
   >
-    <button
-      id="map-view-custom-zoom-in-button"
-      type="button"
-      class="pointer-events-auto h-9 w-9 border-b border-slate-200 text-lg font-semibold leading-none text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-      aria-label="Zoom in"
-      (click)="zoomIn()"
+    <section
+      id="map-view-custom-zoom-controls"
+      class="flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white/95 shadow-sm"
+      [attr.aria-label]="'mapView.zoomControls' | translate"
     >
-      +
-    </button>
-    <button
-      id="map-view-custom-zoom-out-button"
-      type="button"
-      class="pointer-events-auto h-9 w-9 text-xl font-semibold leading-none text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-      aria-label="Zoom out"
-      (click)="zoomOut()"
-    >
-      —
-    </button>
+      <button
+        id="map-view-custom-zoom-in-button"
+        type="button"
+        class="pointer-events-auto h-9 w-9 border-b border-slate-200 text-lg font-semibold leading-none text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+        [attr.aria-label]="'mapView.zoomIn' | translate"
+        (click)="zoomIn()"
+      >
+        +
+      </button>
+      <button
+        id="map-view-custom-zoom-out-button"
+        type="button"
+        class="pointer-events-auto h-9 w-9 border-b border-slate-200 text-xl font-semibold leading-none text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+        [attr.aria-label]="'mapView.zoomOut' | translate"
+        (click)="zoomOut()"
+      >
+        —
+      </button>
+      <button
+        id="map-view-custom-zoom-country-button"
+        type="button"
+        class="pointer-events-auto flex h-9 w-9 items-center justify-center text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+        [attr.aria-label]="'mapView.zoomToCountry' | translate"
+        [attr.title]="'mapView.zoomToCountry' | translate"
+        (click)="zoomToCountry()"
+      >
+        <svg
+          id="map-view-custom-zoom-country-icon"
+          class="h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            id="map-view-custom-zoom-country-icon-border"
+            d="M4 4H10M4 4V10M20 4H14M20 4V10M4 20H10M4 20V14M20 20H14M20 20V14"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span id="map-view-custom-zoom-country-label" class="sr-only">
+          {{ 'mapView.zoomToCountry' | translate }}
+        </span>
+      </button>
+    </section>
+
+    <section id="map-view-export-control" [attr.aria-label]="'mapView.exportControls' | translate">
+      <button
+        id="map-view-export-png-button"
+        type="button"
+        class="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-70"
+        [disabled]="isExportInProgress"
+        [attr.aria-label]="
+          (isExportInProgress ? 'mapView.exporting' : 'mapView.exportPng') | translate
+        "
+        [attr.title]="(isExportInProgress ? 'mapView.exporting' : 'mapView.exportPng') | translate"
+        (click)="exportCurrentView()"
+      >
+        @if (isExportInProgress) {
+          <svg
+            id="map-view-export-png-loading-icon"
+            class="h-4 w-4 animate-spin text-slate-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <circle
+              id="map-view-export-png-loading-ring"
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              stroke-width="2.5"
+              class="opacity-25"
+            />
+            <path
+              id="map-view-export-png-loading-arc"
+              d="M12 3a9 9 0 0 1 9 9"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span id="map-view-export-png-working-text" class="sr-only">
+            {{ 'mapView.exporting' | translate }}
+          </span>
+        } @else {
+          <svg
+            id="map-view-export-png-icon"
+            class="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              id="map-view-export-png-icon-arrow"
+              d="M12 4V14M12 14L8 10M12 14L16 10"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              id="map-view-export-png-icon-tray"
+              d="M5 16V18C5 19.1046 5.89543 20 7 20H17C18.1046 20 19 19.1046 19 18V16"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span id="map-view-export-png-label-text" class="sr-only">
+            {{ 'mapView.exportPng' | translate }}
+          </span>
+        }
+      </button>
+    </section>
   </section>
 
   <section
@@ -44,7 +151,44 @@
       class="pointer-events-none absolute left-3 bottom-14 z-10 rounded-md border border-slate-200 bg-white/95 px-4 py-3 shadow-sm"
     >
       <span id="map-view-solution-loading-text" class="text-xs text-slate-500 animate-pulse">
-        Loading solution...
+        {{ 'mapView.loadingSolution' | translate }}
+      </span>
+    </div>
+  }
+
+  @if (isOmecLayerLoading()) {
+    <div
+      id="map-view-omec-loading"
+      class="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-md border border-slate-200 bg-white/95 px-3 py-2 shadow-sm"
+      [attr.aria-label]="'mapView.loadingOmecs' | translate"
+    >
+      <svg
+        id="map-view-omec-loading-spinner"
+        class="h-4 w-4 animate-spin text-slate-500"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <circle
+          id="map-view-omec-loading-spinner-ring"
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          stroke-width="2.5"
+          class="opacity-25"
+        />
+        <path
+          id="map-view-omec-loading-spinner-arc"
+          d="M12 3a9 9 0 0 1 9 9"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
+      </svg>
+      <span id="map-view-omec-loading-text" class="text-xs text-slate-600">
+        {{ 'mapView.loadingOmecs' | translate }}
       </span>
     </div>
   }

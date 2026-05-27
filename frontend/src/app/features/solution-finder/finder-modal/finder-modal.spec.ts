@@ -45,6 +45,16 @@ describe('FinderModalComponent', () => {
     expect(compiled.querySelector('#solution-finder-modal-results-column')).not.toBeNull();
   });
 
+  it('does not render conflict as a trade-off option', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#solution-finder-modal-step2b-option-conflict')).toBeNull();
+    expect(compiled.textContent).not.toContain('solutionControls.finder.step2b.conflictLabel');
+  });
+
   it('renders workflow action buttons in the footer', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
@@ -147,6 +157,39 @@ describe('FinderModalComponent', () => {
       name: 'Ecos30+RUNAP_HF',
     });
     expect(component.selectedMatch?.solutionId).toBe('ecos30_runap_hf');
+  });
+
+  it('does not match conflict-cost scenarios from stale selections', () => {
+    vi.useFakeTimers();
+    catalog.getAll.mockReturnValue([
+      buildScenario({
+        id: 'ecos30_runap_conflicto',
+        name: 'Ecos30+RUNAP_CONFLICTO',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: null,
+        costLayerId: 'conflict',
+        includeLayerIds: ['runap'],
+      }),
+    ]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      selectedCostLayerId: string;
+      runMatching: () => void;
+      matchResults: { solutionId: string }[];
+      selectedMatch: { solutionId: string } | null;
+    };
+
+    component.selectedTargetTypeIds = ['ecosystems'];
+    component.targetLevelByType = { ecosystems: 30 };
+    component.selectedCostLayerId = 'conflict';
+    component.runMatching();
+    vi.advanceTimersByTime(350);
+
+    expect(component.matchResults).toEqual([]);
+    expect(component.selectedMatch).toBeNull();
   });
 });
 

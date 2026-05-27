@@ -15,12 +15,14 @@ import type { ViewHit } from '@arcgis/core/views/types';
 
 import { type AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
+import { FEATURE_FLAGS } from '@feature-flags';
 
 interface BoundaryConfig {
   id: string;
   layerKey: AdminBoundaryLayerKey;
   title: string;
   type: AoiType;
+  selectable?: boolean;
   sourceType: 'feature' | 'geojson';
   url: string;
   idFields: string[];
@@ -44,6 +46,7 @@ export type AdminBoundaryLayerKey =
   | 'siraps'
   | 'siraps_territorial'
   | 'siraps_thematic'
+  | 'admin_country_outline'
   | 'admin_departments'
   | 'admin_municipalities';
 
@@ -62,6 +65,11 @@ const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, Boundar
   siraps: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   siraps_territorial: { color: DEFAULT_SIRAP_TERRITORIAL_COLOR, width: 1.25, style: 'solid' },
   siraps_thematic: { color: DEFAULT_SIRAP_THEMATIC_COLOR, width: 1.25, style: 'long-dash' },
+  admin_country_outline: {
+    color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
+    width: 1.6,
+    style: 'solid',
+  },
   admin_departments: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
   admin_municipalities: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
 };
@@ -70,12 +78,12 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-departments-colombia',
     layerKey: 'admin_departments',
-    title: 'Colombia Departments (IGAC)',
+    title: 'Colombia Departments',
     type: 'department',
-    sourceType: 'feature',
-    url: 'https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/2',
-    idFields: ['DeCodigo', 'OBJECTID'],
-    nameFields: ['DeNombre'],
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/boundaries/igac_departments_detailed.geojson`,
+    idFields: ['boundary_id', 'DeCodigo', 'OBJECTID'],
+    nameFields: ['boundary_name', 'DeNombre'],
     visible: false,
     opacity: 0.7,
     renderer: {
@@ -93,12 +101,12 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-municipalities-colombia',
     layerKey: 'admin_municipalities',
-    title: 'Colombia Municipalities (IGAC)',
+    title: 'Colombia Municipalities',
     type: 'municipality',
-    sourceType: 'feature',
-    url: 'https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/1',
-    idFields: ['MpCodigo', 'OBJECTID'],
-    nameFields: ['MpNombre'],
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/boundaries/igac_municipalities_detailed.geojson`,
+    idFields: ['boundary_id', 'MpCodigo', 'OBJECTID'],
+    nameFields: ['boundary_name', 'MpNombre'],
     visible: false,
     opacity: 0.45,
     renderer: {
@@ -112,6 +120,21 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
         },
       },
     },
+  },
+  {
+    id: 'aoi-country-outline-colombia',
+    layerKey: 'admin_country_outline',
+    title: 'Colombia Country Outline (IGAC)',
+    // Keep country outline non-interactive so clicks only target AOI layers.
+    selectable: false,
+    type: 'department',
+    sourceType: 'feature',
+    url: 'https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/0',
+    idFields: ['LLIdentif', 'OBJECTID'],
+    nameFields: ['LLNombre'],
+    definitionExpression: 'LLJerarqui = 5',
+    visible: true,
+    opacity: 1,
   },
   {
     id: 'aoi-siraps-combined-colombia',
@@ -170,6 +193,17 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   },
 ];
 
+// Single enforcement point for SIRAP layer feature flags. Disabled layers are
+// excluded here and never registered on the map or reachable via hit-test.
+const SIRAP_LAYER_ENABLED_BY_KEY: Partial<Record<AdminBoundaryLayerKey, boolean>> = {
+  siraps: FEATURE_FLAGS.sirapLayers.combined,
+  siraps_territorial: FEATURE_FLAGS.sirapLayers.territorial,
+  siraps_thematic: FEATURE_FLAGS.sirapLayers.thematic,
+};
+const ENABLED_BOUNDARY_CONFIGS = COLOMBIA_BOUNDARY_CONFIGS.filter(
+  (config) => config.type !== 'sirap' || (SIRAP_LAYER_ENABLED_BY_KEY[config.layerKey] ?? true),
+);
+
 @Injectable({ providedIn: 'root' })
 export class AdminBoundaryService {
   private readonly appState = inject(AppStateService);
@@ -184,7 +218,8 @@ export class AdminBoundaryService {
     siraps: false,
     siraps_territorial: false,
     siraps_thematic: false,
-    admin_departments: true,
+    admin_country_outline: true,
+    admin_departments: false,
     admin_municipalities: false,
   };
   readonly layerVisibilityByLayerKey$ = signal<Record<AdminBoundaryLayerKey, boolean>>(
@@ -196,6 +231,7 @@ export class AdminBoundaryService {
       sirap: state.siraps || state.siraps_territorial || state.siraps_thematic,
       department: state.admin_departments,
       municipality: state.admin_municipalities,
+      omec: false,
     };
   });
   readonly popupEnabled$ = signal(false);
@@ -225,9 +261,9 @@ export class AdminBoundaryService {
     // Always false — we open popups manually via openPopup() so the
     // built-in click handler doesn't race with ours.
     this.view.popupEnabled = false;
-    // Create only default-visible layers on startup. Remote IGAC FeatureLayers are loaded lazily
-    // when users explicitly toggle them on, which avoids noisy startup CORS errors.
-    this.boundaryLayers = COLOMBIA_BOUNDARY_CONFIGS.filter(
+    // Create only default-visible layers on startup. Remote boundary layers are loaded lazily
+    // when users explicitly toggle them on, which avoids noisy startup network errors.
+    this.boundaryLayers = ENABLED_BOUNDARY_CONFIGS.filter(
       (config) => this.layerVisibilityByLayerKey$()[config.layerKey] ?? config.visible ?? true,
     ).map((config) => this.buildLayer(config));
     if (this.boundaryLayers.length > 0) {
@@ -266,16 +302,16 @@ export class AdminBoundaryService {
     this.aoiHighlightLayer = null;
   }
 
+  /** Returns ArcGIS layer IDs currently loaded for the given boundary layer key. */
+  getLayerIdsByBoundaryKey(key: AdminBoundaryLayerKey): string[] {
+    const configIds = new Set(
+      COLOMBIA_BOUNDARY_CONFIGS.filter((c) => c.layerKey === key).map((c) => c.id),
+    );
+    return this.boundaryLayers.filter((layer) => configIds.has(layer.id)).map((layer) => layer.id);
+  }
+
   setLayerVisibility(target: AoiType | AdminBoundaryLayerKey, visible: boolean): void {
     const configs = this.getConfigsForTarget(target);
-    if (
-      configs.some((config) => config.type === 'sirap') &&
-      visible &&
-      !this.appState.canAccessSirapBoundaries()
-    ) {
-      this.setVisibilityForConfigs(configs, false);
-      return;
-    }
 
     if (visible) {
       for (const config of configs) {
@@ -436,10 +472,6 @@ export class AdminBoundaryService {
       this.clearSelectionState();
       return;
     }
-    if (candidate.config.type === 'sirap' && !this.appState.canAccessSirapBoundaries()) {
-      this.clearSelectionState();
-      return;
-    }
 
     const aoiName = this.readFirstText(candidate.attributes, candidate.config.nameFields);
     const rawId = this.readFirstText(candidate.attributes, candidate.config.idFields);
@@ -494,8 +526,8 @@ export class AdminBoundaryService {
         continue;
       }
 
-      const config = COLOMBIA_BOUNDARY_CONFIGS.find((item) => item.id === layerId);
-      if (!config) {
+      const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layerId);
+      if (!config || config.selectable === false) {
         continue;
       }
 
@@ -561,13 +593,11 @@ export class AdminBoundaryService {
   }
 
   private getConfigsForTarget(target: AoiType | AdminBoundaryLayerKey): BoundaryConfig[] {
-    const layerKeyConfigs = COLOMBIA_BOUNDARY_CONFIGS.filter(
-      (config) => config.layerKey === target,
-    );
+    const layerKeyConfigs = ENABLED_BOUNDARY_CONFIGS.filter((config) => config.layerKey === target);
     if (layerKeyConfigs.length > 0) {
       return layerKeyConfigs;
     }
-    return COLOMBIA_BOUNDARY_CONFIGS.filter((config) => config.type === target);
+    return ENABLED_BOUNDARY_CONFIGS.filter((config) => config.type === target);
   }
 
   private setVisibilityForConfigs(configs: BoundaryConfig[], visible: boolean): void {
@@ -624,6 +654,18 @@ export class AdminBoundaryService {
       style: 'solid',
     };
     const boundaryStyle = config ? this.boundaryStyleByLayerKey()[config.layerKey] : fallbackStyle;
+    if (config?.layerKey === 'admin_country_outline') {
+      return {
+        type: 'simple',
+        symbol: {
+          type: 'simple-line',
+          color: [...boundaryStyle.color],
+          width: boundaryStyle.width,
+          style: boundaryStyle.style,
+        },
+      };
+    }
+
     return {
       type: 'simple',
       symbol: {
@@ -645,6 +687,14 @@ export class AdminBoundaryService {
     }
     const value = Number.parseInt(normalized.slice(1), 16);
     return [(value >> 16) & 255, (value >> 8) & 255, value & 255, 235];
+  }
+
+  /**
+   * Public hook for non-boundary AOI selections (e.g. OMEC polygons selected via
+   * MapView's identify flow) to reuse the existing AOI highlight graphics layer.
+   */
+  highlightAoiGeometry(geometry: Geometry | null): void {
+    this.setSelectionHighlight(geometry);
   }
 
   private setSelectionHighlight(selectionGeometry: Geometry | null): void {

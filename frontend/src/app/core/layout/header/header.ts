@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
-import { UserTier } from '@core/models';
+import { type LayerLocale, UserTier } from '@core/models';
 import { AuthService } from '@core/services/auth.service';
+import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
 import { AuthModalComponent } from '@features/auth/auth-modal/auth-modal';
@@ -21,6 +22,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 })
 export class HeaderComponent {
   private readonly translate = inject(TranslateService);
+  private readonly appLocaleService = inject(AppLocaleService);
   private readonly authService = inject(AuthService);
   private readonly appState = inject(AppStateService);
 
@@ -35,13 +37,24 @@ export class HeaderComponent {
   @Input() coordinateToolEnabled = false;
   @Output() readonly coordinateToolEnabledChange = new EventEmitter<boolean>();
 
+  constructor() {
+    this.syncAppLocaleToTranslate();
+  }
+
   protected get activeLanguage(): string {
     return this.translate.getCurrentLang();
   }
 
   protected toggleLanguage(): void {
     const nextLanguage = this.activeLanguage === 'es' ? 'en' : 'es';
-    this.translate.use(nextLanguage).subscribe();
+    this.translate.use(nextLanguage).subscribe(() => {
+      this.appLocaleService.setLocale(nextLanguage as LayerLocale);
+    });
+  }
+
+  private syncAppLocaleToTranslate(): void {
+    const currentLang = this.translate.getCurrentLang() || this.translate.getDefaultLang() || 'en';
+    this.appLocaleService.setLocale(currentLang === 'es' ? 'es' : 'en');
   }
 
   protected openAuthModal(): void {

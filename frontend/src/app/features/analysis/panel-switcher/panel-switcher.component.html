@@ -4,7 +4,7 @@
 >
   <nav
     id="analysis-panel-switcher-tabs"
-    aria-label="Analysis panel views"
+    [attr.aria-label]="'analysis.tabNavAriaLabel' | translate"
     class="flex flex-wrap gap-2"
   >
     @for (panel of panelOptions; track panel.id) {

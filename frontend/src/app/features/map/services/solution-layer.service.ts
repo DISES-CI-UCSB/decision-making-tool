@@ -25,7 +25,7 @@ const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
 
 /** Canonical default colors. Any module that needs a default must import from here. */
 export const DEFAULT_SINGLE_SOLUTION_HEX = '#16a34a';
-export const DEFAULT_COMPARISON_BASELINE_HEX = '#1e6fa8';
+export const DEFAULT_COMPARISON_BASELINE_HEX = DEFAULT_SINGLE_SOLUTION_HEX;
 export const DEFAULT_COMPARISON_CANDIDATE_HEX = '#7c3aed';
 export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
 
@@ -57,6 +57,16 @@ export class SolutionLayerService {
   private candidateComparisonVisible = true;
   private overlapComparisonVisible = true;
   private comparisonVisualizationMode: ComparisonVisualizationMode = 'threeColorOverlay';
+
+  /**
+   * Per-scenario color memory so that returning to a previously-viewed scenario during the
+   * same browsing session restores the user's chosen color rather than snapping back to the
+   * canonical default (Option B). Colors are reset to defaults only when the user explicitly
+   * removes the solution layer (removeSolutionLayer), which clears lastSingle/Comparison IDs.
+   */
+  private readonly userSingleColorByScenarioId = new Map<string, string>();
+  private readonly userBaselineColorByScenarioId = new Map<string, string>();
+  private readonly userCandidateColorByScenarioId = new Map<string, string>();
 
   /**
    * Canonical source of truth for all four solution-layer colors.
@@ -95,10 +105,11 @@ export class SolutionLayerService {
       this.removeAllLayers();
 
       const loaded = await this.loader.loadSolution(scenarioId);
-      // Option B: snap back to default green whenever the single-solution scenario changes.
-      if (this.lastSingleSolutionId !== loaded.scenario.id) {
-        this.solutionColor$.set(DEFAULT_SINGLE_SOLUTION_HEX);
-      }
+      // Restore the user-picked color for this scenario (if any), otherwise use the default.
+      // This lets returning to a previously-viewed scenario preserve the chosen color.
+      const restoredColor =
+        this.userSingleColorByScenarioId.get(loaded.scenario.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
+      this.solutionColor$.set(restoredColor);
       this.lastSingleSolutionId = loaded.scenario.id;
       this.currentLayer = this.createLayerFromLoaded(
         loaded,
@@ -162,16 +173,18 @@ export class SolutionLayerService {
 
       // Only clear existing map layers once both scenarios have loaded successfully.
       this.removeAllLayers();
-      // Option B: each side snaps back to its default only when its scenario actually changes.
-      // Overlap depends on both, so it resets whenever either side changes.
+      // Restore user-picked colors for each scenario side (if any), otherwise use the default.
+      // Overlap resets whenever either side changes since it depends on both scenarios.
       const baselineChanged = this.lastComparisonBaselineId !== baselineLoaded.scenario.id;
       const candidateChanged = this.lastComparisonCandidateId !== candidateLoaded.scenario.id;
-      if (baselineChanged) {
-        this.baselineColor$.set(DEFAULT_COMPARISON_BASELINE_HEX);
-      }
-      if (candidateChanged) {
-        this.candidateColor$.set(DEFAULT_COMPARISON_CANDIDATE_HEX);
-      }
+      this.baselineColor$.set(
+        this.userBaselineColorByScenarioId.get(baselineLoaded.scenario.id) ??
+          DEFAULT_COMPARISON_BASELINE_HEX,
+      );
+      this.candidateColor$.set(
+        this.userCandidateColorByScenarioId.get(candidateLoaded.scenario.id) ??
+          DEFAULT_COMPARISON_CANDIDATE_HEX,
+      );
       if (baselineChanged || candidateChanged) {
         this.overlapColor$.set(DEFAULT_COMPARISON_OVERLAP_HEX);
       }
@@ -291,7 +304,7 @@ export class SolutionLayerService {
       return;
     }
 
-    this.setOverlapVisibility(false);
+    this.hideOverlapLayerForComparisonMode();
     this.setBaselineVisibility(this.baselineComparisonVisible);
     this.setCandidateVisibility(this.candidateComparisonVisible);
   }
@@ -357,6 +370,9 @@ export class SolutionLayerService {
       return;
     }
     this.solutionColor$.set(normalized);
+    if (this.lastSingleSolutionId) {
+      this.userSingleColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+    }
     const loaded = this.loadedSolution$();
     if (!loaded || !this.currentLayer) {
       return;
@@ -374,6 +390,12 @@ export class SolutionLayerService {
     // left sidebar's sole "Selected Solution" row and the comparison baseline stay coherent.
     this.solutionColor$.set(normalized);
     this.baselineColor$.set(normalized);
+    if (this.lastSingleSolutionId) {
+      this.userSingleColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+    }
+    if (this.lastComparisonBaselineId) {
+      this.userBaselineColorByScenarioId.set(this.lastComparisonBaselineId, normalized);
+    }
 
     const loaded = this.loadedSolution$();
     if (loaded && this.currentLayer) {
@@ -390,6 +412,9 @@ export class SolutionLayerService {
       return;
     }
     this.candidateColor$.set(normalized);
+    if (this.lastComparisonCandidateId) {
+      this.userCandidateColorByScenarioId.set(this.lastComparisonCandidateId, normalized);
+    }
     if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
       this.applyLayerColor(
         this.candidateComparisonLayer,
@@ -506,6 +531,12 @@ export class SolutionLayerService {
     if (this.overlapComparisonLayer) {
       this.overlapComparisonLayer.visible =
         visible && this.comparisonVisualizationMode === 'threeColorOverlay';
+    }
+  }
+
+  private hideOverlapLayerForComparisonMode(): void {
+    if (this.overlapComparisonLayer) {
+      this.overlapComparisonLayer.visible = false;
     }
   }
 
@@ -784,9 +815,7 @@ export class SolutionLayerService {
     ];
   }
 
-  private resolveLayerForSidebarType(
-    layerType: SidebarSolutionLayerType,
-  ): SolutionDisplayLayer | null {
+  resolveLayerForSidebarType(layerType: SidebarSolutionLayerType): SolutionDisplayLayer | null {
     if (layerType === 'solution-baseline') {
       return this.comparisonMode ? this.baselineComparisonLayer : this.currentLayer;
     }
@@ -800,5 +829,19 @@ export class SolutionLayerService {
     layer: SolutionDisplayLayer,
   ): layer is InstanceType<typeof ImageryTileLayer> {
     return layer instanceof ImageryTileLayer;
+  }
+
+  /** Reorder an arbitrary set of ArcGIS layers by their IDs. `idsTopToBottom[0]` ends up on top. */
+  reorderLayersByIds(idsTopToBottom: string[]): void {
+    if (!this.map || idsTopToBottom.length === 0) {
+      return;
+    }
+    // ArcGIS draws higher indices on top; iterate bottom→top so the first entry ends on top.
+    for (const id of [...idsTopToBottom].reverse()) {
+      const layer = this.map.findLayerById(id);
+      if (layer) {
+        this.map.reorder(layer, this.map.layers.length - 1);
+      }
+    }
   }
 }

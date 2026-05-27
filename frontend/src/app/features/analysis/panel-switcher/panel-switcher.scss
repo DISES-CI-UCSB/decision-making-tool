@@ -1023,8 +1023,8 @@
    (DEFAULT_COMPARISON_BASELINE_HEX / DEFAULT_COMPARISON_CANDIDATE_HEX). Tinted backgrounds are
    derived reactively via color-mix so they track any user-picked color from the left sidebar. */
 #right-sidebar-comparison-baseline-card {
-  border-color: var(--comparison-baseline-color, #1e6fa8);
-  background: color-mix(in srgb, var(--comparison-baseline-color, #1e6fa8) 12%, white);
+  border-color: var(--comparison-baseline-color, #16a34a);
+  background: color-mix(in srgb, var(--comparison-baseline-color, #16a34a) 12%, white);
 }
 
 #right-sidebar-comparison-candidate-card.c2-summary-card-candidate-selected {
@@ -1396,7 +1396,7 @@
 }
 
 .c2-compare-value-baseline {
-  color: var(--comparison-baseline-color, #1e6fa8);
+  color: var(--comparison-baseline-color, #16a34a);
 }
 
 .c2-compare-value-candidate {

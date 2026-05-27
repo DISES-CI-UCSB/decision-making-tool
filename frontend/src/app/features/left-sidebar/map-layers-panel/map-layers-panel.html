@@ -5,7 +5,7 @@
   <header id="map-layers-sidebar-header" class="border-b border-slate-200 px-5 pb-4 pt-5">
     <div id="map-layers-sidebar-header-content" class="flex flex-col gap-3">
       <h2 id="map-layers-sidebar-title" class="text-xl font-bold tracking-tight text-slate-900">
-        Map Layers
+        {{ 'mapLayersPanel.title' | translate }}
       </h2>
 
       @if (!hasActiveSolution()) {
@@ -28,9 +28,9 @@
             (pointerenter)="onSelectSolutionSpotlightEnter($event)"
             (pointermove)="onSelectSolutionSpotlightMove($event)"
           >
-            <span id="map-layers-select-solution-button-label" class="relative z-10"
-              >Select solution</span
-            >
+            <span id="map-layers-select-solution-button-label" class="relative z-10">{{
+              'mapLayersPanel.selectScenario' | translate
+            }}</span>
           </button>
         </div>
       } @else {
@@ -43,7 +43,7 @@
               id="map-layers-active-scenario-label"
               class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
             >
-              Active Scenario
+              {{ 'mapLayersPanel.activeScenarioLabel' | translate }}
             </p>
             <p
               id="map-layers-active-scenario-name"
@@ -60,7 +60,9 @@
             (click)="requestSolutionFinder()"
           >
             <span id="map-layers-change-scenario-button-icon" aria-hidden="true">⇄</span>
-            <span id="map-layers-change-scenario-button-label">Change</span>
+            <span id="map-layers-change-scenario-button-label">{{
+              'mapLayersPanel.changeButton' | translate
+            }}</span>
           </button>
         </section>
       }
@@ -78,7 +80,7 @@
           id="map-layers-selected-layers-section-title"
           class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
         >
-          Selected Layers
+          {{ 'mapLayersPanel.selectedLayersTitle' | translate }}
         </span>
         <div
           id="map-layers-selected-layers-card"
@@ -90,7 +92,7 @@
               id="map-layers-selected-layers-empty-copy"
               class="px-3 py-2.5 text-[11px] text-slate-600"
             >
-              No layers selected yet. Add layers from Available Layers to control stack order.
+              {{ 'mapLayersPanel.selectedLayersEmpty' | translate }}
             </p>
           } @else {
             @for (selected of selectedLayers(); track selected.id; let isLast = $last) {
@@ -127,7 +129,9 @@
                     draggable="true"
                     data-selected-layer-drag-handle="true"
                     class="flex w-full cursor-grab items-center justify-center text-center text-[13px] font-extrabold leading-none text-slate-500"
-                    [attr.aria-label]="'Drag to reorder ' + selected.name"
+                    [attr.aria-label]="
+                      'mapLayersPanel.dragToReorder' | translate: { name: selected.name }
+                    "
                     (dragstart)="onSelectedLayerDragStart($event, selected.id)"
                     (dragend)="onSelectedLayerDragEnd()"
                   >
@@ -163,7 +167,7 @@
                       <div
                         [id]="'map-layers-selected-layer-row-map-unavailable-wrap-' + selected.id"
                         class="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500"
-                        title="No map layer is currently available for this selection"
+                        [title]="'mapLayersPanel.noMapLayerAvailable' | translate"
                       >
                         <svg
                           [id]="'map-layers-selected-layer-row-map-unavailable-icon-' + selected.id"
@@ -182,7 +186,7 @@
                         <span
                           [id]="'map-layers-selected-layer-row-map-unavailable-copy-' + selected.id"
                         >
-                          No map layer available
+                          {{ 'mapLayersPanel.noMapLayerAvailable' | translate }}
                         </span>
                       </div>
                     }
@@ -192,7 +196,9 @@
                       [id]="'map-layers-selected-layer-row-remove-button-' + selected.id"
                       type="button"
                       class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:border-red-300 hover:text-red-500"
-                      [attr.aria-label]="'Remove ' + selected.name + ' from selected layers'"
+                      [attr.aria-label]="
+                        'mapLayersPanel.removeLayer' | translate: { name: selected.name }
+                      "
                       (click)="removeSelectedLayer(selected.id)"
                     >
                       <svg
@@ -222,8 +228,8 @@
                       [class.opacity-50]="selected.mapUnavailable"
                       [attr.aria-label]="
                         selected.mapUnavailable
-                          ? selected.name + ' does not have a map layer yet'
-                          : 'Toggle visibility for ' + selected.name
+                          ? ('mapLayersPanel.noMapLayerYet' | translate: { name: selected.name })
+                          : ('mapLayersPanel.toggleVisibility' | translate: { name: selected.name })
                       "
                       [attr.aria-pressed]="isSelectedLayerVisible(selected.id)"
                       [disabled]="selected.mapUnavailable"
@@ -281,8 +287,9 @@
                       [disabled]="selected.mapUnavailable"
                       [attr.aria-label]="
                         selected.mapUnavailable
-                          ? 'Style controls are not available for ' + selected.name
-                          : 'Toggle controls for ' + selected.name
+                          ? ('mapLayersPanel.styleControlsUnavailable'
+                            | translate: { name: selected.name })
+                          : ('mapLayersPanel.toggleControls' | translate: { name: selected.name })
                       "
                       [attr.aria-expanded]="
                         selected.mapUnavailable ? false : isSelectedLayerExpanded(selected.id)
@@ -328,7 +335,7 @@
                             [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
                             class="shrink-0 text-[10px] text-slate-600"
                           >
-                            Opacity
+                            {{ 'mapLayersPanel.opacityLabel' | translate }}
                           </label>
                           <div
                             [id]="
@@ -368,7 +375,7 @@
                               [for]="'map-layers-selected-layer-row-color-input-' + selected.id"
                               class="inline-flex h-5 w-7 shrink-0 items-center justify-center whitespace-nowrap text-[10px] text-slate-600"
                             >
-                              Color
+                              {{ 'mapLayersPanel.colorLabel' | translate }}
                             </label>
                             <span
                               [id]="
@@ -376,15 +383,29 @@
                               "
                               class="inline-flex h-5 w-5 shrink-0 items-center justify-center"
                             >
-                              <input
+                              <button
+                                #selectedLayerColorPicker="ngxColorPicker"
                                 [id]="'map-layers-selected-layer-row-color-input-' + selected.id"
-                                type="color"
+                                type="button"
                                 class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                                [value]="selectedLayerColor(selected.id)"
-                                (input)="
-                                  updateSelectedLayerColor(selected.id, $any($event.target).value)
+                                [style.backgroundColor]="selectedLayerColor(selected.id)"
+                                [colorPicker]="selectedLayerColor(selected.id)"
+                                cpOutputFormat="hex"
+                                cpAlphaChannel="disabled"
+                                cpPosition="auto"
+                                cpDialogDisplay="popup"
+                                [cpUseRootViewContainer]="true"
+                                [cpEyeDropper]="true"
+                                [cpSaveClickOutside]="true"
+                                [cpPresetColors]="colorPresetHexValues"
+                                cpPresetLabel=""
+                                (colorPickerOpen)="onColorPickerOpen(selectedLayerColorPicker)"
+                                (colorPickerChange)="updateSelectedLayerColor(selected.id, $event)"
+                                [attr.aria-label]="
+                                  'mapLayersPanel.chooseColorFor'
+                                    | translate: { name: selected.name }
                                 "
-                              />
+                              ></button>
                             </span>
                           </div>
                         } @else {
@@ -402,7 +423,7 @@
                               "
                               class="inline-flex h-5 w-7 shrink-0 items-center justify-center whitespace-nowrap text-[10px] text-slate-600"
                             >
-                              Color
+                              {{ 'mapLayersPanel.colorLabel' | translate }}
                             </span>
                             <span
                               [id]="
@@ -433,7 +454,7 @@
             id="map-layers-overlays-section-title"
             class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600"
           >
-            Available Layers
+            {{ 'mapLayersPanel.availableLayersTitle' | translate }}
           </span>
           @if (hasLayerSearchQuery()) {
             <span
@@ -441,11 +462,15 @@
               class="text-[10px] font-semibold text-slate-500"
             >
               {{ layerSearchResultCount() }}
-              {{ layerSearchResultCount() === 1 ? 'match' : 'matches' }}
+              {{
+                layerSearchResultCount() === 1
+                  ? ('mapLayersPanel.searchMatchSingular' | translate)
+                  : ('mapLayersPanel.searchMatchPlural' | translate)
+              }}
             </span>
           } @else {
             <span id="map-layers-overlays-search-hint" class="text-[10px] text-slate-500">
-              Type to filter
+              {{ 'mapLayersPanel.typeToFilter' | translate }}
             </span>
           }
         </div>
@@ -458,7 +483,7 @@
             for="map-layers-overlays-search-input"
             class="sr-only"
           >
-            Search available layers
+            {{ 'mapLayersPanel.searchAriaLabel' | translate }}
           </label>
           <div id="map-layers-overlays-search-row" class="flex items-center gap-2">
             <span
@@ -485,7 +510,7 @@
               id="map-layers-overlays-search-input"
               type="text"
               class="relative top-px h-6 flex-1 border-0 bg-transparent text-xs leading-6 text-slate-700 placeholder:text-slate-600 focus-visible:outline-none"
-              placeholder="Search layers..."
+              [placeholder]="'mapLayersPanel.searchPlaceholder' | translate"
               [value]="layerSearchQuery()"
               (input)="updateLayerSearchQuery($any($event.target).value)"
             />
@@ -497,7 +522,7 @@
               [attr.aria-hidden]="!hasLayerSearchQuery()"
               (click)="clearLayerSearchQuery()"
             >
-              Clear
+              {{ 'mapLayersPanel.clearButton' | translate }}
             </button>
           </div>
         </div>
@@ -505,7 +530,7 @@
           id="map-layers-overlays-visibility-helper-copy"
           class="px-0.5 text-[10px] font-medium text-slate-500"
         >
-          Visibility and style controls live in Selected Layers.
+          {{ 'mapLayersPanel.styleControlsHint' | translate }}
         </p>
 
         <!-- ─── ADMINISTRATIVE BOUNDARIES (above Management Figures) ─── -->
@@ -549,8 +574,8 @@
                 <span
                   id="map-layers-admin-boundaries-sirap-info"
                   class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] font-bold text-slate-600"
-                  [attr.title]="sirapTooltipCopy"
-                  [attr.aria-label]="sirapTooltipCopy"
+                  [attr.title]="'mapLayersPanel.sirapTooltip' | translate"
+                  [attr.aria-label]="'mapLayersPanel.sirapTooltip' | translate"
                   role="img"
                 >
                   i
@@ -580,7 +605,7 @@
                     id="map-layers-admin-boundaries-sirap-help-copy"
                     class="border-b border-slate-100 px-3 py-2 text-[11px] leading-5 text-slate-600"
                   >
-                    {{ sirapTooltipCopy }}
+                    {{ 'mapLayersPanel.sirapTooltip' | translate }}
                   </p>
                   @for (row of visibleGroupRows(abGroup); track row.id; let isLast = $last) {
                     <article
@@ -601,8 +626,6 @@
                           [id]="'map-layers-boundary-selected-button-' + row.id"
                           type="button"
                           class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                          [class.cursor-not-allowed]="isAuthLockedRow(row)"
-                          [class.opacity-50]="isAuthLockedRow(row)"
                           [class.border-blue-200]="row.selected"
                           [class.bg-blue-50]="row.selected"
                           [class.text-blue-700]="row.selected"
@@ -610,25 +633,20 @@
                           [class.bg-white]="!row.selected"
                           [class.text-slate-600]="!row.selected"
                           [attr.aria-label]="
-                            isAuthLockedRow(row)
-                              ? row.name + ' requires login to add'
-                              : (row.selected ? 'Remove ' : 'Add ') + row.name
+                            row.selected
+                              ? ('mapLayersPanel.removeLayer' | translate: { name: row.name })
+                              : ('mapLayersPanel.addLayer' | translate: { name: row.name })
                           "
                           [attr.aria-pressed]="row.selected"
-                          [disabled]="isAuthLockedRow(row)"
                           (click)="toggleLayerSelected(abGroup.id, row.id)"
                         >
-                          {{ row.selected ? 'Added' : 'Add' }}
+                          {{
+                            row.selected
+                              ? ('mapLayersPanel.addedButton' | translate)
+                              : ('mapLayersPanel.addButton' | translate)
+                          }}
                         </button>
                       </div>
-                      @if (isAuthLockedRow(row)) {
-                        <p
-                          [id]="'map-layers-boundary-auth-locked-note-' + row.id"
-                          class="px-3 pb-2 text-[11px] text-amber-700"
-                        >
-                          Login / Register in the header to unlock SIRAP.
-                        </p>
-                      }
                     </article>
                   }
                 </div>
@@ -677,7 +695,11 @@
               class="text-[11px] font-semibold text-slate-600"
             >
               {{ filteredAvailableOverlays().length }}
-              {{ filteredAvailableOverlays().length === 1 ? 'layer' : 'layers' }}
+              {{
+                filteredAvailableOverlays().length === 1
+                  ? ('mapLayersPanel.layerSingular' | translate)
+                  : ('mapLayersPanel.layerPlural' | translate)
+              }}
             </span>
           </button>
 
@@ -724,7 +746,11 @@
                       [attr.aria-pressed]="overlay.selected"
                       (click)="toggleOverlaySelected(overlay.id)"
                     >
-                      {{ overlay.selected ? 'Added' : 'Add' }}
+                      {{
+                        overlay.selected
+                          ? ('mapLayersPanel.addedButton' | translate)
+                          : ('mapLayersPanel.addButton' | translate)
+                      }}
                     </button>
                   </div>
 
@@ -748,7 +774,7 @@
                             [for]="'map-layers-overlay-opacity-slider-' + overlay.id"
                             class="shrink-0 text-[10px] text-slate-600"
                           >
-                            Opacity
+                            {{ 'mapLayersPanel.opacityLabel' | translate }}
                           </label>
                           <input
                             [id]="'map-layers-overlay-opacity-slider-' + overlay.id"
@@ -776,19 +802,34 @@
                             [for]="'map-layers-overlay-color-input-' + overlay.id"
                             class="text-[10px] text-slate-600"
                           >
-                            Color
+                            {{ 'mapLayersPanel.colorLabel' | translate }}
                           </label>
                           <span
                             [id]="'map-layers-overlay-color-swatch-wrap-' + overlay.id"
                             class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
                           >
-                            <input
+                            <button
+                              #overlayColorPicker="ngxColorPicker"
                               [id]="'map-layers-overlay-color-input-' + overlay.id"
-                              type="color"
+                              type="button"
                               class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                              [value]="overlay.color"
-                              (input)="updateOverlayColor(overlay.id, $any($event.target).value)"
-                            />
+                              [style.backgroundColor]="overlay.color"
+                              [colorPicker]="overlay.color"
+                              cpOutputFormat="hex"
+                              cpAlphaChannel="disabled"
+                              cpPosition="auto"
+                              cpDialogDisplay="popup"
+                              [cpUseRootViewContainer]="true"
+                              [cpEyeDropper]="true"
+                              [cpSaveClickOutside]="true"
+                              [cpPresetColors]="colorPresetHexValues"
+                              cpPresetLabel=""
+                              (colorPickerOpen)="onColorPickerOpen(overlayColorPicker)"
+                              (colorPickerChange)="updateOverlayColor(overlay.id, $event)"
+                              [attr.aria-label]="
+                                'mapLayersPanel.chooseColorFor' | translate: { name: overlay.name }
+                              "
+                            ></button>
                           </span>
                         </div>
                       </div>
@@ -847,7 +888,7 @@
                     [id]="'map-layers-group-coming-soon-badge-' + group.id"
                     class="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-slate-600"
                   >
-                    Coming soon
+                    {{ 'mapLayersPanel.comingSoon' | translate }}
                   </span>
                 } @else {
                   @if (visibleGroupCountLabel(group)) {
@@ -891,8 +932,14 @@
                       <article
                         [id]="'map-layers-layer-row-' + group.id + '-' + row.id"
                         class="bg-white"
-                        [class.border-b]="!isLastManifestRow || filteredTaxa().length > 0"
-                        [class.border-slate-100]="!isLastManifestRow || filteredTaxa().length > 0"
+                        [class.border-b]="
+                          !isLastManifestRow ||
+                          (shouldShowSpeciesTaxa(group) && filteredTaxa().length > 0)
+                        "
+                        [class.border-slate-100]="
+                          !isLastManifestRow ||
+                          (shouldShowSpeciesTaxa(group) && filteredTaxa().length > 0)
+                        "
                       >
                         <div
                           [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
@@ -923,221 +970,310 @@
                               [attr.aria-pressed]="row.selected"
                               (click)="toggleLayerSelected(group.id, row.id)"
                             >
-                              {{ row.selected ? 'Added' : 'Add' }}
+                              {{
+                                row.selected
+                                  ? ('mapLayersPanel.addedButton' | translate)
+                                  : ('mapLayersPanel.addButton' | translate)
+                              }}
+                            </button>
+                          } @else {
+                            @if (row.countLabel) {
+                              <span
+                                [id]="'map-layers-layer-row-count-' + group.id + '-' + row.id"
+                                class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
+                              >
+                                {{ row.countLabel }}
+                              </span>
+                            }
+                            <button
+                              [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
+                              type="button"
+                              class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
+                              [class.rotate-180]="!row.expanded && !hasLayerSearchQuery()"
+                              [attr.aria-expanded]="row.expanded || hasLayerSearchQuery()"
+                              [attr.aria-label]="
+                                row.expanded || hasLayerSearchQuery()
+                                  ? ('mapLayersPanel.collapseTaxon' | translate: { name: row.name })
+                                  : ('mapLayersPanel.expandTaxon' | translate: { name: row.name })
+                              "
+                              (click)="toggleLayerExpanded(group.id, row.id)"
+                            >
+                              <svg
+                                [id]="'map-layers-layer-row-expand-icon-' + group.id + '-' + row.id"
+                                class="map-layers-chevron-icon h-3 w-3"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M3 4.5L6 7.5L9 4.5" />
+                              </svg>
                             </button>
                           }
                         </div>
                       </article>
                     }
 
-                    @for (taxon of filteredTaxa(); track taxon.id) {
-                      <article
-                        [id]="'map-layers-taxon-row-' + taxon.id"
-                        class="border-b border-slate-100 bg-white last:border-b-0"
+                    @if (shouldShowSpeciesTaxa(group)) {
+                      <div
+                        id="map-layers-species-taxa-heading"
+                        class="border-b border-slate-100 bg-slate-50 px-3 py-1.5 pl-5 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500"
                       >
-                        <div
-                          [id]="'map-layers-taxon-row-header-' + taxon.id"
-                          class="flex min-w-0 items-center gap-1.5 px-3 py-2"
-                        >
-                          <button
-                            [id]="'map-layers-taxon-name-button-' + taxon.id"
-                            type="button"
-                            class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-slate-800"
-                            [title]="taxon.name"
-                            (click)="toggleTaxonExpanded(taxon.id)"
-                          >
-                            {{ taxon.name }}
-                          </button>
-                          <span
-                            [id]="'map-layers-taxon-count-' + taxon.id"
-                            class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
-                          >
-                            {{ taxon.countLabel }}
-                          </span>
-                          <button
-                            [id]="'map-layers-taxon-expand-button-' + taxon.id"
-                            type="button"
-                            class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
-                            [class.rotate-180]="!taxon.expanded && !hasLayerSearchQuery()"
-                            [attr.aria-expanded]="taxon.expanded || hasLayerSearchQuery()"
-                            [attr.aria-label]="
-                              (taxon.expanded || hasLayerSearchQuery() ? 'Collapse ' : 'Expand ') +
-                              taxon.name
-                            "
-                            (click)="toggleTaxonExpanded(taxon.id)"
-                          >
-                            <svg
-                              [id]="'map-layers-taxon-expand-icon-' + taxon.id"
-                              class="map-layers-chevron-icon h-3 w-3"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="1.5"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M3 4.5L6 7.5L9 4.5" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        <div
-                          [id]="'map-layers-taxon-body-' + taxon.id"
-                          class="map-layers-collapsible"
-                          [class.map-layers-collapsible-collapsed]="
-                            !taxon.expanded && !hasLayerSearchQuery()
-                          "
-                          [attr.aria-hidden]="!taxon.expanded && !hasLayerSearchQuery()"
+                        {{ 'mapLayersPanel.taxaHeading' | translate }}
+                      </div>
+                      @for (taxon of filteredTaxa(); track taxon.id) {
+                        <article
+                          [id]="'map-layers-taxon-row-' + taxon.id"
+                          class="border-b border-slate-100 bg-white last:border-b-0"
                         >
                           <div
-                            [id]="'map-layers-taxon-body-content-' + taxon.id"
-                            class="map-layers-collapsible-content border-t border-slate-100"
+                            [id]="'map-layers-taxon-row-header-' + taxon.id"
+                            class="flex min-w-0 items-center gap-1.5 px-3 py-2 pl-5"
                           >
-                            <div
-                              [id]="'map-layers-taxon-search-wrap-' + taxon.id"
-                              class="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2 pl-7"
+                            <button
+                              [id]="'map-layers-taxon-name-button-' + taxon.id"
+                              type="button"
+                              class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-slate-800"
+                              [title]="taxon.name"
+                              (click)="toggleTaxonExpanded(taxon.id)"
                             >
-                              <span
-                                [id]="'map-layers-taxon-search-icon-' + taxon.id"
-                                class="text-[11px] text-slate-600"
+                              {{ taxon.name }}
+                            </button>
+                            <span
+                              [id]="'map-layers-taxon-count-' + taxon.id"
+                              class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
+                            >
+                              {{ taxon.countLabel }}
+                            </span>
+                            <button
+                              [id]="'map-layers-taxon-expand-button-' + taxon.id"
+                              type="button"
+                              class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
+                              [class.rotate-180]="!taxon.expanded && !hasLayerSearchQuery()"
+                              [attr.aria-expanded]="taxon.expanded || hasLayerSearchQuery()"
+                              [attr.aria-label]="
+                                taxon.expanded || hasLayerSearchQuery()
+                                  ? ('mapLayersPanel.collapseTaxon'
+                                    | translate: { name: taxon.name })
+                                  : ('mapLayersPanel.expandTaxon' | translate: { name: taxon.name })
+                              "
+                              (click)="toggleTaxonExpanded(taxon.id)"
+                            >
+                              <svg
+                                [id]="'map-layers-taxon-expand-icon-' + taxon.id"
+                                class="map-layers-chevron-icon h-3 w-3"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
                                 aria-hidden="true"
                               >
-                                ⌕
-                              </span>
-                              <input
-                                [id]="'map-layers-taxon-search-input-' + taxon.id"
-                                type="text"
-                                class="min-h-7 flex-1 rounded border border-slate-200 px-2 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                                [placeholder]="'Search ' + taxon.name.toLowerCase() + '...'"
-                                [value]="taxon.searchQuery"
-                                (input)="updateTaxonSearch(taxon.id, $any($event.target).value)"
-                              />
-                            </div>
+                                <path d="M3 4.5L6 7.5L9 4.5" />
+                              </svg>
+                            </button>
+                          </div>
 
-                            <div [id]="'map-layers-taxon-species-list-' + taxon.id">
-                              @for (
-                                species of visibleSpeciesForTaxon(taxon);
-                                track species.id;
-                                let isLastSpecies = $last
-                              ) {
-                                <article
-                                  [id]="'map-layers-species-row-' + species.id"
-                                  class="bg-white"
-                                  [class.border-b]="!isLastSpecies"
-                                  [class.border-slate-100]="!isLastSpecies"
+                          <div
+                            [id]="'map-layers-taxon-body-' + taxon.id"
+                            class="map-layers-collapsible"
+                            [class.map-layers-collapsible-collapsed]="
+                              !taxon.expanded && !hasLayerSearchQuery()
+                            "
+                            [attr.aria-hidden]="!taxon.expanded && !hasLayerSearchQuery()"
+                          >
+                            <div
+                              [id]="'map-layers-taxon-body-content-' + taxon.id"
+                              class="map-layers-collapsible-content border-t border-slate-100"
+                            >
+                              <div
+                                [id]="'map-layers-taxon-search-wrap-' + taxon.id"
+                                class="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2 pl-9"
+                              >
+                                <span
+                                  [id]="'map-layers-taxon-search-icon-' + taxon.id"
+                                  class="inline-flex h-4 w-4 shrink-0 items-center justify-center text-slate-600"
+                                  aria-hidden="true"
                                 >
-                                  <div
-                                    [id]="'map-layers-species-row-header-' + species.id"
-                                    class="flex min-w-0 items-center gap-1.5 px-3 py-2 pl-7"
+                                  <svg
+                                    [id]="'map-layers-taxon-search-icon-svg-' + taxon.id"
+                                    class="h-4 w-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
                                   >
-                                    <button
-                                      [id]="'map-layers-species-name-button-' + species.id"
-                                      type="button"
-                                      class="min-w-0 flex-1 text-left"
-                                      [title]="species.common + ' (' + species.latin + ')'"
-                                      (click)="toggleSpeciesExpanded(taxon.id, species.id)"
-                                    >
-                                      <p
-                                        [id]="'map-layers-species-common-' + species.id"
-                                        class="truncate text-[12px] font-semibold text-slate-800"
-                                      >
-                                        {{ species.common }}
-                                      </p>
-                                      <p
-                                        [id]="'map-layers-species-latin-' + species.id"
-                                        class="truncate text-[10px] italic text-slate-600"
-                                      >
-                                        {{ species.latin }}
-                                      </p>
-                                    </button>
-                                    <button
-                                      [id]="'map-layers-species-selected-button-' + species.id"
-                                      type="button"
-                                      class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
-                                      [class.border-blue-200]="species.selected"
-                                      [class.bg-blue-50]="species.selected"
-                                      [class.text-blue-700]="species.selected"
-                                      [class.border-slate-200]="!species.selected"
-                                      [class.bg-white]="!species.selected"
-                                      [class.text-slate-600]="!species.selected"
-                                      [attr.aria-pressed]="species.selected"
-                                      (click)="toggleSpeciesSelected(taxon.id, species.id)"
-                                    >
-                                      {{ species.selected ? 'Added' : 'Add' }}
-                                    </button>
-                                  </div>
+                                    <path
+                                      [id]="'map-layers-taxon-search-icon-circle-' + taxon.id"
+                                      d="m21 21-4.34-4.34"
+                                    />
+                                    <circle
+                                      [id]="'map-layers-taxon-search-icon-lens-' + taxon.id"
+                                      cx="11"
+                                      cy="11"
+                                      r="8"
+                                    />
+                                  </svg>
+                                </span>
+                                <input
+                                  [id]="'map-layers-taxon-search-input-' + taxon.id"
+                                  type="text"
+                                  class="min-h-7 flex-1 rounded border border-slate-200 px-2 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                                  [placeholder]="
+                                    'mapLayersPanel.speciesSearchPlaceholder'
+                                      | translate: { taxon: taxon.name.toLowerCase() }
+                                  "
+                                  [value]="taxon.searchQuery"
+                                  (input)="updateTaxonSearch(taxon.id, $any($event.target).value)"
+                                />
+                              </div>
 
-                                  <div
-                                    [id]="'map-layers-species-controls-' + species.id"
-                                    class="map-layers-collapsible"
-                                    [class.map-layers-collapsible-collapsed]="!species.expanded"
-                                    [attr.aria-hidden]="!species.expanded"
+                              <div [id]="'map-layers-taxon-species-list-' + taxon.id">
+                                @for (
+                                  species of visibleSpeciesForTaxon(taxon);
+                                  track species.id;
+                                  let isLastSpecies = $last
+                                ) {
+                                  <article
+                                    [id]="'map-layers-species-row-' + species.id"
+                                    class="bg-white"
+                                    [class.border-b]="!isLastSpecies"
+                                    [class.border-slate-100]="!isLastSpecies"
                                   >
-                                    <div class="map-layers-collapsible-content">
-                                      <div
-                                        [id]="'map-layers-species-controls-content-' + species.id"
-                                        class="flex items-center gap-2 px-3 pb-2.5 pl-7"
+                                    <div
+                                      [id]="'map-layers-species-row-header-' + species.id"
+                                      class="flex min-w-0 items-center gap-1.5 px-3 py-2 pl-9"
+                                    >
+                                      <button
+                                        [id]="'map-layers-species-name-button-' + species.id"
+                                        type="button"
+                                        class="min-w-0 flex-1 text-left"
+                                        [title]="species.common + ' (' + species.latin + ')'"
+                                        (click)="toggleSpeciesExpanded(taxon.id, species.id)"
                                       >
-                                        <div
-                                          [id]="'map-layers-species-opacity-group-' + species.id"
-                                          class="flex min-w-0 flex-1 items-center gap-1.5"
+                                        <p
+                                          [id]="'map-layers-species-common-' + species.id"
+                                          class="truncate text-[12px] font-semibold text-slate-800"
                                         >
-                                          <label
-                                            [id]="'map-layers-species-opacity-label-' + species.id"
-                                            [for]="
-                                              'map-layers-species-opacity-slider-' + species.id
-                                            "
-                                            class="shrink-0 text-[10px] text-slate-600"
+                                          {{ species.common }}
+                                        </p>
+                                        <p
+                                          [id]="'map-layers-species-latin-' + species.id"
+                                          class="truncate text-[10px] italic text-slate-600"
+                                        >
+                                          {{ species.latin }}
+                                        </p>
+                                      </button>
+                                      <button
+                                        [id]="'map-layers-species-selected-button-' + species.id"
+                                        type="button"
+                                        class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                                        [class.border-blue-200]="species.selected"
+                                        [class.bg-blue-50]="species.selected"
+                                        [class.text-blue-700]="species.selected"
+                                        [class.border-slate-200]="!species.selected"
+                                        [class.bg-white]="!species.selected"
+                                        [class.text-slate-600]="!species.selected"
+                                        [attr.aria-pressed]="species.selected"
+                                        (click)="toggleSpeciesSelected(taxon.id, species.id)"
+                                      >
+                                        {{
+                                          species.selected
+                                            ? ('mapLayersPanel.addedButton' | translate)
+                                            : ('mapLayersPanel.addButton' | translate)
+                                        }}
+                                      </button>
+                                    </div>
+
+                                    <div
+                                      [id]="'map-layers-species-controls-' + species.id"
+                                      class="map-layers-collapsible"
+                                      [class.map-layers-collapsible-collapsed]="!species.expanded"
+                                      [attr.aria-hidden]="!species.expanded"
+                                    >
+                                      <div class="map-layers-collapsible-content">
+                                        <div
+                                          [id]="'map-layers-species-controls-content-' + species.id"
+                                          class="flex items-center gap-2 px-3 pb-2.5 pl-9"
+                                        >
+                                          <div
+                                            [id]="'map-layers-species-opacity-group-' + species.id"
+                                            class="flex min-w-0 flex-1 items-center gap-1.5"
                                           >
-                                            Opacity
-                                          </label>
-                                          <input
-                                            [id]="'map-layers-species-opacity-slider-' + species.id"
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            class="map-layers-opacity-slider w-full"
-                                            [style.--map-layers-slider-progress]="
-                                              species.opacity + '%'
-                                            "
-                                            [value]="species.opacity"
-                                            (input)="
-                                              updateSpeciesOpacity(
-                                                taxon.id,
-                                                species.id,
-                                                $any($event.target).value
-                                              )
-                                            "
-                                          />
-                                          <span
-                                            [id]="'map-layers-species-opacity-value-' + species.id"
-                                            class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
-                                          >
-                                            {{ species.opacity }}%
-                                          </span>
+                                            <label
+                                              [id]="
+                                                'map-layers-species-opacity-label-' + species.id
+                                              "
+                                              [for]="
+                                                'map-layers-species-opacity-slider-' + species.id
+                                              "
+                                              class="shrink-0 text-[10px] text-slate-600"
+                                            >
+                                              {{ 'mapLayersPanel.opacityLabel' | translate }}
+                                            </label>
+                                            <input
+                                              [id]="
+                                                'map-layers-species-opacity-slider-' + species.id
+                                              "
+                                              type="range"
+                                              min="0"
+                                              max="100"
+                                              class="map-layers-opacity-slider w-full"
+                                              [style.--map-layers-slider-progress]="
+                                                species.opacity + '%'
+                                              "
+                                              [value]="species.opacity"
+                                              (input)="
+                                                updateSpeciesOpacity(
+                                                  taxon.id,
+                                                  species.id,
+                                                  $any($event.target).value
+                                                )
+                                              "
+                                            />
+                                            <span
+                                              [id]="
+                                                'map-layers-species-opacity-value-' + species.id
+                                              "
+                                              class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
+                                            >
+                                              {{ species.opacity }}%
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </article>
+                                  </article>
+                                }
+                              </div>
+
+                              @if (shouldShowTaxonShowAll(taxon)) {
+                                <button
+                                  [id]="'map-layers-taxon-show-all-button-' + taxon.id"
+                                  type="button"
+                                  class="w-full border-t border-slate-100 px-3 py-1.5 pl-9 text-left text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-700"
+                                  (click)="showAllTaxonSpecies(taxon.id)"
+                                >
+                                  {{
+                                    'mapLayersPanel.showAllLabel'
+                                      | translate
+                                        : {
+                                            count: taxon.speciesCount.toLocaleString(),
+                                            name: taxon.name.toLowerCase(),
+                                          }
+                                  }}
+                                </button>
                               }
                             </div>
-
-                            @if (shouldShowTaxonShowAll(taxon)) {
-                              <button
-                                [id]="'map-layers-taxon-show-all-button-' + taxon.id"
-                                type="button"
-                                class="w-full border-t border-slate-100 px-3 py-1.5 pl-7 text-left text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-700"
-                                (click)="showAllTaxonSpecies(taxon.id)"
-                              >
-                                Show all {{ taxon.speciesCount.toLocaleString() }}
-                                {{ taxon.name.toLowerCase() }}...
-                              </button>
-                            }
                           </div>
-                        </div>
-                      </article>
+                        </article>
+                      }
                     }
                   } @else {
                     @if (group.note) {
@@ -1184,7 +1320,11 @@
                               [attr.aria-pressed]="row.selected"
                               (click)="toggleLayerSelected(group.id, row.id)"
                             >
-                              {{ row.selected ? 'Added' : 'Add' }}
+                              {{
+                                row.selected
+                                  ? ('mapLayersPanel.addedButton' | translate)
+                                  : ('mapLayersPanel.addButton' | translate)
+                              }}
                             </button>
                           }
                         </div>
@@ -1224,7 +1364,7 @@
                                     "
                                     class="shrink-0 text-[10px] text-slate-600"
                                   >
-                                    Opacity
+                                    {{ 'mapLayersPanel.opacityLabel' | translate }}
                                   </label>
                                   <input
                                     [id]="
@@ -1281,7 +1421,7 @@
                                       "
                                       class="text-[10px] text-slate-600"
                                     >
-                                      Color
+                                      {{ 'mapLayersPanel.colorLabel' | translate }}
                                     </label>
                                     <span
                                       [id]="
@@ -1292,24 +1432,36 @@
                                       "
                                       class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
                                     >
-                                      <input
+                                      <button
+                                        #groupRowColorPicker="ngxColorPicker"
                                         [id]="
                                           'map-layers-layer-row-color-input-' +
                                           group.id +
                                           '-' +
                                           row.id
                                         "
-                                        type="color"
+                                        type="button"
                                         class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                                        [value]="row.color"
-                                        (input)="
-                                          updateLayerColor(
-                                            group.id,
-                                            row.id,
-                                            $any($event.target).value
-                                          )
+                                        [style.backgroundColor]="row.color"
+                                        [colorPicker]="row.color"
+                                        cpOutputFormat="hex"
+                                        cpAlphaChannel="disabled"
+                                        cpPosition="auto"
+                                        cpDialogDisplay="popup"
+                                        [cpUseRootViewContainer]="true"
+                                        [cpEyeDropper]="true"
+                                        [cpSaveClickOutside]="true"
+                                        [cpPresetColors]="colorPresetHexValues"
+                                        cpPresetLabel=""
+                                        (colorPickerOpen)="onColorPickerOpen(groupRowColorPicker)"
+                                        (colorPickerChange)="
+                                          updateLayerColor(group.id, row.id, $event)
                                         "
-                                      />
+                                        [attr.aria-label]="
+                                          'mapLayersPanel.chooseColorFor'
+                                            | translate: { name: row.name }
+                                        "
+                                      ></button>
                                     </span>
                                   </div>
                                 }
@@ -1332,10 +1484,10 @@
           class="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-center"
         >
           <p id="map-layers-search-empty-state-title" class="text-xs font-semibold text-slate-700">
-            No layers match your search.
+            {{ 'mapLayersPanel.searchNoResults' | translate }}
           </p>
           <p id="map-layers-search-empty-state-copy" class="mt-1 text-[11px] text-slate-600">
-            Try a broader term such as "carbon", "wetlands", or "protected".
+            {{ 'mapLayersPanel.searchNoResultsHint' | translate }}
           </p>
         </div>
       }
@@ -1352,7 +1504,9 @@
         (click)="resetDefaults()"
       >
         <span id="map-layers-reset-defaults-icon" aria-hidden="true">↺</span>
-        <span id="map-layers-reset-defaults-label">Reset Defaults</span>
+        <span id="map-layers-reset-defaults-label">{{
+          'mapLayersPanel.resetDefaults' | translate
+        }}</span>
       </button>
     </footer>
   }

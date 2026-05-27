@@ -143,6 +143,21 @@ const DEFAULT_SOLUTION_RENDERING = {
 };
 
 /**
+ * Hardcoded English labels for layers whose CSV row has no English line.
+ * Add an entry here when the blob-discovered layer has no CSV row or the
+ * layer_name cell is single-line (Spanish only).
+ */
+const englishLabelOverrideByLayerId = {
+  paramos: 'Páramos',
+  siraps: 'SIRAP Boundaries',
+  siraps_territorial: 'Territorial SIRAPs',
+  siraps_thematic: 'Thematic SIRAP Additions',
+  omecs: 'OMECs (raster)',
+  admin_departments: 'Departments',
+  admin_municipalities: 'Municipalities',
+};
+
+/**
  * Optional per-layer overrides for rendering inference.
  * Keep these entries rare and explicit when domain knowledge must win.
  */
@@ -1067,7 +1082,7 @@ async function createLayerEntry(row, blobByPath, existingManifestIndex) {
     manifestLayer: {
       id,
       spanishLabel: labels[0] || row.layer_name,
-      englishLabel: labels[1] ?? null,
+      englishLabel: labels[1] || englishLabelOverrideByLayerId[id] || null,
       description: row.layer_description,
       tooltip: tooltipOverrideByLayerId[id] ?? null,
       dataRole,
