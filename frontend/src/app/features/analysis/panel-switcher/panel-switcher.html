@@ -1077,30 +1077,6 @@
                       </div>
                     </div>
 
-                    <div id="aoi-stat-water" class="aoi-metric-table">
-                      <div class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-droplet" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.waterRegulation' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.waterRegulationDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">
-                            {{ getAoiMetricValue('water_regulation_area', 'High') }}
-                          </div>
-                          <div class="aoi-m-unit">
-                            {{ getAoiMetricValue('water_regulation_pct', 'Index 78 / 100') }}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     @if (fillDummyAoiMetrics()) {
                       <div id="aoi-eco-narrative" class="aoi-narrative">
                         This AOI stores <strong>7% of Colombia's carbon stocks</strong> and provides
