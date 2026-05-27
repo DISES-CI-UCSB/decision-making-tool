@@ -2,6 +2,22 @@
   "app": {
     "mapTitle": "Mapa de la herramienta de toma de decisiones"
   },
+  "landingWelcome": {
+    "kicker": "Bienvenida",
+    "title": "Explora opciones de planificacion para la conservacion en Colombia.",
+    "description": "Esta herramienta de apoyo a la toma de decisiones ayuda a comparar escenarios de conservacion precalculados en Colombia. Usala para ver como diferentes metas de biodiversidad, areas incluidas y supuestos de costo cambian los lugares resaltados para accion de conservacion.",
+    "decisionSupportNote": "Los escenarios estan pensados para informar conversaciones y planificacion; no sustituyen la experiencia local, la revision de politicas ni las decisiones finales de conservacion.",
+    "quickStartTitle": "Como empezar",
+    "steps": {
+      "selectSolution": "Haz clic en Seleccionar solucion para abrir el buscador guiado de escenarios.",
+      "exploreMap": "Elige prioridades de conservacion y revisa el escenario coincidente en el mapa.",
+      "reviewAnalysis": "Usa los paneles laterales para revisar capas, metricas y compensaciones."
+    },
+    "actions": {
+      "exploreFirst": "Explorar mapa primero",
+      "selectSolution": "Seleccionar solucion"
+    }
+  },
   "header": {
     "appTitle": "Herramienta de Toma de Decisiones",
     "languageToggleLabel": "Cambiar a {{lang}}",

@@ -33,6 +33,169 @@
     ></app-panel-switcher>
   </section>
 </app-shell>
+
+<app-modal-shell
+  id="landing-welcome-modal-shell"
+  rootId="landing-welcome-modal-shell-root"
+  mode="standard"
+  [isOpen]="landingWelcomeModalOpen"
+  [closeOnBackdrop]="true"
+  [closeOnEscape]="true"
+  [showCloseButton]="true"
+  headerAlign="start"
+  ariaLabelKey="landingWelcome.title"
+  (requestClose)="closeLandingWelcomeModal()"
+>
+  <section id="landing-welcome-modal-header-copy" modal-shell-header-content class="space-y-1 pt-1">
+    <p
+      id="landing-welcome-modal-kicker"
+      class="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700"
+    >
+      {{ 'landingWelcome.kicker' | translate }}
+    </p>
+    <h2 id="landing-welcome-modal-title" class="text-xl font-semibold text-slate-950">
+      {{ 'landingWelcome.title' | translate }}
+    </h2>
+    <nav
+      id="landing-welcome-modal-language-toggle-nav"
+      aria-label="Language switcher"
+      class="inline-flex items-center pt-2 text-sm"
+    >
+      @if (activeLanguage === 'es') {
+        <button
+          id="landing-welcome-modal-language-toggle-link-en"
+          type="button"
+          class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          (click)="setLanguage('en')"
+        >
+          EN
+        </button>
+        <span
+          id="landing-welcome-modal-language-toggle-divider-es"
+          class="px-1.5 text-slate-400"
+          aria-hidden="true"
+          >|</span
+        >
+        <span
+          id="landing-welcome-modal-language-toggle-current-es"
+          aria-current="page"
+          class="font-semibold text-slate-900"
+        >
+          ES
+        </span>
+      } @else {
+        <span
+          id="landing-welcome-modal-language-toggle-current-en"
+          aria-current="page"
+          class="font-semibold text-slate-900"
+        >
+          EN
+        </span>
+        <span
+          id="landing-welcome-modal-language-toggle-divider-en"
+          class="px-1.5 text-slate-400"
+          aria-hidden="true"
+          >|</span
+        >
+        <button
+          id="landing-welcome-modal-language-toggle-link-es"
+          type="button"
+          class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          (click)="setLanguage('es')"
+        >
+          ES
+        </button>
+      }
+    </nav>
+  </section>
+
+  <section id="landing-welcome-modal-content" class="space-y-5">
+    <div id="landing-welcome-modal-introduction" class="space-y-3">
+      <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
+        {{ 'landingWelcome.description' | translate }}
+      </p>
+      <p id="landing-welcome-modal-decision-support-note" class="text-sm leading-6 text-slate-700">
+        {{ 'landingWelcome.decisionSupportNote' | translate }}
+      </p>
+    </div>
+
+    <section
+      id="landing-welcome-modal-quick-start-card"
+      class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+    >
+      <h3 id="landing-welcome-modal-quick-start-title" class="text-sm font-semibold text-slate-900">
+        {{ 'landingWelcome.quickStartTitle' | translate }}
+      </h3>
+      <ol id="landing-welcome-modal-quick-start-list" class="mt-3 space-y-3">
+        <li id="landing-welcome-modal-quick-start-step-select" class="flex gap-3">
+          <span
+            id="landing-welcome-modal-quick-start-step-select-marker"
+            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-700 text-xs font-semibold text-white"
+            aria-hidden="true"
+          >
+            1
+          </span>
+          <span
+            id="landing-welcome-modal-quick-start-step-select-copy"
+            class="text-sm leading-6 text-slate-700"
+          >
+            {{ 'landingWelcome.steps.selectSolution' | translate }}
+          </span>
+        </li>
+        <li id="landing-welcome-modal-quick-start-step-explore" class="flex gap-3">
+          <span
+            id="landing-welcome-modal-quick-start-step-explore-marker"
+            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-white"
+            aria-hidden="true"
+          >
+            2
+          </span>
+          <span
+            id="landing-welcome-modal-quick-start-step-explore-copy"
+            class="text-sm leading-6 text-slate-700"
+          >
+            {{ 'landingWelcome.steps.exploreMap' | translate }}
+          </span>
+        </li>
+        <li id="landing-welcome-modal-quick-start-step-review" class="flex gap-3">
+          <span
+            id="landing-welcome-modal-quick-start-step-review-marker"
+            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-white"
+            aria-hidden="true"
+          >
+            3
+          </span>
+          <span
+            id="landing-welcome-modal-quick-start-step-review-copy"
+            class="text-sm leading-6 text-slate-700"
+          >
+            {{ 'landingWelcome.steps.reviewAnalysis' | translate }}
+          </span>
+        </li>
+      </ol>
+    </section>
+
+    <div id="landing-welcome-modal-actions" class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+      <button
+        id="landing-welcome-modal-dismiss-button"
+        type="button"
+        class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        (click)="closeLandingWelcomeModal()"
+      >
+        {{ 'landingWelcome.actions.exploreFirst' | translate }}
+      </button>
+      <button
+        id="landing-welcome-modal-select-solution-button"
+        type="button"
+        class="inline-flex items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+        (click)="startFromLandingWelcome()"
+      >
+        {{ 'landingWelcome.actions.selectSolution' | translate }}
+      </button>
+    </div>
+  </section>
+</app-modal-shell>
+
 <app-modal-shell
   id="solution-finder-modal-shell"
   rootId="solution-finder-modal-shell-root"

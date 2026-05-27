@@ -1,5 +1,5 @@
 export type LayerLocale = 'en' | 'es';
-export const DEFAULT_LOCALE: LayerLocale = 'en';
+export const DEFAULT_LOCALE: LayerLocale = 'es';
 
 /**
  * Resolves a display label for a layer or category using a consistent locale-aware policy:

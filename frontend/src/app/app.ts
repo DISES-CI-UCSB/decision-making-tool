@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, ViewContainerRef, inject } from '@angular/core';
-import type { Solution, SolutionScenario } from '@core/models';
+import type { LayerLocale, Solution, SolutionScenario } from '@core/models';
+import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
@@ -38,6 +39,7 @@ export class App implements OnInit, OnDestroy {
    * by nested containers with overflow rules.
    */
   public readonly viewContainerRef = inject(ViewContainerRef);
+  private readonly appLocaleService = inject(AppLocaleService);
   private readonly appState = inject(AppStateService);
   private readonly mockData = inject(MockDataService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
@@ -46,6 +48,7 @@ export class App implements OnInit, OnDestroy {
   private readonly debugMarker = 'UCS-39-map-debug-v1';
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   protected perspectiveModalOpen = false;
+  protected landingWelcomeModalOpen = true;
   protected coordinateToolEnabled = false;
   protected solutionLoadedToastVisible = false;
   protected solutionLoadedToastMessage = '';
@@ -58,12 +61,31 @@ export class App implements OnInit, OnDestroy {
     (window as Window & { __ecoPlanDebugMarker?: string }).__ecoPlanDebugMarker = this.debugMarker;
   }
 
+  protected get activeLanguage(): string {
+    return this.translate.getCurrentLang() || this.translate.getDefaultLang() || 'es';
+  }
+
   ngOnDestroy(): void {
     this.clearToastTimer();
   }
 
   protected openSolutionFinderModal(): void {
     this.appState.openSolutionFinder();
+  }
+
+  protected closeLandingWelcomeModal(): void {
+    this.landingWelcomeModalOpen = false;
+  }
+
+  protected startFromLandingWelcome(): void {
+    this.closeLandingWelcomeModal();
+    this.openSolutionFinderModal();
+  }
+
+  protected setLanguage(language: LayerLocale): void {
+    this.translate.use(language).subscribe(() => {
+      this.appLocaleService.setLocale(language);
+    });
   }
 
   protected closeSolutionFinderModal(): void {
