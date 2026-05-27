@@ -1,5 +1,6 @@
 import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import {
   Component,
   DestroyRef,
@@ -42,7 +43,7 @@ import {
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
-import { catchError, of } from 'rxjs';
+import { catchError, map, of, switchMap } from 'rxjs';
 import { FEATURE_FLAGS } from '@feature-flags';
 
 interface LayerControlRow {
@@ -168,6 +169,9 @@ const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
 const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manifest.json';
+const SPECIES_COLLECTION_ROW_ID = 'layer-species';
+const SPECIES_TAXONOMY_CSV_URL =
+  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv';
 const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
   'group-ecosystems': 'ecosystems',
   'group-socio-economic': 'socioeconomic',
@@ -177,6 +181,21 @@ const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], st
 const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<Record<string, { en: string; es: string }>> = {
   socioeconomic: { en: 'Costs', es: 'Costos' },
 };
+const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabel: string }> = {
+  Mammalia: { taxonId: 'mammals', taxonLabel: 'Mammals' },
+  Aves: { taxonId: 'birds', taxonLabel: 'Birds' },
+  Amphibia: { taxonId: 'amphibians', taxonLabel: 'Amphibians' },
+  Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
+  Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
+};
+const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
+  ['taxon-mammals', 0],
+  ['taxon-birds', 1],
+  ['taxon-amphibians', 2],
+  ['taxon-reptiles', 3],
+  ['taxon-plants', 4],
+]);
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
   omecs: 'overlay-omecs',
@@ -266,6 +285,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly adminBoundaryService = inject(AdminBoundaryService);
   private readonly manifestRasterLayerService = inject(ManifestRasterLayerService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
@@ -622,6 +642,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       .getSpeciesManifest(speciesManifestUrl)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
+        switchMap((manifest) =>
+          this.loadSpeciesTaxonomyLookup().pipe(
+            map((taxonomyLookup) => this.withSpeciesTaxonomy(manifest, taxonomyLookup)),
+            catchError(() => of(manifest)),
+          ),
+        ),
         catchError(() => of<RuntimeSpeciesManifest>({ layers: [] })),
       )
       .subscribe((manifest) => {
@@ -630,6 +656,39 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
         this.reconcileTaxaWithSpeciesManifest(manifest.layers);
       });
+  }
+
+  private loadSpeciesTaxonomyLookup() {
+    return this.http.get(SPECIES_TAXONOMY_CSV_URL, { responseType: 'text' }).pipe(
+      map((csvText) => this.parseSpeciesTaxonomyLookup(csvText)),
+      catchError(() => of(new Map<string, { taxonId: string; taxonLabel: string }>())),
+    );
+  }
+
+  private withSpeciesTaxonomy(
+    manifest: RuntimeSpeciesManifest,
+    taxonomyLookup: Map<string, { taxonId: string; taxonLabel: string }>,
+  ): RuntimeSpeciesManifest {
+    if (taxonomyLookup.size === 0) {
+      return manifest;
+    }
+    return {
+      ...manifest,
+      layers: manifest.layers.map((layer) => {
+        if (layer.taxonId?.trim() && layer.taxonLabel?.trim()) {
+          return layer;
+        }
+        const taxonomy = taxonomyLookup.get(this.normalizeSpeciesLookupKey(layer.scientificName));
+        if (!taxonomy) {
+          return layer;
+        }
+        return {
+          ...layer,
+          taxonId: taxonomy.taxonId,
+          taxonLabel: taxonomy.taxonLabel,
+        };
+      }),
+    };
   }
 
   private reconcileGroupsWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
@@ -649,9 +708,9 @@ export class MapLayersPanelComponent implements OnDestroy {
           return group;
         }
 
-        const rows = manifestGroup.rows
-          .filter((row) => !row.isSpeciesCollection)
-          .map((row, index) => this.manifestSidebarLayerRow(group.id, row, index, group.rows));
+        const rows = manifestGroup.rows.map((row, index) =>
+          this.manifestSidebarLayerRow(group.id, row, index, group.rows),
+        );
 
         return {
           ...group,
@@ -848,6 +907,25 @@ export class MapLayersPanelComponent implements OnDestroy {
     index: number,
     existingRows: LayerControlRow[],
   ): LayerControlRow {
+    if (sidebarGroupId === 'group-species-biodiversity' && manifestRow.isSpeciesCollection) {
+      const layerId = `layer-${manifestRow.id}`;
+      const existingRow = existingRows.find((row) => row.id === layerId);
+      return {
+        id: layerId,
+        name: this.localizedText('mapLayersPanel.individualSpecies'),
+        selected: false,
+        visible: false,
+        expanded: existingRow?.expanded ?? false,
+        opacity: 60,
+        color: '#854d0e',
+        canReorder: false,
+        hasStyleControls: false,
+        hasColorControl: false,
+        mapUnavailable: true,
+        hideAddButton: true,
+      };
+    }
+
     const layerId = `layer-${manifestRow.id}`;
     const existingRow = existingRows.find((row) => row.id === layerId);
     const isLiveRenderable = this.isManifestRowLiveRenderable(manifestRow);
@@ -996,8 +1074,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   private toLayerCountLabel(layerCount: number): string {
     const noun =
       layerCount === 1
-        ? this.localizedText('mapLayersPanel.layerSingular')
-        : this.localizedText('mapLayersPanel.layerPlural');
+        ? this.localizedTextOrFallback('mapLayersPanel.layerSingular', 'layer')
+        : this.localizedTextOrFallback('mapLayersPanel.layerPlural', 'layers');
     return `${layerCount} ${noun}`;
   }
 
@@ -1424,7 +1502,23 @@ export class MapLayersPanelComponent implements OnDestroy {
       return group.rows;
     }
     const query = this.normalizedLayerSearchQuery();
-    return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
+    if (group.id !== 'group-species-biodiversity') {
+      return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
+    }
+    return group.rows.filter(
+      (row) => this.isSpeciesCollectionRow(row) || this.nameMatchesSearch(row.name, query),
+    );
+  }
+
+  protected shouldShowSpeciesTaxa(group: LayerGroup): boolean {
+    if (this.hasLayerSearchQuery()) {
+      return true;
+    }
+    const speciesCollectionRow = group.rows.find((row) => this.isSpeciesCollectionRow(row));
+    if (!speciesCollectionRow) {
+      return true;
+    }
+    return speciesCollectionRow.expanded;
   }
 
   protected visibleSpeciesForTaxon(taxon: TaxonRow): SpeciesRow[] {
@@ -1454,26 +1548,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     const match = this.searchMatchesByGroup().get(group.id);
     if (!match) {
       return undefined;
-    }
-    if (group.id === 'group-species-biodiversity') {
-      const parts: string[] = [];
-      if (match.rowMatches > 0) {
-        const noun =
-          match.rowMatches === 1
-            ? this.localizedText('mapLayersPanel.layerMatchSingular')
-            : this.localizedText('mapLayersPanel.layerMatchPlural');
-        parts.push(`${match.rowMatches} ${noun}`);
-      }
-      if (match.taxonMatches > 0) {
-        const noun =
-          match.taxonMatches === 1
-            ? this.localizedText('mapLayersPanel.taxonMatchSingular')
-            : this.localizedText('mapLayersPanel.taxonMatchPlural');
-        parts.push(`${match.taxonMatches} ${noun}`);
-      }
-      return parts.length > 0
-        ? parts.join(' · ')
-        : this.localizedText('mapLayersPanel.noMatchesLabel');
     }
     const noun =
       match.rowMatches === 1
@@ -2919,9 +2993,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   private reconcileTaxaWithSpeciesManifest(manifestLayers: RuntimeSpeciesManifestLayer[]): void {
     const existingTaxaById = new Map(this.taxa().map((taxon) => [taxon.id, taxon]));
     const manifestLayersByTaxonId = this.groupSpeciesManifestLayersByTaxon(manifestLayers);
-    const taxa = Array.from(manifestLayersByTaxonId.entries()).map(([taxonId, layers]) =>
-      this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
-    );
+    const taxa = Array.from(manifestLayersByTaxonId.entries())
+      .map(([taxonId, layers]) =>
+        this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
+      )
+      .sort((left, right) => this.compareSpeciesTaxa(left, right));
     const speciesLayerCount = taxa.reduce((total, taxon) => total + taxon.speciesCount, 0);
 
     this.taxa.set(taxa);
@@ -2931,6 +3007,11 @@ export class MapLayersPanelComponent implements OnDestroy {
           ? {
               ...group,
               countLabel: this.toLayerCountLabel(group.rows.length + speciesLayerCount),
+              rows: group.rows.map((row) =>
+                this.isSpeciesCollectionRow(row)
+                  ? { ...row, countLabel: this.toSpeciesCountLabel(speciesLayerCount) }
+                  : row,
+              ),
             }
           : group,
       ),
@@ -2977,6 +3058,15 @@ export class MapLayersPanelComponent implements OnDestroy {
       showAll: existingTaxon?.showAll ?? false,
       species,
     };
+  }
+
+  private compareSpeciesTaxa(left: TaxonRow, right: TaxonRow): number {
+    const leftOrder = SPECIES_TAXON_SORT_ORDER.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = SPECIES_TAXON_SORT_ORDER.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+    return left.name.localeCompare(right.name);
   }
 
   private speciesManifestLayerRow(
@@ -3032,7 +3122,82 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private speciesTaxonName(layer: RuntimeSpeciesManifestLayer | undefined): string {
-    return layer?.taxonLabel?.trim() || this.localizedText('mapLayersPanel.individualSpecies');
+    return layer?.taxonLabel?.trim() || 'Unclassified species';
+  }
+
+  private isSpeciesCollectionRow(row: LayerControlRow): boolean {
+    return row.id === SPECIES_COLLECTION_ROW_ID;
+  }
+
+  private parseSpeciesTaxonomyLookup(
+    csvText: string,
+  ): Map<string, { taxonId: string; taxonLabel: string }> {
+    const rows = csvText.split(/\r?\n/).filter((row) => row.trim().length > 0);
+    if (rows.length === 0) {
+      return new Map();
+    }
+
+    const header = this.parseCsvRow(rows[0]);
+    const scientificNameIndex = header.indexOf('scientific_name');
+    const classIndex = header.indexOf('class');
+    if (scientificNameIndex < 0 || classIndex < 0) {
+      return new Map();
+    }
+
+    const taxonomyLookup = new Map<string, { taxonId: string; taxonLabel: string }>();
+    for (const row of rows.slice(1)) {
+      const cells = this.parseCsvRow(row);
+      const scientificName = cells[scientificNameIndex] ?? '';
+      const speciesClass = cells[classIndex] ?? '';
+      const taxonomy = SPECIES_CLASS_TO_TAXON[speciesClass.trim()];
+      const lookupKey = this.normalizeSpeciesLookupKey(scientificName);
+      if (!lookupKey || !taxonomy) {
+        continue;
+      }
+      taxonomyLookup.set(lookupKey, taxonomy);
+    }
+    return taxonomyLookup;
+  }
+
+  private parseCsvRow(row: string): string[] {
+    const fields: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < row.length; index += 1) {
+      const char = row[index];
+      if (char === '"') {
+        const nextChar = row[index + 1];
+        if (inQuotes && nextChar === '"') {
+          currentField += '"';
+          index += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (char === ',' && !inQuotes) {
+        fields.push(currentField.trim());
+        currentField = '';
+        continue;
+      }
+
+      currentField += char;
+    }
+
+    fields.push(currentField.trim());
+    return fields;
+  }
+
+  private normalizeSpeciesLookupKey(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ');
   }
 
   /**
@@ -3303,6 +3468,18 @@ export class MapLayersPanelComponent implements OnDestroy {
     return this.translate.instant(key, params);
   }
 
+  private localizedTextOrFallback(
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number>,
+  ): string {
+    const localizedValue = this.localizedText(key, params);
+    if (!localizedValue || localizedValue === key) {
+      return fallback;
+    }
+    return localizedValue;
+  }
+
   private createSpeciesRows(taxonId: string, species: SpeciesSample[]): SpeciesRow[] {
     return species.map((sample) => this.speciesRow(taxonId, sample.common, sample.latin));
   }
@@ -3337,7 +3514,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private toSpeciesCountLabel(speciesCount: number): string {
-    const noun = this.localizedText('mapLayersPanel.speciesNoun');
+    const noun = this.localizedTextOrFallback('mapLayersPanel.speciesNoun', 'species');
     return `${speciesCount.toLocaleString()} ${noun}`;
   }
 
