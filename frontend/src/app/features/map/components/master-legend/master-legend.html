@@ -79,14 +79,6 @@
                     'mapLegend.selected' | translate: { pct: sol.rasterMeta.selectedPct.toFixed(1) }
                   }}
                 </li>
-                <li id="master-legend-solution-not-selected-item" class="flex items-center gap-2">
-                  <span
-                    id="master-legend-solution-not-selected-swatch"
-                    class="inline-block h-3 w-3 rounded-[3px] border border-slate-300"
-                    style="background-color: transparent"
-                  ></span>
-                  {{ 'mapLegend.notSelected' | translate }}
-                </li>
               </ul>
             } @else if (comparisonMode() === 'threeColorOverlay') {
               <ul
