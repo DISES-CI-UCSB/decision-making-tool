@@ -340,6 +340,10 @@ const SPECIES_RICHNESS_RENDER_RANGE = {
   minValue: 815,
   maxValue: 3562,
 } as const;
+const HUMAN_FOOTPRINT_RENDER_RANGE = {
+  minValue: 0,
+  maxValue: 100,
+} as const;
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
 const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
 const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
@@ -1137,6 +1141,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       return this.iavhEcosystemGroupedRendering();
     }
 
+    if (manifestRow.id === 'human_footprint_2022') {
+      return this.humanFootprintGradientRendering(manifestRow.rendering);
+    }
+
     if (manifestRow.id !== 'species_richness') {
       return manifestRow.rendering;
     }
@@ -1161,6 +1169,28 @@ export class MapLayersPanelComponent implements OnDestroy {
       maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
       startColor: '#fef3c7',
       endColor: '#854d0e',
+    };
+  }
+
+  private humanFootprintGradientRendering(
+    rendering: RuntimeLayerManifestRenderingConfig,
+  ): RuntimeLayerManifestRenderingConfig {
+    if (rendering.valueType === 'continuous' && rendering.renderMode === 'gradient') {
+      return {
+        ...rendering,
+        minValue: HUMAN_FOOTPRINT_RENDER_RANGE.minValue,
+        maxValue: HUMAN_FOOTPRINT_RENDER_RANGE.maxValue,
+      };
+    }
+
+    return {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: rendering.noDataValue ?? null,
+      minValue: HUMAN_FOOTPRINT_RENDER_RANGE.minValue,
+      maxValue: HUMAN_FOOTPRINT_RENDER_RANGE.maxValue,
+      startColor: '#fee2e2',
+      endColor: '#991b1b',
     };
   }
 
