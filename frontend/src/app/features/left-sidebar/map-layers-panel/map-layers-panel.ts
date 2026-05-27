@@ -29,7 +29,12 @@ import {
   type RuntimeSpeciesManifestLayer,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
-import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
+import {
+  AppStateService,
+  buildContinuousGradientLegendEntry,
+  isContinuousGradientRendering,
+  type MapLegendLayerEntry,
+} from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import {
   AdminBoundaryService,
@@ -344,6 +349,13 @@ const HUMAN_FOOTPRINT_RENDER_RANGE = {
   minValue: 0,
   maxValue: 100,
 } as const;
+const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
+  string,
+  { minValue: number; maxValue: number }
+> = {
+  species_richness: SPECIES_RICHNESS_RENDER_RANGE,
+  human_footprint_2022: HUMAN_FOOTPRINT_RENDER_RANGE,
+};
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
 const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
 const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
@@ -1047,7 +1059,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       const existingRow = existingRows.find((row) => row.id === layerId);
       return {
         id: layerId,
-        name: this.localizedText('mapLayersPanel.individualSpecies'),
+        name: this.localizedTextOrFallback(
+          'mapLayersPanel.individualSpecies',
+          'Individual species',
+        ),
         selected: false,
         visible: false,
         expanded: existingRow?.expanded ?? false,
@@ -1141,56 +1156,17 @@ export class MapLayersPanelComponent implements OnDestroy {
       return this.iavhEcosystemGroupedRendering();
     }
 
-    if (manifestRow.id === 'human_footprint_2022') {
-      return this.humanFootprintGradientRendering(manifestRow.rendering);
-    }
-
-    if (manifestRow.id !== 'species_richness') {
+    const knownRange = KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID[manifestRow.id];
+    if (!knownRange) {
       return manifestRow.rendering;
     }
 
-    if (
-      manifestRow.rendering.valueType === 'continuous' &&
-      manifestRow.rendering.renderMode === 'gradient'
-    ) {
-      return {
-        ...manifestRow.rendering,
-        minValue: SPECIES_RICHNESS_RENDER_RANGE.minValue,
-        maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
-      };
-    }
-
-    // Species richness data is continuous; mask rendering makes most cells transparent.
     return {
+      ...manifestRow.rendering,
       valueType: 'continuous',
       renderMode: 'gradient',
-      noDataValue: manifestRow.rendering.noDataValue ?? 255,
-      minValue: SPECIES_RICHNESS_RENDER_RANGE.minValue,
-      maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
-      startColor: '#fef3c7',
-      endColor: '#854d0e',
-    };
-  }
-
-  private humanFootprintGradientRendering(
-    rendering: RuntimeLayerManifestRenderingConfig,
-  ): RuntimeLayerManifestRenderingConfig {
-    if (rendering.valueType === 'continuous' && rendering.renderMode === 'gradient') {
-      return {
-        ...rendering,
-        minValue: HUMAN_FOOTPRINT_RENDER_RANGE.minValue,
-        maxValue: HUMAN_FOOTPRINT_RENDER_RANGE.maxValue,
-      };
-    }
-
-    return {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: rendering.noDataValue ?? null,
-      minValue: HUMAN_FOOTPRINT_RENDER_RANGE.minValue,
-      maxValue: HUMAN_FOOTPRINT_RENDER_RANGE.maxValue,
-      startColor: '#fee2e2',
-      endColor: '#991b1b',
+      minValue: knownRange.minValue,
+      maxValue: knownRange.maxValue,
     };
   }
 
@@ -2764,19 +2740,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     if (this.isContinuousGradientRaster(row)) {
-      const gradientRendering = row.mapSync.rendering;
-      return {
+      return buildContinuousGradientLegendEntry({
         id: row.id,
         name: row.name,
-        swatchType: 'gradient',
         color: row.color,
-        lineStyle: 'solid',
-        lineWidth: 1,
-        gradientStartColor: gradientRendering?.startColor ?? '#dbeafe',
-        gradientEndColor: gradientRendering?.endColor ?? row.color ?? '#7f1d1d',
-        gradientMinLabel: this.formatLegendValue(gradientRendering?.minValue),
-        gradientMaxLabel: this.formatLegendValue(gradientRendering?.maxValue),
-      };
+        rendering: row.mapSync.rendering,
+      });
     }
 
     if (
@@ -2829,11 +2798,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     return [...categoryByLabel.values()];
   }
 
-  private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
-    const normalizedName = row.name.trim().toLowerCase();
-    return normalizedName === 'human footprint';
-  }
-
   private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
     mapSync: {
       type: 'manifest-raster';
@@ -2844,16 +2808,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   } {
     return (
       row.mapSync?.type === 'manifest-raster' &&
-      row.mapSync.rendering.renderMode === 'gradient' &&
-      row.mapSync.rendering.valueType === 'continuous'
+      isContinuousGradientRendering(row.mapSync.rendering)
     );
-  }
-
-  private formatLegendValue(value: number | null | undefined): string | undefined {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return undefined;
-    }
-    return Number.isInteger(value) ? `${value}` : value.toFixed(2);
   }
 
   private isSolutionLayerRow(row: LayerControlRow): boolean {
@@ -3661,13 +3617,24 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.groups.update((groups) =>
       groups.map((group) => {
         const translatedTitle = this.groupTitleForId(group.id);
-        const translatedRows =
-          group.id === 'group-admin-boundaries'
-            ? group.rows.map((row) => ({
-                ...row,
-                name: this.boundaryNameForId(row.id) ?? row.name,
-              }))
-            : group.rows;
+        const translatedRows = group.rows.map((row) => {
+          if (group.id === 'group-admin-boundaries') {
+            return {
+              ...row,
+              name: this.boundaryNameForId(row.id) ?? row.name,
+            };
+          }
+          if (row.id === SPECIES_COLLECTION_ROW_ID) {
+            return {
+              ...row,
+              name: this.localizedTextOrFallback(
+                'mapLayersPanel.individualSpecies',
+                'Individual species',
+              ),
+            };
+          }
+          return row;
+        });
         const nextCountLabel =
           group.id === 'group-species-biodiversity'
             ? this.toLayerCountLabel(group.rows.length + speciesLayerCount)
