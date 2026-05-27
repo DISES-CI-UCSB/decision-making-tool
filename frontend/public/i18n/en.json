@@ -612,6 +612,7 @@
     "taxonMatchSingular": "taxon match",
     "taxonMatchPlural": "taxon matches",
     "noMatchesLabel": "0 matches",
+    "taxaHeading": "Taxa",
     "speciesNote": "Species distributions are loaded from the species manifest. Search within a taxon group to find individual species rasters.",
     "scenarioNote": "Distributions shown are those included in this scenario's calculation. Drill down to individual species when the solution includes species-level rasters.",
     "individualSpecies": "Individual species",

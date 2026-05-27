@@ -612,6 +612,7 @@
     "taxonMatchSingular": "taxón coincidente",
     "taxonMatchPlural": "taxones coincidentes",
     "noMatchesLabel": "0 coincidencias",
+    "taxaHeading": "Taxones",
     "speciesNote": "Las distribuciones de especies se cargan desde el manifiesto de especies. Busca dentro de un grupo taxonómico para encontrar rásters de especies individuales.",
     "scenarioNote": "Las distribuciones mostradas son las incluidas en el cálculo de este escenario. Explora hasta las especies individuales cuando la solución incluya rásters a nivel de especie.",
     "individualSpecies": "Especies individuales",
