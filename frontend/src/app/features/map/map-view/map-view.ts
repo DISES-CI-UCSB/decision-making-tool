@@ -770,10 +770,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     mapPoint?: Point | null;
     stopPropagation: () => void;
   }): Promise<void> {
-    // Pick the topmost interactive vector overlay (according to sidebar stack
-    // order); fall through to default click handling if none claims the hit.
-    const topConfig = this.topmostInteractiveVectorOverlay();
-    if (!topConfig) {
+    const configs = this.visibleInteractiveVectorOverlays();
+    if (configs.length === 0) {
       return;
     }
     // Claim the click synchronously. stopPropagation() on immediate-click only
@@ -781,28 +779,48 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     // microtask queue; otherwise AdminBoundaryService's click handler races in
     // and clears/overwrites our AOI before the async hitTest resolves.
     event.stopPropagation();
-    await this.showVectorOverlayPopupIfHit(topConfig, event.mapPoint ?? null, event.x, event.y);
+    for (const config of configs) {
+      const didHit = await this.showVectorOverlayPopupIfHit(
+        config,
+        event.mapPoint ?? null,
+        event.x,
+        event.y,
+      );
+      if (didHit) {
+        return;
+      }
+    }
   }
 
   /**
-   * Walk the user's selected sidebar entries and return the topmost vector
-   * overlay (OMEC, RUNAP) that is currently visible AND stacked above every
-   * visible boundary row. Returns null when boundary handling should win.
+   * Return visible vector overlays in the user's selected-layer order when
+   * available. Boundary rows can cover broad areas (or all of Colombia), so the
+   * actual ArcGIS hit test is the source of truth for whether RUNAP/OMEC wins.
    */
-  private topmostInteractiveVectorOverlay(): VectorOverlayConfig | null {
+  private visibleInteractiveVectorOverlays(): VectorOverlayConfig[] {
+    const visibleByOverlayId = new Map(
+      VECTOR_OVERLAY_CONFIGS.filter((config) =>
+        this.manifestRasterLayerService.isLayerVisible(config.overlayId),
+      ).map((config) => [config.overlayId, config]),
+    );
+    if (visibleByOverlayId.size === 0) {
+      return [];
+    }
+
     const entries = this.appState.selectedLegendLayers$();
+    const orderedConfigs: VectorOverlayConfig[] = [];
     for (const entry of entries) {
-      if (entry.id.startsWith('boundary-')) {
-        // A boundary row is stacked above any remaining vector overlay → it
-        // wins click priority.
-        return null;
-      }
-      const config = VECTOR_OVERLAY_CONFIGS.find((c) => c.overlayId === entry.id);
-      if (config && this.manifestRasterLayerService.isLayerVisible(config.overlayId)) {
-        return config;
+      const config = visibleByOverlayId.get(entry.id);
+      if (config) {
+        orderedConfigs.push(config);
+        visibleByOverlayId.delete(entry.id);
       }
     }
-    return null;
+
+    return [
+      ...orderedConfigs,
+      ...VECTOR_OVERLAY_CONFIGS.filter((config) => visibleByOverlayId.has(config.overlayId)),
+    ];
   }
 
   private async showVectorOverlayPopupIfHit(
@@ -816,9 +834,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       return false;
     }
     const view = this.view;
-    if (this.adminBoundaries.popupEnabled$()) {
-      return false;
-    }
     if (!this.manifestRasterLayerService.isLayerVisible(config.overlayId)) {
       return false;
     }
