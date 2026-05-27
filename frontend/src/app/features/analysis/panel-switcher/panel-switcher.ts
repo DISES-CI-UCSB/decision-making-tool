@@ -90,7 +90,6 @@ interface ComparisonMetricSection {
   id: ComparisonSectionId;
   titleKey: string;
   toneClass: 'general' | 'bio' | 'eco' | 'socio' | 'protect';
-  insight: string;
   metrics: ComparisonMetricDisplayEntry[];
 }
 
@@ -403,27 +402,23 @@ export class PanelSwitcherComponent {
   ];
   private readonly comparisonSectionMeta: Record<
     ComparisonSectionId,
-    Pick<ComparisonMetricSection, 'titleKey' | 'toneClass' | 'insight'>
+    Pick<ComparisonMetricSection, 'titleKey' | 'toneClass'>
   > = {
     general: {
       titleKey: 'analysis.comparison.sections.general',
       toneClass: 'general',
-      insight: '',
     },
     biodiversity: {
       titleKey: 'analysis.comparison.sections.biodiversity',
       toneClass: 'bio',
-      insight: '',
     },
     ecosystems: {
       titleKey: 'analysis.comparison.sections.ecosystems',
       toneClass: 'eco',
-      insight: '',
     },
     protection: {
       titleKey: 'analysis.comparison.sections.protection',
       toneClass: 'protect',
-      insight: '',
     },
   };
   private readonly comparisonSectionOrder: ComparisonSectionId[] = [
@@ -1319,7 +1314,6 @@ export class PanelSwitcherComponent {
         id: sectionId,
         titleKey: sectionMeta.titleKey,
         toneClass: sectionMeta.toneClass,
-        insight: sectionMeta.insight,
         metrics,
       };
     });
