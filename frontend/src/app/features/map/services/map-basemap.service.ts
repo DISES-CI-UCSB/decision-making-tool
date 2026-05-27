@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type SupportedBasemap = 'topo-vector' | 'satellite';
+export type SupportedBasemap = 'topo-vector' | 'streets-vector' | 'satellite' | 'hybrid';
 
 @Injectable({
   providedIn: 'root',

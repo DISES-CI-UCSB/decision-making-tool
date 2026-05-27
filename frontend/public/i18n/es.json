@@ -57,6 +57,14 @@
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
     "zoomToCountry": "Ver todo el pais",
+    "basemapControls": "Controles de mapa base",
+    "basemapLabel": "Mapa base",
+    "basemaps": {
+      "topographic": "Topografico",
+      "streets": "Calles",
+      "satellite": "Satelite",
+      "hybrid": "Hibrido"
+    },
     "exportControls": "Controles de exportacion del mapa",
     "exportPng": "Exportar PNG",
     "exporting": "Exportando...",
