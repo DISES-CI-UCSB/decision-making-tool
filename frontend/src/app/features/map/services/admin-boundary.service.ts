@@ -124,15 +124,14 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-country-outline-colombia',
     layerKey: 'admin_country_outline',
-    title: 'Colombia Country Outline (IGAC)',
+    title: 'Colombia Country Outline',
     // Keep country outline non-interactive so clicks only target AOI layers.
     selectable: false,
     type: 'department',
-    sourceType: 'feature',
-    url: 'https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/0',
-    idFields: ['LLIdentif', 'OBJECTID'],
-    nameFields: ['LLNombre'],
-    definitionExpression: 'LLJerarqui = 5',
+    sourceType: 'geojson',
+    url: '/data/boundaries/colombia-country-outline.geojson',
+    idFields: ['shapeISO', 'shapeID', 'OBJECTID'],
+    nameFields: ['shapeName'],
     visible: true,
     opacity: 1,
   },
@@ -388,7 +387,6 @@ export class AdminBoundaryService {
       opacity: config.opacity ?? 1,
       minScale: config.minScale ?? 0,
       maxScale: config.maxScale ?? 0,
-      renderer: this.getBoundaryRenderer(config.layerKey) as never,
     };
 
     if (config.sourceType === 'geojson') {
@@ -396,6 +394,7 @@ export class AdminBoundaryService {
         ...commonLayerProps,
         url: config.url,
         outFields: ['*'],
+        renderer: this.getBoundaryRenderer(config.layerKey) as never,
       });
     }
 
@@ -404,6 +403,7 @@ export class AdminBoundaryService {
       url: config.url,
       outFields: ['*'],
       definitionExpression: config.definitionExpression,
+      renderer: this.getBoundaryRenderer(config.layerKey) as never,
     });
   }
 
@@ -655,18 +655,6 @@ export class AdminBoundaryService {
       style: 'solid',
     };
     const boundaryStyle = config ? this.boundaryStyleByLayerKey()[config.layerKey] : fallbackStyle;
-    if (config?.layerKey === 'admin_country_outline') {
-      return {
-        type: 'simple',
-        symbol: {
-          type: 'simple-line',
-          color: [...boundaryStyle.color],
-          width: boundaryStyle.width,
-          style: boundaryStyle.style,
-        },
-      };
-    }
-
     return {
       type: 'simple',
       symbol: {
