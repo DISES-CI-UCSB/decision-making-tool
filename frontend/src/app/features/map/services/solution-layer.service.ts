@@ -22,7 +22,7 @@ const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
 
 /** Canonical default colors. Any module that needs a default must import from here. */
 export const DEFAULT_SINGLE_SOLUTION_HEX = '#16a34a';
-export const DEFAULT_COMPARISON_BASELINE_HEX = '#1e6fa8';
+export const DEFAULT_COMPARISON_BASELINE_HEX = DEFAULT_SINGLE_SOLUTION_HEX;
 export const DEFAULT_COMPARISON_CANDIDATE_HEX = '#7c3aed';
 export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
 
@@ -302,7 +302,7 @@ export class SolutionLayerService {
       return;
     }
 
-    this.setOverlapVisibility(false);
+    this.hideOverlapLayerForComparisonMode();
     this.setBaselineVisibility(this.baselineComparisonVisible);
     this.setCandidateVisibility(this.candidateComparisonVisible);
   }
@@ -538,6 +538,12 @@ export class SolutionLayerService {
     if (this.overlapComparisonLayer) {
       this.overlapComparisonLayer.visible =
         visible && this.comparisonVisualizationMode === 'threeColorOverlay';
+    }
+  }
+
+  private hideOverlapLayerForComparisonMode(): void {
+    if (this.overlapComparisonLayer) {
+      this.overlapComparisonLayer.visible = false;
     }
   }
 
