@@ -401,7 +401,10 @@
                                 cpPresetLabel=""
                                 (colorPickerOpen)="onColorPickerOpen(selectedLayerColorPicker)"
                                 (colorPickerChange)="updateSelectedLayerColor(selected.id, $event)"
-                                [attr.aria-label]="'Choose color for ' + selected.name"
+                                [attr.aria-label]="
+                                  'mapLayersPanel.chooseColorFor'
+                                    | translate: { name: selected.name }
+                                "
                               ></button>
                             </span>
                           </div>
@@ -823,7 +826,9 @@
                               cpPresetLabel=""
                               (colorPickerOpen)="onColorPickerOpen(overlayColorPicker)"
                               (colorPickerChange)="updateOverlayColor(overlay.id, $event)"
-                              [attr.aria-label]="'Choose color for ' + overlay.name"
+                              [attr.aria-label]="
+                                'mapLayersPanel.chooseColorFor' | translate: { name: overlay.name }
+                              "
                             ></button>
                           </span>
                         </div>
@@ -1368,7 +1373,10 @@
                                       (colorPickerChange)="
                                         updateLayerColor(group.id, row.id, $event)
                                       "
-                                      [attr.aria-label]="'Choose color for ' + row.name"
+                                      [attr.aria-label]="
+                                        'mapLayersPanel.chooseColorFor'
+                                          | translate: { name: row.name }
+                                      "
                                     ></button>
                                   </span>
                                 </div>

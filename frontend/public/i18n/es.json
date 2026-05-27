@@ -40,6 +40,8 @@
     "title": "Leyenda",
     "activeScenarioLabel": "Escenario activo",
     "comparison": "Comparación",
+    "scenarioAFallback": "Escenario A",
+    "scenarioBFallback": "Escenario B",
     "selected": "Seleccionado ({{pct}}%)",
     "notSelected": "No seleccionado",
     "aOnly": "Solo A: {{name}}",
@@ -237,6 +239,25 @@
         "ofMunicipality": "de este municipio",
         "nationalContributionLabel": "Contribución 30×30",
         "existingAdds": "Existente {{existing}} + agrega {{added}}"
+      },
+      "biodiversityTaxa": {
+        "mammals": "Mamíferos",
+        "birds": "Aves",
+        "amphibians": "Anfibios",
+        "reptiles": "Reptiles",
+        "plants": "Plantas"
+      },
+      "ecosystemLegend": {
+        "cloudForest": "Bosque nublado",
+        "paramo": "Páramo",
+        "dryForest": "Bosque seco",
+        "wetlands": "Humedales",
+        "other": "Otros"
+      },
+      "landUseLabels": {
+        "forest": "Bosque natural",
+        "agriculture": "Agricultura",
+        "other": "Otros"
       },
       "stats": {
         "totalProtectedArea": "Área protegida total",
@@ -547,6 +568,37 @@
     "resetDefaults": "Restablecer predeterminados",
     "sirapTooltip": "Los SIRAP territoriales son amplios sistemas regionales de conservación. Los SIRAP temáticos son adiciones especiales, como Eje Cafetero y Macizo, que pueden superponerse con los SIRAP territoriales. La capa combinada muestra ambos juntos para revisión.",
     "speciesSearchPlaceholder": "Buscar {{taxon}}...",
+    "chooseColorFor": "Elegir color para {{name}}",
+    "speciesNoun": "especies",
+    "overlayNames": {
+      "conservationSolution": "Solución de conservación",
+      "protectedAreasRunap": "Áreas protegidas (RUNAP)",
+      "omecs": "OMECs",
+      "agreementOverlap": "Acuerdo / superposición"
+    },
+    "groupTitles": {
+      "managementFigures": "Figuras de manejo",
+      "administrativeBoundaries": "Límites administrativos",
+      "speciesBiodiversity": "Especies y biodiversidad",
+      "ecosystems": "Ecosistemas",
+      "culturalEthnicTerritories": "Territorios culturales y étnicos",
+      "costs": "Costos"
+    },
+    "boundaryNames": {
+      "combinedSirapReviewLayer": "Capa combinada de revisión SIRAP",
+      "territorialSiraps": "SIRAPs territoriales",
+      "thematicSirapAdditions": "Adiciones temáticas de SIRAP",
+      "colombiaOutline": "Contorno de Colombia",
+      "departments": "Departamentos",
+      "municipalities": "Municipios"
+    },
+    "taxaNames": {
+      "mammals": "Mamíferos",
+      "birds": "Aves",
+      "amphibians": "Anfibios",
+      "reptiles": "Reptiles",
+      "plants": "Plantas"
+    },
     "sourceLabels": {
       "selectedScenario": "Escenario seleccionado",
       "comparisonScenario": "Escenario de comparación",

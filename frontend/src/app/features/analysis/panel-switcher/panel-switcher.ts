@@ -10,6 +10,7 @@ import {
   type MetricValue,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
+import { AppLocaleService } from '@core/services/app-locale.service';
 import { metricsForScope, nationalMetrics } from '@core/services/cached-metrics.utils';
 import {
   AppStateService,
@@ -170,21 +171,26 @@ export class PanelSwitcherComponent {
   };
   private readonly aoiBiodiversityBaseCounts: readonly {
     id: string;
-    label: string;
+    labelKey: string;
     count: number;
   }[] = [
-    { id: 'mammals', label: 'Mammals', count: 42 },
-    { id: 'birds', label: 'Birds', count: 131 },
-    { id: 'amphibians', label: 'Amphibians', count: 44 },
-    { id: 'reptiles', label: 'Reptiles', count: 38 },
-    { id: 'plants', label: 'Plants', count: 27 },
+    { id: 'mammals', labelKey: 'analysis.aoi.biodiversityTaxa.mammals', count: 42 },
+    { id: 'birds', labelKey: 'analysis.aoi.biodiversityTaxa.birds', count: 131 },
+    { id: 'amphibians', labelKey: 'analysis.aoi.biodiversityTaxa.amphibians', count: 44 },
+    { id: 'reptiles', labelKey: 'analysis.aoi.biodiversityTaxa.reptiles', count: 38 },
+    { id: 'plants', labelKey: 'analysis.aoi.biodiversityTaxa.plants', count: 27 },
   ];
-  private readonly aoiLandUseBaseBars: readonly { id: string; label: string; percent: number }[] = [
-    { id: 'forest', label: 'Natural Forest', percent: 60 },
-    { id: 'agriculture', label: 'Agriculture', percent: 25 },
-    { id: 'other-land', label: 'Other', percent: 15 },
+  private readonly aoiLandUseBaseBars: readonly {
+    id: string;
+    labelKey: string;
+    percent: number;
+  }[] = [
+    { id: 'forest', labelKey: 'analysis.aoi.landUseLabels.forest', percent: 60 },
+    { id: 'agriculture', labelKey: 'analysis.aoi.landUseLabels.agriculture', percent: 25 },
+    { id: 'other-land', labelKey: 'analysis.aoi.landUseLabels.other', percent: 15 },
   ];
   private readonly appState = inject(AppStateService);
+  private readonly appLocale = inject(AppLocaleService);
   private readonly api = inject(ApiService);
   private readonly mockData = inject(MockDataService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
@@ -617,6 +623,7 @@ export class PanelSwitcherComponent {
   protected readonly aoiEcosystemLegend = computed(() =>
     AOI_ECOSYSTEM_SEGMENTS.map((segment, index) => ({
       ...segment,
+      label: this.getAoiEcosystemLabel(segment.id, segment.label),
       color: this.chartPalette().colors[index],
     })),
   );
@@ -651,7 +658,7 @@ export class PanelSwitcherComponent {
       return this.aoiBiodiversityBaseCounts.map((item) => {
         const metric = metricsById.get(this.aoiBiodiversityMetricIds[item.id]);
         const value = metric?.status === 'ready' && metric.value !== null ? metric.value : null;
-        return { id: item.id, label: item.label, count: value };
+        return { id: item.id, label: this.localizedText(item.labelKey), count: value };
       });
     }
 
@@ -660,14 +667,14 @@ export class PanelSwitcherComponent {
       const scale = selectedAoi ? this.getAoiBiodiversityScale(selectedAoi.id) : 1;
       return this.aoiBiodiversityBaseCounts.map((item) => ({
         id: item.id,
-        label: item.label,
+        label: this.localizedText(item.labelKey),
         count: Math.max(0, Math.round(item.count * scale)),
       }));
     }
 
     return this.aoiBiodiversityBaseCounts.map((item) => ({
       id: item.id,
-      label: item.label,
+      label: this.localizedText(item.labelKey),
       count: null,
     }));
   });
@@ -688,7 +695,9 @@ export class PanelSwitcherComponent {
     return this.aoiLandUseBaseBars.map((bar, index) => {
       const slot = index === 0 ? greenSlot : (alternateSlots[index - 1] ?? 0);
       return {
-        ...bar,
+        id: bar.id,
+        label: this.localizedText(bar.labelKey),
+        percent: bar.percent,
         color: palette[slot] ?? fallbackColor,
       };
     });
@@ -1075,6 +1084,23 @@ export class PanelSwitcherComponent {
 
   private getGreenPaletteSlot(): number {
     return this.aoiSpeciesColorSlotByPalette[this.chartPaletteId()]?.['plants'] ?? 0;
+  }
+
+  private getAoiEcosystemLabel(segmentId: string, fallback: string): string {
+    const keyById: Record<string, string> = {
+      'cloud-forest': 'analysis.aoi.ecosystemLegend.cloudForest',
+      paramo: 'analysis.aoi.ecosystemLegend.paramo',
+      'dry-forest': 'analysis.aoi.ecosystemLegend.dryForest',
+      wetlands: 'analysis.aoi.ecosystemLegend.wetlands',
+      other: 'analysis.aoi.ecosystemLegend.other',
+    };
+    const key = keyById[segmentId];
+    return key ? this.localizedText(key, fallback) : fallback;
+  }
+
+  private localizedText(key: string, fallback = key): string {
+    this.appLocale.locale();
+    return this.translate.instant(key) || fallback;
   }
 
   private getPaletteColorBySlot(slot: number): string {

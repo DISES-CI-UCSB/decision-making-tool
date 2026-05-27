@@ -9,9 +9,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-master-legend',
@@ -27,8 +28,10 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   private readonly compactViewportMaxWidthPx = 1280;
   private readonly onWindowResize = (): void => this.syncViewportMode();
   private resizeObserver: ResizeObserver | null = null;
+  private readonly appLocaleService = inject(AppLocaleService);
   private readonly appState = inject(AppStateService);
   private readonly solutionLayer = inject(SolutionLayerService);
+  private readonly translate = inject(TranslateService);
 
   readonly collapsed = signal(false);
   readonly hasMeasuredContentHeight = signal(false);
@@ -42,9 +45,15 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
       this.appState.activeSolution$() !== null &&
       this.appState.comparisonSolution$() !== null,
   );
-  readonly baselineName = computed(() => this.appState.activeSolution$()?.name ?? 'Scenario A');
+  readonly baselineName = computed(
+    () =>
+      this.appState.activeSolution$()?.name ??
+      this.localizedText('mapLegend.scenarioAFallback', 'Scenario A'),
+  );
   readonly candidateName = computed(
-    () => this.appState.comparisonSolution$()?.name ?? 'Scenario B',
+    () =>
+      this.appState.comparisonSolution$()?.name ??
+      this.localizedText('mapLegend.scenarioBFallback', 'Scenario B'),
   );
   readonly solutionColor = this.solutionLayer.solutionColor$;
   readonly baselineColor = this.solutionLayer.baselineColor$;
@@ -143,5 +152,10 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
     }
     this.expandedContentHeight.set(nextHeight);
     this.hasMeasuredContentHeight.set(true);
+  }
+
+  private localizedText(key: string, fallback: string): string {
+    this.appLocaleService.locale();
+    return this.translate.instant(key) || fallback;
   }
 }
