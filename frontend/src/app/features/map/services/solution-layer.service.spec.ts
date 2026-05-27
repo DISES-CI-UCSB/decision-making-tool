@@ -5,7 +5,10 @@ import { MockDataService } from '@core/services/mock-data.service';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
 import { SolutionLayerService } from './solution-layer.service';
 
-function createLoadedSolution(id: string): LoadedSolution {
+function createLoadedSolution(
+  id: string,
+  overrides: Partial<LoadedSolution['scenario']> = {},
+): LoadedSolution {
   return {
     scenario: {
       id,
@@ -37,6 +40,7 @@ function createLoadedSolution(id: string): LoadedSolution {
       nSelected: 100,
       totalCost: 2500,
       pctTargetsMet: 70,
+      ...overrides,
     },
     rasterMeta: {
       width: 2,
@@ -119,6 +123,24 @@ describe('SolutionLayerService', () => {
       }),
     );
     expect(service.isComparisonModeActive()).toBe(false);
+  });
+
+  it('uses an imagery tile layer when the scenario has a COG display URL', async () => {
+    const loaded = createLoadedSolution('baseline', {
+      displayCogUrl: 'https://example.com/baseline.cog.tif',
+    });
+    loaderMock.loadSolution.mockResolvedValue(loaded);
+
+    await service.showSolution('baseline');
+
+    const addedLayer = mapMock.add.mock.calls[0]?.[0] as {
+      url?: string;
+      interpolation?: string;
+      renderer?: unknown;
+    };
+    expect(addedLayer.url).toBe('https://example.com/baseline.cog.tif');
+    expect(addedLayer.interpolation).toBe('nearest');
+    expect(addedLayer.renderer).toBeTruthy();
   });
 
   it('loads two scenarios for comparison and exposes both layers', async () => {

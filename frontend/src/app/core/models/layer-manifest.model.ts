@@ -139,6 +139,7 @@ export interface RuntimeSolutionManifestEntry {
   scope: string;
   sirapId: string | null;
   displayUrl: string;
+  displayCogUrl?: string | null;
   metadataUrl: string;
   rasterFile: string;
   metadataFile: string;

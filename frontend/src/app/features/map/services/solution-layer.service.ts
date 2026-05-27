@@ -1,9 +1,12 @@
 import { inject, Injectable, signal } from '@angular/core';
 import Extent from '@arcgis/core/geometry/Extent';
+import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
 import MediaLayer from '@arcgis/core/layers/MediaLayer';
 import ImageElement from '@arcgis/core/layers/support/ImageElement';
 import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
 import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaElementSource';
+import ClassBreaksRenderer from '@arcgis/core/renderers/ClassBreaksRenderer';
+import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 
 import type ArcGISMap from '@arcgis/core/Map';
 import type { Solution } from '@core/models';
@@ -29,6 +32,7 @@ export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
 const SOLUTION_ALPHA = 180;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
+type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
 
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
@@ -36,9 +40,9 @@ export class SolutionLayerService {
   private readonly appState = inject(AppStateService);
   private readonly mockData = inject(MockDataService);
   private map: InstanceType<typeof ArcGISMap> | null = null;
-  private currentLayer: InstanceType<typeof MediaLayer> | null = null;
-  private baselineComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
-  private candidateComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
+  private currentLayer: SolutionDisplayLayer | null = null;
+  private baselineComparisonLayer: SolutionDisplayLayer | null = null;
+  private candidateComparisonLayer: SolutionDisplayLayer | null = null;
   private overlapComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
   private baselineComparisonLoaded: LoadedSolution | null = null;
   private candidateComparisonLoaded: LoadedSolution | null = null;
@@ -53,7 +57,6 @@ export class SolutionLayerService {
   private candidateComparisonVisible = true;
   private overlapComparisonVisible = true;
   private comparisonVisualizationMode: ComparisonVisualizationMode = 'threeColorOverlay';
-  private solutionImageElement: InstanceType<typeof ImageElement> | null = null;
 
   /**
    * Canonical source of truth for all four solution-layer colors.
@@ -97,13 +100,12 @@ export class SolutionLayerService {
         this.solutionColor$.set(DEFAULT_SINGLE_SOLUTION_HEX);
       }
       this.lastSingleSolutionId = loaded.scenario.id;
-      this.solutionImageElement = this.createImageElement(loaded, this.solutionColor$());
-      this.currentLayer = new MediaLayer({
-        id: SOLUTION_LAYER_ID,
-        source: new LocalMediaElementSource({ elements: [this.solutionImageElement] }),
-        opacity: 0.7,
-        title: loaded.scenario.name,
-      });
+      this.currentLayer = this.createLayerFromLoaded(
+        loaded,
+        SOLUTION_LAYER_ID,
+        loaded.scenario.name,
+        this.solutionColor$(),
+      );
       this.comparisonMode = false;
       this.baselineComparisonLoaded = null;
       this.candidateComparisonLoaded = null;
@@ -225,8 +227,8 @@ export class SolutionLayerService {
   }
 
   getComparisonLayers(): {
-    baselineLayer: InstanceType<typeof MediaLayer>;
-    candidateLayer: InstanceType<typeof MediaLayer>;
+    baselineLayer: SolutionDisplayLayer;
+    candidateLayer: SolutionDisplayLayer;
   } | null {
     if (!this.baselineComparisonLayer || !this.candidateComparisonLayer) {
       return null;
@@ -301,7 +303,7 @@ export class SolutionLayerService {
 
     const resolvedLayers = orderTopToBottom
       .map((layerType) => this.resolveLayerForSidebarType(layerType))
-      .filter((layer): layer is InstanceType<typeof MediaLayer> => !!layer);
+      .filter((layer): layer is SolutionDisplayLayer => !!layer);
 
     // ArcGIS draws higher indices on top; move bottom->top so final stack matches sidebar.
     for (const layer of [...resolvedLayers].reverse()) {
@@ -360,15 +362,7 @@ export class SolutionLayerService {
       return;
     }
 
-    const nextImageElement = this.createImageElement(loaded, normalized);
-    this.solutionImageElement = nextImageElement;
-    const source = this.currentLayer.source;
-    if (source instanceof LocalMediaElementSource) {
-      source.elements.removeAll();
-      source.elements.add(nextImageElement);
-      return;
-    }
-    this.currentLayer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
+    this.applyLayerColor(this.currentLayer, loaded, normalized);
   }
 
   setBaselineColor(color: string): void {
@@ -383,14 +377,10 @@ export class SolutionLayerService {
 
     const loaded = this.loadedSolution$();
     if (loaded && this.currentLayer) {
-      this.replaceLayerSourceColor(this.currentLayer, loaded, normalized);
+      this.applyLayerColor(this.currentLayer, loaded, normalized);
     }
     if (this.baselineComparisonLayer && this.baselineComparisonLoaded) {
-      this.replaceLayerSourceColor(
-        this.baselineComparisonLayer,
-        this.baselineComparisonLoaded,
-        normalized,
-      );
+      this.applyLayerColor(this.baselineComparisonLayer, this.baselineComparisonLoaded, normalized);
     }
   }
 
@@ -401,7 +391,7 @@ export class SolutionLayerService {
     }
     this.candidateColor$.set(normalized);
     if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
-      this.replaceLayerSourceColor(
+      this.applyLayerColor(
         this.candidateComparisonLayer,
         this.candidateComparisonLoaded,
         normalized,
@@ -440,7 +430,11 @@ export class SolutionLayerService {
     layerId: string,
     title: string,
     colorHex = DEFAULT_SINGLE_SOLUTION_HEX,
-  ): InstanceType<typeof MediaLayer> {
+  ): SolutionDisplayLayer {
+    if (loaded.scenario.displayCogUrl) {
+      return this.createImageryTileLayer(loaded, layerId, title, colorHex);
+    }
+
     return new MediaLayer({
       id: layerId,
       source: new LocalMediaElementSource({
@@ -462,7 +456,6 @@ export class SolutionLayerService {
       this.currentLayer.destroy();
       this.currentLayer = null;
     }
-    this.solutionImageElement = null;
   }
 
   private removeComparisonLayers(): void {
@@ -529,6 +522,7 @@ export class SolutionLayerService {
         scenarioId: loaded.scenario.id,
         scope: loaded.scenario.scope,
         rasterFile: loaded.scenario.filename,
+        displayCogUrl: loaded.scenario.displayCogUrl ?? null,
         metadataUrl: loaded.scenario.metadataUrl,
       },
       metrics: metricsFixture?.metrics ?? [],
@@ -550,6 +544,56 @@ export class SolutionLayerService {
         }),
       }),
     });
+  }
+
+  private createImageryTileLayer(
+    loaded: LoadedSolution,
+    layerId: string,
+    title: string,
+    colorHex: string,
+  ): InstanceType<typeof ImageryTileLayer> {
+    return new ImageryTileLayer({
+      id: layerId,
+      url: loaded.scenario.displayCogUrl ?? loaded.scenario.displayUrl,
+      interpolation: 'nearest',
+      renderer: this.createSolutionRenderer(colorHex),
+      opacity: 0.7,
+      title,
+    });
+  }
+
+  private createSolutionRenderer(colorHex: string): InstanceType<typeof ClassBreaksRenderer> {
+    const [r, g, b] = this.hexToRgb(colorHex) ?? [22, 163, 74];
+    return new ClassBreaksRenderer({
+      field: 'Value',
+      defaultSymbol: new SimpleFillSymbol({
+        color: [0, 0, 0, 0],
+        outline: null,
+      }),
+      classBreakInfos: [
+        {
+          minValue: 0.5,
+          maxValue: 1.5,
+          label: 'Selected solution cells',
+          symbol: new SimpleFillSymbol({
+            color: [r, g, b, 1],
+            outline: null,
+          }),
+        },
+      ],
+    });
+  }
+
+  private applyLayerColor(
+    layer: SolutionDisplayLayer,
+    loaded: LoadedSolution,
+    colorHex: string,
+  ): void {
+    if (this.isImageryTileLayer(layer)) {
+      layer.renderer = this.createSolutionRenderer(colorHex);
+      return;
+    }
+    this.replaceLayerSourceColor(layer, loaded, colorHex);
   }
 
   private replaceLayerSourceColor(
@@ -742,7 +786,7 @@ export class SolutionLayerService {
 
   private resolveLayerForSidebarType(
     layerType: SidebarSolutionLayerType,
-  ): InstanceType<typeof MediaLayer> | null {
+  ): SolutionDisplayLayer | null {
     if (layerType === 'solution-baseline') {
       return this.comparisonMode ? this.baselineComparisonLayer : this.currentLayer;
     }
@@ -750,5 +794,11 @@ export class SolutionLayerService {
       return this.candidateComparisonLayer;
     }
     return this.overlapComparisonLayer;
+  }
+
+  private isImageryTileLayer(
+    layer: SolutionDisplayLayer,
+  ): layer is InstanceType<typeof ImageryTileLayer> {
+    return layer instanceof ImageryTileLayer;
   }
 }

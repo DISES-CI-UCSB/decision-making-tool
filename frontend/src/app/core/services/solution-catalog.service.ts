@@ -68,6 +68,7 @@ export class SolutionCatalogService {
       scope: solution.scope,
       sirapId: solution.sirapId,
       displayUrl: solution.displayUrl,
+      displayCogUrl: solution.displayCogUrl ?? null,
       metadataUrl: solution.metadataUrl,
       finderInputs: solution.finderInputs,
       inputLayerIds: solution.inputLayerIds,
