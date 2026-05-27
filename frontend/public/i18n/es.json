@@ -60,7 +60,8 @@
     "exportPng": "Exportar PNG",
     "exporting": "Exportando...",
     "loadingSolution": "Cargando solución...",
-    "loadingOmecs": "Cargando OMECs..."
+    "loadingOmecs": "Cargando OMECs...",
+    "loadingRunap": "Cargando RUNAP..."
   },
   "analysis": {
     "tabNavAriaLabel": "Pestañas del panel lateral derecho",
@@ -213,7 +214,8 @@
         "municipality": "Municipio",
         "department": "Departamento",
         "sirap": "SIRAP",
-        "omec": "OMEC"
+        "omec": "OMEC",
+        "runap": "RUNAP"
       },
       "emptyTitle": "No hay un area de interes seleccionada",
       "emptyDescription": "Selecciona un AOI para completar este panel con metricas locales y contexto.",

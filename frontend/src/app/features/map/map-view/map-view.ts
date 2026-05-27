@@ -28,7 +28,9 @@ import { AdminBoundaryService } from '@features/map/services/admin-boundary.serv
 import { LayerRendererService } from '@features/map/services/layer-renderer.service';
 import {
   ManifestRasterLayerService,
-  type OmecOverlayState,
+  OMEC_OVERLAY_LAYER_ID,
+  RUNAP_OVERLAY_LAYER_ID,
+  type VectorOverlayState,
 } from '@features/map/services/manifest-raster-layer.service';
 import { MapBasemapService } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
@@ -37,9 +39,84 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
-const OVERLAY_OMECS_ID = 'overlay-omecs';
-const OMEC_IDENTIFY_GEOJSON_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/omecs_identify.geojson';
+
+/**
+ * Configuration for one vector-rendered overlay (OMEC, RUNAP, …).
+ *
+ * For each sidebar overlay row that displays as smooth GeoJSON instead of a
+ * 1 km raster, MapView creates a corresponding `GeoJSONLayer`, applies the
+ * sidebar color/opacity/visibility from `ManifestRasterLayerService`, and
+ * routes click events through `handleVectorOverlayMapClick` so the AOI
+ * panel can populate with per-polygon metrics.
+ *
+ * The OMEC pattern (commit fde6d0a) is the template; RUNAP joins via a
+ * second entry so the dispatch logic is identical for both.
+ */
+interface VectorOverlayConfig {
+  readonly overlayId: string;
+  readonly arcgisLayerId: string;
+  readonly geojsonUrl: string;
+  readonly outFields: readonly string[];
+  readonly aoiType: 'omec' | 'runap';
+  readonly idField: string;
+  readonly nameField: string;
+  /** Field surfaced as the AOI kicker (e.g. RUNAP management category). */
+  readonly subtypeField?: string;
+  /** Field name → human label, for popup body lines (renders if value present). */
+  readonly popupFields: readonly { field: string; label?: string }[];
+  /** Fallback name when a polygon has no `nameField` value. */
+  readonly fallbackName: string;
+  /** i18n key for the loading-indicator banner while this layer is fetching. */
+  readonly loadingI18nKey: string;
+}
+
+const VECTOR_OVERLAY_CONFIGS: readonly VectorOverlayConfig[] = [
+  {
+    overlayId: OMEC_OVERLAY_LAYER_ID,
+    arcgisLayerId: 'map-view-omec-vector-layer',
+    geojsonUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/omecs_identify.geojson',
+    outFields: ['SITE_ID', 'NAME', 'DESIG', 'STATUS'],
+    aoiType: 'omec',
+    idField: 'SITE_ID',
+    nameField: 'NAME',
+    popupFields: [
+      { field: 'DESIG' },
+      { field: 'STATUS', label: 'Status' },
+      { field: 'SITE_ID', label: 'ID' },
+    ],
+    fallbackName: 'OMEC',
+    loadingI18nKey: 'mapView.loadingOmecs',
+  },
+  {
+    overlayId: RUNAP_OVERLAY_LAYER_ID,
+    arcgisLayerId: 'map-view-runap-vector-layer',
+    geojsonUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
+    outFields: [
+      'runap_id',
+      'runap_name',
+      'runap_category',
+      'runap_status',
+      'runap_area_ha',
+      'runap_url',
+      'runap_sirap',
+      'runap_dt',
+    ],
+    aoiType: 'runap',
+    idField: 'runap_id',
+    nameField: 'runap_name',
+    subtypeField: 'runap_category',
+    popupFields: [
+      { field: 'runap_category' },
+      { field: 'runap_status', label: 'Status' },
+      { field: 'runap_area_ha', label: 'Area (ha)' },
+      { field: 'runap_dt', label: 'Territorial' },
+    ],
+    fallbackName: 'RUNAP',
+    loadingI18nKey: 'mapView.loadingRunap',
+  },
+];
 const COLOMBIA_EXTENT = new Extent({
   xmin: -79.1,
   ymin: -4.3,
@@ -79,7 +156,13 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private comparisonSwipeHostEl: HTMLDivElement | null = null;
   private swipeConstructor: SwipeConstructor | null = null;
   private mapClickHandle: { remove: () => void } | null = null;
-  private omecIdentifyLayer: InstanceType<typeof GeoJSONLayer> | null = null;
+  private readonly vectorOverlayLayers = new Map<string, InstanceType<typeof GeoJSONLayer>>();
+  private readonly vectorOverlayLoadStatusHandles = new Map<string, { remove: () => void }>();
+  /** Per-overlay loading flag (overlayId → is fetching GeoJSON). */
+  private readonly vectorOverlayLoadingSignals = new Map<
+    string,
+    ReturnType<typeof signal<boolean>>
+  >();
   private comparisonSyncRequestId = 0;
   private lastComparisonKey = '';
   private isCoordinateToolEnabled = false;
@@ -95,9 +178,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   protected isExportInProgress = false;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
-  /** True while the OMEC vector GeoJSON is fetching from Vercel Blob. */
-  protected readonly isOmecLayerLoading = signal(false);
-  private omecLoadStatusHandle: { remove: () => void } | null = null;
+  /** True while ANY vector overlay GeoJSON (OMEC or RUNAP) is fetching. */
+  protected readonly isOmecLayerLoading = computed(() => this.isAnyVectorOverlayLoading());
+  /** i18n key for the loading banner — whichever overlay is currently fetching. */
+  protected readonly loadingOverlayI18nKey = computed(() => this.activeLoadingOverlayKey());
 
   @Input()
   set coordinateToolEnabled(value: boolean) {
@@ -130,12 +214,17 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       untracked(() => void this.syncComparisonMode());
     });
 
-    // Mirror OMEC sidebar state (visibility, opacity, color) onto the vector
-    // GeoJSON display layer. We display OMECs from the vector source instead of
-    // the 1 km raster so polygon edges look smooth and match the AOI highlight.
+    // Mirror every vector-overlay sidebar state (visibility, opacity, color)
+    // onto its GeoJSON display layer. We display these overlays from vector
+    // sources instead of the 1 km raster so polygon edges look smooth and
+    // match the AOI highlight.
     effect(() => {
-      const state = this.manifestRasterLayerService.omecOverlayState$();
-      untracked(() => this.applyOmecOverlayState(state));
+      const states = this.manifestRasterLayerService.vectorOverlayStates$();
+      untracked(() => {
+        for (const config of VECTOR_OVERLAY_CONFIGS) {
+          this.applyVectorOverlayState(config, states[config.overlayId] ?? null);
+        }
+      });
     });
   }
 
@@ -148,8 +237,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     console.info(`[MapView][${this.debugMarker}] ngOnDestroy`);
     this.mapClickHandle?.remove();
     this.mapClickHandle = null;
-    this.omecLoadStatusHandle?.remove();
-    this.omecLoadStatusHandle = null;
+    for (const handle of this.vectorOverlayLoadStatusHandles.values()) {
+      handle.remove();
+    }
+    this.vectorOverlayLoadStatusHandles.clear();
     this.teardownComparisonSwipeWidget();
     this.removeMapWidgets();
     this.adminBoundaries.destroy(this.map);
@@ -407,7 +498,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.layerRenderer.initialize(this.map);
       this.manifestRasterLayerService.initialize(this.map);
       this.solutionLayer.initialize(this.map);
-      this.setupOmecIdentifyLayer();
+      this.setupVectorOverlayLayers();
       this.layerRenderer.syncLayers(this.appState.visibleLayers$());
 
       this.view = new ArcGISMapView({
@@ -490,30 +581,42 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private setupOmecIdentifyLayer(): void {
-    if (!this.map || this.omecIdentifyLayer) {
+  /**
+   * Build one GeoJSONLayer per registered vector overlay (OMEC, RUNAP, …),
+   * add it to the map, and start watching its load status so we can show
+   * the per-overlay loading banner. We seed each layer's visible/opacity/color
+   * from the latest sidebar state in case the row was synced before the map
+   * finished initializing.
+   */
+  private setupVectorOverlayLayers(): void {
+    if (!this.map) {
       return;
     }
-    // Single GeoJSON layer used for both display and click identification of
-    // OMECs. Sidebar visibility/opacity/color drive its state via the effect
-    // wired in the constructor (see applyOmecOverlayState).
-    this.omecIdentifyLayer = new GeoJSONLayer({
-      id: 'map-view-omec-vector-layer',
-      url: OMEC_IDENTIFY_GEOJSON_URL,
-      visible: false,
-      opacity: 0.75,
-      listMode: 'hide',
-      popupEnabled: false,
-      outFields: ['SITE_ID', 'NAME', 'DESIG', 'STATUS'],
-      renderer: this.buildOmecRenderer('#7c3aed') as never,
-    });
-    this.map.add(this.omecIdentifyLayer);
-    this.watchOmecLoadStatus();
-    // If sidebar state was synced before the layer existed, apply it now.
-    this.applyOmecOverlayState(this.manifestRasterLayerService.omecOverlayState$());
+    for (const config of VECTOR_OVERLAY_CONFIGS) {
+      if (this.vectorOverlayLayers.has(config.overlayId)) {
+        continue;
+      }
+      const layer = new GeoJSONLayer({
+        id: config.arcgisLayerId,
+        url: config.geojsonUrl,
+        visible: false,
+        opacity: 0.75,
+        listMode: 'hide',
+        popupEnabled: false,
+        outFields: [...config.outFields],
+        renderer: this.buildVectorOverlayRenderer('#7c3aed') as never,
+      });
+      this.map.add(layer);
+      this.vectorOverlayLayers.set(config.overlayId, layer);
+      this.watchVectorOverlayLoadStatus(config, layer);
+      this.applyVectorOverlayState(
+        config,
+        this.manifestRasterLayerService.getVectorOverlayState(config.overlayId),
+      );
+    }
   }
 
-  private buildOmecRenderer(hexColor: string): Record<string, unknown> {
+  private buildVectorOverlayRenderer(hexColor: string): Record<string, unknown> {
     const [r, g, b] = this.hexToRgb(hexColor);
     return {
       type: 'simple',
@@ -534,27 +637,60 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
   }
 
-  private applyOmecOverlayState(state: OmecOverlayState | null): void {
-    const layer = this.omecIdentifyLayer;
+  private applyVectorOverlayState(
+    config: VectorOverlayConfig,
+    state: VectorOverlayState | null,
+  ): void {
+    const layer = this.vectorOverlayLayers.get(config.overlayId);
     if (!layer || !state) {
       return;
     }
     layer.visible = state.visible;
     layer.opacity = state.opacity;
-    layer.renderer = this.buildOmecRenderer(state.color) as never;
+    layer.renderer = this.buildVectorOverlayRenderer(state.color) as never;
   }
 
-  private watchOmecLoadStatus(): void {
-    const layer = this.omecIdentifyLayer;
-    if (!layer) {
-      return;
-    }
-    this.omecLoadStatusHandle?.remove();
+  private watchVectorOverlayLoadStatus(
+    config: VectorOverlayConfig,
+    layer: InstanceType<typeof GeoJSONLayer>,
+  ): void {
+    const existing = this.vectorOverlayLoadStatusHandles.get(config.overlayId);
+    existing?.remove();
+    const loadingSignal = this.getOrCreateLoadingSignal(config.overlayId);
     const sync = () => {
-      this.isOmecLayerLoading.set(layer.loadStatus === 'loading');
+      loadingSignal.set(layer.loadStatus === 'loading');
     };
     sync();
-    this.omecLoadStatusHandle = layer.watch('loadStatus', sync);
+    const handle = layer.watch('loadStatus', sync);
+    this.vectorOverlayLoadStatusHandles.set(config.overlayId, handle);
+  }
+
+  private getOrCreateLoadingSignal(overlayId: string): ReturnType<typeof signal<boolean>> {
+    let existing = this.vectorOverlayLoadingSignals.get(overlayId);
+    if (!existing) {
+      existing = signal(false);
+      this.vectorOverlayLoadingSignals.set(overlayId, existing);
+    }
+    return existing;
+  }
+
+  private isAnyVectorOverlayLoading(): boolean {
+    for (const config of VECTOR_OVERLAY_CONFIGS) {
+      if (this.getOrCreateLoadingSignal(config.overlayId)()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private activeLoadingOverlayKey(): string {
+    for (const config of VECTOR_OVERLAY_CONFIGS) {
+      if (this.getOrCreateLoadingSignal(config.overlayId)()) {
+        return config.loadingI18nKey;
+      }
+    }
+    // Default to OMEC label when nothing is loading (banner is hidden anyway).
+    return VECTOR_OVERLAY_CONFIGS[0]?.loadingI18nKey ?? 'mapView.loadingOmecs';
   }
 
   private registerMapClickHandler(): void {
@@ -562,117 +698,130 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       return;
     }
     this.mapClickHandle?.remove();
-    // Use immediate-click so OMEC hits can suppress downstream click handlers
-    // (notably AdminBoundaryService click handling) for the same pointer event.
+    // Use immediate-click so vector-overlay hits can suppress downstream click
+    // handlers (notably AdminBoundaryService) for the same pointer event.
     this.mapClickHandle = this.view.on('immediate-click', (event) => {
-      void this.handleOmecMapClick(event);
+      void this.handleVectorOverlayMapClick(event);
     });
   }
 
-  private async handleOmecMapClick(event: {
+  private async handleVectorOverlayMapClick(event: {
     x: number;
     y: number;
     mapPoint?: Point | null;
     stopPropagation: () => void;
   }): Promise<void> {
-    // Respect sidebar stacking: only claim the click when OMEC is the topmost
-    // interactive layer (above any visible boundary row).
-    if (!this.isOmecTopmostInteractiveLayer()) {
+    // Pick the topmost interactive vector overlay (according to sidebar stack
+    // order); fall through to default click handling if none claims the hit.
+    const topConfig = this.topmostInteractiveVectorOverlay();
+    if (!topConfig) {
       return;
     }
     // Claim the click synchronously. stopPropagation() on immediate-click only
     // suppresses the subsequent click event if called before we yield to the
     // microtask queue; otherwise AdminBoundaryService's click handler races in
-    // and clears/overwrites the OMEC AOI before our async hitTest resolves.
+    // and clears/overwrites our AOI before the async hitTest resolves.
     event.stopPropagation();
-    await this.showOmecPopupIfHit(event.mapPoint ?? null, event.x, event.y);
+    await this.showVectorOverlayPopupIfHit(topConfig, event.mapPoint ?? null, event.x, event.y);
   }
 
-  private isOmecTopmostInteractiveLayer(): boolean {
-    if (!this.manifestRasterLayerService.isLayerVisible(OVERLAY_OMECS_ID)) {
-      return false;
-    }
+  /**
+   * Walk the user's selected sidebar entries and return the topmost vector
+   * overlay (OMEC, RUNAP) that is currently visible AND stacked above every
+   * visible boundary row. Returns null when boundary handling should win.
+   */
+  private topmostInteractiveVectorOverlay(): VectorOverlayConfig | null {
     const entries = this.appState.selectedLegendLayers$();
-    const omecIndex = entries.findIndex((entry) => entry.id === OVERLAY_OMECS_ID);
-    if (omecIndex < 0) {
-      // OMEC not in the user's selected layers — defer to default click handling.
-      return false;
-    }
-    for (let index = 0; index < omecIndex; index += 1) {
-      if (entries[index].id.startsWith('boundary-')) {
-        return false;
+    for (const entry of entries) {
+      if (entry.id.startsWith('boundary-')) {
+        // A boundary row is stacked above any remaining vector overlay → it
+        // wins click priority.
+        return null;
+      }
+      const config = VECTOR_OVERLAY_CONFIGS.find((c) => c.overlayId === entry.id);
+      if (config && this.manifestRasterLayerService.isLayerVisible(config.overlayId)) {
+        return config;
       }
     }
-    return true;
+    return null;
   }
 
-  private async showOmecPopupIfHit(
+  private async showVectorOverlayPopupIfHit(
+    config: VectorOverlayConfig,
     mapPoint: Point | null,
     screenX: number,
     screenY: number,
   ): Promise<boolean> {
-    if (!this.view || !mapPoint || !this.omecIdentifyLayer) {
+    const layer = this.vectorOverlayLayers.get(config.overlayId);
+    if (!this.view || !mapPoint || !layer) {
       return false;
     }
     const view = this.view;
     if (this.adminBoundaries.popupEnabled$()) {
       return false;
     }
-    if (!this.manifestRasterLayerService.isLayerVisible(OVERLAY_OMECS_ID)) {
+    if (!this.manifestRasterLayerService.isLayerVisible(config.overlayId)) {
       return false;
     }
 
     try {
-      if (this.omecIdentifyLayer.loadStatus === 'not-loaded') {
-        await this.omecIdentifyLayer.load();
+      if (layer.loadStatus === 'not-loaded') {
+        await layer.load();
       }
-      const hitTest = await view.hitTest(
-        { x: screenX, y: screenY },
-        { include: [this.omecIdentifyLayer] },
-      );
+      const hitTest = await view.hitTest({ x: screenX, y: screenY }, { include: [layer] });
       const firstGraphicHit = hitTest.results.find((result) => result.type === 'graphic');
       const hit = firstGraphicHit?.type === 'graphic' ? firstGraphicHit.graphic : null;
       if (!hit) {
         return false;
       }
       const attributes = hit.attributes as Record<string, unknown>;
-      const omecName = `${attributes['NAME'] ?? ''}`.trim();
-      const designation = `${attributes['DESIG'] ?? ''}`.trim();
-      const siteId = `${attributes['SITE_ID'] ?? ''}`.trim();
-      const status = `${attributes['STATUS'] ?? ''}`.trim();
-      const detailLines = [
-        designation,
-        status ? `Status: ${status}` : '',
-        siteId ? `ID: ${siteId}` : '',
-      ]
-        .filter((value) => value.length > 0)
+      const rawName = `${attributes[config.nameField] ?? ''}`.trim();
+      const rawId = `${attributes[config.idField] ?? ''}`.trim();
+      const subtype = config.subtypeField ? `${attributes[config.subtypeField] ?? ''}`.trim() : '';
+      const detailLines = config.popupFields
+        .map(({ field, label }) => {
+          const raw = attributes[field];
+          const value = raw === null || raw === undefined ? '' : `${raw}`.trim();
+          if (!value) {
+            return '';
+          }
+          return label ? `${label}: ${value}` : value;
+        })
+        .filter((line) => line.length > 0)
         .join('<br/>');
-      const aoiName = omecName || (siteId ? `OMEC ${siteId}` : 'OMEC');
-      const aoiId = siteId || aoiName;
+      const aoiName = rawName || (rawId ? `${config.fallbackName} ${rawId}` : config.fallbackName);
+      const aoiId = rawId || aoiName;
 
       try {
         await view.openPopup({
           location: mapPoint,
           title: aoiName,
-          content: detailLines || 'OMEC',
+          content: detailLines || config.fallbackName,
         });
       } catch (popupError) {
-        console.warn(`[MapView][${this.debugMarker}] OMEC popup open failed:`, popupError);
+        console.warn(
+          `[MapView][${this.debugMarker}] ${config.aoiType} popup open failed:`,
+          popupError,
+        );
       }
       this.appState.selectAOI({
-        id: `omec:${aoiId}`,
+        id: `${config.aoiType}:${aoiId}`,
         name: aoiName,
-        type: 'omec',
-        geometryUrl: OMEC_IDENTIFY_GEOJSON_URL,
+        type: config.aoiType,
+        subtype: subtype || undefined,
+        geometryUrl: config.geojsonUrl,
       });
       this.appState.setRightSidebarMode('aoi');
-      // Reuse the boundary service's AOI highlight layer so the selected OMEC
+      // Reuse the boundary service's AOI highlight layer so the selected
       // polygon gets the same selection outline as admin boundaries.
       const highlightGeometry = (hit.geometry as Geometry | null) ?? mapPoint;
       this.adminBoundaries.highlightAoiGeometry(highlightGeometry);
       return true;
     } catch (error) {
-      console.warn(`[MapView][${this.debugMarker}] OMEC identify query failed:`, error);
+      console.warn(
+        `[MapView][${this.debugMarker}] ${config.aoiType} identify query failed:`,
+        error,
+      );
       return false;
     }
   }

@@ -1217,6 +1217,10 @@ export class PanelSwitcherComponent {
         return 'municipalities';
       case 'sirap':
         return 'siraps';
+      case 'runap':
+        return 'runaps';
+      case 'omec':
+        return 'omecs';
       default:
         return null;
     }

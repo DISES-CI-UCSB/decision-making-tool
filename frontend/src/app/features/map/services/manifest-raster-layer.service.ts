@@ -8,18 +8,26 @@ import type ArcGISMap from '@arcgis/core/Map';
 import type { RuntimeLayerManifestRenderingConfig } from '@core/models/layer-manifest.model';
 
 /**
- * The OMEC overlay is special-cased: instead of rendering the 1 km
- * `omecs.tif` raster (which produces chunky stair-stepped polygon edges),
- * MapView draws the original vector polygons via a GeoJSONLayer and mirrors
- * the sidebar state below. The raster file is kept for live metrics only.
+ * The OMEC and RUNAP overlays are special-cased: instead of rendering their
+ * 1 km rasters (which produce chunky stair-stepped polygon edges), MapView
+ * draws the original vector polygons via per-layer GeoJSONLayers and mirrors
+ * the sidebar state below. The rasters are kept for live metrics only.
  */
 export const OMEC_OVERLAY_LAYER_ID = 'overlay-omecs';
+export const RUNAP_OVERLAY_LAYER_ID = 'overlay-runap';
+export const VECTOR_OVERLAY_LAYER_IDS: ReadonlySet<string> = new Set([
+  OMEC_OVERLAY_LAYER_ID,
+  RUNAP_OVERLAY_LAYER_ID,
+]);
 
-export interface OmecOverlayState {
+export interface VectorOverlayState {
   visible: boolean;
   opacity: number;
   color: string;
 }
+
+/** Back-compat alias: existing consumers used `OmecOverlayState`. */
+export type OmecOverlayState = VectorOverlayState;
 
 interface LoadedManifestRaster {
   width: number;
@@ -48,10 +56,19 @@ export class ManifestRasterLayerService {
   private readonly latestStateByLayerId = new Map<string, ManifestRasterLayerState>();
 
   /**
-   * Latest OMEC overlay sidebar state, consumed by MapView to drive the
-   * vector display layer. `null` until the row is first synced.
+   * Latest sidebar state for every vector-rendered overlay (OMEC, RUNAP),
+   * keyed by the overlay row id. Consumed by MapView to drive the per-overlay
+   * GeoJSONLayer. Missing keys mean the row has not been synced yet.
    */
+  readonly vectorOverlayStates$ = signal<Record<string, VectorOverlayState>>({});
+
+  /** Back-compat: existing OMEC consumers read a single signal-style getter. */
   readonly omecOverlayState$ = signal<OmecOverlayState | null>(null);
+
+  /** Convenience accessor for one overlay's current sidebar state. */
+  getVectorOverlayState(layerId: string): VectorOverlayState | null {
+    return this.vectorOverlayStates$()[layerId] ?? null;
+  }
 
   initialize(map: InstanceType<typeof ArcGISMap>): void {
     this.map = map;
@@ -62,15 +79,20 @@ export class ManifestRasterLayerService {
     state: ManifestRasterLayerState,
     options: { selected: boolean } = { selected: false },
   ): void {
-    if (layerId === OMEC_OVERLAY_LAYER_ID) {
-      // MapView renders OMECs from the vector GeoJSON instead of this raster
-      // so we only forward sidebar state and ensure no MediaLayer lingers.
+    if (VECTOR_OVERLAY_LAYER_IDS.has(layerId)) {
+      // MapView renders these overlays from vector GeoJSON instead of the
+      // raster, so we only forward sidebar state and ensure no MediaLayer
+      // lingers from a previous render path.
       this.removeRenderedLayer(layerId);
-      this.omecOverlayState$.set({
+      const nextState: VectorOverlayState = {
         visible: options.selected && state.visible,
         opacity: state.opacity,
         color: state.color,
-      });
+      };
+      this.vectorOverlayStates$.update((prev) => ({ ...prev, [layerId]: nextState }));
+      if (layerId === OMEC_OVERLAY_LAYER_ID) {
+        this.omecOverlayState$.set(nextState);
+      }
       return;
     }
 
@@ -148,8 +170,8 @@ export class ManifestRasterLayerService {
   }
 
   isLayerVisible(layerId: string): boolean {
-    if (layerId === OMEC_OVERLAY_LAYER_ID) {
-      return !!this.omecOverlayState$()?.visible;
+    if (VECTOR_OVERLAY_LAYER_IDS.has(layerId)) {
+      return !!this.vectorOverlayStates$()[layerId]?.visible;
     }
     const layer = this.layersById.get(layerId);
     return !!layer?.visible;

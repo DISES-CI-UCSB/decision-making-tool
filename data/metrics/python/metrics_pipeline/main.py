@@ -1160,9 +1160,17 @@ def _process_solution(
                     species_target_pct=species_target,
                 )
                 entry: dict[str, Any] = {"name": feat.name, "metrics": metrics}
-                # Include sirap_kind if present.
+                # Include sirap_kind if present (legacy SIRAP entry shape).
                 if "sirap_kind" in feat.properties:
                     entry["kind"] = feat.properties["sirap_kind"]
+                # Surface the RUNAP management category and OMEC designation
+                # so the AOI panel kicker can read them without re-fetching
+                # the source GeoJSON. We keep them under a generic "subtype"
+                # key alongside the existing "kind" used for SIRAPs.
+                if "runap_category" in feat.properties:
+                    entry["subtype"] = feat.properties["runap_category"]
+                elif "DESIG" in feat.properties:
+                    entry["subtype"] = feat.properties["DESIG"]
                 level_out[feat.boundary_id] = entry
             geographies[geo_level] = level_out
             print(f"[tier1-metrics]   {geo_level}: {len(level_out)} features processed")

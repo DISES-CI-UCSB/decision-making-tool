@@ -4,6 +4,8 @@ Supported geography levels:
 - departments:    Colombia departments from GADM 4.1 (gadm41_COL_1.json)
 - municipalities: Colombia municipalities from GADM 4.1 (gadm41_COL_2.json)
 - siraps:         Colombia SIRAPs from Vercel Blob (siraps_merged.geojson)
+- runaps:         Individual RUNAP protected areas (Vercel runap_identify.geojson)
+- omecs:          Individual OMEC polygons (Vercel omecs_identify.geojson)
 
 IGAC ArcGIS REST (mapas2.igac.gov.co) is unreliable for full-geometry queries
 (HTTP 500 for page sizes > 3), so GADM is used as the primary geometry source
@@ -56,6 +58,14 @@ GADM_MUNI_URL = "https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_COL_2.json
 SIRAP_MERGED_URL = (
     "https://aagibolq28slyfof.public.blob.vercel-storage.com"
     "/inputs/boundaries/sirap/siraps_merged.geojson"
+)
+RUNAP_IDENTIFY_URL = (
+    "https://aagibolq28slyfof.public.blob.vercel-storage.com"
+    "/inputs/includes/runap_identify.geojson"
+)
+OMEC_IDENTIFY_URL = (
+    "https://aagibolq28slyfof.public.blob.vercel-storage.com"
+    "/inputs/includes/omecs_identify.geojson"
 )
 
 
@@ -179,6 +189,39 @@ def load_all_boundaries(
                 id_fields=["sirap_id", "nombre", "sirap"],
                 name_fields=["sirap_name", "nombre", "sirap"],
                 extra_fields=["sirap_kind"],
+            ),
+        ),
+        # Individual RUNAP protected areas (1,879 polygons) — clicking any
+        # polygon in MapView opens the AOI panel and these per-RUNAP metrics
+        # populate it. `runap_category` is surfaced as the AOI kicker.
+        (
+            "runaps",
+            lambda: _load_geojson_url(
+                cache_path=bdir / "runap_identify.geojson",
+                url=RUNAP_IDENTIFY_URL,
+                geo_level="runaps",
+                id_fields=["runap_id"],
+                name_fields=["runap_name"],
+                extra_fields=[
+                    "runap_category",
+                    "runap_status",
+                    "runap_area_ha",
+                    "runap_dt",
+                    "runap_sirap",
+                ],
+            ),
+        ),
+        # Individual OMEC polygons (Other Effective Conservation Measures).
+        # `DESIG` is the designation; we surface it via the AOI subtype.
+        (
+            "omecs",
+            lambda: _load_geojson_url(
+                cache_path=bdir / "omecs_identify.geojson",
+                url=OMEC_IDENTIFY_URL,
+                geo_level="omecs",
+                id_fields=["SITE_ID"],
+                name_fields=["NAME"],
+                extra_fields=["DESIG", "STATUS", "GOV_TYPE"],
             ),
         ),
     ]

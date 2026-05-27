@@ -690,7 +690,7 @@
             <header id="aoi-dashboard-header" class="aoi-panel-header">
               <div id="aoi-dashboard-title-block" class="aoi-title-block">
                 <p id="aoi-dashboard-region-kicker" class="aoi-region-kicker">
-                  {{ 'analysis.aoi.types.' + aoi.type | translate }}
+                  {{ aoi.subtype || ('analysis.aoi.types.' + aoi.type | translate) }}
                 </p>
                 <h3 id="aoi-dashboard-region-name" class="aoi-region-name rs-header-optical-nudge">
                   {{ aoi.name }}

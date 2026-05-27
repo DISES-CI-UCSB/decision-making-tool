@@ -27,17 +27,33 @@ export interface MetricValue {
 /** One administrative scope (national Colombia, a department, municipality, SIRAP, …). */
 export interface GeographyMetricsScope {
   name?: string;
+  /** Legacy SIRAP discriminator (territorial vs thematic). */
   kind?: string;
+  /**
+   * Secondary descriptor surfaced as the AOI panel kicker — e.g. RUNAP
+   * management category ("Parque Nacional Natural") or OMEC designation
+   * ("Area Marina Protegida"). Set by the metrics pipeline from the source
+   * GeoJSON properties.
+   */
+  subtype?: string;
   metrics: MetricValue[];
 }
 
-export type GeographyLevel = 'national' | 'departments' | 'municipalities' | 'siraps';
+export type GeographyLevel =
+  | 'national'
+  | 'departments'
+  | 'municipalities'
+  | 'siraps'
+  | 'runaps'
+  | 'omecs';
 
 export interface CachedSolutionMetricsGeographies {
   national?: Record<string, GeographyMetricsScope>;
   departments?: Record<string, GeographyMetricsScope>;
   municipalities?: Record<string, GeographyMetricsScope>;
   siraps?: Record<string, GeographyMetricsScope>;
+  runaps?: Record<string, GeographyMetricsScope>;
+  omecs?: Record<string, GeographyMetricsScope>;
   [level: string]: Record<string, GeographyMetricsScope> | undefined;
 }
 
