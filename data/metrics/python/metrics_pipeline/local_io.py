@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import urllib.error
 import urllib.request
@@ -52,7 +53,7 @@ def cached_download(url: str, cache_dir: Path, *, force: bool = False) -> Cached
             bytes=target.stat().st_size,
         )
 
-    tmp = target.with_suffix(target.suffix + ".part")
+    tmp = target.with_name(f".{target.name}.{os.getpid()}.part")
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "tier1-metrics/0.1"})
         with urllib.request.urlopen(req, timeout=120) as response, tmp.open("wb") as out:
@@ -136,20 +137,23 @@ def write_solution_cache(
     The Vercel blob target is metrics/cache/{solution_id}.metrics.json (T7).
     """
     target = cache_solution_path(output_dir, solution_id)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open("w", encoding="utf-8") as handle:
-        json.dump(doc, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    _write_json_atomic(target, doc)
     return target
 
 
 def write_publish_report(output_dir: Path, report: dict[str, Any]) -> Path:
     target = output_dir / "publish-report.json"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open("w", encoding="utf-8") as handle:
-        json.dump(report, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    _write_json_atomic(target, report)
     return target
+
+
+def _write_json_atomic(target: Path, doc: dict[str, Any]) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    with tmp.open("w", encoding="utf-8") as handle:
+        json.dump(doc, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    tmp.replace(target)
 
 
 def write_example_output(

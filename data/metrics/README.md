@@ -78,6 +78,50 @@ python data/metrics/python/metrics_pipeline/publish.py
 Requires `BLOB_READ_WRITE_TOKEN` in `.env.local` and the Vercel CLI on PATH.
 Use `publish.py --dry-run` to preview uploads without writing to Blob.
 
+## Large scenario batches
+
+The pipeline resumes by default: if `generated/tier1/cache/<solution_id>.metrics.json`
+already exists and has the expected `solutionId`/`geographies` shape, that solution is
+skipped and still included in the new `publish-report.json`. Pass `--force` to recompute
+existing solution cache files. `--no-cache` only refreshes downloaded raster inputs.
+
+Use zero-based chunk flags to split selected solutions across machines or terminals:
+
+```bash
+python data/metrics/python/metrics_pipeline/main.py \
+    --chunk-count 3 \
+    --chunk-index 0 \
+    --output-dir data/metrics/generated/tier1-worker-0
+
+python data/metrics/python/metrics_pipeline/main.py \
+    --chunk-count 3 \
+    --chunk-index 1 \
+    --output-dir data/metrics/generated/tier1-worker-1
+
+python data/metrics/python/metrics_pipeline/main.py \
+    --chunk-count 3 \
+    --chunk-index 2 \
+    --output-dir data/metrics/generated/tier1-worker-2
+```
+
+Each worker should use a separate `--output-dir`. Workers may share `--cache-dir`; the
+download cache uses per-process temporary files before replacing completed downloads.
+For faster RUNAP/OMEC batches, keep national and other boundary species metrics while
+skipping high-cardinality fan-out:
+
+```bash
+python data/metrics/python/metrics_pipeline/main.py \
+    --skip-species-boundary-level runaps \
+    --skip-species-boundary-level omecs
+```
+
+To publish chunked outputs, either run `publish.py --output-dir <worker-output-dir>` for
+each worker directory, or merge worker artifacts into a fresh output directory before
+running the normal inspect/publish workflow. A merge is just the union of `cache/` files
+plus a `publish-report.json` whose `entries` array combines each worker report; use one
+worker report as the metadata base and verify with `inspect_metrics.py --output-dir` before
+publishing.
+
 ## Relationship to data/scripts/tier1-metrics/
 
 `data/scripts/tier1-metrics/` is the predecessor location. Its files have been

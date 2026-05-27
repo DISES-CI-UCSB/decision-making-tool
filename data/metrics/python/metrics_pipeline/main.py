@@ -14,6 +14,10 @@ Usage:
     # Validate manifest + boundary availability; do not compute
     python data/metrics/python/metrics_pipeline/main.py --validate-only
 
+    # Split a full batch across two workers (zero-based chunk indexes)
+    python data/metrics/python/metrics_pipeline/main.py --chunk-count 2 --chunk-index 0
+    python data/metrics/python/metrics_pipeline/main.py --chunk-count 2 --chunk-index 1
+
 For each solution, this script:
 1. Fetches the Vercel Blob manifest and (optionally) downloads boundary data from
    IGAC ArcGIS REST (departments + municipalities) and Vercel Blob (SIRAPs).
@@ -36,6 +40,7 @@ After generation, inspect then publish (from repo root):
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 import traceback
@@ -59,6 +64,7 @@ from boundaries.boundary_mask import BoundaryMaskCache
 from local_io import (
     DEFAULT_CACHE_DIR,
     DEFAULT_OUTPUT_DIR,
+    cache_solution_path,
     cached_download,
     expected_cache_blob_path,
     expected_cache_public_url,
@@ -289,6 +295,23 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Force re-download of rasters even if cached files are present.",
     )
     parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Recompute solution metrics even when output cache files already exist.",
+    )
+    parser.add_argument(
+        "--chunk-index",
+        type=int,
+        default=0,
+        help="Zero-based chunk index to process when splitting selected solutions across workers.",
+    )
+    parser.add_argument(
+        "--chunk-count",
+        type=int,
+        default=1,
+        help="Total number of chunks when splitting selected solutions across workers.",
+    )
+    parser.add_argument(
         "--national-only",
         action="store_true",
         help="Skip sub-national boundary computation (national level only).",
@@ -304,11 +327,26 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Skip the species pass (#3, #21–#26, #28). Useful for fast smoke tests.",
     )
     parser.add_argument(
+        "--skip-species-boundary-level",
+        action="append",
+        choices=("departments", "municipalities", "siraps", "runaps", "omecs"),
+        default=[],
+        help=(
+            "Skip species fan-out for a boundary level while keeping non-species metrics "
+            "for that level. Repeatable, e.g. runaps + omecs for faster large batches."
+        ),
+    )
+    parser.add_argument(
         "--species-csv-url",
         default=SPECIES_CSV_URL,
         help=f"Override the species CSV URL (default: {SPECIES_CSV_URL}).",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.chunk_count < 1:
+        parser.error("--chunk-count must be at least 1")
+    if args.chunk_index < 0 or args.chunk_index >= args.chunk_count:
+        parser.error("--chunk-index must be between 0 and --chunk-count - 1")
+    return args
 
 
 # ---------------------------------------------------------------------------
@@ -332,6 +370,62 @@ def _select_solutions(
     if limit is not None:
         solutions = solutions[:limit]
     return solutions
+
+
+def _chunk_solutions(
+    solutions: list[dict[str, Any]],
+    *,
+    chunk_index: int,
+    chunk_count: int,
+) -> list[dict[str, Any]]:
+    if chunk_count == 1:
+        return solutions
+    return [
+        solution for index, solution in enumerate(solutions)
+        if index % chunk_count == chunk_index
+    ]
+
+
+def _resume_entry_for_existing_cache(
+    solution: dict[str, Any],
+    manifest: ResolvedManifest,
+    output_dir: Path,
+) -> dict[str, Any] | None:
+    """Return a publish-report entry for an existing valid cache file, if present."""
+    solution_id = str(solution.get("id"))
+    cache_path = cache_solution_path(output_dir, solution_id)
+    if not cache_path.exists():
+        return None
+
+    try:
+        doc = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    geographies = doc.get("geographies")
+    if doc.get("solutionId") != solution_id or not isinstance(geographies, dict):
+        return None
+
+    national_metrics = (
+        geographies.get("national", {})
+        .get("colombia", {})
+        .get("metrics", [])
+    )
+    return {
+        "solutionId": solution_id,
+        "solutionBasename": solution_blob_basename(solution),
+        "cachePath": str(cache_path),
+        "expectedBlobPath": expected_cache_blob_path(solution_id),
+        "expectedPublicUrl": expected_cache_public_url(manifest.public_blob_host, solution_id),
+        "geographyLevels": list(geographies.keys()),
+        "nationalMetricStatusCounts": (
+            _status_counts(national_metrics)
+            if isinstance(national_metrics, list)
+            else {}
+        ),
+        "resumeSkipped": True,
+        "elapsedSeconds": 0.0,
+    }
 
 
 def _validate_required_layers(manifest: ResolvedManifest) -> list[str]:
@@ -1058,6 +1152,7 @@ def _process_solution(
     species_pool_sizes: SpeciesPoolSizes | None = None,
     boundary_grids: dict[str, BoundaryIdGrid] | None = None,
     skip_species: bool = False,
+    skip_species_boundary_levels: set[str] | None = None,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
@@ -1082,12 +1177,23 @@ def _process_solution(
         print(
             f"[tier1-metrics]   running species pass over {len(species_records):,} records…"
         )
+        skipped_levels = skip_species_boundary_levels or set()
+        species_boundary_grids = {
+            level: grid for level, grid in (boundary_grids or {}).items()
+            if level not in skipped_levels
+        }
+        if skipped_levels:
+            active_levels = sorted(species_boundary_grids)
+            print(
+                f"[tier1-metrics]   species fan-out levels: {active_levels or ['national only']} "
+                f"(skipped: {sorted(skipped_levels)})"
+            )
         species_accumulator = _process_species_for_solution(
             raster=raster,
             solution=solution,
             species_records=species_records,
             pool_sizes=species_pool_sizes,
-            boundary_grids=boundary_grids if not national_only else {},
+            boundary_grids=species_boundary_grids if not national_only else {},
             cache_dir=cache_dir,
             force_download=force_download,
         )
@@ -1233,17 +1339,47 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        solutions = _select_solutions(manifest, args.solution_id, args.limit)
+        selected_solutions = _select_solutions(manifest, args.solution_id, args.limit)
     except ManifestError as exc:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
         return 2
 
+    solutions = _chunk_solutions(
+        selected_solutions,
+        chunk_index=args.chunk_index,
+        chunk_count=args.chunk_count,
+    )
+    if args.chunk_count > 1:
+        print(
+            f"[tier1-metrics] chunk {args.chunk_index}/{args.chunk_count}: "
+            f"{len(solutions)} of {len(selected_solutions)} selected solution(s)"
+        )
     print(f"[tier1-metrics] processing {len(solutions)} solution(s)")
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    args.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    resume_entries_by_id: dict[str, dict[str, Any]] = {}
+    pending_solutions: list[dict[str, Any]] = []
+    if args.force:
+        pending_solutions = solutions
+    else:
+        for solution in solutions:
+            resume_entry = _resume_entry_for_existing_cache(solution, manifest, args.output_dir)
+            if resume_entry is None:
+                pending_solutions.append(solution)
+            else:
+                resume_entries_by_id[str(solution.get("id"))] = resume_entry
+        if resume_entries_by_id:
+            print(
+                f"[tier1-metrics] resume: {len(resume_entries_by_id)} existing cache file(s) "
+                f"will be skipped; pass --force to recompute"
+            )
 
     # --- Load boundary data ---
     boundaries_by_level: dict[str, list[BoundaryFeature]] = {}
     boundary_errors: dict[str, str] = {}
-    if not args.national_only:
+    if pending_solutions and not args.national_only:
         boundaries_by_level, boundary_errors = load_all_boundaries(args.cache_dir)
         for level, feats in boundaries_by_level.items():
             print(f"[tier1-metrics] boundaries: {level} → {len(feats)} features")
@@ -1255,9 +1391,6 @@ def main(argv: list[str] | None = None) -> int:
         if not boundaries_by_level:
             print("[tier1-metrics] WARNING: all boundary levels failed; national-only.", file=sys.stderr)
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    args.cache_dir.mkdir(parents=True, exist_ok=True)
-
     layer_cache = _LayerMaskCache()
     value_cache = _LayerValueCache()
     boundary_mask_cache = BoundaryMaskCache()
@@ -1267,7 +1400,7 @@ def main(argv: list[str] | None = None) -> int:
     species_records: list[SpeciesRecord] | None = None
     species_pool_sizes: SpeciesPoolSizes | None = None
     species_load_error: str | None = None
-    if not args.skip_species:
+    if pending_solutions and not args.skip_species:
         try:
             print(f"[tier1-metrics] fetching species CSV: {args.species_csv_url}")
             csv_dl = cached_download(args.species_csv_url, args.cache_dir, force=args.no_cache)
@@ -1292,6 +1425,11 @@ def main(argv: list[str] | None = None) -> int:
     for index, solution in enumerate(solutions, start=1):
         solution_id = str(solution.get("id"))
         print(f"[tier1-metrics] [{index}/{len(solutions)}] {solution_id}")
+        if solution_id in resume_entries_by_id:
+            resume_entry = resume_entries_by_id[solution_id]
+            print(f"[tier1-metrics]   skipped existing cache ({resume_entry['cachePath']})")
+            entries.append(resume_entry)
+            continue
         try:
             entries.append(
                 _process_solution(
@@ -1309,6 +1447,7 @@ def main(argv: list[str] | None = None) -> int:
                     species_pool_sizes=species_pool_sizes,
                     boundary_grids=boundary_grids,
                     skip_species=args.skip_species,
+                    skip_species_boundary_levels=set(args.skip_species_boundary_level),
                 )
             )
         except Exception as exc:
@@ -1343,6 +1482,14 @@ def main(argv: list[str] | None = None) -> int:
         ),
         "speciesLoadError": species_load_error,
         "speciesSkipped": bool(args.skip_species),
+        "speciesBoundaryLevelsSkipped": sorted(set(args.skip_species_boundary_level)),
+        "chunk": {
+            "index": args.chunk_index,
+            "count": args.chunk_count,
+            "selectedBeforeChunk": len(selected_solutions),
+            "selectedForChunk": len(solutions),
+        },
+        "resumeEnabled": not args.force,
         "entries": entries,
         "failures": failures,
     }
