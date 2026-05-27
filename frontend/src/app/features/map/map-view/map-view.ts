@@ -45,6 +45,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
+const DEFAULT_VECTOR_OVERLAY_OPACITY = 0.8;
+const OPAQUE_SYMBOL_ALPHA = 1;
 
 function getBasemapThumbnailUrl(id: SupportedBasemap): string {
   return Basemap.fromId(id)?.thumbnailUrl ?? '';
@@ -657,7 +659,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         id: config.arcgisLayerId,
         url: config.geojsonUrl,
         visible: false,
-        opacity: 0.75,
+        opacity: DEFAULT_VECTOR_OVERLAY_OPACITY,
         listMode: 'hide',
         popupEnabled: false,
         outFields: [...config.outFields],
@@ -679,8 +681,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       type: 'simple',
       symbol: {
         type: 'simple-fill',
-        color: [r, g, b, 165],
-        outline: { color: [r, g, b, 230], width: 1 },
+        color: [r, g, b, OPAQUE_SYMBOL_ALPHA],
+        outline: { color: [r, g, b, OPAQUE_SYMBOL_ALPHA], width: 1 },
       },
     };
   }

@@ -1,7 +1,13 @@
 import { computed, Injectable, signal } from '@angular/core';
 import type Extent from '@arcgis/core/geometry/Extent';
 import { DEFAULT_CHART_PALETTE_ID, type ChartPaletteId } from '@core/models/chart-palette.model';
-import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
+import {
+  type AOI,
+  type LayerConfig,
+  type RuntimeLayerManifestRenderingConfig,
+  type Solution,
+  UserTier,
+} from '@core/models';
 import { environment } from '../../../environments/environment';
 
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
@@ -27,6 +33,46 @@ export interface MapLegendLayerEntry {
   gradientEndColor?: string;
   gradientMinLabel?: string;
   gradientMaxLabel?: string;
+}
+
+interface ContinuousGradientLegendEntryInput {
+  id: string;
+  name: string;
+  color: string;
+  rendering: RuntimeLayerManifestRenderingConfig;
+}
+
+export function isContinuousGradientRendering(
+  rendering: RuntimeLayerManifestRenderingConfig,
+): boolean {
+  return rendering.valueType === 'continuous' && rendering.renderMode === 'gradient';
+}
+
+export function buildContinuousGradientLegendEntry({
+  id,
+  name,
+  color,
+  rendering,
+}: ContinuousGradientLegendEntryInput): MapLegendLayerEntry {
+  return {
+    id,
+    name,
+    swatchType: 'gradient',
+    color,
+    lineStyle: 'solid',
+    lineWidth: 1,
+    gradientStartColor: rendering.startColor ?? '#dbeafe',
+    gradientEndColor: rendering.endColor ?? color ?? '#7f1d1d',
+    gradientMinLabel: formatLegendValue(rendering.minValue),
+    gradientMaxLabel: formatLegendValue(rendering.maxValue),
+  };
+}
+
+function formatLegendValue(value: number | null | undefined): string | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return Number.isInteger(value) ? `${value}` : value.toFixed(2);
 }
 
 /** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */

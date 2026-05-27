@@ -2,6 +2,22 @@
   "app": {
     "mapTitle": "Decision-making tool map"
   },
+  "landingWelcome": {
+    "kicker": "Welcome",
+    "title": "Explore conservation planning options for Colombia.",
+    "description": "This decision-support tool helps compare precomputed conservation scenarios across Colombia. Use it to see how different biodiversity targets, included areas, and cost assumptions change the places highlighted for conservation action.",
+    "decisionSupportNote": "The scenarios are intended to inform discussion and planning; they do not replace local expertise, policy review, or final conservation decisions.",
+    "quickStartTitle": "How to get started",
+    "steps": {
+      "selectSolution": "Click Select solution to open the guided scenario finder.",
+      "exploreMap": "Choose conservation priorities and review the matching scenario on the map.",
+      "reviewAnalysis": "Use the side panels to inspect layers, metrics, and tradeoffs."
+    },
+    "actions": {
+      "exploreFirst": "Explore map first",
+      "selectSolution": "Select solution"
+    }
+  },
   "header": {
     "appTitle": "Decision Making Tool",
     "languageToggleLabel": "Switch to {{lang}}",

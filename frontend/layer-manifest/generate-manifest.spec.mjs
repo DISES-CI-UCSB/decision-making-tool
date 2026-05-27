@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { getCategoryPalette, pickRenderingForLayer } from './generate-manifest.mjs';
 
 describe('pickRenderingForLayer', () => {
-  it('preserves an existing rendering when the inferred mode matches', () => {
+  it('preserves existing style while refreshing metadata when the inferred mode matches', () => {
     const existingRendering = {
       valueType: 'binary',
       renderMode: 'mask',
@@ -15,8 +15,8 @@ describe('pickRenderingForLayer', () => {
       valueType: 'binary',
       renderMode: 'mask',
       selectedColor: '#000000',
-      selectedValue: 1,
-      noDataValue: -9999,
+      selectedValue: 2,
+      noDataValue: 255,
     };
 
     const result = pickRenderingForLayer({
@@ -26,7 +26,42 @@ describe('pickRenderingForLayer', () => {
       existingLayer: { rendering: existingRendering },
     });
 
-    assert.strictEqual(result, existingRendering);
+    assert.notStrictEqual(result, existingRendering);
+    assert.strictEqual(result.selectedColor, '#abcdef');
+    assert.strictEqual(result.selectedValue, 2);
+    assert.strictEqual(result.noDataValue, 255);
+  });
+
+  it('preserves existing gradient colors while refreshing min/max metadata', () => {
+    const existingRendering = {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      startColor: '#fef3c7',
+      endColor: '#854d0e',
+      minValue: null,
+      maxValue: null,
+    };
+    const inferredRendering = {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      startColor: '#000000',
+      endColor: '#ffffff',
+      minValue: 0,
+      maxValue: 100,
+    };
+
+    const result = pickRenderingForLayer({
+      inferredRendering,
+      layerId: 'human_footprint_2022',
+      categoryId: 'socioeconomic',
+      existingLayer: { rendering: existingRendering },
+    });
+
+    assert.strictEqual(result.renderMode, 'gradient');
+    assert.strictEqual(result.startColor, '#fef3c7');
+    assert.strictEqual(result.endColor, '#854d0e');
+    assert.strictEqual(result.minValue, 0);
+    assert.strictEqual(result.maxValue, 100);
   });
 
   it('carries existing mask color into a new gradient end color when the mode flips', () => {

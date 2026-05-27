@@ -24,12 +24,16 @@ import {
   type ManifestSidebarLayerRow,
   type RuntimeLayerManifest,
   type RuntimeLayerManifestRenderingConfig,
-  type RuntimeLayerManifestDataRole,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
-import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
+import {
+  AppStateService,
+  buildContinuousGradientLegendEntry,
+  isContinuousGradientRendering,
+  type MapLegendLayerEntry,
+} from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import {
   AdminBoundaryService,
@@ -43,6 +47,7 @@ import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_SOLUTION_LAYER_OPACITY,
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
@@ -340,6 +345,19 @@ const SPECIES_RICHNESS_RENDER_RANGE = {
   minValue: 815,
   maxValue: 3562,
 } as const;
+const HUMAN_FOOTPRINT_RENDER_RANGE = {
+  minValue: 0,
+  maxValue: 100,
+} as const;
+const DEFAULT_DATA_LAYER_OPACITY = 80;
+const DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT = Math.round(DEFAULT_SOLUTION_LAYER_OPACITY * 100);
+const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
+  string,
+  { minValue: number; maxValue: number }
+> = {
+  species_richness: SPECIES_RICHNESS_RENDER_RANGE,
+  human_footprint_2022: HUMAN_FOOTPRINT_RENDER_RANGE,
+};
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
 const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
 const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
@@ -571,6 +589,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       const overlays = this.overlays();
       const groups = this.groups();
       const taxa = this.taxa();
+      this.manifestRasterLayerService.renderedLayerRevision$();
       untracked(() => {
         this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
       });
@@ -1043,11 +1062,14 @@ export class MapLayersPanelComponent implements OnDestroy {
       const existingRow = existingRows.find((row) => row.id === layerId);
       return {
         id: layerId,
-        name: this.localizedText('mapLayersPanel.individualSpecies'),
+        name: this.localizedTextOrFallback(
+          'mapLayersPanel.individualSpecies',
+          'Individual species',
+        ),
         selected: false,
         visible: false,
         expanded: existingRow?.expanded ?? false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#854d0e',
         canReorder: false,
         hasStyleControls: false,
@@ -1070,7 +1092,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: existingSelected,
       visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
       expanded: existingRow?.expanded ?? false,
-      opacity: existingRow?.opacity ?? this.manifestRowOpacity(manifestRow.dataRole),
+      opacity: existingRow?.opacity ?? this.manifestRowOpacity(),
       color: manifestColor ?? existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
       canReorder: true,
       hasStyleControls: true,
@@ -1137,30 +1159,17 @@ export class MapLayersPanelComponent implements OnDestroy {
       return this.iavhEcosystemGroupedRendering();
     }
 
-    if (manifestRow.id !== 'species_richness') {
+    const knownRange = KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID[manifestRow.id];
+    if (!knownRange) {
       return manifestRow.rendering;
     }
 
-    if (
-      manifestRow.rendering.valueType === 'continuous' &&
-      manifestRow.rendering.renderMode === 'gradient'
-    ) {
-      return {
-        ...manifestRow.rendering,
-        minValue: SPECIES_RICHNESS_RENDER_RANGE.minValue,
-        maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
-      };
-    }
-
-    // Species richness data is continuous; mask rendering makes most cells transparent.
     return {
+      ...manifestRow.rendering,
       valueType: 'continuous',
       renderMode: 'gradient',
-      noDataValue: manifestRow.rendering.noDataValue ?? 255,
-      minValue: SPECIES_RICHNESS_RENDER_RANGE.minValue,
-      maxValue: SPECIES_RICHNESS_RENDER_RANGE.maxValue,
-      startColor: '#fef3c7',
-      endColor: '#854d0e',
+      minValue: knownRange.minValue,
+      maxValue: knownRange.maxValue,
     };
   }
 
@@ -1179,16 +1188,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
-  private manifestRowOpacity(dataRole: RuntimeLayerManifestDataRole): number {
-    if (dataRole === 'cost_layer') {
-      return 55;
-    }
-
-    if (dataRole === 'include_layer') {
-      return 60;
-    }
-
-    return 55;
+  private manifestRowOpacity(): number {
+    return DEFAULT_DATA_LAYER_OPACITY;
   }
 
   private manifestRowColor(sidebarGroupId: LayerGroup['id'], index: number): string {
@@ -2734,19 +2735,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     if (this.isContinuousGradientRaster(row)) {
-      const gradientRendering = row.mapSync.rendering;
-      return {
+      return buildContinuousGradientLegendEntry({
         id: row.id,
         name: row.name,
-        swatchType: 'gradient',
         color: row.color,
-        lineStyle: 'solid',
-        lineWidth: 1,
-        gradientStartColor: gradientRendering?.startColor ?? '#dbeafe',
-        gradientEndColor: gradientRendering?.endColor ?? row.color ?? '#7f1d1d',
-        gradientMinLabel: this.formatLegendValue(gradientRendering?.minValue),
-        gradientMaxLabel: this.formatLegendValue(gradientRendering?.maxValue),
-      };
+        rendering: row.mapSync.rendering,
+      });
     }
 
     if (
@@ -2799,11 +2793,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     return [...categoryByLabel.values()];
   }
 
-  private isHumanFootprintLayerRow(row: LayerControlRow): boolean {
-    const normalizedName = row.name.trim().toLowerCase();
-    return normalizedName === 'human footprint';
-  }
-
   private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
     mapSync: {
       type: 'manifest-raster';
@@ -2814,16 +2803,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   } {
     return (
       row.mapSync?.type === 'manifest-raster' &&
-      row.mapSync.rendering.renderMode === 'gradient' &&
-      row.mapSync.rendering.valueType === 'continuous'
+      isContinuousGradientRendering(row.mapSync.rendering)
     );
-  }
-
-  private formatLegendValue(value: number | null | undefined): string | undefined {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return undefined;
-    }
-    return Number.isInteger(value) ? `${value}` : value.toFixed(2);
   }
 
   private isSolutionLayerRow(row: LayerControlRow): boolean {
@@ -2877,7 +2858,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: true,
         visible: true,
         expanded: true,
-        opacity: 70,
+        opacity: DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT,
         color: SINGLE_SOLUTION_COLOR,
         canReorder: true,
         hasStyleControls: true,
@@ -2890,7 +2871,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 80,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#2563eb',
         canReorder: true,
         hasStyleControls: true,
@@ -2903,7 +2884,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 75,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#7c3aed',
         canReorder: true,
         hasStyleControls: true,
@@ -2999,7 +2980,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           selected: true,
           visible: true,
           expanded: true,
-          opacity: 70,
+          opacity: DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT,
           color: COMPARISON_CANDIDATE_COLOR,
           canReorder: true,
           hasStyleControls: true,
@@ -3072,7 +3053,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3098,7 +3079,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3124,7 +3105,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3150,7 +3131,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3175,7 +3156,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3254,7 +3235,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: existingTaxon?.selected ?? false,
       visible: existingTaxon?.visible ?? false,
       expanded: existingTaxon?.expanded ?? false,
-      opacity: existingTaxon?.opacity ?? 60,
+      opacity: existingTaxon?.opacity ?? DEFAULT_DATA_LAYER_OPACITY,
       color: existingTaxon?.color ?? '#64748b',
       canReorder: false,
       hasStyleControls: false,
@@ -3299,7 +3280,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: existingSpecies?.selected ?? false,
       visible: isRenderable ? (existingSpecies?.visible ?? false) : false,
       expanded: existingSpecies?.expanded ?? false,
-      opacity: existingSpecies?.opacity ?? 65,
+      opacity: existingSpecies?.opacity ?? DEFAULT_DATA_LAYER_OPACITY,
       color: existingSpecies?.color ?? rendering?.selectedColor ?? '#475569',
       canReorder: true,
       hasStyleControls: true,
@@ -3493,14 +3474,19 @@ export class MapLayersPanelComponent implements OnDestroy {
         collapsed: true,
         note: this.ecosystemsCopy().groupNote,
         rows: [
-          this.layerRow('eco-types', this.ecosystemsCopy().iavhRowName, '#0d9488', 60),
+          this.layerRow(
+            'eco-types',
+            this.ecosystemsCopy().iavhRowName,
+            '#0d9488',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
           this.layerRow(
             'eco-paramos',
             `${this.ecosystemsCopy().strategicPrefix}: ${
               this.activeLanguage() === 'es' ? 'Páramos' : 'Paramos'
             }`,
             '#6d8e7e',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
           this.layerRow(
             'eco-wetlands',
@@ -3508,7 +3494,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               this.activeLanguage() === 'es' ? 'Humedales' : 'Wetlands'
             }`,
             '#0284c7',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
           this.layerRow(
             'eco-dry-forest',
@@ -3516,7 +3502,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               this.activeLanguage() === 'es' ? 'Bosque seco' : 'Dry Forest'
             }`,
             '#a16207',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
           this.layerRow(
             'eco-mangroves',
@@ -3524,7 +3510,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               this.activeLanguage() === 'es' ? 'Manglares' : 'Mangroves'
             }`,
             '#15803d',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
         ],
       },
@@ -3534,8 +3520,18 @@ export class MapLayersPanelComponent implements OnDestroy {
         countLabel: this.toLayerCountLabel(2),
         collapsed: true,
         rows: [
-          this.layerRow('cult-indigenous', 'Indigenous Reserves', '#6366f1', 60),
-          this.layerRow('cult-afro', 'Afro-Colombian Community Territories', '#a855f7', 60),
+          this.layerRow(
+            'cult-indigenous',
+            'Indigenous Reserves',
+            '#6366f1',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
+          this.layerRow(
+            'cult-afro',
+            'Afro-Colombian Community Territories',
+            '#a855f7',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
         ],
       },
       {
@@ -3544,9 +3540,19 @@ export class MapLayersPanelComponent implements OnDestroy {
         countLabel: this.toLayerCountLabel(3),
         collapsed: true,
         rows: [
-          this.layerRow('soc-human-footprint', 'Human Footprint', '#d97706', 55),
-          this.layerRow('soc-ag-opportunity-cost', 'Agricultural Opportunity Cost', '#ea580c', 55),
-          this.layerRow('soc-land-use', 'Land Use', '#78716c', 50),
+          this.layerRow(
+            'soc-human-footprint',
+            'Human Footprint',
+            '#d97706',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
+          this.layerRow(
+            'soc-ag-opportunity-cost',
+            'Agricultural Opportunity Cost',
+            '#ea580c',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
+          this.layerRow('soc-land-use', 'Land Use', '#78716c', DEFAULT_DATA_LAYER_OPACITY),
         ],
       },
     ];
@@ -3631,13 +3637,24 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.groups.update((groups) =>
       groups.map((group) => {
         const translatedTitle = this.groupTitleForId(group.id);
-        const translatedRows =
-          group.id === 'group-admin-boundaries'
-            ? group.rows.map((row) => ({
-                ...row,
-                name: this.boundaryNameForId(row.id) ?? row.name,
-              }))
-            : group.rows;
+        const translatedRows = group.rows.map((row) => {
+          if (group.id === 'group-admin-boundaries') {
+            return {
+              ...row,
+              name: this.boundaryNameForId(row.id) ?? row.name,
+            };
+          }
+          if (row.id === SPECIES_COLLECTION_ROW_ID) {
+            return {
+              ...row,
+              name: this.localizedTextOrFallback(
+                'mapLayersPanel.individualSpecies',
+                'Individual species',
+              ),
+            };
+          }
+          return row;
+        });
         const nextCountLabel =
           group.id === 'group-species-biodiversity'
             ? this.toLayerCountLabel(group.rows.length + speciesLayerCount)
@@ -3741,7 +3758,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: false,
       visible: false,
       expanded: false,
-      opacity: 65,
+      opacity: DEFAULT_DATA_LAYER_OPACITY,
       color: '#475569',
       canReorder: true,
       hasStyleControls: true,

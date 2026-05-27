@@ -180,6 +180,15 @@ const renderingOverrideByLayerId = {
     startColor: '#fef3c7',
     endColor: '#854d0e',
   },
+  human_footprint_2022: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: null,
+    minValue: 0,
+    maxValue: 100,
+    startColor: '#fee2e2',
+    endColor: '#991b1b',
+  },
 };
 
 const rasterCharacteristicsByUrl = new Map();
@@ -1505,7 +1514,8 @@ function normalizeNumericValue(value) {
 /**
  * Resolves the final rendering for a layer by combining inference with what was
  * already in the previous manifest. Mode-stable layers preserve their existing
- * colors byte-for-byte; mode-flipped layers carry the previous color forward
+ * colors byte-for-byte while refreshing inferred scale/value metadata. Mode-flipped
+ * layers carry the previous color forward
  * (binary mask `selectedColor` becomes new gradient `endColor`, gradient
  * `endColor` becomes new mask `selectedColor`). Brand-new layers seed from the
  * curated category palette with a small per-layer hue offset.
@@ -1519,7 +1529,7 @@ export function pickRenderingForLayer({ inferredRendering, layerId, categoryId, 
   }
 
   if (existingRendering.renderMode === inferredRendering.renderMode) {
-    return existingRendering;
+    return mergeInferredRenderingWithExistingStyle(inferredRendering, existingRendering);
   }
 
   if (existingRendering.renderMode === 'mask' && inferredRendering.renderMode === 'gradient') {
@@ -1539,6 +1549,25 @@ export function pickRenderingForLayer({ inferredRendering, layerId, categoryId, 
   }
 
   return seedRenderingFromPalette(inferredRendering, palette, layerId);
+}
+
+function mergeInferredRenderingWithExistingStyle(inferredRendering, existingRendering) {
+  if (inferredRendering.renderMode === 'mask') {
+    return {
+      ...inferredRendering,
+      selectedColor: existingRendering.selectedColor ?? inferredRendering.selectedColor,
+    };
+  }
+
+  if (inferredRendering.renderMode === 'gradient') {
+    return {
+      ...inferredRendering,
+      startColor: existingRendering.startColor ?? inferredRendering.startColor,
+      endColor: existingRendering.endColor ?? inferredRendering.endColor,
+    };
+  }
+
+  return inferredRendering;
 }
 
 function seedRenderingFromPalette(inferredRendering, palette, layerId) {
