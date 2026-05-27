@@ -24,7 +24,6 @@ import {
   type ManifestSidebarLayerRow,
   type RuntimeLayerManifest,
   type RuntimeLayerManifestRenderingConfig,
-  type RuntimeLayerManifestDataRole,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
 } from '@core/models';
@@ -48,6 +47,7 @@ import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_SOLUTION_LAYER_OPACITY,
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
@@ -349,6 +349,8 @@ const HUMAN_FOOTPRINT_RENDER_RANGE = {
   minValue: 0,
   maxValue: 100,
 } as const;
+const DEFAULT_DATA_LAYER_OPACITY = 80;
+const DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT = Math.round(DEFAULT_SOLUTION_LAYER_OPACITY * 100);
 const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
   string,
   { minValue: number; maxValue: number }
@@ -587,6 +589,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       const overlays = this.overlays();
       const groups = this.groups();
       const taxa = this.taxa();
+      this.manifestRasterLayerService.renderedLayerRevision$();
       untracked(() => {
         this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
       });
@@ -1066,7 +1069,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: existingRow?.expanded ?? false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#854d0e',
         canReorder: false,
         hasStyleControls: false,
@@ -1089,7 +1092,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: existingSelected,
       visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
       expanded: existingRow?.expanded ?? false,
-      opacity: existingRow?.opacity ?? this.manifestRowOpacity(manifestRow.dataRole),
+      opacity: existingRow?.opacity ?? this.manifestRowOpacity(),
       color: manifestColor ?? existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
       canReorder: true,
       hasStyleControls: true,
@@ -1185,16 +1188,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
-  private manifestRowOpacity(dataRole: RuntimeLayerManifestDataRole): number {
-    if (dataRole === 'cost_layer') {
-      return 55;
-    }
-
-    if (dataRole === 'include_layer') {
-      return 60;
-    }
-
-    return 55;
+  private manifestRowOpacity(): number {
+    return DEFAULT_DATA_LAYER_OPACITY;
   }
 
   private manifestRowColor(sidebarGroupId: LayerGroup['id'], index: number): string {
@@ -2863,7 +2858,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: true,
         visible: true,
         expanded: true,
-        opacity: 70,
+        opacity: DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT,
         color: SINGLE_SOLUTION_COLOR,
         canReorder: true,
         hasStyleControls: true,
@@ -2876,7 +2871,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 80,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#2563eb',
         canReorder: true,
         hasStyleControls: true,
@@ -2889,7 +2884,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 75,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#7c3aed',
         canReorder: true,
         hasStyleControls: true,
@@ -2985,7 +2980,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           selected: true,
           visible: true,
           expanded: true,
-          opacity: 70,
+          opacity: DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT,
           color: COMPARISON_CANDIDATE_COLOR,
           canReorder: true,
           hasStyleControls: true,
@@ -3058,7 +3053,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3084,7 +3079,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3110,7 +3105,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3136,7 +3131,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3161,7 +3156,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         selected: false,
         visible: false,
         expanded: false,
-        opacity: 60,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#64748b',
         canReorder: false,
         hasStyleControls: false,
@@ -3240,7 +3235,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: existingTaxon?.selected ?? false,
       visible: existingTaxon?.visible ?? false,
       expanded: existingTaxon?.expanded ?? false,
-      opacity: existingTaxon?.opacity ?? 60,
+      opacity: existingTaxon?.opacity ?? DEFAULT_DATA_LAYER_OPACITY,
       color: existingTaxon?.color ?? '#64748b',
       canReorder: false,
       hasStyleControls: false,
@@ -3285,7 +3280,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: existingSpecies?.selected ?? false,
       visible: isRenderable ? (existingSpecies?.visible ?? false) : false,
       expanded: existingSpecies?.expanded ?? false,
-      opacity: existingSpecies?.opacity ?? 65,
+      opacity: existingSpecies?.opacity ?? DEFAULT_DATA_LAYER_OPACITY,
       color: existingSpecies?.color ?? rendering?.selectedColor ?? '#475569',
       canReorder: true,
       hasStyleControls: true,
@@ -3479,14 +3474,19 @@ export class MapLayersPanelComponent implements OnDestroy {
         collapsed: true,
         note: this.ecosystemsCopy().groupNote,
         rows: [
-          this.layerRow('eco-types', this.ecosystemsCopy().iavhRowName, '#0d9488', 60),
+          this.layerRow(
+            'eco-types',
+            this.ecosystemsCopy().iavhRowName,
+            '#0d9488',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
           this.layerRow(
             'eco-paramos',
             `${this.ecosystemsCopy().strategicPrefix}: ${
               this.activeLanguage() === 'es' ? 'Páramos' : 'Paramos'
             }`,
             '#6d8e7e',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
           this.layerRow(
             'eco-wetlands',
@@ -3494,7 +3494,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               this.activeLanguage() === 'es' ? 'Humedales' : 'Wetlands'
             }`,
             '#0284c7',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
           this.layerRow(
             'eco-dry-forest',
@@ -3502,7 +3502,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               this.activeLanguage() === 'es' ? 'Bosque seco' : 'Dry Forest'
             }`,
             '#a16207',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
           this.layerRow(
             'eco-mangroves',
@@ -3510,7 +3510,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               this.activeLanguage() === 'es' ? 'Manglares' : 'Mangroves'
             }`,
             '#15803d',
-            55,
+            DEFAULT_DATA_LAYER_OPACITY,
           ),
         ],
       },
@@ -3520,8 +3520,18 @@ export class MapLayersPanelComponent implements OnDestroy {
         countLabel: this.toLayerCountLabel(2),
         collapsed: true,
         rows: [
-          this.layerRow('cult-indigenous', 'Indigenous Reserves', '#6366f1', 60),
-          this.layerRow('cult-afro', 'Afro-Colombian Community Territories', '#a855f7', 60),
+          this.layerRow(
+            'cult-indigenous',
+            'Indigenous Reserves',
+            '#6366f1',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
+          this.layerRow(
+            'cult-afro',
+            'Afro-Colombian Community Territories',
+            '#a855f7',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
         ],
       },
       {
@@ -3530,9 +3540,19 @@ export class MapLayersPanelComponent implements OnDestroy {
         countLabel: this.toLayerCountLabel(3),
         collapsed: true,
         rows: [
-          this.layerRow('soc-human-footprint', 'Human Footprint', '#d97706', 55),
-          this.layerRow('soc-ag-opportunity-cost', 'Agricultural Opportunity Cost', '#ea580c', 55),
-          this.layerRow('soc-land-use', 'Land Use', '#78716c', 50),
+          this.layerRow(
+            'soc-human-footprint',
+            'Human Footprint',
+            '#d97706',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
+          this.layerRow(
+            'soc-ag-opportunity-cost',
+            'Agricultural Opportunity Cost',
+            '#ea580c',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
+          this.layerRow('soc-land-use', 'Land Use', '#78716c', DEFAULT_DATA_LAYER_OPACITY),
         ],
       },
     ];
@@ -3738,7 +3758,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       selected: false,
       visible: false,
       expanded: false,
-      opacity: 65,
+      opacity: DEFAULT_DATA_LAYER_OPACITY,
       color: '#475569',
       canReorder: true,
       hasStyleControls: true,
