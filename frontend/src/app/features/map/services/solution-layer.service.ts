@@ -40,6 +40,9 @@ const GRID_ABSOLUTE_TOLERANCE = 1e-7;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
+interface SolutionRenderOptions {
+  collapseExistingProtectedCoverage?: boolean;
+}
 
 export interface LiveComparisonMetrics {
   agreementAreaKm2: number | null;
@@ -218,12 +221,14 @@ export class SolutionLayerService {
         BASELINE_LAYER_ID,
         `Scenario A: ${baselineLoaded.scenario.name}`,
         this.baselineColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
       this.candidateComparisonLayer = this.createLayerFromLoaded(
         candidateLoaded,
         CANDIDATE_LAYER_ID,
         `Scenario B: ${candidateLoaded.scenario.name}`,
         this.candidateColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
       this.baselineComparisonLoaded = baselineLoaded;
       this.candidateComparisonLoaded = candidateLoaded;
@@ -429,7 +434,14 @@ export class SolutionLayerService {
       this.applyLayerColor(this.currentLayer, loaded, normalized);
     }
     if (this.baselineComparisonLayer && this.baselineComparisonLoaded) {
-      this.applyLayerColor(this.baselineComparisonLayer, this.baselineComparisonLoaded, normalized);
+      this.applyLayerColor(
+        this.baselineComparisonLayer,
+        this.baselineComparisonLoaded,
+        normalized,
+        {
+          collapseExistingProtectedCoverage: true,
+        },
+      );
     }
   }
 
@@ -447,6 +459,7 @@ export class SolutionLayerService {
         this.candidateComparisonLayer,
         this.candidateComparisonLoaded,
         normalized,
+        { collapseExistingProtectedCoverage: true },
       );
     }
   }
@@ -490,6 +503,7 @@ export class SolutionLayerService {
         this.baselineComparisonLayer,
         this.baselineComparisonLoaded,
         this.baselineColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
     }
     if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
@@ -497,6 +511,7 @@ export class SolutionLayerService {
         this.candidateComparisonLayer,
         this.candidateComparisonLoaded,
         this.candidateColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
     }
   }
@@ -506,15 +521,16 @@ export class SolutionLayerService {
     layerId: string,
     title: string,
     colorHex = DEFAULT_SINGLE_SOLUTION_HEX,
+    renderOptions: SolutionRenderOptions = {},
   ): SolutionDisplayLayer {
     if (loaded.scenario.displayCogUrl) {
-      return this.createImageryTileLayer(loaded, layerId, title, colorHex);
+      return this.createImageryTileLayer(loaded, layerId, title, colorHex, renderOptions);
     }
 
     return new MediaLayer({
       id: layerId,
       source: new LocalMediaElementSource({
-        elements: [this.createImageElement(loaded, colorHex)],
+        elements: [this.createImageElement(loaded, colorHex, renderOptions)],
       }),
       opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
       title,
@@ -612,12 +628,17 @@ export class SolutionLayerService {
     };
   }
 
-  private createImageElement(loaded: LoadedSolution, colorHex: string): ImageElement {
+  private createImageElement(
+    loaded: LoadedSolution,
+    colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
+  ): ImageElement {
     const canvas = this.rasterToCanvasWithColor(
       loaded.rasterData,
       loaded.rasterMeta,
       colorHex,
       loaded,
+      renderOptions,
     );
     const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
     return new ImageElement({
@@ -639,12 +660,13 @@ export class SolutionLayerService {
     layerId: string,
     title: string,
     colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): InstanceType<typeof ImageryTileLayer> {
     return new ImageryTileLayer({
       id: layerId,
       url: loaded.scenario.displayCogUrl ?? loaded.scenario.displayUrl,
       interpolation: 'nearest',
-      renderer: this.createSolutionRenderer(loaded, colorHex),
+      renderer: this.createSolutionRenderer(loaded, colorHex, renderOptions),
       opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
       title,
     });
@@ -653,6 +675,7 @@ export class SolutionLayerService {
   private createSolutionRenderer(
     loaded: LoadedSolution,
     newCoverageColorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): InstanceType<typeof ClassBreaksRenderer> {
     return new ClassBreaksRenderer({
       field: 'Value',
@@ -660,18 +683,20 @@ export class SolutionLayerService {
         color: [0, 0, 0, 0],
         outline: null,
       }),
-      classBreakInfos: this.solutionClassColors(loaded, newCoverageColorHex).map((entry) => {
-        const [r, g, b] = this.hexToRgb(entry.color) ?? [22, 163, 74];
-        return {
-          minValue: entry.value - 0.5,
-          maxValue: entry.value + 0.5,
-          label: entry.label ?? undefined,
-          symbol: new SimpleFillSymbol({
-            color: [r, g, b, 1],
-            outline: null,
-          }),
-        };
-      }),
+      classBreakInfos: this.solutionClassColors(loaded, newCoverageColorHex, renderOptions).map(
+        (entry) => {
+          const [r, g, b] = this.hexToRgb(entry.color) ?? [22, 163, 74];
+          return {
+            minValue: entry.value - 0.5,
+            maxValue: entry.value + 0.5,
+            label: entry.label ?? undefined,
+            symbol: new SimpleFillSymbol({
+              color: [r, g, b, 1],
+              outline: null,
+            }),
+          };
+        },
+      ),
     });
   }
 
@@ -679,20 +704,22 @@ export class SolutionLayerService {
     layer: SolutionDisplayLayer,
     loaded: LoadedSolution,
     colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): void {
     if (this.isImageryTileLayer(layer)) {
-      layer.renderer = this.createSolutionRenderer(loaded, colorHex);
+      layer.renderer = this.createSolutionRenderer(loaded, colorHex, renderOptions);
       return;
     }
-    this.replaceLayerSourceColor(layer, loaded, colorHex);
+    this.replaceLayerSourceColor(layer, loaded, colorHex, renderOptions);
   }
 
   private replaceLayerSourceColor(
     layer: InstanceType<typeof MediaLayer>,
     loaded: LoadedSolution,
     colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): void {
-    const nextImageElement = this.createImageElement(loaded, colorHex);
+    const nextImageElement = this.createImageElement(loaded, colorHex, renderOptions);
     const source = layer.source;
     if (source instanceof LocalMediaElementSource) {
       source.elements.removeAll();
@@ -839,10 +866,11 @@ export class SolutionLayerService {
     rasterMeta: LoadedSolution['rasterMeta'],
     colorHex: string,
     loaded?: LoadedSolution,
+    renderOptions: SolutionRenderOptions = {},
   ): HTMLCanvasElement {
     const classColorByValue = new Map(
       (loaded
-        ? this.solutionClassColors(loaded, colorHex)
+        ? this.solutionClassColors(loaded, colorHex, renderOptions)
         : this.defaultSolutionClassColors(colorHex)
       ).map((entry) => [entry.value, entry.color]),
     );
@@ -883,6 +911,7 @@ export class SolutionLayerService {
   private solutionClassColors(
     loaded: LoadedSolution,
     newCoverageColorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): RuntimeLayerManifestClassColor[] {
     const classColors =
       loaded.scenario.rendering.renderMode === 'categorical'
@@ -895,7 +924,10 @@ export class SolutionLayerService {
     const selectedSolutionColor =
       newCoverageColorHex || newCoverageClass?.color || DEFAULT_SINGLE_SOLUTION_HEX;
 
-    if (!this.appState.showExistingProtectedCoverage$()) {
+    if (
+      renderOptions.collapseExistingProtectedCoverage ||
+      !this.appState.showExistingProtectedCoverage$()
+    ) {
       return [
         {
           value: EXISTING_PROTECTED_VALUE,

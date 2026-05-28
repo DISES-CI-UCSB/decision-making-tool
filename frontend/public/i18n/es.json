@@ -576,7 +576,7 @@
         "targetTypeIntro": "Seleccione uno o mas grupos objetivo para definir que proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
         "ecosystemsLabel": "Ecosistemas",
         "ecosystemsHelp": "Meta amplia: prioriza la representacion de la diversidad de ecosistemas a escala nacional, para cubrir una gama amplia de condiciones ecosistemicas.",
-        "speciesRichnessLabel": "Especies (riqueza de especies)",
+        "speciesRichnessLabel": "Especies",
         "speciesRichnessHelp": "Prioriza lugares con alta concentracion de especies para proteger la biodiversidad donde es mas rica.",
         "strategicEcosystemsLabel": "Ecosistemas estratégicos",
         "strategicEcosystemsHelp": "Meta focalizada: prioriza solo ecosistemas estrategicos designados a nivel nacional (paramos, manglares, humedales y bosque seco tropical), excluyendo los demas tipos de ecosistema.",
