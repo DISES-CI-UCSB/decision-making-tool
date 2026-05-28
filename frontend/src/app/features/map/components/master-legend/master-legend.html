@@ -68,28 +68,35 @@
                 id="master-legend-solution-items-single"
                 class="space-y-1.5 text-xs text-slate-700"
               >
+                @if (showExistingProtectedCoverage()) {
+                  <li
+                    id="master-legend-solution-existing-protected-item"
+                    class="flex items-center gap-2"
+                  >
+                    <span
+                      id="master-legend-solution-existing-protected-swatch"
+                      class="inline-block h-3 w-3 rounded-[3px]"
+                      [style.background-color]="existingProtectedColor()"
+                      style="opacity: 0.7"
+                    ></span>
+                    {{ 'mapLegend.existingProtected' | translate }}
+                  </li>
+                }
                 <li
-                  id="master-legend-solution-existing-protected-item"
+                  id="master-legend-solution-selected-coverage-item"
                   class="flex items-center gap-2"
                 >
                   <span
-                    id="master-legend-solution-existing-protected-swatch"
-                    class="inline-block h-3 w-3 rounded-[3px]"
-                    [style.background-color]="existingProtectedColor()"
-                    style="opacity: 0.7"
-                  ></span>
-                  {{ 'mapLegend.existingProtected' | translate }}
-                </li>
-                <li id="master-legend-solution-new-coverage-item" class="flex items-center gap-2">
-                  <span
-                    id="master-legend-solution-new-coverage-swatch"
+                    id="master-legend-solution-selected-coverage-swatch"
                     class="inline-block h-3 w-3 rounded-[3px]"
                     [style.background-color]="solutionColor()"
                     style="opacity: 0.7"
                   ></span>
                   {{
-                    'mapLegend.newCoverage'
-                      | translate: { pct: sol.rasterMeta.selectedPct.toFixed(1) }
+                    (showExistingProtectedCoverage()
+                      ? 'mapLegend.newCoverage'
+                      : 'mapLegend.selected'
+                    ) | translate: { pct: sol.rasterMeta.selectedPct.toFixed(1) }
                   }}
                 </li>
               </ul>

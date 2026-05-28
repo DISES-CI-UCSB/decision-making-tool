@@ -143,6 +143,34 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 {{ boundaryPopupsEnabled() ? 'Disable tooltips' : 'Enable tooltips' }}
               </button>
             </div>
+
+            <div
+              id="dev-tools-existing-protected-coverage-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <div id="dev-tools-existing-protected-coverage-copy" class="min-w-0 pr-2">
+                <p
+                  id="dev-tools-existing-protected-coverage-toggle-label"
+                  class="text-[11px] font-semibold text-slate-700"
+                >
+                  Existing include coverage split
+                </p>
+                <p
+                  id="dev-tools-existing-protected-coverage-toggle-hint"
+                  class="text-[10px] leading-4 text-slate-500"
+                >
+                  Separates pre-existing include coverage from newly recommended coverage.
+                </p>
+              </div>
+              <button
+                id="dev-tools-existing-protected-coverage-toggle-btn"
+                type="button"
+                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleExistingProtectedCoverage()"
+              >
+                {{ showExistingProtectedCoverage() ? 'ON' : 'OFF' }}
+              </button>
+            </div>
           </section>
 
           <section
@@ -907,6 +935,7 @@ export class DevToolsPanelComponent {
   readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
   readonly showGenerateRegionalReportButton = this.appState.showGenerateRegionalReportButton$;
   readonly showOverviewInputsReminder = this.appState.showOverviewInputsReminder$;
+  readonly showExistingProtectedCoverage = this.appState.showExistingProtectedCoverage$;
   readonly metricNumberFormatMode = this.appState.metricNumberFormatMode$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
@@ -1027,6 +1056,11 @@ export class DevToolsPanelComponent {
 
   toggleOverviewInputsReminder(): void {
     this.appState.setShowOverviewInputsReminder(!this.showOverviewInputsReminder());
+  }
+
+  toggleExistingProtectedCoverage(): void {
+    this.appState.setShowExistingProtectedCoverage(!this.showExistingProtectedCoverage());
+    this.solutionLayer.refreshSolutionClassRendering();
   }
 
   toggleMetricNumberFormatMode(): void {

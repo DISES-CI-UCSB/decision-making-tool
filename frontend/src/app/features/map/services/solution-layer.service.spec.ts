@@ -84,6 +84,7 @@ describe('SolutionLayerService', () => {
   const appStateMock = {
     loadSolution: vi.fn(),
     clearSolution: vi.fn(),
+    showExistingProtectedCoverage$: vi.fn(() => false),
   };
   const mockDataMock = {
     getSolutionById: vi.fn().mockReturnValue({
@@ -107,6 +108,7 @@ describe('SolutionLayerService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    appStateMock.showExistingProtectedCoverage$.mockReturnValue(false);
     TestBed.configureTestingModule({
       providers: [
         SolutionLayerService,
@@ -159,6 +161,41 @@ describe('SolutionLayerService', () => {
     expect(addedLayer.url).toBe('https://example.com/baseline.cog.tif');
     expect(addedLayer.interpolation).toBe('nearest');
     expect(addedLayer.renderer).toBeTruthy();
+  });
+
+  it('draws existing include coverage with the selected solution color by default', () => {
+    const loaded = createLoadedSolution('baseline');
+    const classColors = (
+      service as unknown as {
+        solutionClassColors: (
+          loaded: LoadedSolution,
+          newCoverageColorHex: string,
+        ) => { value: number; color: string; label: string }[];
+      }
+    ).solutionClassColors(loaded, '#ff0000');
+
+    expect(classColors).toEqual([
+      { value: 2, color: '#ff0000', label: 'Selected solution' },
+      { value: 1, color: '#ff0000', label: 'Selected solution' },
+    ]);
+  });
+
+  it('can split existing include coverage into its own color for dev review', () => {
+    appStateMock.showExistingProtectedCoverage$.mockReturnValue(true);
+    const loaded = createLoadedSolution('baseline');
+    const classColors = (
+      service as unknown as {
+        solutionClassColors: (
+          loaded: LoadedSolution,
+          newCoverageColorHex: string,
+        ) => { value: number; color: string; label: string }[];
+      }
+    ).solutionClassColors(loaded, '#ff0000');
+
+    expect(classColors).toEqual([
+      { value: 2, color: '#2563eb', label: 'Existing protected areas' },
+      { value: 1, color: '#ff0000', label: 'New coverage' },
+    ]);
   });
 
   it('loads two scenarios for comparison and exposes both layers', async () => {
