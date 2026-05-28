@@ -236,6 +236,18 @@ const renderingOverrideByLayerId = {
     startColor: '#fee2e2',
     endColor: '#991b1b',
   },
+  coberturas: {
+    valueType: 'categorical',
+    renderMode: 'categorical',
+    noDataValue: null,
+    classColors: [
+      { value: 1, color: '#166534', label: 'Forest / semi-natural' },
+      { value: 2, color: '#a3e635', label: 'Agriculture' },
+      { value: 3, color: '#f97316', label: 'Urban / artificial' },
+      { value: 4, color: '#0ea5e9', label: 'Wetlands' },
+      { value: 5, color: '#2563eb', label: 'Water' },
+    ],
+  },
 };
 
 const forcedRenderingOverrideLayerIds = new Set([
@@ -319,6 +331,7 @@ const proposedLayerCategoryOverrides = {
   human_footprint_2022: 'socioeconomic',
   human_footprint_2030: 'prospective_models',
   net_benefit: 'socioeconomic',
+  coberturas: 'socioeconomic',
   conflict: 'conflict_and_security',
   climate_refugia: 'prospective_models',
 };

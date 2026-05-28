@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T23:46:01.823Z",
+  "generatedAt": "2026-05-28T22:08:11.970Z",
   "whyThisReportExists": {
     "purpose": "Shows how Vercel Blob solution rasters and metadata files were converted into manifest.solutions.",
     "intendedAudience": "Developers and reviewers validating Solution Finder data readiness.",

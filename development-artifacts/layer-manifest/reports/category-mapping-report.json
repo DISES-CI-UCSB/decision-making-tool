@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T23:46:01.823Z",
+  "generatedAt": "2026-05-28T22:08:11.970Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -8,9 +8,9 @@
   "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
   "frontendSource": "frontend/src/app/features/left-sidebar/map-layers-panel/map-layers-panel.ts",
   "counts": {
-    "manifestCategories": 7,
+    "manifestCategories": 8,
     "currentFrontendCategories": 1,
-    "mappedManifestCategories": 7,
+    "mappedManifestCategories": 8,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 0
   },
@@ -108,11 +108,6 @@
       "manifestSpanishLabel": "Especies y biodiversidad",
       "layerIds": [
         "species_richness",
-        "species_richness_mammals",
-        "species_richness_birds",
-        "species_richness_amphibians",
-        "species_richness_reptiles",
-        "species_richness_plants",
         "species"
       ],
       "frontendCategoryIds": [
@@ -127,41 +122,6 @@
         {
           "layerId": "species_richness",
           "spanishLabel": "Riqueza de especies",
-          "dataRole": "feature_layer",
-          "frontendCategoryId": "group-species-biodiversity",
-          "frontendCategoryTitle": null
-        },
-        {
-          "layerId": "species_richness_mammals",
-          "spanishLabel": "Riqueza de especies - Mamíferos",
-          "dataRole": "feature_layer",
-          "frontendCategoryId": "group-species-biodiversity",
-          "frontendCategoryTitle": null
-        },
-        {
-          "layerId": "species_richness_birds",
-          "spanishLabel": "Riqueza de especies - Aves",
-          "dataRole": "feature_layer",
-          "frontendCategoryId": "group-species-biodiversity",
-          "frontendCategoryTitle": null
-        },
-        {
-          "layerId": "species_richness_amphibians",
-          "spanishLabel": "Riqueza de especies - Anfibios",
-          "dataRole": "feature_layer",
-          "frontendCategoryId": "group-species-biodiversity",
-          "frontendCategoryTitle": null
-        },
-        {
-          "layerId": "species_richness_reptiles",
-          "spanishLabel": "Riqueza de especies - Reptiles",
-          "dataRole": "feature_layer",
-          "frontendCategoryId": "group-species-biodiversity",
-          "frontendCategoryTitle": null
-        },
-        {
-          "layerId": "species_richness_plants",
-          "spanishLabel": "Riqueza de especies - Plantas",
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-species-biodiversity",
           "frontendCategoryTitle": null
@@ -264,11 +224,36 @@
       ]
     },
     {
+      "manifestCategoryId": "environmental_services",
+      "manifestSpanishLabel": "Servicios ecosistémicos",
+      "layerIds": [
+        "recarga_agua_subterranea_moderado_alto"
+      ],
+      "frontendCategoryIds": [
+        "group-environmental-services"
+      ],
+      "frontendCategoryTitles": [
+        null
+      ],
+      "status": "maps_cleanly",
+      "notes": "Environmental service layers map to the existing Environmental Services sidebar group.",
+      "layerMappings": [
+        {
+          "layerId": "recarga_agua_subterranea_moderado_alto",
+          "spanishLabel": "Recarga de aguas subterraneas",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-environmental-services",
+          "frontendCategoryTitle": null
+        }
+      ]
+    },
+    {
       "manifestCategoryId": "socioeconomic",
       "manifestSpanishLabel": "Socioeconómico",
       "layerIds": [
         "human_footprint_2022",
-        "net_benefit"
+        "net_benefit",
+        "coberturas"
       ],
       "frontendCategoryIds": [
         "group-socio-economic"
@@ -290,6 +275,13 @@
           "layerId": "net_benefit",
           "spanishLabel": "Beneficio neto (renta agropecuaria)",
           "dataRole": "cost_layer",
+          "frontendCategoryId": "group-socio-economic",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "coberturas",
+          "spanishLabel": "Cobertura de la tierra",
+          "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-socio-economic",
           "frontendCategoryTitle": null
         }
