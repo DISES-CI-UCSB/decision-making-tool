@@ -566,7 +566,7 @@
         "targetTypeIntro": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "ecosystemsLabel": "Ecosystems",
         "ecosystemsHelp": "Aims to include the full range of Colombia’s different ecosystem types in conservation planning.",
-        "speciesRichnessLabel": "Species (species richness)",
+        "speciesRichnessLabel": "Species",
         "speciesRichnessHelp": "Gives priority to places with the greatest number of different species.",
         "strategicEcosystemsLabel": "Strategic ecosystems",
         "strategicEcosystemsHelp": "Focuses on a specific subset of ecosystem types that are nationally designated as strategic (paramos, mangroves, wetlands, and tropical dry forest), rather than the full range of ecosystem types.",
