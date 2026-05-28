@@ -401,6 +401,14 @@
                               <p
                                 [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
                                 class="v3-m-val"
+                                [attr.data-full-value]="
+                                  entry.fullValue && entry.fullValue !== entry.value
+                                    ? entry.fullValue
+                                    : null
+                                "
+                                [attr.tabindex]="
+                                  entry.fullValue && entry.fullValue !== entry.value ? 0 : null
+                                "
                               >
                                 {{ entry.value }}
                               </p>
@@ -543,6 +551,14 @@
                               <p
                                 [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
                                 class="v3-m-val"
+                                [attr.data-full-value]="
+                                  entry.fullValue && entry.fullValue !== entry.value
+                                    ? entry.fullValue
+                                    : null
+                                "
+                                [attr.tabindex]="
+                                  entry.fullValue && entry.fullValue !== entry.value ? 0 : null
+                                "
                               >
                                 {{ entry.value }}
                               </p>
@@ -774,7 +790,13 @@
                         <div class="aoi-hero-kicker">
                           {{ 'analysis.aoi.hero.priorityAreaLabel' | translate }}
                         </div>
-                        <div class="aoi-hero-value aoi-hero-value-green">
+                        <div
+                          class="aoi-hero-value aoi-hero-value-green"
+                          [attr.data-full-value]="getAoiMetricFullValue('priority_area_in_region')"
+                          [attr.tabindex]="
+                            getAoiMetricFullValue('priority_area_in_region') ? 0 : null
+                          "
+                        >
                           {{ getAoiMetricValue('priority_area_in_region', '230 km²') }}
                         </div>
                         <div class="aoi-hero-bar">
@@ -786,9 +808,15 @@
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
-                          <strong>{{
-                            getAoiMetricValue('priority_area_pct_of_region', '45%')
-                          }}</strong>
+                          <strong
+                            [attr.data-full-value]="
+                              getAoiMetricFullValue('priority_area_pct_of_region')
+                            "
+                            [attr.tabindex]="
+                              getAoiMetricFullValue('priority_area_pct_of_region') ? 0 : null
+                            "
+                            >{{ getAoiMetricValue('priority_area_pct_of_region', '45%') }}</strong
+                          >
                           {{ 'analysis.aoi.hero.ofMunicipality' | translate }}
                         </div>
                       </div>
@@ -796,7 +824,13 @@
                         <div class="aoi-hero-kicker">
                           {{ 'analysis.aoi.hero.nationalContributionLabel' | translate }}
                         </div>
-                        <div class="aoi-hero-value aoi-hero-value-blue">
+                        <div
+                          class="aoi-hero-value aoi-hero-value-blue"
+                          [attr.data-full-value]="getAoiMetricFullValue('national_contribution')"
+                          [attr.tabindex]="
+                            getAoiMetricFullValue('national_contribution') ? 0 : null
+                          "
+                        >
                           {{ getAoiMetricValue('national_contribution', '1.9%') }}
                         </div>
                         <div class="aoi-hero-bar">
@@ -827,7 +861,13 @@
                         <p class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.totalProtectedArea' | translate }}
                         </p>
-                        <p class="aoi-stat-value">
+                        <p
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('protected_area_runap_km2')"
+                          [attr.tabindex]="
+                            getAoiMetricFullValue('protected_area_runap_km2') ? 0 : null
+                          "
+                        >
                           {{ getAoiMetricValue('protected_area_runap_km2', '72 km²') }}
                         </p>
                         <p class="aoi-stat-unit">
@@ -842,7 +882,11 @@
                         <p class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.parksOverlap' | translate }}
                         </p>
-                        <p class="aoi-stat-value">
+                        <p
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('national_parks_pct')"
+                          [attr.tabindex]="getAoiMetricFullValue('national_parks_pct') ? 0 : null"
+                        >
                           {{ getAoiMetricValue('national_parks_pct', '18%') }}
                         </p>
                         <p class="aoi-stat-unit">
@@ -939,7 +983,13 @@
                         <p class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.threatenedSpecies' | translate }}
                         </p>
-                        <p class="aoi-stat-value">
+                        <p
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('threatened_species_count')"
+                          [attr.tabindex]="
+                            getAoiMetricFullValue('threatened_species_count') ? 0 : null
+                          "
+                        >
                           {{ getAoiMetricValue('threatened_species_count', '5') }}
                         </p>
                         <p class="aoi-stat-unit">
@@ -961,7 +1011,13 @@
                       <p class="aoi-stat-label">
                         {{ 'analysis.aoi.stats.nationalSpeciesTotal' | translate }}
                       </p>
-                      <p class="aoi-stat-value">
+                      <p
+                        class="aoi-stat-value"
+                        [attr.data-full-value]="getAoiMetricFullValue('species_pct_of_national')"
+                        [attr.tabindex]="
+                          getAoiMetricFullValue('species_pct_of_national') ? 0 : null
+                        "
+                      >
                         {{ getAoiMetricValue('species_pct_of_national', '7%') }}
                       </p>
                       <p class="aoi-stat-unit">
@@ -1054,7 +1110,11 @@
                         <p class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.totalCarbonBiomass' | translate }}
                         </p>
-                        <p class="aoi-stat-value">
+                        <p
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('carbon_biomass_total')"
+                          [attr.tabindex]="getAoiMetricFullValue('carbon_biomass_total') ? 0 : null"
+                        >
                           {{ getAoiMetricValue('carbon_biomass_total', '85M tCO₂e') }}
                         </p>
                         <p class="aoi-stat-unit">tCO₂e</p>
@@ -1063,7 +1123,13 @@
                         <p class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.nationalCarbon' | translate }}
                         </p>
-                        <p class="aoi-stat-value">
+                        <p
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('carbon_pct_of_national')"
+                          [attr.tabindex]="
+                            getAoiMetricFullValue('carbon_pct_of_national') ? 0 : null
+                          "
+                        >
                           {{ getAoiMetricValue('carbon_pct_of_national', '7%') }}
                         </p>
                         <p class="aoi-stat-unit">
@@ -1074,7 +1140,13 @@
                         <p class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.aboveGroundCarbon' | translate }}
                         </p>
-                        <p class="aoi-stat-value">
+                        <p
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('carbon_storage_biomass')"
+                          [attr.tabindex]="
+                            getAoiMetricFullValue('carbon_storage_biomass') ? 0 : null
+                          "
+                        >
                           {{ getAoiMetricValue('carbon_storage_biomass', '52M tCO₂e') }}
                         </p>
                         <p class="aoi-stat-unit">tCO₂e</p>
@@ -1083,7 +1155,11 @@
                         <p class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.soilOrganicCarbon' | translate }}
                         </p>
-                        <p class="aoi-stat-value">
+                        <p
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('soil_organic_carbon')"
+                          [attr.tabindex]="getAoiMetricFullValue('soil_organic_carbon') ? 0 : null"
+                        >
                           {{ getAoiMetricValue('soil_organic_carbon', '33M tCO₂e') }}
                         </p>
                         <p class="aoi-stat-unit">tCO₂e</p>
@@ -1202,7 +1278,11 @@
                           </div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">
+                          <div
+                            class="aoi-m-val"
+                            [attr.data-full-value]="getAoiMetricFullValue('agricultural_area')"
+                            [attr.tabindex]="getAoiMetricFullValue('agricultural_area') ? 0 : null"
+                          >
                             {{ getAoiMetricValue('agricultural_area', '$125M') }}
                           </div>
                           <div class="aoi-m-unit">
@@ -1300,7 +1380,15 @@
                           </div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">
+                          <div
+                            class="aoi-m-val"
+                            [attr.data-full-value]="
+                              getAoiMetricFullValue('indigenous_reservations_area')
+                            "
+                            [attr.tabindex]="
+                              getAoiMetricFullValue('indigenous_reservations_area') ? 0 : null
+                            "
+                          >
                             {{ getAoiMetricValue('indigenous_reservations_area', '41 km²') }}
                           </div>
                           <div class="aoi-m-unit">
@@ -1321,7 +1409,15 @@
                           </div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">
+                          <div
+                            class="aoi-m-val"
+                            [attr.data-full-value]="
+                              getAoiMetricFullValue('community_councils_area')
+                            "
+                            [attr.tabindex]="
+                              getAoiMetricFullValue('community_councils_area') ? 0 : null
+                            "
+                          >
                             {{ getAoiMetricValue('community_councils_area', '27 km²') }}
                           </div>
                           <div class="aoi-m-unit">
@@ -1342,7 +1438,15 @@
                           </div>
                         </div>
                         <div>
-                          <div class="aoi-m-val">
+                          <div
+                            class="aoi-m-val"
+                            [attr.data-full-value]="
+                              getAoiMetricFullValue('indigenous_territory_pct')
+                            "
+                            [attr.tabindex]="
+                              getAoiMetricFullValue('indigenous_territory_pct') ? 0 : null
+                            "
+                          >
                             {{ getAoiMetricValue('indigenous_territory_pct', '12%') }}
                           </div>
                           <div class="aoi-m-unit">
@@ -1784,16 +1888,44 @@
                               <span
                                 [id]="'right-sidebar-comparison-table-baseline-cell-' + metric.id"
                                 class="c2-compare-value c2-compare-value-baseline"
+                                [attr.data-full-value]="
+                                  metric.baselineFull && metric.baselineFull !== metric.baseline
+                                    ? metric.baselineFull
+                                    : null
+                                "
+                                [attr.tabindex]="
+                                  metric.baselineFull && metric.baselineFull !== metric.baseline
+                                    ? 0
+                                    : null
+                                "
                                 >{{ metric.baseline }}</span
                               >
                               <span
                                 [id]="'right-sidebar-comparison-table-candidate-cell-' + metric.id"
                                 class="c2-compare-value c2-compare-value-candidate"
+                                [attr.data-full-value]="
+                                  metric.candidateFull && metric.candidateFull !== metric.candidate
+                                    ? metric.candidateFull
+                                    : null
+                                "
+                                [attr.tabindex]="
+                                  metric.candidateFull && metric.candidateFull !== metric.candidate
+                                    ? 0
+                                    : null
+                                "
                                 >{{ metric.candidate }}</span
                               >
                               <span
                                 [id]="'right-sidebar-comparison-metric-delta-' + metric.id"
                                 class="c2-delta-badge"
+                                [attr.data-full-value]="
+                                  metric.deltaFull && metric.deltaFull !== metric.delta
+                                    ? metric.deltaFull
+                                    : null
+                                "
+                                [attr.tabindex]="
+                                  metric.deltaFull && metric.deltaFull !== metric.delta ? 0 : null
+                                "
                                 [class.c2-delta-positive]="
                                   metric.deltaTone === 'positive' && !metric.unavailable
                                 "

@@ -15,6 +15,7 @@ import { metricsForScope, nationalMetrics } from '@core/services/cached-metrics.
 import {
   AppStateService,
   type ComparisonVisualizationMode,
+  type MetricNumberFormatMode,
   type RightSidebarMode,
 } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
@@ -56,6 +57,7 @@ interface OverviewMetricDisplayEntry {
   descriptionKey: string;
   iconClass?: string;
   value: string;
+  fullValue: string | null;
   unit: string;
   conditional: boolean;
   unavailable: boolean;
@@ -79,8 +81,11 @@ interface ComparisonMetricDisplayEntry {
   labelKey: string;
   descriptionKey: string;
   baseline: string;
+  baselineFull: string | null;
   candidate: string;
+  candidateFull: string | null;
   delta: string;
+  deltaFull: string | null;
   conditional: boolean;
   unavailable: boolean;
   deltaTone: ComparisonDeltaTone;
@@ -536,6 +541,7 @@ export class PanelSwitcherComponent {
   protected readonly showGenerateRegionalReportButton =
     this.appState.showGenerateRegionalReportButton$;
   protected readonly showMetricIcons = this.appState.showMetricIcons$;
+  protected readonly metricNumberFormatMode = this.appState.metricNumberFormatMode$;
   protected readonly isNotImplementedDialogOpen = signal(false);
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
@@ -722,22 +728,28 @@ export class PanelSwitcherComponent {
       });
   }
 
-  protected formatMetricValue(metric: MetricValue): string {
+  protected formatMetricValue(
+    metric: MetricValue,
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string {
     if (metric.value === null) {
       return this.translate.instant('analysis.common.valueUnavailable');
     }
 
     switch (metric.formatHint) {
       case 'percent':
-        return `${this.formatNumber(metric.value, 0, 1)}%`;
+        return `${this.formatNumber(metric.value, mode, 0, 1)}%`;
       case 'currency':
-        return this.appendUnit(this.formatNumber(metric.value, 1, 1), metric.unit);
+        return this.appendUnit(this.formatNumber(metric.value, mode, 1, 1), metric.unit);
       default:
-        return this.appendUnit(this.formatNumber(metric.value, 0, 2), metric.unit);
+        return this.appendUnit(this.formatNumber(metric.value, mode, 0, 2), metric.unit);
     }
   }
 
-  protected formatDelta(metric: MetricComparisonValue): string {
+  protected formatDelta(
+    metric: MetricComparisonValue,
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string {
     if (metric.delta === null) {
       return this.translate.instant('analysis.common.deltaUnavailable');
     }
@@ -746,15 +758,15 @@ export class PanelSwitcherComponent {
 
     switch (metric.formatHint) {
       case 'percent':
-        return `${sign}${this.formatNumber(metric.delta, 0, 1)}%`;
+        return `${sign}${this.formatNumber(metric.delta, mode, 0, 1)}%`;
       case 'currency':
         return this.appendUnit(
-          `${sign}${this.formatNumber(metric.delta, 1, 1)}`,
+          `${sign}${this.formatNumber(metric.delta, mode, 1, 1)}`,
           metric.candidate.unit,
         );
       default:
         return this.appendUnit(
-          `${sign}${this.formatNumber(metric.delta, 0, 2)}`,
+          `${sign}${this.formatNumber(metric.delta, mode, 0, 2)}`,
           metric.candidate.unit,
         );
     }
@@ -873,6 +885,16 @@ export class PanelSwitcherComponent {
     return '--';
   }
 
+  protected getAoiMetricFullValue(metricId: string): string | null {
+    const metric = this.aoiMetricsById().get(metricId);
+    if (metric && metric.status === 'ready' && metric.value !== null) {
+      const compactValue = this.formatMetricForPanel(metric);
+      const fullValue = this.formatMetricForPanel(metric, 'full');
+      return compactValue === fullValue ? null : fullValue;
+    }
+    return null;
+  }
+
   protected getAoiMetricStatus(metricId: string): string {
     const metric = this.aoiMetricsById().get(metricId);
     return metric && metric.status === 'ready' && metric.value !== null
@@ -986,13 +1008,44 @@ export class PanelSwitcherComponent {
 
   private formatNumber(
     value: number,
+    mode: MetricNumberFormatMode,
     minimumFractionDigits: number,
     maximumFractionDigits: number,
   ): string {
+    if (mode === 'compact') {
+      return this.formatCompactNumber(value, minimumFractionDigits, maximumFractionDigits);
+    }
+
     return new Intl.NumberFormat(this.resolveLocale(), {
       minimumFractionDigits,
       maximumFractionDigits,
     }).format(value);
+  }
+
+  private formatCompactNumber(
+    value: number,
+    minimumFractionDigits: number,
+    maximumFractionDigits: number,
+  ): string {
+    const absoluteValue = Math.abs(value);
+    const locale = this.resolveLocale();
+    const compactScale =
+      absoluteValue >= 1_000_000 ? 1_000_000 : absoluteValue >= 1_000 ? 1_000 : 1;
+    const scaledValue = value / compactScale;
+    const formattedValue = new Intl.NumberFormat(locale, {
+      minimumFractionDigits,
+      maximumFractionDigits: compactScale === 1 ? maximumFractionDigits : 1,
+    }).format(scaledValue);
+
+    if (compactScale === 1_000_000) {
+      return `${formattedValue}M`;
+    }
+
+    if (compactScale === 1_000) {
+      return this.translate.currentLang === 'es' ? `${formattedValue} mil` : `${formattedValue}K`;
+    }
+
+    return formattedValue;
   }
 
   private appendUnit(value: string, unit: string | null): string {
@@ -1010,9 +1063,17 @@ export class PanelSwitcherComponent {
     return unit.replace(/Mg\s*[·x*]\s*km\^?2\b/g, 'Mg·km²').replace(/km\^?2\b/g, 'km²');
   }
 
-  private formatMetricForPanel(metric: MetricValue): string {
+  private formatMetricForPanel(
+    metric: MetricValue,
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string {
     const formattedUnit = this.formatMetricUnit(metric.unit);
-    const number = this.formatNumber(metric.value ?? 0, 0, metric.formatHint === 'percent' ? 1 : 2);
+    const number = this.formatNumber(
+      metric.value ?? 0,
+      mode,
+      0,
+      metric.formatHint === 'percent' ? 1 : 2,
+    );
     if (metric.formatHint === 'percent' || formattedUnit === '%') {
       return `${number}%`;
     }
@@ -1248,6 +1309,7 @@ export class PanelSwitcherComponent {
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
             value: '--',
+            fullValue: null,
             unit: '--',
             conditional: true,
             unavailable: true,
@@ -1264,6 +1326,7 @@ export class PanelSwitcherComponent {
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
             value: this.formatMetricForPanel(realMetric),
+            fullValue: this.formatMetricForPanel(realMetric, 'full'),
             unit: this.localizedText('analysis.status.ready'),
             conditional: Boolean(metric.conditional),
             unavailable: false,
@@ -1277,6 +1340,7 @@ export class PanelSwitcherComponent {
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
             value: metric.dummyValue,
+            fullValue: null,
             unit: this.localizedText(metric.dummyUnitKey ?? ''),
             conditional: Boolean(metric.conditional),
             unavailable: false,
@@ -1289,6 +1353,7 @@ export class PanelSwitcherComponent {
           descriptionKey: metric.descriptionKey,
           iconClass: metric.iconClass,
           value: '--',
+          fullValue: null,
           unit: '--',
           conditional: Boolean(metric.conditional),
           unavailable: true,
@@ -1332,8 +1397,11 @@ export class PanelSwitcherComponent {
         labelKey: blueprint.labelKey,
         descriptionKey: blueprint.descriptionKey,
         baseline: this.formatMetricValue(realMetric.baseline),
+        baselineFull: this.formatMetricValue(realMetric.baseline, 'full'),
         candidate: this.formatMetricValue(realMetric.candidate),
+        candidateFull: this.formatMetricValue(realMetric.candidate, 'full'),
         delta: this.formatDelta(realMetric),
+        deltaFull: this.formatDelta(realMetric, 'full'),
         conditional: Boolean(blueprint.conditional),
         unavailable: false,
         deltaTone:
@@ -1351,8 +1419,11 @@ export class PanelSwitcherComponent {
         labelKey: blueprint.labelKey,
         descriptionKey: blueprint.descriptionKey,
         baseline: blueprint.dummyBaseline,
+        baselineFull: null,
         candidate: blueprint.dummyCandidate,
+        candidateFull: null,
         delta: blueprint.dummyDelta,
+        deltaFull: null,
         conditional: Boolean(blueprint.conditional),
         unavailable: false,
         deltaTone: blueprint.deltaTone ?? 'positive',
@@ -1365,8 +1436,11 @@ export class PanelSwitcherComponent {
         labelKey: blueprint.labelKey,
         descriptionKey: blueprint.descriptionKey,
         baseline: this.formatMetricValue(realMetric.baseline),
+        baselineFull: this.formatMetricValue(realMetric.baseline, 'full'),
         candidate: this.formatMetricValue(realMetric.candidate),
+        candidateFull: this.formatMetricValue(realMetric.candidate, 'full'),
         delta: this.formatDelta(realMetric),
+        deltaFull: this.formatDelta(realMetric, 'full'),
         conditional: Boolean(blueprint.conditional),
         unavailable: true,
         deltaTone: 'neutral',
@@ -1378,8 +1452,11 @@ export class PanelSwitcherComponent {
       labelKey: blueprint.labelKey,
       descriptionKey: blueprint.descriptionKey,
       baseline: '--',
+      baselineFull: null,
       candidate: '--',
+      candidateFull: null,
       delta: '--',
+      deltaFull: null,
       conditional: Boolean(blueprint.conditional),
       unavailable: true,
       deltaTone: 'neutral',

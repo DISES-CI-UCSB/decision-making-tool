@@ -489,6 +489,35 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 {{ showOverviewInputsReminder() ? 'ON' : 'OFF' }}
               </button>
             </div>
+
+            <div
+              id="dev-tools-metric-number-format-toggle-row"
+              class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
+            >
+              <div id="dev-tools-metric-number-format-toggle-copy" class="min-w-0 pr-2">
+                <p
+                  id="dev-tools-metric-number-format-toggle-label"
+                  class="text-[11px] font-semibold text-slate-700"
+                >
+                  Metric number format
+                </p>
+                <p
+                  id="dev-tools-metric-number-format-toggle-hint"
+                  class="text-[10px] leading-4 text-slate-500"
+                >
+                  Compact rounds large values for card scanning; full keeps the raw localized
+                  number.
+                </p>
+              </div>
+              <button
+                id="dev-tools-metric-number-format-toggle-btn"
+                type="button"
+                class="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                (click)="toggleMetricNumberFormatMode()"
+              >
+                {{ metricNumberFormatMode() === 'compact' ? 'Compact' : 'Full' }}
+              </button>
+            </div>
           </section>
 
           <section
@@ -878,6 +907,7 @@ export class DevToolsPanelComponent {
   readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
   readonly showGenerateRegionalReportButton = this.appState.showGenerateRegionalReportButton$;
   readonly showOverviewInputsReminder = this.appState.showOverviewInputsReminder$;
+  readonly metricNumberFormatMode = this.appState.metricNumberFormatMode$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
   readonly canAccessManifestStyleEditor = computed(
@@ -997,6 +1027,12 @@ export class DevToolsPanelComponent {
 
   toggleOverviewInputsReminder(): void {
     this.appState.setShowOverviewInputsReminder(!this.showOverviewInputsReminder());
+  }
+
+  toggleMetricNumberFormatMode(): void {
+    this.appState.setMetricNumberFormatMode(
+      this.metricNumberFormatMode() === 'compact' ? 'full' : 'compact',
+    );
   }
 
   toggleComparisonMetricFill(): void {

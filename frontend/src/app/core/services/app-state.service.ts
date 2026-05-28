@@ -13,6 +13,7 @@ import { environment } from '../../../environments/environment';
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
 export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity' | 'swipe';
+export type MetricNumberFormatMode = 'compact' | 'full';
 export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
 
 export interface MapLegendLayerCategoryEntry {
@@ -123,6 +124,8 @@ export class AppStateService {
   readonly showGenerateRegionalReportButton$ = signal(false);
   /** Dev-only: show the info-icon reminder of Solution Finder inputs next to the overview title. Off until data is ready. */
   readonly showOverviewInputsReminder$ = signal(false);
+  /** Dev-only: compare readable compact metric numbers against full precision values. */
+  readonly metricNumberFormatMode$ = signal<MetricNumberFormatMode>('compact');
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -219,6 +222,10 @@ export class AppStateService {
 
   setShowOverviewInputsReminder(enabled: boolean): void {
     this.showOverviewInputsReminder$.set(enabled);
+  }
+
+  setMetricNumberFormatMode(mode: MetricNumberFormatMode): void {
+    this.metricNumberFormatMode$.set(mode);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {

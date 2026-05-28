@@ -1,10 +1,18 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { AoiType } from '@core/models';
+import type { AOI, AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { AdminBoundaryService, type AdminBoundaryLayerKey } from './admin-boundary.service';
 
 describe('AdminBoundaryService', () => {
+  let selectedAOI: ReturnType<typeof signal<AOI | null>>;
+  let appState: {
+    selectedAOI$: typeof selectedAOI;
+    clearAOI: ReturnType<typeof vi.fn>;
+    setRightSidebarMode: ReturnType<typeof vi.fn>;
+    hasActiveSolution: ReturnType<typeof vi.fn>;
+  };
+
   function boundaryRenderer(
     service: AdminBoundaryService,
     type: AoiType | AdminBoundaryLayerKey,
@@ -19,14 +27,20 @@ describe('AdminBoundaryService', () => {
   }
 
   beforeEach(() => {
+    selectedAOI = signal<AOI | null>(null);
+    appState = {
+      selectedAOI$: selectedAOI,
+      clearAOI: vi.fn(() => selectedAOI.set(null)),
+      setRightSidebarMode: vi.fn(),
+      hasActiveSolution: vi.fn(() => true),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         AdminBoundaryService,
         {
           provide: AppStateService,
-          useValue: {
-            selectedAOI$: signal(null),
-          },
+          useValue: appState,
         },
       ],
     });
@@ -109,5 +123,37 @@ describe('AdminBoundaryService', () => {
         }),
       }),
     );
+  });
+
+  it('clears a selected department when the departments layer is hidden', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    selectedAOI.set({
+      id: 'department:05',
+      name: 'Antioquia',
+      type: 'department',
+      geometryUrl: '/boundaries/departments.geojson',
+    });
+
+    service.setLayerVisibility('admin_departments', false);
+
+    expect(appState.clearAOI).toHaveBeenCalledOnce();
+    expect(appState.setRightSidebarMode).toHaveBeenCalledWith('overview');
+    expect(selectedAOI()).toBeNull();
+  });
+
+  it('keeps a non-department AOI when the departments layer is hidden', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    selectedAOI.set({
+      id: 'omec:site-1',
+      name: 'Protected Site',
+      type: 'omec',
+      geometryUrl: '/boundaries/omec.geojson',
+    });
+
+    service.setLayerVisibility('admin_departments', false);
+
+    expect(appState.clearAOI).not.toHaveBeenCalled();
+    expect(appState.setRightSidebarMode).not.toHaveBeenCalled();
+    expect(selectedAOI()?.id).toBe('omec:site-1');
   });
 });
