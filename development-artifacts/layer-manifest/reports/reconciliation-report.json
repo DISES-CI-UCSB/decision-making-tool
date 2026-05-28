@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T22:08:11.970Z",
+  "generatedAt": "2026-05-28T23:22:28.759Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",

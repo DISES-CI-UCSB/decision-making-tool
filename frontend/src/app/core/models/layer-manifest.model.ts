@@ -40,6 +40,8 @@ export type RuntimeLayerManifestRenderMode = 'mask' | 'gradient' | 'categorical'
 export interface RuntimeLayerManifestClassColor {
   value: number;
   color: string;
+  englishLabel?: string | null;
+  spanishLabel?: string | null;
   label?: string | null;
 }
 
