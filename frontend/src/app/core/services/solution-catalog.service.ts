@@ -93,8 +93,11 @@ export class SolutionCatalogService {
     if (hasInclude('omec')) {
       constraints.push('OMECs');
     }
-    if (hasInclude('comunidades') || hasInclude('resguardos')) {
-      constraints.push('Comunidades');
+    if (hasInclude('comunidades')) {
+      constraints.push('Com');
+    }
+    if (hasInclude('resguardos')) {
+      constraints.push('Res');
     }
 
     return constraints;

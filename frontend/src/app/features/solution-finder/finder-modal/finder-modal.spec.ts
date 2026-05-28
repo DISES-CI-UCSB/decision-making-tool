@@ -41,6 +41,8 @@ describe('FinderModalComponent', () => {
 
     expect(compiled.querySelector('#solution-finder-modal-targets-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2a-column')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-step2a-row-comunidades')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-step2a-row-resguardos')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2b-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-results-column')).not.toBeNull();
   });
@@ -158,6 +160,96 @@ describe('FinderModalComponent', () => {
     });
     expect(component.selectedMatch?.solutionId).toBe('ecos30_runap_hf');
   });
+
+  it.each([
+    {
+      description: 'neither cultural territory layer',
+      includeComunidades: false,
+      includeResguardos: false,
+      expectedSolutionId: 'ecos30_runap_hf',
+    },
+    {
+      description: 'Afro-Colombian communities only',
+      includeComunidades: true,
+      includeResguardos: false,
+      expectedSolutionId: 'ecos30_runap_com_hf',
+    },
+    {
+      description: 'Indigenous reserves only',
+      includeComunidades: false,
+      includeResguardos: true,
+      expectedSolutionId: 'ecos30_runap_res_hf',
+    },
+    {
+      description: 'both cultural territory layers',
+      includeComunidades: true,
+      includeResguardos: true,
+      expectedSolutionId: 'ecos30_runap_com_res_hf',
+    },
+  ])(
+    'matches $description independently',
+    ({ includeComunidades, includeResguardos, expectedSolutionId }) => {
+      vi.useFakeTimers();
+      catalog.getAll.mockReturnValue([
+        buildScenario({
+          id: 'ecos30_runap_hf',
+          name: 'Ecos30+RUNAP_HF',
+          targetFeatureSet: 'ecosystems',
+          targetFeatureIds: ['ecosistemas'],
+          targetPercent: null,
+          costLayerId: 'human_footprint_2022',
+          includeLayerIds: ['runap'],
+        }),
+        buildScenario({
+          id: 'ecos30_runap_com_hf',
+          name: 'Ecos30+RUNAP+Com_HF',
+          targetFeatureSet: 'ecosystems',
+          targetFeatureIds: ['ecosistemas'],
+          targetPercent: null,
+          costLayerId: 'human_footprint_2022',
+          includeLayerIds: ['runap', 'comunidades'],
+        }),
+        buildScenario({
+          id: 'ecos30_runap_res_hf',
+          name: 'Ecos30+RUNAP+Res_HF',
+          targetFeatureSet: 'ecosystems',
+          targetFeatureIds: ['ecosistemas'],
+          targetPercent: null,
+          costLayerId: 'human_footprint_2022',
+          includeLayerIds: ['runap', 'resguardos'],
+        }),
+        buildScenario({
+          id: 'ecos30_runap_com_res_hf',
+          name: 'Ecos30+RUNAP+Com+Res_HF',
+          targetFeatureSet: 'ecosystems',
+          targetFeatureIds: ['ecosistemas'],
+          targetPercent: null,
+          costLayerId: 'human_footprint_2022',
+          includeLayerIds: ['runap', 'comunidades', 'resguardos'],
+        }),
+      ]);
+      const fixture = TestBed.createComponent(FinderModalComponent);
+      const component = fixture.componentInstance as unknown as {
+        selectedTargetTypeIds: string[];
+        targetLevelByType: Record<string, 17 | 30>;
+        selectedCostLayerId: string;
+        includeComunidades: boolean;
+        includeResguardos: boolean;
+        runMatching: () => void;
+        matchResults: { solutionId: string }[];
+      };
+
+      component.selectedTargetTypeIds = ['ecosystems'];
+      component.targetLevelByType = { ecosystems: 30 };
+      component.selectedCostLayerId = 'human-footprint';
+      component.includeComunidades = includeComunidades;
+      component.includeResguardos = includeResguardos;
+      component.runMatching();
+      vi.advanceTimersByTime(350);
+
+      expect(component.matchResults.map((match) => match.solutionId)).toEqual([expectedSolutionId]);
+    },
+  );
 
   it('does not match conflict-cost scenarios from stale selections', () => {
     vi.useFakeTimers();

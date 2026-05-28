@@ -165,6 +165,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   /** Step 2A (variable) */
   protected includeOmecs = false;
   protected includeComunidades = false;
+  protected includeResguardos = false;
 
   /** Step 2B */
   protected selectedCostLayerId: CostLayerChoice | null = null;
@@ -291,6 +292,14 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.clearResultsIfNeeded();
   }
 
+  protected toggleIncludeResguardos(): void {
+    if (!this.isStep2Unlocked()) {
+      return;
+    }
+    this.includeResguardos = !this.includeResguardos;
+    this.clearResultsIfNeeded();
+  }
+
   protected runMatching(): void {
     this.clearLoadingTimer();
 
@@ -349,6 +358,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.targetLevelByType = {};
     this.includeOmecs = false;
     this.includeComunidades = false;
+    this.includeResguardos = false;
     this.selectedCostLayerId = null;
     this.matchResults = [];
     this.selectedMatchId = null;
@@ -381,6 +391,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       n += 1;
     }
     if (this.includeComunidades) {
+      n += 1;
+    }
+    if (this.includeResguardos) {
       n += 1;
     }
     return n;
@@ -443,10 +456,13 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       return false;
     }
 
-    const hasComunidades = includeIds.some(
-      (id) => id.includes('comunidades') || id.includes('resguardos'),
-    );
+    const hasComunidades = includeIds.some((id) => id.includes('comunidades'));
     if (hasComunidades !== this.includeComunidades) {
+      return false;
+    }
+
+    const hasResguardos = includeIds.some((id) => id.includes('resguardos'));
+    if (hasResguardos !== this.includeResguardos) {
       return false;
     }
 
