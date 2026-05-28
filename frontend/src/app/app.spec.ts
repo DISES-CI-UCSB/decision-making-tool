@@ -166,8 +166,8 @@ function buildManifestScenario(): SolutionScenario {
       renderMode: 'categorical',
       noDataValue: 255,
       classColors: [
-        { value: 1, color: '#2563eb', label: 'Existing protected areas' },
-        { value: 2, color: '#16a34a', label: 'New coverage' },
+        { value: 1, color: '#16a34a', label: 'New coverage' },
+        { value: 2, color: '#2563eb', label: 'Existing protected areas' },
       ],
     },
     finderInputs: {

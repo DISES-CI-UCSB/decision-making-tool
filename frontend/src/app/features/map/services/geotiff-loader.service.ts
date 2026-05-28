@@ -7,8 +7,8 @@ import type {
   SolutionScenario,
 } from '@core/models/solution-scenario.model';
 
-const EXISTING_PROTECTED_VALUE = 1;
-const NEW_COVERAGE_VALUE = 2;
+const NEW_COVERAGE_VALUE = 1;
+const EXISTING_PROTECTED_VALUE = 2;
 const EXISTING_PROTECTED_COLOR: [number, number, number, number] = [37, 99, 235, 180];
 const NEW_COVERAGE_COLOR: [number, number, number, number] = [22, 163, 74, 180];
 const NO_DATA_COLOR: [number, number, number, number] = [0, 0, 0, 0];

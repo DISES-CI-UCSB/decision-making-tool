@@ -33,8 +33,8 @@ export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
 export const DEFAULT_SOLUTION_LAYER_OPACITY = 0.8;
 
 const SOLUTION_ALPHA = 255;
-const EXISTING_PROTECTED_VALUE = 1;
-const NEW_COVERAGE_VALUE = 2;
+const NEW_COVERAGE_VALUE = 1;
+const EXISTING_PROTECTED_VALUE = 2;
 const EARTH_RADIUS_KM = 6371.0088;
 const GRID_ABSOLUTE_TOLERANCE = 1e-7;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
@@ -131,7 +131,7 @@ export class SolutionLayerService {
       const restoredColor =
         this.userSingleColorByScenarioId.get(loaded.scenario.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
       this.solutionColor$.set(restoredColor);
-      this.existingProtectedColor$.set(this.solutionClassColors(loaded, restoredColor)[0].color);
+      this.syncExistingProtectedColor(loaded, restoredColor);
       this.lastSingleSolutionId = loaded.scenario.id;
       this.currentLayer = this.createLayerFromLoaded(
         loaded,
@@ -475,6 +475,30 @@ export class SolutionLayerService {
       overlapRasterData,
       normalized,
     );
+  }
+
+  refreshSolutionClassRendering(): void {
+    const loaded = this.loadedSolution$();
+    if (loaded) {
+      this.syncExistingProtectedColor(loaded, this.solutionColor$());
+    }
+    if (loaded && this.currentLayer) {
+      this.applyLayerColor(this.currentLayer, loaded, this.solutionColor$());
+    }
+    if (this.baselineComparisonLayer && this.baselineComparisonLoaded) {
+      this.applyLayerColor(
+        this.baselineComparisonLayer,
+        this.baselineComparisonLoaded,
+        this.baselineColor$(),
+      );
+    }
+    if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
+      this.applyLayerColor(
+        this.candidateComparisonLayer,
+        this.candidateComparisonLoaded,
+        this.candidateColor$(),
+      );
+    }
   }
 
   private createLayerFromLoaded(
@@ -868,6 +892,23 @@ export class SolutionLayerService {
       (entry) => entry.value === EXISTING_PROTECTED_VALUE,
     );
     const newCoverageClass = classColors.find((entry) => entry.value === NEW_COVERAGE_VALUE);
+    const selectedSolutionColor =
+      newCoverageColorHex || newCoverageClass?.color || DEFAULT_SINGLE_SOLUTION_HEX;
+
+    if (!this.appState.showExistingProtectedCoverage$()) {
+      return [
+        {
+          value: EXISTING_PROTECTED_VALUE,
+          color: selectedSolutionColor,
+          label: 'Selected solution',
+        },
+        {
+          value: NEW_COVERAGE_VALUE,
+          color: selectedSolutionColor,
+          label: 'Selected solution',
+        },
+      ];
+    }
 
     return [
       {
@@ -877,10 +918,16 @@ export class SolutionLayerService {
       },
       {
         value: NEW_COVERAGE_VALUE,
-        color: newCoverageColorHex || newCoverageClass?.color || DEFAULT_SINGLE_SOLUTION_HEX,
+        color: selectedSolutionColor,
         label: newCoverageClass?.label ?? 'New coverage',
       },
     ];
+  }
+
+  private syncExistingProtectedColor(loaded: LoadedSolution, newCoverageColorHex: string): void {
+    this.existingProtectedColor$.set(
+      this.solutionClassColors(loaded, newCoverageColorHex)[0].color,
+    );
   }
 
   private defaultSolutionClassColors(
