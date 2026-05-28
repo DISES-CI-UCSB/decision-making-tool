@@ -314,6 +314,13 @@
         "generatedAt": {
           "$ref": "#/$defs/nullableString"
         },
+        "precomputedMetricUrls": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
         "finderInputs": {
           "$ref": "#/$defs/solutionFinderInputs"
         },

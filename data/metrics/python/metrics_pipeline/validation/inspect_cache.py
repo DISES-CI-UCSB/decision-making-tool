@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from compact_metrics import to_verbose_document
+
 _METRIC_KEYS = frozenset({
     "metricId",
     "value",
@@ -157,7 +159,7 @@ def inspect_publish_report(
             continue
 
         try:
-            doc = json.loads(cache_path.read_text(encoding="utf-8"))
+            doc = to_verbose_document(json.loads(cache_path.read_text(encoding="utf-8")))
         except json.JSONDecodeError as exc:
             result.issues.append(InspectIssue(solution_id, f"invalid JSON: {exc}"))
             continue

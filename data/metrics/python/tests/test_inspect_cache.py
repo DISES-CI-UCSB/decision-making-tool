@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from validation.inspect_cache import inspect_publish_report
+from compact_metrics import to_compact_document
 
 
 def _write_cache(cache_dir: Path, solution_id: str, doc: dict) -> Path:
@@ -118,6 +119,34 @@ def test_inspect_publish_report_honors_solution_filter(tmp_path: Path):
         repo_root=repo_root,
         solution_ids={"solution_a"},
     )
+
+    assert result.ok
+    assert result.entries_checked == 1
+    assert result.entries_ok == 1
+
+
+def test_inspect_publish_report_accepts_compact_metrics_doc(tmp_path: Path):
+    repo_root = tmp_path
+    output_dir = repo_root / "generated" / "compact"
+    compact_path = output_dir / "cache" / "demo_solution.metrics.compact.json"
+    compact_path.parent.mkdir(parents=True)
+    compact_path.write_text(
+        json.dumps(to_compact_document(_minimal_doc("demo_solution")), separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    report = {
+        "entries": [
+            {
+                "solutionId": "demo_solution",
+                "cachePath": str(compact_path.relative_to(repo_root)),
+                "expectedBlobPath": "metrics/staged/demo_solution.metrics.compact.json",
+            }
+        ]
+    }
+    report_path = output_dir / "publish-report.json"
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+    result = inspect_publish_report(report_path, repo_root=repo_root)
 
     assert result.ok
     assert result.entries_checked == 1

@@ -3,7 +3,7 @@
 Conventions:
 - Solution rasters follow the frontend GeoTiffLoaderService rule:
     * skip GDAL nodata cells when present
-    * cells equal to 1 are 'selected'
+    * valid cells greater than 0 are 'selected'
     * all other valid cells are 'not selected'
 - Feature/include layer rasters used here are binary masks. We treat any
   finite, non-nodata, non-zero value as 'present' to be lenient across layer
@@ -154,7 +154,7 @@ def read_solution_raster(path: Path) -> SolutionRaster:
         )
         if np.issubdtype(band.dtype, np.floating):
             valid &= np.isfinite(band)
-        selected = valid & (band == 1)
+        selected = valid & (band > 0)
         return SolutionRaster(
             path=path,
             selected_mask=selected,

@@ -14,6 +14,7 @@ export interface SolutionScenario {
   displayUrl: string;
   displayCogUrl?: string | null;
   metadataUrl: string;
+  precomputedMetricUrls?: Record<string, string>;
   rendering: RuntimeLayerManifestRenderingConfig;
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;

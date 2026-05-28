@@ -1,5 +1,6 @@
 import type {
   CachedSolutionMetricsDocument,
+  CompactSolutionMetricsDocument,
   GeographyLevel,
   GeographyMetricsScope,
   MetricValue,
@@ -8,6 +9,7 @@ import type {
 
 export const CACHED_METRICS_BLOB_PREFIX = 'metrics/cache';
 export const CACHED_METRICS_SUFFIX = '.metrics.json';
+export const COMPACT_METRICS_FORMAT = 'metrics-compact-v1';
 
 export function toSafeSolutionId(solutionId: string): string {
   return solutionId.replace(/\//g, '_').replace(/ /g, '_');
@@ -28,6 +30,59 @@ export function deriveBlobHostFromUrl(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+export function isCompactMetricsDocument(
+  document: CachedSolutionMetricsDocument | CompactSolutionMetricsDocument,
+): document is CompactSolutionMetricsDocument {
+  return 'format' in document && document.format === COMPACT_METRICS_FORMAT;
+}
+
+export function expandCompactMetricsDocument(
+  document: CompactSolutionMetricsDocument,
+): CachedSolutionMetricsDocument {
+  const geographies: CachedSolutionMetricsDocument['geographies'] = {};
+
+  for (const [level, scopes] of Object.entries(document.geographies)) {
+    if (!scopes) continue;
+    geographies[level] = Object.fromEntries(
+      Object.entries(scopes).map(([scopeId, scope]) => [
+        scopeId,
+        {
+          ...(scope.name ? { name: scope.name } : {}),
+          ...(scope.kind ? { kind: scope.kind } : {}),
+          ...(scope.subtype ? { subtype: scope.subtype } : {}),
+          metrics: scope.metrics.map(
+            ([metricIndex, value, statusIndex, sourceIndex, notesIndex]) => {
+              const [metricId, unit, labelKey, formatHint] = document.metricCatalog[metricIndex];
+              return {
+                metricId,
+                value,
+                unit,
+                status: document.statusCatalog[statusIndex],
+                source: document.sourceCatalog[sourceIndex],
+                notes: document.notesCatalog[notesIndex],
+                labelKey,
+                formatHint,
+              };
+            },
+          ),
+        },
+      ]),
+    );
+  }
+
+  return {
+    solutionId: document.solutionId,
+    generatedAt: document.generatedAt,
+    geographies,
+  };
+}
+
+export function normalizeMetricsDocument(
+  document: CachedSolutionMetricsDocument | CompactSolutionMetricsDocument,
+): CachedSolutionMetricsDocument {
+  return isCompactMetricsDocument(document) ? expandCompactMetricsDocument(document) : document;
 }
 
 export function nationalMetrics(

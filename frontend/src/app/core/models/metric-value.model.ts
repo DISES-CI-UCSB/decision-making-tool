@@ -67,6 +67,39 @@ export interface CachedSolutionMetricsDocument {
   geographies: CachedSolutionMetricsGeographies;
 }
 
+export type CompactMetricsFormat = 'metrics-compact-v1';
+export type CompactMetricCatalogEntry = [
+  metricId: string,
+  unit: string | null,
+  labelKey: string,
+  formatHint: MetricValueFormatHint,
+];
+export type CompactMetricRow = [
+  metricIndex: number,
+  value: number | null,
+  statusIndex: number,
+  sourceIndex: number,
+  notesIndex: number,
+];
+
+export interface CompactGeographyMetricsScope {
+  name?: string;
+  kind?: string;
+  subtype?: string;
+  metrics: CompactMetricRow[];
+}
+
+export interface CompactSolutionMetricsDocument {
+  format: CompactMetricsFormat;
+  solutionId: string;
+  generatedAt: string;
+  metricCatalog: CompactMetricCatalogEntry[];
+  statusCatalog: MetricReadinessStatus[];
+  sourceCatalog: string[];
+  notesCatalog: (string | null)[];
+  geographies: Record<string, Record<string, CompactGeographyMetricsScope> | undefined>;
+}
+
 /** @deprecated Mock API only — real solutions use CachedSolutionMetricsDocument. */
 export interface SolutionMetricsResponse {
   solutionId: string;

@@ -29,7 +29,7 @@ For each solution, this script:
 3. Writes one multi-geography JSON per solution to:
    data/metrics/generated/<output_dir>/cache/<solution_id>.metrics.json
 4. Writes a publish-report.json listing what was generated and the expected
-   Vercel Blob upload target (metrics/cache/<solution_id>.metrics.json).
+   Vercel Blob upload target (metrics/cache/<solution_id>.metrics.json by default).
 
 After generation, inspect then publish (from repo root):
 
@@ -62,6 +62,7 @@ from boundaries.boundary_id_grid import BoundaryIdGrid, build_grids_for_levels
 from boundaries.boundary_loader import BoundaryFeature, load_all_boundaries
 from boundaries.boundary_mask import BoundaryMaskCache
 from local_io import (
+    CACHE_BLOB_DIRECTORY,
     DEFAULT_CACHE_DIR,
     DEFAULT_OUTPUT_DIR,
     cache_solution_path,
@@ -278,6 +279,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"Local raster + boundary download cache (default: {DEFAULT_CACHE_DIR}).",
     )
     parser.add_argument(
+        "--cache-blob-directory",
+        default=CACHE_BLOB_DIRECTORY,
+        help=(
+            "Vercel Blob prefix recorded in publish-report.json for generated metric caches "
+            f"(default: {CACHE_BLOB_DIRECTORY})."
+        ),
+    )
+    parser.add_argument(
         "--solution-id",
         action="append",
         default=None,
@@ -390,6 +399,7 @@ def _resume_entry_for_existing_cache(
     solution: dict[str, Any],
     manifest: ResolvedManifest,
     output_dir: Path,
+    cache_blob_directory: str,
 ) -> dict[str, Any] | None:
     """Return a publish-report entry for an existing valid cache file, if present."""
     solution_id = str(solution.get("id"))
@@ -415,8 +425,15 @@ def _resume_entry_for_existing_cache(
         "solutionId": solution_id,
         "solutionBasename": solution_blob_basename(solution),
         "cachePath": str(cache_path),
-        "expectedBlobPath": expected_cache_blob_path(solution_id),
-        "expectedPublicUrl": expected_cache_public_url(manifest.public_blob_host, solution_id),
+        "expectedBlobPath": expected_cache_blob_path(
+            solution_id,
+            cache_blob_directory=cache_blob_directory,
+        ),
+        "expectedPublicUrl": expected_cache_public_url(
+            manifest.public_blob_host,
+            solution_id,
+            cache_blob_directory=cache_blob_directory,
+        ),
         "geographyLevels": list(geographies.keys()),
         "nationalMetricStatusCounts": (
             _status_counts(national_metrics)
@@ -1153,6 +1170,7 @@ def _process_solution(
     boundary_grids: dict[str, BoundaryIdGrid] | None = None,
     skip_species: bool = False,
     skip_species_boundary_levels: set[str] | None = None,
+    cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
@@ -1290,8 +1308,15 @@ def _process_solution(
         "solutionId": solution_id,
         "solutionBasename": basename,
         "cachePath": str(cache_path),
-        "expectedBlobPath": expected_cache_blob_path(solution_id),
-        "expectedPublicUrl": expected_cache_public_url(manifest.public_blob_host, solution_id),
+        "expectedBlobPath": expected_cache_blob_path(
+            solution_id,
+            cache_blob_directory=cache_blob_directory,
+        ),
+        "expectedPublicUrl": expected_cache_public_url(
+            manifest.public_blob_host,
+            solution_id,
+            cache_blob_directory=cache_blob_directory,
+        ),
         "rasterCacheSha256": download.sha256,
         "selectedCells": raster.selected_cells,
         "validCells": raster.valid_cells,
@@ -1365,7 +1390,12 @@ def main(argv: list[str] | None = None) -> int:
         pending_solutions = solutions
     else:
         for solution in solutions:
-            resume_entry = _resume_entry_for_existing_cache(solution, manifest, args.output_dir)
+            resume_entry = _resume_entry_for_existing_cache(
+                solution,
+                manifest,
+                args.output_dir,
+                args.cache_blob_directory,
+            )
             if resume_entry is None:
                 pending_solutions.append(solution)
             else:
@@ -1448,6 +1478,7 @@ def main(argv: list[str] | None = None) -> int:
                     boundary_grids=boundary_grids,
                     skip_species=args.skip_species,
                     skip_species_boundary_levels=set(args.skip_species_boundary_level),
+                    cache_blob_directory=args.cache_blob_directory,
                 )
             )
         except Exception as exc:
@@ -1466,6 +1497,7 @@ def main(argv: list[str] | None = None) -> int:
         "publicBlobHost": manifest.public_blob_host,
         "outputDir": str(args.output_dir),
         "cacheDir": str(args.cache_dir),
+        "cacheBlobDirectory": args.cache_blob_directory,
         "geographyLevels": geo_levels,
         "boundaryErrors": boundary_errors if not args.national_only else {},
         "metricCatalog": [m.metric_id for m in METRIC_CATALOG],

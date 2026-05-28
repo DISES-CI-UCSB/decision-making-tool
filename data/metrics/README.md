@@ -78,6 +78,41 @@ python data/metrics/python/metrics_pipeline/publish.py
 Requires `BLOB_READ_WRITE_TOKEN` in `.env.local` and the Vercel CLI on PATH.
 Use `publish.py --dry-run` to preview uploads without writing to Blob.
 
+For staged scenario batches, keep production metric blobs untouched by passing a
+staging prefix into the generated publish report:
+
+```bash
+python data/metrics/python/metrics_pipeline/main.py \
+    --manifest-url https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/staging/nick-runs-2026-05-27.json \
+    --output-dir data/metrics/generated/nick-runs-2026-05-27 \
+    --cache-dir data/metrics/cache/tier1 \
+    --cache-blob-directory metrics/nick-runs/2026-05-27/cache \
+    --limit 1
+```
+
+Verbose multi-geography metric JSON is useful for local inspection but can be
+large when it includes municipalities, RUNAPs, OMECs, and SIRAPs. Convert a
+validated verbose batch into compact app-readable JSON before staging upload:
+
+```bash
+python data/metrics/python/metrics_pipeline/compact_metrics.py \
+    --input-dir data/metrics/generated/nick-runs-2026-05-27 \
+    --output-dir data/metrics/generated/nick-runs-2026-05-27-compact \
+    --cache-blob-directory metrics/nick-runs/2026-05-27/compact-cache
+
+python data/metrics/python/metrics_pipeline/inspect_metrics.py \
+    --output-dir data/metrics/generated/nick-runs-2026-05-27-compact
+
+python data/metrics/python/metrics_pipeline/publish.py \
+    --output-dir data/metrics/generated/nick-runs-2026-05-27-compact \
+    --dry-run
+```
+
+The compact format stores repeated metric IDs, units, labels, statuses, sources,
+and notes in catalogs, then writes each boundary metric as a short row of
+catalog indexes plus the metric value. The frontend expands this wire format
+back into the normal cached metrics document before analysis panels read it.
+
 ## Large scenario batches
 
 The pipeline resumes by default: if `generated/tier1/cache/<solution_id>.metrics.json`

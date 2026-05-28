@@ -117,13 +117,27 @@ def cache_solution_path(output_dir: Path, solution_id: str) -> Path:
     return output_dir / "cache" / f"{safe_id}{CACHE_SUFFIX}"
 
 
-def expected_cache_blob_path(solution_id: str) -> str:
+def expected_cache_blob_path(
+    solution_id: str,
+    *,
+    cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
+) -> str:
     safe_id = solution_id.replace("/", "_").replace(" ", "_")
-    return f"{CACHE_BLOB_DIRECTORY}/{safe_id}{CACHE_SUFFIX}"
+    normalized_directory = cache_blob_directory.strip("/")
+    return f"{normalized_directory}/{safe_id}{CACHE_SUFFIX}"
 
 
-def expected_cache_public_url(public_blob_host: str, solution_id: str) -> str:
-    return f"{public_blob_host.rstrip('/')}/{expected_cache_blob_path(solution_id)}"
+def expected_cache_public_url(
+    public_blob_host: str,
+    solution_id: str,
+    *,
+    cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
+) -> str:
+    blob_path = expected_cache_blob_path(
+        solution_id,
+        cache_blob_directory=cache_blob_directory,
+    )
+    return f"{public_blob_host.rstrip('/')}/{blob_path}"
 
 
 def write_solution_cache(

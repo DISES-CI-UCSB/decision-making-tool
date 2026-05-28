@@ -165,6 +165,7 @@ export interface RuntimeSolutionManifestEntry {
   metadataFile: string;
   blobPath: string;
   generatedAt: string | null;
+  precomputedMetricUrls?: Record<string, string>;
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;
   summaryMetrics: RuntimeSolutionManifestSummaryMetrics;

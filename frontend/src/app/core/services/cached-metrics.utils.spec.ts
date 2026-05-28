@@ -1,6 +1,7 @@
 import {
   buildCachedMetricsBlobPath,
   buildCachedMetricsUrl,
+  expandCompactMetricsDocument,
   metricsForScope,
   nationalMetrics,
   toSafeSolutionId,
@@ -71,5 +72,38 @@ describe('cached-metrics.utils', () => {
 
     expect(metricsForScope(document, 'departments', '05')).toHaveLength(1);
     expect(metricsForScope(document, 'municipalities', '05001')).toEqual([]);
+  });
+
+  it('expands compact metrics documents into the cached metrics shape', () => {
+    const document = expandCompactMetricsDocument({
+      format: 'metrics-compact-v1',
+      solutionId: 'demo',
+      generatedAt: '2026-05-28T00:00:00Z',
+      metricCatalog: [['national_contribution', '%', 'metrics.national_contribution', 'percent']],
+      statusCatalog: ['ready'],
+      sourceCatalog: ['raster:solution'],
+      notesCatalog: [null],
+      geographies: {
+        national: {
+          colombia: {
+            name: 'Colombia',
+            metrics: [[0, 12.5, 0, 0, 0]],
+          },
+        },
+      },
+    });
+
+    expect(nationalMetrics(document)).toEqual([
+      {
+        metricId: 'national_contribution',
+        value: 12.5,
+        unit: '%',
+        status: 'ready',
+        source: 'raster:solution',
+        notes: null,
+        labelKey: 'metrics.national_contribution',
+        formatHint: 'percent',
+      },
+    ]);
   });
 });

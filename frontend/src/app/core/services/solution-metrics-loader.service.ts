@@ -1,9 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import type { CachedSolutionMetricsDocument } from '@core/models';
-import { Observable, catchError, of } from 'rxjs';
+import type { CachedSolutionMetricsDocument, CompactSolutionMetricsDocument } from '@core/models';
+import { Observable, catchError, map, of } from 'rxjs';
 
-import { buildCachedMetricsUrl, deriveBlobHostFromUrl } from './cached-metrics.utils';
+import {
+  buildCachedMetricsUrl,
+  deriveBlobHostFromUrl,
+  normalizeMetricsDocument,
+} from './cached-metrics.utils';
 import { SolutionCatalogService } from './solution-catalog.service';
 
 /**
@@ -24,6 +28,13 @@ export class SolutionMetricsLoaderService {
     if (!scenario?.displayUrl) {
       return null;
     }
+    const precomputedUrl =
+      scenario.precomputedMetricUrls?.['compactCache'] ??
+      scenario.precomputedMetricUrls?.['compact'] ??
+      scenario.precomputedMetricUrls?.['cache'];
+    if (precomputedUrl) {
+      return precomputedUrl;
+    }
     const blobHost = deriveBlobHostFromUrl(scenario.displayUrl);
     if (!blobHost) {
       return null;
@@ -36,6 +47,11 @@ export class SolutionMetricsLoaderService {
     if (!cacheUrl) {
       return of(null);
     }
-    return this.http.get<CachedSolutionMetricsDocument>(cacheUrl).pipe(catchError(() => of(null)));
+    return this.http
+      .get<CachedSolutionMetricsDocument | CompactSolutionMetricsDocument>(cacheUrl)
+      .pipe(
+        map((document) => normalizeMetricsDocument(document)),
+        catchError(() => of(null)),
+      );
   }
 }
