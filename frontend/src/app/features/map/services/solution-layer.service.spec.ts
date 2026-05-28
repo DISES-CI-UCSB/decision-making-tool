@@ -198,6 +198,24 @@ describe('SolutionLayerService', () => {
     ]);
   });
 
+  it('collapses existing include coverage into the selected color for comparison layers', () => {
+    const loaded = createLoadedSolution('baseline');
+    const classColors = (
+      service as unknown as {
+        solutionClassColors: (
+          loaded: LoadedSolution,
+          newCoverageColorHex: string,
+          options?: { collapseExistingProtectedCoverage?: boolean },
+        ) => { value: number; color: string; label: string }[];
+      }
+    ).solutionClassColors(loaded, '#7c3aed', { collapseExistingProtectedCoverage: true });
+
+    expect(classColors).toEqual([
+      { value: 2, color: '#7c3aed', label: 'Selected solution' },
+      { value: 1, color: '#7c3aed', label: 'Selected solution' },
+    ]);
+  });
+
   it('loads two scenarios for comparison and exposes both layers', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
@@ -273,6 +291,7 @@ describe('SolutionLayerService', () => {
       expect.any(String),
       expect.any(String),
       DEFAULT_SINGLE_SOLUTION_HEX,
+      { collapseExistingProtectedCoverage: true },
     );
     expect(createLayerSpy).toHaveBeenNthCalledWith(
       2,
@@ -280,6 +299,7 @@ describe('SolutionLayerService', () => {
       expect.any(String),
       expect.any(String),
       DEFAULT_COMPARISON_CANDIDATE_HEX,
+      { collapseExistingProtectedCoverage: true },
     );
   });
 
