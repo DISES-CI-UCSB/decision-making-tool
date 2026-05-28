@@ -723,7 +723,8 @@
       "birds": "Aves",
       "amphibians": "Anfibios",
       "reptiles": "Reptiles",
-      "plants": "Plantas"
+      "plants": "Plantas",
+      "fish": "Peces"
     },
     "sourceLabels": {
       "selectedScenario": "Escenario seleccionado",

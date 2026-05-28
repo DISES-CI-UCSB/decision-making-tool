@@ -207,6 +207,7 @@ const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabel: stri
   Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
+  Actinopteri: { taxonId: 'fish', taxonLabel: 'Fish' },
 };
 const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
   ['taxon-mammals', 0],
@@ -214,6 +215,7 @@ const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
   ['taxon-amphibians', 2],
   ['taxon-reptiles', 3],
   ['taxon-plants', 4],
+  ['taxon-fish', 5],
 ]);
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
@@ -3811,6 +3813,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       'taxon-amphibians': 'mapLayersPanel.taxaNames.amphibians',
       'taxon-reptiles': 'mapLayersPanel.taxaNames.reptiles',
       'taxon-plants': 'mapLayersPanel.taxaNames.plants',
+      'taxon-fish': 'mapLayersPanel.taxaNames.fish',
     };
     const key = taxonNameKeys[taxonId];
     return key ? this.localizedText(key) : undefined;
