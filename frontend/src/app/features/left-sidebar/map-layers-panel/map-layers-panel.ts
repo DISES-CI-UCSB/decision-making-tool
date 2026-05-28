@@ -58,6 +58,7 @@ interface LayerControlRow {
   id: string;
   name: string;
   countLabel?: string;
+  parentId?: string;
   selected: boolean;
   visible: boolean;
   expanded: boolean;
@@ -179,6 +180,15 @@ const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
 const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manifest.json';
 const SPECIES_COLLECTION_ROW_ID = 'layer-species';
+const SPECIES_RICHNESS_GROUP_ROW_ID = 'layer-species-richness-group';
+const SPECIES_RICHNESS_LAYER_IDS = new Set([
+  'layer-species_richness',
+  'layer-species_richness_mammals',
+  'layer-species_richness_birds',
+  'layer-species_richness_amphibians',
+  'layer-species_richness_reptiles',
+  'layer-species_richness_plants',
+]);
 const SPECIES_TAXONOMY_CSV_URL =
   'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv';
 const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
@@ -840,9 +850,13 @@ export class MapLayersPanelComponent implements OnDestroy {
           return group;
         }
 
-        const rows = manifestGroup.rows.map((row, index) =>
+        const manifestRows = manifestGroup.rows.map((row, index) =>
           this.manifestSidebarLayerRow(group.id, row, index, group.rows),
         );
+        const rows =
+          group.id === 'group-species-biodiversity'
+            ? this.withSpeciesRichnessGroupRows(manifestRows, group.rows)
+            : manifestRows;
 
         return {
           ...group,
@@ -1089,6 +1103,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     return {
       id: layerId,
       name: this.manifestSidebarLayerName(manifestRow),
+      parentId: this.isSpeciesRichnessLayerId(layerId) ? SPECIES_RICHNESS_GROUP_ROW_ID : undefined,
       selected: existingSelected,
       visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
       expanded: existingRow?.expanded ?? false,
@@ -1108,6 +1123,43 @@ export class MapLayersPanelComponent implements OnDestroy {
             }
           : undefined,
     };
+  }
+
+  private withSpeciesRichnessGroupRows(
+    rows: LayerControlRow[],
+    existingRows: LayerControlRow[],
+  ): LayerControlRow[] {
+    const richnessRows = rows.filter((row) => this.isSpeciesRichnessLayerId(row.id));
+    if (richnessRows.length <= 1) {
+      return rows;
+    }
+
+    const richnessIds = new Set(richnessRows.map((row) => row.id));
+    const firstRichnessIndex = rows.findIndex((row) => richnessIds.has(row.id));
+    const existingParent = existingRows.find((row) => row.id === SPECIES_RICHNESS_GROUP_ROW_ID);
+    const parentRow: LayerControlRow = {
+      id: SPECIES_RICHNESS_GROUP_ROW_ID,
+      name: this.localizedTextOrFallback('mapLayersPanel.speciesRichness', 'Species richness'),
+      countLabel: this.toLayerCountLabel(richnessRows.length),
+      selected: false,
+      visible: false,
+      expanded: existingParent?.expanded ?? true,
+      opacity: DEFAULT_DATA_LAYER_OPACITY,
+      color: '#854d0e',
+      canReorder: false,
+      hasStyleControls: false,
+      hasColorControl: false,
+      mapUnavailable: true,
+      hideAddButton: true,
+    };
+    const groupedRows = [
+      ...rows.slice(0, firstRichnessIndex).filter((row) => !richnessIds.has(row.id)),
+      parentRow,
+      ...richnessRows.map((row) => ({ ...row, parentId: SPECIES_RICHNESS_GROUP_ROW_ID })),
+      ...rows.slice(firstRichnessIndex + 1).filter((row) => !richnessIds.has(row.id)),
+    ];
+
+    return groupedRows;
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
@@ -1685,9 +1737,42 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (group.id !== 'group-species-biodiversity') {
       return group.rows.filter((row) => this.nameMatchesSearch(row.name, query));
     }
-    return group.rows.filter(
-      (row) => this.isSpeciesCollectionRow(row) || this.nameMatchesSearch(row.name, query),
-    );
+    return group.rows.filter((row) => this.speciesGroupRowMatchesSearch(group, row, query));
+  }
+
+  protected isNestedLayerRowCollapsed(group: LayerGroup, row: LayerControlRow): boolean {
+    if (this.hasLayerSearchQuery() || !row.parentId) {
+      return false;
+    }
+    const parentRow = group.rows.find((candidate) => candidate.id === row.parentId);
+    return !(parentRow?.expanded ?? true);
+  }
+
+  private speciesGroupRowMatchesSearch(
+    group: LayerGroup,
+    row: LayerControlRow,
+    query: string,
+  ): boolean {
+    if (this.isSpeciesCollectionRow(row)) {
+      return true;
+    }
+    if (row.parentId) {
+      const parentRow = group.rows.find((candidate) => candidate.id === row.parentId);
+      return (
+        this.nameMatchesSearch(row.name, query) ||
+        (!!parentRow && this.nameMatchesSearch(parentRow.name, query))
+      );
+    }
+    if (row.id === SPECIES_RICHNESS_GROUP_ROW_ID) {
+      return (
+        this.nameMatchesSearch(row.name, query) ||
+        group.rows.some(
+          (candidate) =>
+            candidate.parentId === row.id && this.nameMatchesSearch(candidate.name, query),
+        )
+      );
+    }
+    return this.nameMatchesSearch(row.name, query);
   }
 
   protected shouldShowSpeciesTaxa(group: LayerGroup): boolean {
@@ -3314,6 +3399,10 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private isSpeciesCollectionRow(row: LayerControlRow): boolean {
     return row.id === SPECIES_COLLECTION_ROW_ID;
+  }
+
+  private isSpeciesRichnessLayerId(rowId: string): boolean {
+    return SPECIES_RICHNESS_LAYER_IDS.has(rowId);
   }
 
   private parseSpeciesTaxonomyLookup(

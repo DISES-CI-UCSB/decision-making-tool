@@ -180,6 +180,51 @@ const renderingOverrideByLayerId = {
     startColor: '#fef3c7',
     endColor: '#854d0e',
   },
+  species_richness_mammals: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 142,
+    startColor: '#f3e8ff',
+    endColor: '#7e22ce',
+  },
+  species_richness_birds: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 823,
+    startColor: '#dbeafe',
+    endColor: '#1d4ed8',
+  },
+  species_richness_amphibians: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 56,
+    startColor: '#dcfce7',
+    endColor: '#15803d',
+  },
+  species_richness_reptiles: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 68,
+    startColor: '#ffedd5',
+    endColor: '#c2410c',
+  },
+  species_richness_plants: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 2884,
+    startColor: '#ccfbf1',
+    endColor: '#0f766e',
+  },
   human_footprint_2022: {
     valueType: 'continuous',
     renderMode: 'gradient',
@@ -190,6 +235,14 @@ const renderingOverrideByLayerId = {
     endColor: '#991b1b',
   },
 };
+
+const forcedRenderingOverrideLayerIds = new Set([
+  'species_richness_mammals',
+  'species_richness_birds',
+  'species_richness_amphibians',
+  'species_richness_reptiles',
+  'species_richness_plants',
+]);
 
 const rasterCharacteristicsByUrl = new Map();
 
@@ -1129,12 +1182,14 @@ async function inferRenderingConfig({
 }) {
   const override = renderingOverrideByLayerId[id];
   if (override) {
-    const rendering = pickRenderingForLayer({
-      inferredRendering: override,
-      layerId: id,
-      categoryId,
-      existingLayer,
-    });
+    const rendering = forcedRenderingOverrideLayerIds.has(id)
+      ? override
+      : pickRenderingForLayer({
+          inferredRendering: override,
+          layerId: id,
+          categoryId,
+          existingLayer,
+        });
     return {
       rendering,
       renderingInference: {

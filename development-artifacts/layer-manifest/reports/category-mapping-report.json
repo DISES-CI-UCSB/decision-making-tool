@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T23:19:08.652Z",
+  "generatedAt": "2026-05-27T23:46:01.823Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -8,11 +8,11 @@
   "sourceCsv": "data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv",
   "frontendSource": "frontend/src/app/features/left-sidebar/map-layers-panel/map-layers-panel.ts",
   "counts": {
-    "manifestCategories": 8,
-    "currentFrontendCategories": 7,
-    "mappedManifestCategories": 8,
+    "manifestCategories": 7,
+    "currentFrontendCategories": 1,
+    "mappedManifestCategories": 7,
     "manifestCategoriesNeedingReview": 0,
-    "frontendCategoriesWithoutManifestMapping": 1
+    "frontendCategoriesWithoutManifestMapping": 0
   },
   "currentFrontendCategories": [
     {
@@ -20,36 +20,6 @@
       "title": "Management Figures",
       "source": "createDefaultOverlays",
       "notes": "Overlay card above category groups; currently contains solution, RUNAP, and OMEC rows."
-    },
-    {
-      "id": "group-admin-boundaries",
-      "title": "Administrative Boundaries",
-      "source": "createDefaultGroups"
-    },
-    {
-      "id": "group-species-biodiversity",
-      "title": "Species & Biodiversity",
-      "source": "createDefaultGroups"
-    },
-    {
-      "id": "group-ecosystems",
-      "title": "Ecosystems",
-      "source": "createDefaultGroups"
-    },
-    {
-      "id": "group-cultural-ethnic",
-      "title": "Cultural & Ethnic Territories",
-      "source": "createDefaultGroups"
-    },
-    {
-      "id": "group-socio-economic",
-      "title": "Socio-economic",
-      "source": "createDefaultGroups"
-    },
-    {
-      "id": "group-prospective-models",
-      "title": "Prospective models",
-      "source": "createDefaultGroups"
     }
   ],
   "manifestCategoryMappings": [
@@ -91,7 +61,7 @@
         "group-ecosystems"
       ],
       "frontendCategoryTitles": [
-        "Ecosystems"
+        null
       ],
       "status": "maps_cleanly",
       "notes": "Ecosystem layers map to the existing Ecosystems sidebar group.",
@@ -101,35 +71,35 @@
           "spanishLabel": "Páramos",
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-ecosystems",
-          "frontendCategoryTitle": "Ecosystems"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "wetlands",
           "spanishLabel": "Humedales",
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-ecosystems",
-          "frontendCategoryTitle": "Ecosystems"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "bosque_seco",
           "spanishLabel": "Bosque seco",
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-ecosystems",
-          "frontendCategoryTitle": "Ecosystems"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "mangroves",
           "spanishLabel": "Manglares",
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-ecosystems",
-          "frontendCategoryTitle": "Ecosystems"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "ecosistemas",
           "spanishLabel": "Ecosistemas",
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-ecosystems",
-          "frontendCategoryTitle": "Ecosystems"
+          "frontendCategoryTitle": null
         }
       ]
     },
@@ -138,13 +108,18 @@
       "manifestSpanishLabel": "Especies y biodiversidad",
       "layerIds": [
         "species_richness",
+        "species_richness_mammals",
+        "species_richness_birds",
+        "species_richness_amphibians",
+        "species_richness_reptiles",
+        "species_richness_plants",
         "species"
       ],
       "frontendCategoryIds": [
         "group-species-biodiversity"
       ],
       "frontendCategoryTitles": [
-        "Species & Biodiversity"
+        null
       ],
       "status": "maps_cleanly",
       "notes": "Biodiversity layers map to the existing Species & Biodiversity sidebar group.",
@@ -154,14 +129,49 @@
           "spanishLabel": "Riqueza de especies",
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-species-biodiversity",
-          "frontendCategoryTitle": "Species & Biodiversity"
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "species_richness_mammals",
+          "spanishLabel": "Riqueza de especies - Mamíferos",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-species-biodiversity",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "species_richness_birds",
+          "spanishLabel": "Riqueza de especies - Aves",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-species-biodiversity",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "species_richness_amphibians",
+          "spanishLabel": "Riqueza de especies - Anfibios",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-species-biodiversity",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "species_richness_reptiles",
+          "spanishLabel": "Riqueza de especies - Reptiles",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-species-biodiversity",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "species_richness_plants",
+          "spanishLabel": "Riqueza de especies - Plantas",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-species-biodiversity",
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "species",
           "spanishLabel": "Distribuciones de especies individuales (~8751)",
           "dataRole": "manifest_for_species_layers",
           "frontendCategoryId": "group-species-biodiversity",
-          "frontendCategoryTitle": "Species & Biodiversity"
+          "frontendCategoryTitle": null
         }
       ]
     },
@@ -211,7 +221,7 @@
         "group-admin-boundaries"
       ],
       "frontendCategoryTitles": [
-        "Administrative Boundaries"
+        null
       ],
       "status": "maps_cleanly",
       "notes": "Administrative boundary layers map to the existing Administrative Boundaries sidebar group.",
@@ -221,58 +231,34 @@
           "spanishLabel": "Combined SIRAP review layer",
           "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-admin-boundaries",
-          "frontendCategoryTitle": "Administrative Boundaries"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "siraps_territorial",
           "spanishLabel": "Territorial SIRAPs",
           "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-admin-boundaries",
-          "frontendCategoryTitle": "Administrative Boundaries"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "siraps_thematic",
           "spanishLabel": "Thematic SIRAP additions",
           "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-admin-boundaries",
-          "frontendCategoryTitle": "Administrative Boundaries"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "admin_departments",
           "spanishLabel": "Departamentos",
           "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-admin-boundaries",
-          "frontendCategoryTitle": "Administrative Boundaries"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "admin_municipalities",
           "spanishLabel": "Municipios",
           "dataRole": "administrative_boundary",
           "frontendCategoryId": "group-admin-boundaries",
-          "frontendCategoryTitle": "Administrative Boundaries"
-        }
-      ]
-    },
-    {
-      "manifestCategoryId": "environmental_services",
-      "manifestSpanishLabel": "Servicios ecosistémicos",
-      "layerIds": [
-        "recarga_agua_subterranea_moderado_alto"
-      ],
-      "frontendCategoryIds": [
-        "group-environmental-services"
-      ],
-      "frontendCategoryTitles": [
-        null
-      ],
-      "status": "maps_cleanly",
-      "notes": "Environmental service layers map to the existing Environmental Services sidebar group.",
-      "layerMappings": [
-        {
-          "layerId": "recarga_agua_subterranea_moderado_alto",
-          "spanishLabel": "Recarga de aguas subterraneas",
-          "dataRole": "feature_layer",
-          "frontendCategoryId": "group-environmental-services",
           "frontendCategoryTitle": null
         }
       ]
@@ -288,7 +274,7 @@
         "group-socio-economic"
       ],
       "frontendCategoryTitles": [
-        "Socio-economic"
+        null
       ],
       "status": "maps_cleanly",
       "notes": "Socioeconomic cost/context layers map to the existing Socio-economic sidebar group.",
@@ -298,14 +284,14 @@
           "spanishLabel": "Índice de Huella Espacial Humana 2022",
           "dataRole": "cost_layer",
           "frontendCategoryId": "group-socio-economic",
-          "frontendCategoryTitle": "Socio-economic"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "net_benefit",
           "spanishLabel": "Beneficio neto (renta agropecuaria)",
           "dataRole": "cost_layer",
           "frontendCategoryId": "group-socio-economic",
-          "frontendCategoryTitle": "Socio-economic"
+          "frontendCategoryTitle": null
         }
       ]
     },
@@ -320,7 +306,7 @@
         "group-cultural-ethnic"
       ],
       "frontendCategoryTitles": [
-        "Cultural & Ethnic Territories"
+        null
       ],
       "status": "maps_cleanly",
       "notes": "Cultural and ethnic territory layers map to the existing Cultural & Ethnic Territories sidebar group.",
@@ -330,24 +316,17 @@
           "spanishLabel": "Comunidades Negras",
           "dataRole": "include_layer",
           "frontendCategoryId": "group-cultural-ethnic",
-          "frontendCategoryTitle": "Cultural & Ethnic Territories"
+          "frontendCategoryTitle": null
         },
         {
           "layerId": "resguardos",
           "spanishLabel": "Resguardos Indígenas",
           "dataRole": "include_layer",
           "frontendCategoryId": "group-cultural-ethnic",
-          "frontendCategoryTitle": "Cultural & Ethnic Territories"
+          "frontendCategoryTitle": null
         }
       ]
     }
   ],
-  "frontendCategoriesWithoutManifestMapping": [
-    {
-      "id": "group-prospective-models",
-      "title": "Prospective models",
-      "source": "createDefaultGroups",
-      "notes": "No included CSV layer currently maps to this sidebar category."
-    }
-  ]
+  "frontendCategoriesWithoutManifestMapping": []
 }

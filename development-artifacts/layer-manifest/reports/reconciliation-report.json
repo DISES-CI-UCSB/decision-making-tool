@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T23:19:08.652Z",
+  "generatedAt": "2026-05-27T23:46:01.823Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -16,20 +16,20 @@
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
-    "csvRows": 24,
-    "includedRows": 20,
-    "generatedLayers": 20,
-    "blobInventoryEntries": 74,
+    "csvRows": 29,
+    "includedRows": 24,
+    "generatedLayers": 24,
+    "blobInventoryEntries": 105,
     "missingRequired": 0,
-    "extraAvailable": 48,
-    "includedRowMetadataGaps": 19,
-    "excludedRows": 4,
+    "extraAvailable": 74,
+    "includedRowMetadataGaps": 23,
+    "excludedRows": 5,
     "generatedSolutions": 18,
-    "skippedSolutionMetadataFiles": 1,
-    "unmatchedSolutionRasters": 0,
+    "skippedSolutionMetadataFiles": 0,
+    "unmatchedSolutionRasters": 122,
     "manifestCategoriesNeedingReview": 0,
-    "frontendCategoriesWithoutManifestMapping": 1,
-    "renderingInferenceLowConfidence": 17
+    "frontendCategoriesWithoutManifestMapping": 0,
+    "renderingInferenceLowConfidence": 16
   },
   "missingRequired": [],
   "extraAvailable": [
@@ -76,7 +76,12 @@
     {
       "pathname": "boundaries/coberturas.csv",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.csv",
-      "bytes": 144
+      "bytes": 138
+    },
+    {
+      "pathname": "boundaries/coberturas.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.sparse.gz",
+      "bytes": 199147
     },
     {
       "pathname": "boundaries/coberturas.tif",
@@ -87,6 +92,26 @@
       "pathname": "boundaries/coberturas.xlsx",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.xlsx",
       "bytes": 5195
+    },
+    {
+      "pathname": "boundaries/igac_departments_detailed.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/igac_departments_detailed.geojson",
+      "bytes": 970179
+    },
+    {
+      "pathname": "boundaries/igac_departments_detailed.geojson.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/igac_departments_detailed.geojson.gz",
+      "bytes": 326350
+    },
+    {
+      "pathname": "boundaries/igac_municipalities_detailed.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/igac_municipalities_detailed.geojson",
+      "bytes": 4592822
+    },
+    {
+      "pathname": "boundaries/igac_municipalities_detailed.geojson.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/igac_municipalities_detailed.geojson.gz",
+      "bytes": 1355060
     },
     {
       "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.cpg",
@@ -112,6 +137,31 @@
       "pathname": "boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shx",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/omecs_vector/WDPA_WDOECM_Feb2026_Public_COL_shp-polygons.shx",
       "bytes": 5012
+    },
+    {
+      "pathname": "boundaries/runaps_vector/runap.cpg",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/runaps_vector/runap.cpg",
+      "bytes": 5
+    },
+    {
+      "pathname": "boundaries/runaps_vector/runap.dbf",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/runaps_vector/runap.dbf",
+      "bytes": 2379584
+    },
+    {
+      "pathname": "boundaries/runaps_vector/runap.prj",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/runaps_vector/runap.prj",
+      "bytes": 139
+    },
+    {
+      "pathname": "boundaries/runaps_vector/runap.shp",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/runaps_vector/runap.shp",
+      "bytes": 66519032
+    },
+    {
+      "pathname": "boundaries/runaps_vector/runap.shx",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/runaps_vector/runap.shx",
+      "bytes": 15132
     },
     {
       "pathname": "inputs/boundaries/sirap/siraps_merged.geojson",
@@ -259,9 +309,19 @@
       "bytes": 12402302
     },
     {
+      "pathname": "inputs/features/biomass/biomasa_areara+subterranea_1km.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/biomass/biomasa_areara%2Bsubterranea_1km.sparse.gz",
+      "bytes": 4774045
+    },
+    {
       "pathname": "inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/biomass/biomasa_areara%2Bsubterranea_1km.tif",
       "bytes": 13380154
+    },
+    {
+      "pathname": "inputs/features/carbon/carbono_organico.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/carbon/carbono_organico.sparse.gz",
+      "bytes": 5022733
     },
     {
       "pathname": "inputs/features/carbon/carbono_organico.tif",
@@ -269,15 +329,140 @@
       "bytes": 6272115
     },
     {
+      "pathname": "inputs/features/ecosystems/ecosistemas_IAVH_2024.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IAVH_2024.sparse.gz",
+      "bytes": 316507
+    },
+    {
+      "pathname": "inputs/features/ecosystems/ecosistemas_IAVH_2024.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IAVH_2024.tif",
+      "bytes": 1371037
+    },
+    {
+      "pathname": "inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv",
+      "bytes": 17077
+    },
+    {
+      "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
+      "bytes": 110336
+    },
+    {
+      "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "bytes": 166170
+    },
+    {
+      "pathname": "inputs/features/strategic/bosque_seco.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/bosque_seco.sparse.gz",
+      "bytes": 10537
+    },
+    {
+      "pathname": "inputs/features/strategic/humedales.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/humedales.sparse.gz",
+      "bytes": 108725
+    },
+    {
+      "pathname": "inputs/features/strategic/mangroves.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/mangroves.sparse.gz",
+      "bytes": 2685
+    },
+    {
+      "pathname": "inputs/features/strategic/paramos.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/paramos.sparse.gz",
+      "bytes": 10055
+    },
+    {
+      "pathname": "inputs/includes/comunidades.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/comunidades.sparse.gz",
+      "bytes": 7562
+    },
+    {
+      "pathname": "inputs/includes/omecs_identify.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/omecs_identify.geojson",
+      "bytes": 12564666
+    },
+    {
+      "pathname": "inputs/includes/resguardos.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/resguardos.sparse.gz",
+      "bytes": 27624
+    },
+    {
       "pathname": "inputs/includes/runap_categories.csv",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_categories.csv",
       "bytes": 1100
+    },
+    {
+      "pathname": "inputs/includes/runap_identify.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson",
+      "bytes": 11371406
+    },
+    {
+      "pathname": "inputs/includes/runap_protected_areas.sparse.gz",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_protected_areas.sparse.gz",
+      "bytes": 34477
     }
   ],
   "includedRowMetadataGaps": [
     {
       "layerId": "species_richness",
       "displayName": "Riqueza de especies",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "species_richness_mammals",
+      "displayName": "Riqueza de especies - Mamíferos",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "species_richness_birds",
+      "displayName": "Riqueza de especies - Aves",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "species_richness_amphibians",
+      "displayName": "Riqueza de especies - Anfibios",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "species_richness_reptiles",
+      "displayName": "Riqueza de especies - Reptiles",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "species_richness_plants",
+      "displayName": "Riqueza de especies - Plantas",
       "missingFields": [
         "source_url",
         "source_created_date",
@@ -332,13 +517,6 @@
         "source_updated_date",
         "source_license",
         "source_contact"
-      ]
-    },
-    {
-      "layerId": "recarga_agua_subterranea_moderado_alto",
-      "displayName": "Recarga de aguas subterraneas",
-      "missingFields": [
-        "source_license"
       ]
     },
     {
@@ -441,27 +619,31 @@
   "categoryMappingSummary": {
     "reportPath": "development-artifacts/layer-manifest/reports/category-mapping-report.json",
     "manifestCategoriesNeedingReview": 0,
-    "frontendCategoriesWithoutManifestMapping": 1
+    "frontendCategoriesWithoutManifestMapping": 0
   },
   "solutionCatalogSummary": {
     "reportPath": "development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json",
     "generatedSolutions": 18,
-    "skippedSolutionMetadataFiles": 1,
-    "unmatchedSolutionRasters": 0
+    "skippedSolutionMetadataFiles": 0,
+    "unmatchedSolutionRasters": 122
   },
   "renderingInferenceSummary": {
     "byStrategy": {
-      "manual_override": 2,
+      "manual_override": 8,
       "legacy_non_raster": 6,
-      "fallback_after_uncertain_sampling": 11,
-      "raster_sampling": 1
+      "fallback_after_uncertain_sampling": 10
     },
-    "lowConfidence": 17
+    "lowConfidence": 16
   },
   "excludedRows": [
     {
       "layerId": "biomasa_areara+subterranea_1km",
       "displayName": "Biomasa aérea y subterránea",
+      "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
+    },
+    {
+      "layerId": "recarga_agua_subterranea_moderado_alto",
+      "displayName": "Recarga de aguas subterraneas",
       "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
     },
     {

@@ -932,18 +932,29 @@
                       <article
                         [id]="'map-layers-layer-row-' + group.id + '-' + row.id"
                         class="bg-white"
+                        [class.map-layers-collapsible]="row.parentId"
+                        [class.map-layers-nested-layer-row]="row.parentId"
+                        [class.map-layers-collapsible-collapsed]="
+                          isNestedLayerRowCollapsed(group, row)
+                        "
+                        [attr.aria-hidden]="isNestedLayerRowCollapsed(group, row)"
                         [class.border-b]="
-                          !isLastManifestRow ||
-                          (shouldShowSpeciesTaxa(group) && filteredTaxa().length > 0)
+                          !isNestedLayerRowCollapsed(group, row) &&
+                          (!isLastManifestRow ||
+                            (shouldShowSpeciesTaxa(group) && filteredTaxa().length > 0))
                         "
                         [class.border-slate-100]="
-                          !isLastManifestRow ||
-                          (shouldShowSpeciesTaxa(group) && filteredTaxa().length > 0)
+                          !isNestedLayerRowCollapsed(group, row) &&
+                          (!isLastManifestRow ||
+                            (shouldShowSpeciesTaxa(group) && filteredTaxa().length > 0))
                         "
                       >
                         <div
                           [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
                           class="flex items-center gap-1.5 px-3 py-2.5"
+                          [class.pl-6]="row.parentId"
+                          [class.map-layers-collapsible-content]="row.parentId"
+                          [class.map-layers-nested-layer-row-content]="row.parentId"
                         >
                           <button
                             [id]="'map-layers-layer-row-name-button-' + group.id + '-' + row.id"
