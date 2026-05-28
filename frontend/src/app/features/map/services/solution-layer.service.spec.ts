@@ -163,7 +163,7 @@ describe('SolutionLayerService', () => {
     expect(addedLayer.renderer).toBeTruthy();
   });
 
-  it('splits existing include coverage into its own color by default', () => {
+  it('splits included area coverage into its own color by default', () => {
     const loaded = createLoadedSolution('baseline');
     const classColors = (
       service as unknown as {
@@ -175,7 +175,7 @@ describe('SolutionLayerService', () => {
     ).solutionClassColors(loaded, '#ff0000');
 
     expect(classColors).toEqual([
-      { value: 2, color: '#2563eb', label: 'Existing protected areas' },
+      { value: 2, color: '#2563eb', label: 'Included areas in solution (RUNAP)' },
       { value: 1, color: '#ff0000', label: 'New coverage' },
     ]);
   });

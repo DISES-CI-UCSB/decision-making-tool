@@ -10,6 +10,7 @@ import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 
 import type ArcGISMap from '@arcgis/core/Map';
 import type { Solution } from '@core/models';
+import { getSolutionIncludedAreasLegendLabel } from '@core/models/solution-included-areas.utils';
 import type { RuntimeLayerManifestClassColor } from '@core/models/layer-manifest.model';
 import {
   AppStateService,
@@ -887,7 +888,7 @@ export class SolutionLayerService {
       {
         value: EXISTING_PROTECTED_VALUE,
         color: existingProtectedClass?.color ?? DEFAULT_EXISTING_PROTECTED_HEX,
-        label: existingProtectedClass?.label ?? 'Existing protected areas',
+        label: getSolutionIncludedAreasLegendLabel(loaded.scenario),
       },
       {
         value: NEW_COVERAGE_VALUE,
