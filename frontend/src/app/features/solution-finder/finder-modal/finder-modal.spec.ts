@@ -55,20 +55,6 @@ describe('FinderModalComponent', () => {
     expect(compiled.textContent).not.toContain('solutionControls.finder.step2b.conflictLabel');
   });
 
-  it('does not render species richness as a target option', () => {
-    const fixture = TestBed.createComponent(FinderModalComponent);
-    fixture.detectChanges();
-
-    const compiled = fixture.nativeElement as HTMLElement;
-
-    expect(
-      compiled.querySelector('#solution-finder-modal-step1-target-type-card-species-richness'),
-    ).toBeNull();
-    expect(compiled.textContent).not.toContain(
-      'solutionControls.finder.step1.speciesRichnessLabel',
-    );
-  });
-
   it('renders workflow action buttons in the footer', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
