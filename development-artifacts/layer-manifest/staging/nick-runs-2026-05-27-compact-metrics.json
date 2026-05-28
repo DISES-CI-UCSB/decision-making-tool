@@ -64,7 +64,7 @@
     },
     {
       "id": "administrative_boundaries",
-      "spanishLabel": "Límites administrativos",
+      "spanishLabel": "L\u00edmites administrativos",
       "englishLabel": "Administrative Boundaries",
       "styleDefaults": {
         "selectedColor": "#111827",
@@ -94,7 +94,7 @@
     },
     {
       "id": "cultural_and_ethnic_territories",
-      "spanishLabel": "Territorios culturales y étnicos",
+      "spanishLabel": "Territorios culturales y \u00e9tnicos",
       "englishLabel": "Cultural & Ethnic Territories",
       "styleDefaults": {
         "selectedColor": "#1d4ed8",
@@ -158,9 +158,9 @@
     },
     {
       "id": "paramos",
-      "spanishLabel": "Páramos",
+      "spanishLabel": "P\u00e1ramos",
       "englishLabel": null,
-      "description": "Contiene la delimitación oficial de los complejos de páramo su propósito es servir de referencia oficial para la gestión ambiental, la planificación territorial, la conservación y el manejo sostenible de los ecosistemas de alta montaña.",
+      "description": "Contiene la delimitaci\u00f3n oficial de los complejos de p\u00e1ramo su prop\u00f3sito es servir de referencia oficial para la gesti\u00f3n ambiental, la planificaci\u00f3n territorial, la conservaci\u00f3n y el manejo sostenible de los ecosistemas de alta monta\u00f1a.",
       "tooltip": null,
       "dataRole": "feature_layer",
       "category": "ecosystems",
@@ -184,7 +184,7 @@
       "id": "wetlands",
       "spanishLabel": "Humedales",
       "englishLabel": "Wetlands",
-      "description": "La delimitación geográfica de los humedales continentales de Colombia a escala 1:100.000.",
+      "description": "La delimitaci\u00f3n geogr\u00e1fica de los humedales continentales de Colombia a escala 1:100.000.",
       "tooltip": null,
       "dataRole": "feature_layer",
       "category": "ecosystems",
@@ -207,7 +207,7 @@
       "id": "bosque_seco",
       "spanishLabel": "Bosque seco",
       "englishLabel": "Dry Forest",
-      "description": "La distribución geográfica de los ecosistemas de bosque seco tropical en Colombia, elaborada a escala 1:100.000",
+      "description": "La distribuci\u00f3n geogr\u00e1fica de los ecosistemas de bosque seco tropical en Colombia, elaborada a escala 1:100.000",
       "tooltip": null,
       "dataRole": "feature_layer",
       "category": "ecosystems",
@@ -276,7 +276,7 @@
     },
     {
       "id": "human_footprint_2022",
-      "spanishLabel": "Índice de Huella Espacial Humana 2022",
+      "spanishLabel": "\u00cdndice de Huella Espacial Humana 2022",
       "englishLabel": "Human Footprint 2022",
       "description": "Shows projected human footprint intensity to provide pressure context across the landscape.",
       "tooltip": null,
@@ -325,7 +325,7 @@
     },
     {
       "id": "runap",
-      "spanishLabel": "Áreas protegidas (RUNAP 2023)",
+      "spanishLabel": "\u00c1reas protegidas (RUNAP 2023)",
       "englishLabel": "Protected Areas (RUNAP 2023)",
       "description": "Protected areas from RUNAP (2023) that are treated as already conserved in planning outputs.",
       "tooltip": null,
@@ -417,7 +417,7 @@
     },
     {
       "id": "resguardos",
-      "spanishLabel": "Resguardos Indígenas",
+      "spanishLabel": "Resguardos Ind\u00edgenas",
       "englishLabel": "Indigenous Reserves",
       "description": "Indigenous reserves include mask currently not exposed",
       "tooltip": null,
@@ -580,13 +580,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -647,13 +647,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -718,13 +718,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -787,13 +787,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -856,13 +856,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -923,13 +923,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -990,13 +990,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1055,13 +1055,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1122,13 +1122,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1187,13 +1187,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1256,13 +1256,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1323,13 +1323,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1390,13 +1390,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1455,13 +1455,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1520,13 +1520,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1583,13 +1583,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1652,13 +1652,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1723,13 +1723,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1792,13 +1792,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1861,13 +1861,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1928,13 +1928,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -1995,13 +1995,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2062,13 +2062,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2127,13 +2127,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2196,13 +2196,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2263,13 +2263,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2330,13 +2330,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2395,13 +2395,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2460,13 +2460,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2523,13 +2523,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2594,13 +2594,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2663,13 +2663,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2736,13 +2736,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2807,13 +2807,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2878,13 +2878,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -2947,13 +2947,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3016,13 +3016,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3083,13 +3083,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3152,13 +3152,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3219,13 +3219,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3290,13 +3290,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3359,13 +3359,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3428,13 +3428,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3495,13 +3495,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3562,13 +3562,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3627,13 +3627,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3696,13 +3696,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3763,13 +3763,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3834,13 +3834,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3903,13 +3903,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -3972,13 +3972,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4039,13 +4039,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4106,13 +4106,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4171,13 +4171,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4238,13 +4238,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4303,13 +4303,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4372,13 +4372,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4439,13 +4439,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4506,13 +4506,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4571,13 +4571,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4636,13 +4636,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4699,13 +4699,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4770,13 +4770,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4843,13 +4843,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4914,13 +4914,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -4985,13 +4985,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5054,13 +5054,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5123,13 +5123,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5192,13 +5192,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5259,13 +5259,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5330,13 +5330,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5399,13 +5399,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5468,13 +5468,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5535,13 +5535,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5602,13 +5602,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5667,13 +5667,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5736,13 +5736,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5807,13 +5807,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5876,13 +5876,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -5945,13 +5945,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6012,13 +6012,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6079,13 +6079,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6146,13 +6146,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6211,13 +6211,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6280,13 +6280,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6347,13 +6347,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6414,13 +6414,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6479,13 +6479,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6544,13 +6544,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6607,13 +6607,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6674,13 +6674,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6739,13 +6739,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6808,13 +6808,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6875,13 +6875,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -6942,13 +6942,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7007,13 +7007,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7072,13 +7072,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7135,13 +7135,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7202,13 +7202,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7271,13 +7271,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7338,13 +7338,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7405,13 +7405,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7470,13 +7470,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },
@@ -7535,13 +7535,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       },

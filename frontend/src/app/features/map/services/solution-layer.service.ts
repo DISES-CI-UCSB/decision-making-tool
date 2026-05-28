@@ -33,8 +33,8 @@ export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
 export const DEFAULT_SOLUTION_LAYER_OPACITY = 0.8;
 
 const SOLUTION_ALPHA = 255;
-const EXISTING_PROTECTED_VALUE = 1;
-const NEW_COVERAGE_VALUE = 2;
+const NEW_COVERAGE_VALUE = 1;
+const EXISTING_PROTECTED_VALUE = 2;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;

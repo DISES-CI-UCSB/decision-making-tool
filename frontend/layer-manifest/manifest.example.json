@@ -41,7 +41,7 @@
     },
     {
       "id": "environmental_services",
-      "spanishLabel": "Servicios ecosistémicos",
+      "spanishLabel": "Servicios ecosist\u00e9micos",
       "englishLabel": "Environmental Services",
       "styleDefaults": {
         "selectedColor": "#0f766e",
@@ -63,7 +63,7 @@
     },
     {
       "id": "administrative_boundaries",
-      "spanishLabel": "Límites administrativos",
+      "spanishLabel": "L\u00edmites administrativos",
       "englishLabel": "Administrative Boundaries",
       "styleDefaults": {
         "selectedColor": "#111827",
@@ -74,7 +74,7 @@
     },
     {
       "id": "cultural_and_ethnic_territories",
-      "spanishLabel": "Territorios culturales y étnicos",
+      "spanishLabel": "Territorios culturales y \u00e9tnicos",
       "englishLabel": "Cultural & Ethnic Territories",
       "styleDefaults": {
         "selectedColor": "#1d4ed8",
@@ -85,7 +85,7 @@
     },
     {
       "id": "socioeconomic",
-      "spanishLabel": "Socioeconómico",
+      "spanishLabel": "Socioecon\u00f3mico",
       "englishLabel": "Socio-economic",
       "styleDefaults": {
         "selectedColor": "#991b1b",
@@ -190,10 +190,10 @@
     },
     {
       "id": "paramos",
-      "spanishLabel": "Páramos",
+      "spanishLabel": "P\u00e1ramos",
       "englishLabel": "Paramos",
-      "description": "Official páramo complex boundaries for environmental management and conservation planning.",
-      "tooltip": "Shows high-altitude páramo ecosystems.",
+      "description": "Official p\u00e1ramo complex boundaries for environmental management and conservation planning.",
+      "tooltip": "Shows high-altitude p\u00e1ramo ecosystems.",
       "dataRole": "feature_layer",
       "category": "ecosystems",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
@@ -213,7 +213,7 @@
     },
     {
       "id": "ground_water_recharge",
-      "spanishLabel": "Recarga de aguas subterráneas",
+      "spanishLabel": "Recarga de aguas subterr\u00e1neas",
       "englishLabel": "Ground Water Recharge",
       "description": "Potential groundwater recharge areas used to review environmental service coverage.",
       "tooltip": "Shows groundwater recharge areas that may support environmental service decisions.",
@@ -236,7 +236,7 @@
     },
     {
       "id": "runap",
-      "spanishLabel": "Áreas protegidas (RUNAP 2023)",
+      "spanishLabel": "\u00c1reas protegidas (RUNAP 2023)",
       "englishLabel": "Protected Areas (RUNAP 2023)",
       "description": "Protected areas from RUNAP that are treated as already conserved in planning outputs.",
       "tooltip": "Shows protected areas used as conservation management context.",
@@ -282,7 +282,7 @@
     },
     {
       "id": "resguardos",
-      "spanishLabel": "Resguardos Indígenas",
+      "spanishLabel": "Resguardos Ind\u00edgenas",
       "englishLabel": "Indigenous Reserves",
       "description": "Indigenous reserve territories that can be included in planning and visualization.",
       "tooltip": "Shows Indigenous reserve territories for cultural and ethnic context.",
@@ -368,15 +368,27 @@
         "valueType": "categorical",
         "renderMode": "categorical",
         "classColors": [
-          { "value": 1, "color": "#4d7c0f", "label": "Forest" },
-          { "value": 2, "color": "#a3e635", "label": "Grassland" },
-          { "value": 3, "color": "#facc15", "label": "Cropland" }
+          {
+            "value": 1,
+            "color": "#4d7c0f",
+            "label": "Forest"
+          },
+          {
+            "value": 2,
+            "color": "#a3e635",
+            "label": "Grassland"
+          },
+          {
+            "value": 3,
+            "color": "#facc15",
+            "label": "Cropland"
+          }
         ]
       }
     },
     {
       "id": "human_footprint_2030",
-      "spanishLabel": "Índice de Huella Espacial Humana 2030",
+      "spanishLabel": "\u00cdndice de Huella Espacial Humana 2030",
       "englishLabel": "Human Footprint 2030",
       "description": "Projected human pressure layer used as prospective scenario context.",
       "tooltip": "Shows projected human footprint intensity for future scenario review.",
@@ -400,7 +412,7 @@
     },
     {
       "id": "solution_national_30",
-      "spanishLabel": "Solución nacional 30%",
+      "spanishLabel": "Soluci\u00f3n nacional 30%",
       "englishLabel": "National 30% Solution",
       "description": "Example national solution layer used to display a selected conservation prioritization scenario.",
       "tooltip": "Shows the selected national conservation solution on the map.",
@@ -472,8 +484,16 @@
         "renderMode": "categorical",
         "noDataValue": 255,
         "classColors": [
-          { "value": 1, "color": "#2563eb", "label": "Existing protected areas" },
-          { "value": 2, "color": "#16a34a", "label": "New coverage" }
+          {
+            "value": 1,
+            "color": "#16a34a",
+            "label": "New coverage"
+          },
+          {
+            "value": 2,
+            "color": "#2563eb",
+            "label": "Existing protected areas"
+          }
         ]
       }
     }
