@@ -1091,6 +1091,9 @@ export class DevToolsPanelComponent {
 
     return {
       ...mockSolution,
+      // Use the real scenario id so cached metrics resolve against the manifest
+      // (mirrors the production solution-finder path in app.ts).
+      id: scenarioId,
       name: scenario?.name ?? mockSolution.name,
       description: scenario?.description ?? mockSolution.description,
       geometryUrl: scenario?.filename ?? mockSolution.geometryUrl,

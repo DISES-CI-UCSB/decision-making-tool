@@ -188,6 +188,87 @@ describe('SolutionLayerService', () => {
     });
   });
 
+  it('calculates live comparison metrics from selected solution cells', async () => {
+    const rasterMeta: LoadedSolution['rasterMeta'] = {
+      width: 2,
+      height: 2,
+      bbox: [0, -2000, 2000, 0],
+      resolution: [1000, -1000],
+      crs: 'EPSG:3857',
+      bandCount: 1,
+      bandDescription: 'selected',
+      noDataValue: 255,
+      selectedCount: 2,
+      totalValidCells: 4,
+      selectedPct: 50,
+    };
+    const baselineLoaded = {
+      ...createLoadedSolution('baseline'),
+      rasterMeta,
+      rasterData: new Float64Array([1, 0, 2, 0]),
+    };
+    const candidateLoaded = {
+      ...createLoadedSolution('candidate'),
+      rasterMeta,
+      rasterData: new Float64Array([1, 2, 0, 0]),
+    };
+    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
+      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce({ id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 } as never)
+      .mockReturnValueOnce({ id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 } as never);
+
+    await service.showComparison('baseline', 'candidate');
+
+    expect(service.liveComparisonMetrics$()).toEqual({
+      agreementAreaKm2: 1,
+      uniqueToBaselineKm2: 1,
+      uniqueToCandidateKm2: 1,
+      baselineSelectedAreaKm2: 2,
+      candidateSelectedAreaKm2: 2,
+      baselineNationalContributionPct: 50,
+      candidateNationalContributionPct: 50,
+      status: 'ready',
+      notes: null,
+    });
+  });
+
+  it('marks live comparison metrics unavailable when solution grids differ', async () => {
+    const baselineLoaded = createLoadedSolution('baseline');
+    const candidateLoaded = {
+      ...createLoadedSolution('candidate'),
+      rasterMeta: {
+        ...createLoadedSolution('candidate').rasterMeta,
+        width: 3,
+      },
+    };
+    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
+      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce({ id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 } as never)
+      .mockReturnValueOnce({ id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 } as never);
+
+    await service.showComparison('baseline', 'candidate');
+
+    expect(service.liveComparisonMetrics$()).toEqual(
+      expect.objectContaining({
+        agreementAreaKm2: null,
+        baselineSelectedAreaKm2: null,
+        status: 'unavailable',
+      }),
+    );
+  });
+
   it('reorders arbitrary map layers from bottom to top so the first id ends up above the rest', () => {
     const topLayer = { id: 'map-view-runap-vector-layer' };
     const bottomLayer = { id: 'solution-raster-layer' };

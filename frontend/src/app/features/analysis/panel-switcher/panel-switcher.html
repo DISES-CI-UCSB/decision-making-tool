@@ -1658,6 +1658,7 @@
           class="panel-enter c2-panel"
           [style.--comparison-baseline-color]="comparisonBaselineColor()"
           [style.--comparison-candidate-color]="comparisonCandidateColor()"
+          [style.--comparison-overlap-color]="comparisonOverlapColor()"
         >
           <header id="right-sidebar-comparison-header" class="c2-panel-header">
             <h3 id="right-sidebar-comparison-kicker" class="rs-header-optical-nudge">
@@ -1828,6 +1829,89 @@
                         [id]="'right-sidebar-comparison-section-body-inner-' + section.id"
                         class="collapse-motion-inner c2-section-body"
                       >
+                        @if (section.id === 'general' && spatialOverlapEntries().length > 0) {
+                          <section
+                            id="right-sidebar-comparison-spatial-overlap-summary"
+                            class="c2-spatial-overlap-summary"
+                          >
+                            <div id="right-sidebar-comparison-spatial-overlap-header">
+                              <p
+                                id="right-sidebar-comparison-spatial-overlap-kicker"
+                                class="c2-spatial-overlap-kicker"
+                                tabindex="0"
+                                [attr.data-tooltip]="
+                                  'analysis.comparison.spatialOverlapNote' | translate
+                                "
+                              >
+                                {{ 'analysis.comparison.spatialOverlapKicker' | translate }}
+                              </p>
+                            </div>
+
+                            <div
+                              id="right-sidebar-comparison-spatial-overlap-grid"
+                              class="c2-spatial-overlap-grid"
+                            >
+                              @for (entry of spatialOverlapEntries(); track entry.id) {
+                                <article
+                                  [id]="'right-sidebar-comparison-spatial-overlap-card-' + entry.id"
+                                  class="c2-spatial-overlap-card"
+                                  [class.c2-spatial-overlap-card-overlap]="
+                                    entry.colorClass === 'overlap'
+                                  "
+                                  [class.c2-spatial-overlap-card-baseline]="
+                                    entry.colorClass === 'baseline'
+                                  "
+                                  [class.c2-spatial-overlap-card-candidate]="
+                                    entry.colorClass === 'candidate'
+                                  "
+                                  tabindex="0"
+                                  [attr.aria-label]="
+                                    (entry.labelKey | translate) +
+                                    ': ' +
+                                    entry.value +
+                                    '. ' +
+                                    (entry.descriptionKey | translate)
+                                  "
+                                  [attr.data-tooltip]="entry.descriptionKey | translate"
+                                >
+                                  <span
+                                    [id]="
+                                      'right-sidebar-comparison-spatial-overlap-dot-' + entry.id
+                                    "
+                                    class="c2-spatial-overlap-dot"
+                                    aria-hidden="true"
+                                  ></span>
+                                  <div
+                                    [id]="
+                                      'right-sidebar-comparison-spatial-overlap-copy-' + entry.id
+                                    "
+                                    class="c2-spatial-overlap-copy"
+                                  >
+                                    <p
+                                      [id]="
+                                        'right-sidebar-comparison-spatial-overlap-label-' + entry.id
+                                      "
+                                      class="c2-spatial-overlap-label"
+                                    >
+                                      {{ entry.labelKey | translate }}
+                                    </p>
+                                  </div>
+                                  <strong
+                                    [id]="
+                                      'right-sidebar-comparison-spatial-overlap-value-' + entry.id
+                                    "
+                                    class="c2-spatial-overlap-value"
+                                    [attr.data-full-value]="entry.fullValue"
+                                    [attr.tabindex]="entry.fullValue ? 0 : null"
+                                  >
+                                    {{ entry.value }}
+                                  </strong>
+                                </article>
+                              }
+                            </div>
+                          </section>
+                        }
+
                         <div
                           [id]="'right-sidebar-comparison-section-table-' + section.id"
                           class="c2-compare-table"

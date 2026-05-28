@@ -267,6 +267,8 @@
       "visualizationAriaLabel": "Comparison visualization mode",
       "metricColumn": "Metric",
       "differenceColumn": "Difference",
+      "spatialOverlapKicker": "Spatial overlap",
+      "spatialOverlapNote": "These areas describe the map relationship between Scenario A and Scenario B. They are not additional scenario totals.",
       "actions": {
         "select": "Select",
         "change": "Change"
@@ -289,12 +291,20 @@
         "protection": "Cultural & Protection"
       },
       "metrics": {
+        "agreementArea": "Selected by both",
+        "agreementAreaDesc": "Places where Scenario A and Scenario B choose the same planning units.",
+        "uniqueScenarioA": "Only Scenario A",
+        "uniqueScenarioADesc": "Places selected by Scenario A that Scenario B does not select.",
+        "uniqueScenarioB": "Only Scenario B",
+        "uniqueScenarioBDesc": "Places selected by Scenario B that Scenario A does not select.",
         "priorityArea": "Priority Conservation Area",
         "priorityAreaDesc": "Estimated protected footprint under each scenario.",
         "nationalTarget": "Contribution to 30x30 Target",
         "nationalTargetDesc": "Relative contribution toward national conservation commitments.",
         "biodiversity": "Biodiversity",
         "biodiversityDesc": "Composite biodiversity performance score.",
+        "ecosystemCoverage": "Ecosystem Coverage",
+        "ecosystemCoverageDesc": "Selected area overlapping ecosystem features in the scenario.",
         "threatenedSpecies": "Threatened Species Coverage",
         "threatenedSpeciesDesc": "CR/EN/VU species with habitat represented in priority zones.",
         "endemicSpecies": "Endemic Species Coverage",

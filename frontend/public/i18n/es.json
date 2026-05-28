@@ -391,6 +391,8 @@
       "visualizationAriaLabel": "Modo de visualización de comparación",
       "metricColumn": "Métrica",
       "differenceColumn": "Diferencia",
+      "spatialOverlapKicker": "Superposición espacial",
+      "spatialOverlapNote": "Estas áreas describen la relación en el mapa entre el Escenario A y el Escenario B. No son totales adicionales de los escenarios.",
       "actions": {
         "select": "Seleccionar",
         "change": "Cambiar"
@@ -413,12 +415,20 @@
         "protection": "Cultural y proteccion"
       },
       "metrics": {
+        "agreementArea": "Seleccionado por ambos",
+        "agreementAreaDesc": "Lugares donde el Escenario A y el Escenario B eligen las mismas unidades de planificación.",
+        "uniqueScenarioA": "Solo Escenario A",
+        "uniqueScenarioADesc": "Lugares seleccionados por el Escenario A que el Escenario B no selecciona.",
+        "uniqueScenarioB": "Solo Escenario B",
+        "uniqueScenarioBDesc": "Lugares seleccionados por el Escenario B que el Escenario A no selecciona.",
         "priorityArea": "Area prioritaria de conservacion",
         "priorityAreaDesc": "Huella protegida estimada en cada escenario.",
         "nationalTarget": "Contribucion a la meta 30x30",
         "nationalTargetDesc": "Contribucion relativa a los compromisos nacionales de conservacion.",
         "biodiversity": "Biodiversidad",
         "biodiversityDesc": "Puntaje compuesto de desempeno en biodiversidad.",
+        "ecosystemCoverage": "Cobertura de ecosistemas",
+        "ecosystemCoverageDesc": "Área seleccionada que se superpone con elementos de ecosistemas en el escenario.",
         "threatenedSpecies": "Cobertura de especies amenazadas",
         "threatenedSpeciesDesc": "Especies CR/EN/VU con habitat representado en zonas prioritarias.",
         "endemicSpecies": "Cobertura de especies endemicas",
