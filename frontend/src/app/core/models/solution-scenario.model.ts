@@ -38,6 +38,8 @@ export interface RasterMetadata {
   selectedCount: number;
   totalValidCells: number;
   selectedPct: number;
+  countryValidCells: number;
+  newCoveragePctOfCountry: number;
 }
 
 export interface LoadedSolution {

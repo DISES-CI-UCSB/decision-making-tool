@@ -69,6 +69,8 @@ function createLoadedSolution(
       selectedCount: 2,
       totalValidCells: 4,
       selectedPct: 50,
+      countryValidCells: 8,
+      newCoveragePctOfCountry: 25,
     },
     rasterData: new Float64Array([2, 1, 2, 0]),
     canvas: document.createElement('canvas'),
