@@ -53,7 +53,7 @@ export class HeaderComponent {
   }
 
   private syncAppLocaleToTranslate(): void {
-    const currentLang = this.translate.getCurrentLang() || this.translate.getDefaultLang() || 'en';
+    const currentLang = this.translate.getCurrentLang() || this.translate.getDefaultLang() || 'es';
     this.appLocaleService.setLocale(currentLang === 'es' ? 'es' : 'en');
   }
 

@@ -1,12 +1,19 @@
 import { computed, Injectable, signal } from '@angular/core';
 import type Extent from '@arcgis/core/geometry/Extent';
 import { DEFAULT_CHART_PALETTE_ID, type ChartPaletteId } from '@core/models/chart-palette.model';
-import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
+import {
+  type AOI,
+  type LayerConfig,
+  type RuntimeLayerManifestRenderingConfig,
+  type Solution,
+  UserTier,
+} from '@core/models';
 import { environment } from '../../../environments/environment';
 
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
 export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity' | 'swipe';
+export type MetricNumberFormatMode = 'compact' | 'full';
 export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
 
 export interface MapLegendLayerCategoryEntry {
@@ -27,6 +34,46 @@ export interface MapLegendLayerEntry {
   gradientEndColor?: string;
   gradientMinLabel?: string;
   gradientMaxLabel?: string;
+}
+
+interface ContinuousGradientLegendEntryInput {
+  id: string;
+  name: string;
+  color: string;
+  rendering: RuntimeLayerManifestRenderingConfig;
+}
+
+export function isContinuousGradientRendering(
+  rendering: RuntimeLayerManifestRenderingConfig,
+): boolean {
+  return rendering.valueType === 'continuous' && rendering.renderMode === 'gradient';
+}
+
+export function buildContinuousGradientLegendEntry({
+  id,
+  name,
+  color,
+  rendering,
+}: ContinuousGradientLegendEntryInput): MapLegendLayerEntry {
+  return {
+    id,
+    name,
+    swatchType: 'gradient',
+    color,
+    lineStyle: 'solid',
+    lineWidth: 1,
+    gradientStartColor: rendering.startColor ?? '#dbeafe',
+    gradientEndColor: rendering.endColor ?? color ?? '#7f1d1d',
+    gradientMinLabel: formatLegendValue(rendering.minValue),
+    gradientMaxLabel: formatLegendValue(rendering.maxValue),
+  };
+}
+
+function formatLegendValue(value: number | null | undefined): string | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return Number.isInteger(value) ? `${value}` : value.toFixed(2);
 }
 
 /** Dev-only hover treatment for the Map Layers “Select solution” CTA (persisted in localStorage). */
@@ -77,6 +124,8 @@ export class AppStateService {
   readonly showGenerateRegionalReportButton$ = signal(false);
   /** Dev-only: show the info-icon reminder of Solution Finder inputs next to the overview title. Off until data is ready. */
   readonly showOverviewInputsReminder$ = signal(false);
+  /** Dev-only: compare readable compact metric numbers against full precision values. */
+  readonly metricNumberFormatMode$ = signal<MetricNumberFormatMode>('compact');
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -173,6 +222,10 @@ export class AppStateService {
 
   setShowOverviewInputsReminder(enabled: boolean): void {
     this.showOverviewInputsReminder$.set(enabled);
+  }
+
+  setMetricNumberFormatMode(mode: MetricNumberFormatMode): void {
+    this.metricNumberFormatMode$.set(mode);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {

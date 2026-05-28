@@ -186,6 +186,17 @@
   overflow: hidden;
 }
 
+.map-layers-nested-layer-row-content {
+  transition:
+    padding-top 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    padding-bottom 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-layers-collapsible-collapsed > .map-layers-nested-layer-row-content {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 /*
   The selected-layer row header tightens its bottom padding when expanded
   (pb-3 → pb-2). Transition the padding so that change doesn't snap while

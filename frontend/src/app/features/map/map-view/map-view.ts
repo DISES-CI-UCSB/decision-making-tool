@@ -12,6 +12,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import Basemap from '@arcgis/core/Basemap';
 import ArcGISMap from '@arcgis/core/Map';
 import ArcGISMapView from '@arcgis/core/views/MapView';
 import Extent from '@arcgis/core/geometry/Extent';
@@ -34,13 +35,49 @@ import {
   RUNAP_OVERLAY_LAYER_ID,
   type VectorOverlayState,
 } from '@features/map/services/manifest-raster-layer.service';
-import { MapBasemapService } from '@features/map/services/map-basemap.service';
+import {
+  MapBasemapService,
+  type SupportedBasemap,
+} from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { MasterLegendComponent } from '@features/map/components/master-legend/master-legend';
 import { TranslatePipe } from '@ngx-translate/core';
 
 const COLOMBIA_CENTER = new Point({ longitude: -74.0, latitude: 4.5 });
 const COLOMBIA_ZOOM = 6;
+const DEFAULT_VECTOR_OVERLAY_OPACITY = 0.8;
+const OPAQUE_SYMBOL_ALPHA = 1;
+
+function getBasemapThumbnailUrl(id: SupportedBasemap): string {
+  return Basemap.fromId(id)?.thumbnailUrl ?? '';
+}
+
+const BASEMAP_OPTIONS: readonly {
+  id: SupportedBasemap;
+  labelI18nKey: string;
+  thumbnailUrl: string;
+}[] = [
+  {
+    id: 'topo-vector',
+    labelI18nKey: 'mapView.basemaps.topographic',
+    thumbnailUrl: getBasemapThumbnailUrl('topo-vector'),
+  },
+  {
+    id: 'streets-vector',
+    labelI18nKey: 'mapView.basemaps.streets',
+    thumbnailUrl: getBasemapThumbnailUrl('streets-vector'),
+  },
+  {
+    id: 'satellite',
+    labelI18nKey: 'mapView.basemaps.satellite',
+    thumbnailUrl: getBasemapThumbnailUrl('satellite'),
+  },
+  {
+    id: 'hybrid',
+    labelI18nKey: 'mapView.basemaps.hybrid',
+    thumbnailUrl: getBasemapThumbnailUrl('hybrid'),
+  },
+];
 
 /**
  * Configuration for one vector-rendered overlay (OMEC, RUNAP, …).
@@ -180,6 +217,13 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   protected isExportInProgress = false;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
+  protected readonly activeBasemap = this.basemapService.basemap;
+  protected readonly basemapOptions = BASEMAP_OPTIONS;
+  protected readonly isBasemapPickerOpen = signal(false);
+  protected readonly activeBasemapOption = computed(
+    () =>
+      BASEMAP_OPTIONS.find((option) => option.id === this.activeBasemap()) ?? BASEMAP_OPTIONS[0],
+  );
   /** True while ANY vector overlay GeoJSON (OMEC or RUNAP) is fetching. */
   protected readonly isOmecLayerLoading = computed(() => this.isAnyVectorOverlayLoading());
   /** i18n key for the loading banner — whichever overlay is currently fetching. */
@@ -257,6 +301,19 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
   protected zoomOut(): void {
     void this.animateZoomBy(-1);
+  }
+
+  protected toggleBasemapPicker(): void {
+    this.isBasemapPickerOpen.update((isOpen) => !isOpen);
+  }
+
+  protected closeBasemapPicker(): void {
+    this.isBasemapPickerOpen.set(false);
+  }
+
+  protected selectBasemap(basemap: SupportedBasemap): void {
+    this.basemapService.setBasemap(basemap);
+    this.closeBasemapPicker();
   }
 
   protected zoomToCountry(): void {
@@ -496,7 +553,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private createMapView(el: HTMLDivElement): void {
     try {
       console.info(`[MapView][${this.debugMarker}] creating ArcGISMap + ArcGISMapView`);
-      this.map = new ArcGISMap({ basemap: 'topo-vector' });
+      this.map = new ArcGISMap({ basemap: this.activeBasemap() });
       this.layerRenderer.initialize(this.map);
       this.manifestRasterLayerService.initialize(this.map);
       this.solutionLayer.initialize(this.map);
@@ -602,7 +659,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         id: config.arcgisLayerId,
         url: config.geojsonUrl,
         visible: false,
-        opacity: 0.75,
+        opacity: DEFAULT_VECTOR_OVERLAY_OPACITY,
         listMode: 'hide',
         popupEnabled: false,
         outFields: [...config.outFields],
@@ -624,8 +681,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       type: 'simple',
       symbol: {
         type: 'simple-fill',
-        color: [r, g, b, 165],
-        outline: { color: [r, g, b, 230], width: 1 },
+        color: [r, g, b, OPAQUE_SYMBOL_ALPHA],
+        outline: { color: [r, g, b, OPAQUE_SYMBOL_ALPHA], width: 1 },
       },
     };
   }

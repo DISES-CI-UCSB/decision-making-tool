@@ -1,5 +1,10 @@
 layer_id,layer_name_spanish,layer_name_english,current_csv_layer_group,in_use_now,proposed_manifest_category_id,proposed_category_spanish_label,proposed_category_english_label,proposed_frontend_group,needs_team_review,team_approved_category_id,team_notes
-species_richness,Riqueza de especies,Species Richness,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
+species_richness,Riqueza de especies,All Species Richness,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
+species_richness_mammals,Riqueza de especies - Mamíferos,Mammal Species Richness,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
+species_richness_birds,Riqueza de especies - Aves,Bird Species Richness,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
+species_richness_amphibians,Riqueza de especies - Anfibios,Amphibian Species Richness,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
+species_richness_reptiles,Riqueza de especies - Reptiles,Reptile Species Richness,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
+species_richness_plants,Riqueza de especies - Plantas,Plant Species Richness,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
 species,Distribuciones de especies individuales (~8751),Individual Species Distributions,Biodiversidad,TRUE,species_and_biodiversity,Especies y biodiversidad,Species & Biodiversity,Species & Biodiversity,FALSE,,
 paramos,Páramos,,Ecosistemas estratégicos,TRUE,ecosystems,Ecosistemas,Ecosystems,Ecosystems,FALSE,,
 wetlands,Humedales,Wetlands,Ecosistemas estratégicos,TRUE,ecosystems,Ecosistemas,Ecosystems,Ecosystems,FALSE,,

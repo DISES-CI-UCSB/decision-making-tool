@@ -37,6 +37,34 @@ describe('App', () => {
     expect(compiled.querySelector('#map-panel-title')?.textContent).toContain('app.mapTitle');
   });
 
+  it('renders the landing welcome modal on initial load', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#landing-welcome-modal-title')?.textContent).toContain(
+      'landingWelcome.title',
+    );
+    expect(compiled.querySelector('#landing-welcome-modal-select-solution-button')).not.toBeNull();
+  });
+
+  it('opens the solution finder from the landing welcome modal', () => {
+    const fixture = TestBed.createComponent(App);
+    const appState = TestBed.inject(AppStateService);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled
+      .querySelector<HTMLButtonElement>('#landing-welcome-modal-select-solution-button')
+      ?.click();
+
+    expect(appState.solutionFinderModalOpen$()).toBe(true);
+    expect(
+      (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
+        .landingWelcomeModalOpen,
+    ).toBe(false);
+  });
+
   it('loads solution, switches sidebar mode, and shows toast when applying a scenario', () => {
     const fixture = TestBed.createComponent(App);
     const component = fixture.componentInstance;

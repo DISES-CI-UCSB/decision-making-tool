@@ -182,7 +182,69 @@ const renderingOverrideByLayerId = {
     startColor: '#fef3c7',
     endColor: '#854d0e',
   },
+  species_richness_mammals: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 142,
+    startColor: '#f3e8ff',
+    endColor: '#7e22ce',
+  },
+  species_richness_birds: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 823,
+    startColor: '#dbeafe',
+    endColor: '#1d4ed8',
+  },
+  species_richness_amphibians: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 56,
+    startColor: '#dcfce7',
+    endColor: '#15803d',
+  },
+  species_richness_reptiles: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 68,
+    startColor: '#ffedd5',
+    endColor: '#c2410c',
+  },
+  species_richness_plants: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: 65535,
+    minValue: 1,
+    maxValue: 2884,
+    startColor: '#ccfbf1',
+    endColor: '#0f766e',
+  },
+  human_footprint_2022: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: null,
+    minValue: 0,
+    maxValue: 100,
+    startColor: '#fee2e2',
+    endColor: '#991b1b',
+  },
 };
+
+const forcedRenderingOverrideLayerIds = new Set([
+  'species_richness_mammals',
+  'species_richness_birds',
+  'species_richness_amphibians',
+  'species_richness_reptiles',
+  'species_richness_plants',
+]);
 
 const rasterCharacteristicsByUrl = new Map();
 
@@ -1122,12 +1184,14 @@ async function inferRenderingConfig({
 }) {
   const override = renderingOverrideByLayerId[id];
   if (override) {
-    const rendering = pickRenderingForLayer({
-      inferredRendering: override,
-      layerId: id,
-      categoryId,
-      existingLayer,
-    });
+    const rendering = forcedRenderingOverrideLayerIds.has(id)
+      ? override
+      : pickRenderingForLayer({
+          inferredRendering: override,
+          layerId: id,
+          categoryId,
+          existingLayer,
+        });
     return {
       rendering,
       renderingInference: {
@@ -1507,7 +1571,8 @@ function normalizeNumericValue(value) {
 /**
  * Resolves the final rendering for a layer by combining inference with what was
  * already in the previous manifest. Mode-stable layers preserve their existing
- * colors byte-for-byte; mode-flipped layers carry the previous color forward
+ * colors byte-for-byte while refreshing inferred scale/value metadata. Mode-flipped
+ * layers carry the previous color forward
  * (binary mask `selectedColor` becomes new gradient `endColor`, gradient
  * `endColor` becomes new mask `selectedColor`). Brand-new layers seed from the
  * curated category palette with a small per-layer hue offset.
@@ -1521,7 +1586,7 @@ export function pickRenderingForLayer({ inferredRendering, layerId, categoryId, 
   }
 
   if (existingRendering.renderMode === inferredRendering.renderMode) {
-    return existingRendering;
+    return mergeInferredRenderingWithExistingStyle(inferredRendering, existingRendering);
   }
 
   if (existingRendering.renderMode === 'mask' && inferredRendering.renderMode === 'gradient') {
@@ -1541,6 +1606,25 @@ export function pickRenderingForLayer({ inferredRendering, layerId, categoryId, 
   }
 
   return seedRenderingFromPalette(inferredRendering, palette, layerId);
+}
+
+function mergeInferredRenderingWithExistingStyle(inferredRendering, existingRendering) {
+  if (inferredRendering.renderMode === 'mask') {
+    return {
+      ...inferredRendering,
+      selectedColor: existingRendering.selectedColor ?? inferredRendering.selectedColor,
+    };
+  }
+
+  if (inferredRendering.renderMode === 'gradient') {
+    return {
+      ...inferredRendering,
+      startColor: existingRendering.startColor ?? inferredRendering.startColor,
+      endColor: existingRendering.endColor ?? inferredRendering.endColor,
+    };
+  }
+
+  return inferredRendering;
 }
 
 function seedRenderingFromPalette(inferredRendering, palette, layerId) {

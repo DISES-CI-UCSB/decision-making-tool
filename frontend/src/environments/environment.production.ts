@@ -14,8 +14,8 @@ export const environment = {
     accessRequestNotificationEmail: '',
   },
   googleClientId: '',
-  manifestBlobUrl: '/api/blob-proxy/manifest/manifest.json',
-  blobAssetProxyPath: '/api/blob-proxy/',
+  manifestBlobUrl: '',
+  blobAssetProxyPath: '',
   ENABLE_MANIFEST_EDITOR: true,
   bypassLoginForDevelopment: false,
 } as const;

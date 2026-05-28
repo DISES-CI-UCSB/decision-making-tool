@@ -324,6 +324,9 @@ export class AdminBoundaryService {
     }
     this.setVisibilityForConfigs(configs, visible);
     this.applyVisibilityToMapLayers(configs, visible);
+    if (!visible) {
+      this.clearSelectionForHiddenBoundary(configs);
+    }
     if (visible) {
       this.bringLayersToFront(configs);
       if (
@@ -619,6 +622,20 @@ export class AdminBoundaryService {
       if (layerIds.has(layer.id)) {
         layer.visible = visible;
       }
+    }
+  }
+
+  private clearSelectionForHiddenBoundary(configs: BoundaryConfig[]): void {
+    const selectedAoi = this.appState.selectedAOI$();
+    if (!selectedAoi) {
+      return;
+    }
+
+    const hidesSelectedAoiLayer = configs.some(
+      (config) => config.selectable !== false && config.type === selectedAoi.type,
+    );
+    if (hidesSelectedAoiLayer) {
+      this.clearSelectionState();
     }
   }
 

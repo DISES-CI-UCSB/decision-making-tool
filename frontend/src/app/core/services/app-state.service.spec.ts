@@ -1,7 +1,69 @@
 import { TestBed } from '@angular/core/testing';
 import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
 import { environment } from '../../../environments/environment';
-import { AppStateService } from './app-state.service';
+import {
+  AppStateService,
+  buildContinuousGradientLegendEntry,
+  isContinuousGradientRendering,
+} from './app-state.service';
+
+describe('map legend helpers', () => {
+  it('builds gradient legend entries for continuous gradient rasters', () => {
+    const rendering = {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      minValue: 0,
+      maxValue: 100,
+      startColor: '#fee2e2',
+      endColor: '#991b1b',
+    } as const;
+
+    expect(isContinuousGradientRendering(rendering)).toBe(true);
+    expect(
+      buildContinuousGradientLegendEntry({
+        id: 'layer-human_footprint_2022',
+        name: 'Human Footprint 2022',
+        color: '#991b1b',
+        rendering,
+      }),
+    ).toEqual({
+      id: 'layer-human_footprint_2022',
+      name: 'Human Footprint 2022',
+      swatchType: 'gradient',
+      color: '#991b1b',
+      lineStyle: 'solid',
+      lineWidth: 1,
+      gradientStartColor: '#fee2e2',
+      gradientEndColor: '#991b1b',
+      gradientMinLabel: '0',
+      gradientMaxLabel: '100',
+    });
+  });
+
+  it('omits gradient labels when continuous raster min/max metadata is unavailable', () => {
+    const rendering = {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      minValue: null,
+      maxValue: null,
+      startColor: '#fef3c7',
+      endColor: '#854d0e',
+    } as const;
+
+    const entry = buildContinuousGradientLegendEntry({
+      id: 'layer-future-continuous-raster',
+      name: 'Future Continuous Raster',
+      color: '#854d0e',
+      rendering,
+    });
+
+    expect(entry.swatchType).toBe('gradient');
+    expect(entry.gradientStartColor).toBe('#fef3c7');
+    expect(entry.gradientEndColor).toBe('#854d0e');
+    expect(entry.gradientMinLabel).toBeUndefined();
+    expect(entry.gradientMaxLabel).toBeUndefined();
+  });
+});
 
 describe('AppStateService', () => {
   let service: AppStateService;

@@ -15,7 +15,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([mockApiInterceptor])),
     provideTranslateService({
-      lang: 'en',
+      lang: 'es',
       fallbackLang: 'en',
       loader: provideTranslateHttpLoader({
         prefix: '/i18n/',

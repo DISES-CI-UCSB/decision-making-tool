@@ -30,8 +30,9 @@ export const DEFAULT_EXISTING_PROTECTED_HEX = '#2563eb';
 export const DEFAULT_COMPARISON_BASELINE_HEX = DEFAULT_SINGLE_SOLUTION_HEX;
 export const DEFAULT_COMPARISON_CANDIDATE_HEX = '#7c3aed';
 export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
+export const DEFAULT_SOLUTION_LAYER_OPACITY = 0.8;
 
-const SOLUTION_ALPHA = 180;
+const SOLUTION_ALPHA = 255;
 const EXISTING_PROTECTED_VALUE = 1;
 const NEW_COVERAGE_VALUE = 2;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
@@ -54,8 +55,8 @@ export class SolutionLayerService {
   private lastSingleSolutionId: string | null = null;
   private lastComparisonBaselineId: string | null = null;
   private lastComparisonCandidateId: string | null = null;
-  private baselineComparisonOpacity = 0.7;
-  private candidateComparisonOpacity = 0.7;
+  private baselineComparisonOpacity = DEFAULT_SOLUTION_LAYER_OPACITY;
+  private candidateComparisonOpacity = DEFAULT_SOLUTION_LAYER_OPACITY;
   private overlapComparisonOpacity = 1;
   private baselineComparisonVisible = true;
   private candidateComparisonVisible = true;
@@ -471,7 +472,7 @@ export class SolutionLayerService {
       source: new LocalMediaElementSource({
         elements: [this.createImageElement(loaded, colorHex)],
       }),
-      opacity: 0.7,
+      opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
       title,
     });
   }
@@ -599,7 +600,7 @@ export class SolutionLayerService {
       url: loaded.scenario.displayCogUrl ?? loaded.scenario.displayUrl,
       interpolation: 'nearest',
       renderer: this.createSolutionRenderer(loaded, colorHex),
-      opacity: 0.7,
+      opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
       title,
     });
   }

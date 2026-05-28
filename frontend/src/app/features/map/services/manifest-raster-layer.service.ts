@@ -70,6 +70,7 @@ export class ManifestRasterLayerService {
 
   /** Back-compat: existing OMEC consumers read a single signal-style getter. */
   readonly omecOverlayState$ = signal<OmecOverlayState | null>(null);
+  readonly renderedLayerRevision$ = signal(0);
 
   /** Convenience accessor for one overlay's current sidebar state. */
   getVectorOverlayState(layerId: string): VectorOverlayState | null {
@@ -153,6 +154,7 @@ export class ManifestRasterLayerService {
       }
       existingLayer.visible = latestState.visible;
       existingLayer.opacity = latestState.opacity;
+      this.bumpRenderedLayerRevision();
       return;
     }
 
@@ -165,6 +167,11 @@ export class ManifestRasterLayerService {
     });
     this.map.add(layer);
     this.layersById.set(layerId, layer);
+    this.bumpRenderedLayerRevision();
+  }
+
+  private bumpRenderedLayerRevision(): void {
+    this.renderedLayerRevision$.update((revision) => revision + 1);
   }
 
   private setLayerVisibility(layerId: string, visible: boolean): void {

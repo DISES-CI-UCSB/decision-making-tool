@@ -717,6 +717,68 @@
   color: var(--color-subtext);
 }
 
+.v3-metric-table,
+.aoi-metric-table,
+.c2-compare-table {
+  overflow: visible;
+}
+
+[data-full-value] {
+  position: relative;
+  cursor: help;
+  outline-offset: 2px;
+}
+
+[data-full-value]::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 80;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #fff;
+  content: attr(data-full-value);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translateY(2px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  white-space: normal;
+}
+
+[data-full-value]::before {
+  position: absolute;
+  right: 10px;
+  bottom: calc(100% + 2px);
+  z-index: 81;
+  border-width: 4px 4px 0;
+  border-style: solid;
+  border-color: #0f172a transparent transparent;
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+[data-full-value]:hover::after,
+[data-full-value]:focus-visible::after,
+[data-full-value]:hover::before,
+[data-full-value]:focus-visible::before {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .v3-tag-conditional {
   white-space: nowrap;
   border-radius: 3px;

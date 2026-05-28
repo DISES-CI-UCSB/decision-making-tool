@@ -44,6 +44,7 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   protected isRendered = false;
   protected isActive = false;
 
+  private openTimer: ReturnType<typeof setTimeout> | null = null;
   private closeTimer: ReturnType<typeof setTimeout> | null = null;
   private bodyOverflowBeforeLock = '';
   private bodyScrollLocked = false;
@@ -55,6 +56,7 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearOpenTimer();
     this.clearCloseTimer();
     this.unlockBodyScroll();
   }
@@ -102,20 +104,23 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   }
 
   private openModal(): void {
+    this.clearOpenTimer();
     this.clearCloseTimer();
 
     if (!this.isRendered) {
       this.isRendered = true;
     }
 
-    queueMicrotask(() => {
+    this.openTimer = setTimeout(() => {
       this.isActive = true;
       this.lockBodyScroll();
       this.focusInitialElement();
-    });
+      this.openTimer = null;
+    }, 0);
   }
 
   private closeModal(): void {
+    this.clearOpenTimer();
     this.isActive = false;
     this.clearCloseTimer();
 
@@ -123,6 +128,15 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
       this.isRendered = false;
       this.unlockBodyScroll();
     }, MODAL_TRANSITION_MS);
+  }
+
+  private clearOpenTimer(): void {
+    if (!this.openTimer) {
+      return;
+    }
+
+    clearTimeout(this.openTimer);
+    this.openTimer = null;
   }
 
   private clearCloseTimer(): void {
