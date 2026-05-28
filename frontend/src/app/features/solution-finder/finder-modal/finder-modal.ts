@@ -22,7 +22,6 @@ import { TranslatePipe } from '@ngx-translate/core';
 type FinderMatchState = 'empty' | 'loading' | 'ready';
 
 type FinderTargetType =
-  | 'species-richness'
   | 'ecosystems'
   | 'strategic-ecosystems'
   | 'ecosystem-services'
@@ -89,13 +88,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       labelKey: 'solutionControls.finder.step1.strategicEcosystemsLabel',
       helpKey: 'solutionControls.finder.step1.strategicEcosystemsHelp',
       isStrategic: true,
-      isAvailable: true,
-    },
-    {
-      id: 'species-richness',
-      labelKey: 'solutionControls.finder.step1.speciesRichnessLabel',
-      helpKey: 'solutionControls.finder.step1.speciesRichnessHelp',
-      isStrategic: false,
       isAvailable: true,
     },
     {
@@ -542,12 +534,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
     if (targetFeatureSet === 'ecosystems' || targetFeatureIds.includes('ecosistemas')) {
       targetTypes.add('ecosystems');
-    }
-    if (
-      targetFeatureSet.includes('species') ||
-      (!targetFeatureSet && targetFeatureIds.includes('species-richness'))
-    ) {
-      targetTypes.add('species-richness');
     }
 
     return targetTypes;
