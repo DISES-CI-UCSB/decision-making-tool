@@ -125,7 +125,7 @@ export class AppStateService {
   /** Dev-only: show the info-icon reminder of Solution Finder inputs next to the overview title. Off until data is ready. */
   readonly showOverviewInputsReminder$ = signal(false);
   /** Dev-only: split solution rasters into existing include coverage versus newly recommended coverage. */
-  readonly showExistingProtectedCoverage$ = signal(false);
+  readonly showExistingProtectedCoverage$ = signal(true);
   /** Dev-only: compare readable compact metric numbers against full precision values. */
   readonly metricNumberFormatMode$ = signal<MetricNumberFormatMode>('compact');
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);

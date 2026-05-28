@@ -84,7 +84,7 @@ describe('SolutionLayerService', () => {
   const appStateMock = {
     loadSolution: vi.fn(),
     clearSolution: vi.fn(),
-    showExistingProtectedCoverage$: vi.fn(() => false),
+    showExistingProtectedCoverage$: vi.fn(() => true),
   };
   const mockDataMock = {
     getSolutionById: vi.fn().mockReturnValue({
@@ -108,7 +108,7 @@ describe('SolutionLayerService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    appStateMock.showExistingProtectedCoverage$.mockReturnValue(false);
+    appStateMock.showExistingProtectedCoverage$.mockReturnValue(true);
     TestBed.configureTestingModule({
       providers: [
         SolutionLayerService,
@@ -163,25 +163,7 @@ describe('SolutionLayerService', () => {
     expect(addedLayer.renderer).toBeTruthy();
   });
 
-  it('draws existing include coverage with the selected solution color by default', () => {
-    const loaded = createLoadedSolution('baseline');
-    const classColors = (
-      service as unknown as {
-        solutionClassColors: (
-          loaded: LoadedSolution,
-          newCoverageColorHex: string,
-        ) => { value: number; color: string; label: string }[];
-      }
-    ).solutionClassColors(loaded, '#ff0000');
-
-    expect(classColors).toEqual([
-      { value: 2, color: '#ff0000', label: 'Selected solution' },
-      { value: 1, color: '#ff0000', label: 'Selected solution' },
-    ]);
-  });
-
-  it('can split existing include coverage into its own color for dev review', () => {
-    appStateMock.showExistingProtectedCoverage$.mockReturnValue(true);
+  it('splits existing include coverage into its own color by default', () => {
     const loaded = createLoadedSolution('baseline');
     const classColors = (
       service as unknown as {
@@ -195,6 +177,24 @@ describe('SolutionLayerService', () => {
     expect(classColors).toEqual([
       { value: 2, color: '#2563eb', label: 'Existing protected areas' },
       { value: 1, color: '#ff0000', label: 'New coverage' },
+    ]);
+  });
+
+  it('can collapse existing include coverage into the selected solution color for dev review', () => {
+    appStateMock.showExistingProtectedCoverage$.mockReturnValue(false);
+    const loaded = createLoadedSolution('baseline');
+    const classColors = (
+      service as unknown as {
+        solutionClassColors: (
+          loaded: LoadedSolution,
+          newCoverageColorHex: string,
+        ) => { value: number; color: string; label: string }[];
+      }
+    ).solutionClassColors(loaded, '#ff0000');
+
+    expect(classColors).toEqual([
+      { value: 2, color: '#ff0000', label: 'Selected solution' },
+      { value: 1, color: '#ff0000', label: 'Selected solution' },
     ]);
   });
 
