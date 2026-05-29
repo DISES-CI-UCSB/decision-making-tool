@@ -8,6 +8,7 @@ import {
   type MetricComparisonValue,
   type MetricReadinessStatus,
   type MetricValue,
+  type Solution,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
@@ -18,7 +19,6 @@ import {
   type MetricNumberFormatMode,
   type RightSidebarMode,
 } from '@core/services/app-state.service';
-import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import {
   AdminBoundaryService,
@@ -96,6 +96,15 @@ interface ComparisonMetricSection {
   titleKey: string;
   toneClass: 'general' | 'bio' | 'eco' | 'socio' | 'protect';
   metrics: ComparisonMetricDisplayEntry[];
+}
+
+interface SpatialOverlapDisplayEntry {
+  id: string;
+  labelKey: string;
+  descriptionKey: string;
+  value: string;
+  fullValue: string | null;
+  colorClass: 'overlap' | 'baseline' | 'candidate';
 }
 
 interface AoiBiodiversityBar {
@@ -196,7 +205,6 @@ export class PanelSwitcherComponent {
   private readonly appState = inject(AppStateService);
   private readonly appLocale = inject(AppLocaleService);
   private readonly api = inject(ApiService);
-  private readonly mockData = inject(MockDataService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly solutionLayer = inject(SolutionLayerService);
@@ -206,6 +214,7 @@ export class PanelSwitcherComponent {
   /** Reactive comparison colors sourced from the SolutionLayerService (driven by the left sidebar). */
   protected readonly comparisonBaselineColor = this.solutionLayer.baselineColor$;
   protected readonly comparisonCandidateColor = this.solutionLayer.candidateColor$;
+  protected readonly comparisonOverlapColor = this.solutionLayer.overlapColor$;
 
   private readonly overviewSectionLookup: Record<string, { id: string; labelKey: string }> = {
     'm-biodiversity': { id: 'ecology', labelKey: 'analysis.sections.ecology' },
@@ -438,6 +447,7 @@ export class PanelSwitcherComponent {
       section: 'general',
       labelKey: 'analysis.comparison.metrics.priorityArea',
       descriptionKey: 'analysis.comparison.metrics.priorityAreaDesc',
+      metricId: 'priority_area_in_region',
       dummyBaseline: '210 km²',
       dummyCandidate: '230 km²',
       dummyDelta: '+20 km²',
@@ -448,6 +458,7 @@ export class PanelSwitcherComponent {
       section: 'general',
       labelKey: 'analysis.comparison.metrics.nationalTarget',
       descriptionKey: 'analysis.comparison.metrics.nationalTargetDesc',
+      metricId: 'national_contribution',
       dummyBaseline: '1.3%',
       dummyCandidate: '1.9%',
       dummyDelta: '+0.6%',
@@ -456,9 +467,9 @@ export class PanelSwitcherComponent {
     {
       id: 'comp-biodiversity',
       section: 'biodiversity',
-      labelKey: 'analysis.comparison.metrics.biodiversity',
-      descriptionKey: 'analysis.comparison.metrics.biodiversityDesc',
-      metricId: 'm-biodiversity',
+      labelKey: 'analysis.comparison.metrics.ecosystemCoverage',
+      descriptionKey: 'analysis.comparison.metrics.ecosystemCoverageDesc',
+      metricId: 'ecosystem_coverage',
       dummyBaseline: '83%',
       dummyCandidate: '92%',
       dummyDelta: '+9%',
@@ -468,6 +479,7 @@ export class PanelSwitcherComponent {
       section: 'biodiversity',
       labelKey: 'analysis.comparison.metrics.threatenedSpecies',
       descriptionKey: 'analysis.comparison.metrics.threatenedSpeciesDesc',
+      metricId: 'threatened_species_secured',
       dummyBaseline: '4 species',
       dummyCandidate: '5 species',
       dummyDelta: '+1',
@@ -488,7 +500,7 @@ export class PanelSwitcherComponent {
       section: 'ecosystems',
       labelKey: 'analysis.comparison.metrics.carbonStorage',
       descriptionKey: 'analysis.comparison.metrics.carbonStorageDesc',
-      metricId: 'm-carbon',
+      metricId: 'carbon_storage_biomass',
       dummyBaseline: '69 t/ha',
       dummyCandidate: '74 t/ha',
       dummyDelta: '+5 t/ha',
@@ -498,6 +510,7 @@ export class PanelSwitcherComponent {
       section: 'ecosystems',
       labelKey: 'analysis.comparison.metrics.waterRegulation',
       descriptionKey: 'analysis.comparison.metrics.waterRegulationDesc',
+      metricId: 'water_regulation_area',
       dummyBaseline: '72 / 100',
       dummyCandidate: '78 / 100',
       dummyDelta: '+6',
@@ -508,6 +521,7 @@ export class PanelSwitcherComponent {
       section: 'protection',
       labelKey: 'analysis.comparison.metrics.protectedOverlap',
       descriptionKey: 'analysis.comparison.metrics.protectedOverlapDesc',
+      metricId: 'national_parks_pct',
       dummyBaseline: '14%',
       dummyCandidate: '18%',
       dummyDelta: '+4%',
@@ -518,6 +532,7 @@ export class PanelSwitcherComponent {
       section: 'protection',
       labelKey: 'analysis.comparison.metrics.indigenousOverlap',
       descriptionKey: 'analysis.comparison.metrics.indigenousOverlapDesc',
+      metricId: 'indigenous_territory_pct',
       dummyBaseline: '10%',
       dummyCandidate: '12%',
       dummyDelta: '+2%',
@@ -546,6 +561,8 @@ export class PanelSwitcherComponent {
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
   protected readonly cachedMetricsDocument = signal<CachedSolutionMetricsDocument | null>(null);
+  protected readonly comparisonCandidateMetricsDocument =
+    signal<CachedSolutionMetricsDocument | null>(null);
   protected readonly isOverviewLoading = signal(false);
   protected readonly overviewLoadFailed = signal(false);
   protected readonly overviewGainMetrics = computed<OverviewMetricDisplayEntry[]>(() =>
@@ -572,13 +589,13 @@ export class PanelSwitcherComponent {
   protected readonly isSirapAoiSelected = computed(() => this.selectedAoi()?.type === 'sirap');
 
   protected readonly comparisonMetrics = computed(() => {
-    const baselineSolution = this.activeSolution();
-    const candidateSolution = this.comparisonSolution();
-    if (!baselineSolution || !candidateSolution) {
+    const baselineMetrics = nationalMetrics(this.cachedMetricsDocument());
+    const candidateMetrics = nationalMetrics(this.comparisonCandidateMetricsDocument());
+    if (baselineMetrics.length === 0 || candidateMetrics.length === 0) {
       return [];
     }
 
-    return this.mockData.compareSolutions(baselineSolution.id, candidateSolution.id)?.metrics ?? [];
+    return this.buildMetricComparisons(baselineMetrics, candidateMetrics);
   });
   protected readonly fillDummyAoiMetrics = this.appState.fillDummyAoiMetrics$;
   protected readonly chartPaletteId = this.appState.chartPaletteId$;
@@ -679,6 +696,9 @@ export class PanelSwitcherComponent {
     ecosystems: true,
     protection: false,
   });
+  protected readonly spatialOverlapEntries = computed<SpatialOverlapDisplayEntry[]>(() =>
+    this.buildSpatialOverlapEntries(),
+  );
   protected readonly comparisonSections = computed<ComparisonMetricSection[]>(() =>
     this.buildComparisonSections(),
   );
@@ -698,7 +718,7 @@ export class PanelSwitcherComponent {
   constructor() {
     toObservable(this.activeSolution)
       .pipe(
-        map((solution) => solution?.id ?? null),
+        map((solution) => this.resolveMetricsSolutionId(solution)),
         distinctUntilChanged(),
         switchMap((solutionId) => {
           if (!solutionId) {
@@ -726,6 +746,38 @@ export class PanelSwitcherComponent {
         this.cachedMetricsDocument.set(document);
         this.overviewSections.set(this.buildOverviewSections(nationalMetrics(document)));
       });
+
+    toObservable(this.comparisonSolution)
+      .pipe(
+        map((solution) => this.resolveMetricsSolutionId(solution)),
+        distinctUntilChanged(),
+        switchMap((solutionId) => {
+          if (!solutionId) {
+            return of<CachedSolutionMetricsDocument | null>(null);
+          }
+
+          return this.api
+            .getSolutionMetrics(solutionId)
+            .pipe(catchError(() => of<CachedSolutionMetricsDocument | null>(null)));
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((document) => {
+        this.comparisonCandidateMetricsDocument.set(document);
+      });
+  }
+
+  /**
+   * Resolve the scenario id used to load cached metrics. Prefer the real
+   * `metadata.scenarioId` (always the manifest id) over `solution.id`, which can
+   * be a mock id when the candidate is built via the dev-tools panel.
+   */
+  private resolveMetricsSolutionId(solution: Solution | null): string | null {
+    const scenarioId = solution?.metadata?.['scenarioId'];
+    if (typeof scenarioId === 'string' && scenarioId.length > 0) {
+      return scenarioId;
+    }
+    return solution?.id ?? null;
   }
 
   protected formatMetricValue(
@@ -835,17 +887,40 @@ export class PanelSwitcherComponent {
     return delta !== null && delta < 0;
   }
 
-  protected getContributionPercent(matchPercentage: number): number {
-    return Math.max(10, Math.min(60, Math.round(matchPercentage * 0.42)));
+  protected getGoalsAchievedPercent(fallbackPercent: number): string {
+    const goalsMetric = this.findOverviewMetric('conservation_goals_met');
+    if (goalsMetric && this.isMetricReady(goalsMetric)) {
+      return this.formatNumber(goalsMetric.value ?? 0, this.metricNumberFormatMode(), 0, 1);
+    }
+
+    return this.formatNumber(fallbackPercent, this.metricNumberFormatMode(), 0, 1);
   }
 
-  protected getContributionAddedPercent(matchPercentage: number): number {
-    const contribution = this.getContributionPercent(matchPercentage);
-    return Math.max(2, Math.round(contribution * 0.33));
+  protected getGoalsAchievedBarWidth(fallbackPercent: number): number {
+    const goalsMetric = this.findOverviewMetric('conservation_goals_met');
+    const value =
+      goalsMetric && this.isMetricReady(goalsMetric) ? goalsMetric.value : fallbackPercent;
+    return Math.max(0, Math.min(100, value ?? 0));
   }
 
-  protected getGoalsMetCount(matchPercentage: number): number {
-    return Math.round(matchPercentage / 12);
+  protected getOverviewMetricValue(metricId: string, fallbackWhenMissing = '--'): string {
+    const metric = this.findOverviewMetric(metricId);
+    if (metric && this.isMetricReady(metric)) {
+      return this.formatMetricForPanel(metric);
+    }
+
+    return fallbackWhenMissing;
+  }
+
+  protected getOverviewMetricFullValue(metricId: string): string | null {
+    const metric = this.findOverviewMetric(metricId);
+    if (!metric || !this.isMetricReady(metric)) {
+      return null;
+    }
+
+    const fullValue = this.formatMetricForPanel(metric, 'full');
+    const compactValue = this.formatMetricForPanel(metric, 'compact');
+    return fullValue !== compactValue ? fullValue : null;
   }
 
   protected toggleOverviewSection(sectionId: OverviewMetricSection): void {
@@ -1361,6 +1436,14 @@ export class PanelSwitcherComponent {
       });
   }
 
+  private findOverviewMetric(metricId: string): MetricValue | null {
+    return (
+      this.overviewSections()
+        .flatMap((metricSection) => metricSection.metrics)
+        .find((metric) => metric.metricId === metricId) ?? null
+    );
+  }
+
   private buildComparisonSections(): ComparisonMetricSection[] {
     const metricsById = new Map(
       this.comparisonMetrics().map((metric) => [metric.metricId, metric] as const),
@@ -1382,6 +1465,38 @@ export class PanelSwitcherComponent {
         metrics,
       };
     });
+  }
+
+  private buildMetricComparisons(
+    baselineMetrics: MetricValue[],
+    candidateMetrics: MetricValue[],
+  ): MetricComparisonValue[] {
+    const candidateById = new Map(candidateMetrics.map((metric) => [metric.metricId, metric]));
+    return baselineMetrics
+      .map((baseline): MetricComparisonValue | null => {
+        const candidate = candidateById.get(baseline.metricId);
+        if (!candidate) {
+          return null;
+        }
+
+        const delta =
+          baseline.status === 'ready' &&
+          candidate.status === 'ready' &&
+          baseline.value !== null &&
+          candidate.value !== null
+            ? Number((candidate.value - baseline.value).toFixed(2))
+            : null;
+
+        return {
+          metricId: baseline.metricId,
+          labelKey: baseline.labelKey,
+          formatHint: baseline.formatHint,
+          baseline,
+          candidate,
+          delta,
+        };
+      })
+      .filter((metric): metric is MetricComparisonValue => metric !== null);
   }
 
   private buildComparisonMetricDisplayEntry(
@@ -1411,6 +1526,11 @@ export class PanelSwitcherComponent {
               ? 'positive'
               : 'negative',
       };
+    }
+
+    const liveMetricEntry = this.buildLiveRasterComparisonEntry(blueprint);
+    if (liveMetricEntry) {
+      return liveMetricEntry;
     }
 
     if (shouldFillDummy) {
@@ -1471,5 +1591,129 @@ export class PanelSwitcherComponent {
       metric.candidate.value !== null &&
       metric.delta !== null
     );
+  }
+
+  private buildSpatialOverlapEntries(): SpatialOverlapDisplayEntry[] {
+    const liveMetrics = this.solutionLayer.liveComparisonMetrics$();
+    if (liveMetrics?.status !== 'ready') {
+      return [];
+    }
+
+    return [
+      this.buildSpatialOverlapEntry(
+        'agreement-area',
+        'analysis.comparison.metrics.agreementArea',
+        'analysis.comparison.metrics.agreementAreaDesc',
+        liveMetrics.agreementAreaKm2,
+        'overlap',
+      ),
+      this.buildSpatialOverlapEntry(
+        'unique-scenario-a',
+        'analysis.comparison.metrics.uniqueScenarioA',
+        'analysis.comparison.metrics.uniqueScenarioADesc',
+        liveMetrics.uniqueToBaselineKm2,
+        'baseline',
+      ),
+      this.buildSpatialOverlapEntry(
+        'unique-scenario-b',
+        'analysis.comparison.metrics.uniqueScenarioB',
+        'analysis.comparison.metrics.uniqueScenarioBDesc',
+        liveMetrics.uniqueToCandidateKm2,
+        'candidate',
+      ),
+    ];
+  }
+
+  private buildSpatialOverlapEntry(
+    id: string,
+    labelKey: string,
+    descriptionKey: string,
+    value: number | null,
+    colorClass: SpatialOverlapDisplayEntry['colorClass'],
+  ): SpatialOverlapDisplayEntry {
+    const compactValue = value === null ? '--' : this.formatLiveAreaMetric(value);
+    const fullValue = value === null ? null : this.formatLiveAreaMetric(value, 'full');
+    return {
+      id,
+      labelKey,
+      descriptionKey,
+      value: compactValue,
+      fullValue: compactValue === fullValue ? null : fullValue,
+      colorClass,
+    };
+  }
+
+  private buildLiveRasterComparisonEntry(
+    blueprint: ComparisonMetricBlueprint,
+  ): ComparisonMetricDisplayEntry | null {
+    const liveMetrics = this.solutionLayer.liveComparisonMetrics$();
+    if (!blueprint.metricId || liveMetrics?.status !== 'ready') {
+      return null;
+    }
+
+    if (blueprint.metricId === 'priority_area_in_region') {
+      return this.buildLiveRasterDisplayEntry(
+        blueprint,
+        liveMetrics.baselineSelectedAreaKm2,
+        liveMetrics.candidateSelectedAreaKm2,
+        (value) => this.formatLiveAreaMetric(value),
+        (value) => this.formatLiveAreaMetric(value, 'full'),
+      );
+    }
+
+    if (blueprint.metricId === 'national_contribution') {
+      return this.buildLiveRasterDisplayEntry(
+        blueprint,
+        liveMetrics.baselineNationalContributionPct,
+        liveMetrics.candidateNationalContributionPct,
+        (value) => `${this.formatNumber(value, this.metricNumberFormatMode(), 0, 1)}%`,
+        (value) => `${this.formatNumber(value, 'full', 0, 2)}%`,
+      );
+    }
+
+    return null;
+  }
+
+  private buildLiveRasterDisplayEntry(
+    blueprint: ComparisonMetricBlueprint,
+    baselineValue: number | null,
+    candidateValue: number | null,
+    formatCompact: (value: number) => string,
+    formatFull: (value: number) => string,
+  ): ComparisonMetricDisplayEntry | null {
+    if (baselineValue === null || candidateValue === null) {
+      return null;
+    }
+
+    const baseline = formatCompact(baselineValue);
+    const baselineFull = formatFull(baselineValue);
+    const candidate = formatCompact(candidateValue);
+    const candidateFull = formatFull(candidateValue);
+    const deltaValue = Number((candidateValue - baselineValue).toFixed(2));
+    const deltaPrefix = deltaValue > 0 ? '+' : '';
+    const delta = `${deltaPrefix}${formatCompact(deltaValue)}`;
+    const deltaFull = `${deltaPrefix}${formatFull(deltaValue)}`;
+
+    return {
+      id: blueprint.id,
+      labelKey: blueprint.labelKey,
+      descriptionKey: blueprint.descriptionKey,
+      baseline,
+      baselineFull: baseline === baselineFull ? null : baselineFull,
+      candidate,
+      candidateFull: candidate === candidateFull ? null : candidateFull,
+      delta,
+      deltaFull: delta === deltaFull ? null : deltaFull,
+      conditional: Boolean(blueprint.conditional),
+      unavailable: false,
+      deltaTone: deltaValue === 0 ? 'neutral' : deltaValue > 0 ? 'positive' : 'negative',
+    };
+  }
+
+  private formatLiveAreaMetric(
+    value: number,
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string {
+    return this.appendUnit(this.formatNumber(value, mode, 0, 2), 'km²');
   }
 }

@@ -36,9 +36,26 @@ export const DEFAULT_SOLUTION_LAYER_OPACITY = 0.8;
 const SOLUTION_ALPHA = 255;
 const NEW_COVERAGE_VALUE = 1;
 const EXISTING_PROTECTED_VALUE = 2;
+const EARTH_RADIUS_KM = 6371.0088;
+const GRID_ABSOLUTE_TOLERANCE = 1e-7;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
+interface SolutionRenderOptions {
+  collapseExistingProtectedCoverage?: boolean;
+}
+
+export interface LiveComparisonMetrics {
+  agreementAreaKm2: number | null;
+  uniqueToBaselineKm2: number | null;
+  uniqueToCandidateKm2: number | null;
+  baselineSelectedAreaKm2: number | null;
+  candidateSelectedAreaKm2: number | null;
+  baselineNationalContributionPct: number | null;
+  candidateNationalContributionPct: number | null;
+  status: 'ready' | 'unavailable';
+  notes: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
@@ -86,6 +103,7 @@ export class SolutionLayerService {
   readonly overlapColor$ = signal(DEFAULT_COMPARISON_OVERLAP_HEX);
 
   readonly loadedSolution$ = signal<LoadedSolution | null>(null);
+  readonly liveComparisonMetrics$ = signal<LiveComparisonMetrics | null>(null);
   readonly isLoading$ = signal(false);
   readonly loadError$ = signal<string | null>(null);
 
@@ -128,6 +146,7 @@ export class SolutionLayerService {
       this.comparisonMode = false;
       this.baselineComparisonLoaded = null;
       this.candidateComparisonLoaded = null;
+      this.liveComparisonMetrics$.set(null);
 
       this.map.add(this.currentLayer);
       this.loadedSolution$.set(loaded);
@@ -203,15 +222,20 @@ export class SolutionLayerService {
         BASELINE_LAYER_ID,
         `Scenario A: ${baselineLoaded.scenario.name}`,
         this.baselineColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
       this.candidateComparisonLayer = this.createLayerFromLoaded(
         candidateLoaded,
         CANDIDATE_LAYER_ID,
         `Scenario B: ${candidateLoaded.scenario.name}`,
         this.candidateColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
       this.baselineComparisonLoaded = baselineLoaded;
       this.candidateComparisonLoaded = candidateLoaded;
+      this.liveComparisonMetrics$.set(
+        this.calculateLiveComparisonMetrics(baselineLoaded, candidateLoaded),
+      );
       this.comparisonMode = true;
       this.map.addMany([this.baselineComparisonLayer, this.candidateComparisonLayer]);
       this.loadedSolution$.set(baselineLoaded);
@@ -241,6 +265,7 @@ export class SolutionLayerService {
     this.comparisonMode = false;
     this.lastComparisonBaselineId = null;
     this.lastComparisonCandidateId = null;
+    this.liveComparisonMetrics$.set(null);
   }
 
   isComparisonModeActive(): boolean {
@@ -410,7 +435,14 @@ export class SolutionLayerService {
       this.applyLayerColor(this.currentLayer, loaded, normalized);
     }
     if (this.baselineComparisonLayer && this.baselineComparisonLoaded) {
-      this.applyLayerColor(this.baselineComparisonLayer, this.baselineComparisonLoaded, normalized);
+      this.applyLayerColor(
+        this.baselineComparisonLayer,
+        this.baselineComparisonLoaded,
+        normalized,
+        {
+          collapseExistingProtectedCoverage: true,
+        },
+      );
     }
   }
 
@@ -428,6 +460,7 @@ export class SolutionLayerService {
         this.candidateComparisonLayer,
         this.candidateComparisonLoaded,
         normalized,
+        { collapseExistingProtectedCoverage: true },
       );
     }
   }
@@ -447,8 +480,8 @@ export class SolutionLayerService {
     }
 
     const overlapRasterData = this.buildOverlapRasterData(
-      this.baselineComparisonLoaded.rasterData,
-      this.candidateComparisonLoaded.rasterData,
+      this.baselineComparisonLoaded,
+      this.candidateComparisonLoaded,
     );
     this.replaceLayerSourceWithRaster(
       this.overlapComparisonLayer,
@@ -471,6 +504,7 @@ export class SolutionLayerService {
         this.baselineComparisonLayer,
         this.baselineComparisonLoaded,
         this.baselineColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
     }
     if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
@@ -478,6 +512,7 @@ export class SolutionLayerService {
         this.candidateComparisonLayer,
         this.candidateComparisonLoaded,
         this.candidateColor$(),
+        { collapseExistingProtectedCoverage: true },
       );
     }
   }
@@ -487,15 +522,16 @@ export class SolutionLayerService {
     layerId: string,
     title: string,
     colorHex = DEFAULT_SINGLE_SOLUTION_HEX,
+    renderOptions: SolutionRenderOptions = {},
   ): SolutionDisplayLayer {
     if (loaded.scenario.displayCogUrl) {
-      return this.createImageryTileLayer(loaded, layerId, title, colorHex);
+      return this.createImageryTileLayer(loaded, layerId, title, colorHex, renderOptions);
     }
 
     return new MediaLayer({
       id: layerId,
       source: new LocalMediaElementSource({
-        elements: [this.createImageElement(loaded, colorHex)],
+        elements: [this.createImageElement(loaded, colorHex, renderOptions)],
       }),
       opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
       title,
@@ -533,6 +569,7 @@ export class SolutionLayerService {
     }
     this.baselineComparisonLoaded = null;
     this.candidateComparisonLoaded = null;
+    this.liveComparisonMetrics$.set(null);
   }
 
   setVisibility(visible: boolean): void {
@@ -592,12 +629,17 @@ export class SolutionLayerService {
     };
   }
 
-  private createImageElement(loaded: LoadedSolution, colorHex: string): ImageElement {
+  private createImageElement(
+    loaded: LoadedSolution,
+    colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
+  ): ImageElement {
     const canvas = this.rasterToCanvasWithColor(
       loaded.rasterData,
       loaded.rasterMeta,
       colorHex,
       loaded,
+      renderOptions,
     );
     const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
     return new ImageElement({
@@ -619,12 +661,13 @@ export class SolutionLayerService {
     layerId: string,
     title: string,
     colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): InstanceType<typeof ImageryTileLayer> {
     return new ImageryTileLayer({
       id: layerId,
       url: loaded.scenario.displayCogUrl ?? loaded.scenario.displayUrl,
       interpolation: 'nearest',
-      renderer: this.createSolutionRenderer(loaded, colorHex),
+      renderer: this.createSolutionRenderer(loaded, colorHex, renderOptions),
       opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
       title,
     });
@@ -633,6 +676,7 @@ export class SolutionLayerService {
   private createSolutionRenderer(
     loaded: LoadedSolution,
     newCoverageColorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): InstanceType<typeof ClassBreaksRenderer> {
     return new ClassBreaksRenderer({
       field: 'Value',
@@ -640,18 +684,20 @@ export class SolutionLayerService {
         color: [0, 0, 0, 0],
         outline: null,
       }),
-      classBreakInfos: this.solutionClassColors(loaded, newCoverageColorHex).map((entry) => {
-        const [r, g, b] = this.hexToRgb(entry.color) ?? [22, 163, 74];
-        return {
-          minValue: entry.value - 0.5,
-          maxValue: entry.value + 0.5,
-          label: entry.label ?? undefined,
-          symbol: new SimpleFillSymbol({
-            color: [r, g, b, 1],
-            outline: null,
-          }),
-        };
-      }),
+      classBreakInfos: this.solutionClassColors(loaded, newCoverageColorHex, renderOptions).map(
+        (entry) => {
+          const [r, g, b] = this.hexToRgb(entry.color) ?? [22, 163, 74];
+          return {
+            minValue: entry.value - 0.5,
+            maxValue: entry.value + 0.5,
+            label: entry.label ?? undefined,
+            symbol: new SimpleFillSymbol({
+              color: [r, g, b, 1],
+              outline: null,
+            }),
+          };
+        },
+      ),
     });
   }
 
@@ -659,20 +705,22 @@ export class SolutionLayerService {
     layer: SolutionDisplayLayer,
     loaded: LoadedSolution,
     colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): void {
     if (this.isImageryTileLayer(layer)) {
-      layer.renderer = this.createSolutionRenderer(loaded, colorHex);
+      layer.renderer = this.createSolutionRenderer(loaded, colorHex, renderOptions);
       return;
     }
-    this.replaceLayerSourceColor(layer, loaded, colorHex);
+    this.replaceLayerSourceColor(layer, loaded, colorHex, renderOptions);
   }
 
   private replaceLayerSourceColor(
     layer: InstanceType<typeof MediaLayer>,
     loaded: LoadedSolution,
     colorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): void {
-    const nextImageElement = this.createImageElement(loaded, colorHex);
+    const nextImageElement = this.createImageElement(loaded, colorHex, renderOptions);
     const source = layer.source;
     if (source instanceof LocalMediaElementSource) {
       source.elements.removeAll();
@@ -717,8 +765,8 @@ export class SolutionLayerService {
     }
 
     const overlapRasterData = this.buildOverlapRasterData(
-      this.baselineComparisonLoaded.rasterData,
-      this.candidateComparisonLoaded.rasterData,
+      this.baselineComparisonLoaded,
+      this.candidateComparisonLoaded,
     );
 
     if (!this.overlapComparisonLayer) {
@@ -765,23 +813,29 @@ export class SolutionLayerService {
   }
 
   private buildOverlapRasterData(
-    baselineRasterData: LoadedSolution['rasterData'],
-    candidateRasterData: LoadedSolution['rasterData'],
+    baseline: LoadedSolution,
+    candidate: LoadedSolution,
   ): Float64Array {
-    const length = Math.min(baselineRasterData.length, candidateRasterData.length);
+    const length = Math.min(baseline.rasterData.length, candidate.rasterData.length);
     const overlapRaster = new Float64Array(length);
     for (let index = 0; index < length; index++) {
       overlapRaster[index] =
-        this.isSolutionCoverageValue(baselineRasterData[index]) &&
-        this.isSolutionCoverageValue(candidateRasterData[index])
+        this.isSelectedSolutionCell(baseline.rasterData[index], baseline.rasterMeta.noDataValue) &&
+        this.isSelectedSolutionCell(candidate.rasterData[index], candidate.rasterMeta.noDataValue)
           ? NEW_COVERAGE_VALUE
           : 0;
     }
     return overlapRaster;
   }
 
-  private isSolutionCoverageValue(value: number): boolean {
-    return value === EXISTING_PROTECTED_VALUE || value === NEW_COVERAGE_VALUE;
+  private isSelectedSolutionCell(value: number, noDataValue: number | null): boolean {
+    if (!Number.isFinite(value)) {
+      return false;
+    }
+    if (typeof noDataValue === 'number' && value === noDataValue) {
+      return false;
+    }
+    return value > 0;
   }
 
   private createImageElementWithRaster(
@@ -813,10 +867,11 @@ export class SolutionLayerService {
     rasterMeta: LoadedSolution['rasterMeta'],
     colorHex: string,
     loaded?: LoadedSolution,
+    renderOptions: SolutionRenderOptions = {},
   ): HTMLCanvasElement {
     const classColorByValue = new Map(
       (loaded
-        ? this.solutionClassColors(loaded, colorHex)
+        ? this.solutionClassColors(loaded, colorHex, renderOptions)
         : this.defaultSolutionClassColors(colorHex)
       ).map((entry) => [entry.value, entry.color]),
     );
@@ -857,6 +912,7 @@ export class SolutionLayerService {
   private solutionClassColors(
     loaded: LoadedSolution,
     newCoverageColorHex: string,
+    renderOptions: SolutionRenderOptions = {},
   ): RuntimeLayerManifestClassColor[] {
     const classColors =
       loaded.scenario.rendering.renderMode === 'categorical'
@@ -869,7 +925,10 @@ export class SolutionLayerService {
     const selectedSolutionColor =
       newCoverageColorHex || newCoverageClass?.color || DEFAULT_SINGLE_SOLUTION_HEX;
 
-    if (!this.appState.showExistingProtectedCoverage$()) {
+    if (
+      renderOptions.collapseExistingProtectedCoverage ||
+      !this.appState.showExistingProtectedCoverage$()
+    ) {
       return [
         {
           value: EXISTING_PROTECTED_VALUE,
@@ -964,5 +1023,181 @@ export class SolutionLayerService {
         this.map.reorder(layer, this.map.layers.length - 1);
       }
     }
+  }
+
+  private calculateLiveComparisonMetrics(
+    baseline: LoadedSolution,
+    candidate: LoadedSolution,
+  ): LiveComparisonMetrics {
+    if (!this.hasSameRasterGrid(baseline, candidate)) {
+      return {
+        agreementAreaKm2: null,
+        uniqueToBaselineKm2: null,
+        uniqueToCandidateKm2: null,
+        baselineSelectedAreaKm2: null,
+        candidateSelectedAreaKm2: null,
+        baselineNationalContributionPct: null,
+        candidateNationalContributionPct: null,
+        status: 'unavailable',
+        notes: 'Comparison rasters must share the same grid, CRS, and transform.',
+      };
+    }
+
+    const expectedLength = baseline.rasterMeta.width * baseline.rasterMeta.height;
+    if (
+      baseline.rasterData.length < expectedLength ||
+      candidate.rasterData.length < expectedLength
+    ) {
+      return {
+        agreementAreaKm2: null,
+        uniqueToBaselineKm2: null,
+        uniqueToCandidateKm2: null,
+        baselineSelectedAreaKm2: null,
+        candidateSelectedAreaKm2: null,
+        baselineNationalContributionPct: null,
+        candidateNationalContributionPct: null,
+        status: 'unavailable',
+        notes: 'Comparison rasters do not contain the expected number of cells.',
+      };
+    }
+
+    const pixelAreaByRow = this.getPixelAreaKm2PerRow(baseline.rasterMeta);
+    if (!pixelAreaByRow) {
+      return {
+        agreementAreaKm2: null,
+        uniqueToBaselineKm2: null,
+        uniqueToCandidateKm2: null,
+        baselineSelectedAreaKm2: null,
+        candidateSelectedAreaKm2: null,
+        baselineNationalContributionPct: null,
+        candidateNationalContributionPct: null,
+        status: 'unavailable',
+        notes: 'Unable to derive pixel area from solution raster metadata.',
+      };
+    }
+
+    let agreementAreaKm2 = 0;
+    let uniqueToBaselineKm2 = 0;
+    let uniqueToCandidateKm2 = 0;
+    let baselineValidAreaKm2 = 0;
+    let candidateValidAreaKm2 = 0;
+    const width = baseline.rasterMeta.width;
+
+    for (let index = 0; index < expectedLength; index++) {
+      const row = Math.floor(index / width);
+      const cellAreaKm2 = pixelAreaByRow[row] ?? 0;
+      if (this.isValidSolutionCell(baseline.rasterData[index], baseline.rasterMeta.noDataValue)) {
+        baselineValidAreaKm2 += cellAreaKm2;
+      }
+      if (this.isValidSolutionCell(candidate.rasterData[index], candidate.rasterMeta.noDataValue)) {
+        candidateValidAreaKm2 += cellAreaKm2;
+      }
+      const selectedBaseline = this.isSelectedSolutionCell(
+        baseline.rasterData[index],
+        baseline.rasterMeta.noDataValue,
+      );
+      const selectedCandidate = this.isSelectedSolutionCell(
+        candidate.rasterData[index],
+        candidate.rasterMeta.noDataValue,
+      );
+
+      if (selectedBaseline && selectedCandidate) {
+        agreementAreaKm2 += cellAreaKm2;
+      } else if (selectedBaseline) {
+        uniqueToBaselineKm2 += cellAreaKm2;
+      } else if (selectedCandidate) {
+        uniqueToCandidateKm2 += cellAreaKm2;
+      }
+    }
+
+    const baselineSelectedAreaKm2 = agreementAreaKm2 + uniqueToBaselineKm2;
+    const candidateSelectedAreaKm2 = agreementAreaKm2 + uniqueToCandidateKm2;
+
+    return {
+      agreementAreaKm2,
+      uniqueToBaselineKm2,
+      uniqueToCandidateKm2,
+      baselineSelectedAreaKm2,
+      candidateSelectedAreaKm2,
+      baselineNationalContributionPct:
+        baselineValidAreaKm2 > 0 ? (baselineSelectedAreaKm2 / baselineValidAreaKm2) * 100 : null,
+      candidateNationalContributionPct:
+        candidateValidAreaKm2 > 0 ? (candidateSelectedAreaKm2 / candidateValidAreaKm2) * 100 : null,
+      status: 'ready',
+      notes: null,
+    };
+  }
+
+  private isValidSolutionCell(value: number, noDataValue: number | null): boolean {
+    if (!Number.isFinite(value)) {
+      return false;
+    }
+    return !(typeof noDataValue === 'number' && value === noDataValue);
+  }
+
+  private hasSameRasterGrid(baseline: LoadedSolution, candidate: LoadedSolution): boolean {
+    const a = baseline.rasterMeta;
+    const b = candidate.rasterMeta;
+    return (
+      a.width === b.width &&
+      a.height === b.height &&
+      a.crs === b.crs &&
+      this.numberArraysClose(a.bbox, b.bbox) &&
+      this.numberArraysClose(a.resolution, b.resolution)
+    );
+  }
+
+  private numberArraysClose(a: readonly number[], b: readonly number[]): boolean {
+    return (
+      a.length === b.length &&
+      a.every(
+        (value, index) =>
+          Math.abs(value - (b[index] ?? Number.POSITIVE_INFINITY)) <= GRID_ABSOLUTE_TOLERANCE,
+      )
+    );
+  }
+
+  private getPixelAreaKm2PerRow(rasterMeta: LoadedSolution['rasterMeta']): Float64Array | null {
+    const [pixelWidth, pixelHeight] = rasterMeta.resolution.map((value) => Math.abs(value));
+    if (!Number.isFinite(pixelWidth) || !Number.isFinite(pixelHeight)) {
+      return null;
+    }
+
+    if (this.isGeographicRaster(rasterMeta)) {
+      const kmPerDegreeLatitude = (Math.PI / 180) * EARTH_RADIUS_KM;
+      const areaByRow = new Float64Array(rasterMeta.height);
+      const [, , , ymax] = rasterMeta.bbox;
+      const yResolution = rasterMeta.resolution[1];
+
+      for (let row = 0; row < rasterMeta.height; row++) {
+        const latitudeCenterDegrees = ymax + yResolution * (row + 0.5);
+        const latitudeRadians = (latitudeCenterDegrees * Math.PI) / 180;
+        const kmPerDegreeLongitude = kmPerDegreeLatitude * Math.cos(latitudeRadians);
+        areaByRow[row] = pixelWidth * kmPerDegreeLongitude * pixelHeight * kmPerDegreeLatitude;
+      }
+
+      return areaByRow;
+    }
+
+    const projectedAreaKm2 = (pixelWidth * pixelHeight) / 1_000_000;
+    return new Float64Array(rasterMeta.height).fill(projectedAreaKm2);
+  }
+
+  private isGeographicRaster(rasterMeta: LoadedSolution['rasterMeta']): boolean {
+    const normalizedCrs = rasterMeta.crs.toUpperCase();
+    if (normalizedCrs.includes('EPSG:4326')) {
+      return true;
+    }
+
+    const [xmin, ymin, xmax, ymax] = rasterMeta.bbox;
+    const [xResolution, yResolution] = rasterMeta.resolution.map((value) => Math.abs(value));
+    return (
+      xmin >= -180 &&
+      xmax <= 180 &&
+      ymin >= -90 &&
+      ymax <= 90 &&
+      xResolution <= 1 &&
+      yResolution <= 1
+    );
   }
 }

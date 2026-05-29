@@ -149,12 +149,10 @@
       "loadErrorTitle": "Couldn't load overview",
       "loadErrorDescription": "Try selecting the scenario again, or choose a different one.",
       "matchBadge": "{{percent}}% Match",
-      "goalsMet": "Goals Met",
-      "goalsMetSub": "Conservation themes achieved",
-      "nationalContribution": "National Contribution",
-      "addsToExisting": "Adds {{added}}% to existing {{existing}}%",
+      "goalsMet": "Targets Achieved",
+      "goalsMetSub": "Share of optimization targets met",
       "spatial": {
-        "priorityArea": "area",
+        "priorityArea": "priority area",
         "zones": "zones",
         "avg": "avg"
       },
@@ -178,14 +176,6 @@
       },
       "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
-      "nationalAnchor": {
-        "title": "National Conservation Footprint",
-        "contributing": "This scenario designates {{percent}}% of Colombia for conservation.",
-        "currentContribution": "Scenario footprint: {{percent}}%",
-        "targetLabel": "30x30 benchmark (30%)",
-        "minLabel": "0% of Colombia",
-        "maxLabel": "100% of Colombia"
-      },
       "actions": {
         "viewFullReport": "View Full Report"
       },
@@ -203,8 +193,8 @@
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",
         "ecosystemCoverageDesc": "Key ecosystems within scenario",
-        "nationalContribution": "National Contribution",
-        "nationalContributionDesc": "Share of Colombia in priority areas",
+        "nationalContribution": "Scenario Footprint",
+        "nationalContributionDesc": "Share of Colombia selected by this scenario",
         "priorityAreaTotal": "Priority Area (Selected)",
         "priorityAreaTotalDesc": "Total area selected by the scenario",
         "paramoCoverage": "Paramo Coverage",
@@ -267,6 +257,8 @@
       "visualizationAriaLabel": "Comparison visualization mode",
       "metricColumn": "Metric",
       "differenceColumn": "Difference",
+      "spatialOverlapKicker": "Spatial overlap",
+      "spatialOverlapNote": "These areas describe the map relationship between Scenario A and Scenario B. They are not additional scenario totals.",
       "actions": {
         "select": "Select",
         "change": "Change"
@@ -289,12 +281,20 @@
         "protection": "Cultural & Protection"
       },
       "metrics": {
+        "agreementArea": "Selected by both",
+        "agreementAreaDesc": "Places where Scenario A and Scenario B choose the same planning units.",
+        "uniqueScenarioA": "Only Scenario A",
+        "uniqueScenarioADesc": "Places selected by Scenario A that Scenario B does not select.",
+        "uniqueScenarioB": "Only Scenario B",
+        "uniqueScenarioBDesc": "Places selected by Scenario B that Scenario A does not select.",
         "priorityArea": "Priority Conservation Area",
         "priorityAreaDesc": "Estimated protected footprint under each scenario.",
         "nationalTarget": "Contribution to 30x30 Target",
         "nationalTargetDesc": "Relative contribution toward national conservation commitments.",
         "biodiversity": "Biodiversity",
         "biodiversityDesc": "Composite biodiversity performance score.",
+        "ecosystemCoverage": "Ecosystem Coverage",
+        "ecosystemCoverageDesc": "Selected area overlapping ecosystem features in the scenario.",
         "threatenedSpecies": "Threatened Species Coverage",
         "threatenedSpeciesDesc": "CR/EN/VU species with habitat represented in priority zones.",
         "endemicSpecies": "Endemic Species Coverage",

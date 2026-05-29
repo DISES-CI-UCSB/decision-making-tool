@@ -91,7 +91,7 @@ _OFF_MANIFEST_LAYERS: tuple[SparseLayerInput, ...] = (
     ),
     SparseLayerInput(
         # CORINE Level 1 land cover, classes 1=forest, 2=agriculture,
-        # 3=urban, 4=wetland, 5=water.  Single artifact reused for #9, #51,
+        # 3=wetland, 4=water, 5=urban.  Single artifact reused for #9, #51,
         # #52/53, #54.
         layer_id="coberturas",
         tif_pathname="boundaries/coberturas.tif",

@@ -12,7 +12,7 @@ T6 metrics added (17 additional):
   Water:              6, 44
   Protected areas:    63, 64, 66
   AOI percentage:     19
-  Land cover:         9, 51, 52/53, 54  (coberturas.tif — class IDs 1=forest, 2=agri, 3=urban, 4=wetland, 5=water)
+  Land cover:         9, 51, 52/53, 54  (coberturas.tif — class IDs 1=forest, 2=agri, 3=wetland, 4=water, 5=urban)
   Comparison:         70, 71, 72  (deferred pairwise)
 
 T10 metrics added (8 additional, species):

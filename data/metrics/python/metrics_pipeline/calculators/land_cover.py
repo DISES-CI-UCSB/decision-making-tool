@@ -6,9 +6,9 @@ Confirmed class-ID mapping (TIF values 1-5 vs CSV legend — classes 1 and 3
 were swapped in the original CSV):
     1 = Bosques y Áreas Seminaturales  (forest / semi-natural)
     2 = Territorios Agrícolas           (agriculture)
-    3 = Territorios Artificializados    (urban / artificial)
-    4 = Áreas Húmedas                   (wetlands)
-    5 = Superficies de Agua             (water)
+    3 = Áreas Húmedas                   (wetlands)
+    4 = Superficies de Agua             (water)
+    5 = Territorios Artificializados    (urban / artificial)
 """
 
 from __future__ import annotations

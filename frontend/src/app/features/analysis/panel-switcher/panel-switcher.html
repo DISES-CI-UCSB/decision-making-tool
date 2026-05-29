@@ -151,11 +151,11 @@
                         {{ 'analysis.overview.goalsMet' | translate }}
                       </p>
                       <p id="right-sidebar-v3-overview-hero-goals-value" class="v3-hero-value">
-                        {{ getGoalsMetCount(solution.matchPercentage)
+                        {{ getGoalsAchievedPercent(solution.matchPercentage)
                         }}<span
                           id="right-sidebar-v3-overview-hero-goals-value-total"
                           class="v3-hero-value-small"
-                          >/10</span
+                          >%</span
                         >
                       </p>
                     </div>
@@ -163,56 +163,11 @@
                       <span
                         id="right-sidebar-v3-overview-hero-goals-fill"
                         class="v3-hero-fill-green"
-                        [style.width.%]="solution.matchPercentage / 1.2"
+                        [style.width.%]="getGoalsAchievedBarWidth(solution.matchPercentage)"
                       ></span>
                     </div>
                     <p id="right-sidebar-v3-overview-hero-goals-sub" class="v3-hero-sub">
                       {{ 'analysis.overview.goalsMetSub' | translate }}
-                    </p>
-                  </article>
-                  <article
-                    id="right-sidebar-v3-overview-hero-national"
-                    class="v3-hero-card v3-hero-card-national"
-                  >
-                    <div id="right-sidebar-v3-overview-hero-national-top" class="v3-hero-top">
-                      <p id="right-sidebar-v3-overview-hero-national-label" class="v3-hero-label">
-                        {{ 'analysis.overview.nationalContribution' | translate }}
-                      </p>
-                      <p id="right-sidebar-v3-overview-hero-national-value" class="v3-hero-value">
-                        {{ getContributionPercent(solution.matchPercentage)
-                        }}<span
-                          id="right-sidebar-v3-overview-hero-national-value-unit"
-                          class="v3-hero-value-small"
-                          >%</span
-                        >
-                      </p>
-                    </div>
-                    <div id="right-sidebar-v3-overview-hero-national-bar" class="v3-hero-bar">
-                      <span
-                        id="right-sidebar-v3-overview-hero-national-fill-existing"
-                        class="v3-hero-fill-blue-existing"
-                        [style.width.%]="
-                          getContributionPercent(solution.matchPercentage) -
-                          getContributionAddedPercent(solution.matchPercentage)
-                        "
-                      ></span>
-                      <span
-                        id="right-sidebar-v3-overview-hero-national-fill-added"
-                        class="v3-hero-fill-blue-added"
-                        [style.width.%]="getContributionAddedPercent(solution.matchPercentage)"
-                      ></span>
-                    </div>
-                    <p id="right-sidebar-v3-overview-hero-national-sub" class="v3-hero-sub">
-                      {{
-                        'analysis.overview.addsToExisting'
-                          | translate
-                            : {
-                                added: getContributionAddedPercent(solution.matchPercentage),
-                                existing:
-                                  getContributionPercent(solution.matchPercentage) -
-                                  getContributionAddedPercent(solution.matchPercentage),
-                              }
-                      }}
                     </p>
                   </article>
                   <section id="right-sidebar-v3-overview-spatial" class="v3-spatial">
@@ -223,24 +178,17 @@
                     ></i>
                     <div id="right-sidebar-v3-overview-spatial-metrics" class="v3-spatial-metrics">
                       <span id="right-sidebar-v3-overview-spatial-area"
-                        ><b id="right-sidebar-v3-overview-spatial-area-value">125k km²</b>
+                        ><b
+                          id="right-sidebar-v3-overview-spatial-area-value"
+                          [attr.data-full-value]="
+                            getOverviewMetricFullValue('priority_area_in_region')
+                          "
+                          [attr.tabindex]="
+                            getOverviewMetricFullValue('priority_area_in_region') ? 0 : null
+                          "
+                          >{{ getOverviewMetricValue('priority_area_in_region') }}</b
+                        >
                         {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
-                      >
-                      <span
-                        id="right-sidebar-v3-overview-spatial-sep-1"
-                        class="v3-spatial-sep"
-                      ></span>
-                      <span id="right-sidebar-v3-overview-spatial-zones"
-                        ><b id="right-sidebar-v3-overview-spatial-zones-value">342</b>
-                        {{ 'analysis.overview.spatial.zones' | translate }}</span
-                      >
-                      <span
-                        id="right-sidebar-v3-overview-spatial-sep-2"
-                        class="v3-spatial-sep"
-                      ></span>
-                      <span id="right-sidebar-v3-overview-spatial-avg"
-                        ><b id="right-sidebar-v3-overview-spatial-avg-value">365 km²</b>
-                        {{ 'analysis.overview.spatial.avg' | translate }}</span
                       >
                     </div>
                   </section>
@@ -573,47 +521,6 @@
                         }
                       </div>
                     </div>
-                  </div>
-                </section>
-
-                <section id="right-sidebar-v3-overview-national-anchor" class="v3-nc-anchor">
-                  <p id="right-sidebar-v3-overview-national-title" class="v3-nc-title">
-                    {{ 'analysis.overview.nationalAnchor.title' | translate }}
-                  </p>
-                  <p id="right-sidebar-v3-overview-national-text" class="v3-nc-text">
-                    {{
-                      'analysis.overview.nationalAnchor.contributing'
-                        | translate: { percent: getContributionPercent(solution.matchPercentage) }
-                    }}
-                  </p>
-                  <div id="right-sidebar-v3-overview-national-legend" class="v3-nc-legend">
-                    <span id="right-sidebar-v3-overview-national-legend-value">
-                      {{
-                        'analysis.overview.nationalAnchor.currentContribution'
-                          | translate: { percent: getContributionPercent(solution.matchPercentage) }
-                      }}
-                    </span>
-                    <span id="right-sidebar-v3-overview-national-legend-target">{{
-                      'analysis.overview.nationalAnchor.targetLabel' | translate
-                    }}</span>
-                  </div>
-                  <div id="right-sidebar-v3-overview-national-track" class="v3-nc-track">
-                    <span
-                      id="right-sidebar-v3-overview-national-fill"
-                      class="v3-nc-fill"
-                      [style.width.%]="getContributionPercent(solution.matchPercentage)"
-                    ></span>
-                  </div>
-                  <div id="right-sidebar-v3-overview-national-labels" class="v3-nc-labels">
-                    <span id="right-sidebar-v3-overview-national-label-min">{{
-                      'analysis.overview.nationalAnchor.minLabel' | translate
-                    }}</span>
-                    <span id="right-sidebar-v3-overview-national-label-target">{{
-                      'analysis.overview.nationalAnchor.targetLabel' | translate
-                    }}</span>
-                    <span id="right-sidebar-v3-overview-national-label-max">{{
-                      'analysis.overview.nationalAnchor.maxLabel' | translate
-                    }}</span>
                   </div>
                 </section>
               }
@@ -1658,6 +1565,7 @@
           class="panel-enter c2-panel"
           [style.--comparison-baseline-color]="comparisonBaselineColor()"
           [style.--comparison-candidate-color]="comparisonCandidateColor()"
+          [style.--comparison-overlap-color]="comparisonOverlapColor()"
         >
           <header id="right-sidebar-comparison-header" class="c2-panel-header">
             <h3 id="right-sidebar-comparison-kicker" class="rs-header-optical-nudge">
@@ -1828,6 +1736,89 @@
                         [id]="'right-sidebar-comparison-section-body-inner-' + section.id"
                         class="collapse-motion-inner c2-section-body"
                       >
+                        @if (section.id === 'general' && spatialOverlapEntries().length > 0) {
+                          <section
+                            id="right-sidebar-comparison-spatial-overlap-summary"
+                            class="c2-spatial-overlap-summary"
+                          >
+                            <div id="right-sidebar-comparison-spatial-overlap-header">
+                              <p
+                                id="right-sidebar-comparison-spatial-overlap-kicker"
+                                class="c2-spatial-overlap-kicker"
+                                tabindex="0"
+                                [attr.data-tooltip]="
+                                  'analysis.comparison.spatialOverlapNote' | translate
+                                "
+                              >
+                                {{ 'analysis.comparison.spatialOverlapKicker' | translate }}
+                              </p>
+                            </div>
+
+                            <div
+                              id="right-sidebar-comparison-spatial-overlap-grid"
+                              class="c2-spatial-overlap-grid"
+                            >
+                              @for (entry of spatialOverlapEntries(); track entry.id) {
+                                <article
+                                  [id]="'right-sidebar-comparison-spatial-overlap-card-' + entry.id"
+                                  class="c2-spatial-overlap-card"
+                                  [class.c2-spatial-overlap-card-overlap]="
+                                    entry.colorClass === 'overlap'
+                                  "
+                                  [class.c2-spatial-overlap-card-baseline]="
+                                    entry.colorClass === 'baseline'
+                                  "
+                                  [class.c2-spatial-overlap-card-candidate]="
+                                    entry.colorClass === 'candidate'
+                                  "
+                                  tabindex="0"
+                                  [attr.aria-label]="
+                                    (entry.labelKey | translate) +
+                                    ': ' +
+                                    entry.value +
+                                    '. ' +
+                                    (entry.descriptionKey | translate)
+                                  "
+                                  [attr.data-tooltip]="entry.descriptionKey | translate"
+                                >
+                                  <span
+                                    [id]="
+                                      'right-sidebar-comparison-spatial-overlap-dot-' + entry.id
+                                    "
+                                    class="c2-spatial-overlap-dot"
+                                    aria-hidden="true"
+                                  ></span>
+                                  <div
+                                    [id]="
+                                      'right-sidebar-comparison-spatial-overlap-copy-' + entry.id
+                                    "
+                                    class="c2-spatial-overlap-copy"
+                                  >
+                                    <p
+                                      [id]="
+                                        'right-sidebar-comparison-spatial-overlap-label-' + entry.id
+                                      "
+                                      class="c2-spatial-overlap-label"
+                                    >
+                                      {{ entry.labelKey | translate }}
+                                    </p>
+                                  </div>
+                                  <strong
+                                    [id]="
+                                      'right-sidebar-comparison-spatial-overlap-value-' + entry.id
+                                    "
+                                    class="c2-spatial-overlap-value"
+                                    [attr.data-full-value]="entry.fullValue"
+                                    [attr.tabindex]="entry.fullValue ? 0 : null"
+                                  >
+                                    {{ entry.value }}
+                                  </strong>
+                                </article>
+                              }
+                            </div>
+                          </section>
+                        }
+
                         <div
                           [id]="'right-sidebar-comparison-section-table-' + section.id"
                           class="c2-compare-table"

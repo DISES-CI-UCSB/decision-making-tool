@@ -2929,7 +2929,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     const categoryByLabel = new Map<string, { id: string; label: string; color: string }>();
     for (const entry of row.mapSync.rendering.classColors ?? []) {
-      const label = entry.label?.trim() || `Category ${entry.value}`;
+      const localizedLabel =
+        this.activeLanguage() === 'es' ? entry.spanishLabel : entry.englishLabel;
+      const label = localizedLabel?.trim() || entry.label?.trim() || `Category ${entry.value}`;
       if (categoryByLabel.has(label)) {
         continue;
       }

@@ -149,12 +149,10 @@
       "loadErrorTitle": "No se pudo cargar el resumen",
       "loadErrorDescription": "Intenta seleccionar el escenario otra vez u otro distinto.",
       "matchBadge": "{{percent}}% Coincidencia",
-      "goalsMet": "Metas cumplidas",
-      "goalsMetSub": "Temas de conservacion logrados",
-      "nationalContribution": "Contribucion nacional",
-      "addsToExisting": "Suma {{added}}% al {{existing}}% existente",
+      "goalsMet": "Metas alcanzadas",
+      "goalsMetSub": "Porcentaje de metas de optimizacion cumplidas",
       "spatial": {
-        "priorityArea": "area",
+        "priorityArea": "area prioritaria",
         "zones": "zonas",
         "avg": "prom"
       },
@@ -178,14 +176,6 @@
       },
       "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climaticos.",
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
-      "nationalAnchor": {
-        "title": "Huella nacional de conservacion",
-        "contributing": "Este escenario destina {{percent}}% de Colombia para conservacion.",
-        "currentContribution": "Huella del escenario: {{percent}}%",
-        "targetLabel": "Referencia 30x30 (30%)",
-        "minLabel": "0% de Colombia",
-        "maxLabel": "100% de Colombia"
-      },
       "actions": {
         "viewFullReport": "Ver informe completo"
       },
@@ -203,8 +193,8 @@
         "threatenedSpeciesSecuredDesc": "Metas de habitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",
         "ecosystemCoverageDesc": "Ecosistemas clave dentro del escenario",
-        "nationalContribution": "Contribucion nacional",
-        "nationalContributionDesc": "Porcentaje de Colombia en areas prioritarias",
+        "nationalContribution": "Huella del escenario",
+        "nationalContributionDesc": "Porcentaje de Colombia seleccionado por este escenario",
         "priorityAreaTotal": "Area prioritaria seleccionada",
         "priorityAreaTotalDesc": "Area total seleccionada por el escenario",
         "paramoCoverage": "Cobertura de paramo",
@@ -391,6 +381,8 @@
       "visualizationAriaLabel": "Modo de visualización de comparación",
       "metricColumn": "Métrica",
       "differenceColumn": "Diferencia",
+      "spatialOverlapKicker": "Superposición espacial",
+      "spatialOverlapNote": "Estas áreas describen la relación en el mapa entre el Escenario A y el Escenario B. No son totales adicionales de los escenarios.",
       "actions": {
         "select": "Seleccionar",
         "change": "Cambiar"
@@ -413,12 +405,20 @@
         "protection": "Cultural y proteccion"
       },
       "metrics": {
+        "agreementArea": "Seleccionado por ambos",
+        "agreementAreaDesc": "Lugares donde el Escenario A y el Escenario B eligen las mismas unidades de planificación.",
+        "uniqueScenarioA": "Solo Escenario A",
+        "uniqueScenarioADesc": "Lugares seleccionados por el Escenario A que el Escenario B no selecciona.",
+        "uniqueScenarioB": "Solo Escenario B",
+        "uniqueScenarioBDesc": "Lugares seleccionados por el Escenario B que el Escenario A no selecciona.",
         "priorityArea": "Area prioritaria de conservacion",
         "priorityAreaDesc": "Huella protegida estimada en cada escenario.",
         "nationalTarget": "Contribucion a la meta 30x30",
         "nationalTargetDesc": "Contribucion relativa a los compromisos nacionales de conservacion.",
         "biodiversity": "Biodiversidad",
         "biodiversityDesc": "Puntaje compuesto de desempeno en biodiversidad.",
+        "ecosystemCoverage": "Cobertura de ecosistemas",
+        "ecosystemCoverageDesc": "Área seleccionada que se superpone con elementos de ecosistemas en el escenario.",
         "threatenedSpecies": "Cobertura de especies amenazadas",
         "threatenedSpeciesDesc": "Especies CR/EN/VU con habitat representado en zonas prioritarias.",
         "endemicSpecies": "Cobertura de especies endemicas",

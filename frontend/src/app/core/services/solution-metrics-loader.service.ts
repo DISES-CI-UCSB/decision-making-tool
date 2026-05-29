@@ -35,6 +35,10 @@ export class SolutionMetricsLoaderService {
     if (precomputedUrl) {
       return precomputedUrl;
     }
+    const nickRunCompactUrl = this.buildNickRunCompactCacheUrl(scenario.displayUrl, solutionId);
+    if (nickRunCompactUrl) {
+      return nickRunCompactUrl;
+    }
     const blobHost = deriveBlobHostFromUrl(scenario.displayUrl);
     if (!blobHost) {
       return null;
@@ -53,5 +57,18 @@ export class SolutionMetricsLoaderService {
         map((document) => normalizeMetricsDocument(document)),
         catchError(() => of(null)),
       );
+  }
+
+  private buildNickRunCompactCacheUrl(displayUrl: string, solutionId: string): string | null {
+    try {
+      const url = new URL(displayUrl);
+      const match = url.pathname.match(/^\/solutions\/nick-runs\/([^/]+)\//);
+      if (!match?.[1]) {
+        return null;
+      }
+      return `${url.origin}/metrics/nick-runs/${match[1]}/compact-cache/${solutionId}.metrics.compact.json`;
+    } catch {
+      return null;
+    }
   }
 }

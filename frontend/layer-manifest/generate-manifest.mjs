@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../..');
 
 const PUBLIC_BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
+const PUBLISHED_LAYER_MANIFEST_URL = `${PUBLIC_BLOB_HOST}/manifest/manifest.json`;
 const REQUIRED_LAYERS_CSV = path.resolve(
   repoRoot,
   'data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv',
@@ -236,6 +237,48 @@ const renderingOverrideByLayerId = {
     startColor: '#fee2e2',
     endColor: '#991b1b',
   },
+  coberturas: {
+    valueType: 'categorical',
+    renderMode: 'categorical',
+    noDataValue: null,
+    classColors: [
+      {
+        value: 1,
+        color: '#166534',
+        englishLabel: 'Forest / semi-natural',
+        spanishLabel: 'Bosques y áreas seminaturales',
+        label: 'Forest / semi-natural',
+      },
+      {
+        value: 2,
+        color: '#a3e635',
+        englishLabel: 'Agriculture',
+        spanishLabel: 'Territorios agrícolas',
+        label: 'Agriculture',
+      },
+      {
+        value: 3,
+        color: '#0ea5e9',
+        englishLabel: 'Wetlands',
+        spanishLabel: 'Áreas Húmedas',
+        label: 'Wetlands',
+      },
+      {
+        value: 4,
+        color: '#2563eb',
+        englishLabel: 'Water',
+        spanishLabel: 'Superficies de Agua',
+        label: 'Water',
+      },
+      {
+        value: 5,
+        color: '#f97316',
+        englishLabel: 'Urban / artificial',
+        spanishLabel: 'Territorios Artificializados',
+        label: 'Urban / artificial',
+      },
+    ],
+  },
 };
 
 const forcedRenderingOverrideLayerIds = new Set([
@@ -319,6 +362,7 @@ const proposedLayerCategoryOverrides = {
   human_footprint_2022: 'socioeconomic',
   human_footprint_2030: 'prospective_models',
   net_benefit: 'socioeconomic',
+  coberturas: 'socioeconomic',
   conflict: 'conflict_and_security',
   climate_refugia: 'prospective_models',
 };
@@ -1653,24 +1697,7 @@ function hueOffsetForLayer(layerId) {
   return (seed % span) - LAYER_HUE_OFFSET_RANGE_DEGREES;
 }
 
-async function loadExistingManifest(filePath) {
-  let raw;
-  try {
-    raw = await fs.readFile(filePath, 'utf-8');
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return null;
-    }
-    throw error;
-  }
-
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-
+function createManifestIndex(parsed, source) {
   const layersById = new Map();
   if (Array.isArray(parsed?.layers)) {
     for (const layer of parsed.layers) {
@@ -1698,7 +1725,61 @@ async function loadExistingManifest(filePath) {
     }
   }
 
-  return { manifest: parsed, layersById, categoriesById, subcategoriesByPath };
+  return { manifest: parsed, source, layersById, categoriesById, subcategoriesByPath };
+}
+
+async function loadExistingManifest(filePath) {
+  let raw;
+  try {
+    raw = await fs.readFile(filePath, 'utf-8');
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  return createManifestIndex(parsed, filePath);
+}
+
+async function loadPublishedManifest() {
+  const uncachedUrl = `${PUBLISHED_LAYER_MANIFEST_URL}?v=${Date.now()}`;
+  let response;
+  try {
+    response = await fetch(uncachedUrl, { method: 'GET', redirect: 'follow' });
+  } catch (error) {
+    console.warn(
+      `[generate:layer-manifest] failed to fetch published manifest: ${
+        (error instanceof Error && error.message) || String(error)
+      }`,
+    );
+    return null;
+  }
+
+  if (!response.ok) {
+    console.warn(
+      `[generate:layer-manifest] failed to fetch published manifest: ${response.status} ${response.statusText}`,
+    );
+    return null;
+  }
+
+  try {
+    return createManifestIndex(await response.json(), PUBLISHED_LAYER_MANIFEST_URL);
+  } catch (error) {
+    console.warn(
+      `[generate:layer-manifest] failed to parse published manifest: ${
+        (error instanceof Error && error.message) || String(error)
+      }`,
+    );
+    return null;
+  }
 }
 
 function hashStringToPositiveInt(value) {
@@ -1726,6 +1807,37 @@ function preserveSolutionCogUrls(solutions, existingManifestIndex) {
       displayCogUrl,
     };
   });
+}
+
+function publishedSolutions(existingManifestIndex) {
+  const solutions = existingManifestIndex?.manifest?.solutions;
+  if (!Array.isArray(solutions) || solutions.length === 0) {
+    return [];
+  }
+  return structuredClone(solutions);
+}
+
+function createPublishedSolutionCatalogReport(solutionCatalogReport, solutions, source) {
+  return {
+    ...solutionCatalogReport,
+    counts: {
+      ...solutionCatalogReport.counts,
+      publishedManifestSolutionsUsed: solutions.length,
+    },
+    solutionSource: {
+      strategy: 'published_manifest',
+      source,
+      reason:
+        'Preserved the solution catalog currently published in Vercel so generated layer updates do not replace the active scenario set.',
+    },
+    publishedManifestSolutions: solutions.map((solution) => ({
+      id: solution.id,
+      name: solution.name,
+      scope: solution.scope,
+      displayUrl: solution.displayUrl,
+      metadataUrl: solution.metadataUrl,
+    })),
+  };
 }
 
 function hslToHex(h, s, l) {
@@ -2294,7 +2406,9 @@ async function main() {
   const blobInventory = await readBlobInventory();
   const solutionBlobInventory = await readSolutionBlobInventory();
   const blobByPath = new Map(blobInventory.map((blob) => [blob.pathname, blob]));
-  const existingManifestIndex = await loadExistingManifest(GENERATED_MANIFEST_PATH);
+  const publishedManifestIndex = await loadPublishedManifest();
+  const localManifestIndex = await loadExistingManifest(GENERATED_MANIFEST_PATH);
+  const existingManifestIndex = publishedManifestIndex ?? localManifestIndex;
   const speciesTaxa = await fetchSpeciesTaxa();
   const layerEntries = await Promise.all(
     includedRows.map((row) => createLayerEntry(row, blobByPath, existingManifestIndex)),
@@ -2307,14 +2421,25 @@ async function main() {
     speciesTaxa,
   );
   const layers = layerEntries.map((entry) => entry.manifestLayer);
+  const preservedPublishedSolutions = publishedSolutions(publishedManifestIndex);
   const solutions =
-    solutionCatalog.solutions.length > 0
-      ? preserveSolutionCogUrls(solutionCatalog.solutions, existingManifestIndex)
-      : (existingManifestIndex?.manifest?.solutions ?? []);
+    preservedPublishedSolutions.length > 0
+      ? preservedPublishedSolutions
+      : solutionCatalog.solutions.length > 0
+        ? preserveSolutionCogUrls(solutionCatalog.solutions, existingManifestIndex)
+        : (existingManifestIndex?.manifest?.solutions ?? []);
   const preservedExistingSolutions =
-    solutionCatalog.solutions.length === 0 && solutions.length > 0 ? solutions : [];
+    preservedPublishedSolutions.length === 0 && solutionCatalog.solutions.length === 0 && solutions.length > 0
+      ? solutions
+      : [];
   const solutionCatalogReport =
-    preservedExistingSolutions.length > 0
+    preservedPublishedSolutions.length > 0
+      ? createPublishedSolutionCatalogReport(
+          solutionCatalog.report,
+          preservedPublishedSolutions,
+          publishedManifestIndex.source,
+        )
+      : preservedExistingSolutions.length > 0
       ? {
           ...solutionCatalog.report,
           counts: {
@@ -2330,6 +2455,11 @@ async function main() {
           })),
         }
       : solutionCatalog.report;
+  if (preservedPublishedSolutions.length > 0) {
+    console.log(
+      `[generate:layer-manifest] preserving ${preservedPublishedSolutions.length} published solution(s) from ${publishedManifestIndex.source}`,
+    );
+  }
   if (solutionCatalog.solutions.length === 0 && solutions.length > 0) {
     console.warn(
       `[generate:layer-manifest] preserving ${solutions.length} existing solution(s) because Blob metadata fetch returned none`,

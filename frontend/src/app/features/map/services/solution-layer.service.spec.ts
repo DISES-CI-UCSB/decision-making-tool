@@ -69,6 +69,8 @@ function createLoadedSolution(
       selectedCount: 2,
       totalValidCells: 4,
       selectedPct: 50,
+      countryValidCells: 8,
+      newCoveragePctOfCountry: 25,
     },
     rasterData: new Float64Array([2, 1, 2, 0]),
     canvas: document.createElement('canvas'),
@@ -198,6 +200,24 @@ describe('SolutionLayerService', () => {
     ]);
   });
 
+  it('collapses existing include coverage into the selected color for comparison layers', () => {
+    const loaded = createLoadedSolution('baseline');
+    const classColors = (
+      service as unknown as {
+        solutionClassColors: (
+          loaded: LoadedSolution,
+          newCoverageColorHex: string,
+          options?: { collapseExistingProtectedCoverage?: boolean },
+        ) => { value: number; color: string; label: string }[];
+      }
+    ).solutionClassColors(loaded, '#7c3aed', { collapseExistingProtectedCoverage: true });
+
+    expect(classColors).toEqual([
+      { value: 2, color: '#7c3aed', label: 'Selected solution' },
+      { value: 1, color: '#7c3aed', label: 'Selected solution' },
+    ]);
+  });
+
   it('loads two scenarios for comparison and exposes both layers', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
@@ -223,6 +243,87 @@ describe('SolutionLayerService', () => {
       baselineLayer,
       candidateLayer,
     });
+  });
+
+  it('calculates live comparison metrics from selected solution cells', async () => {
+    const rasterMeta: LoadedSolution['rasterMeta'] = {
+      width: 2,
+      height: 2,
+      bbox: [0, -2000, 2000, 0],
+      resolution: [1000, -1000],
+      crs: 'EPSG:3857',
+      bandCount: 1,
+      bandDescription: 'selected',
+      noDataValue: 255,
+      selectedCount: 2,
+      totalValidCells: 4,
+      selectedPct: 50,
+    };
+    const baselineLoaded = {
+      ...createLoadedSolution('baseline'),
+      rasterMeta,
+      rasterData: new Float64Array([1, 0, 2, 0]),
+    };
+    const candidateLoaded = {
+      ...createLoadedSolution('candidate'),
+      rasterMeta,
+      rasterData: new Float64Array([1, 2, 0, 0]),
+    };
+    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
+      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce({ id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 } as never)
+      .mockReturnValueOnce({ id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 } as never);
+
+    await service.showComparison('baseline', 'candidate');
+
+    expect(service.liveComparisonMetrics$()).toEqual({
+      agreementAreaKm2: 1,
+      uniqueToBaselineKm2: 1,
+      uniqueToCandidateKm2: 1,
+      baselineSelectedAreaKm2: 2,
+      candidateSelectedAreaKm2: 2,
+      baselineNationalContributionPct: 50,
+      candidateNationalContributionPct: 50,
+      status: 'ready',
+      notes: null,
+    });
+  });
+
+  it('marks live comparison metrics unavailable when solution grids differ', async () => {
+    const baselineLoaded = createLoadedSolution('baseline');
+    const candidateLoaded = {
+      ...createLoadedSolution('candidate'),
+      rasterMeta: {
+        ...createLoadedSolution('candidate').rasterMeta,
+        width: 3,
+      },
+    };
+    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
+      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce({ id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 } as never)
+      .mockReturnValueOnce({ id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 } as never);
+
+    await service.showComparison('baseline', 'candidate');
+
+    expect(service.liveComparisonMetrics$()).toEqual(
+      expect.objectContaining({
+        agreementAreaKm2: null,
+        baselineSelectedAreaKm2: null,
+        status: 'unavailable',
+      }),
+    );
   });
 
   it('reorders arbitrary map layers from bottom to top so the first id ends up above the rest', () => {
@@ -273,6 +374,7 @@ describe('SolutionLayerService', () => {
       expect.any(String),
       expect.any(String),
       DEFAULT_SINGLE_SOLUTION_HEX,
+      { collapseExistingProtectedCoverage: true },
     );
     expect(createLayerSpy).toHaveBeenNthCalledWith(
       2,
@@ -280,6 +382,7 @@ describe('SolutionLayerService', () => {
       expect.any(String),
       expect.any(String),
       DEFAULT_COMPARISON_CANDIDATE_HEX,
+      { collapseExistingProtectedCoverage: true },
     );
   });
 

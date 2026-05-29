@@ -1,5 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import type { RuntimeSolutionManifestEntry } from '@core/models/layer-manifest.model';
+import type {
+  RuntimeLayerManifestLayer,
+  RuntimeSolutionManifestEntry,
+} from '@core/models/layer-manifest.model';
 import type { SolutionScenario } from '@core/models/solution-scenario.model';
 import { LayerManifestService } from './layer-manifest.service';
 
@@ -11,6 +14,7 @@ import { LayerManifestService } from './layer-manifest.service';
 export class SolutionCatalogService {
   private readonly manifest = inject(LayerManifestService);
   private readonly scenariosState = signal<SolutionScenario[]>([]);
+  private readonly layersState = signal<RuntimeLayerManifestLayer[]>([]);
   private readonly loadErrorState = signal<string | null>(null);
   private readonly hasLoadedState = signal(false);
 
@@ -21,6 +25,7 @@ export class SolutionCatalogService {
   constructor() {
     this.manifest.getManifest().subscribe({
       next: (manifest) => {
+        this.layersState.set(manifest.layers ?? []);
         this.scenariosState.set(
           (manifest.solutions ?? []).map((solution) => this.toScenario(solution)),
         );
@@ -29,6 +34,7 @@ export class SolutionCatalogService {
       },
       error: (error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
+        this.layersState.set([]);
         this.scenariosState.set([]);
         this.hasLoadedState.set(true);
         this.loadErrorState.set(message);
@@ -42,6 +48,13 @@ export class SolutionCatalogService {
 
   getById(id: string): SolutionScenario | null {
     return this.scenariosState().find((s) => s.id === id) ?? null;
+  }
+
+  getLayerById(id: string | null | undefined): RuntimeLayerManifestLayer | null {
+    if (!id) {
+      return null;
+    }
+    return this.layersState().find((layer) => layer.id === id) ?? null;
   }
 
   getTifUrl(scenario: SolutionScenario): string {

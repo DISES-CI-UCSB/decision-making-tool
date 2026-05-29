@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T23:46:01.823Z",
+  "generatedAt": "2026-05-28T23:22:28.759Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -16,20 +16,20 @@
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
-    "csvRows": 29,
-    "includedRows": 24,
-    "generatedLayers": 24,
+    "csvRows": 24,
+    "includedRows": 21,
+    "generatedLayers": 21,
     "blobInventoryEntries": 105,
     "missingRequired": 0,
-    "extraAvailable": 74,
-    "includedRowMetadataGaps": 23,
-    "excludedRows": 5,
+    "extraAvailable": 77,
+    "includedRowMetadataGaps": 20,
+    "excludedRows": 3,
     "generatedSolutions": 18,
     "skippedSolutionMetadataFiles": 0,
     "unmatchedSolutionRasters": 122,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 0,
-    "renderingInferenceLowConfidence": 16
+    "renderingInferenceLowConfidence": 17
   },
   "missingRequired": [],
   "extraAvailable": [
@@ -82,11 +82,6 @@
       "pathname": "boundaries/coberturas.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.sparse.gz",
       "bytes": 199147
-    },
-    {
-      "pathname": "boundaries/coberturas.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.tif",
-      "bytes": 955973
     },
     {
       "pathname": "boundaries/coberturas.xlsx",
@@ -349,9 +344,29 @@
       "bytes": 110336
     },
     {
-      "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
-      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
-      "bytes": 166170
+      "pathname": "inputs/features/species_richness/riqueza_especies_amphibians.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_amphibians.tif",
+      "bytes": 433916
+    },
+    {
+      "pathname": "inputs/features/species_richness/riqueza_especies_birds.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_birds.tif",
+      "bytes": 1219467
+    },
+    {
+      "pathname": "inputs/features/species_richness/riqueza_especies_mammals.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_mammals.tif",
+      "bytes": 757598
+    },
+    {
+      "pathname": "inputs/features/species_richness/riqueza_especies_plants.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_plants.tif",
+      "bytes": 1684822
+    },
+    {
+      "pathname": "inputs/features/species_richness/riqueza_especies_reptiles.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_reptiles.tif",
+      "bytes": 558042
     },
     {
       "pathname": "inputs/features/strategic/bosque_seco.sparse.gz",
@@ -417,61 +432,6 @@
       ]
     },
     {
-      "layerId": "species_richness_mammals",
-      "displayName": "Riqueza de especies - Mamíferos",
-      "missingFields": [
-        "source_url",
-        "source_created_date",
-        "source_updated_date",
-        "source_license",
-        "source_contact"
-      ]
-    },
-    {
-      "layerId": "species_richness_birds",
-      "displayName": "Riqueza de especies - Aves",
-      "missingFields": [
-        "source_url",
-        "source_created_date",
-        "source_updated_date",
-        "source_license",
-        "source_contact"
-      ]
-    },
-    {
-      "layerId": "species_richness_amphibians",
-      "displayName": "Riqueza de especies - Anfibios",
-      "missingFields": [
-        "source_url",
-        "source_created_date",
-        "source_updated_date",
-        "source_license",
-        "source_contact"
-      ]
-    },
-    {
-      "layerId": "species_richness_reptiles",
-      "displayName": "Riqueza de especies - Reptiles",
-      "missingFields": [
-        "source_url",
-        "source_created_date",
-        "source_updated_date",
-        "source_license",
-        "source_contact"
-      ]
-    },
-    {
-      "layerId": "species_richness_plants",
-      "displayName": "Riqueza de especies - Plantas",
-      "missingFields": [
-        "source_url",
-        "source_created_date",
-        "source_updated_date",
-        "source_license",
-        "source_contact"
-      ]
-    },
-    {
       "layerId": "species",
       "displayName": "Distribuciones de especies individuales (~8751)",
       "missingFields": [
@@ -517,6 +477,13 @@
         "source_updated_date",
         "source_license",
         "source_contact"
+      ]
+    },
+    {
+      "layerId": "recarga_agua_subterranea_moderado_alto",
+      "displayName": "Recarga de aguas subterraneas",
+      "missingFields": [
+        "source_license"
       ]
     },
     {
@@ -614,6 +581,16 @@
         "source_license",
         "source_contact"
       ]
+    },
+    {
+      "layerId": "coberturas",
+      "displayName": "Cobertura de la tierra",
+      "missingFields": [
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
     }
   ],
   "categoryMappingSummary": {
@@ -629,21 +606,16 @@
   },
   "renderingInferenceSummary": {
     "byStrategy": {
-      "manual_override": 8,
+      "manual_override": 4,
       "legacy_non_raster": 6,
-      "fallback_after_uncertain_sampling": 10
+      "fallback_after_uncertain_sampling": 11
     },
-    "lowConfidence": 16
+    "lowConfidence": 17
   },
   "excludedRows": [
     {
       "layerId": "biomasa_areara+subterranea_1km",
       "displayName": "Biomasa aérea y subterránea",
-      "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
-    },
-    {
-      "layerId": "recarga_agua_subterranea_moderado_alto",
-      "displayName": "Recarga de aguas subterraneas",
       "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
     },
     {
@@ -654,11 +626,6 @@
     {
       "layerId": "climate_refugia",
       "displayName": "Velocidad del cambio climático",
-      "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
-    },
-    {
-      "layerId": "coberturas",
-      "displayName": "Cobertura de la tierra",
       "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
     }
   ]

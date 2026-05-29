@@ -77,5 +77,5 @@ boundaries",nacional,a todos,IGAC,TRUE,https://mapas2.igac.gov.co/server/rest/se
 ADMIN_MUNICIPALITIES,Municipios,Límite político o administrativo,Municipality AOI boundaries served from IGAC,"limites
 boundaries",nacional,a todos,IGAC,TRUE,https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/1,unknown,unknown,unknown,unknown,NA,pulling from url,https://mapas2.igac.gov.co/server/rest/services/limites/limites/MapServer/1,ArcGIS FeatureServer,,partial,2026-04-22,DISES Team
 coberturas,"Cobertura de la tierra
-Land Cover (raster)",Coberturas,Shows dominant land-cover patterns to help interpret tradeoffs and local context.,"limites
-boundaries",nacional,a todos,IDEAM,FALSE,Cobertura de la tierra 100K Periodo 2022 limite administrativo: https://experience.arcgis.com/experience/568ddab184334f6b81a04d2fe9aac262/page/Datos-Abiertos-Geogr%C3%A1ficos-/,unknown,unknown,unknown,unknown,coberturas.tif,in Google Drive,data/boundaries/coberturas.tif,GeoTIFF,csv of what each int represents in same folder,partial,2026-04-22,DISES Team
+Land Use",Coberturas,Shows dominant land-cover patterns to help interpret tradeoffs and local context.,"limites
+boundaries",nacional,a todos,IDEAM,TRUE,Cobertura de la tierra 100K Periodo 2022 limite administrativo: https://experience.arcgis.com/experience/568ddab184334f6b81a04d2fe9aac262/page/Datos-Abiertos-Geogr%C3%A1ficos-/,unknown,unknown,unknown,unknown,coberturas.tif,in Google Drive,data/boundaries/coberturas.tif,GeoTIFF,csv of what each int represents in same folder,partial,2026-04-22,DISES Team
