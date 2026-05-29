@@ -87,6 +87,7 @@
     "exportPng": "Export PNG",
     "exporting": "Exporting...",
     "loadingSolution": "Loading solution...",
+    "loadingLayer": "Loading map layer...",
     "loadingOmecs": "Loading OMECs...",
     "loadingRunap": "Loading RUNAP..."
   },

@@ -60,6 +60,7 @@ export class ManifestRasterLayerService {
   private readonly layersById = new Map<string, InstanceType<typeof MediaLayer>>();
   private readonly rasterByUrl = new Map<string, Promise<LoadedManifestRaster>>();
   private readonly latestStateByLayerId = new Map<string, ManifestRasterLayerState>();
+  private readonly loadingLayerIds = new Set<string>();
 
   /**
    * Latest sidebar state for every vector-rendered overlay (OMEC, RUNAP),
@@ -71,6 +72,7 @@ export class ManifestRasterLayerService {
   /** Back-compat: existing OMEC consumers read a single signal-style getter. */
   readonly omecOverlayState$ = signal<OmecOverlayState | null>(null);
   readonly renderedLayerRevision$ = signal(0);
+  readonly isLayerRendering$ = signal(false);
 
   /** Convenience accessor for one overlay's current sidebar state. */
   getVectorOverlayState(layerId: string): VectorOverlayState | null {
@@ -135,43 +137,57 @@ export class ManifestRasterLayerService {
       return;
     }
 
-    const raster = await this.loadRaster(state.displayUrl);
-    const latestState = this.latestStateByLayerId.get(layerId);
-    if (!latestState || latestState.displayUrl !== state.displayUrl) {
-      return;
-    }
-
-    const imageElement = this.createImageElement(raster, latestState);
-    const existingLayer = this.layersById.get(layerId);
-
-    if (existingLayer) {
-      const source = existingLayer.source;
-      if (source instanceof LocalMediaElementSource) {
-        source.elements.removeAll();
-        source.elements.add(imageElement);
-      } else {
-        existingLayer.source = new LocalMediaElementSource({ elements: [imageElement] });
+    this.setLayerLoading(layerId, true);
+    try {
+      const raster = await this.loadRaster(state.displayUrl);
+      const latestState = this.latestStateByLayerId.get(layerId);
+      if (!latestState || latestState.displayUrl !== state.displayUrl) {
+        return;
       }
-      existingLayer.visible = latestState.visible;
-      existingLayer.opacity = latestState.opacity;
-      this.bumpRenderedLayerRevision();
-      return;
-    }
 
-    const layer = new MediaLayer({
-      id: layerId,
-      source: new LocalMediaElementSource({ elements: [imageElement] }),
-      visible: latestState.visible,
-      opacity: latestState.opacity,
-      title: layerId,
-    });
-    this.map.add(layer);
-    this.layersById.set(layerId, layer);
-    this.bumpRenderedLayerRevision();
+      const imageElement = this.createImageElement(raster, latestState);
+      const existingLayer = this.layersById.get(layerId);
+
+      if (existingLayer) {
+        const source = existingLayer.source;
+        if (source instanceof LocalMediaElementSource) {
+          source.elements.removeAll();
+          source.elements.add(imageElement);
+        } else {
+          existingLayer.source = new LocalMediaElementSource({ elements: [imageElement] });
+        }
+        existingLayer.visible = latestState.visible;
+        existingLayer.opacity = latestState.opacity;
+        this.bumpRenderedLayerRevision();
+        return;
+      }
+
+      const layer = new MediaLayer({
+        id: layerId,
+        source: new LocalMediaElementSource({ elements: [imageElement] }),
+        visible: latestState.visible,
+        opacity: latestState.opacity,
+        title: layerId,
+      });
+      this.map.add(layer);
+      this.layersById.set(layerId, layer);
+      this.bumpRenderedLayerRevision();
+    } finally {
+      this.setLayerLoading(layerId, false);
+    }
   }
 
   private bumpRenderedLayerRevision(): void {
     this.renderedLayerRevision$.update((revision) => revision + 1);
+  }
+
+  private setLayerLoading(layerId: string, isLoading: boolean): void {
+    if (isLoading) {
+      this.loadingLayerIds.add(layerId);
+    } else {
+      this.loadingLayerIds.delete(layerId);
+    }
+    this.isLayerRendering$.set(this.loadingLayerIds.size > 0);
   }
 
   private setLayerVisibility(layerId: string, visible: boolean): void {

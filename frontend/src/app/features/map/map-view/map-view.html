@@ -242,25 +242,14 @@
     <app-master-legend id="map-view-master-legend"></app-master-legend>
   </section>
 
-  @if (isSolutionLoading()) {
+  @if (isLayerLoadingIndicatorVisible()) {
     <div
-      id="map-view-solution-loading"
-      class="pointer-events-none absolute left-3 bottom-14 z-10 rounded-md border border-slate-200 bg-white/95 px-4 py-3 shadow-sm"
-    >
-      <span id="map-view-solution-loading-text" class="text-xs text-slate-500 animate-pulse">
-        {{ 'mapView.loadingSolution' | translate }}
-      </span>
-    </div>
-  }
-
-  @if (isOmecLayerLoading()) {
-    <div
-      id="map-view-vector-overlay-loading"
+      id="map-view-layer-loading-indicator"
       class="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-md border border-slate-200 bg-white/95 px-3 py-2 shadow-sm"
-      [attr.aria-label]="loadingOverlayI18nKey() | translate"
+      [attr.aria-label]="layerLoadingI18nKey() | translate"
     >
       <svg
-        id="map-view-vector-overlay-loading-spinner"
+        id="map-view-layer-loading-spinner"
         class="h-4 w-4 animate-spin text-slate-500"
         viewBox="0 0 24 24"
         fill="none"
@@ -268,7 +257,7 @@
         aria-hidden="true"
       >
         <circle
-          id="map-view-vector-overlay-loading-spinner-ring"
+          id="map-view-layer-loading-spinner-ring"
           cx="12"
           cy="12"
           r="9"
@@ -277,15 +266,15 @@
           class="opacity-25"
         />
         <path
-          id="map-view-vector-overlay-loading-spinner-arc"
+          id="map-view-layer-loading-spinner-arc"
           d="M12 3a9 9 0 0 1 9 9"
           stroke="currentColor"
           stroke-width="2.5"
           stroke-linecap="round"
         />
       </svg>
-      <span id="map-view-vector-overlay-loading-text" class="text-xs text-slate-600">
-        {{ loadingOverlayI18nKey() | translate }}
+      <span id="map-view-layer-loading-text" class="text-xs text-slate-600">
+        {{ layerLoadingI18nKey() | translate }}
       </span>
     </div>
   }

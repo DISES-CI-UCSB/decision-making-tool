@@ -197,8 +197,15 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private mapClickHandle: { remove: () => void } | null = null;
   private readonly vectorOverlayLayers = new Map<string, InstanceType<typeof GeoJSONLayer>>();
   private readonly vectorOverlayLoadStatusHandles = new Map<string, { remove: () => void }>();
+  private readonly vectorOverlayLayerViewHandles = new Map<string, { remove: () => void }>();
+  private readonly vectorOverlayLayerViewRequestIds = new Map<string, number>();
   /** Per-overlay loading flag (overlayId → is fetching GeoJSON). */
   private readonly vectorOverlayLoadingSignals = new Map<
+    string,
+    ReturnType<typeof signal<boolean>>
+  >();
+  /** Per-overlay rendering flag (overlayId → ArcGIS layer view is drawing). */
+  private readonly vectorOverlayRenderingSignals = new Map<
     string,
     ReturnType<typeof signal<boolean>>
   >();
@@ -224,10 +231,11 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     () =>
       BASEMAP_OPTIONS.find((option) => option.id === this.activeBasemap()) ?? BASEMAP_OPTIONS[0],
   );
-  /** True while ANY vector overlay GeoJSON (OMEC or RUNAP) is fetching. */
-  protected readonly isOmecLayerLoading = computed(() => this.isAnyVectorOverlayLoading());
-  /** i18n key for the loading banner — whichever overlay is currently fetching. */
-  protected readonly loadingOverlayI18nKey = computed(() => this.activeLoadingOverlayKey());
+  protected readonly isLayerLoadingIndicatorVisible = computed(
+    () =>
+      this.isSolutionLoading() || this.isAnyVectorOverlayLoading() || this.isRasterLayerLoading(),
+  );
+  protected readonly layerLoadingI18nKey = computed(() => this.activeLayerLoadingKey());
 
   @Input()
   set coordinateToolEnabled(value: boolean) {
@@ -287,6 +295,11 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       handle.remove();
     }
     this.vectorOverlayLoadStatusHandles.clear();
+    for (const handle of this.vectorOverlayLayerViewHandles.values()) {
+      handle.remove();
+    }
+    this.vectorOverlayLayerViewHandles.clear();
+    this.vectorOverlayLayerViewRequestIds.clear();
     this.teardownComparisonSwipeWidget();
     this.removeMapWidgets();
     this.adminBoundaries.destroy(this.map);
@@ -569,6 +582,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         ui: { components: [] },
       });
 
+      this.syncVectorOverlayLayerViews();
       this.addMapWidgets();
       this.adminBoundaries.initialize(this.map, this.view);
       this.registerMapClickHandler();
@@ -707,6 +721,14 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     layer.visible = state.visible;
     layer.opacity = state.opacity;
     layer.renderer = this.buildVectorOverlayRenderer(state.color) as never;
+    if (state.visible) {
+      this.watchVectorOverlayLayerView(config, layer);
+    } else {
+      this.bumpVectorOverlayLayerViewRequest(config.overlayId);
+      this.vectorOverlayLayerViewHandles.get(config.overlayId)?.remove();
+      this.vectorOverlayLayerViewHandles.delete(config.overlayId);
+      this.setVectorOverlayRendering(config.overlayId, false);
+    }
   }
 
   private watchVectorOverlayLoadStatus(
@@ -724,6 +746,66 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.vectorOverlayLoadStatusHandles.set(config.overlayId, handle);
   }
 
+  private syncVectorOverlayLayerViews(): void {
+    for (const config of VECTOR_OVERLAY_CONFIGS) {
+      const layer = this.vectorOverlayLayers.get(config.overlayId);
+      const state = this.manifestRasterLayerService.getVectorOverlayState(config.overlayId);
+      if (layer && state?.visible) {
+        this.watchVectorOverlayLayerView(config, layer);
+      }
+    }
+  }
+
+  private watchVectorOverlayLayerView(
+    config: VectorOverlayConfig,
+    layer: InstanceType<typeof GeoJSONLayer>,
+  ): void {
+    if (!this.view) {
+      return;
+    }
+
+    this.vectorOverlayLayerViewHandles.get(config.overlayId)?.remove();
+    this.setVectorOverlayRendering(config.overlayId, true);
+    const requestId = this.bumpVectorOverlayLayerViewRequest(config.overlayId);
+
+    void this.view
+      .whenLayerView(layer)
+      .then((layerView) => {
+        if (requestId !== this.vectorOverlayLayerViewRequestIds.get(config.overlayId)) {
+          return;
+        }
+        if (!this.manifestRasterLayerService.isLayerVisible(config.overlayId)) {
+          this.setVectorOverlayRendering(config.overlayId, false);
+          return;
+        }
+
+        const sync = () => {
+          const isRendering =
+            this.manifestRasterLayerService.isLayerVisible(config.overlayId) && layerView.updating;
+          this.setVectorOverlayRendering(config.overlayId, isRendering);
+        };
+        sync();
+        const handle = layerView.watch('updating', sync);
+        this.vectorOverlayLayerViewHandles.set(config.overlayId, handle);
+      })
+      .catch((error: unknown) => {
+        if (requestId !== this.vectorOverlayLayerViewRequestIds.get(config.overlayId)) {
+          return;
+        }
+        this.setVectorOverlayRendering(config.overlayId, false);
+        console.warn(
+          `[MapView][${this.debugMarker}] layer view watch failed for "${config.overlayId}"`,
+          error,
+        );
+      });
+  }
+
+  private bumpVectorOverlayLayerViewRequest(overlayId: string): number {
+    const nextRequestId = (this.vectorOverlayLayerViewRequestIds.get(overlayId) ?? 0) + 1;
+    this.vectorOverlayLayerViewRequestIds.set(overlayId, nextRequestId);
+    return nextRequestId;
+  }
+
   private getOrCreateLoadingSignal(overlayId: string): ReturnType<typeof signal<boolean>> {
     let existing = this.vectorOverlayLoadingSignals.get(overlayId);
     if (!existing) {
@@ -733,23 +815,56 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     return existing;
   }
 
+  private getOrCreateRenderingSignal(overlayId: string): ReturnType<typeof signal<boolean>> {
+    let existing = this.vectorOverlayRenderingSignals.get(overlayId);
+    if (!existing) {
+      existing = signal(false);
+      this.vectorOverlayRenderingSignals.set(overlayId, existing);
+    }
+    return existing;
+  }
+
+  private setVectorOverlayRendering(overlayId: string, isRendering: boolean): void {
+    this.getOrCreateRenderingSignal(overlayId).set(isRendering);
+  }
+
   private isAnyVectorOverlayLoading(): boolean {
     for (const config of VECTOR_OVERLAY_CONFIGS) {
-      if (this.getOrCreateLoadingSignal(config.overlayId)()) {
+      if (
+        this.getOrCreateLoadingSignal(config.overlayId)() ||
+        this.getOrCreateRenderingSignal(config.overlayId)()
+      ) {
         return true;
       }
     }
     return false;
   }
 
+  private isRasterLayerLoading(): boolean {
+    return this.manifestRasterLayerService.isLayerRendering$();
+  }
+
   private activeLoadingOverlayKey(): string {
     for (const config of VECTOR_OVERLAY_CONFIGS) {
-      if (this.getOrCreateLoadingSignal(config.overlayId)()) {
+      if (
+        this.getOrCreateLoadingSignal(config.overlayId)() ||
+        this.getOrCreateRenderingSignal(config.overlayId)()
+      ) {
         return config.loadingI18nKey;
       }
     }
     // Default to OMEC label when nothing is loading (banner is hidden anyway).
     return VECTOR_OVERLAY_CONFIGS[0]?.loadingI18nKey ?? 'mapView.loadingOmecs';
+  }
+
+  private activeLayerLoadingKey(): string {
+    if (this.isSolutionLoading()) {
+      return 'mapView.loadingSolution';
+    }
+    if (this.isAnyVectorOverlayLoading()) {
+      return this.activeLoadingOverlayKey();
+    }
+    return 'mapView.loadingLayer';
   }
 
   private registerMapClickHandler(): void {
