@@ -19,6 +19,7 @@ const FOCUSABLE_SELECTOR =
 export type ModalShellMode = 'standard' | 'wide' | 'full-screen';
 export type ModalCloseSource = 'backdrop' | 'escape' | 'button';
 export type ModalHeaderAlign = 'center' | 'start';
+export type ModalInitialFocus = 'first-focusable' | 'panel';
 
 @Component({
   selector: 'app-modal-shell',
@@ -36,6 +37,7 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   @Input() closeOnEscape = true;
   @Input() showCloseButton = true;
   @Input() headerAlign: ModalHeaderAlign = 'center';
+  @Input() initialFocus: ModalInitialFocus = 'first-focusable';
 
   @Output() readonly requestClose = new EventEmitter<ModalCloseSource>();
 
@@ -151,6 +153,11 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   private focusInitialElement(): void {
     const panel = this.panelElement?.nativeElement;
     if (!panel) {
+      return;
+    }
+
+    if (this.initialFocus === 'panel') {
+      panel.focus();
       return;
     }
 
