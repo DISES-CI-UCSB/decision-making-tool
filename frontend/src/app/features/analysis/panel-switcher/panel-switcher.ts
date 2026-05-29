@@ -972,9 +972,7 @@ export class PanelSwitcherComponent {
 
   protected getAoiMetricStatus(metricId: string): string {
     const metric = this.aoiMetricsById().get(metricId);
-    return metric && metric.status === 'ready' && metric.value !== null
-      ? this.localizedText('analysis.status.ready')
-      : '--';
+    return metric && metric.status === 'ready' && metric.value !== null ? '' : '--';
   }
 
   protected getAoiMetricPercent(metricId: string, fallbackWhenMissing = 0): number {
@@ -1402,7 +1400,7 @@ export class PanelSwitcherComponent {
             iconClass: metric.iconClass,
             value: this.formatMetricForPanel(realMetric),
             fullValue: this.formatMetricForPanel(realMetric, 'full'),
-            unit: this.localizedText('analysis.status.ready'),
+            unit: '',
             conditional: Boolean(metric.conditional),
             unavailable: false,
           };
