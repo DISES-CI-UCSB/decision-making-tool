@@ -59,7 +59,7 @@
     "scenarioAFallback": "Escenario A",
     "scenarioBFallback": "Escenario B",
     "selected": "Áreas incluidas en este escenario ({{pct}}% del país)",
-    "existingProtected": "Áreas protegidas existentes (RUNAP / OMEC)",
+    "includedAreasFallback": "Areas incluidas en la solucion",
     "newCoverage": "Nueva cobertura agregada por este escenario ({{pct}}% del país)",
     "aOnly": "Solo A: {{name}}",
     "bOnly": "Solo B: {{name}}",
@@ -149,12 +149,10 @@
       "loadErrorTitle": "No se pudo cargar el resumen",
       "loadErrorDescription": "Intenta seleccionar el escenario otra vez u otro distinto.",
       "matchBadge": "{{percent}}% Coincidencia",
-      "goalsMet": "Metas cumplidas",
-      "goalsMetSub": "Temas de conservacion logrados",
-      "nationalContribution": "Contribucion nacional",
-      "addsToExisting": "Suma {{added}}% al {{existing}}% existente",
+      "goalsMet": "Metas alcanzadas",
+      "goalsMetSub": "Porcentaje de metas de optimizacion cumplidas",
       "spatial": {
-        "priorityArea": "area",
+        "priorityArea": "area prioritaria",
         "zones": "zonas",
         "avg": "prom"
       },
@@ -178,14 +176,6 @@
       },
       "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climaticos.",
       "insightCosts": "Este escenario afecta areas prioritarias de implementacion y debe equilibrarse con restricciones socioeconomicas.",
-      "nationalAnchor": {
-        "title": "Huella nacional de conservacion",
-        "contributing": "Este escenario destina {{percent}}% de Colombia para conservacion.",
-        "currentContribution": "Huella del escenario: {{percent}}%",
-        "targetLabel": "Referencia 30x30 (30%)",
-        "minLabel": "0% de Colombia",
-        "maxLabel": "100% de Colombia"
-      },
       "actions": {
         "viewFullReport": "Ver informe completo"
       },
@@ -203,8 +193,8 @@
         "threatenedSpeciesSecuredDesc": "Metas de habitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",
         "ecosystemCoverageDesc": "Ecosistemas clave dentro del escenario",
-        "nationalContribution": "Contribucion nacional",
-        "nationalContributionDesc": "Porcentaje de Colombia en areas prioritarias",
+        "nationalContribution": "Huella del escenario",
+        "nationalContributionDesc": "Porcentaje de Colombia seleccionado por este escenario",
         "priorityAreaTotal": "Area prioritaria seleccionada",
         "priorityAreaTotalDesc": "Area total seleccionada por el escenario",
         "paramoCoverage": "Cobertura de paramo",

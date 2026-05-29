@@ -1300,12 +1300,23 @@
                       <article
                         [id]="'map-layers-layer-row-' + group.id + '-' + row.id"
                         class="bg-white"
-                        [class.border-b]="!isLastRow"
-                        [class.border-slate-100]="!isLastRow"
+                        [class.map-layers-collapsible]="row.parentId"
+                        [class.map-layers-nested-layer-row]="row.parentId"
+                        [class.map-layers-collapsible-collapsed]="
+                          isNestedLayerRowCollapsed(group, row)
+                        "
+                        [attr.aria-hidden]="isNestedLayerRowCollapsed(group, row)"
+                        [class.border-b]="!isNestedLayerRowCollapsed(group, row) && !isLastRow"
+                        [class.border-slate-100]="
+                          !isNestedLayerRowCollapsed(group, row) && !isLastRow
+                        "
                       >
                         <div
                           [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
                           class="flex items-center gap-1.5 px-3 py-2.5"
+                          [class.pl-6]="row.parentId"
+                          [class.map-layers-collapsible-content]="row.parentId"
+                          [class.map-layers-nested-layer-row-content]="row.parentId"
                         >
                           <button
                             [id]="'map-layers-layer-row-name-button-' + group.id + '-' + row.id"
@@ -1338,6 +1349,42 @@
                                   : ('mapLayersPanel.addButton' | translate)
                               }}
                             </button>
+                          } @else {
+                            @if (row.countLabel) {
+                              <span
+                                [id]="'map-layers-layer-row-count-' + group.id + '-' + row.id"
+                                class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
+                              >
+                                {{ row.countLabel }}
+                              </span>
+                            }
+                            <button
+                              [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
+                              type="button"
+                              class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
+                              [class.rotate-180]="!row.expanded && !hasLayerSearchQuery()"
+                              [attr.aria-expanded]="row.expanded || hasLayerSearchQuery()"
+                              [attr.aria-label]="
+                                row.expanded || hasLayerSearchQuery()
+                                  ? ('mapLayersPanel.collapseTaxon' | translate: { name: row.name })
+                                  : ('mapLayersPanel.expandTaxon' | translate: { name: row.name })
+                              "
+                              (click)="toggleLayerExpanded(group.id, row.id)"
+                            >
+                              <svg
+                                [id]="'map-layers-layer-row-expand-icon-' + group.id + '-' + row.id"
+                                class="map-layers-chevron-icon h-3 w-3"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M3 4.5L6 7.5L9 4.5" />
+                              </svg>
+                            </button>
                           }
                         </div>
 
@@ -1345,8 +1392,12 @@
                           <div
                             [id]="'map-layers-layer-row-controls-' + group.id + '-' + row.id"
                             class="map-layers-collapsible"
-                            [class.map-layers-collapsible-collapsed]="!row.expanded"
-                            [attr.aria-hidden]="!row.expanded"
+                            [class.map-layers-collapsible-collapsed]="
+                              !row.expanded || isNestedLayerRowCollapsed(group, row)
+                            "
+                            [attr.aria-hidden]="
+                              !row.expanded || isNestedLayerRowCollapsed(group, row)
+                            "
                           >
                             <div class="map-layers-collapsible-content">
                               <div
@@ -1354,6 +1405,7 @@
                                   'map-layers-layer-row-controls-content-' + group.id + '-' + row.id
                                 "
                                 class="flex items-center gap-2 px-3 pb-2.5"
+                                [class.pl-6]="row.parentId"
                               >
                                 <div
                                   [id]="

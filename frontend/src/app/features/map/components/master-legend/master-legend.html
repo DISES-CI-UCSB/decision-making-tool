@@ -79,7 +79,7 @@
                       [style.background-color]="existingProtectedColor()"
                       style="opacity: 0.7"
                     ></span>
-                    {{ 'mapLegend.existingProtected' | translate }}
+                    {{ includedAreasLegendLabel() }}
                   </li>
                 }
                 <li
@@ -96,7 +96,14 @@
                     (showExistingProtectedCoverage()
                       ? 'mapLegend.newCoverage'
                       : 'mapLegend.selected'
-                    ) | translate: { pct: sol.rasterMeta.selectedPct.toFixed(1) }
+                    )
+                      | translate
+                        : {
+                            pct: (showExistingProtectedCoverage()
+                              ? sol.rasterMeta.newCoveragePctOfCountry
+                              : sol.rasterMeta.selectedPct
+                            ).toFixed(1),
+                          }
                   }}
                 </li>
               </ul>

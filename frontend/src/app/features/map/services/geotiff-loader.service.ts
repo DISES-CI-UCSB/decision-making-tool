@@ -19,6 +19,7 @@ export class GeoTiffLoaderService {
   private readonly fallbackWidth = 1200;
   private readonly fallbackHeight = 800;
   private readonly fallbackBbox: [number, number, number, number] = [-79.0, -4.5, -66.0, 13.5];
+  private readonly countryValidCellCountByUrl = new Map<string, Promise<number | null>>();
 
   async loadSolution(scenarioId: string): Promise<LoadedSolution> {
     const scenario = this.catalog.getById(scenarioId);
@@ -41,7 +42,10 @@ export class GeoTiffLoaderService {
       const image = await tiff.getImage();
       const rasterData = (await image.readRasters({ samples: [0] }))[0] as Float64Array;
 
-      const rasterMeta = this.extractMetadata(image, rasterData, scenario);
+      const countryValidCells =
+        (await this.loadCountryValidCellCount(scenario)) ??
+        this.countValidCells(rasterData, image.getGDALNoData());
+      const rasterMeta = this.extractMetadata(image, rasterData, scenario, countryValidCells);
       const canvas = this.rasterToCanvas(rasterData, rasterMeta, scenario);
 
       const loadTimeMs = Math.round(performance.now() - t0);
@@ -71,6 +75,7 @@ export class GeoTiffLoaderService {
     },
     data: Float64Array,
     scenario: SolutionScenario,
+    countryValidCells: number,
   ): RasterMetadata {
     const width = image.getWidth();
     const height = image.getHeight();
@@ -83,15 +88,12 @@ export class GeoTiffLoaderService {
     const crs = epsg ? `EPSG:${epsg}` : 'Unknown';
     const bandDesc = (fileDir['ImageDescription'] as string | undefined) ?? scenario.costLayer;
 
+    const noData = image.getGDALNoData();
     let selectedCount = 0;
     let totalValid = 0;
-    const noData = image.getGDALNoData();
 
     for (const cellValue of data) {
-      const isNoData =
-        !Number.isFinite(cellValue) ||
-        (typeof noData === 'number' &&
-          (Number.isNaN(noData) ? Number.isNaN(cellValue) : cellValue === noData));
+      const isNoData = this.isNoDataValue(cellValue, noData);
       if (isNoData) continue;
       totalValid++;
       if (cellValue === NEW_COVERAGE_VALUE) selectedCount++;
@@ -109,7 +111,67 @@ export class GeoTiffLoaderService {
       selectedCount,
       totalValidCells: totalValid,
       selectedPct: totalValid > 0 ? (selectedCount / totalValid) * 100 : 0,
+      countryValidCells,
+      newCoveragePctOfCountry:
+        countryValidCells > 0 ? (selectedCount / countryValidCells) * 100 : 0,
     };
+  }
+
+  private loadCountryValidCellCount(scenario: SolutionScenario): Promise<number | null> {
+    const costLayer = this.catalog.getLayerById(
+      scenario.inputLayerIds.cost ?? scenario.finderInputs.costLayerId,
+    );
+    const url = costLayer?.displayUrl?.trim();
+    if (!url) {
+      return Promise.resolve(null);
+    }
+
+    const cached = this.countryValidCellCountByUrl.get(url);
+    if (cached) {
+      return cached;
+    }
+
+    const loadPromise = this.countValidCellsFromRasterUrl(url).catch((error: unknown) => {
+      console.warn(
+        `[GeoTiffLoaderService] Failed to load country denominator raster "${url}".`,
+        error,
+      );
+      this.countryValidCellCountByUrl.delete(url);
+      return null;
+    });
+    this.countryValidCellCountByUrl.set(url, loadPromise);
+    return loadPromise;
+  }
+
+  private async countValidCellsFromRasterUrl(url: string): Promise<number> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.status}`);
+    }
+
+    const { fromArrayBuffer } = await import('geotiff');
+    const tiff = await fromArrayBuffer(await response.arrayBuffer());
+    const image = await tiff.getImage();
+    const data = (await image.readRasters({ samples: [0] }))[0] as Float64Array;
+    return this.countValidCells(data, image.getGDALNoData());
+  }
+
+  private countValidCells(data: Iterable<number>, noData: number | null): number {
+    let totalValid = 0;
+    for (const cellValue of data) {
+      if (!this.isNoDataValue(cellValue, noData)) {
+        totalValid++;
+      }
+    }
+    return totalValid;
+  }
+
+  private isNoDataValue(cellValue: number, noData: number | null): boolean {
+    return (
+      !Number.isFinite(cellValue) ||
+      (typeof noData === 'number' &&
+        (Number.isNaN(noData) ? Number.isNaN(cellValue) : cellValue === noData))
+    );
   }
 
   private rasterToCanvas(
@@ -197,6 +259,8 @@ export class GeoTiffLoaderService {
       selectedCount,
       totalValidCells: totalCells,
       selectedPct: totalCells > 0 ? (selectedCount / totalCells) * 100 : 0,
+      countryValidCells: totalCells,
+      newCoveragePctOfCountry: totalCells > 0 ? (selectedCount / totalCells) * 100 : 0,
     };
     const canvas = this.rasterToCanvas(rasterData, rasterMeta, scenario);
 

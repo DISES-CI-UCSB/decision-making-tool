@@ -887,17 +887,40 @@ export class PanelSwitcherComponent {
     return delta !== null && delta < 0;
   }
 
-  protected getContributionPercent(matchPercentage: number): number {
-    return Math.max(10, Math.min(60, Math.round(matchPercentage * 0.42)));
+  protected getGoalsAchievedPercent(fallbackPercent: number): string {
+    const goalsMetric = this.findOverviewMetric('conservation_goals_met');
+    if (goalsMetric && this.isMetricReady(goalsMetric)) {
+      return this.formatNumber(goalsMetric.value ?? 0, this.metricNumberFormatMode(), 0, 1);
+    }
+
+    return this.formatNumber(fallbackPercent, this.metricNumberFormatMode(), 0, 1);
   }
 
-  protected getContributionAddedPercent(matchPercentage: number): number {
-    const contribution = this.getContributionPercent(matchPercentage);
-    return Math.max(2, Math.round(contribution * 0.33));
+  protected getGoalsAchievedBarWidth(fallbackPercent: number): number {
+    const goalsMetric = this.findOverviewMetric('conservation_goals_met');
+    const value =
+      goalsMetric && this.isMetricReady(goalsMetric) ? goalsMetric.value : fallbackPercent;
+    return Math.max(0, Math.min(100, value ?? 0));
   }
 
-  protected getGoalsMetCount(matchPercentage: number): number {
-    return Math.round(matchPercentage / 12);
+  protected getOverviewMetricValue(metricId: string, fallbackWhenMissing = '--'): string {
+    const metric = this.findOverviewMetric(metricId);
+    if (metric && this.isMetricReady(metric)) {
+      return this.formatMetricForPanel(metric);
+    }
+
+    return fallbackWhenMissing;
+  }
+
+  protected getOverviewMetricFullValue(metricId: string): string | null {
+    const metric = this.findOverviewMetric(metricId);
+    if (!metric || !this.isMetricReady(metric)) {
+      return null;
+    }
+
+    const fullValue = this.formatMetricForPanel(metric, 'full');
+    const compactValue = this.formatMetricForPanel(metric, 'compact');
+    return fullValue !== compactValue ? fullValue : null;
   }
 
   protected toggleOverviewSection(sectionId: OverviewMetricSection): void {
@@ -1411,6 +1434,14 @@ export class PanelSwitcherComponent {
           unavailable: true,
         };
       });
+  }
+
+  private findOverviewMetric(metricId: string): MetricValue | null {
+    return (
+      this.overviewSections()
+        .flatMap((metricSection) => metricSection.metrics)
+        .find((metric) => metric.metricId === metricId) ?? null
+    );
   }
 
   private buildComparisonSections(): ComparisonMetricSection[] {

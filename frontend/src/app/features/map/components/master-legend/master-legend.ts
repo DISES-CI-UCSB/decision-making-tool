@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { AppLocaleService } from '@core/services/app-locale.service';
+import { getSolutionIncludedAreasLegendLabel } from '@core/models/solution-included-areas.utils';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -66,6 +67,13 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly overlapOpacity = computed(() => this.solutionLayer.getOverlapOpacity());
   readonly baselineOpacityPercent = computed(() => Math.round(this.baselineOpacity() * 100));
   readonly candidateOpacityPercent = computed(() => Math.round(this.candidateOpacity() * 100));
+  readonly includedAreasLegendLabel = computed(() => {
+    const loaded = this.loaded();
+    if (!loaded) {
+      return this.localizedText('mapLegend.includedAreasFallback', 'Included areas in solution');
+    }
+    return getSolutionIncludedAreasLegendLabel(loaded.scenario, this.appLocaleService.locale());
+  });
 
   readonly selectedLayerEntries = computed<MapLegendLayerEntry[]>(() =>
     this.appState.selectedLegendLayers$(),
