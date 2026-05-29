@@ -344,24 +344,22 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const currentZoom = this.view.zoom ?? COLOMBIA_ZOOM;
-    const minZoom = this.view.constraints.minZoom ?? 0;
-    const maxZoom = this.view.constraints.maxZoom ?? 24;
-    const targetZoom = Math.max(minZoom, Math.min(maxZoom, currentZoom + delta));
+    const currentScale = this.view.scale;
+    const target =
+      Number.isFinite(currentScale) && currentScale > 0
+        ? { scale: this.getZoomDeltaScale(currentScale, delta) }
+        : this.getZoomDeltaFallbackTarget(delta);
 
-    if (targetZoom === currentZoom) {
+    if (!target) {
       return;
     }
 
     try {
-      await this.view.goTo(
-        { zoom: targetZoom },
-        {
-          animate: true,
-          duration: 250,
-          easing: 'ease-in-out',
-        },
-      );
+      await this.view.goTo(target, {
+        animate: true,
+        duration: 250,
+        easing: 'ease-in-out',
+      });
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
@@ -369,6 +367,23 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
       console.error(`[MapView][${this.debugMarker}] zoom animation failed:`, error);
     }
+  }
+
+  private getZoomDeltaScale(currentScale: number, delta: number): number {
+    const scaleFactor = 2 ** Math.abs(delta);
+    return delta > 0 ? currentScale / scaleFactor : currentScale * scaleFactor;
+  }
+
+  private getZoomDeltaFallbackTarget(delta: number): { zoom: number } | null {
+    const currentZoom = this.view?.zoom ?? COLOMBIA_ZOOM;
+    if (!Number.isFinite(currentZoom) || currentZoom < 0) {
+      return null;
+    }
+
+    const minZoom = this.view?.constraints.minZoom ?? 0;
+    const maxZoom = this.view?.constraints.maxZoom ?? 24;
+    const targetZoom = Math.max(minZoom, Math.min(maxZoom, currentZoom + delta));
+    return targetZoom === currentZoom ? null : { zoom: targetZoom };
   }
 
   private async animateZoomToCountry(): Promise<void> {
