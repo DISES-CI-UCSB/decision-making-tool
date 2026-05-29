@@ -35,6 +35,7 @@ const CLASS_TO_TAXON = {
   Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
+  Actinopteri: { taxonId: 'fish', taxonLabel: 'Fish' },
 };
 
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';

@@ -952,7 +952,7 @@
                         <div
                           [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
                           class="flex items-center gap-1.5 px-3 py-2.5"
-                          [class.pl-6]="row.parentId"
+                          [class.pl-5]="row.parentId"
                           [class.map-layers-collapsible-content]="row.parentId"
                           [class.map-layers-nested-layer-row-content]="row.parentId"
                         >
@@ -987,15 +987,16 @@
                                   : ('mapLayersPanel.addButton' | translate)
                               }}
                             </button>
-                          } @else {
-                            @if (row.countLabel) {
-                              <span
-                                [id]="'map-layers-layer-row-count-' + group.id + '-' + row.id"
-                                class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
-                              >
-                                {{ row.countLabel }}
-                              </span>
-                            }
+                          }
+                          @if (row.countLabel) {
+                            <span
+                              [id]="'map-layers-layer-row-count-' + group.id + '-' + row.id"
+                              class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
+                            >
+                              {{ row.countLabel }}
+                            </span>
+                          }
+                          @if (row.hideAddButton || rowHasNestedLayerRows(group, row)) {
                             <button
                               [id]="'map-layers-layer-row-expand-button-' + group.id + '-' + row.id"
                               type="button"

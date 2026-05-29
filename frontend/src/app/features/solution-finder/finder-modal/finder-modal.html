@@ -609,6 +609,66 @@
           </div>
 
           <div
+            id="solution-finder-modal-step2a-row-resguardos"
+            class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
+            [class.finder-selected-card-border]="includeResguardos"
+            [class.bg-sky-100]="includeResguardos"
+            [class.border-slate-200]="!includeResguardos"
+            [class.bg-white]="!includeResguardos"
+            [class.cursor-pointer]="isStep2Unlocked()"
+            [class.cursor-not-allowed]="!isStep2Unlocked()"
+            [attr.role]="isStep2Unlocked() ? 'button' : null"
+            [attr.tabindex]="isStep2Unlocked() ? 0 : -1"
+            [attr.aria-pressed]="includeResguardos"
+            [attr.aria-disabled]="!isStep2Unlocked()"
+            (click)="isStep2Unlocked() && toggleIncludeResguardos()"
+            (keydown.enter)="isStep2Unlocked() && toggleIncludeResguardos()"
+            (keydown.space)="
+              $event.preventDefault(); isStep2Unlocked() && toggleIncludeResguardos()
+            "
+          >
+            <div id="solution-finder-modal-step2a-row-resguardos-copy" class="min-w-0 flex-1">
+              <p
+                id="solution-finder-modal-step2a-row-resguardos-label"
+                class="text-sm font-semibold text-slate-900"
+              >
+                {{ 'solutionControls.finder.step2a.includeResguardosLabel' | translate }}
+              </p>
+              <p
+                id="solution-finder-modal-step2a-row-resguardos-help"
+                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+              >
+                {{ 'solutionControls.finder.step2a.includeResguardosHelp' | translate }}
+              </p>
+            </div>
+            <button
+              id="solution-finder-modal-step2a-row-resguardos-toggle"
+              type="button"
+              role="switch"
+              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
+              [class.bg-sky-600]="includeResguardos"
+              [class.text-white]="includeResguardos"
+              [class.bg-slate-300]="!includeResguardos"
+              [class.text-slate-800]="!includeResguardos"
+              [class.cursor-not-allowed]="!isStep2Unlocked()"
+              [class.opacity-60]="!isStep2Unlocked()"
+              [disabled]="!isStep2Unlocked()"
+              [attr.aria-checked]="includeResguardos"
+              [attr.aria-label]="
+                'solutionControls.finder.step2a.includeResguardosLabel' | translate
+              "
+              (click)="$event.stopPropagation(); toggleIncludeResguardos()"
+            >
+              {{
+                (includeResguardos
+                  ? 'solutionControls.finder.toggle.on'
+                  : 'solutionControls.finder.toggle.off'
+                ) | translate
+              }}
+            </button>
+          </div>
+
+          <div
             id="solution-finder-modal-step2a-always-section"
             class="border-t border-slate-200 pt-3"
           >

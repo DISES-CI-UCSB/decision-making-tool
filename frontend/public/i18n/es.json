@@ -597,8 +597,10 @@
       "step2a": {
         "includeOmecsLabel": "Incluir OMEC",
         "includeOmecsHelp": "OMEC (WDPA/WDOECM, otras medidas efectivas) es opcional; los nombres incluyen +OMEC cuando esta activo.",
-        "includeComunidadesLabel": "Incluir territorios afrocolombianos e indígenas",
-        "includeComunidadesHelp": "Fija los territorios de comunidades afrocolombianas y las áreas indígenas junto con RUNAP cuando se activa.",
+        "includeComunidadesLabel": "Incluir territorios afrocolombianos",
+        "includeComunidadesHelp": "Fija los territorios de comunidades afrocolombianas junto con RUNAP cuando se activa.",
+        "includeResguardosLabel": "Incluir resguardos indígenas",
+        "includeResguardosHelp": "Fija los territorios de resguardos indígenas junto con RUNAP cuando se activa.",
         "alwaysAppliedHeading": "Siempre aplicado",
         "alwaysRunapLabel": "Areas protegidas RUNAP",
         "alwaysRunapHelp": "La red nacional de areas protegidas (RUNAP) esta incluida en todos los escenarios precalculados de este catalogo.",
@@ -712,7 +714,8 @@
       "birds": "Aves",
       "amphibians": "Anfibios",
       "reptiles": "Reptiles",
-      "plants": "Plantas"
+      "plants": "Plantas",
+      "fish": "Peces"
     },
     "sourceLabels": {
       "selectedScenario": "Escenario seleccionado",

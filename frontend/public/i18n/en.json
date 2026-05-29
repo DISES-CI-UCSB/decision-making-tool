@@ -597,8 +597,10 @@
       "step2a": {
         "includeOmecsLabel": "Include OMECs",
         "includeOmecsHelp": "OMECs (WDPA/WDOECM “other effective conservation measures”) are optional; scenario filenames include +OMEC when on.",
-        "includeComunidadesLabel": "Include Afro-Colombian and Indigenous territories",
-        "includeComunidadesHelp": "Locks in Afro-Colombian community territories and Indigenous areas alongside RUNAP when enabled.",
+        "includeComunidadesLabel": "Include Afro-Colombian territories",
+        "includeComunidadesHelp": "Locks in Afro-Colombian community territories alongside RUNAP when enabled.",
+        "includeResguardosLabel": "Include Indigenous reserves",
+        "includeResguardosHelp": "Locks in Indigenous reserve territories alongside RUNAP when enabled.",
         "alwaysAppliedHeading": "Always applied",
         "alwaysRunapLabel": "RUNAP protected areas",
         "alwaysRunapHelp": "National protected-area network (RUNAP) is included in every precomputed scenario in this catalog.",
@@ -712,7 +714,8 @@
       "birds": "Birds",
       "amphibians": "Amphibians",
       "reptiles": "Reptiles",
-      "plants": "Plants"
+      "plants": "Plants",
+      "fish": "Fish"
     },
     "sourceLabels": {
       "selectedScenario": "Selected Scenario",
