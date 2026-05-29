@@ -714,19 +714,15 @@
                           <span
                             id="aoi-hero-fill-priority"
                             class="aoi-hero-fill-green"
-                            [style.width.%]="getAoiMetricPercent('priority_area_pct_of_region', 45)"
+                            [style.width.%]="getAoiPriorityAreaPercentBarWidth()"
                             [style.background-color]="aoiHeroPriorityBarColor()"
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
                           <strong
-                            [attr.data-full-value]="
-                              getAoiMetricFullValue('priority_area_pct_of_region')
-                            "
-                            [attr.tabindex]="
-                              getAoiMetricFullValue('priority_area_pct_of_region') ? 0 : null
-                            "
-                            >{{ getAoiMetricValue('priority_area_pct_of_region', '45%') }}</strong
+                            [attr.data-full-value]="getAoiPriorityAreaPercentFullValue()"
+                            [attr.tabindex]="getAoiPriorityAreaPercentFullValue() ? 0 : null"
+                            >{{ getAoiPriorityAreaPercentValue() }}</strong
                           >
                           {{ 'analysis.aoi.hero.ofMunicipality' | translate }}
                         </div>

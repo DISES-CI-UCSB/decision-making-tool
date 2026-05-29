@@ -983,6 +983,33 @@ export class PanelSwitcherComponent {
     return this.fillDummyAoiMetrics() ? fallbackWhenMissing : 0;
   }
 
+  protected getAoiPriorityAreaPercentBarWidth(): number {
+    const percent = this.calculateAoiPriorityAreaPercent();
+    if (percent !== null) {
+      return percent;
+    }
+    return this.fillDummyAoiMetrics() ? 45 : 0;
+  }
+
+  protected getAoiPriorityAreaPercentValue(): string {
+    const percent = this.calculateAoiPriorityAreaPercent();
+    if (percent !== null) {
+      return this.appendUnit(this.formatNumber(percent, this.metricNumberFormatMode(), 0, 1), '%');
+    }
+    return this.fillDummyAoiMetrics() ? '45%' : '--';
+  }
+
+  protected getAoiPriorityAreaPercentFullValue(): string | null {
+    const percent = this.calculateAoiPriorityAreaPercent();
+    if (percent === null) {
+      return null;
+    }
+
+    const compactValue = this.getAoiPriorityAreaPercentValue();
+    const fullValue = this.appendUnit(this.formatNumber(percent, 'full', 0, 1), '%');
+    return compactValue === fullValue ? null : fullValue;
+  }
+
   protected getAoiEcosystemLegendValue(segmentId: string, fallbackWhenMissing = '--'): string {
     const metricIdBySegmentId: Record<string, string> = {
       'cloud-forest': 'ecosystem_coverage',
@@ -1160,6 +1187,23 @@ export class PanelSwitcherComponent {
   private getAoiBiodiversityScale(aoiId: string): number {
     const mod = aoiId.length % 4;
     return [0.9, 1, 1.1, 1.2][mod] ?? 1;
+  }
+
+  private calculateAoiPriorityAreaPercent(): number | null {
+    const selectedAoi = this.selectedAoi();
+    const priorityArea = this.aoiMetricsById().get('priority_area_in_region');
+    if (
+      !selectedAoi?.areaKm2 ||
+      !Number.isFinite(selectedAoi.areaKm2) ||
+      selectedAoi.areaKm2 <= 0 ||
+      priorityArea?.status !== 'ready' ||
+      priorityArea.value === null
+    ) {
+      return null;
+    }
+
+    const percent = (priorityArea.value / selectedAoi.areaKm2) * 100;
+    return Math.max(0, Math.min(100, percent));
   }
 
   private buildDonutGradient(): string {

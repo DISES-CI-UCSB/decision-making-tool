@@ -512,6 +512,7 @@ export class AdminBoundaryService {
       name: aoiName,
       type: candidate.config.type,
       geometryUrl: candidate.config.url,
+      areaKm2: this.calculateAreaKm2(selectionGeometry),
     });
     this.appState.setRightSidebarMode('aoi');
   }
@@ -846,6 +847,15 @@ export class AdminBoundaryService {
     return null;
   }
 
+  private calculateAreaKm2(geometry: Geometry | null): number | undefined {
+    if (!geometry || geometry.type !== 'polygon') {
+      return undefined;
+    }
+
+    const area = geometryEngine.geodesicArea(geometry as Polygon, 'square-kilometers');
+    return Number.isFinite(area) ? Math.abs(area) : undefined;
+  }
+
   private refreshSelectionForScope(): void {
     const candidate = this.lastSelectionCandidate;
     const clickedPoint = this.lastClickPoint;
@@ -860,6 +870,13 @@ export class AdminBoundaryService {
       candidate.config.type,
     );
     this.setSelectionHighlight(selectionGeometry);
+    const selectedAoi = this.appState.selectedAOI$();
+    if (selectedAoi && selectedAoi.type === candidate.config.type) {
+      this.appState.selectAOI({
+        ...selectedAoi,
+        areaKm2: this.calculateAreaKm2(selectionGeometry),
+      });
+    }
     void this.zoomToSelection(view, selectionGeometry);
   }
 }

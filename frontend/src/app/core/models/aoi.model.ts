@@ -11,4 +11,6 @@ export interface AOI {
    */
   subtype?: string;
   geometryUrl: string;
+  /** Browser-computed selected AOI area, used for local percentage metrics. */
+  areaKm2?: number;
 }

@@ -18,6 +18,8 @@ import ArcGISMapView from '@arcgis/core/views/MapView';
 import Extent from '@arcgis/core/geometry/Extent';
 import Geometry from '@arcgis/core/geometry/Geometry';
 import Point from '@arcgis/core/geometry/Point';
+import Polygon from '@arcgis/core/geometry/Polygon';
+import * as geometryEngine from '@arcgis/core/geometry/geometryEngine';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
 import Attribution from '@arcgis/core/widgets/Attribution';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
@@ -884,6 +886,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         type: config.aoiType,
         subtype: subtype || undefined,
         geometryUrl: config.geojsonUrl,
+        areaKm2: this.calculateAreaKm2(hit.geometry as Geometry | null),
       });
       this.appState.setRightSidebarMode('aoi');
       // Reuse the boundary service's AOI highlight layer so the selected
@@ -898,6 +901,15 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       );
       return false;
     }
+  }
+
+  private calculateAreaKm2(geometry: Geometry | null): number | undefined {
+    if (!geometry || geometry.type !== 'polygon') {
+      return undefined;
+    }
+
+    const area = geometryEngine.geodesicArea(geometry as Polygon, 'square-kilometers');
+    return Number.isFinite(area) ? Math.abs(area) : undefined;
   }
 
   private async syncComparisonMode(): Promise<void> {
