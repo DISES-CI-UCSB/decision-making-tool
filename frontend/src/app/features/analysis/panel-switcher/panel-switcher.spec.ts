@@ -6,6 +6,7 @@ import {
 } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
+import { AppLocaleService } from '@core/services/app-locale.service';
 import { wrapFlatMetricsResponse } from '@core/services/cached-metrics.utils';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
@@ -13,6 +14,7 @@ import { PanelSwitcherComponent } from './panel-switcher';
 
 describe('PanelSwitcherComponent', () => {
   let appState: AppStateService;
+  let appLocale: AppLocaleService;
   let mockData: MockDataService;
   let apiServiceSpy: Pick<ApiService, 'getSolutionMetrics'>;
 
@@ -46,6 +48,7 @@ describe('PanelSwitcherComponent', () => {
     }).compileComponents();
 
     appState = TestBed.inject(AppStateService);
+    appLocale = TestBed.inject(AppLocaleService);
     mockData = TestBed.inject(MockDataService);
   });
 
@@ -124,5 +127,18 @@ describe('PanelSwitcherComponent', () => {
 
     expect(compiled.querySelector('#aoi-dashboard-empty-state')).not.toBeNull();
     expect(compiled.querySelector('#right-sidebar-welcome-panel')).toBeNull();
+  });
+
+  it('formats metric decimals with the active app locale', () => {
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      getGoalsAchievedPercent(value: number): string;
+    };
+
+    appLocale.setLocale('es');
+    expect(component.getGoalsAchievedPercent(49.1)).toBe('49,1');
+
+    appLocale.setLocale('en');
+    expect(component.getGoalsAchievedPercent(49.1)).toBe('49.1');
   });
 });
