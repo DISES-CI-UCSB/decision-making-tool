@@ -273,7 +273,7 @@
       "generateReport": "Generar informe regional",
       "hero": {
         "priorityAreaLabel": "Área prioritaria en la región",
-        "ofMunicipality": "de este municipio",
+        "ofMunicipality": "de esta área de interés",
         "nationalContributionLabel": "Contribución 30×30",
         "existingAdds": "Existente {{existing}} + agrega {{added}}"
       },
