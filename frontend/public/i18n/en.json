@@ -149,12 +149,10 @@
       "loadErrorTitle": "Couldn't load overview",
       "loadErrorDescription": "Try selecting the scenario again, or choose a different one.",
       "matchBadge": "{{percent}}% Match",
-      "goalsMet": "Goals Met",
-      "goalsMetSub": "Conservation themes achieved",
-      "nationalContribution": "National Contribution",
-      "addsToExisting": "Adds {{added}}% to existing {{existing}}%",
+      "goalsMet": "Targets Achieved",
+      "goalsMetSub": "Share of optimization targets met",
       "spatial": {
-        "priorityArea": "area",
+        "priorityArea": "priority area",
         "zones": "zones",
         "avg": "avg"
       },
@@ -178,14 +176,6 @@
       },
       "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
-      "nationalAnchor": {
-        "title": "National Conservation Footprint",
-        "contributing": "This scenario designates {{percent}}% of Colombia for conservation.",
-        "currentContribution": "Scenario footprint: {{percent}}%",
-        "targetLabel": "30x30 benchmark (30%)",
-        "minLabel": "0% of Colombia",
-        "maxLabel": "100% of Colombia"
-      },
       "actions": {
         "viewFullReport": "View Full Report"
       },
@@ -203,8 +193,8 @@
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",
         "ecosystemCoverageDesc": "Key ecosystems within scenario",
-        "nationalContribution": "National Contribution",
-        "nationalContributionDesc": "Share of Colombia in priority areas",
+        "nationalContribution": "Scenario Footprint",
+        "nationalContributionDesc": "Share of Colombia selected by this scenario",
         "priorityAreaTotal": "Priority Area (Selected)",
         "priorityAreaTotalDesc": "Total area selected by the scenario",
         "paramoCoverage": "Paramo Coverage",
