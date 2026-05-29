@@ -285,11 +285,11 @@
         "plants": "Plantas"
       },
       "ecosystemLegend": {
-        "cloudForest": "Bosque nublado",
+        "ecosystems": "Ecosistemas",
         "paramo": "Páramo",
         "dryForest": "Bosque seco",
         "wetlands": "Humedales",
-        "other": "Otros"
+        "mangroves": "Manglares"
       },
       "landUseLabels": {
         "forest": "Bosque natural",
@@ -310,7 +310,7 @@
         "totalCarbonBiomass": "Biomasa total de carbono",
         "nationalCarbon": "% del carbono nacional",
         "nationalCarbonDesc": "De las reservas colombianas",
-        "aboveGroundCarbon": "Carbono sobre el suelo",
+        "aboveGroundCarbon": "Carbono de biomasa aérea y subterránea",
         "soilOrganicCarbon": "Carbono orgánico del suelo",
         "waterRegulation": "Capacidad de regulación hídrica",
         "waterRegulationDesc": "Provisión de servicios hidrológicos para comunidades aguas abajo",
@@ -353,7 +353,7 @@
         "ecosystemCarbonValue": "7% de las reservas de carbono de Colombia",
         "ecosystemMiddle": " y ofrece ",
         "ecosystemWaterRegulationValue": "regulacion hidrica superior al promedio",
-        "ecosystemSuffix": " para la cuenca del rio Cauca. El bosque nublado representa la mayor parte de la cobertura ecosistemica.",
+        "ecosystemSuffix": " para la cuenca del rio Cauca. Los ecosistemas representan la mayor parte de la cobertura ecosistemica.",
         "landPrefix": "60% del area prioritaria de este AOI es bosque natural. El costo de oportunidad agricola es ",
         "landMiddle": ", con ",
         "landSuffix": " en zonas de conflicto historicas.",
@@ -639,7 +639,7 @@
         "availableChip": "Disponible",
         "alternateMatches": "Otras coincidencias (raro)",
         "scenarioJaguarCorridor": "Mayor enfasis en continuidad de corredores de especies cerca de areas protegidas.",
-        "scenarioAndesWater": "Balancea proteccion de bosque nublado y metas de regulacion hidrica en cuencas altas.",
+        "scenarioAndesWater": "Balancea proteccion de ecosistemas estrategicos y metas de regulacion hidrica en cuencas altas.",
         "scenarioCarbonShield": "Prioriza densidad de carbono mientras excluye presion minera y bordes urbanos."
       },
       "toast": {

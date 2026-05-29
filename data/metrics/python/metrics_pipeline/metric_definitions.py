@@ -458,7 +458,8 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         format_hint="percent",
         source_note=(
             "(selected weighted_sum) / (all valid weighted_sum) × 100 "
-            "on the biomasa layer. Denominator is the national carbon total in the full valid raster."
+            "on the biomasa layer. Denominator is the national total across all finite "
+            "biomasa layer cells."
         ),
         kind="weighted_percent_of_national",
         layer_id="biomasa",

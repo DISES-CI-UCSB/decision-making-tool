@@ -360,11 +360,11 @@
         "plants": "Plants"
       },
       "ecosystemLegend": {
-        "cloudForest": "Cloud Forest",
+        "ecosystems": "Ecosystems",
         "paramo": "Paramo",
         "dryForest": "Dry Forest",
         "wetlands": "Wetlands",
-        "other": "Other"
+        "mangroves": "Mangroves"
       },
       "landUseLabels": {
         "forest": "Natural Forest",
@@ -385,7 +385,7 @@
         "totalCarbonBiomass": "Total Carbon Biomass",
         "nationalCarbon": "% of National Carbon",
         "nationalCarbonDesc": "Of Colombian stocks",
-        "aboveGroundCarbon": "Above-ground Carbon",
+        "aboveGroundCarbon": "Above + Belowground Biomass Carbon",
         "soilOrganicCarbon": "Soil Organic Carbon",
         "waterRegulation": "Water Regulation Capacity",
         "waterRegulationDesc": "Hydrological service provision for downstream communities",
@@ -428,7 +428,7 @@
         "ecosystemCarbonValue": "7% of Colombia's carbon stocks",
         "ecosystemMiddle": " and provides ",
         "ecosystemWaterRegulationValue": "above-average water regulation",
-        "ecosystemSuffix": " for the Cauca River basin. Cloud forest accounts for the largest share of ecosystem coverage.",
+        "ecosystemSuffix": " for the Cauca River basin. Ecosystems account for the largest share of ecosystem coverage.",
         "landPrefix": "60% of this AOI's priority area is natural forest. Agricultural opportunity cost is ",
         "landMiddle": ", with ",
         "landSuffix": " in historical conflict zones.",
@@ -639,7 +639,7 @@
         "availableChip": "Available",
         "alternateMatches": "Other matches (rare)",
         "scenarioJaguarCorridor": "Higher emphasis on species corridor continuity near protected area buffers.",
-        "scenarioAndesWater": "Balances cloud-forest protection and water regulation targets in upland basins.",
+        "scenarioAndesWater": "Balances strategic ecosystem protection and water regulation targets in upland basins.",
         "scenarioCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."
       },
       "toast": {

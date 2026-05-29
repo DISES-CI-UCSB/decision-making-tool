@@ -1024,11 +1024,11 @@ export class PanelSwitcherComponent {
 
   protected getAoiEcosystemLegendValue(segmentId: string, fallbackWhenMissing = '--'): string {
     const metricIdBySegmentId: Record<string, string> = {
-      'cloud-forest': 'ecosystem_coverage',
+      ecosystems: 'ecosystem_coverage',
       paramo: 'ecosystem_coverage_paramo',
       'dry-forest': 'ecosystem_coverage_dry_forest',
       wetlands: 'ecosystem_coverage_wetlands',
-      other: 'mangrove_coverage',
+      mangroves: 'mangrove_coverage',
     };
     const metricId = metricIdBySegmentId[segmentId];
     if (!metricId) {
@@ -1140,7 +1140,8 @@ export class PanelSwitcherComponent {
     maximumFractionDigits: number,
   ): string {
     const absoluteValue = Math.abs(value);
-    const locale = this.resolveLocale();
+    const appLocale = this.appLocale.locale();
+    const locale = this.resolveNumberLocale(appLocale);
     const compactScale =
       absoluteValue >= 1_000_000 ? 1_000_000 : absoluteValue >= 1_000 ? 1_000 : 1;
     const scaledValue = value / compactScale;
@@ -1154,7 +1155,7 @@ export class PanelSwitcherComponent {
     }
 
     if (compactScale === 1_000) {
-      return this.translate.currentLang === 'es' ? `${formattedValue} mil` : `${formattedValue}K`;
+      return appLocale === 'es' ? `${formattedValue} mil` : `${formattedValue}K`;
     }
 
     return formattedValue;
@@ -1193,7 +1194,11 @@ export class PanelSwitcherComponent {
   }
 
   private resolveLocale(): string {
-    return this.translate.currentLang === 'es' ? 'es-CO' : 'en-US';
+    return this.resolveNumberLocale(this.appLocale.locale());
+  }
+
+  private resolveNumberLocale(locale: string): string {
+    return locale === 'es' ? 'es-CO' : 'en-US';
   }
 
   private getAoiBiodiversityScale(aoiId: string): number {
@@ -1238,11 +1243,11 @@ export class PanelSwitcherComponent {
 
   private getAoiEcosystemLabel(segmentId: string, fallback: string): string {
     const keyById: Record<string, string> = {
-      'cloud-forest': 'analysis.aoi.ecosystemLegend.cloudForest',
+      ecosystems: 'analysis.aoi.ecosystemLegend.ecosystems',
       paramo: 'analysis.aoi.ecosystemLegend.paramo',
       'dry-forest': 'analysis.aoi.ecosystemLegend.dryForest',
       wetlands: 'analysis.aoi.ecosystemLegend.wetlands',
-      other: 'analysis.aoi.ecosystemLegend.other',
+      mangroves: 'analysis.aoi.ecosystemLegend.mangroves',
     };
     const key = keyById[segmentId];
     return key ? this.localizedText(key, fallback) : fallback;
