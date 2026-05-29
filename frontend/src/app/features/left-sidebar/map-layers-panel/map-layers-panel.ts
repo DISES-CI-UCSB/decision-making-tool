@@ -175,14 +175,22 @@ interface ColorPickerComponentWithPrivateSliderDims {
 }
 type SelectedLayerDropPosition = 'before' | 'after';
 type SupportedLanguage = 'en' | 'es';
+interface SpeciesRichnessTaxonLayerDefinition {
+  rowId: string;
+  taxonId: string;
+  englishLabel: string;
+  displayUrl: string;
+  rendering: RuntimeLayerManifestRenderingConfig;
+}
+
 const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
 const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
 const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
 const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manifest.json';
 const SPECIES_COLLECTION_ROW_ID = 'layer-species';
-const SPECIES_RICHNESS_GROUP_ROW_ID = 'layer-species-richness-group';
+const SPECIES_RICHNESS_TOTAL_ROW_ID = 'layer-species_richness';
 const SPECIES_RICHNESS_LAYER_IDS = new Set([
-  'layer-species_richness',
+  SPECIES_RICHNESS_TOTAL_ROW_ID,
   'layer-species_richness_mammals',
   'layer-species_richness_birds',
   'layer-species_richness_amphibians',
@@ -357,6 +365,88 @@ const SPECIES_RICHNESS_RENDER_RANGE = {
   minValue: 815,
   maxValue: 3562,
 } as const;
+const SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS: SpeciesRichnessTaxonLayerDefinition[] = [
+  {
+    rowId: 'layer-species_richness_mammals',
+    taxonId: 'mammals',
+    englishLabel: 'Mammals',
+    displayUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_mammals.tif',
+    rendering: {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: 65535,
+      minValue: 1,
+      maxValue: 142,
+      startColor: '#f3e8ff',
+      endColor: '#7e22ce',
+    },
+  },
+  {
+    rowId: 'layer-species_richness_birds',
+    taxonId: 'birds',
+    englishLabel: 'Birds',
+    displayUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_birds.tif',
+    rendering: {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: 65535,
+      minValue: 1,
+      maxValue: 823,
+      startColor: '#dbeafe',
+      endColor: '#1d4ed8',
+    },
+  },
+  {
+    rowId: 'layer-species_richness_amphibians',
+    taxonId: 'amphibians',
+    englishLabel: 'Amphibians',
+    displayUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_amphibians.tif',
+    rendering: {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: 65535,
+      minValue: 1,
+      maxValue: 56,
+      startColor: '#dcfce7',
+      endColor: '#15803d',
+    },
+  },
+  {
+    rowId: 'layer-species_richness_reptiles',
+    taxonId: 'reptiles',
+    englishLabel: 'Reptiles',
+    displayUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_reptiles.tif',
+    rendering: {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: 65535,
+      minValue: 1,
+      maxValue: 68,
+      startColor: '#ffedd5',
+      endColor: '#c2410c',
+    },
+  },
+  {
+    rowId: 'layer-species_richness_plants',
+    taxonId: 'plants',
+    englishLabel: 'Plants',
+    displayUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_plants.tif',
+    rendering: {
+      valueType: 'continuous',
+      renderMode: 'gradient',
+      noDataValue: 65535,
+      minValue: 1,
+      maxValue: 2884,
+      startColor: '#ccfbf1',
+      endColor: '#0f766e',
+    },
+  },
+];
 const HUMAN_FOOTPRINT_RENDER_RANGE = {
   minValue: 0,
   maxValue: 100,
@@ -1105,7 +1195,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     return {
       id: layerId,
       name: this.manifestSidebarLayerName(manifestRow),
-      parentId: this.isSpeciesRichnessLayerId(layerId) ? SPECIES_RICHNESS_GROUP_ROW_ID : undefined,
       selected: existingSelected,
       visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
       expanded: existingRow?.expanded ?? false,
@@ -1132,36 +1221,80 @@ export class MapLayersPanelComponent implements OnDestroy {
     existingRows: LayerControlRow[],
   ): LayerControlRow[] {
     const richnessRows = rows.filter((row) => this.isSpeciesRichnessLayerId(row.id));
-    if (richnessRows.length <= 1) {
+    const totalRichnessRow = richnessRows.find((row) => row.id === SPECIES_RICHNESS_TOTAL_ROW_ID);
+    if (!totalRichnessRow) {
       return rows;
     }
 
-    const richnessIds = new Set(richnessRows.map((row) => row.id));
+    const taxonRows = this.speciesRichnessTaxonRows(rows, existingRows);
+    if (taxonRows.length === 0) {
+      return rows;
+    }
+
+    const richnessIds = new Set([
+      ...richnessRows.map((row) => row.id),
+      ...taxonRows.map((row) => row.id),
+    ]);
     const firstRichnessIndex = rows.findIndex((row) => richnessIds.has(row.id));
-    const existingParent = existingRows.find((row) => row.id === SPECIES_RICHNESS_GROUP_ROW_ID);
-    const parentRow: LayerControlRow = {
-      id: SPECIES_RICHNESS_GROUP_ROW_ID,
-      name: this.localizedTextOrFallback('mapLayersPanel.speciesRichness', 'Species richness'),
-      countLabel: this.toLayerCountLabel(richnessRows.length),
-      selected: false,
-      visible: false,
+    const existingParent = existingRows.find((row) => row.id === SPECIES_RICHNESS_TOTAL_ROW_ID);
+    const parentRow = {
+      ...totalRichnessRow,
+      parentId: undefined,
       expanded: existingParent?.expanded ?? true,
-      opacity: DEFAULT_DATA_LAYER_OPACITY,
-      color: '#854d0e',
-      canReorder: false,
-      hasStyleControls: false,
-      hasColorControl: false,
-      mapUnavailable: true,
-      hideAddButton: true,
     };
     const groupedRows = [
       ...rows.slice(0, firstRichnessIndex).filter((row) => !richnessIds.has(row.id)),
       parentRow,
-      ...richnessRows.map((row) => ({ ...row, parentId: SPECIES_RICHNESS_GROUP_ROW_ID })),
+      ...taxonRows.map((row) => ({ ...row, parentId: SPECIES_RICHNESS_TOTAL_ROW_ID })),
       ...rows.slice(firstRichnessIndex + 1).filter((row) => !richnessIds.has(row.id)),
     ];
 
     return groupedRows;
+  }
+
+  private speciesRichnessTaxonRows(
+    rows: LayerControlRow[],
+    existingRows: LayerControlRow[],
+  ): LayerControlRow[] {
+    const rowsById = new Map(rows.map((row) => [row.id, row]));
+    return SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS.map((definition) => {
+      const manifestRow = rowsById.get(definition.rowId);
+      if (manifestRow) {
+        return manifestRow;
+      }
+      return this.createSpeciesRichnessTaxonRow(definition, existingRows);
+    });
+  }
+
+  private createSpeciesRichnessTaxonRow(
+    definition: SpeciesRichnessTaxonLayerDefinition,
+    existingRows: LayerControlRow[],
+  ): LayerControlRow {
+    const existingRow = existingRows.find((row) => row.id === definition.rowId);
+    const color = this.colorFromRendering(definition.rendering) ?? '#854d0e';
+    const selected = existingRow?.selected ?? false;
+    return {
+      id: definition.rowId,
+      name: this.localizedTextOrFallback(
+        `mapLayersPanel.taxaNames.${definition.taxonId}`,
+        definition.englishLabel,
+      ),
+      selected,
+      visible: selected ? true : (existingRow?.visible ?? false),
+      expanded: existingRow?.expanded ?? false,
+      opacity: existingRow?.opacity ?? this.manifestRowOpacity(),
+      color: existingRow?.color ?? color,
+      canReorder: true,
+      hasStyleControls: true,
+      hasColorControl: true,
+      mapUnavailable: false,
+      mapSync: {
+        type: 'manifest-raster',
+        layerId: definition.rowId,
+        displayUrl: definition.displayUrl,
+        rendering: definition.rendering,
+      },
+    };
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
@@ -1750,6 +1883,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     return !(parentRow?.expanded ?? true);
   }
 
+  protected rowHasNestedLayerRows(group: LayerGroup, row: LayerControlRow): boolean {
+    return group.rows.some((candidate) => candidate.parentId === row.id);
+  }
+
   private speciesGroupRowMatchesSearch(
     group: LayerGroup,
     row: LayerControlRow,
@@ -1765,7 +1902,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         (!!parentRow && this.nameMatchesSearch(parentRow.name, query))
       );
     }
-    if (row.id === SPECIES_RICHNESS_GROUP_ROW_ID) {
+    if (this.rowHasNestedLayerRows(group, row)) {
       return (
         this.nameMatchesSearch(row.name, query) ||
         group.rows.some(
