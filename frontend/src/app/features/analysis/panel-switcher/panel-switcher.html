@@ -190,6 +190,21 @@
                         >
                         {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
                       >
+                      <span
+                        id="right-sidebar-v3-overview-spatial-separator"
+                        class="v3-spatial-sep"
+                        aria-hidden="true"
+                        >|</span
+                      >
+                      <span id="right-sidebar-v3-overview-spatial-zones"
+                        ><b
+                          id="right-sidebar-v3-overview-spatial-zones-value"
+                          [attr.data-full-value]="getOverviewPriorityZoneCountFullValue()"
+                          [attr.tabindex]="getOverviewPriorityZoneCountFullValue() ? 0 : null"
+                          >{{ getOverviewPriorityZoneCountValue() }}</b
+                        >
+                        {{ 'analysis.overview.spatial.zones' | translate }}</span
+                      >
                     </div>
                   </section>
                 </section>

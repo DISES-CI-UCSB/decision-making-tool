@@ -916,6 +916,25 @@ export class PanelSwitcherComponent {
     return fullValue !== compactValue ? fullValue : null;
   }
 
+  protected getOverviewPriorityZoneCountValue(): string {
+    const zoneCount = this.solutionLayer.liveSolutionMetrics$()?.priorityZoneCount;
+    if (zoneCount === null || zoneCount === undefined) {
+      return '--';
+    }
+    return this.formatNumber(zoneCount, this.metricNumberFormatMode(), 0, 0);
+  }
+
+  protected getOverviewPriorityZoneCountFullValue(): string | null {
+    const zoneCount = this.solutionLayer.liveSolutionMetrics$()?.priorityZoneCount;
+    if (zoneCount === null || zoneCount === undefined) {
+      return null;
+    }
+
+    const compactValue = this.getOverviewPriorityZoneCountValue();
+    const fullValue = this.formatNumber(zoneCount, 'full', 0, 0);
+    return compactValue === fullValue ? null : fullValue;
+  }
+
   protected toggleOverviewSection(sectionId: OverviewMetricSection): void {
     this.overviewSectionExpanded.update((state) => ({
       ...state,

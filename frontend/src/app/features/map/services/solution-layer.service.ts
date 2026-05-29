@@ -61,6 +61,7 @@ export interface LiveSolutionMetrics {
   selectedAreaKm2: number | null;
   validAreaKm2: number | null;
   nationalContributionPct: number | null;
+  priorityZoneCount: number | null;
   status: 'ready' | 'unavailable';
   notes: string | null;
 }
@@ -1148,6 +1149,7 @@ export class SolutionLayerService {
         selectedAreaKm2: null,
         validAreaKm2: null,
         nationalContributionPct: null,
+        priorityZoneCount: null,
         status: 'unavailable',
         notes: 'Solution raster does not contain the expected number of cells.',
       };
@@ -1159,6 +1161,7 @@ export class SolutionLayerService {
         selectedAreaKm2: null,
         validAreaKm2: null,
         nationalContributionPct: null,
+        priorityZoneCount: null,
         status: 'unavailable',
         notes: 'Unable to derive pixel area from solution raster metadata.',
       };
@@ -1197,9 +1200,69 @@ export class SolutionLayerService {
       selectedAreaKm2,
       validAreaKm2,
       nationalContributionPct,
+      priorityZoneCount: this.countSelectedPriorityZones(loaded, expectedLength),
       status: 'ready',
       notes: null,
     };
+  }
+
+  private countSelectedPriorityZones(loaded: LoadedSolution, expectedLength: number): number {
+    const width = loaded.rasterMeta.width;
+    const height = loaded.rasterMeta.height;
+    const noDataValue = loaded.rasterMeta.noDataValue;
+    const visited = new Uint8Array(expectedLength);
+    const queue = new Int32Array(expectedLength);
+    let zoneCount = 0;
+
+    for (let index = 0; index < expectedLength; index++) {
+      if (visited[index] || !this.isSelectedSolutionCell(loaded.rasterData[index], noDataValue)) {
+        continue;
+      }
+
+      zoneCount++;
+      visited[index] = 1;
+      let queueStart = 0;
+      let queueEnd = 1;
+      queue[0] = index;
+
+      while (queueStart < queueEnd) {
+        const current = queue[queueStart++] ?? 0;
+        const row = Math.floor(current / width);
+        const col = current % width;
+
+        for (let rowDelta = -1; rowDelta <= 1; rowDelta++) {
+          for (let colDelta = -1; colDelta <= 1; colDelta++) {
+            if (rowDelta === 0 && colDelta === 0) {
+              continue;
+            }
+
+            const neighborRow = row + rowDelta;
+            const neighborCol = col + colDelta;
+            if (
+              neighborRow < 0 ||
+              neighborRow >= height ||
+              neighborCol < 0 ||
+              neighborCol >= width
+            ) {
+              continue;
+            }
+
+            const neighborIndex = neighborRow * width + neighborCol;
+            if (
+              visited[neighborIndex] ||
+              !this.isSelectedSolutionCell(loaded.rasterData[neighborIndex], noDataValue)
+            ) {
+              continue;
+            }
+
+            visited[neighborIndex] = 1;
+            queue[queueEnd++] = neighborIndex;
+          }
+        }
+      }
+    }
+
+    return zoneCount;
   }
 
   private isValidSolutionCell(value: number, noDataValue: number | null): boolean {

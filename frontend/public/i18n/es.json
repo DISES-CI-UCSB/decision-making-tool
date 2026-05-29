@@ -153,7 +153,7 @@
       "goalsMet": "Metas alcanzadas",
       "goalsMetSub": "Porcentaje de metas de optimizacion cumplidas",
       "spatial": {
-        "priorityArea": "area prioritaria",
+        "priorityArea": "area",
         "zones": "zonas",
         "avg": "prom"
       },

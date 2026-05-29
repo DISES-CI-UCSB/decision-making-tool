@@ -148,7 +148,54 @@ describe('SolutionLayerService', () => {
     expect(service.liveSolutionMetrics$()).toEqual(
       expect.objectContaining({
         nationalContributionPct: 37.5,
+        priorityZoneCount: 1,
         status: 'ready',
+      }),
+    );
+  });
+
+  it('counts diagonal selected cells as one contiguous priority zone', async () => {
+    const loaded = {
+      ...createLoadedSolution('baseline'),
+      rasterMeta: {
+        ...createLoadedSolution('baseline').rasterMeta,
+        width: 3,
+        height: 3,
+        selectedCount: 4,
+        totalValidCells: 9,
+      },
+      rasterData: new Float64Array([1, 0, 0, 0, 2, 0, 0, 0, 1]),
+    };
+    loaderMock.loadSolution.mockResolvedValue(loaded);
+
+    await service.showSolution('baseline');
+
+    expect(service.liveSolutionMetrics$()).toEqual(
+      expect.objectContaining({
+        priorityZoneCount: 1,
+      }),
+    );
+  });
+
+  it('counts separated selected patches as separate priority zones', async () => {
+    const loaded = {
+      ...createLoadedSolution('baseline'),
+      rasterMeta: {
+        ...createLoadedSolution('baseline').rasterMeta,
+        width: 3,
+        height: 3,
+        selectedCount: 4,
+        totalValidCells: 9,
+      },
+      rasterData: new Float64Array([1, 1, 0, 0, 0, 0, 0, 2, 2]),
+    };
+    loaderMock.loadSolution.mockResolvedValue(loaded);
+
+    await service.showSolution('baseline');
+
+    expect(service.liveSolutionMetrics$()).toEqual(
+      expect.objectContaining({
+        priorityZoneCount: 2,
       }),
     );
   });

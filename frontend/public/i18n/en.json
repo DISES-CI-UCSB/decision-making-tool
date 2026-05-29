@@ -154,7 +154,7 @@
       "goalsMetSub": "Share of optimization targets met",
       "spatial": {
         "priorityArea": "priority area",
-        "zones": "zones",
+        "zones": "priority zones",
         "avg": "avg"
       },
       "sections": {
