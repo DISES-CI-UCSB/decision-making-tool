@@ -347,7 +347,7 @@
       "generateReport": "Generate Regional Report",
       "hero": {
         "priorityAreaLabel": "Priority Area in Region",
-        "ofMunicipality": "of this municipality",
+        "ofMunicipality": "of this area of interest",
         "nationalContributionLabel": "30×30 Contribution",
         "existingAdds": "Existing {{existing}} + adds {{added}}"
       },

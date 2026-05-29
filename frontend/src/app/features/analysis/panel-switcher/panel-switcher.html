@@ -360,12 +360,14 @@
                               >
                                 {{ entry.value }}
                               </p>
-                              <p
-                                [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
-                                class="v3-m-unit"
-                              >
-                                {{ entry.unit }}
-                              </p>
+                              @if (entry.unit) {
+                                <p
+                                  [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
+                                  class="v3-m-unit"
+                                >
+                                  {{ entry.unit }}
+                                </p>
+                              }
                             </div>
                           </article>
                         }
@@ -510,12 +512,14 @@
                               >
                                 {{ entry.value }}
                               </p>
-                              <p
-                                [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
-                                class="v3-m-unit"
-                              >
-                                {{ entry.unit }}
-                              </p>
+                              @if (entry.unit) {
+                                <p
+                                  [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
+                                  class="v3-m-unit"
+                                >
+                                  {{ entry.unit }}
+                                </p>
+                              }
                             </div>
                           </article>
                         }
@@ -710,19 +714,15 @@
                           <span
                             id="aoi-hero-fill-priority"
                             class="aoi-hero-fill-green"
-                            [style.width.%]="getAoiMetricPercent('priority_area_pct_of_region', 45)"
+                            [style.width.%]="getAoiPriorityAreaPercentBarWidth()"
                             [style.background-color]="aoiHeroPriorityBarColor()"
                           ></span>
                         </div>
                         <div class="aoi-hero-sub">
                           <strong
-                            [attr.data-full-value]="
-                              getAoiMetricFullValue('priority_area_pct_of_region')
-                            "
-                            [attr.tabindex]="
-                              getAoiMetricFullValue('priority_area_pct_of_region') ? 0 : null
-                            "
-                            >{{ getAoiMetricValue('priority_area_pct_of_region', '45%') }}</strong
+                            [attr.data-full-value]="getAoiPriorityAreaPercentFullValue()"
+                            [attr.tabindex]="getAoiPriorityAreaPercentFullValue() ? 0 : null"
+                            >{{ getAoiPriorityAreaPercentValue() }}</strong
                           >
                           {{ 'analysis.aoi.hero.ofMunicipality' | translate }}
                         </div>
@@ -1192,9 +1192,11 @@
                           >
                             {{ getAoiMetricValue('agricultural_area', '$125M') }}
                           </div>
-                          <div class="aoi-m-unit">
-                            {{ getAoiMetricStatus('agricultural_area') }}
-                          </div>
+                          @if (getAoiMetricStatus('agricultural_area'); as metricStatus) {
+                            <div id="aoi-row-ag-cost-unit" class="aoi-m-unit">
+                              {{ metricStatus }}
+                            </div>
+                          }
                         </div>
                       </div>
                       <div id="aoi-row-conflict" class="aoi-metric-row">
@@ -1298,9 +1300,14 @@
                           >
                             {{ getAoiMetricValue('indigenous_reservations_area', '41 km²') }}
                           </div>
-                          <div class="aoi-m-unit">
-                            {{ getAoiMetricStatus('indigenous_reservations_area') }}
-                          </div>
+                          @if (
+                            getAoiMetricStatus('indigenous_reservations_area');
+                            as metricStatus
+                          ) {
+                            <div id="aoi-row-indigenous-unit" class="aoi-m-unit">
+                              {{ metricStatus }}
+                            </div>
+                          }
                         </div>
                       </div>
                       <div id="aoi-row-community" class="aoi-metric-row">
@@ -1327,9 +1334,11 @@
                           >
                             {{ getAoiMetricValue('community_councils_area', '27 km²') }}
                           </div>
-                          <div class="aoi-m-unit">
-                            {{ getAoiMetricStatus('community_councils_area') }}
-                          </div>
+                          @if (getAoiMetricStatus('community_councils_area'); as metricStatus) {
+                            <div id="aoi-row-community-unit" class="aoi-m-unit">
+                              {{ metricStatus }}
+                            </div>
+                          }
                         </div>
                       </div>
                       <div id="aoi-row-indigenous-pct" class="aoi-metric-row">
@@ -1356,9 +1365,11 @@
                           >
                             {{ getAoiMetricValue('indigenous_territory_pct', '12%') }}
                           </div>
-                          <div class="aoi-m-unit">
-                            {{ getAoiMetricStatus('indigenous_territory_pct') }}
-                          </div>
+                          @if (getAoiMetricStatus('indigenous_territory_pct'); as metricStatus) {
+                            <div id="aoi-row-indigenous-pct-unit" class="aoi-m-unit">
+                              {{ metricStatus }}
+                            </div>
+                          }
                         </div>
                       </div>
                     </div>
