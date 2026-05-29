@@ -57,6 +57,14 @@ export interface LiveComparisonMetrics {
   notes: string | null;
 }
 
+export interface LiveSolutionMetrics {
+  selectedAreaKm2: number | null;
+  validAreaKm2: number | null;
+  nationalContributionPct: number | null;
+  status: 'ready' | 'unavailable';
+  notes: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
   private readonly loader = inject(GeoTiffLoaderService);
@@ -103,6 +111,7 @@ export class SolutionLayerService {
   readonly overlapColor$ = signal(DEFAULT_COMPARISON_OVERLAP_HEX);
 
   readonly loadedSolution$ = signal<LoadedSolution | null>(null);
+  readonly liveSolutionMetrics$ = signal<LiveSolutionMetrics | null>(null);
   readonly liveComparisonMetrics$ = signal<LiveComparisonMetrics | null>(null);
   readonly isLoading$ = signal(false);
   readonly loadError$ = signal<string | null>(null);
@@ -146,6 +155,7 @@ export class SolutionLayerService {
       this.comparisonMode = false;
       this.baselineComparisonLoaded = null;
       this.candidateComparisonLoaded = null;
+      this.liveSolutionMetrics$.set(this.calculateLiveSolutionMetrics(loaded));
       this.liveComparisonMetrics$.set(null);
 
       this.map.add(this.currentLayer);
@@ -236,6 +246,7 @@ export class SolutionLayerService {
       this.liveComparisonMetrics$.set(
         this.calculateLiveComparisonMetrics(baselineLoaded, candidateLoaded),
       );
+      this.liveSolutionMetrics$.set(this.calculateLiveSolutionMetrics(baselineLoaded));
       this.comparisonMode = true;
       this.map.addMany([this.baselineComparisonLayer, this.candidateComparisonLayer]);
       this.loadedSolution$.set(baselineLoaded);
@@ -251,6 +262,7 @@ export class SolutionLayerService {
   removeSolutionLayer(): void {
     this.removeAllLayers();
     this.loadedSolution$.set(null);
+    this.liveSolutionMetrics$.set(null);
     this.comparisonMode = false;
     // Clear scenario tracking so a subsequent load of the same id is treated as a fresh start
     // (and therefore snaps colors back to defaults per Option B).
@@ -549,6 +561,7 @@ export class SolutionLayerService {
       this.currentLayer.destroy();
       this.currentLayer = null;
     }
+    this.liveSolutionMetrics$.set(null);
   }
 
   private removeComparisonLayers(): void {
@@ -1123,6 +1136,67 @@ export class SolutionLayerService {
         baselineValidAreaKm2 > 0 ? (baselineSelectedAreaKm2 / baselineValidAreaKm2) * 100 : null,
       candidateNationalContributionPct:
         candidateValidAreaKm2 > 0 ? (candidateSelectedAreaKm2 / candidateValidAreaKm2) * 100 : null,
+      status: 'ready',
+      notes: null,
+    };
+  }
+
+  private calculateLiveSolutionMetrics(loaded: LoadedSolution): LiveSolutionMetrics {
+    const expectedLength = loaded.rasterMeta.width * loaded.rasterMeta.height;
+    if (loaded.rasterData.length < expectedLength) {
+      return {
+        selectedAreaKm2: null,
+        validAreaKm2: null,
+        nationalContributionPct: null,
+        status: 'unavailable',
+        notes: 'Solution raster does not contain the expected number of cells.',
+      };
+    }
+
+    const pixelAreaByRow = this.getPixelAreaKm2PerRow(loaded.rasterMeta);
+    if (!pixelAreaByRow) {
+      return {
+        selectedAreaKm2: null,
+        validAreaKm2: null,
+        nationalContributionPct: null,
+        status: 'unavailable',
+        notes: 'Unable to derive pixel area from solution raster metadata.',
+      };
+    }
+
+    let selectedAreaKm2 = 0;
+    let validAreaKm2 = 0;
+    let selectedCellCount = 0;
+    let validCellCount = 0;
+    const width = loaded.rasterMeta.width;
+
+    for (let index = 0; index < expectedLength; index++) {
+      const row = Math.floor(index / width);
+      const cellAreaKm2 = pixelAreaByRow[row] ?? 0;
+      const value = loaded.rasterData[index];
+
+      if (this.isValidSolutionCell(value, loaded.rasterMeta.noDataValue)) {
+        validAreaKm2 += cellAreaKm2;
+        validCellCount++;
+      }
+      if (this.isSelectedSolutionCell(value, loaded.rasterMeta.noDataValue)) {
+        selectedAreaKm2 += cellAreaKm2;
+        selectedCellCount++;
+      }
+    }
+
+    const countryValidCellCount = loaded.rasterMeta.countryValidCells;
+    const nationalContributionPct =
+      countryValidCellCount > validCellCount && countryValidCellCount > 0
+        ? (selectedCellCount / countryValidCellCount) * 100
+        : validAreaKm2 > 0
+          ? (selectedAreaKm2 / validAreaKm2) * 100
+          : null;
+
+    return {
+      selectedAreaKm2,
+      validAreaKm2,
+      nationalContributionPct,
       status: 'ready',
       notes: null,
     };

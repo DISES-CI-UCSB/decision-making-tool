@@ -273,16 +273,6 @@ export class PanelSwitcherComponent {
       dummyUnitKey: 'analysis.overview.metricUnits.eightyEightPercentSecured',
     },
     {
-      id: 'metric-04-ecosystem-coverage',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.ecosystemCoverage',
-      descriptionKey: 'analysis.overview.metrics.ecosystemCoverageDesc',
-      iconClass: 'fas fa-seedling',
-      realMetricId: 'ecosystem_coverage',
-      dummyValue: '125k km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.eightyFivePercentOfTarget',
-    },
-    {
       id: 'metric-17-national-contribution',
       section: 'gains',
       labelKey: 'analysis.overview.metrics.nationalContribution',
@@ -463,16 +453,6 @@ export class PanelSwitcherComponent {
       dummyCandidate: '1.9%',
       dummyDelta: '+0.6%',
       deltaTone: 'positive',
-    },
-    {
-      id: 'comp-biodiversity',
-      section: 'biodiversity',
-      labelKey: 'analysis.comparison.metrics.ecosystemCoverage',
-      descriptionKey: 'analysis.comparison.metrics.ecosystemCoverageDesc',
-      metricId: 'ecosystem_coverage',
-      dummyBaseline: '83%',
-      dummyCandidate: '92%',
-      dummyDelta: '+9%',
     },
     {
       id: 'comp-threatened-species',
@@ -904,6 +884,13 @@ export class PanelSwitcherComponent {
   }
 
   protected getOverviewMetricValue(metricId: string, fallbackWhenMissing = '--'): string {
+    if (metricId === 'national_contribution') {
+      const liveValue = this.formatLiveNationalContribution();
+      if (liveValue) {
+        return liveValue;
+      }
+    }
+
     const metric = this.findOverviewMetric(metricId);
     if (metric && this.isMetricReady(metric)) {
       return this.formatMetricForPanel(metric);
@@ -913,6 +900,12 @@ export class PanelSwitcherComponent {
   }
 
   protected getOverviewMetricFullValue(metricId: string): string | null {
+    if (metricId === 'national_contribution') {
+      const compactValue = this.formatLiveNationalContribution('compact');
+      const fullValue = this.formatLiveNationalContribution('full');
+      return compactValue && fullValue && fullValue !== compactValue ? fullValue : null;
+    }
+
     const metric = this.findOverviewMetric(metricId);
     if (!metric || !this.isMetricReady(metric)) {
       return null;
@@ -1435,6 +1428,25 @@ export class PanelSwitcherComponent {
 
         const realMetric = metric.realMetricId ? metricsById.get(metric.realMetricId) : undefined;
         const realValueAvailable = realMetric?.status === 'ready' && realMetric.value !== null;
+        const liveNationalContribution =
+          metric.realMetricId === 'national_contribution'
+            ? this.formatLiveNationalContribution()
+            : null;
+
+        if (liveNationalContribution) {
+          const fullValue = this.formatLiveNationalContribution('full');
+          return {
+            id: metric.id,
+            labelKey: metric.labelKey,
+            descriptionKey: metric.descriptionKey,
+            iconClass: metric.iconClass,
+            value: liveNationalContribution,
+            fullValue,
+            unit: '',
+            conditional: Boolean(metric.conditional),
+            unavailable: false,
+          };
+        }
 
         if (realMetric && realValueAvailable) {
           return {
@@ -1484,6 +1496,18 @@ export class PanelSwitcherComponent {
         .flatMap((metricSection) => metricSection.metrics)
         .find((metric) => metric.metricId === metricId) ?? null
     );
+  }
+
+  private formatLiveNationalContribution(
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string | null {
+    const liveMetrics = this.solutionLayer.liveSolutionMetrics$();
+    const percent = liveMetrics?.nationalContributionPct;
+    if (liveMetrics?.status !== 'ready' || percent === null || percent === undefined) {
+      return null;
+    }
+
+    return `${this.formatNumber(percent, mode, 0, mode === 'full' ? 2 : 1)}%`;
   }
 
   private buildComparisonSections(): ComparisonMetricSection[] {

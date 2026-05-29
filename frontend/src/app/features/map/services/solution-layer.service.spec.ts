@@ -145,6 +145,12 @@ describe('SolutionLayerService', () => {
       }),
     );
     expect(service.isComparisonModeActive()).toBe(false);
+    expect(service.liveSolutionMetrics$()).toEqual(
+      expect.objectContaining({
+        nationalContributionPct: 37.5,
+        status: 'ready',
+      }),
+    );
   });
 
   it('uses an imagery tile layer when the scenario has a COG display URL', async () => {
@@ -258,6 +264,8 @@ describe('SolutionLayerService', () => {
       selectedCount: 2,
       totalValidCells: 4,
       selectedPct: 50,
+      countryValidCells: 4,
+      newCoveragePctOfCountry: 50,
     };
     const baselineLoaded = {
       ...createLoadedSolution('baseline'),
