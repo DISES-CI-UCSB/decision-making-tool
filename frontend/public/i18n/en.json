@@ -385,7 +385,7 @@
         "totalCarbonBiomass": "Total Carbon Biomass",
         "nationalCarbon": "% of National Carbon",
         "nationalCarbonDesc": "Of Colombian stocks",
-        "aboveGroundCarbon": "Above-ground Carbon",
+        "aboveGroundCarbon": "Above + Belowground Biomass Carbon",
         "soilOrganicCarbon": "Soil Organic Carbon",
         "waterRegulation": "Water Regulation Capacity",
         "waterRegulationDesc": "Hydrological service provision for downstream communities",

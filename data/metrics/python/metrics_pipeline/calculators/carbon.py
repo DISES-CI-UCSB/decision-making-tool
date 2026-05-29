@@ -56,12 +56,14 @@ def soil_organic_carbon(raster: SolutionRaster, layer_values: np.ndarray) -> flo
 def national_carbon_percent(raster: SolutionRaster, layer_values: np.ndarray) -> float | None:
     """#43 — Selected biomass carbon as a share of national carbon, in %.
 
-    Denominator is the weighted sum over ALL valid raster cells (national total).
+    Denominator is the weighted sum over all finite biomass-layer cells
+    (national total). Some solution rasters only mark selected cells as valid,
+    so the denominator cannot come from the solution raster valid mask.
     Returns None when the national total is zero (degenerate raster).
     """
     return weighted_percent_of_valid(
         raster.selected_mask,
-        raster.valid_mask,
+        np.isfinite(layer_values),
         layer_values,
         raster.pixel_area_km2_per_row,
     )
