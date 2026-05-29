@@ -1012,11 +1012,11 @@ export class PanelSwitcherComponent {
 
   protected getAoiEcosystemLegendValue(segmentId: string, fallbackWhenMissing = '--'): string {
     const metricIdBySegmentId: Record<string, string> = {
-      'cloud-forest': 'ecosystem_coverage',
+      ecosystems: 'ecosystem_coverage',
       paramo: 'ecosystem_coverage_paramo',
       'dry-forest': 'ecosystem_coverage_dry_forest',
       wetlands: 'ecosystem_coverage_wetlands',
-      other: 'mangrove_coverage',
+      mangroves: 'mangrove_coverage',
     };
     const metricId = metricIdBySegmentId[segmentId];
     if (!metricId) {
@@ -1226,11 +1226,11 @@ export class PanelSwitcherComponent {
 
   private getAoiEcosystemLabel(segmentId: string, fallback: string): string {
     const keyById: Record<string, string> = {
-      'cloud-forest': 'analysis.aoi.ecosystemLegend.cloudForest',
+      ecosystems: 'analysis.aoi.ecosystemLegend.ecosystems',
       paramo: 'analysis.aoi.ecosystemLegend.paramo',
       'dry-forest': 'analysis.aoi.ecosystemLegend.dryForest',
       wetlands: 'analysis.aoi.ecosystemLegend.wetlands',
-      other: 'analysis.aoi.ecosystemLegend.other',
+      mangroves: 'analysis.aoi.ecosystemLegend.mangroves',
     };
     const key = keyById[segmentId];
     return key ? this.localizedText(key, fallback) : fallback;

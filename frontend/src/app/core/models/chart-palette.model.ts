@@ -27,11 +27,11 @@ export const CHART_PALETTE_IDS: readonly ChartPaletteId[] = [
 ] as const;
 
 export const AOI_ECOSYSTEM_SEGMENTS: readonly AoiEcosystemSegment[] = [
-  { id: 'cloud-forest', label: 'Cloud Forest', percent: 39 },
+  { id: 'ecosystems', label: 'Ecosystems', percent: 39 },
   { id: 'paramo', label: 'Páramo', percent: 23 },
   { id: 'dry-forest', label: 'Dry Forest', percent: 17 },
   { id: 'wetlands', label: 'Wetlands', percent: 12 },
-  { id: 'other', label: 'Other', percent: 9 },
+  { id: 'mangroves', label: 'Mangroves', percent: 9 },
 ] as const;
 
 /**
