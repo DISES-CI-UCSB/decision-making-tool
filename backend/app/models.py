@@ -23,7 +23,7 @@ class PolygonMetricsRequest(BaseModel):
     )
     metrics: list[str] | None = Field(
         default=None,
-        description="Optional metric identifiers to request once the metric engine exists.",
+        description="Optional metric identifiers. Use area, priority_area_in_region, or national_contribution for the tiny artifact path.",
     )
     artifact_version: str | None = Field(
         default=None,
@@ -32,7 +32,9 @@ class PolygonMetricsRequest(BaseModel):
 
 
 class PolygonMetricsResponse(BaseModel):
-    status: Literal["artifact_required", "not_implemented"]
+    status: Literal["ok", "artifact_required", "invalid_request", "not_implemented"]
     message: str
     artifact_state: ArtifactState
     requested_metrics: list[str] | None = None
+    metrics: dict[str, float | None] | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
 import os
 
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.conftest import clear_artifact_env
+from tests.conftest import clear_artifact_env, use_tiny_artifact
 
 
 def test_health_returns_ok() -> None:
@@ -31,6 +30,7 @@ def test_ready_allows_no_artifact_development_mode(tmp_path) -> None:
     assert body["status"] == "ready"
     assert body["artifact_state"]["required"] is False
     assert body["artifact_state"]["available"] is False
+    assert body["artifact_state"]["warmup_status"] == "not_required"
 
 
 def test_ready_fails_when_artifact_required_and_missing(tmp_path) -> None:
@@ -46,31 +46,23 @@ def test_ready_fails_when_artifact_required_and_missing(tmp_path) -> None:
     assert detail["status"] == "not_ready"
     assert detail["artifact_state"]["required"] is True
     assert detail["artifact_state"]["available"] is False
+    assert detail["artifact_state"]["warmup_status"] == "failed"
 
 
-def test_ready_loads_lightweight_manifest(tmp_path) -> None:
-    clear_artifact_env()
-    manifest_path = tmp_path / "manifest.json"
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "artifact_version": "test",
-                "schema_version": "metrics-artifact-manifest/v1",
-                "created_at": "2026-06-04T00:00:00Z",
-                "checksum": {"algorithm": "sha256", "value": "abc123"},
-                "source_manifest": {"planned_prefixes": ["inputs/features/"]},
-                "files": [],
-            }
-        ),
-        encoding="utf-8",
-    )
-    os.environ["DMT_ARTIFACT_REQUIRED"] = "true"
-    os.environ["DMT_ARTIFACT_MANIFEST"] = str(manifest_path)
+def test_ready_passes_when_required_tiny_artifact_loads() -> None:
+    use_tiny_artifact(required=True)
     client = TestClient(app)
 
     response = client.get("/ready")
 
     assert response.status_code == 200
     body = response.json()
-    assert body["artifact_state"]["available"] is True
-    assert body["artifact_state"]["artifact_version"] == "test"
+    artifact_state = body["artifact_state"]
+    assert body["status"] == "ready"
+    assert artifact_state["required"] is True
+    assert artifact_state["available"] is True
+    assert artifact_state["warmup_status"] == "ready"
+    assert artifact_state["artifact_version"] == "tiny-area-fixture-v1"
+    assert artifact_state["warmup_ms"] is not None
+    assert artifact_state["metadata"]["cell_count"] == 4
+    assert artifact_state["metadata"]["valid_cell_count"] == 3

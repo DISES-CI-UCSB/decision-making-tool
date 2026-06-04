@@ -25,10 +25,17 @@
     },
     "checksum": {
       "type": "object",
-      "required": ["algorithm", "value"],
+      "required": [
+        "algorithm",
+        "value"
+      ],
       "properties": {
-        "algorithm": {"type": "string"},
-        "value": {"type": "string"}
+        "algorithm": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
@@ -41,22 +48,57 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["path", "checksum"],
+        "required": [
+          "path",
+          "checksum"
+        ],
         "properties": {
-          "path": {"type": "string"},
-          "size_bytes": {"type": "integer", "minimum": 0},
+          "path": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
           "checksum": {
             "type": "object",
-            "required": ["algorithm", "value"],
+            "required": [
+              "algorithm",
+              "value"
+            ],
             "properties": {
-              "algorithm": {"type": "string"},
-              "value": {"type": "string"}
+              "algorithm": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
             },
             "additionalProperties": false
           }
         },
         "additionalProperties": false
       }
+    },
+    "area_grid_path": {
+      "type": "string",
+      "description": "Relative or absolute path to the fixture-scale/custom polygon area grid artifact."
+    },
+    "area_grid_checksum": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true

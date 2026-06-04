@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ ./
 COPY data/metrics/python/metrics_pipeline /metrics_pipeline
+COPY data/metrics/fixtures /data/metrics/fixtures
 
 EXPOSE 8000
 

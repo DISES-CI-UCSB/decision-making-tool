@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+import time
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, status
 
-from .artifacts import artifact_ready, get_artifact_state
+from .artifacts import artifact_ready, get_artifact_state, get_runtime_artifact, warmup_artifacts
 from .config import get_settings
 from .models import (
     HealthResponse,
@@ -10,11 +14,22 @@ from .models import (
     PolygonMetricsResponse,
     ReadinessResponse,
 )
+from .polygon_metrics import PolygonMetricError, calculate_custom_polygon_metrics
+
+LOGGER = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    warmup_artifacts(get_settings())
+    yield
+
 
 app = FastAPI(
     title="DISES Decision Making Tool Metrics API",
-    version="0.1.0",
-    description="Foundation skeleton for backend metrics endpoints.",
+    version="0.2.0",
+    description="Backend metrics endpoints for custom polygon smoke paths.",
+    lifespan=lifespan,
 )
 
 
@@ -41,33 +56,72 @@ def ready() -> ReadinessResponse:
     "/metrics/custom-polygon",
     response_model=PolygonMetricsResponse,
     responses={
-        501: {"model": PolygonMetricsResponse},
+        400: {"model": PolygonMetricsResponse},
+        422: {"model": PolygonMetricsResponse},
         503: {"model": PolygonMetricsResponse},
     },
 )
 def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResponse:
+    started = time.perf_counter()
     settings = get_settings()
     state = get_artifact_state(settings)
+    artifact = get_runtime_artifact(settings)
 
-    if not state.available:
+    if artifact is None:
         response = PolygonMetricsResponse(
             status="artifact_required",
             message="Metric artifacts are required before custom polygon metrics can run.",
             artifact_state=state,
             requested_metrics=request.metrics,
+            metadata={"request_ms": round((time.perf_counter() - started) * 1000, 3)},
         )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=response.model_dump(),
         )
 
-    response = PolygonMetricsResponse(
-        status="not_implemented",
-        message="Custom polygon metric calculation is not implemented in Chat #1.",
+    if request.artifact_version and request.artifact_version != state.artifact_version:
+        response = PolygonMetricsResponse(
+            status="invalid_request",
+            message=f"Requested artifact_version {request.artifact_version} is not loaded.",
+            artifact_state=state,
+            requested_metrics=request.metrics,
+            metadata={"request_ms": round((time.perf_counter() - started) * 1000, 3)},
+        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=response.model_dump())
+
+    try:
+        metrics, metadata = calculate_custom_polygon_metrics(
+            artifact,
+            request.geometry,
+            request.metrics,
+        )
+    except PolygonMetricError as exc:
+        response = PolygonMetricsResponse(
+            status="invalid_request",
+            message=str(exc),
+            artifact_state=state,
+            requested_metrics=request.metrics,
+            metadata={"request_ms": round((time.perf_counter() - started) * 1000, 3)},
+        )
+        raise HTTPException(status_code=422, detail=response.model_dump())
+
+    total_ms = round((time.perf_counter() - started) * 1000, 3)
+    metadata["total_request_ms"] = total_ms
+    metadata["artifact"] = state.metadata
+    LOGGER.info(
+        "Custom polygon metrics completed",
+        extra={
+            "request_ms": total_ms,
+            "artifact_version": state.artifact_version,
+            "matched_cell_count": metadata.get("matched_cell_count"),
+        },
+    )
+    return PolygonMetricsResponse(
+        status="ok",
+        message="Custom polygon metrics calculated from the loaded runtime artifact.",
         artifact_state=state,
         requested_metrics=request.metrics,
-    )
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail=response.model_dump(),
+        metrics=metrics,
+        metadata=metadata,
     )
