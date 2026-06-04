@@ -1109,21 +1109,26 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
     if (visualizationMode === 'swipe') {
       try {
-        await this.setupComparisonSwipeWidget(previousPosition);
+        await this.setupComparisonSwipeWidget(requestId, previousPosition);
       } catch (error) {
         console.error(`[MapView][${this.debugMarker}] failed to attach Swipe widget:`, error);
       }
     }
   }
 
-  private async setupComparisonSwipeWidget(position = 50): Promise<void> {
-    const parentEl = this.comparisonSwipeContainerRef?.nativeElement;
-    if (!this.view || !parentEl) {
+  private async setupComparisonSwipeWidget(requestId: number, position = 50): Promise<void> {
+    if (!this.isCurrentComparisonSync(requestId)) {
       return;
     }
 
+    const Swipe = await this.getSwipeConstructor();
+    if (!this.isCurrentComparisonSync(requestId)) {
+      return;
+    }
+
+    const parentEl = this.comparisonSwipeContainerRef?.nativeElement;
     const comparisonLayers = this.solutionLayer.getComparisonLayers();
-    if (!comparisonLayers) {
+    if (!this.view || !parentEl || !comparisonLayers) {
       return;
     }
 
@@ -1133,7 +1138,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     parentEl.appendChild(hostEl);
     this.comparisonSwipeHostEl = hostEl;
 
-    const Swipe = await this.getSwipeConstructor();
     this.comparisonSwipeWidget = new Swipe({
       id: 'map-view-comparison-swipe-widget',
       container: hostEl,
@@ -1144,6 +1148,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       position,
     });
     console.info(`[MapView][${this.debugMarker}] Swipe widget created (position=${position})`);
+  }
+
+  private isCurrentComparisonSync(requestId: number): boolean {
+    return requestId === this.comparisonSyncRequestId;
   }
 
   private teardownComparisonSwipeWidget(): void {
