@@ -62,6 +62,8 @@ For Vercel-style validation and asset sync, run:
 npm run build:vercel
 ```
 
+`METRICS_API_BASE_URL` can be set for production-style builds to point custom polygon metric requests at the backend API. If it is omitted, the generated production environment uses the current public VM backend at `http://107.170.64.162:8000`.
+
 ## Running unit tests
 
 To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
