@@ -53,6 +53,13 @@ docker compose -f backend/docker-compose.yml down
 - `GET /ready`: Artifact-aware readiness check. In no-artifact development mode, missing artifacts return `200` with `available=false`. When `DMT_ARTIFACT_REQUIRED=true`, missing or invalid artifacts return `503`.
 - `POST /metrics/custom-polygon`: Typed custom polygon metrics contract stub. It returns `503` if artifacts are unavailable and `501` once artifacts are available because real metric calculation is deferred to later chats.
 
+
+## Shared Metric Adapters
+
+Backend metric adapters live in `app/metric_adapters.py` and import calculator functions plus catalog entries from the existing precompute pipeline under `data/metrics/python/metrics_pipeline`. The backend should wrap those shared functions instead of duplicating metric formulas or metric definitions.
+
+The first shared path covers the pure area metrics: `priority_area_in_region` (#18) and `national_contribution` (#17). Current tests use tiny JSON fixtures only; future custom polygon work should extend these parity tests before adding real polygon/raster artifact execution. The Docker image copies the tracked pipeline source into the image and points `DMT_METRICS_PIPELINE_PATH` at that copy so runtime imports use the same source modules.
+
 ## Artifact Sync Skeleton
 
 The skeleton can list planned Blob prefixes and optionally write lightweight manifest metadata only. It does not download heavy data.
