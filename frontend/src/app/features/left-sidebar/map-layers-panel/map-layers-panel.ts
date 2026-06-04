@@ -2160,30 +2160,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     return false;
   }
 
-  protected isSelectedLayerExpanded(rowId: string): boolean {
-    const overlay = this.overlays().find((row) => row.id === rowId);
-    if (overlay) {
-      return overlay.expanded;
-    }
-
-    const taxon = this.findTaxonById(rowId);
-    if (taxon) {
-      return taxon.expanded;
-    }
-
-    const groupRowMatch = this.findGroupRowById(rowId);
-    if (groupRowMatch) {
-      return groupRowMatch.row.expanded;
-    }
-
-    const speciesMatch = this.findSpeciesById(rowId);
-    if (speciesMatch) {
-      return speciesMatch.species.expanded;
-    }
-
-    return false;
-  }
-
   protected toggleSelectedLayerVisibility(rowId: string): void {
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlayVisibility(rowId);
@@ -2205,30 +2181,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     const speciesMatch = this.findSpeciesById(rowId);
     if (speciesMatch) {
       this.toggleSpeciesVisibility(speciesMatch.taxonId, rowId);
-    }
-  }
-
-  protected toggleSelectedLayerExpanded(rowId: string): void {
-    if (rowId.startsWith('overlay-')) {
-      this.toggleOverlayExpanded(rowId);
-      return;
-    }
-
-    const taxon = this.findTaxonById(rowId);
-    if (taxon) {
-      this.toggleTaxonExpanded(rowId);
-      return;
-    }
-
-    const groupId = this.findGroupIdByRowId(rowId);
-    if (groupId) {
-      this.toggleLayerExpanded(groupId, rowId);
-      return;
-    }
-
-    const speciesMatch = this.findSpeciesById(rowId);
-    if (speciesMatch) {
-      this.toggleSpeciesExpanded(speciesMatch.taxonId, rowId);
     }
   }
 
