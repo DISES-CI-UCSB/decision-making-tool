@@ -32,7 +32,9 @@ Smoke check readiness and the representative custom polygon path:
 
 ```bash
 curl http://127.0.0.1:8000/ready
-curl -X POST http://127.0.0.1:8000/metrics/custom-polygon   -H 'content-type: application/json'   -d '{"geometry":{"type":"Polygon","coordinates":[[[0,0],[2,0],[2,1],[0,1],[0,0]]]},"metrics":["area"]}'
+curl -X POST http://127.0.0.1:8000/metrics/custom-polygon \
+  -H 'content-type: application/json' \
+  -d '{"geometry":{"type":"Polygon","coordinates":[[[0,0],[2,0],[2,1],[0,1],[0,0]]]},"metrics":["area"]}'
 ```
 
 The sample polygon covers two valid fixture cells. One is selected, so the response should include `priority_area_in_region: 1.5` and `national_contribution: 50.0`, along with warmup/request timing metadata.
@@ -64,6 +66,42 @@ Stop the service with:
 ```bash
 docker compose -f backend/docker-compose.yml down
 ```
+
+## VM Deployment Smoke Operations
+
+The current VM deployment runs the backend Compose service on public port `8000` with the committed tiny area fixture. From the repo root on the VM, rebuild and recreate the service from the current branch with:
+
+```bash
+docker compose -f backend/docker-compose.yml build backend
+DMT_ARTIFACT_REQUIRED=true DMT_ARTIFACT_DIR=/backend/artifacts/fixtures/tiny-area DMT_ARTIFACT_MANIFEST=/backend/artifacts/fixtures/tiny-area/manifest.json docker compose -f backend/docker-compose.yml up -d --force-recreate backend
+```
+
+Useful operations:
+
+```bash
+docker compose -f backend/docker-compose.yml ps
+docker compose -f backend/docker-compose.yml logs --tail=100 backend
+docker compose -f backend/docker-compose.yml restart backend
+docker stats --no-stream backend-backend-1
+```
+
+Repeat the fixture smoke checks from the VM with:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/ready
+curl -X POST http://127.0.0.1:8000/metrics/custom-polygon \
+  -H 'content-type: application/json' \
+  -d '{"geometry":{"type":"Polygon","coordinates":[[[0,0],[2,0],[2,1],[0,1],[0,0]]]},"metrics":["area"]}'
+```
+
+Chat #4 VM fixture benchmark on 2026-06-04 after rebuilding commit `3101d003`:
+
+- Forced recreate to ready: 2.565 seconds; artifact warmup reported by `/ready`: 0.471 ms.
+- Warm valid polygon request latency samples: 2.546, 2.475, 2.582, 2.500, 2.838, 2.565, 2.508, 3.477, 3.131, and 3.482 ms.
+- Docker stats snapshot: CPU 0.19%; memory 47.59 MiB / 7.756 GiB, 0.60%.
+- Expected valid response summary: `status=ok`, `priority_area_in_region=1.5`, `national_contribution=50.0`, and `matched_cell_count=2`.
+- Expected invalid geometry behavior: `422` with `status=invalid_request` and message `geometry type must be Polygon or MultiPolygon.`
 
 ## Environment Variables
 
