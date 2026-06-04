@@ -4,6 +4,8 @@ import {
   type AOI,
   type AnalysisMetricSectionFixture,
   type CachedSolutionMetricsDocument,
+  type CustomPolygonMetricId,
+  type CustomPolygonMetricsResponse,
   type GeographyLevel,
   type MetricComparisonValue,
   type MetricReadinessStatus,
@@ -125,6 +127,36 @@ interface ComparisonVisualizationOption {
   labelKey: string;
   descriptionKey: string;
 }
+
+const CUSTOM_AOI_METRIC_IDS: CustomPolygonMetricId[] = [
+  'area',
+  'priority_area_in_region',
+  'national_contribution',
+];
+
+const CUSTOM_AOI_METRIC_DEFINITIONS: Record<
+  CustomPolygonMetricId,
+  Pick<MetricValue, 'metricId' | 'unit' | 'labelKey' | 'formatHint'>
+> = {
+  area: {
+    metricId: 'area',
+    unit: 'km²',
+    labelKey: 'metrics.custom_polygon_area',
+    formatHint: 'number',
+  },
+  priority_area_in_region: {
+    metricId: 'priority_area_in_region',
+    unit: 'km²',
+    labelKey: 'metrics.priority_area_total',
+    formatHint: 'number',
+  },
+  national_contribution: {
+    metricId: 'national_contribution',
+    unit: '%',
+    labelKey: 'metrics.national_contribution',
+    formatHint: 'percent',
+  },
+};
 
 /**
  * Human-readable reminder of the Solution Finder inputs that produced the
@@ -527,6 +559,7 @@ export class PanelSwitcherComponent {
     this.buildActiveSolutionInputs(),
   );
   protected readonly selectedAoi = this.appState.selectedAOI$;
+  protected readonly customAoiGeometry = this.appState.customAOIGeometry$;
   protected readonly sirapSelectionScope = this.adminBoundaries.sirapSelectionScope$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
@@ -541,6 +574,10 @@ export class PanelSwitcherComponent {
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
   protected readonly cachedMetricsDocument = signal<CachedSolutionMetricsDocument | null>(null);
+  protected readonly customAoiMetrics = signal<MetricValue[]>([]);
+  protected readonly isCustomAoiMetricsLoading = signal(false);
+  protected readonly customAoiMetricsLoadFailed = signal(false);
+  protected readonly customAoiMetricsMessage = signal<string | null>(null);
   protected readonly comparisonCandidateMetricsDocument =
     signal<CachedSolutionMetricsDocument | null>(null);
   protected readonly isOverviewLoading = signal(false);
@@ -561,12 +598,19 @@ export class PanelSwitcherComponent {
     if (!aoi) {
       return [];
     }
+    if (aoi.type === 'custom' && this.customAoiGeometry()) {
+      return this.customAoiMetrics();
+    }
+
     return this.resolveAoiMetrics(this.cachedMetricsDocument(), aoi);
   });
   protected readonly aoiMetricsById = computed<Map<string, MetricValue>>(
     () => new Map(this.aoiMetrics().map((metric) => [metric.metricId, metric] as const)),
   );
   protected readonly isSirapAoiSelected = computed(() => this.selectedAoi()?.type === 'sirap');
+  protected readonly isCustomAoiSelected = computed(
+    () => this.selectedAoi()?.type === 'custom' && this.customAoiGeometry() !== null,
+  );
 
   protected readonly comparisonMetrics = computed(() => {
     const baselineMetrics = nationalMetrics(this.cachedMetricsDocument());
@@ -725,6 +769,40 @@ export class PanelSwitcherComponent {
       .subscribe((document) => {
         this.cachedMetricsDocument.set(document);
         this.overviewSections.set(this.buildOverviewSections(nationalMetrics(document)));
+      });
+
+    toObservable(this.customAoiGeometry)
+      .pipe(
+        distinctUntilChanged(),
+        switchMap((geometry) => {
+          if (!geometry) {
+            this.customAoiMetrics.set([]);
+            this.isCustomAoiMetricsLoading.set(false);
+            this.customAoiMetricsLoadFailed.set(false);
+            this.customAoiMetricsMessage.set(null);
+            return of<MetricValue[]>([]);
+          }
+
+          this.isCustomAoiMetricsLoading.set(true);
+          this.customAoiMetricsLoadFailed.set(false);
+          this.customAoiMetricsMessage.set(null);
+
+          return this.api
+            .getCustomPolygonMetrics({ geometry, metrics: CUSTOM_AOI_METRIC_IDS })
+            .pipe(
+              map((response) => this.mapCustomPolygonMetrics(response)),
+              catchError((error: unknown) => {
+                this.customAoiMetricsLoadFailed.set(true);
+                this.customAoiMetricsMessage.set(this.getCustomAoiErrorMessage(error));
+                return of<MetricValue[]>([]);
+              }),
+              finalize(() => this.isCustomAoiMetricsLoading.set(false)),
+            );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((metrics) => {
+        this.customAoiMetrics.set(metrics);
       });
 
     toObservable(this.comparisonSolution)
@@ -1207,20 +1285,36 @@ export class PanelSwitcherComponent {
   }
 
   private calculateAoiPriorityAreaPercent(): number | null {
-    const selectedAoi = this.selectedAoi();
+    const selectedAoiAreaKm2 = this.resolveSelectedAoiAreaKm2();
     const priorityArea = this.aoiMetricsById().get('priority_area_in_region');
     if (
-      !selectedAoi?.areaKm2 ||
-      !Number.isFinite(selectedAoi.areaKm2) ||
-      selectedAoi.areaKm2 <= 0 ||
+      selectedAoiAreaKm2 === null ||
       priorityArea?.status !== 'ready' ||
       priorityArea.value === null
     ) {
       return null;
     }
 
-    const percent = (priorityArea.value / selectedAoi.areaKm2) * 100;
+    const percent = (priorityArea.value / selectedAoiAreaKm2) * 100;
     return Math.max(0, Math.min(100, percent));
+  }
+
+  private resolveSelectedAoiAreaKm2(): number | null {
+    const selectedAoiAreaKm2 = this.selectedAoi()?.areaKm2;
+    if (
+      selectedAoiAreaKm2 !== undefined &&
+      Number.isFinite(selectedAoiAreaKm2) &&
+      selectedAoiAreaKm2 > 0
+    ) {
+      return selectedAoiAreaKm2;
+    }
+
+    const customArea = this.aoiMetricsById().get('area');
+    if (customArea?.status === 'ready' && customArea.value !== null && customArea.value > 0) {
+      return customArea.value;
+    }
+
+    return null;
   }
 
   private buildDonutGradient(): string {
@@ -1323,6 +1417,42 @@ export class PanelSwitcherComponent {
       constraintsText,
       tradeoffText: scenario.costLayer,
     };
+  }
+
+  private mapCustomPolygonMetrics(response: CustomPolygonMetricsResponse): MetricValue[] {
+    if (response.status !== 'ok' || !response.metrics) {
+      this.customAoiMetricsLoadFailed.set(true);
+      this.customAoiMetricsMessage.set(
+        response.message || 'Custom polygon metrics are unavailable.',
+      );
+      return [];
+    }
+
+    this.customAoiMetricsLoadFailed.set(false);
+    this.customAoiMetricsMessage.set(response.message || null);
+    return CUSTOM_AOI_METRIC_IDS.map((metricId) =>
+      this.buildCustomAoiMetricValue(metricId, response.metrics?.[metricId] ?? null),
+    );
+  }
+
+  private buildCustomAoiMetricValue(
+    metricId: CustomPolygonMetricId,
+    rawValue: number | null,
+  ): MetricValue {
+    const definition = CUSTOM_AOI_METRIC_DEFINITIONS[metricId];
+    const value = typeof rawValue === 'number' && Number.isFinite(rawValue) ? rawValue : null;
+
+    return {
+      ...definition,
+      value,
+      status: value === null ? 'pending' : 'ready',
+      source: 'custom-polygon-api',
+      notes: value === null ? 'Backend did not return a value for this metric.' : null,
+    };
+  }
+
+  private getCustomAoiErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Custom polygon metrics could not be loaded.';
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {

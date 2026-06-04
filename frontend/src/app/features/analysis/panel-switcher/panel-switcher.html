@@ -672,6 +672,27 @@
 
             <!-- ═══ SCROLLABLE BODY ═══ -->
             <div id="aoi-dashboard-body" class="aoi-panel-body">
+              @if (isCustomAoiSelected()) {
+                <div
+                  id="aoi-custom-metrics-status"
+                  class="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700"
+                >
+                  @if (isCustomAoiMetricsLoading()) {
+                    <p id="aoi-custom-metrics-loading" class="m-0">
+                      Loading custom polygon metrics from the backend API...
+                    </p>
+                  } @else if (customAoiMetricsLoadFailed()) {
+                    <p id="aoi-custom-metrics-error" class="m-0 text-red-700">
+                      Custom polygon metrics could not be loaded. {{ customAoiMetricsMessage() }}
+                    </p>
+                  } @else {
+                    <p id="aoi-custom-metrics-loaded" class="m-0">
+                      Custom polygon metrics are loaded from the backend API.
+                    </p>
+                  }
+                </div>
+              }
+
               <!-- ─── SECTION A: Conservation Summary ─── -->
               <section id="aoi-section-general">
                 <button

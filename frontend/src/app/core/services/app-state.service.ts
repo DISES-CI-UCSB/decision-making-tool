@@ -3,6 +3,7 @@ import type Extent from '@arcgis/core/geometry/Extent';
 import { DEFAULT_CHART_PALETTE_ID, type ChartPaletteId } from '@core/models/chart-palette.model';
 import {
   type AOI,
+  type CustomPolygonMetricsGeometry,
   type LayerConfig,
   type RuntimeLayerManifestRenderingConfig,
   type Solution,
@@ -104,6 +105,7 @@ function readStoredSelectSolutionHoverFx(): SelectSolutionButtonHoverFxMode {
 export class AppStateService {
   readonly activeSolution$ = signal<Solution | null>(null);
   readonly selectedAOI$ = signal<AOI | null>(null);
+  readonly customAOIGeometry$ = signal<CustomPolygonMetricsGeometry | null>(null);
   readonly visibleLayers$ = signal<LayerConfig[]>([]);
   readonly comparisonSolution$ = signal<Solution | null>(null);
   readonly comparisonVisualizationMode$ = signal<ComparisonVisualizationMode>('threeColorOverlay');
@@ -155,17 +157,35 @@ export class AppStateService {
   clearSolution(): void {
     this.activeSolution$.set(null);
     this.selectedAOI$.set(null);
+    this.customAOIGeometry$.set(null);
     this.comparisonSolution$.set(null);
     this.comparisonVisualizationMode$.set('threeColorOverlay');
     this.rightSidebarMode$.set('welcome');
   }
 
   selectAOI(aoi: AOI): void {
+    this.customAOIGeometry$.set(null);
     this.selectedAOI$.set(aoi);
+  }
+
+  selectCustomAOI(
+    geometry: CustomPolygonMetricsGeometry,
+    options: { id?: string; name?: string; areaKm2?: number } = {},
+  ): void {
+    this.customAOIGeometry$.set(geometry);
+    this.selectedAOI$.set({
+      id: options.id ?? 'custom:drawn-polygon',
+      name: options.name ?? 'Custom drawn AOI',
+      type: 'custom',
+      subtype: 'Custom polygon',
+      geometryUrl: 'custom-polygon://drawn-aoi',
+      areaKm2: options.areaKm2,
+    });
   }
 
   clearAOI(): void {
     this.selectedAOI$.set(null);
+    this.customAOIGeometry$.set(null);
   }
 
   toggleLayer(layerId: string): void {

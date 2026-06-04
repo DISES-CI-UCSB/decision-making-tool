@@ -232,6 +232,7 @@ export class AdminBoundaryService {
       municipality: state.admin_municipalities,
       omec: false,
       runap: false,
+      custom: false,
     };
   });
   readonly popupEnabled$ = signal(false);
