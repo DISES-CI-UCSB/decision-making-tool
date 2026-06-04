@@ -89,7 +89,14 @@
     "loadingSolution": "Cargando solución...",
     "loadingLayer": "Cargando capa del mapa...",
     "loadingOmecs": "Cargando OMECs...",
-    "loadingRunap": "Cargando RUNAP..."
+    "loadingRunap": "Cargando RUNAP...",
+    "customAoiDrawControls": "Controles para dibujar AOI personalizado",
+    "customAoiDrawStart": "Dibujar AOI personalizado",
+    "customAoiDrawDrawing": "Dibuja un poligono en el mapa. Haz doble clic para terminar.",
+    "customAoiDrawReady": "AOI personalizado seleccionado.",
+    "customAoiDrawInvalid": "Dibuja un poligono valido para usar un AOI personalizado.",
+    "customAoiDrawCancel": "Cancelar dibujo",
+    "customAoiDrawClear": "Borrar AOI personalizado"
   },
   "analysis": {
     "tabNavAriaLabel": "Pestañas del panel lateral derecho",

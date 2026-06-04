@@ -702,6 +702,11 @@ export class AdminBoundaryService {
    * MapView's identify flow) to reuse the existing AOI highlight graphics layer.
    */
   highlightAoiGeometry(geometry: Geometry | null): void {
+    if (!geometry) {
+      this.clearSelectionHighlight();
+      return;
+    }
+
     this.setSelectionHighlight(geometry);
   }
 

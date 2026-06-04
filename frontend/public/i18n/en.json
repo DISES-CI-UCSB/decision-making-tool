@@ -89,7 +89,14 @@
     "loadingSolution": "Loading solution...",
     "loadingLayer": "Loading map layer...",
     "loadingOmecs": "Loading OMECs...",
-    "loadingRunap": "Loading RUNAP..."
+    "loadingRunap": "Loading RUNAP...",
+    "customAoiDrawControls": "Custom AOI drawing controls",
+    "customAoiDrawStart": "Draw custom AOI",
+    "customAoiDrawDrawing": "Draw a polygon on the map. Double-click to finish.",
+    "customAoiDrawReady": "Custom AOI selected.",
+    "customAoiDrawInvalid": "Draw a valid polygon to use a custom AOI.",
+    "customAoiDrawCancel": "Cancel drawing",
+    "customAoiDrawClear": "Clear custom AOI"
   },
   "analysis": {
     "tabNavAriaLabel": "Right sidebar view tabs",

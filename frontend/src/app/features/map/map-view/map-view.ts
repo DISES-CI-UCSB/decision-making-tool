@@ -13,6 +13,7 @@ import {
   untracked,
 } from '@angular/core';
 import Basemap from '@arcgis/core/Basemap';
+import Graphic from '@arcgis/core/Graphic';
 import ArcGISMap from '@arcgis/core/Map';
 import ArcGISMapView from '@arcgis/core/views/MapView';
 import Extent from '@arcgis/core/geometry/Extent';
@@ -21,9 +22,11 @@ import Point from '@arcgis/core/geometry/Point';
 import Polygon from '@arcgis/core/geometry/Polygon';
 import * as geometryEngine from '@arcgis/core/geometry/geometryEngine';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
+import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import Attribution from '@arcgis/core/widgets/Attribution';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
+import SketchViewModel from '@arcgis/core/widgets/Sketch/SketchViewModel';
 import type Widget from '@arcgis/core/widgets/Widget';
 import type { Solution } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
@@ -42,6 +45,7 @@ import {
   type SupportedBasemap,
 } from '@features/map/services/map-basemap.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { polygonToCustomAoiGeometry } from '@features/map/utils/custom-aoi-geometry';
 import { MasterLegendComponent } from '@features/map/components/master-legend/master-legend';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -169,6 +173,10 @@ type SwipeInstance = {
   destroy: () => void;
 } & Widget;
 type SwipeConstructor = new (properties: Record<string, unknown>) => SwipeInstance;
+interface SketchCreateEvent {
+  state: 'start' | 'active' | 'complete' | 'cancel';
+  graphic?: InstanceType<typeof Graphic> | null;
+}
 
 @Component({
   selector: 'app-map-view',
@@ -196,6 +204,9 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private comparisonSwipeWidget: SwipeInstance | null = null;
   private comparisonSwipeHostEl: HTMLDivElement | null = null;
   private swipeConstructor: SwipeConstructor | null = null;
+  private customAoiGraphicsLayer: InstanceType<typeof GraphicsLayer> | null = null;
+  private customAoiSketchViewModel: InstanceType<typeof SketchViewModel> | null = null;
+  private customAoiSketchCreateHandle: { remove: () => void } | null = null;
   private mapClickHandle: { remove: () => void } | null = null;
   private readonly vectorOverlayLayers = new Map<string, InstanceType<typeof GeoJSONLayer>>();
   private readonly vectorOverlayLoadStatusHandles = new Map<string, { remove: () => void }>();
@@ -224,6 +235,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly debugMarker = 'UCS-40-layer-infra-v1';
   protected mapErrorMessage = '';
   protected isExportInProgress = false;
+  protected readonly isCustomAoiDrawAvailable = signal(false);
+  protected readonly isCustomAoiDrawActive = signal(false);
+  protected readonly hasCustomAoiDrawing = signal(false);
+  protected readonly customAoiDrawStatusI18nKey = signal<string | null>(null);
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
   protected readonly activeBasemap = this.basemapService.basemap;
@@ -303,6 +318,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.vectorOverlayLayerViewHandles.clear();
     this.vectorOverlayLayerViewRequestIds.clear();
     this.teardownComparisonSwipeWidget();
+    this.teardownCustomAoiDrawing();
     this.removeMapWidgets();
     this.adminBoundaries.destroy(this.map);
     this.view?.destroy();
@@ -337,6 +353,39 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
   protected exportCurrentView(): void {
     void this.downloadCurrentMapViewAsPng();
+  }
+
+  protected startCustomAoiDraw(): void {
+    if (!this.customAoiSketchViewModel || !this.customAoiGraphicsLayer) {
+      return;
+    }
+
+    this.closeBasemapPicker();
+    this.customAoiSketchViewModel.cancel();
+    this.customAoiGraphicsLayer.removeAll();
+    this.hasCustomAoiDrawing.set(false);
+    this.isCustomAoiDrawActive.set(true);
+    this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawDrawing');
+    this.customAoiSketchViewModel.create('polygon');
+  }
+
+  protected cancelCustomAoiDraw(): void {
+    this.customAoiSketchViewModel?.cancel();
+    this.isCustomAoiDrawActive.set(false);
+    this.customAoiDrawStatusI18nKey.set(null);
+  }
+
+  protected clearCustomAoiDrawing(): void {
+    this.cancelCustomAoiDraw();
+    this.customAoiGraphicsLayer?.removeAll();
+    this.hasCustomAoiDrawing.set(false);
+    this.customAoiDrawStatusI18nKey.set(null);
+
+    if (this.appState.selectedAOI$()?.type === 'custom') {
+      this.appState.clearAOI();
+      this.appState.setRightSidebarMode(this.appState.hasActiveSolution() ? 'overview' : 'welcome');
+      this.adminBoundaries.highlightAoiGeometry(null);
+    }
   }
 
   private async animateZoomBy(delta: number): Promise<void> {
@@ -601,6 +650,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
       this.syncVectorOverlayLayerViews();
       this.addMapWidgets();
+      this.setupCustomAoiDrawing();
       this.adminBoundaries.initialize(this.map, this.view);
       this.registerMapClickHandler();
       void this.syncComparisonMode();
@@ -645,6 +695,84 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.view.ui.add(this.scaleBarWidget, 'bottom-left');
     this.syncCoordinateToolVisibility();
     this.view.ui.add(this.attributionWidget, 'bottom-right');
+  }
+
+  private setupCustomAoiDrawing(): void {
+    if (!this.map || !this.view) {
+      return;
+    }
+
+    this.customAoiGraphicsLayer = new GraphicsLayer({
+      id: 'map-view-custom-aoi-drawing-layer',
+      listMode: 'hide',
+    });
+    this.map.add(this.customAoiGraphicsLayer);
+
+    this.customAoiSketchViewModel = new SketchViewModel({
+      view: this.view,
+      layer: this.customAoiGraphicsLayer,
+      polygonSymbol: {
+        type: 'simple-fill',
+        color: [14, 165, 233, 45],
+        outline: {
+          color: [2, 132, 199, 255],
+          width: 2,
+        },
+      } as never,
+      updateOnGraphicClick: false,
+    });
+    this.customAoiSketchCreateHandle = this.customAoiSketchViewModel.on('create', (event) =>
+      this.handleCustomAoiSketchCreate(event as SketchCreateEvent),
+    );
+    this.isCustomAoiDrawAvailable.set(true);
+  }
+
+  private teardownCustomAoiDrawing(): void {
+    this.customAoiSketchCreateHandle?.remove();
+    this.customAoiSketchCreateHandle = null;
+    this.customAoiSketchViewModel?.destroy();
+    this.customAoiSketchViewModel = null;
+    this.customAoiGraphicsLayer?.removeAll();
+    this.customAoiGraphicsLayer = null;
+    this.isCustomAoiDrawAvailable.set(false);
+    this.isCustomAoiDrawActive.set(false);
+    this.hasCustomAoiDrawing.set(false);
+    this.customAoiDrawStatusI18nKey.set(null);
+  }
+
+  private handleCustomAoiSketchCreate(event: SketchCreateEvent): void {
+    if (event.state === 'cancel') {
+      this.isCustomAoiDrawActive.set(false);
+      this.customAoiDrawStatusI18nKey.set(null);
+      return;
+    }
+
+    if (event.state !== 'complete') {
+      return;
+    }
+
+    this.isCustomAoiDrawActive.set(false);
+    const polygon = event.graphic?.geometry;
+    if (!polygon || polygon.type !== 'polygon') {
+      this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawInvalid');
+      return;
+    }
+
+    const customGeometry = polygonToCustomAoiGeometry(polygon as Polygon);
+    if (!customGeometry) {
+      this.customAoiGraphicsLayer?.removeAll();
+      this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawInvalid');
+      return;
+    }
+
+    this.hasCustomAoiDrawing.set(true);
+    this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawReady');
+    this.appState.selectCustomAOI(customGeometry, {
+      name: 'Custom drawn AOI',
+      areaKm2: this.calculateAreaKm2(polygon as Polygon),
+    });
+    this.appState.setRightSidebarMode('aoi');
+    this.adminBoundaries.highlightAoiGeometry(polygon);
   }
 
   private removeMapWidgets(): void {
