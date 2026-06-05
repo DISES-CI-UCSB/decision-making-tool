@@ -359,8 +359,8 @@ export class PanelSwitcherComponent {
       descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
       iconClass: 'fas fa-leaf',
       realMetricId: 'carbon_storage_biomass',
-      dummyValue: '2.3B',
-      dummyUnitKey: 'analysis.overview.metricUnits.tco2e',
+      dummyValue: '2,300,000',
+      dummyUnitKey: 'analysis.overview.metricUnits.megagrams',
     },
     {
       id: 'metric-06-water-regulation-services',
@@ -481,9 +481,9 @@ export class PanelSwitcherComponent {
       labelKey: 'analysis.comparison.metrics.carbonStorage',
       descriptionKey: 'analysis.comparison.metrics.carbonStorageDesc',
       metricId: 'carbon_storage_biomass',
-      dummyBaseline: '69 t/ha',
-      dummyCandidate: '74 t/ha',
-      dummyDelta: '+5 t/ha',
+      dummyBaseline: '69,000 Mg',
+      dummyCandidate: '74,000 Mg',
+      dummyDelta: '+5,000 Mg',
     },
     {
       id: 'comp-water-regulation',
@@ -972,6 +972,10 @@ export class PanelSwitcherComponent {
     return '--';
   }
 
+  protected getAoiUnitFallback(value: number, unit: string): string {
+    return this.appendUnit(this.formatNumber(value, this.metricNumberFormatMode(), 0, 1), unit);
+  }
+
   protected getAoiMetricFullValue(metricId: string): string | null {
     const metric = this.aoiMetricsById().get(metricId);
     if (metric && metric.status === 'ready' && metric.value !== null) {
@@ -1173,14 +1177,14 @@ export class PanelSwitcherComponent {
       return null;
     }
 
-    return unit.replace(/Mg\s*[·x*]\s*km\^?2\b/g, 'Mg·km²').replace(/km\^?2\b/g, 'km²');
+    return unit.replace(/Mg\s*[-·x*/]\s*km\^?2\b/g, 'Mg/km²').replace(/km\^?2\b/g, 'km²');
   }
 
   private formatMetricForPanel(
     metric: MetricValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    const formattedUnit = this.formatMetricUnit(metric.unit);
+    const formattedUnit = this.getMetricDisplayUnit(metric);
     const number = this.formatNumber(
       metric.value ?? 0,
       mode,
@@ -1191,6 +1195,18 @@ export class PanelSwitcherComponent {
       return `${number}%`;
     }
     return formattedUnit ? `${number} ${formattedUnit}` : number;
+  }
+
+  private getMetricDisplayUnit(metric: MetricValue): string | null {
+    if (metric.metricId === 'carbon_biomass_total' || metric.metricId === 'soil_organic_carbon') {
+      return 'Mg';
+    }
+
+    if (metric.metricId === 'carbon_storage_biomass') {
+      return 'Mg';
+    }
+
+    return this.formatMetricUnit(metric.unit);
   }
 
   private resolveLocale(): string {
@@ -1492,7 +1508,7 @@ export class PanelSwitcherComponent {
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
             iconClass: metric.iconClass,
-            value: metric.dummyValue,
+            value: this.formatOverviewDummyValue(metric),
             fullValue: null,
             unit: this.localizedText(metric.dummyUnitKey ?? ''),
             conditional: Boolean(metric.conditional),
@@ -1628,11 +1644,11 @@ export class PanelSwitcherComponent {
         id: blueprint.id,
         labelKey: blueprint.labelKey,
         descriptionKey: blueprint.descriptionKey,
-        baseline: blueprint.dummyBaseline,
+        baseline: this.formatComparisonDummyValue(blueprint, 'baseline'),
         baselineFull: null,
-        candidate: blueprint.dummyCandidate,
+        candidate: this.formatComparisonDummyValue(blueprint, 'candidate'),
         candidateFull: null,
-        delta: blueprint.dummyDelta,
+        delta: this.formatComparisonDummyValue(blueprint, 'delta'),
         deltaFull: null,
         conditional: Boolean(blueprint.conditional),
         unavailable: false,
@@ -1671,6 +1687,41 @@ export class PanelSwitcherComponent {
       unavailable: true,
       deltaTone: 'neutral',
     };
+  }
+
+  private formatOverviewDummyValue(metric: OverviewMetricBlueprint): string {
+    if (metric.id === 'metric-05-carbon-storage-capacity') {
+      return this.formatNumber(2_300_000, this.metricNumberFormatMode(), 0, 1);
+    }
+
+    return metric.dummyValue;
+  }
+
+  private formatComparisonDummyValue(
+    blueprint: ComparisonMetricBlueprint,
+    field: 'baseline' | 'candidate' | 'delta',
+  ): string {
+    if (blueprint.id !== 'comp-carbon') {
+      switch (field) {
+        case 'baseline':
+          return blueprint.dummyBaseline;
+        case 'candidate':
+          return blueprint.dummyCandidate;
+        case 'delta':
+          return blueprint.dummyDelta;
+      }
+    }
+
+    const valueByField = {
+      baseline: 69_000,
+      candidate: 74_000,
+      delta: 5_000,
+    } satisfies Record<typeof field, number>;
+    const sign = field === 'delta' ? '+' : '';
+    return this.appendUnit(
+      `${sign}${this.formatNumber(valueByField[field], this.metricNumberFormatMode(), 0, 0)}`,
+      'Mg',
+    );
   }
 
   private isComparisonMetricReady(metric: MetricComparisonValue): boolean {

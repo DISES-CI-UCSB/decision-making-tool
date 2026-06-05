@@ -46,7 +46,7 @@ export class MockDataService {
       metadata: { scenario: 'habitat-connectivity' },
       metrics: [
         this.metric('m-biodiversity', 'Biodiversity', 92, '%', 'ecology', 'percentage'),
-        this.metric('m-carbon', 'Carbon Storage', 74, 't/ha', 'climate', 'number'),
+        this.metric('m-carbon', 'Carbon Storage', 74, 'Mg', 'climate', 'number'),
         this.metric('m-cost', 'Implementation Cost', 2.1, 'M COP', 'finance', 'currency'),
       ],
     },
@@ -59,7 +59,7 @@ export class MockDataService {
       metadata: { scenario: 'watershed-protection' },
       metrics: [
         this.metric('m-biodiversity', 'Biodiversity', 83, '%', 'ecology', 'percentage'),
-        this.metric('m-carbon', 'Carbon Storage', 69, 't/ha', 'climate', 'number'),
+        this.metric('m-carbon', 'Carbon Storage', 69, 'Mg', 'climate', 'number'),
         this.metric('m-cost', 'Implementation Cost', 1.7, 'M COP', 'finance', 'currency'),
       ],
     },
@@ -72,7 +72,7 @@ export class MockDataService {
       metadata: { scenario: 'mixed-use' },
       metrics: [
         this.metric('m-biodiversity', 'Biodiversity', 76, '%', 'ecology', 'percentage'),
-        this.metric('m-carbon', 'Carbon Storage', 65, 't/ha', 'climate', 'number'),
+        this.metric('m-carbon', 'Carbon Storage', 65, 'Mg', 'climate', 'number'),
         this.metric('m-cost', 'Implementation Cost', 1.3, 'M COP', 'finance', 'currency'),
       ],
     },

@@ -1037,9 +1037,46 @@
                           [attr.data-full-value]="getAoiMetricFullValue('carbon_biomass_total')"
                           [attr.tabindex]="getAoiMetricFullValue('carbon_biomass_total') ? 0 : null"
                         >
-                          {{ getAoiMetricValue('carbon_biomass_total', '85M tCO₂e') }}
+                          {{
+                            getAoiMetricValue(
+                              'carbon_biomass_total',
+                              getAoiUnitFallback(85000000, 'Mg')
+                            )
+                          }}
                         </p>
-                        <p class="aoi-stat-unit">tCO₂e</p>
+                        <p id="aoi-stat-total-carbon-unit" class="aoi-stat-unit">
+                          <span id="aoi-stat-total-carbon-unit-text">{{
+                            'analysis.aoi.stats.unitDetails' | translate
+                          }}</span>
+                          <span
+                            id="aoi-stat-total-carbon-unit-help"
+                            class="aoi-unit-help aoi-unit-help-start"
+                          >
+                            <button
+                              id="aoi-stat-total-carbon-unit-help-trigger"
+                              type="button"
+                              class="aoi-unit-help-trigger"
+                              [attr.aria-label]="
+                                'analysis.aoi.unitTooltips.carbonMassArea' | translate
+                              "
+                              aria-describedby="aoi-stat-total-carbon-unit-tooltip"
+                            >
+                              <span
+                                id="aoi-stat-total-carbon-unit-help-indicator"
+                                class="aoi-unit-help-indicator"
+                                aria-hidden="true"
+                                >?</span
+                              >
+                            </button>
+                            <span
+                              id="aoi-stat-total-carbon-unit-tooltip"
+                              role="tooltip"
+                              class="aoi-unit-tooltip"
+                            >
+                              {{ 'analysis.aoi.unitTooltips.carbonMassArea' | translate }}
+                            </span>
+                          </span>
+                        </p>
                       </div>
                       <div id="aoi-stat-national-carbon" class="aoi-stat-card">
                         <p class="aoi-stat-label">
@@ -1069,9 +1106,46 @@
                             getAoiMetricFullValue('carbon_storage_biomass') ? 0 : null
                           "
                         >
-                          {{ getAoiMetricValue('carbon_storage_biomass', '52M tCO₂e') }}
+                          {{
+                            getAoiMetricValue(
+                              'carbon_storage_biomass',
+                              getAoiUnitFallback(52000000, 'Mg')
+                            )
+                          }}
                         </p>
-                        <p class="aoi-stat-unit">tCO₂e</p>
+                        <p id="aoi-stat-above-carbon-unit" class="aoi-stat-unit">
+                          <span id="aoi-stat-above-carbon-unit-text">{{
+                            'analysis.aoi.stats.unitDetails' | translate
+                          }}</span>
+                          <span
+                            id="aoi-stat-above-carbon-unit-help"
+                            class="aoi-unit-help aoi-unit-help-start"
+                          >
+                            <button
+                              id="aoi-stat-above-carbon-unit-help-trigger"
+                              type="button"
+                              class="aoi-unit-help-trigger"
+                              [attr.aria-label]="
+                                'analysis.aoi.unitTooltips.carbonMassArea' | translate
+                              "
+                              aria-describedby="aoi-stat-above-carbon-unit-tooltip"
+                            >
+                              <span
+                                id="aoi-stat-above-carbon-unit-help-indicator"
+                                class="aoi-unit-help-indicator"
+                                aria-hidden="true"
+                                >?</span
+                              >
+                            </button>
+                            <span
+                              id="aoi-stat-above-carbon-unit-tooltip"
+                              role="tooltip"
+                              class="aoi-unit-tooltip"
+                            >
+                              {{ 'analysis.aoi.unitTooltips.carbonMassArea' | translate }}
+                            </span>
+                          </span>
+                        </p>
                       </div>
                       <div id="aoi-stat-soil-carbon" class="aoi-stat-card">
                         <p class="aoi-stat-label">
@@ -1082,9 +1156,46 @@
                           [attr.data-full-value]="getAoiMetricFullValue('soil_organic_carbon')"
                           [attr.tabindex]="getAoiMetricFullValue('soil_organic_carbon') ? 0 : null"
                         >
-                          {{ getAoiMetricValue('soil_organic_carbon', '33M tCO₂e') }}
+                          {{
+                            getAoiMetricValue(
+                              'soil_organic_carbon',
+                              getAoiUnitFallback(33000000, 'Mg')
+                            )
+                          }}
                         </p>
-                        <p class="aoi-stat-unit">tCO₂e</p>
+                        <p id="aoi-stat-soil-carbon-unit" class="aoi-stat-unit">
+                          <span id="aoi-stat-soil-carbon-unit-text">{{
+                            'analysis.aoi.stats.unitDetails' | translate
+                          }}</span>
+                          <span
+                            id="aoi-stat-soil-carbon-unit-help"
+                            class="aoi-unit-help aoi-unit-help-end"
+                          >
+                            <button
+                              id="aoi-stat-soil-carbon-unit-help-trigger"
+                              type="button"
+                              class="aoi-unit-help-trigger"
+                              [attr.aria-label]="
+                                'analysis.aoi.unitTooltips.carbonMassArea' | translate
+                              "
+                              aria-describedby="aoi-stat-soil-carbon-unit-tooltip"
+                            >
+                              <span
+                                id="aoi-stat-soil-carbon-unit-help-indicator"
+                                class="aoi-unit-help-indicator"
+                                aria-hidden="true"
+                                >?</span
+                              >
+                            </button>
+                            <span
+                              id="aoi-stat-soil-carbon-unit-tooltip"
+                              role="tooltip"
+                              class="aoi-unit-tooltip"
+                            >
+                              {{ 'analysis.aoi.unitTooltips.carbonMassArea' | translate }}
+                            </span>
+                          </span>
+                        </p>
                       </div>
                     </div>
 

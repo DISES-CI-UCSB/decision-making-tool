@@ -40,7 +40,6 @@
   #app-shell-left-pane,
   #app-shell-right-pane {
     position: relative !important;
-    z-index: auto !important;
     width: auto !important;
     max-width: none !important;
     translate: none !important;
@@ -48,6 +47,14 @@
     box-shadow: none !important;
     padding: 0;
     overflow-x: clip;
+  }
+
+  #app-shell-left-pane {
+    z-index: 20 !important;
+  }
+
+  #app-shell-right-pane {
+    z-index: 60 !important;
   }
 
   #app-shell-left-pane-content {
