@@ -5,6 +5,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 
 from .artifacts import artifact_ready, get_artifact_state, get_runtime_artifact, warmup_artifacts
 from .config import get_settings
@@ -30,6 +31,21 @@ app = FastAPI(
     version="0.2.0",
     description="Backend metrics endpoints for custom polygon smoke paths.",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:4200",
+        "http://localhost:4300",
+        "http://localhost:4301",
+        "http://127.0.0.1:4200",
+        "http://127.0.0.1:4300",
+        "http://127.0.0.1:4301",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 

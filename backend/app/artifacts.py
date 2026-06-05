@@ -4,11 +4,12 @@ import hashlib
 import json
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
 from typing import Any
 
+import rasterio
 from pydantic import BaseModel, Field
 
 from .config import Settings
@@ -31,10 +32,22 @@ class ArtifactState(BaseModel):
 
 
 @dataclass(frozen=True)
+class RuntimeRasterLayer:
+    layer_id: str
+    path: Path
+    kind: str
+    rendering: dict[str, Any] = field(default_factory=dict)
+    source_url: str | None = None
+    metric_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class RuntimeArtifact:
     manifest: dict[str, Any]
-    area_grid: dict[str, Any]
-    area_grid_path: Path
+    area_grid: dict[str, Any] | None = None
+    area_grid_path: Path | None = None
+    reference_raster_path: Path | None = None
+    raster_layers: dict[str, RuntimeRasterLayer] = field(default_factory=dict)
 
 
 class ArtifactValidationError(ValueError):
@@ -158,6 +171,13 @@ def _state_from_error(
     )
 
 
+def _verify_checksum(path: Path, checksum: Any, label: str) -> None:
+    if isinstance(checksum, dict) and checksum.get("algorithm") == "sha256":
+        actual = _sha256(path)
+        if actual != checksum.get("value"):
+            raise ArtifactValidationError(f"{label} checksum does not match manifest.")
+
+
 def _load_area_grid(manifest_path: Path, manifest: dict[str, Any]) -> tuple[dict[str, Any], Path]:
     area_grid_path = manifest.get("area_grid_path")
     if not isinstance(area_grid_path, str) or not area_grid_path:
@@ -199,12 +219,7 @@ def _load_area_grid(manifest_path: Path, manifest: dict[str, Any]) -> tuple[dict
                 f"Area grid cell {index} must include boolean selected and valid flags."
             )
 
-    expected = manifest.get("area_grid_checksum")
-    if isinstance(expected, dict) and expected.get("algorithm") == "sha256":
-        actual = _sha256(path)
-        if actual != expected.get("value"):
-            raise ArtifactValidationError("Area grid checksum does not match manifest.")
-
+    _verify_checksum(path, manifest.get("area_grid_checksum"), "Area grid")
     return grid, path
 
 
@@ -220,7 +235,87 @@ def _artifact_metadata(area_grid: dict[str, Any], area_grid_path: Path) -> dict[
         "selected_cell_count": selected_cells,
         "pixel_area_km2": area_grid["pixel_area_km2"],
         "bounds": area_grid.get("bounds"),
+        "metric_coverage": {
+            "implemented_now": ["priority_area_in_region", "national_contribution"],
+            "artifact_mode": "tiny_area_grid",
+        },
     }
+
+
+def _load_raster_layers(manifest_path: Path, manifest: dict[str, Any]) -> dict[str, RuntimeRasterLayer]:
+    raw_layers = manifest.get("raster_layers")
+    if not isinstance(raw_layers, list) or not raw_layers:
+        raise ArtifactValidationError("Raster artifact must include raster_layers.")
+
+    layers: dict[str, RuntimeRasterLayer] = {}
+    for index, raw in enumerate(raw_layers):
+        if not isinstance(raw, dict):
+            raise ArtifactValidationError(f"Raster layer {index} must be an object.")
+        layer_id = raw.get("layer_id")
+        raw_path = raw.get("path")
+        if not isinstance(layer_id, str) or not layer_id:
+            raise ArtifactValidationError(f"Raster layer {index} must include layer_id.")
+        if not isinstance(raw_path, str) or not raw_path:
+            raise ArtifactValidationError(f"Raster layer {layer_id} must include path.")
+
+        path = _relative_artifact_path(manifest_path, raw_path)
+        if not path.exists():
+            raise ArtifactValidationError(f"Raster layer {layer_id} is missing.")
+        _verify_checksum(path, raw.get("checksum"), f"Raster layer {layer_id}")
+
+        rendering = raw.get("rendering") if isinstance(raw.get("rendering"), dict) else {}
+        metric_ids = raw.get("metric_ids") if isinstance(raw.get("metric_ids"), list) else []
+        layers[layer_id] = RuntimeRasterLayer(
+            layer_id=layer_id,
+            path=path,
+            kind=str(raw.get("kind") or "binary"),
+            rendering=rendering,
+            source_url=raw.get("source_url") if isinstance(raw.get("source_url"), str) else None,
+            metric_ids=tuple(str(metric_id) for metric_id in metric_ids),
+        )
+    return layers
+
+
+def _load_raster_artifact(
+    manifest_path: Path,
+    manifest: dict[str, Any],
+) -> tuple[RuntimeArtifact, dict[str, Any]]:
+    reference_path = manifest.get("reference_raster_path")
+    if not isinstance(reference_path, str) or not reference_path:
+        raise ArtifactValidationError("Raster artifact must include reference_raster_path.")
+
+    resolved_reference = _relative_artifact_path(manifest_path, reference_path)
+    if not resolved_reference.exists():
+        raise ArtifactValidationError("Reference raster artifact is missing.")
+    _verify_checksum(resolved_reference, manifest.get("reference_raster_checksum"), "Reference raster")
+
+    try:
+        with rasterio.open(resolved_reference) as dataset:
+            reference_metadata = {
+                "width": dataset.width,
+                "height": dataset.height,
+                "crs": str(dataset.crs) if dataset.crs else None,
+                "bounds": [dataset.bounds.left, dataset.bounds.bottom, dataset.bounds.right, dataset.bounds.top],
+                "nodata": dataset.nodata,
+            }
+    except Exception as exc:
+        raise ArtifactValidationError(f"Reference raster could not be opened: {exc}") from exc
+
+    layers = _load_raster_layers(manifest_path, manifest)
+    metadata = {
+        "artifact_kind": manifest.get("artifact_kind", "colombia-raster-custom-aoi/v1"),
+        "reference_raster_path": str(resolved_reference),
+        "reference_raster": reference_metadata,
+        "raster_layer_count": len(layers),
+        "raster_layers": sorted(layers.keys()),
+        "metric_coverage": manifest.get("metric_coverage", {}),
+    }
+    artifact = RuntimeArtifact(
+        manifest=manifest,
+        reference_raster_path=resolved_reference,
+        raster_layers=layers,
+    )
+    return artifact, metadata
 
 
 def load_runtime_artifact(settings: Settings) -> tuple[RuntimeArtifact, ArtifactState]:
@@ -232,9 +327,18 @@ def load_runtime_artifact(settings: Settings) -> tuple[RuntimeArtifact, Artifact
             f"Artifact manifest schema_version must be {settings.artifact_schema_version}."
         )
 
-    area_grid, area_grid_path = _load_area_grid(settings.artifact_manifest_path, manifest)
+    if manifest.get("reference_raster_path"):
+        artifact, metadata = _load_raster_artifact(settings.artifact_manifest_path, manifest)
+    else:
+        area_grid, area_grid_path = _load_area_grid(settings.artifact_manifest_path, manifest)
+        metadata = _artifact_metadata(area_grid, area_grid_path)
+        artifact = RuntimeArtifact(
+            manifest=manifest,
+            area_grid=area_grid,
+            area_grid_path=area_grid_path,
+        )
+
     elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
-    metadata = _artifact_metadata(area_grid, area_grid_path)
     state = _state_from_manifest(
         settings,
         manifest,
@@ -244,7 +348,7 @@ def load_runtime_artifact(settings: Settings) -> tuple[RuntimeArtifact, Artifact
         loaded_at=_utc_now(),
         metadata=metadata,
     )
-    return RuntimeArtifact(manifest=manifest, area_grid=area_grid, area_grid_path=area_grid_path), state
+    return artifact, state
 
 
 def warmup_artifacts(settings: Settings) -> ArtifactState:

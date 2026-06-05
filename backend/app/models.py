@@ -23,7 +23,7 @@ class PolygonMetricsRequest(BaseModel):
     )
     metrics: list[str] | None = Field(
         default=None,
-        description="Optional metric identifiers. Use area, priority_area_in_region, or national_contribution for the tiny artifact path.",
+        description="Optional metric identifiers. Use area for the area metric pair, or any implemented Tier 1 metric id exposed by the loaded artifact.",
     )
     artifact_version: str | None = Field(
         default=None,

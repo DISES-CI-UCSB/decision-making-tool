@@ -1,6 +1,6 @@
 # Backend Metrics API
 
-This backend serves the DISES Decision Making Tool metrics API. It now includes startup/runtime artifact warmup plus a fixture-scale custom polygon area path for Chat #3 smoke testing. The production metric engine is still expected to expand from the same artifact contract rather than committing heavy generated data.
+This backend serves the DISES Decision Making Tool metrics API. It includes startup/runtime artifact warmup, the fixture-scale custom polygon smoke path, and a VM runtime artifact path that rasterizes drawn custom AOIs against real published Colombia rasters while reusing the shared metric calculators.
 
 No secrets, local `.env` files, heavy rasters, generated caches, or packaged production metric artifacts should be committed. Runtime artifacts belong in `backend/runtime-artifacts/` locally or in a mounted directory configured by environment variables.
 
@@ -69,12 +69,14 @@ docker compose -f backend/docker-compose.yml down
 
 ## VM Deployment Smoke Operations
 
-The current VM deployment runs the backend Compose service on public port `8000` with the committed tiny area fixture. From the repo root on the VM, rebuild and recreate the service from the current branch with:
+The current VM deployment runs the backend Compose service on public port `8000`. Build or refresh the ignored real raster runtime artifact first, then rebuild and recreate the service from the current branch with artifact loading required:
 
 ```bash
-docker compose -f backend/docker-compose.yml build backend
-DMT_ARTIFACT_REQUIRED=true DMT_ARTIFACT_DIR=/backend/artifacts/fixtures/tiny-area DMT_ARTIFACT_MANIFEST=/backend/artifacts/fixtures/tiny-area/manifest.json docker compose -f backend/docker-compose.yml up -d --force-recreate backend
+backend/.venv/bin/python backend/scripts/build_runtime_artifact.py
+DMT_ARTIFACT_REQUIRED=true docker compose -f backend/docker-compose.yml up -d --build --force-recreate
 ```
+
+The artifact builder downloads public Vercel Blob rasters into `backend/runtime-artifacts/sources/` and writes `backend/runtime-artifacts/manifest.json` with file checksums, source URLs, reference grid metadata, and metric coverage. This directory is ignored by Git and must not be committed.
 
 Useful operations:
 
@@ -115,13 +117,13 @@ Chat #4 VM fixture benchmark on 2026-06-04 after rebuilding commit `3101d003`:
 
 - `GET /health`: Process-alive check. Returns `200` when the app is running.
 - `GET /ready`: Artifact-aware readiness check. In no-artifact development mode, missing artifacts return `200` with `available=false`. When `DMT_ARTIFACT_REQUIRED=true`, missing or invalid runtime artifacts return `503`; readiness returns `200` only after the selected artifact loads.
-- `POST /metrics/custom-polygon`: Calculates representative area metrics from the loaded tiny artifact. It accepts GeoJSON `Polygon` or `MultiPolygon` geometry and supports `area`, `priority_area_in_region`, and `national_contribution` for this smoke path.
+- `POST /metrics/custom-polygon`: Accepts GeoJSON `Polygon` or `MultiPolygon` geometry. With the tiny fixture it supports the area metric pair (`area`, `priority_area_in_region`, `national_contribution`). With the real raster artifact it rasterizes the AOI on the Colombia reference grid and supports implemented Tier 1 area, binary overlap, percent overlap, land-cover, protected-area, water, and carbon metrics. Response metadata includes warmup/request timing, selected/processed cell counts, layer usage, and metric coverage/unavailable reasons.
 
 ## Shared Metric Adapters
 
 Backend metric adapters live in `app/metric_adapters.py` and import calculator functions plus catalog entries from the existing precompute pipeline under `data/metrics/python/metrics_pipeline`. The backend should wrap those shared functions instead of duplicating metric formulas or metric definitions.
 
-The current custom polygon path maps fixture cells into in-memory selected/valid masks and then calls the shared area adapter for `priority_area_in_region` (#18) and `national_contribution` (#17). Production artifact work should replace the tiny JSON grid with real spatial artifact loading while preserving the warmup/readiness contract and shared calculator reuse.
+The custom polygon path keeps the tiny fixture behavior for tests, and uses real raster artifacts when `reference_raster_path` is present in the manifest. The real path builds a `SolutionRaster` from the drawn AOI mask and calls the shared area, overlap, land-cover, protected-area, water, and carbon calculators rather than duplicating formulas. Species metrics are feasible next with a dedicated live species accumulator artifact; scenario metadata metrics and pairwise comparison metrics are not direct custom-polygon calculations.
 
 ## Artifact Sync Skeleton
 
@@ -134,3 +136,9 @@ python -m scripts.sync_artifacts --write-manifest
 ```
 
 The script reports whether `BLOB_READ_WRITE_TOKEN` is present as `true` or `false`; it must never print the token value. See `artifacts/README.md` and `artifacts/manifest.schema.json` for the runtime artifact contract.
+
+## Real Runtime Artifact Builder
+
+Use `backend/scripts/build_runtime_artifact.py` on the VM to create the live custom AOI artifact from public Blob source rasters. The builder uses `ecosistemas` as the Colombia reference grid, reuses downloaded source files for duplicate layer views, and writes coverage groups for implemented, feasible-next, blocked, and unsuitable metrics.
+
+The current real artifact implements 23 metric ids: `priority_area_in_region`, `national_contribution`, `priority_area_pct_of_region`, ecosystem overlaps, land-cover percentages/area, protected-area overlaps, social/governance overlaps, water regulation metrics, and carbon weighted metrics. It intentionally leaves species metrics for a later species accumulator artifact, leaves manifest-only scenario metadata unavailable for arbitrary polygons, and leaves pairwise comparison metrics out of the live custom polygon path.

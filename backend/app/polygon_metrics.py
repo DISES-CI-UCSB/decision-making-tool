@@ -4,28 +4,17 @@ import time
 from typing import Any, Iterable
 
 from .artifacts import RuntimeArtifact
-from .metric_adapters import AREA_METRIC_IDS, calculate_area_metrics_from_masks
-
-AREA_ALIAS = "area"
-SUPPORTED_METRICS = {AREA_ALIAS, *AREA_METRIC_IDS}
+from .metric_adapters import (
+    AREA_METRIC_IDS,
+    build_custom_aoi_raster,
+    calculate_area_metrics_from_masks,
+    calculate_raster_metrics_for_aoi,
+    metric_ids_for_request,
+)
 
 
 class PolygonMetricError(ValueError):
     pass
-
-
-def requested_area_metrics(metrics: list[str] | None) -> list[str]:
-    if not metrics:
-        return list(AREA_METRIC_IDS)
-
-    unsupported = sorted(set(metrics) - SUPPORTED_METRICS)
-    if unsupported:
-        raise PolygonMetricError(f"Unsupported metric ids: {', '.join(unsupported)}.")
-
-    if AREA_ALIAS in metrics:
-        return list(AREA_METRIC_IDS)
-
-    return [metric for metric in AREA_METRIC_IDS if metric in metrics]
 
 
 def calculate_custom_polygon_metrics(
@@ -35,7 +24,59 @@ def calculate_custom_polygon_metrics(
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
     started = time.perf_counter()
     polygons = _parse_geometry(geometry)
-    metric_ids = requested_area_metrics(requested_metrics)
+
+    if artifact.area_grid is not None:
+        return _calculate_tiny_grid_metrics(artifact, polygons, requested_metrics, started)
+
+    if artifact.reference_raster_path is None:
+        raise PolygonMetricError("Runtime artifact has no supported custom AOI metric source.")
+
+    try:
+        metric_ids = metric_ids_for_request(requested_metrics, raster_artifact=True)
+    except ValueError as exc:
+        raise PolygonMetricError(str(exc)) from exc
+
+    try:
+        raster = build_custom_aoi_raster(artifact.reference_raster_path, geometry)
+        metrics, coverage = calculate_raster_metrics_for_aoi(
+            raster,
+            artifact.raster_layers,
+            metric_ids,
+        )
+    except Exception as exc:
+        raise PolygonMetricError(f"Custom polygon raster calculation failed: {exc}") from exc
+
+    elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
+    metadata = {
+        "request_ms": elapsed_ms,
+        "matched_cell_count": int(raster.selected_cells),
+        "processed_cell_count": int(raster.valid_cells),
+        "metric_source": "colombia-raster-geometry-mask-v1",
+        "metric_coverage": coverage,
+    }
+    return metrics, metadata
+
+
+def _calculate_tiny_grid_metrics(
+    artifact: RuntimeArtifact,
+    polygons: list[list[list[tuple[float, float]]]],
+    requested_metrics: list[str] | None,
+    started: float,
+) -> tuple[dict[str, float | None], dict[str, Any]]:
+    try:
+        metric_ids = metric_ids_for_request(requested_metrics, raster_artifact=False)
+    except ValueError as exc:
+        raise PolygonMetricError(str(exc)) from exc
+
+    unsupported = [metric_id for metric_id in metric_ids if metric_id not in AREA_METRIC_IDS]
+    if unsupported:
+        raise PolygonMetricError(
+            "Unsupported metric ids for tiny fixture artifact: " + ", ".join(unsupported) + "."
+        )
+
+    if artifact.area_grid is None:
+        raise PolygonMetricError("Tiny area grid artifact is not loaded.")
+
     selected_row: list[bool] = []
     valid_row: list[bool] = []
     matched_cells: list[str] = []
@@ -60,7 +101,14 @@ def calculate_custom_polygon_metrics(
         "request_ms": elapsed_ms,
         "matched_cell_count": len(matched_cells),
         "matched_cells": matched_cells,
+        "processed_cell_count": len(selected_row),
         "metric_source": "tiny-area-grid-centroid-v1",
+        "metric_coverage": {
+            "requested_metric_ids": metric_ids,
+            "returned_metric_ids": metric_ids,
+            "implemented_metric_ids": list(AREA_METRIC_IDS),
+            "unavailable": [],
+        },
     }
     return {metric_id: all_metrics[metric_id] for metric_id in metric_ids}, metadata
 
