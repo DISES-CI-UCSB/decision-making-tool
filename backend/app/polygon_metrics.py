@@ -41,6 +41,8 @@ def calculate_custom_polygon_metrics(
         metrics, coverage = calculate_raster_metrics_for_aoi(
             raster,
             artifact.raster_layers,
+            artifact.species_matrices,
+            artifact.species_pool_sizes,
             metric_ids,
         )
     except Exception as exc:

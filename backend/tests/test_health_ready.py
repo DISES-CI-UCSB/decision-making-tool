@@ -18,6 +18,23 @@ def test_health_returns_ok() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_custom_polygon_allows_localhost_origin() -> None:
+    clear_artifact_env()
+    client = TestClient(app)
+
+    response = client.options(
+        "/metrics/custom-polygon",
+        headers={
+            "Origin": "http://localhost:4301",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:4301"
+
+
 def test_ready_allows_no_artifact_development_mode(tmp_path) -> None:
     clear_artifact_env()
     os.environ["DMT_ARTIFACT_MANIFEST"] = str(tmp_path / "missing-manifest.json")

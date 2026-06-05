@@ -42,12 +42,22 @@ class RuntimeRasterLayer:
 
 
 @dataclass(frozen=True)
+class RuntimeSpeciesMatrix:
+    group: str
+    path: Path
+    source_url: str | None = None
+    metric_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class RuntimeArtifact:
     manifest: dict[str, Any]
     area_grid: dict[str, Any] | None = None
     area_grid_path: Path | None = None
     reference_raster_path: Path | None = None
     raster_layers: dict[str, RuntimeRasterLayer] = field(default_factory=dict)
+    species_matrices: dict[str, RuntimeSpeciesMatrix] = field(default_factory=dict)
+    species_pool_sizes: dict[str, Any] = field(default_factory=dict)
 
 
 class ArtifactValidationError(ValueError):
@@ -276,6 +286,39 @@ def _load_raster_layers(manifest_path: Path, manifest: dict[str, Any]) -> dict[s
     return layers
 
 
+def _load_species_matrices(manifest_path: Path, manifest: dict[str, Any]) -> dict[str, RuntimeSpeciesMatrix]:
+    raw_matrices = manifest.get("species_matrices")
+    if raw_matrices is None:
+        return {}
+    if not isinstance(raw_matrices, list):
+        raise ArtifactValidationError("species_matrices must be a list when present.")
+
+    matrices: dict[str, RuntimeSpeciesMatrix] = {}
+    for index, raw in enumerate(raw_matrices):
+        if not isinstance(raw, dict):
+            raise ArtifactValidationError(f"Species matrix {index} must be an object.")
+        group = raw.get("group")
+        raw_path = raw.get("path")
+        if not isinstance(group, str) or not group:
+            raise ArtifactValidationError(f"Species matrix {index} must include group.")
+        if not isinstance(raw_path, str) or not raw_path:
+            raise ArtifactValidationError(f"Species matrix {group} must include path.")
+
+        path = _relative_artifact_path(manifest_path, raw_path)
+        if not path.exists():
+            raise ArtifactValidationError(f"Species matrix {group} is missing.")
+        _verify_checksum(path, raw.get("checksum"), f"Species matrix {group}")
+
+        metric_ids = raw.get("metric_ids") if isinstance(raw.get("metric_ids"), list) else []
+        matrices[group] = RuntimeSpeciesMatrix(
+            group=group,
+            path=path,
+            source_url=raw.get("source_url") if isinstance(raw.get("source_url"), str) else None,
+            metric_ids=tuple(str(metric_id) for metric_id in metric_ids),
+        )
+    return matrices
+
+
 def _load_raster_artifact(
     manifest_path: Path,
     manifest: dict[str, Any],
@@ -302,18 +345,29 @@ def _load_raster_artifact(
         raise ArtifactValidationError(f"Reference raster could not be opened: {exc}") from exc
 
     layers = _load_raster_layers(manifest_path, manifest)
+    species_matrices = _load_species_matrices(manifest_path, manifest)
+    species_pool_sizes = (
+        manifest.get("species_pool_sizes")
+        if isinstance(manifest.get("species_pool_sizes"), dict)
+        else {}
+    )
     metadata = {
         "artifact_kind": manifest.get("artifact_kind", "colombia-raster-custom-aoi/v1"),
         "reference_raster_path": str(resolved_reference),
         "reference_raster": reference_metadata,
         "raster_layer_count": len(layers),
         "raster_layers": sorted(layers.keys()),
+        "species_matrix_count": len(species_matrices),
+        "species_matrix_groups": sorted(species_matrices.keys()),
+        "species_pool_sizes": species_pool_sizes,
         "metric_coverage": manifest.get("metric_coverage", {}),
     }
     artifact = RuntimeArtifact(
         manifest=manifest,
         reference_raster_path=resolved_reference,
         raster_layers=layers,
+        species_matrices=species_matrices,
+        species_pool_sizes=species_pool_sizes,
     )
     return artifact, metadata
 

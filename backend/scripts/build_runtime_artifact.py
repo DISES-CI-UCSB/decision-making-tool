@@ -18,9 +18,12 @@ if str(METRICS_PIPELINE) not in sys.path:
 
 from blob_manifest import DEFAULT_MANIFEST_URL, fetch_manifest  # noqa: E402
 from metric_definitions import METRIC_CATALOG  # noqa: E402
+from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records  # noqa: E402
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
+SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
+SPECIES_MATRIX_GROUPS = (*CLASS_BUCKETS, "threatened")
 
 
 @dataclass(frozen=True)
@@ -29,6 +32,13 @@ class LayerSpec:
     url: str
     kind: str
     rendering: dict[str, Any]
+    metric_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class SpeciesMatrixSpec:
+    group: str
+    url: str
     metric_ids: tuple[str, ...]
 
 
@@ -62,6 +72,7 @@ def main() -> None:
     )
 
     layer_specs = build_layer_specs(manifest.layers_by_id)
+    species_specs = build_species_matrix_specs()
     layer_entries: list[dict[str, Any]] = []
     file_entries = [file_entry(reference.path, artifact_dir, reference.sha256, reference.bytes)]
     downloaded_by_url = {str(reference_layer["displayUrl"]): reference}
@@ -90,6 +101,26 @@ def main() -> None:
             }
         )
 
+    species_entries: list[dict[str, Any]] = []
+    for spec in species_specs:
+        cached = download_source(
+            spec.url,
+            sources_dir / "species-sparse" / f"species_{safe_filename(spec.group)}.smtx.gz",
+            force=args.force,
+        )
+        file_entries.append(file_entry(cached.path, artifact_dir, cached.sha256, cached.bytes))
+        species_entries.append(
+            {
+                "group": spec.group,
+                "path": str(cached.path.relative_to(artifact_dir)),
+                "source_url": spec.url,
+                "metric_ids": list(spec.metric_ids),
+                "checksum": {"algorithm": "sha256", "value": cached.sha256},
+                "size_bytes": cached.bytes,
+            }
+        )
+
+    species_pool_sizes = load_species_pool_sizes()
     aggregate_checksum = aggregate_file_checksum(file_entries)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     runtime_manifest = {
@@ -110,7 +141,9 @@ def main() -> None:
         "reference_raster_path": str(reference.path.relative_to(artifact_dir)),
         "reference_raster_checksum": {"algorithm": "sha256", "value": reference.sha256},
         "raster_layers": layer_entries,
-        "metric_coverage": metric_coverage(layer_specs),
+        "species_matrices": species_entries,
+        "species_pool_sizes": species_pool_sizes,
+        "metric_coverage": metric_coverage(layer_specs, species_specs),
         "files": file_entries,
     }
 
@@ -222,6 +255,37 @@ def metric_ids_for_layer(layer_id: str) -> tuple[str, ...]:
     return tuple(metric.metric_id for metric in METRIC_CATALOG if metric.layer_id == layer_id)
 
 
+def build_species_matrix_specs() -> list[SpeciesMatrixSpec]:
+    return [
+        SpeciesMatrixSpec(
+            group=group,
+            url=f"{PUBLIC_BLOB_HOST}/inputs/features/species-sparse/species_{group}.smtx.gz",
+            metric_ids=metric_ids_for_species_group(group),
+        )
+        for group in SPECIES_MATRIX_GROUPS
+    ]
+
+
+def metric_ids_for_species_group(group: str) -> tuple[str, ...]:
+    if group == "threatened":
+        return ("threatened_species_count",)
+    return tuple(
+        metric.metric_id
+        for metric in METRIC_CATALOG
+        if metric.kind == "species_richness" and metric.species_bucket == group
+    )
+
+
+def load_species_pool_sizes() -> dict[str, Any]:
+    records = load_species_records(SPECIES_CSV_PATH)
+    pool_sizes = compute_pool_sizes(records)
+    return {
+        "total_non_fish": pool_sizes.total_non_fish,
+        "threatened_total": pool_sizes.threatened_total,
+        "by_bucket": dict(pool_sizes.by_bucket),
+    }
+
+
 @dataclass(frozen=True)
 class DownloadedSource:
     path: Path
@@ -267,18 +331,22 @@ def aggregate_file_checksum(files: list[dict[str, Any]]) -> str:
     return digest.hexdigest()
 
 
-def metric_coverage(layer_specs: list[LayerSpec]) -> dict[str, Any]:
+def metric_coverage(layer_specs: list[LayerSpec], species_specs: list[SpeciesMatrixSpec]) -> dict[str, Any]:
     implemented = {
         "priority_area_in_region",
         "national_contribution",
         "priority_area_pct_of_region",
+        "species_pct_of_national",
     }
     for spec in layer_specs:
+        implemented.update(spec.metric_ids)
+    for spec in species_specs:
         implemented.update(spec.metric_ids)
 
     species = [
         metric.metric_id for metric in METRIC_CATALOG if str(metric.kind).startswith("species_")
     ]
+    species_not_custom_aoi = ["threatened_species_secured"]
     metadata = [
         metric.metric_id for metric in METRIC_CATALOG if metric.kind in {"metadata_summary", "metadata_coverage"}
     ]
@@ -287,14 +355,14 @@ def metric_coverage(layer_specs: list[LayerSpec]) -> dict[str, Any]:
 
     return {
         "implemented_now": sorted(implemented),
-        "feasible_next": sorted(species),
+        "feasible_next": sorted(set(species) - implemented - set(species_not_custom_aoi)),
         "blocked_missing_data_or_definition": sorted(metadata + blocked),
-        "unsuitable_live_custom_polygon_without_new_design": sorted(deferred),
+        "unsuitable_live_custom_polygon_without_new_design": sorted(deferred + species_not_custom_aoi),
         "notes": {
-            "implemented_now": "Area, binary overlap, percent overlap, land-cover, protected-area, water, and carbon metrics using published rasters.",
-            "feasible_next": "Species metrics have calculator logic but require a live species range accumulator artifact rather than per-request downloads of thousands of rasters.",
+            "implemented_now": "Area, binary overlap, percent overlap, land-cover, protected-area, water, carbon, species richness, threatened species count, and national species percent metrics.",
+            "feasible_next": "No cataloged species overlap metrics remain feasible with the current custom AOI request contract.",
             "metadata": "Manifest summary metrics are scenario metadata and do not apply directly to arbitrary custom polygons.",
-            "deferred": "Pairwise comparison metrics require two scenarios, not one custom polygon.",
+            "deferred": "Pairwise comparison metrics require two scenarios. Threatened species secured requires a scenario target percent that custom AOI requests do not currently provide.",
         },
     }
 

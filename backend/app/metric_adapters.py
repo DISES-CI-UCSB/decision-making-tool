@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import gzip
+import json
 import os
+import struct
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -10,7 +13,7 @@ import numpy as np
 from affine import Affine
 from rasterio.features import geometry_mask
 
-from .artifacts import RuntimeRasterLayer
+from .artifacts import RuntimeRasterLayer, RuntimeSpeciesMatrix
 
 
 def _install_metrics_pipeline_path() -> Path:
@@ -52,6 +55,8 @@ from raster_metrics import (  # noqa: E402
     read_layer_values,
     read_solution_raster,
 )
+from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata  # noqa: E402
+from species_data import CLASS_BUCKETS  # noqa: E402
 
 AREA_METRIC_IDS = ("national_contribution", "priority_area_in_region")
 AREA_ALIAS = "area"
@@ -94,11 +99,26 @@ _WEIGHTED_PERCENT_CALCULATORS = {
     "biomasa": calc_carbon.national_carbon_percent,
 }
 
+_SPECIES_RICHNESS_FIELDS = {
+    "mammals": "species_richness_mammals",
+    "birds": "species_richness_birds",
+    "amphibians": "species_richness_amphibians",
+    "reptiles": "species_richness_reptiles",
+    "plants": "species_richness_plants",
+}
+
+_SPECIES_GROUP_METRIC_IDS = {
+    **{metric_id: group for group, metric_id in _SPECIES_RICHNESS_FIELDS.items()},
+    "threatened_species_count": "threatened",
+}
+
+_SPECIES_PCT_METRIC_ID = "species_pct_of_national"
+_SPECIES_SECURED_METRIC_ID = "threatened_species_secured"
+
 IMPLEMENTED_RASTER_METRIC_IDS = tuple(
     metric.metric_id
     for metric in METRIC_CATALOG
-    if metric.kind
-    in {
+    if metric.kind in {
         "selected_area",
         "national_percent",
         "aoi_percent",
@@ -106,6 +126,10 @@ IMPLEMENTED_RASTER_METRIC_IDS = tuple(
         "binary_overlap_percent_of_selected",
         "weighted_sum",
         "weighted_percent_of_national",
+    }
+    or metric.metric_id in {
+        *_SPECIES_GROUP_METRIC_IDS,
+        _SPECIES_PCT_METRIC_ID,
     }
 )
 
@@ -217,13 +241,17 @@ def build_custom_aoi_raster(reference_raster_path: Path, geometry: dict[str, Any
 def calculate_raster_metrics_for_aoi(
     raster: SolutionRaster,
     layers: dict[str, RuntimeRasterLayer],
+    species_matrices: dict[str, RuntimeSpeciesMatrix],
+    species_pool_sizes: dict[str, Any],
     metric_ids: list[str],
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
     metrics: dict[str, float | None] = {}
     unavailable: list[dict[str, str]] = []
     mask_cache: dict[str, np.ndarray] = {}
     value_cache: dict[str, np.ndarray] = {}
+    species_counts: dict[str, int] = {}
     used_layers: set[str] = set()
+    used_species_matrices: set[str] = set()
 
     for metric_id in metric_ids:
         definition = METRIC_DEFINITIONS_BY_ID.get(metric_id)
@@ -245,8 +273,21 @@ def calculate_raster_metrics_for_aoi(
             unavailable.append({"metric_id": metric_id, "reason": "requires_solution_manifest_metadata"})
             continue
         if definition.kind.startswith("species_"):
-            metrics[metric_id] = None
-            unavailable.append({"metric_id": metric_id, "reason": "species_range_accumulator_not_in_live_artifact"})
+            try:
+                value, groups = _calculate_species_metric(
+                    metric_id,
+                    definition,
+                    raster,
+                    species_matrices,
+                    species_pool_sizes,
+                    species_counts,
+                )
+            except SpeciesMetricUnavailable as exc:
+                metrics[metric_id] = None
+                unavailable.append({"metric_id": metric_id, "reason": exc.reason})
+                continue
+            metrics[metric_id] = value
+            used_species_matrices.update(groups)
             continue
         if definition.kind == "deferred_pairwise":
             metrics[metric_id] = None
@@ -289,6 +330,7 @@ def calculate_raster_metrics_for_aoi(
         "implemented_metric_ids": list(IMPLEMENTED_RASTER_METRIC_IDS),
         "unavailable": unavailable,
         "layer_ids_used": sorted(used_layers),
+        "species_matrix_groups_used": sorted(used_species_matrices),
         "processed_cell_count": int(raster.valid_cells),
         "selected_cell_count": int(raster.selected_cells),
         "valid_cell_count": int(raster.valid_cells),
@@ -352,3 +394,173 @@ def _calculate_weighted_metric(
     if calc_fn is None:
         raise ValueError(f"No weighted-sum calculator registered for {definition.metric_id}.")
     return calc_fn(raster, values)
+
+
+class SpeciesMetricUnavailable(ValueError):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _calculate_species_metric(
+    metric_id: str,
+    definition: MetricDefinition,
+    raster: SolutionRaster,
+    matrices: dict[str, RuntimeSpeciesMatrix],
+    pool_sizes: dict[str, Any],
+    counts_cache: dict[str, int],
+) -> tuple[float | int, set[str]]:
+    if metric_id == _SPECIES_SECURED_METRIC_ID:
+        raise SpeciesMetricUnavailable("requires_species_target_percent")
+
+    if definition.kind == "species_richness":
+        group = definition.species_bucket
+        if not group:
+            raise SpeciesMetricUnavailable("species_metric_missing_bucket")
+        return _species_group_count(group, raster, matrices, counts_cache), {group}
+
+    if definition.kind == "species_threatened_count":
+        return _species_group_count("threatened", raster, matrices, counts_cache), {"threatened"}
+
+    if definition.kind == "species_pct_of_national":
+        missing = [group for group in CLASS_BUCKETS if group not in matrices]
+        if missing:
+            raise SpeciesMetricUnavailable("species_matrix_group_missing:" + ",".join(missing))
+        present = sum(
+            _species_group_count(group, raster, matrices, counts_cache)
+            for group in CLASS_BUCKETS
+        )
+        total = _species_total_non_fish(pool_sizes, matrices)
+        if total <= 0:
+            raise SpeciesMetricUnavailable("species_pool_size_unavailable")
+        return (present / total) * 100.0, set(CLASS_BUCKETS)
+
+    raise SpeciesMetricUnavailable(f"unhandled_species_kind:{definition.kind}")
+
+
+def _species_group_count(
+    group: str,
+    raster: SolutionRaster,
+    matrices: dict[str, RuntimeSpeciesMatrix],
+    counts_cache: dict[str, int],
+) -> int:
+    if group in counts_cache:
+        return counts_cache[group]
+    matrix_ref = matrices.get(group)
+    if matrix_ref is None:
+        raise SpeciesMetricUnavailable(f"species_matrix_group_missing:{group}")
+    count = _count_species_matrix_overlaps(matrix_ref, raster)
+    counts_cache[group] = count
+    return count
+
+
+def _count_species_matrix_overlaps(matrix: RuntimeSpeciesMatrix, raster: SolutionRaster) -> int:
+    try:
+        with gzip.open(matrix.path, "rb") as handle:
+            header = handle.read(8)
+            if len(header) < 8 or header[:4] != SMSP_MAGIC:
+                raise SparseFormatError(f"bad species matrix magic for {matrix.group}")
+            toc_length = struct.unpack_from("<I", header, 4)[0]
+            toc = json.loads(handle.read(toc_length).decode("utf-8"))
+            grid = _species_grid_from_toc(toc, matrix.group)
+            selected_window = _selected_window_for_species_grid(raster, grid, matrix.group)
+
+            present_count = 0
+            cursor = 0
+            for entry in toc.get("species") or []:
+                offset = int(entry["offset"])
+                cell_count = int(entry["count"])
+                if offset != cursor:
+                    raise SparseFormatError(
+                        f"species matrix {matrix.group} has non-sequential body offset"
+                    )
+                chunk = handle.read(cell_count * 4)
+                if len(chunk) != cell_count * 4:
+                    raise SparseFormatError(
+                        f"species matrix {matrix.group} body ended early"
+                    )
+                if _species_chunk_overlaps_selection(chunk, selected_window):
+                    present_count += 1
+                cursor += len(chunk)
+            return present_count
+    except (OSError, json.JSONDecodeError, KeyError, UnicodeDecodeError, SparseFormatError) as exc:
+        raise SpeciesMetricUnavailable(f"species_matrix_load_failed:{matrix.group}") from exc
+
+
+def _species_grid_from_toc(toc: dict[str, Any], group: str) -> SparseMetadata:
+    grid_raw = toc.get("grid")
+    if not isinstance(grid_raw, dict):
+        raise SparseFormatError(f"species matrix {group} is missing grid metadata")
+    grid_with_count = dict(grid_raw)
+    grid_with_count.setdefault("count", 0)
+    return SparseMetadata.from_json(grid_with_count)
+
+
+def _selected_window_for_species_grid(
+    raster: SolutionRaster,
+    grid: SparseMetadata,
+    group: str,
+) -> np.ndarray:
+    sol_a, sol_b, sol_c, sol_d, sol_e, sol_f = raster.fingerprint.transform
+    if (
+        abs(grid.x_scale - sol_a) > 1e-6
+        or abs(grid.y_scale - sol_e) > 1e-6
+        or abs(sol_b) > 1e-9
+        or abs(sol_d) > 1e-9
+    ):
+        raise SpeciesMetricUnavailable(f"species_matrix_grid_mismatch:{group}")
+
+    if grid.crs and raster.fingerprint.crs and str(grid.crs) != str(raster.fingerprint.crs):
+        raise SpeciesMetricUnavailable(f"species_matrix_crs_mismatch:{group}")
+
+    col_offset = round((grid.x_origin - sol_c) / sol_a)
+    row_offset = round((grid.y_origin - sol_f) / sol_e)
+    row_end = row_offset + grid.height
+    col_end = col_offset + grid.width
+    if (
+        row_offset < 0
+        or col_offset < 0
+        or row_end > raster.selected_mask.shape[0]
+        or col_end > raster.selected_mask.shape[1]
+    ):
+        raise SpeciesMetricUnavailable(f"species_matrix_outside_reference_grid:{group}")
+
+    return raster.selected_mask[row_offset:row_end, col_offset:col_end].ravel()
+
+
+def _species_chunk_overlaps_selection(chunk: bytes, selected_window: np.ndarray) -> bool:
+    if not chunk:
+        return False
+    deltas = np.frombuffer(chunk, dtype=np.uint32)
+    cell_ids = np.cumsum(deltas, dtype=np.uint32)
+    return bool(selected_window[cell_ids].any())
+
+
+def _species_total_non_fish(
+    pool_sizes: dict[str, Any],
+    matrices: dict[str, RuntimeSpeciesMatrix],
+) -> int:
+    raw_total = pool_sizes.get("total_non_fish")
+    if isinstance(raw_total, (int, float)) and raw_total > 0:
+        return int(raw_total)
+
+    total = 0
+    for group in CLASS_BUCKETS:
+        matrix_ref = matrices.get(group)
+        if matrix_ref is None:
+            continue
+        total += _species_matrix_entry_count(matrix_ref)
+    return total
+
+
+def _species_matrix_entry_count(matrix: RuntimeSpeciesMatrix) -> int:
+    try:
+        with gzip.open(matrix.path, "rb") as handle:
+            header = handle.read(8)
+            if len(header) < 8 or header[:4] != SMSP_MAGIC:
+                raise SparseFormatError(f"bad species matrix magic for {matrix.group}")
+            toc_length = struct.unpack_from("<I", header, 4)[0]
+            toc = json.loads(handle.read(toc_length).decode("utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, SparseFormatError) as exc:
+        raise SpeciesMetricUnavailable(f"species_matrix_load_failed:{matrix.group}") from exc
+    return len(toc.get("species") or [])
