@@ -122,6 +122,13 @@ interface AoiLandUseBar {
   color: string;
 }
 
+interface CustomAoiMetricDisplayEntry {
+  id: CustomPolygonMetricId;
+  labelKey: string;
+  value: string;
+  unavailable: boolean;
+}
+
 interface ComparisonVisualizationOption {
   id: ComparisonVisualizationMode;
   labelKey: string;
@@ -611,6 +618,21 @@ export class PanelSwitcherComponent {
   protected readonly isCustomAoiSelected = computed(
     () => this.selectedAoi()?.type === 'custom' && this.customAoiGeometry() !== null,
   );
+  protected readonly customAoiMetricDisplayEntries = computed<CustomAoiMetricDisplayEntry[]>(() => {
+    const metricsById = new Map(this.customAoiMetrics().map((metric) => [metric.metricId, metric]));
+    return CUSTOM_AOI_METRIC_IDS.map((metricId) => {
+      const metric = metricsById.get(metricId);
+      const hasValue = metric?.status === 'ready' && metric.value !== null;
+      return {
+        id: metricId,
+        labelKey: CUSTOM_AOI_METRIC_DEFINITIONS[metricId].labelKey,
+        value: hasValue
+          ? this.formatMetricForPanel(metric)
+          : this.localizedText('analysis.common.valueUnavailable', 'Unavailable'),
+        unavailable: !hasValue,
+      };
+    });
+  });
 
   protected readonly comparisonMetrics = computed(() => {
     const baselineMetrics = nationalMetrics(this.cachedMetricsDocument());
@@ -1420,7 +1442,7 @@ export class PanelSwitcherComponent {
   }
 
   private mapCustomPolygonMetrics(response: CustomPolygonMetricsResponse): MetricValue[] {
-    if (response.status !== 'ok' || !response.metrics) {
+    if (response.status !== 'ok') {
       this.customAoiMetricsLoadFailed.set(true);
       this.customAoiMetricsMessage.set(
         response.message || 'Custom polygon metrics are unavailable.',
@@ -1437,7 +1459,7 @@ export class PanelSwitcherComponent {
 
   private buildCustomAoiMetricValue(
     metricId: CustomPolygonMetricId,
-    rawValue: number | null,
+    rawValue: number | null | undefined,
   ): MetricValue {
     const definition = CUSTOM_AOI_METRIC_DEFINITIONS[metricId];
     const value = typeof rawValue === 'number' && Number.isFinite(rawValue) ? rawValue : null;
@@ -1452,7 +1474,33 @@ export class PanelSwitcherComponent {
   }
 
   private getCustomAoiErrorMessage(error: unknown): string {
+    const detail = this.getHttpErrorDetail(error);
+    if (detail) {
+      return detail;
+    }
     return error instanceof Error ? error.message : 'Custom polygon metrics could not be loaded.';
+  }
+
+  private getHttpErrorDetail(error: unknown): string | null {
+    if (!error || typeof error !== 'object' || !('error' in error)) {
+      return null;
+    }
+
+    const responseBody = (error as { error?: unknown }).error;
+    if (!responseBody || typeof responseBody !== 'object' || !('detail' in responseBody)) {
+      return null;
+    }
+
+    const detail = (responseBody as { detail?: unknown }).detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    if (detail && typeof detail === 'object' && 'message' in detail) {
+      const message = (detail as { message?: unknown }).message;
+      return typeof message === 'string' ? message : null;
+    }
+
+    return null;
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {

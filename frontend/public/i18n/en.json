@@ -50,7 +50,10 @@
     },
     "cost": {
       "label": "Implementation Cost"
-    }
+    },
+    "custom_polygon_area": "Drawn AOI area",
+    "priority_area_total": "Priority area",
+    "national_contribution": "National contribution"
   },
   "mapLegend": {
     "title": "Legend",
@@ -334,7 +337,8 @@
         "department": "Department",
         "sirap": "SIRAP",
         "omec": "OMEC",
-        "runap": "RUNAP"
+        "runap": "RUNAP",
+        "custom": "Custom AOI"
       },
       "emptyTitle": "No area of interest selected",
       "emptyDescription": "Select an AOI to populate this panel with local metrics and context.",

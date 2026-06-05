@@ -689,6 +689,33 @@
                     <p id="aoi-custom-metrics-loaded" class="m-0">
                       Custom polygon metrics are loaded from the backend API.
                     </p>
+                    <div
+                      id="aoi-custom-metrics-summary-grid"
+                      class="mt-2 grid grid-cols-1 gap-2"
+                      aria-live="polite"
+                    >
+                      @for (entry of customAoiMetricDisplayEntries(); track entry.id) {
+                        <div
+                          [id]="'aoi-custom-metrics-summary-row-' + entry.id"
+                          class="flex items-center justify-between gap-3 rounded-md bg-white px-2 py-1"
+                          [class.text-slate-500]="entry.unavailable"
+                        >
+                          <span
+                            [id]="'aoi-custom-metrics-summary-label-' + entry.id"
+                            class="font-medium"
+                          >
+                            {{ entry.labelKey | translate }}
+                          </span>
+                          <span
+                            [id]="'aoi-custom-metrics-summary-value-' + entry.id"
+                            class="font-semibold tabular-nums text-slate-900"
+                            [class.text-slate-500]="entry.unavailable"
+                          >
+                            {{ entry.value }}
+                          </span>
+                        </div>
+                      }
+                    </div>
                   }
                 </div>
               }

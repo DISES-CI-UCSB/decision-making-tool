@@ -50,7 +50,10 @@
     },
     "cost": {
       "label": "Costo de implementacion"
-    }
+    },
+    "custom_polygon_area": "Area del AOI dibujada",
+    "priority_area_total": "Area prioritaria",
+    "national_contribution": "Contribucion nacional"
   },
   "mapLegend": {
     "title": "Leyenda",
@@ -259,7 +262,8 @@
         "department": "Departamento",
         "sirap": "SIRAP",
         "omec": "OMEC",
-        "runap": "RUNAP"
+        "runap": "RUNAP",
+        "custom": "AOI personalizado"
       },
       "emptyTitle": "No hay un area de interes seleccionada",
       "emptyDescription": "Selecciona un AOI para completar este panel con metricas locales y contexto.",
