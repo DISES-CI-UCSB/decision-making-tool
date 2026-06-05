@@ -1525,7 +1525,12 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
         nextVisible = !row.visible;
         nextSelected = row.selected || nextVisible;
-        return { ...row, selected: nextSelected, visible: nextVisible };
+        return {
+          ...row,
+          selected: nextSelected,
+          expanded: nextSelected ? true : row.expanded,
+          visible: nextVisible,
+        };
       }),
     );
     this.updateSelectedLayerOrder(rowId, nextSelected);
@@ -1546,6 +1551,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...row,
           selected: nextSelected,
+          expanded: nextSelected ? true : row.expanded,
           visible: row.mapUnavailable
             ? false
             : nextSelected
@@ -1608,7 +1614,12 @@ export class MapLayersPanelComponent implements OnDestroy {
                   nextVisible = !row.visible;
                   nextSelected = row.selected || nextVisible;
                   didToggle = true;
-                  return { ...row, selected: nextSelected, visible: nextVisible };
+                  return {
+                    ...row,
+                    selected: nextSelected,
+                    expanded: nextSelected ? true : row.expanded,
+                    visible: nextVisible,
+                  };
                 })()
               : row,
           ),
@@ -1643,6 +1654,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             return {
               ...row,
               selected: nextSelected,
+              expanded: nextSelected ? true : row.expanded,
               // Removing a layer from selected should also remove it from the map.
               visible: row.mapUnavailable
                 ? false
@@ -1738,7 +1750,12 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
         nextVisible = !row.visible;
         nextSelected = row.selected || nextVisible;
-        return { ...row, selected: nextSelected, visible: nextVisible };
+        return {
+          ...row,
+          selected: nextSelected,
+          expanded: nextSelected ? true : row.expanded,
+          visible: nextVisible,
+        };
       }),
     );
     this.updateSelectedLayerOrder(rowId, nextSelected);
@@ -1755,6 +1772,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...row,
           selected: nextSelected,
+          expanded: nextSelected ? true : row.expanded,
           // If a row cannot be visualized on the map, keep visibility off.
           visible: row.mapUnavailable ? false : nextSelected ? row.visible : false,
         };
@@ -1799,7 +1817,12 @@ export class MapLayersPanelComponent implements OnDestroy {
                   }
                   nextVisible = !species.visible;
                   nextSelected = species.selected || nextVisible;
-                  return { ...species, selected: nextSelected, visible: nextVisible };
+                  return {
+                    ...species,
+                    selected: nextSelected,
+                    expanded: nextSelected ? true : species.expanded,
+                    visible: nextVisible,
+                  };
                 })()
               : species,
           ),
@@ -1828,6 +1851,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             return {
               ...species,
               selected: nextSelected,
+              expanded: nextSelected ? true : species.expanded,
               // Removing a layer from selected should also remove it from the map.
               visible: species.mapUnavailable
                 ? false
@@ -2160,6 +2184,30 @@ export class MapLayersPanelComponent implements OnDestroy {
     return false;
   }
 
+  protected isSelectedLayerExpanded(rowId: string): boolean {
+    const overlay = this.overlays().find((row) => row.id === rowId);
+    if (overlay) {
+      return overlay.expanded;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon.expanded;
+    }
+
+    const groupRowMatch = this.findGroupRowById(rowId);
+    if (groupRowMatch) {
+      return groupRowMatch.row.expanded;
+    }
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      return speciesMatch.species.expanded;
+    }
+
+    return false;
+  }
+
   protected toggleSelectedLayerVisibility(rowId: string): void {
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlayVisibility(rowId);
@@ -2181,6 +2229,30 @@ export class MapLayersPanelComponent implements OnDestroy {
     const speciesMatch = this.findSpeciesById(rowId);
     if (speciesMatch) {
       this.toggleSpeciesVisibility(speciesMatch.taxonId, rowId);
+    }
+  }
+
+  protected toggleSelectedLayerExpanded(rowId: string): void {
+    if (rowId.startsWith('overlay-')) {
+      this.toggleOverlayExpanded(rowId);
+      return;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      this.toggleTaxonExpanded(rowId);
+      return;
+    }
+
+    const groupId = this.findGroupIdByRowId(rowId);
+    if (groupId) {
+      this.toggleLayerExpanded(groupId, rowId);
+      return;
+    }
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.toggleSpeciesExpanded(speciesMatch.taxonId, rowId);
     }
   }
 
@@ -3851,7 +3923,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       name,
       selected,
       visible,
-      expanded: false,
+      expanded: selected,
       opacity: 100,
       color: '#111827',
       canReorder: false,

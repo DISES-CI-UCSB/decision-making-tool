@@ -143,8 +143,8 @@
                   data-ui="selected-layer-row-header"
                   [attr.data-layer-id]="selected.id"
                   class="map-layers-selected-layer-row-header col-start-2 flex min-w-0 items-center gap-1.5 pr-3 pt-2"
-                  [class.pb-0]="!selected.mapUnavailable"
-                  [class.pb-2]="selected.mapUnavailable"
+                  [class.pb-0]="!selected.mapUnavailable && isSelectedLayerExpanded(selected.id)"
+                  [class.pb-2]="selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)"
                 >
                   <div
                     [id]="'map-layers-selected-layer-row-title-wrap-' + selected.id"
@@ -273,6 +273,43 @@
                         </svg>
                       }
                     </button>
+                    <button
+                      [id]="'map-layers-selected-layer-row-expand-button-' + selected.id"
+                      data-ui="selected-layer-expand-button"
+                      [attr.data-layer-id]="selected.id"
+                      type="button"
+                      class="map-layers-chevron-button inline-flex h-7 w-5 shrink-0 items-center justify-center transition"
+                      [class.rotate-180]="
+                        selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)
+                      "
+                      [class.cursor-not-allowed]="selected.mapUnavailable"
+                      [class.opacity-50]="selected.mapUnavailable"
+                      [disabled]="selected.mapUnavailable"
+                      [attr.aria-label]="
+                        selected.mapUnavailable
+                          ? ('mapLayersPanel.styleControlsUnavailable'
+                            | translate: { name: selected.name })
+                          : ('mapLayersPanel.toggleControls' | translate: { name: selected.name })
+                      "
+                      [attr.aria-expanded]="
+                        selected.mapUnavailable ? false : isSelectedLayerExpanded(selected.id)
+                      "
+                      (click)="toggleSelectedLayerExpanded(selected.id)"
+                    >
+                      <svg
+                        [id]="'map-layers-selected-layer-row-expand-icon-' + selected.id"
+                        class="map-layers-chevron-icon h-3 w-3"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
 
@@ -282,6 +319,8 @@
                     data-ui="selected-layer-controls"
                     [attr.data-layer-id]="selected.id"
                     class="map-layers-collapsible col-start-2"
+                    [class.map-layers-collapsible-collapsed]="!isSelectedLayerExpanded(selected.id)"
+                    [attr.aria-hidden]="!isSelectedLayerExpanded(selected.id)"
                   >
                     <div class="map-layers-collapsible-content">
                       <div
