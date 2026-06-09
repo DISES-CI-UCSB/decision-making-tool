@@ -42,6 +42,7 @@ def calculate_custom_polygon_metrics(
             raster,
             artifact.raster_layers,
             artifact.species_matrices,
+            artifact.species_index,
             artifact.species_pool_sizes,
             metric_ids,
         )

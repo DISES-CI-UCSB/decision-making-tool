@@ -288,6 +288,17 @@
         "nationalContributionLabel": "Contribución 30×30",
         "existingAdds": "Existente {{existing}} + agrega {{added}}"
       },
+      "customMetrics": {
+        "loading": "Cargando métricas del polígono personalizado desde la API...",
+        "loadError": "No se pudieron cargar las métricas del polígono personalizado.",
+        "loaded": "Métricas del polígono personalizado cargadas desde la API: {{count}} métricas recibidas.",
+        "statusReturned": "Las métricas del polígono personalizado devolvieron {{status}}.",
+        "unavailable": "Las métricas del polígono personalizado no están disponibles.",
+        "speciesProgressLabel": "Calculando métricas de biodiversidad... {{percent}}%",
+        "speciesDuration": "Normalmente tarda entre 35 y 45 segundos.",
+        "speciesDurationCustomAoi": "Normalmente tarda entre 35 y 45 segundos para AOI dibujados a mano.",
+        "speciesLoadError": "No se pudieron cargar las métricas de biodiversidad."
+      },
       "biodiversityTaxa": {
         "mammals": "Mamíferos",
         "birds": "Aves",

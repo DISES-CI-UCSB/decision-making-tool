@@ -8,7 +8,7 @@ export type MetricReadinessStatus =
 
 export type MetricValueFormatHint = 'number' | 'percent' | 'currency' | 'ratio' | 'index';
 
-export type CustomPolygonMetricId = 'area' | 'priority_area_in_region' | 'national_contribution';
+export type CustomPolygonMetricId = string;
 
 export interface GeoJsonPolygonGeometry {
   type: 'Polygon';

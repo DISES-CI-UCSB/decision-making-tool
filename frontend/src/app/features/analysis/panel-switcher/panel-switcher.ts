@@ -5,11 +5,13 @@ import {
   type AnalysisMetricSectionFixture,
   type CachedSolutionMetricsDocument,
   type CustomPolygonMetricId,
+  type CustomPolygonMetricsGeometry,
   type CustomPolygonMetricsResponse,
   type GeographyLevel,
   type MetricComparisonValue,
   type MetricReadinessStatus,
   type MetricValue,
+  type MetricValueFormatHint,
   type Solution,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
@@ -28,7 +30,18 @@ import {
 } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { catchError, distinctUntilChanged, finalize, map, of, switchMap } from 'rxjs';
+import {
+  catchError,
+  concat,
+  distinctUntilChanged,
+  finalize,
+  interval,
+  map,
+  of,
+  switchMap,
+  tap,
+} from 'rxjs';
+import type { Observable, Subscription } from 'rxjs';
 import {
   AOI_ECOSYSTEM_SEGMENTS,
   CHART_PALETTES,
@@ -135,15 +148,58 @@ interface ComparisonVisualizationOption {
   descriptionKey: string;
 }
 
-const CUSTOM_AOI_METRIC_IDS: CustomPolygonMetricId[] = [
+const CUSTOM_AOI_SUMMARY_METRIC_IDS: CustomPolygonMetricId[] = [
   'area',
   'priority_area_in_region',
   'national_contribution',
 ];
 
-const CUSTOM_AOI_METRIC_DEFINITIONS: Record<
-  CustomPolygonMetricId,
-  Pick<MetricValue, 'metricId' | 'unit' | 'labelKey' | 'formatHint'>
+const CUSTOM_AOI_FAST_METRIC_IDS: CustomPolygonMetricId[] = [
+  'priority_area_in_region',
+  'national_contribution',
+  'ecosystem_coverage',
+  'carbon_storage_biomass',
+  'water_regulation_area',
+  'agricultural_area',
+  'priority_area_pct_of_region',
+  'ecosystem_coverage_paramo',
+  'ecosystem_coverage_dry_forest',
+  'ecosystem_coverage_wetlands',
+  'mangrove_coverage',
+  'carbon_biomass_total',
+  'soil_organic_carbon',
+  'carbon_pct_of_national',
+  'water_regulation_pct',
+  'land_use_forest_pct',
+  'land_use_agriculture_pct',
+  'land_use_other_pct',
+  'indigenous_reservations_area',
+  'community_councils_area',
+  'protected_area_runap_km2',
+  'national_parks_pct',
+  'indigenous_territory_pct',
+];
+
+const CUSTOM_AOI_SPECIES_METRIC_IDS: CustomPolygonMetricId[] = [
+  'species_richness_mammals',
+  'species_richness_birds',
+  'species_richness_amphibians',
+  'species_richness_reptiles',
+  'species_richness_plants',
+  'threatened_species_count',
+  'species_pct_of_national',
+];
+
+type CustomAoiMetricRequestMode = 'fast' | 'species';
+
+type CustomAoiMetricDefinition = Pick<MetricValue, 'metricId' | 'unit' | 'labelKey' | 'formatHint'>;
+
+const CUSTOM_AOI_SPECIES_PROGRESS_EXPECTED_MS = 40_000;
+const CUSTOM_AOI_SPECIES_PROGRESS_UPDATE_MS = 500;
+const CUSTOM_AOI_SPECIES_PROGRESS_LOADING_CAP = 98;
+
+const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
+  Record<CustomPolygonMetricId, CustomAoiMetricDefinition>
 > = {
   area: {
     metricId: 'area',
@@ -161,6 +217,180 @@ const CUSTOM_AOI_METRIC_DEFINITIONS: Record<
     metricId: 'national_contribution',
     unit: '%',
     labelKey: 'metrics.national_contribution',
+    formatHint: 'percent',
+  },
+  ecosystem_coverage: {
+    metricId: 'ecosystem_coverage',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.ecosystem_coverage',
+    formatHint: 'number',
+  },
+  threatened_species_secured: {
+    metricId: 'threatened_species_secured',
+    unit: 'count',
+    labelKey: 'metrics.tier1.threatened_species_secured',
+    formatHint: 'number',
+  },
+  carbon_storage_biomass: {
+    metricId: 'carbon_storage_biomass',
+    unit: 'Mg·km²',
+    labelKey: 'metrics.tier1.carbon_storage_biomass',
+    formatHint: 'number',
+  },
+  water_regulation_area: {
+    metricId: 'water_regulation_area',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.water_regulation_area',
+    formatHint: 'number',
+  },
+  agricultural_area: {
+    metricId: 'agricultural_area',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.agricultural_area',
+    formatHint: 'number',
+  },
+  priority_area_pct_of_region: {
+    metricId: 'priority_area_pct_of_region',
+    unit: '%',
+    labelKey: 'metrics.tier1.priority_area_pct_of_region',
+    formatHint: 'percent',
+  },
+  ecosystem_coverage_paramo: {
+    metricId: 'ecosystem_coverage_paramo',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.ecosystem_paramo',
+    formatHint: 'number',
+  },
+  ecosystem_coverage_dry_forest: {
+    metricId: 'ecosystem_coverage_dry_forest',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.ecosystem_dry_forest',
+    formatHint: 'number',
+  },
+  ecosystem_coverage_wetlands: {
+    metricId: 'ecosystem_coverage_wetlands',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.ecosystem_wetlands',
+    formatHint: 'number',
+  },
+  mangrove_coverage: {
+    metricId: 'mangrove_coverage',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.ecosystem_mangroves',
+    formatHint: 'number',
+  },
+  species_richness_mammals: {
+    metricId: 'species_richness_mammals',
+    unit: 'count',
+    labelKey: 'metrics.tier1.species_richness_mammals',
+    formatHint: 'number',
+  },
+  species_richness_birds: {
+    metricId: 'species_richness_birds',
+    unit: 'count',
+    labelKey: 'metrics.tier1.species_richness_birds',
+    formatHint: 'number',
+  },
+  species_richness_amphibians: {
+    metricId: 'species_richness_amphibians',
+    unit: 'count',
+    labelKey: 'metrics.tier1.species_richness_amphibians',
+    formatHint: 'number',
+  },
+  species_richness_reptiles: {
+    metricId: 'species_richness_reptiles',
+    unit: 'count',
+    labelKey: 'metrics.tier1.species_richness_reptiles',
+    formatHint: 'number',
+  },
+  species_richness_plants: {
+    metricId: 'species_richness_plants',
+    unit: 'count',
+    labelKey: 'metrics.tier1.species_richness_plants',
+    formatHint: 'number',
+  },
+  threatened_species_count: {
+    metricId: 'threatened_species_count',
+    unit: 'count',
+    labelKey: 'metrics.tier1.threatened_species_count',
+    formatHint: 'number',
+  },
+  species_pct_of_national: {
+    metricId: 'species_pct_of_national',
+    unit: '%',
+    labelKey: 'metrics.tier1.species_pct_of_national',
+    formatHint: 'percent',
+  },
+  carbon_biomass_total: {
+    metricId: 'carbon_biomass_total',
+    unit: 'Mg·km²',
+    labelKey: 'metrics.tier1.carbon_biomass_total',
+    formatHint: 'number',
+  },
+  soil_organic_carbon: {
+    metricId: 'soil_organic_carbon',
+    unit: 'Mg·km²',
+    labelKey: 'metrics.tier1.soil_organic_carbon',
+    formatHint: 'number',
+  },
+  carbon_pct_of_national: {
+    metricId: 'carbon_pct_of_national',
+    unit: '%',
+    labelKey: 'metrics.tier1.carbon_pct_of_national',
+    formatHint: 'percent',
+  },
+  water_regulation_pct: {
+    metricId: 'water_regulation_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.water_regulation_pct',
+    formatHint: 'percent',
+  },
+  land_use_forest_pct: {
+    metricId: 'land_use_forest_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_forest_pct',
+    formatHint: 'percent',
+  },
+  land_use_agriculture_pct: {
+    metricId: 'land_use_agriculture_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_agriculture_pct',
+    formatHint: 'percent',
+  },
+  land_use_other_pct: {
+    metricId: 'land_use_other_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_other_pct',
+    formatHint: 'percent',
+  },
+  indigenous_reservations_area: {
+    metricId: 'indigenous_reservations_area',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.indigenous_reservations_area',
+    formatHint: 'number',
+  },
+  community_councils_area: {
+    metricId: 'community_councils_area',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.community_councils_area',
+    formatHint: 'number',
+  },
+  protected_area_runap_km2: {
+    metricId: 'protected_area_runap_km2',
+    unit: 'km²',
+    labelKey: 'metrics.tier1.protected_area_runap_km2',
+    formatHint: 'number',
+  },
+  national_parks_pct: {
+    metricId: 'national_parks_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.national_parks_pct',
+    formatHint: 'percent',
+  },
+  indigenous_territory_pct: {
+    metricId: 'indigenous_territory_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.indigenous_territory_pct',
     formatHint: 'percent',
   },
 };
@@ -249,6 +479,8 @@ export class PanelSwitcherComponent {
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
+  private customAoiMetricsRequestSequence = 0;
+  private customAoiSpeciesProgressSubscription: Subscription | null = null;
 
   /** Reactive comparison colors sourced from the SolutionLayerService (driven by the left sidebar). */
   protected readonly comparisonBaselineColor = this.solutionLayer.baselineColor$;
@@ -585,6 +817,10 @@ export class PanelSwitcherComponent {
   protected readonly isCustomAoiMetricsLoading = signal(false);
   protected readonly customAoiMetricsLoadFailed = signal(false);
   protected readonly customAoiMetricsMessage = signal<string | null>(null);
+  protected readonly isCustomAoiSpeciesMetricsLoading = signal(false);
+  protected readonly customAoiSpeciesMetricsLoadFailed = signal(false);
+  protected readonly customAoiSpeciesMetricsMessage = signal<string | null>(null);
+  protected readonly customAoiSpeciesProgressPercent = signal(0);
   protected readonly comparisonCandidateMetricsDocument =
     signal<CachedSolutionMetricsDocument | null>(null);
   protected readonly isOverviewLoading = signal(false);
@@ -620,12 +856,13 @@ export class PanelSwitcherComponent {
   );
   protected readonly customAoiMetricDisplayEntries = computed<CustomAoiMetricDisplayEntry[]>(() => {
     const metricsById = new Map(this.customAoiMetrics().map((metric) => [metric.metricId, metric]));
-    return CUSTOM_AOI_METRIC_IDS.map((metricId) => {
+    return CUSTOM_AOI_SUMMARY_METRIC_IDS.map((metricId) => {
       const metric = metricsById.get(metricId);
+      const definition = this.getCustomAoiMetricDefinition(metricId);
       const hasValue = metric?.status === 'ready' && metric.value !== null;
       return {
         id: metricId,
-        labelKey: CUSTOM_AOI_METRIC_DEFINITIONS[metricId].labelKey,
+        labelKey: definition.labelKey,
         value: hasValue
           ? this.formatMetricForPanel(metric)
           : this.localizedText('analysis.common.valueUnavailable', 'Unavailable'),
@@ -633,6 +870,9 @@ export class PanelSwitcherComponent {
       };
     });
   });
+  protected readonly customAoiBackendMetricCount = computed(
+    () => this.customAoiMetrics().filter((metric) => metric.metricId !== 'area').length,
+  );
 
   protected readonly comparisonMetrics = computed(() => {
     const baselineMetrics = nationalMetrics(this.cachedMetricsDocument());
@@ -762,6 +1002,8 @@ export class PanelSwitcherComponent {
   ];
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.stopCustomAoiSpeciesProgressTimer());
+
     toObservable(this.activeSolution)
       .pipe(
         map((solution) => this.resolveMetricsSolutionId(solution)),
@@ -795,31 +1037,76 @@ export class PanelSwitcherComponent {
 
     toObservable(this.customAoiGeometry)
       .pipe(
-        distinctUntilChanged(),
+        distinctUntilChanged((previous, current) =>
+          this.areCustomAoiGeometriesEqual(previous, current),
+        ),
         switchMap((geometry) => {
           if (!geometry) {
             this.customAoiMetrics.set([]);
             this.isCustomAoiMetricsLoading.set(false);
             this.customAoiMetricsLoadFailed.set(false);
             this.customAoiMetricsMessage.set(null);
+            this.isCustomAoiSpeciesMetricsLoading.set(false);
+            this.customAoiSpeciesMetricsLoadFailed.set(false);
+            this.customAoiSpeciesMetricsMessage.set(null);
+            this.stopCustomAoiSpeciesProgressTimer();
             return of<MetricValue[]>([]);
           }
 
+          const requestId = ++this.customAoiMetricsRequestSequence;
+          this.customAoiMetrics.set([]);
           this.isCustomAoiMetricsLoading.set(true);
           this.customAoiMetricsLoadFailed.set(false);
           this.customAoiMetricsMessage.set(null);
+          this.isCustomAoiSpeciesMetricsLoading.set(false);
+          this.customAoiSpeciesMetricsLoadFailed.set(false);
+          this.customAoiSpeciesMetricsMessage.set(null);
+          this.stopCustomAoiSpeciesProgressTimer();
 
-          return this.api
-            .getCustomPolygonMetrics({ geometry, metrics: CUSTOM_AOI_METRIC_IDS })
-            .pipe(
-              map((response) => this.mapCustomPolygonMetrics(response)),
-              catchError((error: unknown) => {
-                this.customAoiMetricsLoadFailed.set(true);
-                this.customAoiMetricsMessage.set(this.getCustomAoiErrorMessage(error));
-                return of<MetricValue[]>([]);
-              }),
-              finalize(() => this.isCustomAoiMetricsLoading.set(false)),
-            );
+          return this.loadCustomAoiMetricBatch(
+            geometry,
+            CUSTOM_AOI_FAST_METRIC_IDS,
+            'fast',
+            requestId,
+          ).pipe(
+            catchError((error: unknown) => {
+              this.customAoiMetricsLoadFailed.set(true);
+              this.customAoiMetricsMessage.set(this.getCustomAoiErrorMessage(error));
+              return of<MetricValue[]>([]);
+            }),
+            finalize(() => this.isCustomAoiMetricsLoading.set(false)),
+            switchMap((fastMetrics) => {
+              if (this.customAoiMetricsLoadFailed()) {
+                return of(fastMetrics);
+              }
+
+              this.isCustomAoiSpeciesMetricsLoading.set(true);
+              this.startCustomAoiSpeciesProgressTimer();
+              return concat(
+                of(fastMetrics),
+                this.loadCustomAoiMetricBatch(
+                  geometry,
+                  CUSTOM_AOI_SPECIES_METRIC_IDS,
+                  'species',
+                  requestId,
+                ).pipe(
+                  map((speciesMetrics) => {
+                    this.completeCustomAoiSpeciesProgress();
+                    return this.mergeCustomAoiMetricValues(fastMetrics, speciesMetrics);
+                  }),
+                  catchError((error: unknown) => {
+                    this.customAoiSpeciesMetricsLoadFailed.set(true);
+                    this.customAoiSpeciesMetricsMessage.set(this.getCustomAoiErrorMessage(error));
+                    return of(fastMetrics);
+                  }),
+                  finalize(() => {
+                    this.isCustomAoiSpeciesMetricsLoading.set(false);
+                    this.stopCustomAoiSpeciesProgressTimer();
+                  }),
+                ),
+              );
+            }),
+          );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -1441,35 +1728,158 @@ export class PanelSwitcherComponent {
     };
   }
 
-  private mapCustomPolygonMetrics(response: CustomPolygonMetricsResponse): MetricValue[] {
+  private loadCustomAoiMetricBatch(
+    geometry: CustomPolygonMetricsGeometry,
+    metrics: CustomPolygonMetricId[],
+    mode: CustomAoiMetricRequestMode,
+    requestId: number,
+  ): Observable<MetricValue[]> {
+    const startedAt = Date.now();
+    this.logCustomAoiRequestStart(requestId, mode, metrics);
+
+    return this.api.getCustomPolygonMetrics({ geometry, metrics }).pipe(
+      map((response) => {
+        const responseMetricKeys = Object.keys(response.metrics ?? {});
+        this.logCustomAoiRequestSuccess(requestId, mode, startedAt, response, responseMetricKeys);
+
+        if (response.status !== 'ok') {
+          throw new Error(
+            response.message ||
+              this.translate.instant('analysis.aoi.customMetrics.statusReturned', {
+                status: response.status,
+              }),
+          );
+        }
+
+        return this.mapCustomPolygonMetrics(response, mode);
+      }),
+      tap({
+        error: (error: unknown) => this.logCustomAoiRequestError(requestId, mode, startedAt, error),
+      }),
+      finalize(() => this.logCustomAoiRequestFinalize(requestId, mode, startedAt)),
+    );
+  }
+
+  private mapCustomPolygonMetrics(
+    response: CustomPolygonMetricsResponse,
+    mode: CustomAoiMetricRequestMode,
+  ): MetricValue[] {
     if (response.status !== 'ok') {
       this.customAoiMetricsLoadFailed.set(true);
       this.customAoiMetricsMessage.set(
-        response.message || 'Custom polygon metrics are unavailable.',
+        response.message || this.translate.instant('analysis.aoi.customMetrics.unavailable'),
       );
       return [];
     }
 
     this.customAoiMetricsLoadFailed.set(false);
     this.customAoiMetricsMessage.set(response.message || null);
-    return CUSTOM_AOI_METRIC_IDS.map((metricId) =>
-      this.buildCustomAoiMetricValue(metricId, response.metrics?.[metricId] ?? null),
+    const metrics = Object.entries(response.metrics ?? {}).map(([metricId, value]) =>
+      this.buildCustomAoiMetricValue(metricId, value, `custom-polygon-api:${mode}`),
     );
+
+    const selectedAoiAreaKm2 = this.selectedAoi()?.areaKm2;
+    if (
+      mode === 'fast' &&
+      selectedAoiAreaKm2 !== undefined &&
+      Number.isFinite(selectedAoiAreaKm2)
+    ) {
+      metrics.unshift(
+        this.buildCustomAoiMetricValue('area', selectedAoiAreaKm2, 'custom-aoi-geometry'),
+      );
+    }
+
+    return metrics;
+  }
+
+  private mergeCustomAoiMetricValues(
+    baseMetrics: MetricValue[],
+    nextMetrics: MetricValue[],
+  ): MetricValue[] {
+    const metricsById = new Map(baseMetrics.map((metric) => [metric.metricId, metric]));
+    for (const metric of nextMetrics) {
+      metricsById.set(metric.metricId, metric);
+    }
+    return Array.from(metricsById.values());
+  }
+
+  private startCustomAoiSpeciesProgressTimer(): void {
+    this.stopCustomAoiSpeciesProgressTimer();
+    const startedAt = Date.now();
+    this.customAoiSpeciesProgressPercent.set(1);
+
+    this.customAoiSpeciesProgressSubscription = interval(CUSTOM_AOI_SPECIES_PROGRESS_UPDATE_MS)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const elapsedMs = Date.now() - startedAt;
+        const elapsedPercent = Math.floor(
+          (elapsedMs / CUSTOM_AOI_SPECIES_PROGRESS_EXPECTED_MS) * 100,
+        );
+        const cappedPercent = Math.min(
+          CUSTOM_AOI_SPECIES_PROGRESS_LOADING_CAP,
+          Math.max(1, elapsedPercent),
+        );
+        this.customAoiSpeciesProgressPercent.set(cappedPercent);
+      });
+  }
+
+  private completeCustomAoiSpeciesProgress(): void {
+    this.customAoiSpeciesProgressPercent.set(100);
+  }
+
+  private stopCustomAoiSpeciesProgressTimer(): void {
+    this.customAoiSpeciesProgressSubscription?.unsubscribe();
+    this.customAoiSpeciesProgressSubscription = null;
+    this.customAoiSpeciesProgressPercent.set(0);
+  }
+
+  private areCustomAoiGeometriesEqual(
+    previous: CustomPolygonMetricsGeometry | null,
+    current: CustomPolygonMetricsGeometry | null,
+  ): boolean {
+    if (previous === current) {
+      return true;
+    }
+    if (!previous || !current || previous.type !== current.type) {
+      return false;
+    }
+    return JSON.stringify(previous.coordinates) === JSON.stringify(current.coordinates);
   }
 
   private buildCustomAoiMetricValue(
     metricId: CustomPolygonMetricId,
     rawValue: number | null | undefined,
+    source: string,
   ): MetricValue {
-    const definition = CUSTOM_AOI_METRIC_DEFINITIONS[metricId];
+    const definition = this.getCustomAoiMetricDefinition(metricId);
     const value = typeof rawValue === 'number' && Number.isFinite(rawValue) ? rawValue : null;
 
     return {
       ...definition,
       value,
       status: value === null ? 'pending' : 'ready',
-      source: 'custom-polygon-api',
+      source,
       notes: value === null ? 'Backend did not return a value for this metric.' : null,
+    };
+  }
+
+  private getCustomAoiMetricDefinition(metricId: CustomPolygonMetricId): CustomAoiMetricDefinition {
+    const definition = CUSTOM_AOI_METRIC_DEFINITIONS[metricId];
+    if (definition) {
+      return definition;
+    }
+
+    const formatHint: MetricValueFormatHint =
+      metricId.includes('_pct') ||
+      metricId.endsWith('_percent') ||
+      metricId.endsWith('_contribution')
+        ? 'percent'
+        : 'number';
+    return {
+      metricId,
+      unit: formatHint === 'percent' ? '%' : null,
+      labelKey: `metrics.tier1.${metricId}`,
+      formatHint,
     };
   }
 
@@ -1478,7 +1888,9 @@ export class PanelSwitcherComponent {
     if (detail) {
       return detail;
     }
-    return error instanceof Error ? error.message : 'Custom polygon metrics could not be loaded.';
+    return error instanceof Error
+      ? error.message
+      : this.translate.instant('analysis.aoi.customMetrics.loadError');
   }
 
   private getHttpErrorDetail(error: unknown): string | null {
@@ -1501,6 +1913,73 @@ export class PanelSwitcherComponent {
     }
 
     return null;
+  }
+
+  private logCustomAoiRequestStart(
+    requestId: number,
+    mode: CustomAoiMetricRequestMode,
+    metrics: CustomPolygonMetricId[],
+  ): void {
+    console.info('[PanelSwitcher][CustomAOI] request start', {
+      requestId,
+      mode,
+      requestedMetricCount: metrics.length,
+      requestedMetrics: metrics,
+    });
+  }
+
+  private logCustomAoiRequestSuccess(
+    requestId: number,
+    mode: CustomAoiMetricRequestMode,
+    startedAt: number,
+    response: CustomPolygonMetricsResponse,
+    responseMetricKeys: string[],
+  ): void {
+    console.info('[PanelSwitcher][CustomAOI] request success', {
+      requestId,
+      mode,
+      elapsedMs: Date.now() - startedAt,
+      responseStatus: response.status,
+      returnedMetricCount: responseMetricKeys.length,
+      responseMetricKeys,
+    });
+  }
+
+  private logCustomAoiRequestError(
+    requestId: number,
+    mode: CustomAoiMetricRequestMode,
+    startedAt: number,
+    error: unknown,
+  ): void {
+    console.error('[PanelSwitcher][CustomAOI] request error', {
+      requestId,
+      mode,
+      elapsedMs: Date.now() - startedAt,
+      responseStatus: this.getHttpErrorStatus(error),
+      detail: this.getCustomAoiErrorMessage(error),
+      error,
+    });
+  }
+
+  private logCustomAoiRequestFinalize(
+    requestId: number,
+    mode: CustomAoiMetricRequestMode,
+    startedAt: number,
+  ): void {
+    console.info('[PanelSwitcher][CustomAOI] request finalize', {
+      requestId,
+      mode,
+      elapsedMs: Date.now() - startedAt,
+    });
+  }
+
+  private getHttpErrorStatus(error: unknown): number | string | null {
+    if (!error || typeof error !== 'object' || !('status' in error)) {
+      return null;
+    }
+
+    const status = (error as { status?: unknown }).status;
+    return typeof status === 'number' || typeof status === 'string' ? status : null;
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {

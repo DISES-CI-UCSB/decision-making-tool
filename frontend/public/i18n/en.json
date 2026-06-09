@@ -363,6 +363,17 @@
         "nationalContributionLabel": "30×30 Contribution",
         "existingAdds": "Existing {{existing}} + adds {{added}}"
       },
+      "customMetrics": {
+        "loading": "Loading custom polygon metrics from the backend API...",
+        "loadError": "Custom polygon metrics could not be loaded.",
+        "loaded": "Custom polygon metrics loaded from the backend API: {{count}} metrics returned.",
+        "statusReturned": "Custom polygon metrics returned {{status}}.",
+        "unavailable": "Custom polygon metrics are unavailable.",
+        "speciesProgressLabel": "Calculating biodiversity metrics... {{percent}}%",
+        "speciesDuration": "Usually 35-45 seconds.",
+        "speciesDurationCustomAoi": "Usually 35-45 seconds for custom drawn AOIs.",
+        "speciesLoadError": "Biodiversity metrics could not be loaded."
+      },
       "biodiversityTaxa": {
         "mammals": "Mammals",
         "birds": "Birds",

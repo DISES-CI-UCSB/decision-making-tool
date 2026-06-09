@@ -58,6 +58,8 @@ from raster_metrics import (  # noqa: E402
 from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata  # noqa: E402
 from species_data import CLASS_BUCKETS  # noqa: E402
 
+from .species_index import RuntimeSpeciesIndex, SpeciesIndexQueryError  # noqa: E402
+
 AREA_METRIC_IDS = ("national_contribution", "priority_area_in_region")
 AREA_ALIAS = "area"
 _DUMMY_PATH = Path("/virtual/backend-shared-solution-raster")
@@ -242,6 +244,7 @@ def calculate_raster_metrics_for_aoi(
     raster: SolutionRaster,
     layers: dict[str, RuntimeRasterLayer],
     species_matrices: dict[str, RuntimeSpeciesMatrix],
+    species_index: RuntimeSpeciesIndex | None,
     species_pool_sizes: dict[str, Any],
     metric_ids: list[str],
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
@@ -279,6 +282,7 @@ def calculate_raster_metrics_for_aoi(
                     definition,
                     raster,
                     species_matrices,
+                    species_index,
                     species_pool_sizes,
                     species_counts,
                 )
@@ -407,6 +411,7 @@ def _calculate_species_metric(
     definition: MetricDefinition,
     raster: SolutionRaster,
     matrices: dict[str, RuntimeSpeciesMatrix],
+    species_index: RuntimeSpeciesIndex | None,
     pool_sizes: dict[str, Any],
     counts_cache: dict[str, int],
 ) -> tuple[float | int, set[str]]:
@@ -417,20 +422,20 @@ def _calculate_species_metric(
         group = definition.species_bucket
         if not group:
             raise SpeciesMetricUnavailable("species_metric_missing_bucket")
-        return _species_group_count(group, raster, matrices, counts_cache), {group}
+        return _species_group_count(group, raster, matrices, species_index, counts_cache), {group}
 
     if definition.kind == "species_threatened_count":
-        return _species_group_count("threatened", raster, matrices, counts_cache), {"threatened"}
+        return _species_group_count("threatened", raster, matrices, species_index, counts_cache), {"threatened"}
 
     if definition.kind == "species_pct_of_national":
         missing = [group for group in CLASS_BUCKETS if group not in matrices]
         if missing:
             raise SpeciesMetricUnavailable("species_matrix_group_missing:" + ",".join(missing))
         present = sum(
-            _species_group_count(group, raster, matrices, counts_cache)
+            _species_group_count(group, raster, matrices, species_index, counts_cache)
             for group in CLASS_BUCKETS
         )
-        total = _species_total_non_fish(pool_sizes, matrices)
+        total = _species_total_non_fish(pool_sizes, matrices, species_index)
         if total <= 0:
             raise SpeciesMetricUnavailable("species_pool_size_unavailable")
         return (present / total) * 100.0, set(CLASS_BUCKETS)
@@ -442,10 +447,19 @@ def _species_group_count(
     group: str,
     raster: SolutionRaster,
     matrices: dict[str, RuntimeSpeciesMatrix],
+    species_index: RuntimeSpeciesIndex | None,
     counts_cache: dict[str, int],
 ) -> int:
     if group in counts_cache:
         return counts_cache[group]
+    if species_index is not None:
+        try:
+            count = species_index.count_overlaps(group, raster)
+            counts_cache[group] = count
+            return count
+        except SpeciesIndexQueryError as exc:
+            if not str(exc).startswith("species_index_group_missing:"):
+                raise SpeciesMetricUnavailable(str(exc)) from exc
     matrix_ref = matrices.get(group)
     if matrix_ref is None:
         raise SpeciesMetricUnavailable(f"species_matrix_group_missing:{group}")
@@ -539,6 +553,7 @@ def _species_chunk_overlaps_selection(chunk: bytes, selected_window: np.ndarray)
 def _species_total_non_fish(
     pool_sizes: dict[str, Any],
     matrices: dict[str, RuntimeSpeciesMatrix],
+    species_index: RuntimeSpeciesIndex | None,
 ) -> int:
     raw_total = pool_sizes.get("total_non_fish")
     if isinstance(raw_total, (int, float)) and raw_total > 0:
@@ -546,6 +561,12 @@ def _species_total_non_fish(
 
     total = 0
     for group in CLASS_BUCKETS:
+        if species_index is not None:
+            try:
+                total += species_index.entry_count(group)
+                continue
+            except SpeciesIndexQueryError:
+                pass
         matrix_ref = matrices.get(group)
         if matrix_ref is None:
             continue

@@ -7,7 +7,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from .artifacts import artifact_ready, get_artifact_state, get_runtime_artifact, warmup_artifacts
+from .artifacts import (
+    artifact_ready,
+    get_artifact_state,
+    get_runtime_artifact,
+    reset_runtime_artifact_cache,
+    warmup_artifacts,
+)
 from .config import get_settings
 from .models import (
     HealthResponse,
@@ -23,7 +29,10 @@ LOGGER = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     warmup_artifacts(get_settings())
-    yield
+    try:
+        yield
+    finally:
+        reset_runtime_artifact_cache()
 
 
 app = FastAPI(

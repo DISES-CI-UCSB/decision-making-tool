@@ -4,7 +4,7 @@ import {
   provideTranslateService,
   TranslateNoOpLoader,
 } from '@ngx-translate/core';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { wrapFlatMetricsResponse } from '@core/services/cached-metrics.utils';
@@ -26,6 +26,8 @@ describe('PanelSwitcherComponent', () => {
   let apiServiceSpy: Pick<ApiService, 'getSolutionMetrics' | 'getCustomPolygonMetrics'>;
 
   beforeEach(async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockData = new MockDataService();
     apiServiceSpy = {
       getSolutionMetrics: vi.fn((solutionId: string) => {
@@ -58,6 +60,10 @@ describe('PanelSwitcherComponent', () => {
     appState = TestBed.inject(AppStateService);
     appLocale = TestBed.inject(AppLocaleService);
     mockData = TestBed.inject(MockDataService);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders the welcome panel by default', () => {
@@ -137,33 +143,224 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-welcome-panel')).toBeNull();
   });
 
-  it('loads backend metrics for a custom drawn AOI geometry', async () => {
+  it('starts custom AOI with fast metrics and renders them without waiting for species', async () => {
     const solution = buildTestSolution();
     const geometry = buildTestGeometry();
-    const response = buildCustomPolygonResponse({
-      area: 10,
+    const fastResponse = buildCustomPolygonResponse({
       priority_area_in_region: 2.5,
       national_contribution: 1.25,
+      carbon_storage_biomass: 40,
+      carbon_biomass_total: 40,
+      carbon_pct_of_national: 3.5,
     });
-    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(of(response));
+    const fastMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    const speciesMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockImplementation((request) =>
+      request.metrics?.includes('species_richness_mammals')
+        ? speciesMetrics$.asObservable()
+        : fastMetrics$.asObservable(),
+    );
 
     appState.activeSolution$.set(solution);
     appState.setRightSidebarMode('aoi');
-    appState.selectCustomAOI(geometry, { name: 'Drawn AOI' });
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
+      geometry,
+      metrics: expect.arrayContaining(['priority_area_in_region', 'carbon_storage_biomass']),
+    });
+    expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalledWith({
+      geometry,
+      metrics: expect.arrayContaining(['species_richness_mammals']),
+    });
+
+    fastMetrics$.next(fastResponse);
+    fastMetrics$.complete();
     await fixture.whenStable();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
       geometry,
-      metrics: ['area', 'priority_area_in_region', 'national_contribution'],
+      metrics: expect.arrayContaining(['species_richness_mammals']),
     });
     expect(compiled.querySelector('#aoi-custom-metrics-loaded')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-custom-metrics-loaded')?.textContent).toContain(
+      'analysis.aoi.customMetrics.loaded',
+    );
+    expect(compiled.querySelector('#aoi-custom-species-metrics-loading')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-custom-species-metrics-loading')?.textContent).toContain(
+      'analysis.aoi.customMetrics.speciesDurationCustomAoi',
+    );
+    const biodiversityProgressStatus = compiled.querySelector(
+      '#aoi-biodiversity-species-progress-status',
+    );
+    const biodiversityProgressbar = compiled.querySelector(
+      '#aoi-biodiversity-species-progressbar',
+    ) as HTMLElement | null;
+    expect(biodiversityProgressStatus).not.toBeNull();
+    expect(biodiversityProgressStatus?.getAttribute('role')).toBe('status');
+    expect(biodiversityProgressStatus?.textContent).toContain(
+      'analysis.aoi.customMetrics.speciesProgressLabel',
+    );
+    expect(biodiversityProgressStatus?.textContent).toContain(
+      'analysis.aoi.customMetrics.speciesDuration',
+    );
+    expect(biodiversityProgressbar).not.toBeNull();
+    expect(biodiversityProgressbar?.getAttribute('role')).toBe('progressbar');
+    expect(biodiversityProgressbar?.getAttribute('aria-valuemin')).toBe('0');
+    expect(biodiversityProgressbar?.getAttribute('aria-valuemax')).toBe('100');
+    expect(biodiversityProgressbar?.getAttribute('aria-valuenow')).toBe('1');
+    expect(biodiversityProgressbar?.getAttribute('aria-labelledby')).toBe(
+      'aoi-biodiversity-species-progress-label',
+    );
+
+    const component = fixture.componentInstance as unknown as {
+      customAoiSpeciesProgressPercent: { set(value: number): void };
+    };
+    component.customAoiSpeciesProgressPercent.set(42);
+    fixture.detectChanges();
+    expect(biodiversityProgressbar?.getAttribute('aria-valuenow')).toBe('42');
+    expect(
+      compiled.querySelector('#aoi-biodiversity-species-progress-label')?.textContent,
+    ).toContain('analysis.aoi.customMetrics.speciesProgressLabel');
+    expect(
+      (compiled.querySelector('#aoi-biodiversity-species-progress-fill') as HTMLElement | null)
+        ?.style.width,
+    ).toBe('42%');
+    expect(compiled.querySelector('#aoi-custom-metrics-summary-value-area')?.textContent).toContain(
+      '10 km²',
+    );
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
     expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
+    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+
+    speciesMetrics$.complete();
+  });
+
+  it('merges species metrics into custom AOI metrics when the second request returns', async () => {
+    const solution = buildTestSolution();
+    const geometry = buildTestGeometry();
+    const fastMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    const speciesMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockImplementation((request) =>
+      request.metrics?.includes('species_richness_mammals')
+        ? speciesMetrics$.asObservable()
+        : fastMetrics$.asObservable(),
+    );
+
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('aoi');
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    fastMetrics$.next(
+      buildCustomPolygonResponse({
+        priority_area_in_region: 2.5,
+        national_contribution: 1.25,
+        carbon_storage_biomass: 40,
+      }),
+    );
+    fastMetrics$.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
+      geometry,
+      metrics: expect.arrayContaining(['species_richness_mammals']),
+    });
+    const speciesRequest = vi
+      .mocked(apiServiceSpy.getCustomPolygonMetrics)
+      .mock.calls.find(([request]) => request.metrics?.includes('species_richness_mammals'))?.[0];
+    expect(speciesRequest?.metrics).toEqual([
+      'species_richness_mammals',
+      'species_richness_birds',
+      'species_richness_amphibians',
+      'species_richness_reptiles',
+      'species_richness_plants',
+      'threatened_species_count',
+      'species_pct_of_national',
+    ]);
+
+    speciesMetrics$.next(
+      buildCustomPolygonResponse({
+        species_richness_mammals: 4,
+        species_richness_birds: 9,
+        species_richness_amphibians: 1,
+        species_richness_reptiles: 2,
+        species_richness_plants: 7,
+        threatened_species_count: 3,
+        species_pct_of_national: 1.4,
+      }),
+    );
+    speciesMetrics$.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-custom-species-metrics-loading')).toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-species-progress-status')).toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
+    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('4');
+    expect(compiled.querySelector('#aoi-species-value-birds')?.textContent).toContain('9');
+    expect(compiled.querySelector('#aoi-species-value-amphibians')?.textContent).toContain('1');
+    expect(compiled.querySelector('#aoi-species-value-reptiles')?.textContent).toContain('2');
+    expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('7');
+    expect(compiled.querySelector('#aoi-stat-threatened')?.textContent).toContain('3');
+    expect(compiled.querySelector('#aoi-stat-national-species')?.textContent).toContain('1,4%');
+    expect(compiled.querySelector('#aoi-stat-endemic')?.textContent).toContain('--');
+  });
+
+  it('keeps fast custom AOI metrics visible when the species request fails', async () => {
+    const solution = buildTestSolution();
+    const geometry = buildTestGeometry();
+    const fastMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    const speciesMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockImplementation((request) =>
+      request.metrics?.includes('species_richness_mammals')
+        ? speciesMetrics$.asObservable()
+        : fastMetrics$.asObservable(),
+    );
+
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('aoi');
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    fastMetrics$.next(
+      buildCustomPolygonResponse({
+        priority_area_in_region: 2.5,
+        national_contribution: 1.25,
+        carbon_storage_biomass: 40,
+      }),
+    );
+    fastMetrics$.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
+      geometry,
+      metrics: expect.arrayContaining(['species_richness_mammals']),
+    });
+
+    speciesMetrics$.error(new Error('species request timed out'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-custom-species-metrics-warning')?.textContent).toContain(
+      'species request timed out',
+    );
+    expect(compiled.querySelector('#aoi-biodiversity-species-progress-status')).toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
+    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
   });
 
   it('keeps fixed boundary AOIs on cached metrics instead of the backend client', async () => {
@@ -276,7 +473,7 @@ function buildCustomPolygonResponse(
       loaded_at: '2026-06-04T00:00:00.000Z',
       metadata: {},
     },
-    requested_metrics: ['area', 'priority_area_in_region', 'national_contribution'],
+    requested_metrics: Object.keys(metrics),
     metrics,
     metadata: {},
   };

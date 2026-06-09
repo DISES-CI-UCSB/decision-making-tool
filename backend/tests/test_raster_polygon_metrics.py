@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import numpy as np
@@ -7,8 +9,11 @@ import pytest
 import rasterio
 from rasterio.transform import from_origin
 
-from app.artifacts import RuntimeArtifact, RuntimeRasterLayer, RuntimeSpeciesMatrix
+from app import artifacts as artifacts_module
+from app.artifacts import RuntimeArtifact, RuntimeRasterLayer, RuntimeSpeciesMatrix, load_runtime_artifact
+from app.config import Settings
 from app.polygon_metrics import calculate_custom_polygon_metrics
+from app.species_index import SpeciesIndexLoadError, load_runtime_species_index
 from sparse.format import SparseMetadata, SpeciesMatrixEntry, encode_species_matrix
 
 
@@ -121,6 +126,14 @@ def write_species_matrix(
 
 
 def raster_artifact_with_species(tmp_path: Path) -> RuntimeArtifact:
+    return _raster_artifact_with_species(tmp_path, warm_index=True)
+
+
+def streaming_raster_artifact_with_species(tmp_path: Path) -> RuntimeArtifact:
+    return _raster_artifact_with_species(tmp_path, warm_index=False)
+
+
+def _raster_artifact_with_species(tmp_path: Path, *, warm_index: bool) -> RuntimeArtifact:
     artifact = raster_artifact(tmp_path)
     species_matrices = {
         "mammals": RuntimeSpeciesMatrix(
@@ -194,6 +207,7 @@ def raster_artifact_with_species(tmp_path: Path) -> RuntimeArtifact:
                 "plants": 1,
             },
         },
+        species_index=load_runtime_species_index(species_matrices) if warm_index else None,
     )
 
 
@@ -258,6 +272,177 @@ def test_raster_custom_polygon_uses_species_matrix_bundles(tmp_path: Path) -> No
     ]
 
 
+def test_warmed_species_index_matches_streaming_species_values(tmp_path: Path) -> None:
+    requested_metrics = [
+        "species_richness_mammals",
+        "species_richness_birds",
+        "species_richness_amphibians",
+        "species_richness_reptiles",
+        "species_richness_plants",
+        "threatened_species_count",
+        "species_pct_of_national",
+    ]
+    streaming_metrics, _ = calculate_custom_polygon_metrics(
+        streaming_raster_artifact_with_species(tmp_path),
+        POLYGON_LEFT_COLUMN,
+        requested_metrics,
+    )
+    warmed_metrics, _ = calculate_custom_polygon_metrics(
+        raster_artifact_with_species(tmp_path),
+        POLYGON_LEFT_COLUMN,
+        requested_metrics,
+    )
+
+    assert warmed_metrics == streaming_metrics
+
+
+def test_warmed_species_index_does_not_reopen_gzip_bundles(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+
+    def fail_gzip_open(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("species metric request should use the warmed index")
+
+    monkeypatch.setattr("app.metric_adapters.gzip.open", fail_gzip_open)
+
+    metrics, _ = calculate_custom_polygon_metrics(
+        artifact,
+        POLYGON_LEFT_COLUMN,
+        ["species_richness_mammals", "species_pct_of_national"],
+    )
+
+    assert metrics["species_richness_mammals"] == 1
+    assert metrics["species_pct_of_national"] == pytest.approx(50.0)
+
+
+def test_warmed_species_index_close_removes_owned_cache_dir(tmp_path: Path) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    assert artifact.species_index is not None
+    cache_dir = artifact.species_index.cache_dir
+
+    assert cache_dir.exists()
+
+    artifact.species_index.close()
+
+    assert not cache_dir.exists()
+    artifact.species_index.close()
+
+
+def test_warmed_species_index_load_failure_cleans_partial_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache_dir = tmp_path / "species-cache"
+
+    def fake_mkdtemp(*, prefix: str) -> str:
+        assert prefix == "dmt-species-index-"
+        cache_dir.mkdir()
+        return str(cache_dir)
+
+    valid_matrix = write_species_matrix(
+        tmp_path / "species_mammals.smtx.gz",
+        [("Present mammal", "LC", "Mammalia", [0, 1])],
+    )
+    invalid_matrix = tmp_path / "species_birds.smtx.gz"
+    invalid_matrix.write_bytes(b"not a species matrix")
+    monkeypatch.setattr("app.species_index.tempfile.mkdtemp", fake_mkdtemp)
+
+    with pytest.raises(SpeciesIndexLoadError):
+        load_runtime_species_index(
+            {
+                "mammals": RuntimeSpeciesMatrix(group="mammals", path=valid_matrix),
+                "birds": RuntimeSpeciesMatrix(group="birds", path=invalid_matrix),
+            }
+        )
+
+    assert not cache_dir.exists()
+
+
+def test_runtime_artifact_cache_reset_removes_species_index_cache(tmp_path: Path) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    assert artifact.species_index is not None
+    cache_dir = artifact.species_index.cache_dir
+
+    artifacts_module._RUNTIME_ARTIFACT = artifact
+    artifacts_module._RUNTIME_STATE = None
+    artifacts_module._RUNTIME_SETTINGS_KEY = None
+
+    artifacts_module.reset_runtime_artifact_cache()
+
+    assert not cache_dir.exists()
+
+
+def test_raster_artifact_warmup_reports_species_index_metadata(tmp_path: Path) -> None:
+    reference = write_tif(
+        tmp_path / "reference.tif",
+        np.array([[1, 1], [1, 1]], dtype=np.uint8),
+        nodata=0,
+    )
+    recharge = write_tif(
+        tmp_path / "recharge.tif",
+        np.array([[1, 0], [1, 0]], dtype=np.uint8),
+        nodata=255,
+    )
+    species_mammals = write_species_matrix(
+        tmp_path / "species_mammals.smtx.gz",
+        [
+            ("Present mammal", "LC", "Mammalia", [0, 1]),
+            ("Absent mammal", "LC", "Mammalia", [3]),
+        ],
+    )
+    manifest = {
+        "artifact_version": "test-raster-species-index",
+        "artifact_kind": "colombia-raster-custom-aoi/v1",
+        "schema_version": "metrics-artifact-manifest/v1",
+        "created_at": "2026-06-08T00:00:00Z",
+        "checksum": {"algorithm": "sha256", "value": "test"},
+        "source_manifest": {"purpose": "unit test"},
+        "reference_raster_path": reference.name,
+        "reference_raster_checksum": {"algorithm": "sha256", "value": sha256_file(reference)},
+        "raster_layers": [
+            {
+                "layer_id": "recarga_agua",
+                "path": recharge.name,
+                "kind": "binary",
+                "rendering": {"valueType": "binary", "selectedValue": 1},
+                "metric_ids": ["water_regulation_area"],
+                "checksum": {"algorithm": "sha256", "value": sha256_file(recharge)},
+            }
+        ],
+        "species_matrices": [
+            {
+                "group": "mammals",
+                "path": species_mammals.name,
+                "metric_ids": ["species_richness_mammals"],
+                "checksum": {"algorithm": "sha256", "value": sha256_file(species_mammals)},
+            }
+        ],
+        "species_pool_sizes": {"total_non_fish": 2},
+        "metric_coverage": {"implemented_now": ["species_richness_mammals"]},
+    }
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    artifact, state = load_runtime_artifact(
+        Settings(
+            artifact_dir=tmp_path,
+            artifact_manifest_path=manifest_path,
+            artifact_required=True,
+            artifact_schema_version="metrics-artifact-manifest/v1",
+        )
+    )
+
+    species_index_metadata = state.metadata["species_index"]
+    assert artifact.species_index is not None
+    assert species_index_metadata["status"] == "ready"
+    assert species_index_metadata["group_count"] == 1
+    assert species_index_metadata["species_count"] == 2
+    assert species_index_metadata["groups"]["mammals"]["species_count"] == 2
+    assert species_index_metadata["memory_bytes"] > 0
+
+
 def test_raster_custom_polygon_reports_secured_species_as_unavailable(tmp_path: Path) -> None:
     metrics, metadata = calculate_custom_polygon_metrics(
         raster_artifact_with_species(tmp_path),
@@ -272,3 +457,11 @@ def test_raster_custom_polygon_reports_secured_species_as_unavailable(tmp_path: 
             "reason": "requires_species_target_percent",
         }
     ]
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

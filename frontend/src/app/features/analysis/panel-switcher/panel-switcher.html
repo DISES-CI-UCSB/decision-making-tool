@@ -679,16 +679,34 @@
                 >
                   @if (isCustomAoiMetricsLoading()) {
                     <p id="aoi-custom-metrics-loading" class="m-0">
-                      Loading custom polygon metrics from the backend API...
+                      {{ 'analysis.aoi.customMetrics.loading' | translate }}
                     </p>
                   } @else if (customAoiMetricsLoadFailed()) {
                     <p id="aoi-custom-metrics-error" class="m-0 text-red-700">
-                      Custom polygon metrics could not be loaded. {{ customAoiMetricsMessage() }}
+                      {{ 'analysis.aoi.customMetrics.loadError' | translate }}
+                      {{ customAoiMetricsMessage() }}
                     </p>
                   } @else {
                     <p id="aoi-custom-metrics-loaded" class="m-0">
-                      Custom polygon metrics are loaded from the backend API.
+                      {{
+                        'analysis.aoi.customMetrics.loaded'
+                          | translate: { count: customAoiBackendMetricCount() }
+                      }}
                     </p>
+                    @if (isCustomAoiSpeciesMetricsLoading()) {
+                      <p id="aoi-custom-species-metrics-loading" class="m-0 mt-1 text-slate-600">
+                        {{
+                          'analysis.aoi.customMetrics.speciesProgressLabel'
+                            | translate: { percent: customAoiSpeciesProgressPercent() }
+                        }}
+                        {{ 'analysis.aoi.customMetrics.speciesDurationCustomAoi' | translate }}
+                      </p>
+                    } @else if (customAoiSpeciesMetricsLoadFailed()) {
+                      <p id="aoi-custom-species-metrics-warning" class="m-0 mt-1 text-amber-700">
+                        {{ 'analysis.aoi.customMetrics.speciesLoadError' | translate }}
+                        {{ customAoiSpeciesMetricsMessage() }}
+                      </p>
+                    }
                     <div
                       id="aoi-custom-metrics-summary-grid"
                       class="mt-2 grid grid-cols-1 gap-2"
@@ -908,6 +926,48 @@
                 >
                   <div id="aoi-body-bio-inner" class="collapse-motion-inner aoi-section-body">
                     <div id="aoi-species-chart" class="flex flex-col gap-1">
+                      @if (isCustomAoiSelected() && isCustomAoiSpeciesMetricsLoading()) {
+                        <div
+                          id="aoi-biodiversity-species-progress-status"
+                          class="mb-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-700"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          <div
+                            id="aoi-biodiversity-species-progress-copy"
+                            class="mb-1 flex items-center justify-between gap-2"
+                          >
+                            <span id="aoi-biodiversity-species-progress-label">
+                              {{
+                                'analysis.aoi.customMetrics.speciesProgressLabel'
+                                  | translate: { percent: customAoiSpeciesProgressPercent() }
+                              }}
+                            </span>
+                            <span
+                              id="aoi-biodiversity-species-progress-duration"
+                              class="shrink-0 text-[11px] text-slate-500"
+                            >
+                              {{ 'analysis.aoi.customMetrics.speciesDuration' | translate }}
+                            </span>
+                          </div>
+                          <div
+                            id="aoi-biodiversity-species-progressbar"
+                            class="h-2 overflow-hidden rounded-full bg-slate-200"
+                            role="progressbar"
+                            aria-labelledby="aoi-biodiversity-species-progress-label"
+                            aria-describedby="aoi-biodiversity-species-progress-duration"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                            [attr.aria-valuenow]="customAoiSpeciesProgressPercent()"
+                          >
+                            <div
+                              id="aoi-biodiversity-species-progress-fill"
+                              class="h-full rounded-full bg-emerald-600 transition-[width] duration-500 ease-out"
+                              [style.width.%]="customAoiSpeciesProgressPercent()"
+                            ></div>
+                          </div>
+                        </div>
+                      }
                       <p
                         id="aoi-species-chart-axis-label"
                         class="m-0 mb-0.5 ml-19 w-full text-start text-[13px] font-medium leading-[1.2] tracking-[0.01em] text-slate-600"

@@ -13,6 +13,7 @@ import rasterio
 from pydantic import BaseModel, Field
 
 from .config import Settings
+from .species_index import RuntimeSpeciesIndex, SpeciesIndexLoadError, load_runtime_species_index
 
 LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +58,12 @@ class RuntimeArtifact:
     reference_raster_path: Path | None = None
     raster_layers: dict[str, RuntimeRasterLayer] = field(default_factory=dict)
     species_matrices: dict[str, RuntimeSpeciesMatrix] = field(default_factory=dict)
+    species_index: RuntimeSpeciesIndex | None = None
     species_pool_sizes: dict[str, Any] = field(default_factory=dict)
+
+    def close(self) -> None:
+        if self.species_index is not None:
+            self.species_index.close()
 
 
 class ArtifactValidationError(ValueError):
@@ -76,6 +82,15 @@ _RUNTIME_LOCK = Lock()
 _RUNTIME_ARTIFACT: RuntimeArtifact | None = None
 _RUNTIME_STATE: ArtifactState | None = None
 _RUNTIME_SETTINGS_KEY: tuple[str, bool, str] | None = None
+
+
+def _close_runtime_artifact(artifact: RuntimeArtifact | None) -> None:
+    if artifact is None:
+        return
+    try:
+        artifact.close()
+    except Exception:
+        LOGGER.warning("Runtime artifact cleanup failed", exc_info=True)
 
 
 def _settings_key(settings: Settings) -> tuple[str, bool, str]:
@@ -351,6 +366,18 @@ def _load_raster_artifact(
         if isinstance(manifest.get("species_pool_sizes"), dict)
         else {}
     )
+    species_index: RuntimeSpeciesIndex | None = None
+    species_index_metadata: dict[str, Any] = {"status": "not_configured"}
+    if species_matrices:
+        try:
+            species_index = load_runtime_species_index(species_matrices)
+            species_index_metadata = species_index.metadata()
+        except SpeciesIndexLoadError as exc:
+            species_index_metadata = {"status": "failed", "reason": str(exc)}
+            LOGGER.warning(
+                "Species sparse index warmup failed; request-time streaming fallback remains available",
+                extra={"reason": str(exc)},
+            )
     metadata = {
         "artifact_kind": manifest.get("artifact_kind", "colombia-raster-custom-aoi/v1"),
         "reference_raster_path": str(resolved_reference),
@@ -359,6 +386,7 @@ def _load_raster_artifact(
         "raster_layers": sorted(layers.keys()),
         "species_matrix_count": len(species_matrices),
         "species_matrix_groups": sorted(species_matrices.keys()),
+        "species_index": species_index_metadata,
         "species_pool_sizes": species_pool_sizes,
         "metric_coverage": manifest.get("metric_coverage", {}),
     }
@@ -367,6 +395,7 @@ def _load_raster_artifact(
         reference_raster_path=resolved_reference,
         raster_layers=layers,
         species_matrices=species_matrices,
+        species_index=species_index,
         species_pool_sizes=species_pool_sizes,
     )
     return artifact, metadata
@@ -413,6 +442,7 @@ def warmup_artifacts(settings: Settings) -> ArtifactState:
         if _RUNTIME_SETTINGS_KEY == key and _RUNTIME_STATE is not None:
             return _RUNTIME_STATE
 
+        previous_artifact = _RUNTIME_ARTIFACT
         started = time.perf_counter()
         try:
             artifact, state = load_runtime_artifact(settings)
@@ -428,6 +458,7 @@ def warmup_artifacts(settings: Settings) -> ArtifactState:
             _RUNTIME_ARTIFACT = None
             _RUNTIME_STATE = state
             _RUNTIME_SETTINGS_KEY = key
+            _close_runtime_artifact(previous_artifact)
             LOGGER.warning(
                 "Artifact warmup did not load runtime artifacts",
                 extra={"artifact_required": settings.artifact_required, "warmup_ms": elapsed_ms},
@@ -437,6 +468,8 @@ def warmup_artifacts(settings: Settings) -> ArtifactState:
         _RUNTIME_ARTIFACT = artifact
         _RUNTIME_STATE = state
         _RUNTIME_SETTINGS_KEY = key
+        if previous_artifact is not artifact:
+            _close_runtime_artifact(previous_artifact)
         LOGGER.info(
             "Artifact warmup loaded runtime artifacts",
             extra={"artifact_metadata": state.metadata, "warmup_ms": state.warmup_ms},
@@ -448,9 +481,11 @@ def reset_runtime_artifact_cache() -> None:
     global _RUNTIME_ARTIFACT, _RUNTIME_SETTINGS_KEY, _RUNTIME_STATE
 
     with _RUNTIME_LOCK:
+        artifact = _RUNTIME_ARTIFACT
         _RUNTIME_ARTIFACT = None
         _RUNTIME_SETTINGS_KEY = None
         _RUNTIME_STATE = None
+        _close_runtime_artifact(artifact)
 
 
 def get_artifact_state(settings: Settings) -> ArtifactState:
