@@ -65,8 +65,8 @@ body {
 .color-picker {
   z-index: 2000 !important;
   width: 226px !important;
-  /* Align popup arrow closer to swatch vertical midpoint. */
-  transform: translateY(-6px);
+  /* Nudge popup vertically relative to library auto-positioning. */
+  transform: translateY(-3.5px) translateX(1px);
 }
 
 .color-picker .hue-alpha {
