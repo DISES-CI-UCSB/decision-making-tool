@@ -30,18 +30,8 @@ import {
 } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import {
-  catchError,
-  concat,
-  distinctUntilChanged,
-  finalize,
-  interval,
-  map,
-  of,
-  switchMap,
-  tap,
-} from 'rxjs';
-import type { Observable, Subscription } from 'rxjs';
+import { catchError, concat, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
+import type { Observable } from 'rxjs';
 import {
   AOI_ECOSYSTEM_SEGMENTS,
   CHART_PALETTES,
@@ -191,12 +181,21 @@ const CUSTOM_AOI_SPECIES_METRIC_IDS: CustomPolygonMetricId[] = [
 ];
 
 type CustomAoiMetricRequestMode = 'fast' | 'species';
+type CustomAoiSpeciesLoadingStage = 'initial' | 'delayed' | 'extended';
+type CustomAoiBiodiversityEstimateBand = 'small' | 'medium' | 'large' | 'veryLarge' | 'unknown';
 
 type CustomAoiMetricDefinition = Pick<MetricValue, 'metricId' | 'unit' | 'labelKey' | 'formatHint'>;
 
-const CUSTOM_AOI_SPECIES_PROGRESS_EXPECTED_MS = 40_000;
-const CUSTOM_AOI_SPECIES_PROGRESS_UPDATE_MS = 500;
-const CUSTOM_AOI_SPECIES_PROGRESS_LOADING_CAP = 98;
+const CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS = 10_000;
+const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
+// Heuristic proxy for species benchmark matched-cell bands. The API does not
+// currently expose matched cells before the species request, so browser area
+// keeps the estimate honest without implying exact progress.
+const CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2 = {
+  smallMax: 1_000,
+  mediumMax: 15_000,
+  largeMax: 75_000,
+} as const;
 
 const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
   Record<CustomPolygonMetricId, CustomAoiMetricDefinition>
@@ -480,7 +479,7 @@ export class PanelSwitcherComponent {
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
   private customAoiMetricsRequestSequence = 0;
-  private customAoiSpeciesProgressSubscription: Subscription | null = null;
+  private customAoiSpeciesStageTimeouts: ReturnType<typeof setTimeout>[] = [];
 
   /** Reactive comparison colors sourced from the SolutionLayerService (driven by the left sidebar). */
   protected readonly comparisonBaselineColor = this.solutionLayer.baselineColor$;
@@ -820,7 +819,9 @@ export class PanelSwitcherComponent {
   protected readonly isCustomAoiSpeciesMetricsLoading = signal(false);
   protected readonly customAoiSpeciesMetricsLoadFailed = signal(false);
   protected readonly customAoiSpeciesMetricsMessage = signal<string | null>(null);
-  protected readonly customAoiSpeciesProgressPercent = signal(0);
+  protected readonly customAoiSpeciesLoadingStage = signal<CustomAoiSpeciesLoadingStage>('initial');
+  protected readonly customAoiBiodiversityEstimateBand =
+    computed<CustomAoiBiodiversityEstimateBand>(() => this.classifyCustomAoiBiodiversityEstimate());
   protected readonly comparisonCandidateMetricsDocument =
     signal<CachedSolutionMetricsDocument | null>(null);
   protected readonly isOverviewLoading = signal(false);
@@ -1002,7 +1003,7 @@ export class PanelSwitcherComponent {
   ];
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.stopCustomAoiSpeciesProgressTimer());
+    this.destroyRef.onDestroy(() => this.stopCustomAoiSpeciesLoadingStages());
 
     toObservable(this.activeSolution)
       .pipe(
@@ -1049,7 +1050,7 @@ export class PanelSwitcherComponent {
             this.isCustomAoiSpeciesMetricsLoading.set(false);
             this.customAoiSpeciesMetricsLoadFailed.set(false);
             this.customAoiSpeciesMetricsMessage.set(null);
-            this.stopCustomAoiSpeciesProgressTimer();
+            this.stopCustomAoiSpeciesLoadingStages();
             return of<MetricValue[]>([]);
           }
 
@@ -1061,7 +1062,7 @@ export class PanelSwitcherComponent {
           this.isCustomAoiSpeciesMetricsLoading.set(false);
           this.customAoiSpeciesMetricsLoadFailed.set(false);
           this.customAoiSpeciesMetricsMessage.set(null);
-          this.stopCustomAoiSpeciesProgressTimer();
+          this.stopCustomAoiSpeciesLoadingStages();
 
           return this.loadCustomAoiMetricBatch(
             geometry,
@@ -1081,7 +1082,7 @@ export class PanelSwitcherComponent {
               }
 
               this.isCustomAoiSpeciesMetricsLoading.set(true);
-              this.startCustomAoiSpeciesProgressTimer();
+              this.startCustomAoiSpeciesLoadingStages();
               return concat(
                 of(fastMetrics),
                 this.loadCustomAoiMetricBatch(
@@ -1091,7 +1092,6 @@ export class PanelSwitcherComponent {
                   requestId,
                 ).pipe(
                   map((speciesMetrics) => {
-                    this.completeCustomAoiSpeciesProgress();
                     return this.mergeCustomAoiMetricValues(fastMetrics, speciesMetrics);
                   }),
                   catchError((error: unknown) => {
@@ -1101,7 +1101,7 @@ export class PanelSwitcherComponent {
                   }),
                   finalize(() => {
                     this.isCustomAoiSpeciesMetricsLoading.set(false);
-                    this.stopCustomAoiSpeciesProgressTimer();
+                    this.stopCustomAoiSpeciesLoadingStages();
                   }),
                 ),
               );
@@ -1803,34 +1803,67 @@ export class PanelSwitcherComponent {
     return Array.from(metricsById.values());
   }
 
-  private startCustomAoiSpeciesProgressTimer(): void {
-    this.stopCustomAoiSpeciesProgressTimer();
-    const startedAt = Date.now();
-    this.customAoiSpeciesProgressPercent.set(1);
+  protected getCustomAoiSpeciesLoadingKey(): string {
+    const stage = this.customAoiSpeciesLoadingStage();
+    const estimateBand = this.customAoiBiodiversityEstimateBand();
 
-    this.customAoiSpeciesProgressSubscription = interval(CUSTOM_AOI_SPECIES_PROGRESS_UPDATE_MS)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        const elapsedMs = Date.now() - startedAt;
-        const elapsedPercent = Math.floor(
-          (elapsedMs / CUSTOM_AOI_SPECIES_PROGRESS_EXPECTED_MS) * 100,
-        );
-        const cappedPercent = Math.min(
-          CUSTOM_AOI_SPECIES_PROGRESS_LOADING_CAP,
-          Math.max(1, elapsedPercent),
-        );
-        this.customAoiSpeciesProgressPercent.set(cappedPercent);
-      });
+    if (stage === 'initial') {
+      return `analysis.aoi.customMetrics.speciesLoading.initial.${estimateBand}`;
+    }
+
+    if (stage === 'delayed') {
+      const delayedBand =
+        estimateBand === 'large' || estimateBand === 'veryLarge'
+          ? 'largeAoi'
+          : 'longerThanExpected';
+      return `analysis.aoi.customMetrics.speciesLoading.delayed.${delayedBand}`;
+    }
+
+    return 'analysis.aoi.customMetrics.speciesLoading.extended';
   }
 
-  private completeCustomAoiSpeciesProgress(): void {
-    this.customAoiSpeciesProgressPercent.set(100);
+  private classifyCustomAoiBiodiversityEstimate(): CustomAoiBiodiversityEstimateBand {
+    const areaKm2 = this.resolveSelectedAoiAreaKm2();
+    if (areaKm2 === null) {
+      return 'unknown';
+    }
+
+    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.smallMax) {
+      return 'small';
+    }
+
+    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.mediumMax) {
+      return 'medium';
+    }
+
+    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.largeMax) {
+      return 'large';
+    }
+
+    return 'veryLarge';
   }
 
-  private stopCustomAoiSpeciesProgressTimer(): void {
-    this.customAoiSpeciesProgressSubscription?.unsubscribe();
-    this.customAoiSpeciesProgressSubscription = null;
-    this.customAoiSpeciesProgressPercent.set(0);
+  private startCustomAoiSpeciesLoadingStages(): void {
+    this.stopCustomAoiSpeciesLoadingStages();
+    this.customAoiSpeciesLoadingStage.set('initial');
+    this.customAoiSpeciesStageTimeouts = [
+      setTimeout(
+        () => this.customAoiSpeciesLoadingStage.set('delayed'),
+        CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS,
+      ),
+      setTimeout(
+        () => this.customAoiSpeciesLoadingStage.set('extended'),
+        CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS,
+      ),
+    ];
+  }
+
+  private stopCustomAoiSpeciesLoadingStages(): void {
+    for (const timeoutId of this.customAoiSpeciesStageTimeouts) {
+      clearTimeout(timeoutId);
+    }
+    this.customAoiSpeciesStageTimeouts = [];
+    this.customAoiSpeciesLoadingStage.set('initial');
   }
 
   private areCustomAoiGeometriesEqual(

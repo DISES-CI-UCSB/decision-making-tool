@@ -294,10 +294,21 @@
         "loaded": "Métricas del polígono personalizado cargadas desde la API: {{count}} métricas recibidas.",
         "statusReturned": "Las métricas del polígono personalizado devolvieron {{status}}.",
         "unavailable": "Las métricas del polígono personalizado no están disponibles.",
-        "speciesProgressLabel": "Calculando métricas de biodiversidad... {{percent}}%",
-        "speciesDuration": "Normalmente tarda entre 35 y 45 segundos.",
-        "speciesDurationCustomAoi": "Normalmente tarda entre 35 y 45 segundos para AOI dibujados a mano.",
-        "speciesLoadError": "No se pudieron cargar las métricas de biodiversidad."
+        "speciesLoadError": "No se pudieron cargar las métricas de biodiversidad.",
+        "speciesLoading": {
+          "initial": {
+            "small": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: unos segundos.",
+            "medium": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 5-10 segundos.",
+            "large": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 15-30 segundos.",
+            "veryLarge": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 1-2 minutos.",
+            "unknown": "Calculando metricas de biodiversidad. El tiempo depende del tamano del AOI y puede variar."
+          },
+          "delayed": {
+            "longerThanExpected": "Este AOI esta tardando mas de lo esperado. Puedes seguir revisando otras metricas mientras termina biodiversidad.",
+            "largeAoi": "Los AOI grandes pueden tardar mas. Puedes seguir revisando otras metricas mientras termina biodiversidad."
+          },
+          "extended": "Todavia trabajando... Los AOI grandes pueden necesitar mas tiempo. Los valores de biodiversidad apareceran aqui cuando termine el calculo."
+        }
       },
       "biodiversityTaxa": {
         "mammals": "Mamíferos",

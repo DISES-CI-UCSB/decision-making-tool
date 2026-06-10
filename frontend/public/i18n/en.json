@@ -369,10 +369,21 @@
         "loaded": "Custom polygon metrics loaded from the backend API: {{count}} metrics returned.",
         "statusReturned": "Custom polygon metrics returned {{status}}.",
         "unavailable": "Custom polygon metrics are unavailable.",
-        "speciesProgressLabel": "Calculating biodiversity metrics... {{percent}}%",
-        "speciesDuration": "Usually 35-45 seconds.",
-        "speciesDurationCustomAoi": "Usually 35-45 seconds for custom drawn AOIs.",
-        "speciesLoadError": "Biodiversity metrics could not be loaded."
+        "speciesLoadError": "Biodiversity metrics could not be loaded.",
+        "speciesLoading": {
+          "initial": {
+            "small": "Calculating biodiversity metrics. Estimated biodiversity calculation time: a few seconds.",
+            "medium": "Calculating biodiversity metrics. Estimated biodiversity calculation time: about 5-10 seconds.",
+            "large": "Calculating biodiversity metrics. Estimated biodiversity calculation time: about 15-30 seconds.",
+            "veryLarge": "Calculating biodiversity metrics. Estimated biodiversity calculation time: about 1-2 minutes.",
+            "unknown": "Calculating biodiversity metrics. Timing depends on the AOI size and can vary."
+          },
+          "delayed": {
+            "longerThanExpected": "This AOI is taking longer than expected. You can keep reviewing other metrics while biodiversity finishes.",
+            "largeAoi": "Large AOIs can take longer. You can keep reviewing other metrics while biodiversity finishes."
+          },
+          "extended": "Still working... Large AOIs may need more time. Biodiversity values will appear here when the calculation finishes."
+        }
       },
       "biodiversityTaxa": {
         "mammals": "Mammals",

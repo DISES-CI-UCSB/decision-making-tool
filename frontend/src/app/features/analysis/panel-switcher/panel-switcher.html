@@ -695,11 +695,7 @@
                     </p>
                     @if (isCustomAoiSpeciesMetricsLoading()) {
                       <p id="aoi-custom-species-metrics-loading" class="m-0 mt-1 text-slate-600">
-                        {{
-                          'analysis.aoi.customMetrics.speciesProgressLabel'
-                            | translate: { percent: customAoiSpeciesProgressPercent() }
-                        }}
-                        {{ 'analysis.aoi.customMetrics.speciesDurationCustomAoi' | translate }}
+                        {{ getCustomAoiSpeciesLoadingKey() | translate }}
                       </p>
                     } @else if (customAoiSpeciesMetricsLoadFailed()) {
                       <p id="aoi-custom-species-metrics-warning" class="m-0 mt-1 text-amber-700">
@@ -928,44 +924,39 @@
                     <div id="aoi-species-chart" class="flex flex-col gap-1">
                       @if (isCustomAoiSelected() && isCustomAoiSpeciesMetricsLoading()) {
                         <div
-                          id="aoi-biodiversity-species-progress-status"
-                          class="mb-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-700"
+                          id="aoi-biodiversity-species-loading-status"
+                          class="mb-1 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-700"
                           role="status"
                           aria-live="polite"
                         >
-                          <div
-                            id="aoi-biodiversity-species-progress-copy"
-                            class="mb-1 flex items-center justify-between gap-2"
+                          <svg
+                            id="aoi-biodiversity-species-loading-spinner"
+                            class="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-slate-500"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
                           >
-                            <span id="aoi-biodiversity-species-progress-label">
-                              {{
-                                'analysis.aoi.customMetrics.speciesProgressLabel'
-                                  | translate: { percent: customAoiSpeciesProgressPercent() }
-                              }}
-                            </span>
-                            <span
-                              id="aoi-biodiversity-species-progress-duration"
-                              class="shrink-0 text-[11px] text-slate-500"
-                            >
-                              {{ 'analysis.aoi.customMetrics.speciesDuration' | translate }}
-                            </span>
-                          </div>
-                          <div
-                            id="aoi-biodiversity-species-progressbar"
-                            class="h-2 overflow-hidden rounded-full bg-slate-200"
-                            role="progressbar"
-                            aria-labelledby="aoi-biodiversity-species-progress-label"
-                            aria-describedby="aoi-biodiversity-species-progress-duration"
-                            aria-valuemin="0"
-                            aria-valuemax="100"
-                            [attr.aria-valuenow]="customAoiSpeciesProgressPercent()"
-                          >
-                            <div
-                              id="aoi-biodiversity-species-progress-fill"
-                              class="h-full rounded-full bg-emerald-600 transition-[width] duration-500 ease-out"
-                              [style.width.%]="customAoiSpeciesProgressPercent()"
-                            ></div>
-                          </div>
+                            <circle
+                              id="aoi-biodiversity-species-loading-spinner-ring"
+                              cx="12"
+                              cy="12"
+                              r="9"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                              class="opacity-25"
+                            />
+                            <path
+                              id="aoi-biodiversity-species-loading-spinner-arc"
+                              d="M12 3a9 9 0 0 1 9 9"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                          <p id="aoi-biodiversity-species-loading-copy" class="m-0">
+                            {{ getCustomAoiSpeciesLoadingKey() | translate }}
+                          </p>
                         </div>
                       }
                       <p
