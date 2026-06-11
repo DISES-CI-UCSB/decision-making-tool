@@ -52,6 +52,7 @@ app.add_middleware(
         "http://127.0.0.1:4300",
         "http://127.0.0.1:4301",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
