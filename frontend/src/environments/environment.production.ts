@@ -16,7 +16,7 @@ export const environment = {
   googleClientId: '',
   manifestBlobUrl: '',
   blobAssetProxyPath: '',
-  metricsApiBaseUrl: 'http://107.170.64.162:8000',
+  metricsApiBaseUrl: 'https://api.decision-making-support-tool.xyz',
   ENABLE_MANIFEST_EDITOR: true,
   bypassLoginForDevelopment: false,
 } as const;
