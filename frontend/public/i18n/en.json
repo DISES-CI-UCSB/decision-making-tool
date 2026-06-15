@@ -217,9 +217,7 @@
         "affectedAgriculturalArea": "Affected Agricultural Area",
         "affectedAgriculturalAreaDesc": "Agricultural land within priorities",
         "agriculturalOpportunityCost": "Agricultural Opportunity Cost",
-        "agriculturalOpportunityCostDesc": "Production foregone",
-        "conflictZoneOverlap": "Conflict Zone Overlap",
-        "conflictZoneOverlapDesc": "Historical conflict zones"
+        "agriculturalOpportunityCostDesc": "Production foregone"
       },
       "metricUnits": {
         "ofTargets": "of targets",
@@ -310,8 +308,6 @@
         "implementationCostDesc": "Estimated implementation cost envelope.",
         "agriculturalOpportunityCost": "Agricultural Opportunity Cost",
         "agriculturalOpportunityCostDesc": "Estimated agricultural trade-off in affected zones.",
-        "conflictZoneOverlap": "Conflict Zone Overlap",
-        "conflictZoneOverlapDesc": "Overlap with historically conflict-affected areas.",
         "protectedOverlap": "Overlap with National Parks",
         "protectedOverlapDesc": "Scenario B overlap with existing formal protected areas.",
         "indigenousOverlap": "Overlap with Indigenous Territories",
@@ -398,8 +394,6 @@
         "waterIndex": "Index 78 / 100",
         "agOpportunityCost": "Ag. Opportunity Cost",
         "agOpportunityCostDesc": "Economic value of agricultural production foregone",
-        "conflictZoneOverlap": "Conflict Zone Overlap",
-        "conflictZoneOverlapDesc": "Priority area overlapping historical conflict zones",
         "indigenousReservations": "Indigenous Reservations",
         "indigenousReservationsDesc": "Area within AOI priority zones",
         "communityCounsils": "Community Councils",
@@ -437,8 +431,7 @@
         "ecosystemWaterRegulationValue": "above-average water regulation",
         "ecosystemSuffix": " for the Cauca River basin. Ecosystems account for the largest share of ecosystem coverage.",
         "landPrefix": "60% of this AOI's priority area is natural forest. Agricultural opportunity cost is ",
-        "landMiddle": ", with ",
-        "landSuffix": " in historical conflict zones.",
+        "landSuffix": ".",
         "culturalSuffix": " of this AOI's priority area overlaps indigenous territories. Prior consultation may be required under ILO Convention 169.",
         "contextAfterName": " contributes ",
         "contextAfterContribution": " toward Colombia's 30x30 conservation target. With ",

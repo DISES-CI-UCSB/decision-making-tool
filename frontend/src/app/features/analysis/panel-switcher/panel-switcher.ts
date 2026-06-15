@@ -393,16 +393,6 @@ export class PanelSwitcherComponent {
       dummyUnitKey: 'analysis.overview.metricUnits.usd',
       conditional: true,
     },
-    {
-      id: 'metric-13-conflict-zone-overlap',
-      section: 'costs',
-      labelKey: 'analysis.overview.metrics.conflictZoneOverlap',
-      descriptionKey: 'analysis.overview.metrics.conflictZoneOverlapDesc',
-      iconClass: 'fas fa-triangle-exclamation',
-      dummyValue: '95,000 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.areaAffected',
-      conditional: true,
-    },
   ];
   private readonly comparisonSectionMeta: Record<
     ComparisonSectionId,

@@ -1325,36 +1325,12 @@
                           }
                         </div>
                       </div>
-                      <div id="aoi-row-conflict" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.conflictZoneOverlap' | translate }}
-                            <span class="v3-tag-conditional">{{
-                              'analysis.overview.conditional' | translate
-                            }}</span>
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.conflictZoneOverlapDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">{{ aoiVal('38 km²') }}</div>
-                          <div class="aoi-m-unit">
-                            {{ 'analysis.aoi.stats.historicalZones' | translate }}
-                          </div>
-                        </div>
-                      </div>
                     </div>
 
                     @if (fillDummyAoiMetrics()) {
                       <div id="aoi-land-narrative" class="aoi-narrative">
                         {{ 'analysis.aoi.narratives.landPrefix' | translate }}
                         <strong>$125M USD</strong
-                        >{{ 'analysis.aoi.narratives.landMiddle' | translate }}
-                        <strong>38 km²</strong
                         >{{ 'analysis.aoi.narratives.landSuffix' | translate }}
                       </div>
                     }

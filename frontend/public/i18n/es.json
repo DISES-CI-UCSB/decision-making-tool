@@ -217,9 +217,7 @@
         "affectedAgriculturalArea": "Area agricola afectada",
         "affectedAgriculturalAreaDesc": "Tierra agricola dentro de prioridades",
         "agriculturalOpportunityCost": "Costo de oportunidad agricola",
-        "agriculturalOpportunityCostDesc": "Produccion sacrificada",
-        "conflictZoneOverlap": "Superposicion con zonas de conflicto",
-        "conflictZoneOverlapDesc": "Zonas de conflicto historicas"
+        "agriculturalOpportunityCostDesc": "Produccion sacrificada"
       },
       "metricUnits": {
         "ofTargets": "de las metas",
@@ -323,8 +321,6 @@
         "waterIndex": "Índice 78 / 100",
         "agOpportunityCost": "Costo de oportunidad agrícola",
         "agOpportunityCostDesc": "Valor económico de la producción agrícola sacrificada",
-        "conflictZoneOverlap": "Superposición con zonas de conflicto",
-        "conflictZoneOverlapDesc": "Área prioritaria con superposición en zonas de conflicto histórico",
         "indigenousReservations": "Reservaciones indígenas",
         "indigenousReservationsDesc": "Área dentro de las zonas prioritarias del AOI",
         "communityCounsils": "Consejos comunitarios",
@@ -362,8 +358,7 @@
         "ecosystemWaterRegulationValue": "regulacion hidrica superior al promedio",
         "ecosystemSuffix": " para la cuenca del rio Cauca. Los ecosistemas representan la mayor parte de la cobertura ecosistemica.",
         "landPrefix": "60% del area prioritaria de este AOI es bosque natural. El costo de oportunidad agricola es ",
-        "landMiddle": ", con ",
-        "landSuffix": " en zonas de conflicto historicas.",
+        "landSuffix": ".",
         "culturalSuffix": " del area prioritaria de este AOI se superpone con territorios indigenas. Puede requerirse consulta previa bajo el Convenio 169 de la OIT.",
         "contextAfterName": " aporta ",
         "contextAfterContribution": " a la meta de conservacion 30x30 de Colombia. Con ",
@@ -439,8 +434,6 @@
         "implementationCostDesc": "Rango estimado de costos de implementacion.",
         "agriculturalOpportunityCost": "Costo de oportunidad agricola",
         "agriculturalOpportunityCostDesc": "Compensacion agricola estimada en zonas afectadas.",
-        "conflictZoneOverlap": "Superposicion con zonas de conflicto",
-        "conflictZoneOverlapDesc": "Superposicion con areas historicamente afectadas por el conflicto.",
         "protectedOverlap": "Superposicion con parques nacionales",
         "protectedOverlapDesc": "Superposicion del Escenario B con areas protegidas formales existentes.",
         "indigenousOverlap": "Superposicion con territorios indigenas",
