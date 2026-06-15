@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/metrics-api/:path*",
+      "destination": "https://api.decision-making-support-tool.xyz/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

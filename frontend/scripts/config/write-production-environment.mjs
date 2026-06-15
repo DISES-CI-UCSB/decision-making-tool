@@ -35,7 +35,7 @@ const environmentFile = `export const environment = {
   googleClientId: ${toTsString(readOptionalEnv('GOOGLE_CLIENT_ID'))},
   manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL'))},
   blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH'))},
-  metricsApiBaseUrl: ${toTsString(readOptionalEnv('METRICS_API_BASE_URL') || 'https://api.decision-making-support-tool.xyz')},
+  metricsApiBaseUrl: ${toTsString(readOptionalEnv('METRICS_API_BASE_URL') || '/metrics-api')},
   ENABLE_MANIFEST_EDITOR: ${readBooleanEnv('ENABLE_MANIFEST_EDITOR', false)},
   bypassLoginForDevelopment: false,
 } as const;
