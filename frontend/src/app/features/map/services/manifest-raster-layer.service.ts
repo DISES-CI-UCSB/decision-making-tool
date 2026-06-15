@@ -26,10 +26,18 @@ export const VECTOR_OVERLAY_LAYER_IDS: ReadonlySet<string> = new Set([
   RUNAP_OVERLAY_LAYER_ID,
 ]);
 
+export type VectorOverlayFillStyle = 'solid' | 'hatch' | 'mesh' | 'dots';
+export type VectorOverlayBorderStyle = 'none' | 'solid' | 'dashed' | 'dotted';
+
 export interface VectorOverlayState {
   visible: boolean;
   opacity: number;
   color: string;
+  fillStyle: VectorOverlayFillStyle;
+  fillDensity: number;
+  borderColor: string;
+  borderStyle: VectorOverlayBorderStyle;
+  borderWidth: number;
 }
 
 /** Back-compat alias: existing consumers used `OmecOverlayState`. */
@@ -48,6 +56,11 @@ interface ManifestRasterLayerState {
   visible: boolean;
   opacity: number;
   color: string;
+  fillStyle?: VectorOverlayFillStyle;
+  fillDensity?: number;
+  borderColor?: string;
+  borderStyle?: VectorOverlayBorderStyle;
+  borderWidth?: number;
   rendering: RuntimeLayerManifestRenderingConfig;
 }
 
@@ -97,6 +110,11 @@ export class ManifestRasterLayerService {
         visible: options.selected && state.visible,
         opacity: state.opacity,
         color: state.color,
+        fillStyle: state.fillStyle ?? 'solid',
+        fillDensity: state.fillDensity ?? 3,
+        borderColor: state.borderColor ?? state.color,
+        borderStyle: state.borderStyle ?? 'solid',
+        borderWidth: state.borderWidth ?? 1,
       };
       this.vectorOverlayStates$.update((prev) => ({ ...prev, [layerId]: nextState }));
       if (layerId === OMEC_OVERLAY_LAYER_ID) {

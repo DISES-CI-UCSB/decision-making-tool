@@ -35,6 +35,8 @@ import {
   OMEC_OVERLAY_LAYER_ID,
   RUNAP_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
   RUNAP_OVERLAY_LAYER_ID,
+  type VectorOverlayBorderStyle,
+  type VectorOverlayFillStyle,
   type VectorOverlayState,
 } from '@features/map/services/manifest-raster-layer.service';
 import {
@@ -694,7 +696,14 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         listMode: 'hide',
         popupEnabled: false,
         outFields: [...config.outFields],
-        renderer: this.buildVectorOverlayRenderer('#7c3aed') as never,
+        renderer: this.buildVectorOverlayRenderer({
+          fillColor: '#7c3aed',
+          fillStyle: 'solid',
+          fillDensity: 3,
+          borderColor: '#7c3aed',
+          borderStyle: 'solid',
+          borderWidth: 1,
+        }) as never,
       });
       this.map.add(layer);
       this.vectorOverlayLayers.set(config.overlayId, layer);
@@ -706,16 +715,117 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private buildVectorOverlayRenderer(hexColor: string): Record<string, unknown> {
-    const [r, g, b] = this.hexToRgb(hexColor);
+  private buildVectorOverlayRenderer(input: {
+    fillColor: string;
+    fillStyle: VectorOverlayFillStyle;
+    fillDensity: number;
+    borderColor: string;
+    borderStyle: VectorOverlayBorderStyle;
+    borderWidth: number;
+  }): Record<string, unknown> {
+    const [r, g, b] = this.hexToRgb(input.fillColor);
+    const [borderR, borderG, borderB] = this.hexToRgb(input.borderColor);
+    const fillStyle = this.toArcGisVectorFillStyle(input.fillStyle);
+    const fillAlpha = this.toArcGisVectorFillAlpha(input.fillStyle, input.fillDensity);
+    const outlineStyle = this.toArcGisVectorOutlineStyle(input.borderStyle);
+    const outline = {
+      color: [borderR, borderG, borderB, OPAQUE_SYMBOL_ALPHA],
+      style: outlineStyle,
+      width: input.borderStyle === 'none' ? 0 : input.borderWidth,
+    };
+
+    if (input.fillStyle === 'dots') {
+      const patternSize = this.toArcGisDotFillPatternSize(input.fillDensity);
+
+      return {
+        type: 'simple',
+        symbol: {
+          type: 'picture-fill',
+          url: this.buildArcGisDotFillPatternUrl({
+            r,
+            g,
+            b,
+            alpha: fillAlpha,
+            patternSize,
+          }),
+          width: patternSize,
+          height: patternSize,
+          outline,
+        },
+      };
+    }
+
     return {
       type: 'simple',
       symbol: {
         type: 'simple-fill',
-        color: [r, g, b, OPAQUE_SYMBOL_ALPHA],
-        outline: { color: [r, g, b, OPAQUE_SYMBOL_ALPHA], width: 1 },
+        style: fillStyle,
+        color: [r, g, b, fillAlpha],
+        outline,
       },
     };
+  }
+
+  private toArcGisVectorFillStyle(
+    fillStyle: VectorOverlayFillStyle,
+  ): 'solid' | 'backward-diagonal' | 'diagonal-cross' {
+    if (fillStyle === 'hatch') {
+      return 'backward-diagonal';
+    }
+    if (fillStyle === 'mesh') {
+      return 'diagonal-cross';
+    }
+    return 'solid';
+  }
+
+  private toArcGisDotFillPatternSize(fillDensity: number): number {
+    const clampedDensity = Math.max(1, Math.min(5, Math.round(fillDensity)));
+    return 18 - clampedDensity * 2;
+  }
+
+  private buildArcGisDotFillPatternUrl(input: {
+    r: number;
+    g: number;
+    b: number;
+    alpha: number;
+    patternSize: number;
+  }): string {
+    const dotRadius = 1.25;
+    const firstDot = 2;
+    const secondDot = input.patternSize / 2 + 2;
+    const opacity = input.alpha.toFixed(2);
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${input.patternSize}" height="${input.patternSize}" viewBox="0 0 ${input.patternSize} ${input.patternSize}">
+        <circle cx="${firstDot}" cy="${firstDot}" r="${dotRadius}" fill="rgb(${input.r}, ${input.g}, ${input.b})" fill-opacity="${opacity}"/>
+        <circle cx="${secondDot}" cy="${secondDot}" r="${dotRadius}" fill="rgb(${input.r}, ${input.g}, ${input.b})" fill-opacity="${opacity}"/>
+      </svg>
+    `;
+
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }
+
+  private toArcGisVectorFillAlpha(fillStyle: VectorOverlayFillStyle, fillDensity: number): number {
+    if (fillStyle === 'solid') {
+      return OPAQUE_SYMBOL_ALPHA;
+    }
+    // SimpleFillSymbol pattern spacing is fixed; vary alpha so density still affects map output.
+    const clampedDensity = Math.max(1, Math.min(5, Math.round(fillDensity)));
+    return 0.35 + clampedDensity * 0.13;
+  }
+
+  private toArcGisVectorOutlineStyle(
+    borderStyle: VectorOverlayBorderStyle,
+  ): 'none' | 'solid' | 'long-dash' | 'dot' {
+    if (borderStyle === 'none') {
+      return 'none';
+    }
+    if (borderStyle === 'dashed') {
+      return 'long-dash';
+    }
+    if (borderStyle === 'dotted') {
+      return 'dot';
+    }
+    return 'solid';
   }
 
   private hexToRgb(hex: string): [number, number, number] {
@@ -737,7 +847,14 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     }
     layer.visible = state.visible;
     layer.opacity = state.opacity;
-    layer.renderer = this.buildVectorOverlayRenderer(state.color) as never;
+    layer.renderer = this.buildVectorOverlayRenderer({
+      fillColor: state.color,
+      fillStyle: state.fillStyle,
+      fillDensity: state.fillDensity,
+      borderColor: state.borderColor,
+      borderStyle: state.borderStyle,
+      borderWidth: state.borderWidth,
+    }) as never;
     if (state.visible) {
       this.watchVectorOverlayLayerView(config, layer);
     } else {

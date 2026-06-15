@@ -55,7 +55,7 @@ body {
   ngx-color-picker popup — Map Layers panel customization.
   Top row is one line: [eyedropper, always black] [current color swatch] [hue strip].
   Hex input + preset chips below; "Quick picks" label is hidden.
-  Pinned above ArcGIS map panes via z-index.
+  Pinned above ArcGIS map panes and the selected-layer appearance popover via z-index.
 
   The library uses ViewEncapsulation.None and injects its baseline styles into
   <head> at runtime, so its rules win the cascade over this global stylesheet.
@@ -63,10 +63,10 @@ body {
   `.selected-color { position: absolute; border-radius: 50% }`.
 */
 .color-picker {
-  z-index: 2000 !important;
+  z-index: 3000 !important;
   width: 226px !important;
   /* Nudge popup vertically relative to library auto-positioning. */
-  transform: translateY(-3.5px) translateX(1px);
+  transform: translateX(1px);
 }
 
 .color-picker .hue-alpha {

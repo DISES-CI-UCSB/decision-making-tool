@@ -95,13 +95,20 @@
               {{ 'mapLayersPanel.selectedLayersEmpty' | translate }}
             </p>
           } @else {
-            @for (selected of selectedLayers(); track selected.id; let isLast = $last) {
+            @for (
+              selected of selectedLayers();
+              track selected.id;
+              let isFirst = $first;
+              let isLast = $last
+            ) {
               <article
                 @selectedLayerRow
                 [id]="'map-layers-selected-layer-row-' + selected.id"
                 data-ui="selected-layer-row"
                 [attr.data-layer-id]="selected.id"
                 class="map-layers-selected-layer-row grid grid-cols-[1.5rem_1fr] bg-white"
+                [class.map-layers-selected-layer-row-first]="isFirst"
+                [class.map-layers-selected-layer-row-last]="isLast"
                 [class.border-b]="!isLast"
                 [class.border-slate-100]="!isLast"
                 [class.bg-slate-50]="selectedLayerDropTargetId() === selected.id"
@@ -378,8 +385,7 @@
                             data-ui="selected-layer-color-control"
                             [attr.data-layer-id]="selected.id"
                             type="button"
-                            class="map-layers-color-swatch h-5 w-5 shrink-0 cursor-pointer rounded border border-slate-200 p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                            [style.backgroundColor]="selectedLayerColor(selected.id)"
+                            class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent p-0 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                             [colorPicker]="selectedLayerColor(selected.id)"
                             cpOutputFormat="hex"
                             cpAlphaChannel="disabled"
@@ -395,7 +401,16 @@
                             [attr.aria-label]="
                               'mapLayersPanel.chooseColorFor' | translate: { name: selected.name }
                             "
-                          ></button>
+                          >
+                            <span
+                              [id]="
+                                'map-layers-selected-layer-row-color-chip-preview-' + selected.id
+                              "
+                              class="h-5 w-5 rounded border border-slate-200"
+                              [style.backgroundColor]="selectedLayerColor(selected.id)"
+                              aria-hidden="true"
+                            ></span>
+                          </button>
                         } @else if (selectedLayerHasFillControl(selected.id)) {
                           <button
                             [id]="'map-layers-selected-layer-row-fill-chip-button-' + selected.id"
@@ -437,10 +452,11 @@
                               {{ 'mapLayersPanel.appearanceFillLabel' | translate }}
                             </span>
                           </button>
-                        } @else if (selectedLayerHasBorderControl(selected.id)) {
+                        } @else {
                           <span
                             [id]="
-                              'map-layers-selected-layer-row-fill-chip-placeholder-' + selected.id
+                              'map-layers-selected-layer-row-first-swatch-placeholder-' +
+                              selected.id
                             "
                             class="h-7 w-7 shrink-0"
                             aria-hidden="true"
@@ -492,6 +508,15 @@
                               {{ 'mapLayersPanel.appearanceBorderLabel' | translate }}
                             </span>
                           </button>
+                        } @else {
+                          <span
+                            [id]="
+                              'map-layers-selected-layer-row-second-swatch-placeholder-' +
+                              selected.id
+                            "
+                            class="h-7 w-7 shrink-0"
+                            aria-hidden="true"
+                          ></span>
                         }
                       </div>
                     </div>
@@ -1702,7 +1727,7 @@
           >
             <span
               [id]="'map-layers-selected-layer-appearance-combined-preview-' + selected.id"
-              class="map-layers-combined-preview h-12 w-16 rounded-lg bg-white"
+              class="map-layers-combined-preview h-12 w-12 shrink-0 rounded-lg bg-white"
               [class.map-layers-fill-preview]="selectedLayerHasFillControl(selected.id)"
               [ngClass]="[
                 selectedLayerHasFillControl(selected.id)
@@ -1758,11 +1783,10 @@
                   data-ui="selected-layer-fill-color-control"
                   [attr.data-layer-id]="selected.id"
                   type="button"
-                  class="map-layers-color-swatch h-5 w-6 shrink-0 rounded border border-slate-200 p-0"
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent p-0 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                   [class.cursor-pointer]="selectedLayerHasColorControl(selected.id)"
                   [class.cursor-not-allowed]="!selectedLayerHasColorControl(selected.id)"
                   [class.opacity-50]="!selectedLayerHasColorControl(selected.id)"
-                  [style.backgroundColor]="selectedLayerColor(selected.id)"
                   [colorPicker]="selectedLayerColor(selected.id)"
                   cpOutputFormat="hex"
                   cpAlphaChannel="disabled"
@@ -1779,7 +1803,16 @@
                   [attr.aria-label]="
                     'mapLayersPanel.chooseFillColorFor' | translate: { name: selected.name }
                   "
-                ></button>
+                >
+                  <span
+                    [id]="
+                      'map-layers-selected-layer-appearance-fill-color-chip-preview-' + selected.id
+                    "
+                    class="map-layers-color-swatch h-5 w-5 rounded border border-slate-200"
+                    [style.backgroundColor]="selectedLayerColor(selected.id)"
+                    aria-hidden="true"
+                  ></span>
+                </button>
               </div>
               <div
                 [id]="'map-layers-selected-layer-appearance-fill-grid-' + selected.id"
@@ -1796,7 +1829,7 @@
                       selected.id
                     "
                     type="button"
-                    class="rounded-md border px-1.5 py-1.5 text-center text-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    class="flex flex-col items-center rounded-md border px-1.5 py-1.5 text-center text-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                     [class.border-sky-400]="selectedLayerFillStyle(selected.id) === option.value"
                     [class.bg-sky-50]="selectedLayerFillStyle(selected.id) === option.value"
                     [class.font-bold]="selectedLayerFillStyle(selected.id) === option.value"
@@ -1816,7 +1849,7 @@
                         '-preview-' +
                         selected.id
                       "
-                      class="map-layers-fill-preview mx-auto block h-5 w-7 rounded border border-slate-200"
+                      class="map-layers-fill-preview h-7 w-7 rounded border border-slate-200"
                       [ngClass]="'map-layers-fill-preview--' + option.value"
                       [style.--map-layers-fill-color]="selectedLayerColor(selected.id)"
                       [style.--map-layers-pattern-size]="selectedLayerFillPatternSize(selected.id)"
@@ -1892,8 +1925,7 @@
                   data-ui="selected-layer-border-color-control"
                   [attr.data-layer-id]="selected.id"
                   type="button"
-                  class="map-layers-color-swatch h-5 w-6 shrink-0 cursor-pointer rounded border border-slate-200 p-0"
-                  [style.backgroundColor]="selectedLayerBorderColor(selected.id)"
+                  class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent p-0 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                   [colorPicker]="selectedLayerBorderColor(selected.id)"
                   cpOutputFormat="hex"
                   cpAlphaChannel="disabled"
@@ -1909,7 +1941,17 @@
                   [attr.aria-label]="
                     'mapLayersPanel.chooseBorderColorFor' | translate: { name: selected.name }
                   "
-                ></button>
+                >
+                  <span
+                    [id]="
+                      'map-layers-selected-layer-appearance-border-color-chip-preview-' +
+                      selected.id
+                    "
+                    class="map-layers-color-swatch h-5 w-5 rounded border border-slate-200"
+                    [style.backgroundColor]="selectedLayerBorderColor(selected.id)"
+                    aria-hidden="true"
+                  ></span>
+                </button>
               </div>
               <div
                 [id]="'map-layers-selected-layer-appearance-border-grid-' + selected.id"
@@ -1926,7 +1968,7 @@
                       selected.id
                     "
                     type="button"
-                    class="rounded-md border px-1.5 py-1.5 text-center text-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    class="flex flex-col items-center rounded-md border px-1.5 py-1.5 text-center text-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                     [class.border-sky-400]="selectedLayerBorderStyle(selected.id) === option.value"
                     [class.bg-sky-50]="selectedLayerBorderStyle(selected.id) === option.value"
                     [class.font-bold]="selectedLayerBorderStyle(selected.id) === option.value"
@@ -1948,7 +1990,7 @@
                         '-preview-' +
                         selected.id
                       "
-                      class="map-layers-border-preview mx-auto block h-5 w-7 rounded bg-white"
+                      class="map-layers-border-preview h-7 w-7 rounded bg-white"
                       [ngClass]="'map-layers-border-preview--' + option.value"
                       [style.--map-layers-border-color]="selectedLayerBorderColor(selected.id)"
                       [style.--map-layers-border-width]="

@@ -1,12 +1,14 @@
 import { animate, style, transition, trigger } from '@angular/animations';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   Component,
   DestroyRef,
+  ElementRef,
   EventEmitter,
   OnDestroy,
   Output,
+  ViewChild,
   computed,
   effect,
   inject,
@@ -42,6 +44,7 @@ import {
 import {
   ManifestRasterLayerService,
   VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID,
+  VECTOR_OVERLAY_LAYER_IDS,
 } from '@features/map/services/manifest-raster-layer.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
@@ -64,6 +67,11 @@ interface LayerControlRow {
   expanded: boolean;
   opacity: number;
   color: string;
+  fillStyle?: SelectedLayerFillStyle;
+  fillDensity?: number;
+  borderColor?: string;
+  borderStyle?: SelectedLayerBorderStyle;
+  borderWidth?: number;
   canReorder: boolean;
   hasStyleControls: boolean;
   hasColorControl: boolean;
@@ -133,6 +141,11 @@ interface SelectedLayerRow {
 }
 
 const SPECIES_VISIBLE_LIMIT = 6;
+const DEFAULT_SELECTED_LAYER_FILL_STYLE: SelectedLayerFillStyle = 'solid';
+const DEFAULT_SELECTED_LAYER_FILL_DENSITY = 3;
+const DEFAULT_SELECTED_LAYER_BORDER_COLOR = '#0f172a';
+const DEFAULT_SELECTED_LAYER_BORDER_STYLE: SelectedLayerBorderStyle = 'solid';
+const DEFAULT_SELECTED_LAYER_BORDER_WIDTH = 1;
 /**
  * ngx-color-picker remembers whichever input format (Hex / R G B / H S L) the
  * user last selected and does not reset it across reopens. The directive's
@@ -141,6 +154,21 @@ const SPECIES_VISIBLE_LIMIT = 6;
  * is the numeric input mode (0 = HEX). We reset to 0 on every open below so
  * the popup always greets the user with the hex input.
  */
+/** Mirrors `top-[5.25rem]` on the in-row appearance popover anchor. */
+const APPEARANCE_POPOVER_TOP_OFFSET_PX = 84;
+/** Mirrors `left-25` horizontal offset from the selected-layer row's left edge. */
+const APPEARANCE_POPOVER_LEFT_OFFSET_PX = 100;
+/** Mirrors `right-16` on the popover arrow element. */
+const APPEARANCE_POPOVER_ARROW_RIGHT_PX = 158;
+const APPEARANCE_POPOVER_MAX_WIDTH_PX = 336;
+
+interface AppearancePopoverPosition {
+  top: number;
+  left: number;
+  width: number;
+  arrowRightPx: number;
+}
+
 const COLOR_PICKER_HEX_FORMAT = 0;
 /** Formats exposed in the inlined dropdown; values match ngx-color-picker's `format` field. */
 const COLOR_PICKER_FORMAT_OPTIONS = [
@@ -174,6 +202,8 @@ interface ColorPickerComponentWithPrivateSliderDims {
   updateColorPicker: (emit?: boolean, update?: boolean, cmykInput?: boolean) => void;
 }
 type SelectedLayerDropPosition = 'before' | 'after';
+type SelectedLayerFillStyle = 'solid' | 'hatch' | 'mesh' | 'dots';
+type SelectedLayerBorderStyle = 'none' | 'solid' | 'dashed' | 'dotted';
 type SupportedLanguage = 'en' | 'es';
 interface SpeciesRichnessTaxonLayerDefinition {
   rowId: string;
@@ -519,6 +549,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly appLocaleService = inject(AppLocaleService);
+  private readonly document = inject(DOCUMENT);
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
   private formatSelectIdSequence = 0;
@@ -550,6 +581,24 @@ export class MapLayersPanelComponent implements OnDestroy {
     '#475569',
     '#111827',
     '#F59E0B',
+  ];
+  protected readonly selectedLayerFillStyleOptions: readonly {
+    value: SelectedLayerFillStyle;
+    labelKey: string;
+  }[] = [
+    { value: 'solid', labelKey: 'mapLayersPanel.appearanceFillStyleSolid' },
+    { value: 'hatch', labelKey: 'mapLayersPanel.appearanceFillStyleHatch' },
+    { value: 'mesh', labelKey: 'mapLayersPanel.appearanceFillStyleMesh' },
+    { value: 'dots', labelKey: 'mapLayersPanel.appearanceFillStyleDots' },
+  ];
+  protected readonly selectedLayerBorderStyleOptions: readonly {
+    value: SelectedLayerBorderStyle;
+    labelKey: string;
+  }[] = [
+    { value: 'none', labelKey: 'mapLayersPanel.appearanceBorderStyleNone' },
+    { value: 'solid', labelKey: 'mapLayersPanel.appearanceBorderStyleSolid' },
+    { value: 'dashed', labelKey: 'mapLayersPanel.appearanceBorderStyleDashed' },
+    { value: 'dotted', labelKey: 'mapLayersPanel.appearanceBorderStyleDotted' },
   ];
 
   protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
@@ -634,9 +683,24 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectedLayerDragId = signal<string | null>(null);
   protected readonly selectedLayerDropTargetId = signal<string | null>(null);
   protected readonly selectedLayerDropPosition = signal<SelectedLayerDropPosition>('before');
+  protected readonly selectedLayerAppearancePopoverId = signal<string | null>(null);
+  protected readonly appearancePopoverPosition = signal<AppearancePopoverPosition | null>(null);
+  protected readonly selectedLayerAppearancePopoverRow = computed(() => {
+    const rowId = this.selectedLayerAppearancePopoverId();
+    if (!rowId || !this.selectedLayerHasAppearanceControls(rowId)) {
+      return null;
+    }
+    return this.selectedLayers().find((row) => row.id === rowId) ?? null;
+  });
   protected readonly selectedLayers = computed<SelectedLayerRow[]>(() =>
     this.buildSelectedLayers(),
   );
+  @ViewChild('appearancePopoverPortalHost')
+  private appearancePopoverPortalHost?: ElementRef<HTMLElement>;
+  private appearancePopoverPortalHome: HTMLElement | null = null;
+  private appearancePopoverRepositionFrame: number | null = null;
+  private appearancePopoverRepositionListener: (() => void) | null = null;
+  private appearancePopoverOutsidePointerListener: ((event: PointerEvent) => void) | null = null;
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
 
   constructor() {
@@ -752,10 +816,33 @@ export class MapLayersPanelComponent implements OnDestroy {
         this.resetRainforestProximity();
       }
     });
+
+    effect(() => {
+      const rowId = this.selectedLayerAppearancePopoverId();
+      untracked(() => {
+        if (rowId) {
+          this.bindAppearancePopoverRepositionListeners();
+          this.bindAppearancePopoverOutsidePointerListener();
+          this.scheduleAppearancePopoverReposition(rowId);
+        } else {
+          this.unbindAppearancePopoverRepositionListeners();
+          this.unbindAppearancePopoverOutsidePointerListener();
+          this.unmountAppearancePopoverPortal();
+          this.appearancePopoverPosition.set(null);
+        }
+      });
+    });
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('pointermove', this.rainforestProximityHandler);
+    this.unbindAppearancePopoverRepositionListeners();
+    this.unbindAppearancePopoverOutsidePointerListener();
+    this.unmountAppearancePopoverPortal();
+    if (this.appearancePopoverRepositionFrame !== null) {
+      cancelAnimationFrame(this.appearancePopoverRepositionFrame);
+      this.appearancePopoverRepositionFrame = null;
+    }
     for (const frameId of this.opacitySyncFrames.values()) {
       cancelAnimationFrame(frameId);
     }
@@ -2137,6 +2224,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
+    this.closeSelectedLayerAppearancePopover(rowId);
+
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlaySelected(rowId);
       return;
@@ -2322,6 +2411,28 @@ export class MapLayersPanelComponent implements OnDestroy {
     return false;
   }
 
+  protected selectedLayerHasFillControl(rowId: string): boolean {
+    const row = this.findLayerControlRowById(rowId);
+    return !!row && row.hasColorControl && this.isVectorPolygonStyleRow(row);
+  }
+
+  protected selectedLayerHasBorderControl(rowId: string): boolean {
+    const row = this.findLayerControlRowById(rowId);
+    return !!row && (row.mapSync?.type === 'admin-boundary' || this.isVectorPolygonStyleRow(row));
+  }
+
+  protected selectedLayerHasColorOnlyControl(rowId: string): boolean {
+    return (
+      this.selectedLayerHasColorControl(rowId) &&
+      !this.selectedLayerHasFillControl(rowId) &&
+      !this.selectedLayerHasBorderControl(rowId)
+    );
+  }
+
+  protected selectedLayerHasAppearanceControls(rowId: string): boolean {
+    return this.selectedLayerHasFillControl(rowId) || this.selectedLayerHasBorderControl(rowId);
+  }
+
   protected selectedLayerColor(rowId: string): string {
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
@@ -2357,6 +2468,251 @@ export class MapLayersPanelComponent implements OnDestroy {
       this.updateLayerColor(groupId, rowId, color);
       return;
     }
+  }
+
+  protected isSelectedLayerAppearancePopoverOpen(rowId: string): boolean {
+    return this.selectedLayerAppearancePopoverId() === rowId;
+  }
+
+  protected toggleSelectedLayerAppearancePopover(rowId: string): void {
+    if (!this.selectedLayerHasAppearanceControls(rowId)) {
+      this.closeSelectedLayerAppearancePopover(rowId);
+      return;
+    }
+    this.selectedLayerAppearancePopoverId.update((openRowId) =>
+      openRowId === rowId ? null : rowId,
+    );
+    if (this.selectedLayerAppearancePopoverId() === rowId) {
+      this.scheduleAppearancePopoverReposition(rowId);
+    }
+  }
+
+  protected closeSelectedLayerAppearancePopover(rowId?: string): void {
+    if (!rowId || this.selectedLayerAppearancePopoverId() === rowId) {
+      this.selectedLayerAppearancePopoverId.set(null);
+    }
+  }
+
+  /**
+   * Portals the appearance popover to `document.body` (same escape hatch as
+   * ngx-color-picker's `cpUseRootViewContainer`) so sidebar overflow rules
+   * cannot clip it at the pane edge.
+   */
+  private mountAppearancePopoverPortal(): void {
+    const portalHost = this.appearancePopoverPortalHost?.nativeElement;
+    if (!portalHost || portalHost.parentElement === this.document.body) {
+      return;
+    }
+    this.appearancePopoverPortalHome = portalHost.parentElement;
+    this.document.body.appendChild(portalHost);
+  }
+
+  private unmountAppearancePopoverPortal(): void {
+    const portalHost = this.appearancePopoverPortalHost?.nativeElement;
+    if (!portalHost || !this.appearancePopoverPortalHome) {
+      return;
+    }
+    this.appearancePopoverPortalHome.appendChild(portalHost);
+    this.appearancePopoverPortalHome = null;
+  }
+
+  private bindAppearancePopoverRepositionListeners(): void {
+    if (this.appearancePopoverRepositionListener) {
+      return;
+    }
+    this.appearancePopoverRepositionListener = () => {
+      const rowId = this.selectedLayerAppearancePopoverId();
+      if (rowId) {
+        this.scheduleAppearancePopoverReposition(rowId);
+      }
+    };
+    window.addEventListener('resize', this.appearancePopoverRepositionListener, { passive: true });
+    window.addEventListener('scroll', this.appearancePopoverRepositionListener, {
+      passive: true,
+      capture: true,
+    });
+  }
+
+  private unbindAppearancePopoverRepositionListeners(): void {
+    if (!this.appearancePopoverRepositionListener) {
+      return;
+    }
+    window.removeEventListener('resize', this.appearancePopoverRepositionListener);
+    window.removeEventListener('scroll', this.appearancePopoverRepositionListener, true);
+    this.appearancePopoverRepositionListener = null;
+  }
+
+  private bindAppearancePopoverOutsidePointerListener(): void {
+    if (this.appearancePopoverOutsidePointerListener) {
+      return;
+    }
+    this.appearancePopoverOutsidePointerListener = (event) =>
+      this.onAppearancePopoverDocumentPointerDown(event);
+    this.document.addEventListener('pointerdown', this.appearancePopoverOutsidePointerListener, {
+      capture: true,
+    });
+  }
+
+  private unbindAppearancePopoverOutsidePointerListener(): void {
+    if (!this.appearancePopoverOutsidePointerListener) {
+      return;
+    }
+    this.document.removeEventListener(
+      'pointerdown',
+      this.appearancePopoverOutsidePointerListener,
+      true,
+    );
+    this.appearancePopoverOutsidePointerListener = null;
+  }
+
+  private onAppearancePopoverDocumentPointerDown(event: PointerEvent): void {
+    if (!this.selectedLayerAppearancePopoverId()) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Node)) {
+      this.closeSelectedLayerAppearancePopover();
+      return;
+    }
+    const targetElement =
+      target instanceof Element
+        ? target
+        : target.parentElement instanceof Element
+          ? target.parentElement
+          : null;
+    if (
+      targetElement?.closest(
+        [
+          '[data-ui="selected-layer-appearance-popover"]',
+          '[data-ui="selected-layer-fill-control"]',
+          '[data-ui="selected-layer-border-control"]',
+          '.color-picker',
+        ].join(', '),
+      )
+    ) {
+      return;
+    }
+    this.closeSelectedLayerAppearancePopover();
+  }
+
+  private scheduleAppearancePopoverReposition(rowId: string): void {
+    if (this.appearancePopoverRepositionFrame !== null) {
+      cancelAnimationFrame(this.appearancePopoverRepositionFrame);
+    }
+    this.appearancePopoverRepositionFrame = requestAnimationFrame(() => {
+      this.appearancePopoverRepositionFrame = requestAnimationFrame(() => {
+        this.appearancePopoverRepositionFrame = null;
+        this.mountAppearancePopoverPortal();
+        this.updateAppearancePopoverPosition(rowId);
+      });
+    });
+  }
+
+  private updateAppearancePopoverPosition(rowId: string): void {
+    const rowElement = this.document.getElementById(`map-layers-selected-layer-row-${rowId}`);
+    if (!rowElement) {
+      return;
+    }
+    const rowRect = rowElement.getBoundingClientRect();
+    this.appearancePopoverPosition.set({
+      top: Math.round(rowRect.top + APPEARANCE_POPOVER_TOP_OFFSET_PX),
+      left: Math.round(rowRect.left + APPEARANCE_POPOVER_LEFT_OFFSET_PX),
+      width: APPEARANCE_POPOVER_MAX_WIDTH_PX,
+      arrowRightPx: APPEARANCE_POPOVER_ARROW_RIGHT_PX,
+    });
+  }
+
+  protected selectedLayerFillStyle(rowId: string): SelectedLayerFillStyle {
+    return this.findLayerControlRowById(rowId)?.fillStyle ?? DEFAULT_SELECTED_LAYER_FILL_STYLE;
+  }
+
+  protected selectedLayerFillDensity(rowId: string): number {
+    return this.findLayerControlRowById(rowId)?.fillDensity ?? DEFAULT_SELECTED_LAYER_FILL_DENSITY;
+  }
+
+  protected selectedLayerFillDensityLabelKey(rowId: string): string {
+    const density = this.selectedLayerFillDensity(rowId);
+    if (density <= 2) {
+      return 'mapLayersPanel.appearanceDensityLow';
+    }
+    if (density >= 4) {
+      return 'mapLayersPanel.appearanceDensityHigh';
+    }
+    return 'mapLayersPanel.appearanceDensityMedium';
+  }
+
+  protected selectedLayerFillPatternSize(rowId: string): string {
+    const density = this.selectedLayerFillDensity(rowId);
+    const sizeByDensity: Record<number, string> = {
+      1: '14px',
+      2: '11px',
+      3: '8px',
+      4: '6px',
+      5: '4px',
+    };
+    return sizeByDensity[density] ?? sizeByDensity[DEFAULT_SELECTED_LAYER_FILL_DENSITY];
+  }
+
+  protected selectedLayerFillPreviewClass(rowId: string): string {
+    return `map-layers-fill-preview--${this.selectedLayerFillStyle(rowId)}`;
+  }
+
+  protected updateSelectedLayerFillStyle(rowId: string, fillStyle: SelectedLayerFillStyle): void {
+    if (!this.selectedLayerHasFillControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerAppearance(rowId, { fillStyle });
+  }
+
+  protected updateSelectedLayerFillDensity(rowId: string, densityText: string): void {
+    if (!this.selectedLayerHasFillControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerAppearance(rowId, {
+      fillDensity: this.parseAppearanceRange(densityText, 1, 5),
+    });
+  }
+
+  protected selectedLayerBorderColor(rowId: string): string {
+    return this.findLayerControlRowById(rowId)?.borderColor ?? DEFAULT_SELECTED_LAYER_BORDER_COLOR;
+  }
+
+  protected selectedLayerBorderStyle(rowId: string): SelectedLayerBorderStyle {
+    return this.findLayerControlRowById(rowId)?.borderStyle ?? DEFAULT_SELECTED_LAYER_BORDER_STYLE;
+  }
+
+  protected selectedLayerBorderWidth(rowId: string): number {
+    return this.findLayerControlRowById(rowId)?.borderWidth ?? DEFAULT_SELECTED_LAYER_BORDER_WIDTH;
+  }
+
+  protected selectedLayerBorderStyleClass(rowId: string): string {
+    return `map-layers-border-preview--${this.selectedLayerBorderStyle(rowId)}`;
+  }
+
+  protected updateSelectedLayerBorderColor(rowId: string, borderColor: string): void {
+    if (!this.selectedLayerHasBorderControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerAppearance(rowId, { borderColor });
+  }
+
+  protected updateSelectedLayerBorderStyle(
+    rowId: string,
+    borderStyle: SelectedLayerBorderStyle,
+  ): void {
+    if (!this.selectedLayerHasBorderControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerAppearance(rowId, { borderStyle });
+  }
+
+  protected updateSelectedLayerBorderWidth(rowId: string, borderWidthText: string): void {
+    if (!this.selectedLayerHasBorderControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerAppearance(rowId, {
+      borderWidth: this.parseAppearanceRange(borderWidthText, 0, 6),
+    });
   }
 
   /**
@@ -2677,7 +3033,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     if (mapSync.type === 'admin-boundary') {
-      this.adminBoundaryService.setLayerStyle(mapSync.boundaryLayerKey, { color: row.color });
+      this.adminBoundaryService.setLayerStyle(mapSync.boundaryLayerKey, {
+        color: row.borderColor ?? row.color,
+        style: this.toAdminBoundaryLineStyle(row.borderStyle),
+        width: row.borderWidth ?? DEFAULT_SELECTED_LAYER_BORDER_WIDTH,
+      });
       this.adminBoundaryService.setLayerVisibility(mapSync.boundaryLayerKey, row.visible);
       return;
     }
@@ -2690,6 +3050,11 @@ export class MapLayersPanelComponent implements OnDestroy {
           visible: row.visible,
           opacity: row.opacity / 100,
           color: row.color,
+          fillStyle: row.fillStyle ?? DEFAULT_SELECTED_LAYER_FILL_STYLE,
+          fillDensity: row.fillDensity ?? DEFAULT_SELECTED_LAYER_FILL_DENSITY,
+          borderColor: row.borderColor ?? row.color,
+          borderStyle: row.borderStyle ?? DEFAULT_SELECTED_LAYER_BORDER_STYLE,
+          borderWidth: row.borderWidth ?? DEFAULT_SELECTED_LAYER_BORDER_WIDTH,
           rendering: this.applyRowColorToRendering(mapSync.rendering, row.color),
         },
         { selected: row.selected },
@@ -2790,6 +3155,101 @@ export class MapLayersPanelComponent implements OnDestroy {
       return 0;
     }
     return Math.max(0, Math.min(100, Math.round(parsed)));
+  }
+
+  private parseAppearanceRange(rawValue: string, min: number, max: number): number {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) {
+      return min;
+    }
+    return Math.max(min, Math.min(max, Math.round(parsed)));
+  }
+
+  private findLayerControlRowById(rowId: string): LayerControlRow | null {
+    const overlay = this.overlays().find((row) => row.id === rowId);
+    if (overlay) {
+      return overlay;
+    }
+
+    const taxon = this.findTaxonById(rowId);
+    if (taxon) {
+      return taxon;
+    }
+
+    const groupRowMatch = this.findGroupRowById(rowId);
+    if (groupRowMatch) {
+      return groupRowMatch.row;
+    }
+
+    return this.findSpeciesById(rowId)?.species ?? null;
+  }
+
+  private updateSelectedLayerAppearance(
+    rowId: string,
+    patch: Partial<
+      Pick<
+        LayerControlRow,
+        'fillStyle' | 'fillDensity' | 'borderColor' | 'borderStyle' | 'borderWidth'
+      >
+    >,
+  ): void {
+    this.overlays.update((rows) =>
+      rows.map((row) => (row.id === rowId ? { ...row, ...patch } : row)),
+    );
+
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) =>
+        taxon.id === rowId
+          ? { ...taxon, ...patch }
+          : {
+              ...taxon,
+              species: taxon.species.map((species) =>
+                species.id === rowId ? { ...species, ...patch } : species,
+              ),
+            },
+      ),
+    );
+
+    this.groups.update((groups) =>
+      groups.map((group) => ({
+        ...group,
+        rows: group.rows.map((row) => (row.id === rowId ? { ...row, ...patch } : row)),
+      })),
+    );
+    this.scheduleSelectedLayerAppearanceSync(rowId);
+  }
+
+  private scheduleSelectedLayerAppearanceSync(rowId: string): void {
+    if (rowId.startsWith('overlay-')) {
+      this.scheduleColorSync(rowId);
+      return;
+    }
+
+    const groupId = this.findGroupIdByRowId(rowId);
+    if (groupId) {
+      this.scheduleColorSync(`${groupId}:${rowId}`);
+      return;
+    }
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.scheduleColorSync(`${speciesMatch.taxonId}:${rowId}`);
+    }
+  }
+
+  private toAdminBoundaryLineStyle(
+    borderStyle: SelectedLayerBorderStyle | undefined,
+  ): 'none' | 'solid' | 'long-dash' | 'dot' {
+    if (borderStyle === 'none') {
+      return 'none';
+    }
+    if (borderStyle === 'dotted') {
+      return 'dot';
+    }
+    if (borderStyle === 'dashed') {
+      return 'long-dash';
+    }
+    return 'solid';
   }
 
   private syncInitialBoundaryState(): void {
@@ -3041,9 +3501,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: row.id,
         name: row.name,
         swatchType: 'line',
-        color: row.color || style.color,
-        lineStyle: style.lineStyle,
-        lineWidth: style.lineWidth,
+        color: row.borderColor ?? row.color ?? style.color,
+        lineStyle: row.borderStyle === 'solid' ? 'solid' : 'dashed',
+        lineWidth: row.borderStyle === 'none' ? 0 : (row.borderWidth ?? style.lineWidth),
       };
     }
 
@@ -3132,6 +3592,19 @@ export class MapLayersPanelComponent implements OnDestroy {
       mapType === 'solution-candidate' ||
       mapType === 'solution-overlap'
     );
+  }
+
+  private isVectorPolygonStyleRow(row: LayerControlRow): boolean {
+    if (this.isSolutionLayerRow(row)) {
+      return false;
+    }
+    if (row.mapSync?.type === 'app-state-layer') {
+      return true;
+    }
+    if (row.mapSync?.type === 'manifest-raster') {
+      return VECTOR_OVERLAY_LAYER_IDS.has(row.mapSync.layerId);
+    }
+    return !row.mapSync && !row.mapUnavailable && row.hasColorControl;
   }
 
   private findGroupIdByRowId(rowId: string): string | undefined {
@@ -3926,6 +4399,19 @@ export class MapLayersPanelComponent implements OnDestroy {
       expanded: selected,
       opacity: 100,
       color: '#111827',
+      borderColor: '#111827',
+      borderStyle:
+        boundaryLayerKey === 'siraps' || boundaryLayerKey === 'siraps_thematic'
+          ? 'dashed'
+          : 'solid',
+      borderWidth:
+        boundaryLayerKey === 'admin_country_outline'
+          ? 1.6
+          : boundaryLayerKey === 'siraps' ||
+              boundaryLayerKey === 'siraps_territorial' ||
+              boundaryLayerKey === 'siraps_thematic'
+            ? 1.25
+            : 1,
       canReorder: false,
       hasStyleControls: false,
       hasColorControl: false,

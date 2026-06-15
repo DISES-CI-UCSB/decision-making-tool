@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html id="appearance-html-root" lang="en">
+  <head id="appearance-head">
+    <meta id="appearance-meta-charset" charset="UTF-8" />
+    <meta id="appearance-meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="appearance-title">Selected Layers Appearance Popover Controls</title>
+    <script id="appearance-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="appearance-font-link"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style id="appearance-inline-styles">
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+
+      .appearance-slider {
+        appearance: none;
+        -webkit-appearance: none;
+        height: 1rem;
+        background: transparent;
+      }
+
+      .appearance-slider::-webkit-slider-runnable-track {
+        height: 0.25rem;
+        border-radius: 9999px;
+        background: linear-gradient(to right, #475569 0%, #475569 68%, #cbd5e1 68%, #cbd5e1 100%);
+      }
+
+      .appearance-slider::-webkit-slider-thumb {
+        appearance: none;
+        -webkit-appearance: none;
+        margin-top: -0.3125rem;
+        height: 0.875rem;
+        width: 0.875rem;
+        border-radius: 9999px;
+        border: 1px solid #94a3b8;
+        background: #fff;
+      }
+
+      .appearance-swatch {
+        appearance: none;
+        -webkit-appearance: none;
+        overflow: hidden;
+        background-color: transparent;
+        padding: 0;
+      }
+
+      .appearance-swatch::-webkit-color-swatch-wrapper {
+        padding: 0;
+        border-radius: inherit;
+      }
+
+      .appearance-swatch::-webkit-color-swatch {
+        border: none;
+        border-radius: inherit;
+      }
+
+      .appearance-fill-hatch {
+        background:
+          repeating-linear-gradient(135deg, rgb(2 132 199 / 0.85) 0 2px, transparent 2px 8px),
+          rgb(224 242 254);
+      }
+
+      .appearance-fill-mesh {
+        background:
+          repeating-linear-gradient(45deg, rgb(51 65 85 / 0.65) 0 1.5px, transparent 1.5px 7px),
+          repeating-linear-gradient(135deg, rgb(51 65 85 / 0.65) 0 1.5px, transparent 1.5px 7px),
+          rgb(254 249 195);
+      }
+
+      .appearance-fill-dots {
+        background-image: radial-gradient(rgb(51 65 85 / 0.8) 1.5px, transparent 1.5px);
+        background-color: rgb(220 252 231);
+        background-size: 7px 7px;
+      }
+
+      .appearance-border-dashed {
+        background-image: repeating-linear-gradient(90deg, #0f172a 0 7px, transparent 7px 12px);
+      }
+
+      .appearance-border-dotted {
+        background-image: radial-gradient(#0f172a 1.5px, transparent 1.5px);
+        background-size: 7px 7px;
+      }
+
+      .appearance-map-shape {
+        clip-path: polygon(11% 31%, 33% 13%, 67% 18%, 91% 37%, 84% 72%, 57% 89%, 23% 82%, 5% 58%);
+      }
+
+      .appearance-map-fill {
+        background:
+          repeating-linear-gradient(135deg, rgb(2 132 199 / 0.75) 0 2px, transparent 2px 10px),
+          rgb(186 230 253 / 0.72);
+      }
+
+      .appearance-map-border {
+        border: 4px dashed rgb(15 23 42 / 0.58);
+      }
+    </style>
+  </head>
+  <body id="appearance-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <main id="appearance-main" class="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[420px_minmax(0,1fr)_300px]">
+      <section id="appearance-sidebar-panel" class="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
+        <header id="appearance-sidebar-header" class="border-b border-slate-200 px-5 py-4">
+          <p id="appearance-sidebar-kicker" class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+            Left Sidebar / Selected Layers
+          </p>
+          <h1 id="appearance-sidebar-title" class="mt-1 text-xl font-bold tracking-tight text-slate-900">
+            Compact appearance controls
+          </h1>
+          <p id="appearance-sidebar-summary" class="mt-2 text-sm leading-5 text-slate-600">
+            Keep opacity visible, then let the Fill and Border chips open one shared appearance popover.
+          </p>
+        </header>
+
+        <div id="appearance-sidebar-body" class="p-5">
+          <article id="appearance-selected-layers-card" class="relative overflow-visible rounded-lg border border-slate-200 bg-white">
+            <header id="appearance-card-header" class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
+              <h2 id="appearance-card-title" class="text-xs font-bold uppercase tracking-[0.08em] text-slate-600">
+                Selected layers
+              </h2>
+              <span id="appearance-card-count" class="text-xs font-semibold text-slate-400">4 layers</span>
+            </header>
+
+            <div id="appearance-core-row" class="border-b border-slate-100 bg-white">
+              <div id="appearance-core-row-header" class="flex items-center gap-2 px-3 py-2.5">
+                <span id="appearance-core-drag-handle" class="w-3 text-center text-[12px] font-black leading-none text-slate-300">::</span>
+                <div id="appearance-core-title-group" class="min-w-0 flex-1">
+                  <p id="appearance-core-layer-name" class="truncate text-[13px] font-semibold text-slate-800">
+                    Optimization scenario
+                  </p>
+                  <p id="appearance-core-layer-source" class="truncate text-[11px] text-slate-400">
+                    Core scenario layer
+                  </p>
+                </div>
+                <button id="appearance-core-visibility-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600" aria-label="Toggle optimization scenario visibility">
+                  <svg id="appearance-core-eye-icon" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path id="appearance-core-eye-path" d="M10 4.5c4 0 7 4.2 7 5.5s-3 5.5-7 5.5-7-4.2-7-5.5 3-5.5 7-5.5Zm0 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                </button>
+                <button id="appearance-core-expand-button" type="button" class="flex h-7 w-5 items-center justify-center text-slate-400" aria-label="Expand optimization scenario controls">
+                  <span id="appearance-core-expand-icon" aria-hidden="true">v</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="appearance-active-row" class="relative border-b border-slate-100 bg-white">
+              <div id="appearance-active-row-header" class="flex items-center gap-2 px-3 pt-2.5">
+                <span id="appearance-active-drag-handle" class="w-3 text-center text-[12px] font-black leading-none text-slate-300">::</span>
+                <div id="appearance-active-title-group" class="min-w-0 flex-1">
+                  <p id="appearance-active-layer-name" class="truncate text-[13px] font-semibold text-slate-800">
+                    Key biodiversity areas
+                  </p>
+                  <p id="appearance-active-layer-source" class="truncate text-[11px] text-slate-400">
+                    WDPA / planning input
+                  </p>
+                </div>
+                <button id="appearance-active-remove-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600" aria-label="Remove key biodiversity areas">
+                  <span id="appearance-active-remove-icon" aria-hidden="true">x</span>
+                </button>
+                <button id="appearance-active-visibility-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600" aria-label="Toggle key biodiversity areas visibility">
+                  <svg id="appearance-active-eye-icon" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path id="appearance-active-eye-path" d="M10 4.5c4 0 7 4.2 7 5.5s-3 5.5-7 5.5-7-4.2-7-5.5 3-5.5 7-5.5Zm0 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                </button>
+                <button id="appearance-active-collapse-button" type="button" class="flex h-7 w-5 items-center justify-center text-slate-500" aria-label="Collapse key biodiversity areas controls">
+                  <span id="appearance-active-collapse-icon" aria-hidden="true">^</span>
+                </button>
+              </div>
+
+              <div id="appearance-active-controls" class="px-3 pb-3 pl-9 pt-2">
+                <div id="appearance-compact-control-row" class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1.5">
+                  <div id="appearance-opacity-group" class="flex min-w-0 items-center gap-2">
+                    <label id="appearance-opacity-label" for="appearance-opacity-input" class="shrink-0 text-[10px] font-medium text-slate-500">
+                      Opacity
+                    </label>
+                    <input id="appearance-opacity-input" class="appearance-slider min-w-0 flex-1" type="range" min="0" max="100" value="68" />
+                    <span id="appearance-opacity-value" class="w-7 text-right text-[10px] font-semibold text-slate-500">68%</span>
+                  </div>
+
+                  <button id="appearance-fill-chip-button" type="button" class="inline-flex h-7 items-center gap-1 rounded-md border border-sky-300 bg-sky-50 px-1.5 text-[10px] font-bold text-sky-800 shadow-sm" aria-label="Open appearance controls. Fill style: blue hatch" aria-haspopup="dialog" aria-expanded="true">
+                    <span id="appearance-fill-chip-preview" class="appearance-fill-hatch h-4 w-5 rounded border border-sky-200" aria-hidden="true"></span>
+                    <span id="appearance-fill-chip-label">Fill</span>
+                  </button>
+
+                  <button id="appearance-border-chip-button" type="button" class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 text-[10px] font-semibold text-slate-600" aria-label="Open appearance controls. Border style: dark dashed stroke" aria-haspopup="dialog" aria-expanded="true">
+                    <span id="appearance-border-chip-preview" class="h-4 w-5 rounded border-2 border-dashed border-slate-700 bg-white" aria-hidden="true"></span>
+                    <span id="appearance-border-chip-label">Border</span>
+                  </button>
+                </div>
+              </div>
+
+              <aside id="appearance-popover" class="absolute left-9 top-[6.9rem] z-10 w-[332px] rounded-xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/15" role="dialog" aria-labelledby="appearance-popover-title">
+                <div id="appearance-popover-arrow" class="absolute -top-2 right-16 h-4 w-4 rotate-45 border-l border-t border-slate-200 bg-white"></div>
+                <header id="appearance-popover-header" class="relative flex items-start justify-between gap-3">
+                  <div id="appearance-popover-title-group" class="min-w-0">
+                    <p id="appearance-popover-kicker" class="text-[10px] font-bold uppercase tracking-[0.12em] text-sky-700">
+                      Appearance
+                    </p>
+                    <h3 id="appearance-popover-title" class="mt-0.5 text-sm font-bold text-slate-900">
+                      Fill and border for this layer
+                    </h3>
+                  </div>
+                  <button id="appearance-popover-close-button" type="button" class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50" aria-label="Close appearance controls">
+                    <span id="appearance-popover-close-icon" aria-hidden="true">x</span>
+                  </button>
+                </header>
+
+                <div id="appearance-popover-preview" class="mt-3 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                  <div id="appearance-combined-preview-shape" class="appearance-fill-hatch h-12 w-16 rounded-lg border-4 border-dashed border-slate-700"></div>
+                  <div id="appearance-combined-preview-copy" class="min-w-0">
+                    <p id="appearance-combined-preview-title" class="text-xs font-bold text-slate-700">Live style preview</p>
+                    <p id="appearance-combined-preview-text" class="mt-0.5 text-[11px] leading-4 text-slate-500">
+                      Blue hatch fill with dark dashed border.
+                    </p>
+                  </div>
+                </div>
+
+                <section id="appearance-fill-section" class="mt-3 rounded-lg border border-slate-200 p-2">
+                  <div id="appearance-fill-section-header" class="mb-2 flex items-center justify-between gap-2">
+                    <h4 id="appearance-fill-section-title" class="text-xs font-bold text-slate-800">Fill</h4>
+                    <input id="appearance-fill-color-input" class="appearance-swatch h-5 w-6 rounded border border-slate-200" type="color" value="#0ea5e9" aria-label="Fill color" />
+                  </div>
+                  <div id="appearance-fill-style-grid" class="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Fill style">
+                    <button id="appearance-fill-style-solid-button" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-500" role="radio" aria-checked="false">
+                      <span id="appearance-fill-style-solid-preview" class="mx-auto block h-5 w-7 rounded border border-slate-200 bg-sky-100"></span>
+                      <span id="appearance-fill-style-solid-label" class="mt-1 block">Solid</span>
+                    </button>
+                    <button id="appearance-fill-style-hatch-button" type="button" class="rounded-md border border-sky-400 bg-sky-50 px-1.5 py-1.5 text-center text-[10px] font-bold text-sky-800" role="radio" aria-checked="true">
+                      <span id="appearance-fill-style-hatch-preview" class="appearance-fill-hatch mx-auto block h-5 w-7 rounded border border-sky-200"></span>
+                      <span id="appearance-fill-style-hatch-label" class="mt-1 block">Hatch</span>
+                    </button>
+                    <button id="appearance-fill-style-mesh-button" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-600" role="radio" aria-checked="false">
+                      <span id="appearance-fill-style-mesh-preview" class="appearance-fill-mesh mx-auto block h-5 w-7 rounded border border-slate-300"></span>
+                      <span id="appearance-fill-style-mesh-label" class="mt-1 block">Mesh</span>
+                    </button>
+                    <button id="appearance-fill-style-dots-button" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-600" role="radio" aria-checked="false">
+                      <span id="appearance-fill-style-dots-preview" class="appearance-fill-dots mx-auto block h-5 w-7 rounded border border-slate-300"></span>
+                      <span id="appearance-fill-style-dots-label" class="mt-1 block">Dots</span>
+                    </button>
+                  </div>
+                  <div id="appearance-fill-density-row" class="mt-2 flex items-center gap-2">
+                    <label id="appearance-fill-density-label" for="appearance-fill-density-input" class="text-[10px] font-medium text-slate-500">
+                      Density
+                    </label>
+                    <input id="appearance-fill-density-input" class="appearance-slider min-w-0 flex-1" type="range" min="1" max="5" value="3" />
+                    <span id="appearance-fill-density-value" class="w-12 text-right text-[10px] font-semibold text-slate-500">Medium</span>
+                  </div>
+                </section>
+
+                <section id="appearance-border-section" class="mt-3 rounded-lg border border-slate-200 p-2">
+                  <div id="appearance-border-section-header" class="mb-2 flex items-center justify-between gap-2">
+                    <h4 id="appearance-border-section-title" class="text-xs font-bold text-slate-800">Border</h4>
+                    <input id="appearance-border-color-input" class="appearance-swatch h-5 w-6 rounded border border-slate-200" type="color" value="#0f172a" aria-label="Border color" />
+                  </div>
+                  <div id="appearance-border-style-grid" class="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Border style">
+                    <button id="appearance-border-style-none-button" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-500" role="radio" aria-checked="false">
+                      <span id="appearance-border-style-none-preview" class="mx-auto block h-5 w-7 rounded border border-slate-200 bg-white"></span>
+                      <span id="appearance-border-style-none-label" class="mt-1 block">None</span>
+                    </button>
+                    <button id="appearance-border-style-solid-button" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-600" role="radio" aria-checked="false">
+                      <span id="appearance-border-style-solid-preview" class="mx-auto block h-5 w-7 rounded border-2 border-slate-700 bg-white"></span>
+                      <span id="appearance-border-style-solid-label" class="mt-1 block">Solid</span>
+                    </button>
+                    <button id="appearance-border-style-dash-button" type="button" class="rounded-md border border-sky-400 bg-sky-50 px-1.5 py-1.5 text-center text-[10px] font-bold text-sky-800" role="radio" aria-checked="true">
+                      <span id="appearance-border-style-dash-preview" class="mx-auto block h-5 w-7 rounded border-2 border-dashed border-slate-700 bg-white"></span>
+                      <span id="appearance-border-style-dash-label" class="mt-1 block">Dash</span>
+                    </button>
+                    <button id="appearance-border-style-dot-button" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-600" role="radio" aria-checked="false">
+                      <span id="appearance-border-style-dot-preview" class="mx-auto block h-5 w-7 rounded border-2 border-dotted border-slate-700 bg-white"></span>
+                      <span id="appearance-border-style-dot-label" class="mt-1 block">Dot</span>
+                    </button>
+                  </div>
+                  <div id="appearance-border-width-row" class="mt-2 flex items-center gap-2">
+                    <label id="appearance-border-width-label" for="appearance-border-width-input" class="text-[10px] font-medium text-slate-500">
+                      Width
+                    </label>
+                    <input id="appearance-border-width-input" class="appearance-slider min-w-0 flex-1" type="range" min="0" max="6" value="2" />
+                    <span id="appearance-border-width-value" class="w-8 text-right text-[10px] font-semibold text-slate-500">2 px</span>
+                  </div>
+                </section>
+              </aside>
+            </div>
+
+            <div id="appearance-collapsed-pattern-row" class="border-b border-slate-100 bg-white">
+              <div id="appearance-collapsed-pattern-header" class="flex items-center gap-2 px-3 py-2.5">
+                <span id="appearance-collapsed-pattern-drag-handle" class="w-3 text-center text-[12px] font-black leading-none text-slate-300">::</span>
+                <div id="appearance-collapsed-pattern-title-group" class="min-w-0 flex-1">
+                  <p id="appearance-collapsed-pattern-name" class="truncate text-[13px] font-semibold text-slate-800">
+                    Watershed priority
+                  </p>
+                  <p id="appearance-collapsed-pattern-source" class="truncate text-[11px] text-slate-400">
+                    Hydrology overlay
+                  </p>
+                </div>
+                <span id="appearance-collapsed-pattern-badge" class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                  Styled
+                </span>
+                <button id="appearance-collapsed-pattern-visibility-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600" aria-label="Toggle watershed priority visibility">
+                  <svg id="appearance-collapsed-pattern-eye-icon" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path id="appearance-collapsed-pattern-eye-path" d="M10 4.5c4 0 7 4.2 7 5.5s-3 5.5-7 5.5-7-4.2-7-5.5 3-5.5 7-5.5Zm0 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                </button>
+                <button id="appearance-collapsed-pattern-expand-button" type="button" class="flex h-7 w-5 items-center justify-center text-slate-400" aria-label="Expand watershed priority controls">
+                  <span id="appearance-collapsed-pattern-expand-icon" aria-hidden="true">v</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="appearance-plain-row" class="bg-white">
+              <div id="appearance-plain-header" class="flex items-center gap-2 px-3 py-2.5">
+                <span id="appearance-plain-drag-handle" class="w-3 text-center text-[12px] font-black leading-none text-slate-300">::</span>
+                <div id="appearance-plain-title-group" class="min-w-0 flex-1">
+                  <p id="appearance-plain-name" class="truncate text-[13px] font-semibold text-slate-800">
+                    Agricultural cost
+                  </p>
+                  <p id="appearance-plain-source" class="truncate text-[11px] text-slate-400">
+                    Cost overlay
+                  </p>
+                </div>
+                <button id="appearance-plain-visibility-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600" aria-label="Toggle agricultural cost visibility">
+                  <svg id="appearance-plain-eye-icon" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path id="appearance-plain-eye-path" d="M10 4.5c4 0 7 4.2 7 5.5s-3 5.5-7 5.5-7-4.2-7-5.5 3-5.5 7-5.5Zm0 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                </button>
+                <button id="appearance-plain-expand-button" type="button" class="flex h-7 w-5 items-center justify-center text-slate-400" aria-label="Expand agricultural cost controls">
+                  <span id="appearance-plain-expand-icon" aria-hidden="true">v</span>
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="appearance-map-panel" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <header id="appearance-map-header" class="border-b border-slate-200 px-5 py-4">
+          <p id="appearance-map-kicker" class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+            Map Impact
+          </p>
+          <h2 id="appearance-map-title" class="mt-1 text-lg font-bold text-slate-900">
+            Fill and border answer different map-reading questions.
+          </h2>
+        </header>
+        <div id="appearance-map-canvas" class="relative h-[560px] bg-[linear-gradient(0deg,#e2e8f0_1px,transparent_1px),linear-gradient(90deg,#e2e8f0_1px,transparent_1px)] bg-[size:34px_34px]">
+          <div id="appearance-map-water-shape" class="absolute left-12 top-20 h-60 w-72 rounded-[48%] bg-sky-200/60 blur-[1px]"></div>
+          <div id="appearance-map-main-shape" class="appearance-map-shape appearance-map-fill appearance-map-border absolute left-28 top-32 h-72 w-[30rem] rotate-[-5deg]"></div>
+          <div id="appearance-map-overlay-shape" class="appearance-map-shape appearance-fill-dots absolute bottom-24 right-24 h-48 w-72 rotate-[9deg] border-2 border-emerald-700/30"></div>
+          <div id="appearance-map-callout" class="absolute left-5 top-5 max-w-64 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur">
+            <p id="appearance-map-callout-title" class="text-xs font-bold text-slate-700">Why split fill and border?</p>
+            <p id="appearance-map-callout-text" class="mt-1 text-[11px] leading-4 text-slate-500">
+              Fill communicates coverage. Border communicates extent or administrative edge, especially when fills overlap.
+            </p>
+          </div>
+          <div id="appearance-map-legend" class="absolute bottom-5 left-5 rounded-lg border border-slate-200 bg-white/90 p-3 text-[11px] shadow-sm backdrop-blur">
+            <div id="appearance-map-legend-fill-row" class="flex items-center gap-2">
+              <span id="appearance-map-legend-fill-preview" class="appearance-fill-hatch h-4 w-6 rounded border border-sky-200"></span>
+              <span id="appearance-map-legend-fill-label" class="font-semibold text-slate-600">Fill: blue hatch</span>
+            </div>
+            <div id="appearance-map-legend-border-row" class="mt-2 flex items-center gap-2">
+              <span id="appearance-map-legend-border-preview" class="h-4 w-6 rounded border-2 border-dashed border-slate-700 bg-white"></span>
+              <span id="appearance-map-legend-border-label" class="font-semibold text-slate-600">Border: dark dash</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside id="appearance-recommendation-panel" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p id="appearance-recommendation-kicker" class="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-700">
+          Recommendation
+        </p>
+        <h2 id="appearance-recommendation-title" class="mt-2 text-lg font-bold leading-6 text-slate-900">
+          Let Fill and Border chips open the appearance popover.
+        </h2>
+        <p id="appearance-recommendation-copy" class="mt-3 text-sm leading-6 text-slate-600">
+          The expanded row keeps opacity, fill state, and border state visible. Clicking either chip opens the same detailed popover, so there is no redundant third Appearance button.
+        </p>
+        <div id="appearance-default-visible-card" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p id="appearance-default-visible-title" class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+            Default visible controls
+          </p>
+          <ul id="appearance-default-visible-list" class="mt-2 space-y-1.5 text-xs leading-5 text-slate-600">
+            <li id="appearance-default-visible-opacity-item">Opacity slider and percent stay visible.</li>
+            <li id="appearance-default-visible-fill-item">Fill chip shows color plus fill pattern and opens the popover.</li>
+            <li id="appearance-default-visible-border-item">Border chip shows stroke color and line style and opens the popover.</li>
+            <li id="appearance-default-visible-button-item">No separate Appearance button is needed in the row.</li>
+          </ul>
+        </div>
+        <div id="appearance-popover-contents-card" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p id="appearance-popover-contents-title" class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+            Popover contents
+          </p>
+          <p id="appearance-popover-contents-copy" class="mt-2 text-xs leading-5 text-slate-600">
+            Fill owns color, pattern, and density. Border owns color, style, and width. This keeps the mental model explicit without increasing every layer row's default height.
+          </p>
+        </div>
+        <div id="appearance-trigger-choice-card" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p id="appearance-trigger-choice-title" class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+            Trigger choice
+          </p>
+          <p id="appearance-trigger-choice-copy" class="mt-2 text-xs leading-5 text-slate-600">
+            The Fill and Border chips act like editable labels: they preview current styling, then open the full Fill and Border editor when clicked.
+          </p>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>

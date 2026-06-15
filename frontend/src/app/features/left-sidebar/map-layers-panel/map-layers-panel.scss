@@ -280,12 +280,130 @@
   border-radius: inherit;
 }
 
+.map-layers-fill-preview {
+  --map-layers-fill-color: #64748b;
+  --map-layers-pattern-size: 8px;
+  background-color: color-mix(in srgb, var(--map-layers-fill-color) 22%, white);
+  background-position: center;
+}
+
+.map-layers-fill-preview--solid {
+  background: var(--map-layers-fill-color);
+}
+
+.map-layers-fill-preview--hatch {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--map-layers-fill-color) 0 2px,
+      transparent 2px var(--map-layers-pattern-size)
+    ),
+    color-mix(in srgb, var(--map-layers-fill-color) 18%, white);
+}
+
+.map-layers-fill-preview--mesh {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      var(--map-layers-fill-color) 0 1.5px,
+      transparent 1.5px var(--map-layers-pattern-size)
+    ),
+    repeating-linear-gradient(
+      135deg,
+      var(--map-layers-fill-color) 0 1.5px,
+      transparent 1.5px var(--map-layers-pattern-size)
+    ),
+    color-mix(in srgb, var(--map-layers-fill-color) 14%, white);
+}
+
+.map-layers-fill-preview--dots {
+  background-color: color-mix(in srgb, var(--map-layers-fill-color) 16%, white);
+  background-image:
+    radial-gradient(circle, var(--map-layers-fill-color) 1.3px, transparent 1.4px),
+    radial-gradient(circle, var(--map-layers-fill-color) 1.3px, transparent 1.4px);
+  background-position: center;
+  background-position:
+    2px 2px,
+    calc(var(--map-layers-pattern-size) / 2 + 2px) calc(var(--map-layers-pattern-size) / 2 + 2px);
+  background-size: var(--map-layers-pattern-size) var(--map-layers-pattern-size);
+}
+
+.map-layers-border-preview,
+.map-layers-combined-preview {
+  --map-layers-border-color: #0f172a;
+  --map-layers-border-width: 1px;
+  display: inline-block;
+  position: relative;
+  border-color: var(--map-layers-border-color);
+  border-width: max(2px, var(--map-layers-border-width));
+}
+
+.map-layers-border-preview--none {
+  border-style: solid;
+  border-color: rgb(203 213 225);
+  border-width: 1px;
+}
+
+.map-layers-border-preview--solid {
+  border-style: solid;
+}
+
+/*
+  Dashed/dotted previews are drawn with an SVG stroke mask instead of native
+  border-style: Chrome renders dotted as dense square dots and crowds dashes
+  at corners on boxes this small. The mask gives even dashes and round dots.
+*/
+.map-layers-border-preview--dashed,
+.map-layers-border-preview--dotted {
+  border-style: none;
+}
+
+.map-layers-border-preview--dashed::after,
+.map-layers-border-preview--dotted::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--map-layers-border-color);
+  pointer-events: none;
+}
+
+/*
+  pathLength='60' normalizes the perimeter so dash counts divide evenly:
+  12 dash periods / 12 dots (multiples of 4) make all sides and corners
+  identical, instead of the ragged pattern raw stroke-dasharray produces.
+*/
+.map-layers-border-preview--dashed::after {
+  $dash-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1' y='1' rx='4' fill='none' stroke='white' stroke-width='2' pathLength='60' stroke-dasharray='3 2' stroke-dashoffset='1.5' style='width:calc(100%25 - 2px);height:calc(100%25 - 2px)'/%3E%3C/svg%3E");
+  -webkit-mask: $dash-mask;
+  mask: $dash-mask;
+}
+
+.map-layers-border-preview--dotted::after {
+  $dot-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 28 28' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='white'%3E%3Ccircle cx='8' cy='3' r='1.5'/%3E%3Ccircle cx='14' cy='3' r='1.5'/%3E%3Ccircle cx='20' cy='3' r='1.5'/%3E%3Ccircle cx='25' cy='8' r='1.5'/%3E%3Ccircle cx='25' cy='14' r='1.5'/%3E%3Ccircle cx='25' cy='20' r='1.5'/%3E%3Ccircle cx='20' cy='25' r='1.5'/%3E%3Ccircle cx='14' cy='25' r='1.5'/%3E%3Ccircle cx='8' cy='25' r='1.5'/%3E%3Ccircle cx='3' cy='20' r='1.5'/%3E%3Ccircle cx='3' cy='14' r='1.5'/%3E%3Ccircle cx='3' cy='8' r='1.5'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask: $dot-mask;
+  mask: $dot-mask;
+}
+
 .map-layers-selected-layer-row {
   position: relative;
   transition:
     background-color 120ms ease,
     transform 120ms ease,
     opacity 120ms ease;
+}
+
+.map-layers-selected-layer-row-first {
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.map-layers-selected-layer-row-last {
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
+.map-layers-appearance-popover-portal-host {
+  z-index: 2000;
 }
 
 .map-layers-selected-layer-row-dragging {

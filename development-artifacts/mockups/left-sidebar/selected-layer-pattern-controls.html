@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html id="pattern-html-root" lang="en">
+  <head id="pattern-head">
+    <meta id="pattern-meta-charset" charset="UTF-8" />
+    <meta id="pattern-meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="pattern-title">Selected Layers Pattern Controls</title>
+    <script id="pattern-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="pattern-font-link"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style id="pattern-inline-styles">
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+
+      .pattern-slider {
+        appearance: none;
+        -webkit-appearance: none;
+        height: 1rem;
+        background: transparent;
+      }
+
+      .pattern-slider::-webkit-slider-runnable-track {
+        height: 0.25rem;
+        border-radius: 9999px;
+        background: linear-gradient(to right, #475569 0%, #475569 70%, #cbd5e1 70%, #cbd5e1 100%);
+      }
+
+      .pattern-slider::-webkit-slider-thumb {
+        appearance: none;
+        -webkit-appearance: none;
+        margin-top: -0.3125rem;
+        height: 0.875rem;
+        width: 0.875rem;
+        border-radius: 9999px;
+        border: 1px solid #94a3b8;
+        background: #fff;
+      }
+
+      .pattern-swatch {
+        appearance: none;
+        -webkit-appearance: none;
+        overflow: hidden;
+        background-color: transparent;
+        padding: 0;
+      }
+
+      .pattern-swatch::-webkit-color-swatch-wrapper {
+        padding: 0;
+        border-radius: inherit;
+      }
+
+      .pattern-swatch::-webkit-color-swatch {
+        border: none;
+        border-radius: inherit;
+      }
+
+      .pattern-preview-diagonal {
+        background-image: repeating-linear-gradient(135deg, #334155 0 2px, transparent 2px 7px);
+      }
+
+      .pattern-preview-mesh {
+        background-image:
+          repeating-linear-gradient(45deg, #334155 0 1.5px, transparent 1.5px 7px),
+          repeating-linear-gradient(135deg, #334155 0 1.5px, transparent 1.5px 7px);
+      }
+
+      .pattern-preview-dots {
+        background-image: radial-gradient(#334155 1.5px, transparent 1.5px);
+        background-size: 7px 7px;
+      }
+
+      .pattern-preview-dash {
+        background-image: repeating-linear-gradient(90deg, #334155 0 5px, transparent 5px 10px);
+      }
+
+      .pattern-map-diagonal {
+        background:
+          repeating-linear-gradient(135deg, rgba(15, 23, 42, 0.72) 0 2px, transparent 2px 10px),
+          rgba(14, 165, 233, 0.22);
+      }
+
+      .pattern-map-mesh {
+        background:
+          repeating-linear-gradient(45deg, rgba(15, 23, 42, 0.55) 0 1.5px, transparent 1.5px 11px),
+          repeating-linear-gradient(135deg, rgba(15, 23, 42, 0.55) 0 1.5px, transparent 1.5px 11px),
+          rgba(250, 204, 21, 0.18);
+      }
+
+      .pattern-map-dots {
+        background-image: radial-gradient(rgba(15, 23, 42, 0.68) 2px, transparent 2px);
+        background-size: 12px 12px;
+        background-color: rgba(34, 197, 94, 0.2);
+      }
+    </style>
+  </head>
+  <body id="pattern-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <main id="pattern-main" class="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[420px_minmax(0,1fr)]">
+      <section id="pattern-sidebar-panel" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <header id="pattern-sidebar-header" class="border-b border-slate-200 px-5 py-4">
+          <p id="pattern-sidebar-kicker" class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+            Left Sidebar
+          </p>
+          <h1 id="pattern-sidebar-title" class="mt-1 text-xl font-bold tracking-tight text-slate-900">
+            Selected layers
+          </h1>
+          <p id="pattern-sidebar-summary" class="mt-2 text-sm leading-5 text-slate-600">
+            Mesh and hatching stay opt-in per layer, living beside color and opacity only after a row is expanded.
+          </p>
+        </header>
+
+        <div id="pattern-sidebar-body" class="space-y-4 p-5">
+          <article id="pattern-selected-layers-card" class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <header id="pattern-card-header" class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
+              <h2 id="pattern-card-title" class="text-xs font-bold uppercase tracking-[0.08em] text-slate-600">
+                Selected layers
+              </h2>
+              <span id="pattern-card-count" class="text-xs font-semibold text-slate-400">3 layers</span>
+            </header>
+
+            <div id="pattern-core-layer-row" class="border-b border-slate-100 bg-white">
+              <div id="pattern-core-layer-header" class="flex items-center gap-2 px-3 py-2.5">
+                <span id="pattern-core-drag-handle" class="w-3 text-center text-[12px] font-black leading-none text-slate-300">::</span>
+                <div id="pattern-core-name-group" class="min-w-0 flex-1">
+                  <p id="pattern-core-name" class="truncate text-[13px] font-semibold text-slate-800">
+                    Optimization scenario
+                  </p>
+                  <p id="pattern-core-source" class="truncate text-[11px] text-slate-400">Core scenario layer</p>
+                </div>
+                <button id="pattern-core-visibility-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600" aria-label="Toggle scenario visibility">
+                  <svg id="pattern-core-eye-icon" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path id="pattern-core-eye-path" d="M10 4.5c4 0 7 4.2 7 5.5s-3 5.5-7 5.5-7-4.2-7-5.5 3-5.5 7-5.5Zm0 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                </button>
+                <button id="pattern-core-expand-button" type="button" class="flex h-7 w-5 items-center justify-center text-slate-400" aria-label="Expand scenario layer controls">
+                  <span id="pattern-core-expand-icon" aria-hidden="true">v</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="pattern-expanded-layer-row" class="border-b border-slate-100 bg-white">
+              <div id="pattern-expanded-layer-header" class="flex items-center gap-2 px-3 pt-2.5">
+                <span id="pattern-expanded-drag-handle" class="w-3 text-center text-[12px] font-black leading-none text-slate-300">::</span>
+                <div id="pattern-expanded-name-group" class="min-w-0 flex-1">
+                  <p id="pattern-expanded-name" class="truncate text-[13px] font-semibold text-slate-800">
+                    Key biodiversity areas
+                  </p>
+                  <p id="pattern-expanded-source" class="truncate text-[11px] text-slate-400">WDPA / planning input</p>
+                </div>
+                <button id="pattern-expanded-remove-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600" aria-label="Remove key biodiversity areas">
+                  <span id="pattern-expanded-remove-icon" aria-hidden="true">x</span>
+                </button>
+                <button id="pattern-expanded-visibility-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600" aria-label="Toggle key biodiversity areas visibility">
+                  <svg id="pattern-expanded-eye-icon" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path id="pattern-expanded-eye-path" d="M10 4.5c4 0 7 4.2 7 5.5s-3 5.5-7 5.5-7-4.2-7-5.5 3-5.5 7-5.5Zm0 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                </button>
+                <button id="pattern-expanded-collapse-button" type="button" class="flex h-7 w-5 items-center justify-center text-slate-500" aria-label="Collapse key biodiversity areas controls">
+                  <span id="pattern-expanded-collapse-icon" aria-hidden="true">^</span>
+                </button>
+              </div>
+
+              <div id="pattern-expanded-controls" class="space-y-2 px-3 pb-3 pl-9 pt-2">
+                <div id="pattern-opacity-row" class="flex items-center gap-2">
+                  <label id="pattern-opacity-label" for="pattern-opacity-input" class="w-12 shrink-0 text-[10px] font-medium text-slate-400">
+                    Opacity
+                  </label>
+                  <input id="pattern-opacity-input" class="pattern-slider min-w-0 flex-1" type="range" min="0" max="100" value="70" />
+                  <span id="pattern-opacity-value" class="w-8 text-right text-[10px] font-semibold text-slate-500">70%</span>
+                </div>
+
+                <div id="pattern-color-row" class="flex items-center justify-between gap-2">
+                  <label id="pattern-color-label" for="pattern-color-input" class="text-[10px] font-medium text-slate-400">
+                    Color
+                  </label>
+                  <input id="pattern-color-input" class="pattern-swatch h-5 w-6 rounded border border-slate-200" type="color" value="#0ea5e9" />
+                </div>
+
+                <div id="pattern-style-row" class="rounded-md border border-slate-200 bg-slate-50 p-2">
+                  <div id="pattern-style-header" class="mb-2 flex items-center justify-between gap-2">
+                    <div id="pattern-style-copy" class="min-w-0">
+                      <p id="pattern-style-label" class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                        Visual style
+                      </p>
+                      <p id="pattern-style-help" class="text-[11px] leading-4 text-slate-500">
+                        Applies only to this layer; use when color or opacity is not enough.
+                      </p>
+                    </div>
+                    <button id="pattern-style-menu-button" type="button" class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">
+                      <span id="pattern-style-menu-preview" class="pattern-preview-diagonal h-4 w-4 rounded border border-slate-300 bg-white" aria-hidden="true"></span>
+                      <span id="pattern-style-menu-text">Diagonal</span>
+                    </button>
+                  </div>
+
+                  <div id="pattern-picker-grid" class="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Visual style">
+                    <button id="pattern-choice-solid" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-500" role="radio" aria-checked="false">
+                      <span id="pattern-choice-solid-preview" class="mx-auto block h-5 w-7 rounded border border-slate-200 bg-sky-100"></span>
+                      <span id="pattern-choice-solid-label" class="mt-1 block">Solid</span>
+                    </button>
+                    <button id="pattern-choice-diagonal" type="button" class="rounded-md border border-sky-400 bg-sky-50 px-1.5 py-1.5 text-center text-[10px] font-bold text-sky-800" role="radio" aria-checked="true">
+                      <span id="pattern-choice-diagonal-preview" class="pattern-preview-diagonal mx-auto block h-5 w-7 rounded border border-slate-300 bg-white"></span>
+                      <span id="pattern-choice-diagonal-label" class="mt-1 block">Hatch</span>
+                    </button>
+                    <button id="pattern-choice-mesh" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-600" role="radio" aria-checked="false">
+                      <span id="pattern-choice-mesh-preview" class="pattern-preview-mesh mx-auto block h-5 w-7 rounded border border-slate-300 bg-white"></span>
+                      <span id="pattern-choice-mesh-label" class="mt-1 block">Mesh</span>
+                    </button>
+                    <button id="pattern-choice-dots" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-600" role="radio" aria-checked="false">
+                      <span id="pattern-choice-dots-preview" class="pattern-preview-dots mx-auto block h-5 w-7 rounded border border-slate-300 bg-white"></span>
+                      <span id="pattern-choice-dots-label" class="mt-1 block">Dots</span>
+                    </button>
+                    <button id="pattern-choice-dash" type="button" class="rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[10px] font-semibold text-slate-600" role="radio" aria-checked="false">
+                      <span id="pattern-choice-dash-preview" class="pattern-preview-dash mx-auto block h-5 w-7 rounded border border-slate-300 bg-white"></span>
+                      <span id="pattern-choice-dash-label" class="mt-1 block">Dash</span>
+                    </button>
+                  </div>
+
+                  <div id="pattern-density-row" class="mt-2 flex items-center gap-2">
+                    <label id="pattern-density-label" for="pattern-density-input" class="text-[10px] font-medium text-slate-400">
+                      Density
+                    </label>
+                    <input id="pattern-density-input" class="pattern-slider min-w-0 flex-1" type="range" min="1" max="5" value="3" />
+                    <span id="pattern-density-value" class="w-12 text-right text-[10px] font-semibold text-slate-500">Medium</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="pattern-collapsed-layer-row" class="bg-white">
+              <div id="pattern-collapsed-layer-header" class="flex items-center gap-2 px-3 py-2.5">
+                <span id="pattern-collapsed-drag-handle" class="w-3 text-center text-[12px] font-black leading-none text-slate-300">::</span>
+                <div id="pattern-collapsed-name-group" class="min-w-0 flex-1">
+                  <p id="pattern-collapsed-name" class="truncate text-[13px] font-semibold text-slate-800">
+                    Watershed priority
+                  </p>
+                  <p id="pattern-collapsed-source" class="truncate text-[11px] text-slate-400">Hydrology overlay</p>
+                </div>
+                <span id="pattern-collapsed-active-badge" class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                  Dots
+                </span>
+                <button id="pattern-collapsed-visibility-button" type="button" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600" aria-label="Toggle watershed priority visibility">
+                  <svg id="pattern-collapsed-eye-icon" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path id="pattern-collapsed-eye-path" d="M10 4.5c4 0 7 4.2 7 5.5s-3 5.5-7 5.5-7-4.2-7-5.5 3-5.5 7-5.5Zm0 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                </button>
+                <button id="pattern-collapsed-expand-button" type="button" class="flex h-7 w-5 items-center justify-center text-slate-400" aria-label="Expand watershed priority controls">
+                  <span id="pattern-collapsed-expand-icon" aria-hidden="true">v</span>
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="pattern-explanation-panel" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <article id="pattern-map-card" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <header id="pattern-map-header" class="border-b border-slate-200 px-5 py-4">
+            <p id="pattern-map-kicker" class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+              Map impact
+            </p>
+            <h2 id="pattern-map-title" class="mt-1 text-lg font-bold text-slate-900">
+              Patterns supplement color, not replace layer control.
+            </h2>
+          </header>
+          <div id="pattern-map-canvas" class="relative h-[520px] bg-[linear-gradient(0deg,#e2e8f0_1px,transparent_1px),linear-gradient(90deg,#e2e8f0_1px,transparent_1px)] bg-[size:34px_34px]">
+            <div id="pattern-map-water" class="absolute left-16 top-24 h-56 w-72 rounded-[48%] bg-sky-200/60 blur-[1px]"></div>
+            <div id="pattern-map-conservation-area" class="pattern-map-diagonal absolute left-40 top-32 h-52 w-80 rotate-[-7deg] rounded-[36%] border border-slate-700/30"></div>
+            <div id="pattern-map-mesh-area" class="pattern-map-mesh absolute left-64 top-52 h-40 w-64 rotate-[4deg] rounded-[38%] border border-amber-700/25"></div>
+            <div id="pattern-map-watershed-area" class="pattern-map-dots absolute bottom-24 right-24 h-44 w-72 rotate-[9deg] rounded-[42%] border border-emerald-700/25"></div>
+            <div id="pattern-map-label" class="absolute left-5 top-5 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur">
+              <p id="pattern-map-label-title" class="text-xs font-bold text-slate-700">Preview</p>
+              <p id="pattern-map-label-text" class="mt-1 max-w-52 text-[11px] leading-4 text-slate-500">
+                Hatch, mesh, and dot patterns distinguish overlapping layers when opacity and color alone are not enough.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <aside id="pattern-decision-card" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p id="pattern-decision-kicker" class="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-700">
+            Recommendation
+          </p>
+          <h2 id="pattern-decision-title" class="mt-2 text-lg font-bold leading-6 text-slate-900">
+            Put pattern controls inside each expanded selected-layer row.
+          </h2>
+          <p id="pattern-decision-body" class="mt-3 text-sm leading-6 text-slate-600">
+            Keep the collapsed row quiet, but show a small active-pattern badge when a pattern is enabled. This makes hatching intentional, reversible, and scoped to one layer at a time.
+          </p>
+          <ul id="pattern-decision-list" class="mt-4 space-y-2 text-sm leading-5 text-slate-600">
+            <li id="pattern-decision-item-one">Opt-in per layer prevents accidental global hatching.</li>
+            <li id="pattern-decision-item-two">The expanded row already contains appearance controls, so the mental model stays consistent.</li>
+            <li id="pattern-decision-item-three">Preview tiles support quick recognition for color-blind and overlap-heavy workflows.</li>
+          </ul>
+          <div id="pattern-options-note" class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p id="pattern-options-title" class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              Options considered
+            </p>
+            <p id="pattern-options-copy" class="mt-2 text-xs leading-5 text-slate-600">
+              A global hatch toggle is fastest but too easy to over-apply. A hidden style popover is cleaner but less discoverable. The expanded-row control is the best fit because it is local, visible, and consistent with existing layer styling.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

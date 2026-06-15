@@ -49,11 +49,12 @@ export type AdminBoundaryLayerKey =
   | 'admin_country_outline'
   | 'admin_departments'
   | 'admin_municipalities';
+export type AdminBoundaryLineStyle = 'none' | 'solid' | 'long-dash' | 'dot';
 
 interface BoundaryStyle {
   color: [number, number, number, number];
   width: number;
-  style: 'solid' | 'long-dash';
+  style: AdminBoundaryLineStyle;
 }
 
 const PUBLIC_BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
@@ -343,7 +344,14 @@ export class AdminBoundaryService {
     this.setLayerVisibility(type, !current);
   }
 
-  setLayerStyle(target: AoiType | AdminBoundaryLayerKey, options: { color?: string | null }): void {
+  setLayerStyle(
+    target: AoiType | AdminBoundaryLayerKey,
+    options: {
+      color?: string | null;
+      width?: number | null;
+      style?: AdminBoundaryLineStyle | null;
+    },
+  ): void {
     const configs = this.getConfigsForTarget(target);
     const color = this.hexToRgba(options.color ?? DEFAULT_ADMIN_BOUNDARY_HEX);
     this.boundaryStyleByLayerKey.update((state) =>
@@ -353,6 +361,8 @@ export class AdminBoundaryService {
           [config.layerKey]: {
             ...nextState[config.layerKey],
             color,
+            width: options.width ?? nextState[config.layerKey].width,
+            style: options.style ?? nextState[config.layerKey].style,
           },
         }),
         state,
@@ -680,7 +690,7 @@ export class AdminBoundaryService {
         color: [0, 0, 0, 0],
         outline: {
           color: [...boundaryStyle.color],
-          width: boundaryStyle.width,
+          width: boundaryStyle.style === 'none' ? 0 : boundaryStyle.width,
           style: boundaryStyle.style,
         },
       },
