@@ -55,6 +55,7 @@ describe('AdminBoundaryService', () => {
       municipality: false,
       runap: false,
       omec: false,
+      custom: false,
     });
   });
 

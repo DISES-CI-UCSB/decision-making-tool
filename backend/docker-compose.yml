@@ -1,0 +1,14 @@
+services:
+  backend:
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      DMT_ARTIFACT_DIR: ${DMT_ARTIFACT_DIR:-/backend/runtime-artifacts}
+      DMT_ARTIFACT_MANIFEST: ${DMT_ARTIFACT_MANIFEST:-/backend/runtime-artifacts/manifest.json}
+      DMT_ARTIFACT_REQUIRED: ${DMT_ARTIFACT_REQUIRED:-false}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./runtime-artifacts:/backend/runtime-artifacts:ro

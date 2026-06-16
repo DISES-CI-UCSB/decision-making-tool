@@ -1,0 +1,6 @@
+# Backend API local/runtime artifacts
+backend/.venv/
+backend/.pytest_cache/
+backend/**/__pycache__/
+backend/runtime-artifacts/*
+!backend/runtime-artifacts/.gitkeep

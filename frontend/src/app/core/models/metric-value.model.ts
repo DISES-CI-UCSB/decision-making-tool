@@ -8,6 +8,49 @@ export type MetricReadinessStatus =
 
 export type MetricValueFormatHint = 'number' | 'percent' | 'currency' | 'ratio' | 'index';
 
+export type CustomPolygonMetricId = string;
+
+export interface GeoJsonPolygonGeometry {
+  type: 'Polygon';
+  coordinates: number[][][];
+}
+
+export interface GeoJsonMultiPolygonGeometry {
+  type: 'MultiPolygon';
+  coordinates: number[][][][];
+}
+
+export type CustomPolygonMetricsGeometry = GeoJsonPolygonGeometry | GeoJsonMultiPolygonGeometry;
+
+export interface CustomPolygonMetricsRequest {
+  geometry: CustomPolygonMetricsGeometry;
+  metrics?: CustomPolygonMetricId[];
+  artifact_version?: string;
+}
+
+export interface CustomPolygonMetricsArtifactState {
+  required: boolean;
+  available: boolean;
+  manifest_path: string;
+  schema_version: string | null;
+  artifact_version: string | null;
+  checksum: string | null;
+  message: string;
+  warmup_status: string;
+  warmup_ms: number | null;
+  loaded_at: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface CustomPolygonMetricsResponse {
+  status: 'ok' | 'artifact_required' | 'invalid_request' | 'not_implemented';
+  message: string;
+  artifact_state: CustomPolygonMetricsArtifactState;
+  requested_metrics: CustomPolygonMetricId[] | null;
+  metrics: Partial<Record<CustomPolygonMetricId, number | null>> | null;
+  metadata: Record<string, unknown>;
+}
+
 export interface MetricValue {
   metricId: string;
   /**

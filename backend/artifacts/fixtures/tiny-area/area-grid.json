@@ -1,0 +1,57 @@
+{
+  "artifact_kind": "tiny-area-grid/v1",
+  "description": "Four one-degree fixture cells for backend warmup and custom polygon smoke tests only.",
+  "bounds": [
+    0.0,
+    0.0,
+    2.0,
+    2.0
+  ],
+  "pixel_area_km2": 1.5,
+  "cells": [
+    {
+      "id": "southwest",
+      "bbox": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "selected": true,
+      "valid": true
+    },
+    {
+      "id": "southeast",
+      "bbox": [
+        1.0,
+        0.0,
+        2.0,
+        1.0
+      ],
+      "selected": false,
+      "valid": true
+    },
+    {
+      "id": "northwest",
+      "bbox": [
+        0.0,
+        1.0,
+        1.0,
+        2.0
+      ],
+      "selected": true,
+      "valid": true
+    },
+    {
+      "id": "northeast",
+      "bbox": [
+        1.0,
+        1.0,
+        2.0,
+        2.0
+      ],
+      "selected": true,
+      "valid": false
+    }
+  ]
+}

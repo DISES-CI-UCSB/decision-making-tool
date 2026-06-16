@@ -232,6 +232,7 @@ export class AdminBoundaryService {
       municipality: state.admin_municipalities,
       omec: false,
       runap: false,
+      custom: false,
     };
   });
   readonly popupEnabled$ = signal(false);
@@ -701,6 +702,11 @@ export class AdminBoundaryService {
    * MapView's identify flow) to reuse the existing AOI highlight graphics layer.
    */
   highlightAoiGeometry(geometry: Geometry | null): void {
+    if (!geometry) {
+      this.clearSelectionHighlight();
+      return;
+    }
+
     this.setSelectionHighlight(geometry);
   }
 

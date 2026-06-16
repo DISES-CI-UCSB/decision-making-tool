@@ -50,7 +50,10 @@
     },
     "cost": {
       "label": "Costo de implementacion"
-    }
+    },
+    "custom_polygon_area": "Area del AOI dibujada",
+    "priority_area_total": "Area prioritaria",
+    "national_contribution": "Contribucion nacional"
   },
   "mapLegend": {
     "title": "Leyenda",
@@ -89,7 +92,14 @@
     "loadingSolution": "Cargando solución...",
     "loadingLayer": "Cargando capa del mapa...",
     "loadingOmecs": "Cargando OMECs...",
-    "loadingRunap": "Cargando RUNAP..."
+    "loadingRunap": "Cargando RUNAP...",
+    "customAoiDrawControls": "Controles para dibujar AOI personalizado",
+    "customAoiDrawStart": "Dibujar AOI personalizado",
+    "customAoiDrawDrawing": "Dibuja un poligono en el mapa. Haz doble clic para terminar.",
+    "customAoiDrawReady": "AOI personalizado seleccionado.",
+    "customAoiDrawInvalid": "Dibuja un poligono valido para usar un AOI personalizado.",
+    "customAoiDrawCancel": "Cancelar dibujo",
+    "customAoiDrawClear": "Borrar AOI personalizado"
   },
   "analysis": {
     "tabNavAriaLabel": "Pestañas del panel lateral derecho",
@@ -252,7 +262,8 @@
         "department": "Departamento",
         "sirap": "SIRAP",
         "omec": "OMEC",
-        "runap": "RUNAP"
+        "runap": "RUNAP",
+        "custom": "AOI personalizado"
       },
       "emptyTitle": "No hay un area de interes seleccionada",
       "emptyDescription": "Selecciona un AOI para completar este panel con metricas locales y contexto.",
@@ -276,6 +287,28 @@
         "ofMunicipality": "de esta área de interés",
         "nationalContributionLabel": "Contribución 30×30",
         "existingAdds": "Existente {{existing}} + agrega {{added}}"
+      },
+      "customMetrics": {
+        "loading": "Cargando métricas del polígono personalizado desde la API...",
+        "loadError": "No se pudieron cargar las métricas del polígono personalizado.",
+        "loaded": "Métricas del polígono personalizado cargadas desde la API: {{count}} métricas recibidas.",
+        "statusReturned": "Las métricas del polígono personalizado devolvieron {{status}}.",
+        "unavailable": "Las métricas del polígono personalizado no están disponibles.",
+        "speciesLoadError": "No se pudieron cargar las métricas de biodiversidad.",
+        "speciesLoading": {
+          "initial": {
+            "small": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: unos segundos.",
+            "medium": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 5-10 segundos.",
+            "large": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 15-30 segundos.",
+            "veryLarge": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 1-2 minutos.",
+            "unknown": "Calculando metricas de biodiversidad. El tiempo depende del tamano del AOI y puede variar."
+          },
+          "delayed": {
+            "longerThanExpected": "Este AOI esta tardando mas de lo esperado. Puedes seguir revisando otras metricas mientras termina biodiversidad.",
+            "largeAoi": "Los AOI grandes pueden tardar mas. Puedes seguir revisando otras metricas mientras termina biodiversidad."
+          },
+          "extended": "Todavia trabajando... Los AOI grandes pueden necesitar mas tiempo. Los valores de biodiversidad apareceran aqui cuando termine el calculo."
+        }
       },
       "biodiversityTaxa": {
         "mammals": "Mamíferos",
