@@ -148,7 +148,7 @@ OVERVIEW TAB CONTENT (Showing):
 **Ecosystems Breakdown:**
 - Donut chart showing ecosystem distribution:
   * Cloud Forest: 35% (blue-green)
-  * Paramo: 20% (purple)
+  * Páramo: 20% (purple)
   * Dry Forest: 25% (tan)
   * Wetlands: 10% (teal)
   * Other: 10% (gray)
@@ -162,7 +162,7 @@ OVERVIEW TAB CONTENT (Showing):
   | Feature | Regional Distribution | National Total | Significance |
   |---------|----------------------|----------------|--------------|
   | Cloud Forest | 2,500 km² (15% of AOI) | 16,800 km² | **15%** of national |
-  | Paramo | 800 km² (5% of AOI) | 4,000 km² | **20%** of national |
+  | Páramo | 800 km² (5% of AOI) | 4,000 km² | **20%** of national |
   | CE Species | 5 species | 32 species | **16%** of national |
   | Carbon | 85M tCO2e | 1.2B tCO2e | **7%** of national |
 
@@ -171,7 +171,7 @@ OVERVIEW TAB CONTENT (Showing):
 
 **Auto-Generated Narrative Text Box (Bottom):**
 - Light blue background box with text:
-"This municipality is a CRITICAL national contributor, containing 15% of Colombia's cloud forests and 20% of paramo ecosystems. It supports 5 critically endangered species (16% of national total) and stores 85M tCO2e (7% of national carbon stocks). Priority areas serve dual functions: protecting above-average biodiversity while maintaining water regulation for 2.5M downstream residents."
+"This municipality is a CRITICAL national contributor, containing 15% of Colombia's cloud forests and 20% of páramo ecosystems. It supports 5 critically endangered species (16% of national total) and stores 85M tCO2e (7% of national carbon stocks). Priority areas serve dual functions: protecting above-average biodiversity while maintaining water regulation for 2.5M downstream residents."
 
 ACTION BUTTONS (Footer):
 - "Generate Regional Report (PDF)"
@@ -222,7 +222,7 @@ MAIN CONTENT AREA (3-column layout or tabbed):
   * "Mammal Species" - 30% selected (highlighted in blue)
   * "Cloud Forest" - 32% selected
   * "Threatened Amphibians" - 25% selected
-  * "Paramo Ecosystems" - 30% selected
+  * "Páramo Ecosystems" - 30% selected
   * "Wetlands" - 17% selected
 - Each feature has a small icon (paw, tree, frog, mountain, water drop)
 
@@ -320,7 +320,7 @@ PAGE 1 - EXECUTIVE SUMMARY & SCENARIO OVERVIEW:
   | Mammal Species | 30% | 32% | ✓ Met |
   | Cloud Forest | 30% | 35% | ✓ Met |
   | Threatened Amphibians | 25% | 22% | ✗ Unmet |
-  | Paramo Ecosystems | 30% | 28% | ✗ Unmet |
+  | Páramo Ecosystems | 30% | 28% | ✗ Unmet |
   | Wetlands | 25% | 18% | ✗ Unmet |
 
 **Spatial Summary:**
@@ -393,7 +393,7 @@ PAGE 4 - INTEGRATED SYNTHESIS & RECOMMENDATIONS:
 - Dual-axis chart showing "Biodiversity Achievement vs. Economic Cost"
 
 **Key Trade-offs Statement (Large, Bold Text):**
-"This scenario prioritizes high-elevation ecosystems (cloud forests, paramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
+"This scenario prioritizes high-elevation ecosystems (cloud forests, páramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
 
 **Why Goals Were Unmet (Critical Section):**
 - Text explaining unmet targets:

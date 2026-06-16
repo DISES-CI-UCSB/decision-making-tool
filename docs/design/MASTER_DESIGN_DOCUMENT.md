@@ -736,7 +736,7 @@ If a data point is quantifiable and changes based on the selected region/scenari
         *   List of notable threatened species present
     *   **Ecosystems & Biomes:**
         *   Donut chart showing percentage coverage of different ecosystem types
-        *   Examples: Cloud Forest (15%), Paramo (8%), Dry Forest (12%), Wetlands (5%)
+        *   Examples: Cloud Forest (15%), Páramo (8%), Dry Forest (12%), Wetlands (5%)
 
 *   **Section C: Ecosystem Services**
     *   **Carbon Storage:**
@@ -831,7 +831,7 @@ If a data point is quantifiable and changes based on the selected region/scenari
         |-----------------|------------------|----------------------|----------------------|
         | **Key Ecosystems** | | | |
         | Cloud Forest | 2,500 km² (15% of AOI) | 16,800 km² total | **15%** of national cloud forest in this region |
-        | Paramo | 800 km² (5% of AOI) | 4,000 km² total | **20%** of national paramo in this region |
+        | Páramo | 800 km² (5% of AOI) | 4,000 km² total | **20%** of national páramo in this region |
         | Wetlands | 450 km² (3% of AOI) | 9,000 km² total | **5%** of national wetlands in this region |
         | **Threatened Species** | | | |
         | Critically Endangered Species | 5 species present | 32 species nationally | **16%** of nationally CE species in this region |
@@ -864,7 +864,7 @@ If a data point is quantifiable and changes based on the selected region/scenari
         
         *   **Element F.4.a: National Scale Context**
             *   "This region contains **15% of Colombia's cloud forest ecosystems**, making it a **CRITICAL** contributor to national cloud forest conservation goals"
-            *   "With **20% of Colombia's paramo ecosystems**, this area is of **EXCEPTIONAL** importance for high-elevation biodiversity and water regulation"
+            *   "With **20% of Colombia's páramo ecosystems**, this area is of **EXCEPTIONAL** importance for high-elevation biodiversity and water regulation"
             *   Threshold-based significance classification (***example values for team refinement***):
                 *   **EXCEPTIONAL:** > 20% of national distribution
                 *   **CRITICAL:** 10-20%
@@ -881,7 +881,7 @@ If a data point is quantifiable and changes based on the selected region/scenari
             *   "This area provides water regulation services to **2.5 million downstream residents** in the Cauca River basin"
         
         *   **Element F.4.d: Example Integrated Regional Narrative**
-            *   "This municipality is a **CRITICAL** national contributor, containing **15% of Colombia's cloud forests** and **20% of paramo ecosystems**. It supports **8 threatened amphibian species** (25% of national total) and stores **85M tCO2e** (7% of national carbon stocks). Priority conservation areas here serve dual functions: protecting **above-average biodiversity** while maintaining **water regulation for 2.5M downstream residents**. However, implementation must address **$125M in agricultural opportunity cost** and overlap with **moderate human pressure zones** (35% of priority areas)."
+            *   "This municipality is a **CRITICAL** national contributor, containing **15% of Colombia's cloud forests** and **20% of páramo ecosystems**. It supports **8 threatened amphibian species** (25% of national total) and stores **85M tCO2e** (7% of national carbon stocks). Priority conservation areas here serve dual functions: protecting **above-average biodiversity** while maintaining **water regulation for 2.5M downstream residents**. However, implementation must address **$125M in agricultural opportunity cost** and overlap with **moderate human pressure zones** (35% of priority areas)."
     
     *   **Sub-section F.5: Key Observations**
         *   Automatically generated insights highlighting notable features
@@ -1055,7 +1055,7 @@ If a metric's Required Input(s) reference a layer that is ❌ Missing or ❓ Unk
 | 28 | % of National Species Total | Species/Biodiversity | Percentage of Colombia's total species found in AOI | % | Species distribution layers, National species totals | ❓ Unknown | `AOI species count / National species count × 100` | Stat with comparison | **Yes** | Species Report | |
 | **ECOSYSTEMS** | | | | | | | | | | | |
 | 29 | Ecosystem Coverage - Cloud Forest | Ecosystems | Area of cloud forest ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Cloud Forest') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
-| 30 | Ecosystem Coverage - Paramo | Ecosystems | Area of paramo ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Paramo') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
+| 30 | Ecosystem Coverage - Páramo | Ecosystems | Area of páramo ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Páramo') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
 | 31 | Ecosystem Coverage - Dry Forest | Ecosystems | Area of dry forest ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Dry Forest') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
 | 32 | Ecosystem Coverage - Wetlands | Ecosystems | Area of wetland ecosystem within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem = 'Wetlands') in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
 | 33 | Ecosystem Coverage - Other | Ecosystems | Area of other ecosystem types within solution | km² and % | Ecosystem type layer | ❓ Unknown | `SUM(area where ecosystem NOT IN above categories) in solution` | Donut chart segment | **Yes** | Ecosystem Report | |
@@ -1301,7 +1301,7 @@ Automated report generation for specific planning needs. Reports are available a
     *   Explicit statement of major trade-offs: "This scenario prioritizes X at the cost of Y"
     *   Contextual explanations: WHY certain goals are met or unmet (insufficient ecosystem area vs. cost constraints vs. optimization trade-offs)
     *   Risk assessment: Implementation challenges and recommended mitigation strategies
-    *   **Example Narrative:** "This conservation scenario achieves GOOD biodiversity protection (7 of 10 species groups with adequate habitats) and EXCELLENT ecosystem service provision (2.5B tCO2e carbon storage, water regulation for 8M people) at a MODERATE economic cost ($350M agricultural opportunity cost representing 12% of regional agricultural GDP). The solution prioritizes high-elevation ecosystems (cloud forests, paramo) which explain the unmet lowland wetland targets (-7% below goal). Implementation faces MODERATE challenges: 15% of priority areas overlap with human-modified landscapes requiring restoration approaches, and 8,200 km² overlap with historical conflict zones necessitating careful community engagement and consultation, particularly with 5 indigenous territories and 3 community councils within priority areas. The solution complements the existing protected area system well (35% overlap with current management figures) while identifying 65% as new priority areas filling critical conservation gaps."
+    *   **Example Narrative:** "This conservation scenario achieves GOOD biodiversity protection (7 of 10 species groups with adequate habitats) and EXCELLENT ecosystem service provision (2.5B tCO2e carbon storage, water regulation for 8M people) at a MODERATE economic cost ($350M agricultural opportunity cost representing 12% of regional agricultural GDP). The solution prioritizes high-elevation ecosystems (cloud forests, páramo) which explain the unmet lowland wetland targets (-7% below goal). Implementation faces MODERATE challenges: 15% of priority areas overlap with human-modified landscapes requiring restoration approaches, and 8,200 km² overlap with historical conflict zones necessitating careful community engagement and consultation, particularly with 5 indigenous territories and 3 community councils within priority areas. The solution complements the existing protected area system well (35% overlap with current management figures) while identifying 65% as new priority areas filling critical conservation gaps."
 
 *   **Section D: Visual Report Components**
     *   Side-by-side bar charts: Goals Met vs. Goals Unmet
@@ -1537,7 +1537,7 @@ The application must include the following data layers with complete metadata tr
     *   Threatened/Endangered species flagged separately
     *   **Metadata Required:** Scientific names, IUCN Red List status, model date, source agency
 *   **Ecosystem Types:**
-    *   Terrestrial biomes (Cloud Forest, Paramo, Dry Forest, Wetlands, etc.)
+    *   Terrestrial biomes (Cloud Forest, Páramo, Dry Forest, Wetlands, etc.)
     *   Marine ecosystems (Coral reefs, Mangroves, Seagrass beds, Deep-sea habitats)
     *   **Metadata Required:** Classification system used, mapping date, spatial accuracy
 
@@ -1870,7 +1870,7 @@ Based on the metrics in Area 4.4, the following data layers are required:
 - ☐ Species distribution models (Mammals, Birds, Amphibians, Reptiles, Plants)
 - ☐ Threatened species layer (with IUCN status)
 - ☐ Endemic species layer (with endemism attribute)
-- ☐ Ecosystem type layer (Cloud Forest, Paramo, Dry Forest, Wetlands, etc.)
+- ☐ Ecosystem type layer (Cloud Forest, Páramo, Dry Forest, Wetlands, etc.)
 
 **Ecosystem Services Layers:**
 - ☐ Carbon storage layer (above-ground biomass)

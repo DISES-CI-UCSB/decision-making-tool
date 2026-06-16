@@ -29,7 +29,7 @@ feature",nacional,a todos,IAvH (BioModelos),TRUE,unknown,unknown,unknown,unknown
 species,"Distribuciones de especies individuales (~8751)
 Individual Species Distributions",Biodiversidad,Species distribution raster collection for potential species explorer,"característica
 feature",nacional,a todos,IAvH (BioModelos),TRUE,https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b,2023-06-24,,unknown,Elkin Alexi Noguera: enoguera@humboldt.org.co,NA,in Google Drive,data/inputs/features/species/,GeoTIFF,,partial,2026-04-22,DISES Team
-paramos,Páramos ,Ecosistemas estratégicos,"Contiene la delimitación oficial de los complejos de páramo su propósito es servir de referencia oficial para la gestión ambiental, la planificación territorial, la conservación y el manejo sostenible de los ecosistemas de alta montaña.","característica
+paramos,Páramos ,Ecosistemas estratégicos,"Contiene la delimitación oficial de los complejos de páramo; su propósito es servir de referencia oficial para la gestión ambiental, la planificación territorial, la conservación y el manejo sostenible de los ecosistemas de alta montaña.","característica
 feature",nacional,a todos,Minambiente,TRUE,Servidor SIAC: https://siac-datosabiertos-mads.hub.arcgis.com/maps/a85c9d818c9640649318a33b9fa115fd/about,2020-10-20,2025-10-24,unknown,Fardila@minambiente.gov.co,paramos.tif,in Google Drive,data/inputs/features/strategic/paramos.tif,GeoTIFF,,partial,2026-04-22,DISES Team
 wetlands,"Humedales
 Wetlands",Ecosistemas estratégicos,La delimitación geográfica de los humedales continentales de Colombia a escala 1:100.000.,"característica
@@ -41,8 +41,8 @@ mangroves,"Manglares
 Mangroves",Ecosistemas estratégicos,Highlights mangrove ecosystems that support coastal protection and local livelihoods.,"característica
 feature",nacional,a todos,INVEMAR,TRUE,Servidor INVEMAR: https://acceso-datos-ambientales-invemar.hub.arcgis.com/datasets/INVEMAR::manglares-colombia/about,2023-03-22,unknown,Custom license (see source url),unknown,mangroves.tif,in Google Drive,data/inputs/features/strategic/mangroves.tif,GeoTIFF,,partial,2026-04-22,DISES Team
 ecosistemas,"Ecosistemas
-Ecosystems",Ecosistemas,Descripcion de biomas y ecosistemas a escala 1:100.000,"característica
-feature",nacional,a todos,Humboldt (IAvH),TRUE,Sevidor:https://experience.arcgis.com/experience/568ddab184334f6b81a04d2fe9aac262/page/Datos-Abiertos-Geogr%C3%A1ficos-/-,unknown,unknown,unknown,unknown,ecosistemas.tif,in Google Drive,data/inputs/features/ecosystems/ecosistemas.tif,GeoTIFF or Feature Service,,partial,2026-04-22,DISES Team
+Ecosystems",Ecosistemas,Descripción de biomas y ecosistemas a escala 1:100.000,"característica
+feature",nacional,a todos,Humboldt (IAvH),TRUE,Servidor:https://experience.arcgis.com/experience/568ddab184334f6b81a04d2fe9aac262/page/Datos-Abiertos-Geogr%C3%A1ficos-/-,unknown,unknown,unknown,unknown,ecosistemas.tif,in Google Drive,data/inputs/features/ecosystems/ecosistemas.tif,GeoTIFF or Feature Service,,partial,2026-04-22,DISES Team
 biomasa_areara+subterranea_1km,"Biomasa aérea y subterránea
 Above and belowground biomass",Servicios ecosistémicos,Above and belowground biomass,"característica
 feature",nacional,a todos,Spawn et al. 2020,FALSE,unknown,unknown,unknown,unknown,unknown,unknown,in Google Drive,data/inputs/features/biomass/biomasa_areara+subterranea_1km.tif,GeoTIFF,,partial,2026-04-22,

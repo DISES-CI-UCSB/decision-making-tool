@@ -4294,12 +4294,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             hasColorControl: false,
             hideAddButton: true,
           },
-          this.layerRow(
-            'eco-paramos',
-            this.activeLanguage() === 'es' ? 'Páramos' : 'Paramos',
-            '#6d8e7e',
-            DEFAULT_DATA_LAYER_OPACITY,
-          ),
+          this.layerRow('eco-paramos', 'Páramos', '#6d8e7e', DEFAULT_DATA_LAYER_OPACITY),
           this.layerRow(
             'eco-wetlands',
             this.activeLanguage() === 'es' ? 'Humedales' : 'Wetlands',
@@ -4549,8 +4544,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   private ecosystemRowNameForId(rowId: string): string | undefined {
     const copy = this.ecosystemsCopy();
     const strategicNames: Record<string, { en: string; es: string }> = {
-      'layer-paramos': { en: 'Paramos', es: 'Páramos' },
-      'layer-eco-paramos': { en: 'Paramos', es: 'Páramos' },
+      'layer-paramos': { en: 'Páramos', es: 'Páramos' },
+      'layer-eco-paramos': { en: 'Páramos', es: 'Páramos' },
       'layer-wetlands': { en: 'Wetlands', es: 'Humedales' },
       'layer-eco-wetlands': { en: 'Wetlands', es: 'Humedales' },
       'layer-bosque_seco': { en: 'Dry Forest', es: 'Bosque seco' },

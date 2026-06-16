@@ -14,13 +14,13 @@ const INCLUDED_AREA_LABELS: Record<SolutionIncludedAreaKey, Record<LayerLocale, 
   },
   afroIndigenous: {
     en: 'Afro-Colombian and Indigenous territories',
-    es: 'territorios afrocolombianos e indigenas',
+    es: 'territorios afrocolombianos e indígenas',
   },
 };
 
 const LEGEND_PREFIX: Record<LayerLocale, string> = {
   en: 'Included areas in solution',
-  es: 'Areas incluidas en la solucion',
+  es: 'Áreas incluidas en la solución',
 };
 
 export function getSolutionIncludedAreaKeys(scenario: SolutionScenario): SolutionIncludedAreaKey[] {

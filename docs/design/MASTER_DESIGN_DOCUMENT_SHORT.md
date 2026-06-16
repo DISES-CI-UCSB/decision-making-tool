@@ -94,7 +94,7 @@ Specialized workflow for offset planning — ecological equivalence analysis via
 - #28 % of National Species Total
 
 **Ecosystems (5 metrics, all Yes):**
-- #29-33 Ecosystem Coverage (Cloud Forest, Paramo, Dry Forest, Wetlands, Other)
+- #29-33 Ecosystem Coverage (Cloud Forest, Páramo, Dry Forest, Wetlands, Other)
 
 **Marine & Coastal (5 metrics, all Maybe):**
 - #34 MPA Overlap, #35 Coral Reef, #36 Mangrove, #37 Seagrass, #38 % in EEZ

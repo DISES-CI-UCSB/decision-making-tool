@@ -194,7 +194,7 @@ src/app/features/analysis/
 
 **ANL-15: Ecosystem section**
 - #29–#33: Coverage by ecosystem type — donut chart with legend
-- Segments: Cloud Forest, Paramo, Dry Forest, Wetlands, Other
+- Segments: Cloud Forest, Páramo, Dry Forest, Wetlands, Other
 - Show km² and % in tooltip/legend
 
 **ANL-16: Carbon & Ecosystem Services section**
