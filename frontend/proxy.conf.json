@@ -1,0 +1,10 @@
+{
+  "/metrics-api": {
+    "target": "http://107.170.64.162:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/metrics-api": ""
+    }
+  }
+}

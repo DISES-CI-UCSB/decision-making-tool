@@ -259,6 +259,16 @@
       "kicker": "Detalle de AOI",
       "title": "Detalle del area de interes",
       "description": "Enfoca el escenario activo en una geografia seleccionada para inspeccionar metricas especificas del AOI.",
+      "scopeExplanation": "Las metricas del AOI se recalculan para la geografia seleccionada, por lo que los valores pueden diferir de los totales del escenario.",
+      "alignedMetrics": {
+        "title": "Metricas de resumen en este AOI",
+        "description": "Las mismas familias de metricas principales del Resumen, enfocadas en el area seleccionada.",
+        "priorityAreaDrawn": "Area prioritaria dibujada"
+      },
+      "drillDown": {
+        "title": "Metricas locales de detalle",
+        "description": "Usa estas secciones para revisar detalle adicional especifico del AOI mas alla de las familias principales del resumen."
+      },
       "selectedLabel": "AOI seleccionado",
       "typeLabel": "Tipo",
       "types": {
@@ -277,7 +287,7 @@
       "scopePolygon": "Polígono",
       "scopeFull": "SIRAP completo",
       "sections": {
-        "conservation": "Resumen de conservación",
+        "conservation": "Instantanea del area seleccionada",
         "biodiversity": "Biodiversidad",
         "ecosystems": "Ecosistemas y carbono",
         "land": "Uso del suelo y socioeconómico",
@@ -285,7 +295,7 @@
         "marine": "Marino"
       },
       "allConditional": "Todo condicional",
-      "generateReport": "Generar informe regional",
+      "generateReport": "Generar informe del AOI",
       "hero": {
         "priorityAreaLabel": "Área prioritaria en la región",
         "ofMunicipality": "de esta área de interés",
@@ -338,8 +348,8 @@
         "hectares": "ha significa hectáreas. Una hectárea equivale a 10.000 metros cuadrados, o aproximadamente 2,47 acres."
       },
       "stats": {
-        "totalProtectedArea": "Área protegida total",
-        "parksOverlap": "Superposición con parques nacionales",
+        "totalProtectedArea": "Área protegida RUNAP",
+        "parksOverlap": "Superposición con Parques Nacionales Naturales",
         "ofAoiPriorityArea": "Del área prioritaria del AOI",
         "speciesChartAxisLabel": "Conteo de especies por taxa",
         "threatenedSpecies": "Especies amenazadas",
@@ -753,6 +763,7 @@
     "overlayNames": {
       "conservationSolution": "Solución de conservación",
       "protectedAreasRunap": "Áreas protegidas (RUNAP)",
+      "nationalNaturalParks": "Parques Nacionales Naturales",
       "omecs": "OMECs",
       "agreementOverlap": "Acuerdo / superposición"
     },

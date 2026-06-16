@@ -720,69 +720,75 @@
 
             <!-- ═══ SCROLLABLE BODY ═══ -->
             <div id="aoi-dashboard-body" class="aoi-panel-body">
-              @if (isCustomAoiSelected()) {
-                <div
-                  id="aoi-custom-metrics-status"
-                  class="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700"
+              <p id="aoi-dashboard-scope-explanation" class="aoi-scope-explanation">
+                {{ 'analysis.aoi.scopeExplanation' | translate }}
+              </p>
+
+              @if (aoiAlignedMetricEntries().length > 0) {
+                <section
+                  id="aoi-overview-aligned-metrics"
+                  class="aoi-aligned-section"
+                  aria-labelledby="aoi-overview-aligned-title"
                 >
-                  @if (isCustomAoiMetricsLoading()) {
-                    <p id="aoi-custom-metrics-loading" class="m-0">
-                      {{ 'analysis.aoi.customMetrics.loading' | translate }}
+                  <header id="aoi-overview-aligned-header" class="aoi-aligned-header">
+                    <h4 id="aoi-overview-aligned-title" class="aoi-aligned-title">
+                      {{ 'analysis.aoi.alignedMetrics.title' | translate }}
+                    </h4>
+                    <p id="aoi-overview-aligned-description" class="aoi-aligned-description">
+                      {{ 'analysis.aoi.alignedMetrics.description' | translate }}
                     </p>
-                  } @else if (customAoiMetricsLoadFailed()) {
-                    <p id="aoi-custom-metrics-error" class="m-0 text-red-700">
-                      {{ 'analysis.aoi.customMetrics.loadError' | translate }}
-                      {{ customAoiMetricsMessage() }}
-                    </p>
-                  } @else {
-                    <p id="aoi-custom-metrics-loaded" class="m-0">
-                      {{
-                        'analysis.aoi.customMetrics.loaded'
-                          | translate: { count: customAoiBackendMetricCount() }
-                      }}
-                    </p>
-                    @if (isCustomAoiSpeciesMetricsLoading()) {
-                      <p id="aoi-custom-species-metrics-loading" class="m-0 mt-1 text-slate-600">
-                        {{ getCustomAoiSpeciesLoadingKey() | translate }}
-                      </p>
-                    } @else if (customAoiSpeciesMetricsLoadFailed()) {
-                      <p id="aoi-custom-species-metrics-warning" class="m-0 mt-1 text-amber-700">
-                        {{ 'analysis.aoi.customMetrics.speciesLoadError' | translate }}
-                        {{ customAoiSpeciesMetricsMessage() }}
-                      </p>
-                    }
-                    <div
-                      id="aoi-custom-metrics-summary-grid"
-                      class="mt-2 grid grid-cols-1 gap-2"
-                      aria-live="polite"
-                    >
-                      @for (entry of customAoiMetricDisplayEntries(); track entry.id) {
+                  </header>
+                  <div id="aoi-overview-aligned-table" class="aoi-metric-table">
+                    @for (entry of aoiAlignedMetricEntries(); track entry.id) {
+                      <div [id]="'aoi-overview-aligned-row-' + entry.id" class="aoi-metric-row">
                         <div
-                          [id]="'aoi-custom-metrics-summary-row-' + entry.id"
-                          class="flex items-center justify-between gap-3 rounded-md bg-white px-2 py-1"
-                          [class.text-slate-500]="entry.unavailable"
+                          [id]="'aoi-overview-aligned-icon-shell-' + entry.id"
+                          class="aoi-m-icon"
                         >
-                          <span
-                            [id]="'aoi-custom-metrics-summary-label-' + entry.id"
-                            class="font-medium"
-                          >
+                          @if (entry.iconClass) {
+                            <i
+                              [id]="'aoi-overview-aligned-icon-' + entry.id"
+                              [class]="entry.iconClass"
+                              aria-hidden="true"
+                            ></i>
+                          }
+                        </div>
+                        <div [id]="'aoi-overview-aligned-body-' + entry.id" class="aoi-m-body">
+                          <div [id]="'aoi-overview-aligned-name-' + entry.id" class="aoi-m-name">
                             {{ entry.labelKey | translate }}
-                          </span>
-                          <span
-                            [id]="'aoi-custom-metrics-summary-value-' + entry.id"
-                            class="font-semibold tabular-nums text-slate-900"
-                            [class.text-slate-500]="entry.unavailable"
+                          </div>
+                          <div [id]="'aoi-overview-aligned-desc-' + entry.id" class="aoi-m-desc">
+                            {{ entry.descriptionKey | translate }}
+                          </div>
+                        </div>
+                        <div [id]="'aoi-overview-aligned-value-shell-' + entry.id">
+                          <div
+                            [id]="'aoi-overview-aligned-value-' + entry.id"
+                            class="aoi-m-val"
+                            [attr.data-full-value]="
+                              entry.fullValue && entry.fullValue !== entry.value
+                                ? entry.fullValue
+                                : null
+                            "
+                            [attr.tabindex]="
+                              entry.fullValue && entry.fullValue !== entry.value ? 0 : null
+                            "
                           >
                             {{ entry.value }}
-                          </span>
+                          </div>
+                          @if (entry.unit) {
+                            <div [id]="'aoi-overview-aligned-unit-' + entry.id" class="aoi-m-unit">
+                              {{ entry.unit }}
+                            </div>
+                          }
                         </div>
-                      }
-                    </div>
-                  }
-                </div>
+                      </div>
+                    }
+                  </div>
+                </section>
               }
 
-              <!-- ─── SECTION A: Conservation Summary ─── -->
+              <!-- ─── SECTION A: Selected Area Snapshot ─── -->
               <section id="aoi-section-general">
                 <button
                   id="aoi-head-general"
@@ -932,6 +938,19 @@
                     </div>
                   </div>
                 </div>
+              </section>
+
+              <section
+                id="aoi-local-drilldown-intro"
+                class="aoi-drilldown-intro"
+                aria-labelledby="aoi-local-drilldown-title"
+              >
+                <h4 id="aoi-local-drilldown-title" class="aoi-drilldown-title">
+                  {{ 'analysis.aoi.drillDown.title' | translate }}
+                </h4>
+                <p id="aoi-local-drilldown-description" class="aoi-drilldown-description">
+                  {{ 'analysis.aoi.drillDown.description' | translate }}
+                </p>
               </section>
 
               <!-- ─── SECTION B: Biodiversity ─── -->
