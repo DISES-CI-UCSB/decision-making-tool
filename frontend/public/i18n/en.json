@@ -328,6 +328,16 @@
       "kicker": "AOI detail",
       "title": "Area of interest detail",
       "description": "Focus the active scenario on a selected geography to inspect AOI-specific metrics.",
+      "scopeExplanation": "AOI metrics are recalculated for the selected geography, so values may differ from scenario-wide totals.",
+      "alignedMetrics": {
+        "title": "Summary Metrics in This AOI",
+        "description": "The same headline metric families from Overview, scoped to the selected area.",
+        "priorityAreaDrawn": "Priority Area (Drawn)"
+      },
+      "drillDown": {
+        "title": "Local Drill-Down Metrics",
+        "description": "Use these sections for additional AOI-specific detail beyond the headline summary families."
+      },
       "selectedLabel": "Selected AOI",
       "typeLabel": "Type",
       "types": {
@@ -346,7 +356,7 @@
       "scopePolygon": "Polygon",
       "scopeFull": "Full SIRAP",
       "sections": {
-        "conservation": "Conservation Summary",
+        "conservation": "Selected Area Snapshot",
         "biodiversity": "Biodiversity",
         "ecosystems": "Ecosystems & Carbon",
         "land": "Land Use & Socio-Economic",
@@ -354,7 +364,7 @@
         "marine": "Marine"
       },
       "allConditional": "All Conditional",
-      "generateReport": "Generate Regional Report",
+      "generateReport": "Generate AOI Report",
       "hero": {
         "priorityAreaLabel": "Priority Area in Region",
         "ofMunicipality": "of this area of interest",
@@ -407,8 +417,8 @@
         "hectares": "ha means hectares. One hectare is 10,000 square meters, or about 2.47 acres."
       },
       "stats": {
-        "totalProtectedArea": "Total Protected Area",
-        "parksOverlap": "Overlap w/ Nat'l Parks",
+        "totalProtectedArea": "RUNAP Protected Area",
+        "parksOverlap": "National Natural Parks Overlap",
         "ofAoiPriorityArea": "Of AOI priority area",
         "speciesChartAxisLabel": "Species count by taxa",
         "threatenedSpecies": "Threatened Species",
@@ -749,6 +759,7 @@
     "overlayNames": {
       "conservationSolution": "Conservation Solution",
       "protectedAreasRunap": "Protected Areas (RUNAP)",
+      "nationalNaturalParks": "National Natural Parks",
       "omecs": "OMECs",
       "agreementOverlap": "Agreement / Overlap"
     },

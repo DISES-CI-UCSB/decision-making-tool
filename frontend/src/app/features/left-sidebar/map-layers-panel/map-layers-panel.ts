@@ -43,6 +43,7 @@ import {
 } from '@features/map/services/admin-boundary.service';
 import {
   ManifestRasterLayerService,
+  RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
   VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID,
   VECTOR_OVERLAY_LAYER_IDS,
 } from '@features/map/services/manifest-raster-layer.service';
@@ -268,6 +269,7 @@ const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
 ]);
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: 'overlay-runap',
+  runap_national_parks: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
   omecs: 'overlay-omecs',
 };
 const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
@@ -1078,6 +1080,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       const baselineRow = rowById.get(BASELINE_SOLUTION_OVERLAY_ID);
       const candidateRow = rowById.get(CANDIDATE_SOLUTION_OVERLAY_ID);
       const overlapRow = rowById.get(OVERLAP_SOLUTION_OVERLAY_ID);
+      const nationalParksRow = rowById.get(RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID);
+      const manifestHasNationalParksRow = managementGroup.rows.some(
+        (row) => MANIFEST_OVERLAY_ROW_BY_LAYER_ID[row.id] === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
+      );
       const reconciledManagementRows: LayerControlRow[] = [];
 
       for (const manifestRow of managementGroup.rows) {
@@ -1092,6 +1098,16 @@ export class MapLayersPanelComponent implements OnDestroy {
         reconciledManagementRows.push(
           this.applyManifestToManagementOverlay(existingOverlay, manifestRow),
         );
+        if (overlayId === 'overlay-runap' && nationalParksRow && !manifestHasNationalParksRow) {
+          reconciledManagementRows.push(nationalParksRow);
+        }
+      }
+
+      if (
+        nationalParksRow &&
+        !reconciledManagementRows.some((row) => row.id === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID)
+      ) {
+        reconciledManagementRows.push(nationalParksRow);
       }
 
       // Preserve non-manifest overlays that are still part of active comparison flows.
@@ -3667,6 +3683,30 @@ export class MapLayersPanelComponent implements OnDestroy {
         mapUnavailable: true,
       },
       {
+        id: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
+        name: this.localizedText('mapLayersPanel.overlayNames.nationalNaturalParks'),
+        selected: false,
+        visible: false,
+        expanded: false,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
+        color: '#dc2626',
+        canReorder: true,
+        hasStyleControls: true,
+        hasColorControl: true,
+        mapUnavailable: false,
+        mapSync: {
+          type: 'manifest-raster',
+          layerId: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
+          displayUrl:
+            'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
+          rendering: {
+            valueType: 'binary',
+            renderMode: 'mask',
+            selectedColor: '#dc2626',
+          },
+        },
+      },
+      {
         id: 'overlay-omecs',
         name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
         selected: false,
@@ -4439,6 +4479,12 @@ export class MapLayersPanelComponent implements OnDestroy {
           return {
             ...row,
             name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
+          };
+        }
+        if (row.id === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID) {
+          return {
+            ...row,
+            name: this.localizedText('mapLayersPanel.overlayNames.nationalNaturalParks'),
           };
         }
         if (row.id === 'overlay-omecs') {

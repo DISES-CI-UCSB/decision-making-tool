@@ -68,6 +68,28 @@ interface OverviewMetricDisplayEntry {
   unavailable: boolean;
 }
 
+interface AoiAlignedMetricBlueprint {
+  id: string;
+  metricIds: string[];
+  labelKey: string;
+  customAoiLabelKey?: string;
+  descriptionKey: string;
+  iconClass?: string;
+  dummyValue: string;
+  dummyUnitKey?: string;
+}
+
+interface AoiAlignedMetricDisplayEntry {
+  id: string;
+  metricId: string;
+  labelKey: string;
+  descriptionKey: string;
+  iconClass?: string;
+  value: string;
+  fullValue: string | null;
+  unit: string;
+}
+
 interface ComparisonMetricBlueprint {
   id: string;
   section: ComparisonSectionId;
@@ -125,24 +147,11 @@ interface AoiLandUseBar {
   color: string;
 }
 
-interface CustomAoiMetricDisplayEntry {
-  id: CustomPolygonMetricId;
-  labelKey: string;
-  value: string;
-  unavailable: boolean;
-}
-
 interface ComparisonVisualizationOption {
   id: ComparisonVisualizationMode;
   labelKey: string;
   descriptionKey: string;
 }
-
-const CUSTOM_AOI_SUMMARY_METRIC_IDS: CustomPolygonMetricId[] = [
-  'area',
-  'priority_area_in_region',
-  'national_contribution',
-];
 
 const CUSTOM_AOI_FAST_METRIC_IDS: CustomPolygonMetricId[] = [
   'priority_area_in_region',
@@ -664,6 +673,108 @@ export class PanelSwitcherComponent {
       conditional: true,
     },
   ];
+  private readonly aoiAlignedMetricBlueprints: AoiAlignedMetricBlueprint[] = [
+    {
+      id: 'aoi-summary-priority-area',
+      metricIds: ['priority_area_in_region'],
+      labelKey: 'analysis.overview.metrics.priorityAreaTotal',
+      customAoiLabelKey: 'analysis.aoi.alignedMetrics.priorityAreaDrawn',
+      descriptionKey: 'analysis.overview.metrics.priorityAreaTotalDesc',
+      iconClass: 'fas fa-square-check',
+      dummyValue: '230 km²',
+      dummyUnitKey: 'analysis.overview.metricUnits.selected',
+    },
+    {
+      id: 'aoi-summary-national-contribution',
+      metricIds: ['national_contribution'],
+      labelKey: 'analysis.overview.metrics.nationalContribution',
+      descriptionKey: 'analysis.overview.metrics.nationalContributionDesc',
+      iconClass: 'fas fa-flag',
+      dummyValue: '1.9%',
+      dummyUnitKey: 'analysis.overview.metricUnits.ofColombia',
+    },
+    {
+      id: 'aoi-summary-threatened-species',
+      metricIds: ['threatened_species_secured', 'threatened_species_count'],
+      labelKey: 'analysis.overview.metrics.threatenedSpeciesSecured',
+      descriptionKey: 'analysis.overview.metrics.threatenedSpeciesSecuredDesc',
+      iconClass: 'fas fa-triangle-exclamation',
+      dummyValue: '5',
+      dummyUnitKey: 'analysis.aoi.stats.iucnLabel',
+    },
+    {
+      id: 'aoi-summary-paramo',
+      metricIds: ['ecosystem_coverage_paramo'],
+      labelKey: 'analysis.overview.metrics.paramoCoverage',
+      descriptionKey: 'analysis.overview.metrics.paramoCoverageDesc',
+      iconClass: 'fas fa-mountain',
+      dummyValue: '34 km²',
+      dummyUnitKey: 'analysis.overview.metricUnits.paramo',
+    },
+    {
+      id: 'aoi-summary-dry-forest',
+      metricIds: ['ecosystem_coverage_dry_forest'],
+      labelKey: 'analysis.overview.metrics.dryForestCoverage',
+      descriptionKey: 'analysis.overview.metrics.dryForestCoverageDesc',
+      iconClass: 'fas fa-tree',
+      dummyValue: '18 km²',
+      dummyUnitKey: 'analysis.overview.metricUnits.dryForest',
+    },
+    {
+      id: 'aoi-summary-wetlands',
+      metricIds: ['ecosystem_coverage_wetlands'],
+      labelKey: 'analysis.overview.metrics.wetlandsCoverage',
+      descriptionKey: 'analysis.overview.metrics.wetlandsCoverageDesc',
+      iconClass: 'fas fa-water',
+      dummyValue: '42 km²',
+      dummyUnitKey: 'analysis.overview.metricUnits.wetlands',
+    },
+    {
+      id: 'aoi-summary-carbon',
+      metricIds: ['carbon_storage_biomass'],
+      labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
+      descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
+      iconClass: 'fas fa-leaf',
+      dummyValue: '52M',
+      dummyUnitKey: 'analysis.overview.metricUnits.megagrams',
+    },
+    {
+      id: 'aoi-summary-water',
+      metricIds: ['water_regulation_area'],
+      labelKey: 'analysis.overview.metrics.waterRegulationServices',
+      descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
+      iconClass: 'fas fa-droplet',
+      dummyValue: '78',
+      dummyUnitKey: 'analysis.aoi.stats.waterRegulationDesc',
+    },
+    {
+      id: 'aoi-summary-agriculture',
+      metricIds: ['agricultural_area'],
+      labelKey: 'analysis.overview.metrics.affectedAgriculturalArea',
+      descriptionKey: 'analysis.overview.metrics.affectedAgriculturalAreaDesc',
+      iconClass: 'fas fa-wheat-awn',
+      dummyValue: '125 km²',
+      dummyUnitKey: 'analysis.overview.metricUnits.areaAffected',
+    },
+    {
+      id: 'aoi-summary-indigenous-reservations',
+      metricIds: ['indigenous_reservations_area'],
+      labelKey: 'analysis.overview.metrics.indigenousReservationsArea',
+      descriptionKey: 'analysis.overview.metrics.indigenousReservationsAreaDesc',
+      iconClass: 'fas fa-people-group',
+      dummyValue: '41 km²',
+      dummyUnitKey: 'analysis.overview.metricUnits.resguardos',
+    },
+    {
+      id: 'aoi-summary-community-councils',
+      metricIds: ['community_councils_area'],
+      labelKey: 'analysis.overview.metrics.communityCouncilsArea',
+      descriptionKey: 'analysis.overview.metrics.communityCouncilsAreaDesc',
+      iconClass: 'fas fa-handshake',
+      dummyValue: '27 km²',
+      dummyUnitKey: 'analysis.overview.metricUnits.communities',
+    },
+  ];
   private readonly comparisonSectionMeta: Record<
     ComparisonSectionId,
     Pick<ComparisonMetricSection, 'titleKey' | 'toneClass'>
@@ -841,28 +952,12 @@ export class PanelSwitcherComponent {
   protected readonly aoiMetricsById = computed<Map<string, MetricValue>>(
     () => new Map(this.aoiMetrics().map((metric) => [metric.metricId, metric] as const)),
   );
+  protected readonly aoiAlignedMetricEntries = computed<AoiAlignedMetricDisplayEntry[]>(() =>
+    this.buildAoiAlignedMetricDisplayEntries(),
+  );
   protected readonly isSirapAoiSelected = computed(() => this.selectedAoi()?.type === 'sirap');
   protected readonly isCustomAoiSelected = computed(
     () => this.selectedAoi()?.type === 'custom' && this.customAoiGeometry() !== null,
-  );
-  protected readonly customAoiMetricDisplayEntries = computed<CustomAoiMetricDisplayEntry[]>(() => {
-    const metricsById = new Map(this.customAoiMetrics().map((metric) => [metric.metricId, metric]));
-    return CUSTOM_AOI_SUMMARY_METRIC_IDS.map((metricId) => {
-      const metric = metricsById.get(metricId);
-      const definition = this.getCustomAoiMetricDefinition(metricId);
-      const hasValue = metric?.status === 'ready' && metric.value !== null;
-      return {
-        id: metricId,
-        labelKey: definition.labelKey,
-        value: hasValue
-          ? this.formatMetricForPanel(metric)
-          : this.localizedText('analysis.common.valueUnavailable', 'Unavailable'),
-        unavailable: !hasValue,
-      };
-    });
-  });
-  protected readonly customAoiBackendMetricCount = computed(
-    () => this.customAoiMetrics().filter((metric) => metric.metricId !== 'area').length,
   );
 
   protected readonly comparisonMetrics = computed(() => {
@@ -2251,6 +2346,60 @@ export class PanelSwitcherComponent {
         metrics,
       };
     });
+  }
+
+  private buildAoiAlignedMetricDisplayEntries(): AoiAlignedMetricDisplayEntry[] {
+    const metricsById = this.aoiMetricsById();
+    const shouldFillDummy = this.fillDummyAoiMetrics();
+
+    return this.aoiAlignedMetricBlueprints.flatMap<AoiAlignedMetricDisplayEntry>((blueprint) => {
+      const realMetric = blueprint.metricIds
+        .map((metricId) => metricsById.get(metricId))
+        .find((metric): metric is MetricValue => Boolean(metric && this.isMetricReady(metric)));
+
+      if (realMetric) {
+        const fullValue = this.formatMetricForPanel(realMetric, 'full');
+        const compactValue = this.formatMetricForPanel(realMetric);
+
+        return [
+          {
+            id: blueprint.id,
+            metricId: realMetric.metricId,
+            labelKey: this.getAoiAlignedMetricLabelKey(blueprint),
+            descriptionKey: blueprint.descriptionKey,
+            iconClass: blueprint.iconClass,
+            value: compactValue,
+            fullValue,
+            unit: '',
+          },
+        ];
+      }
+
+      if (shouldFillDummy) {
+        return [
+          {
+            id: blueprint.id,
+            metricId: blueprint.metricIds[0] ?? blueprint.id,
+            labelKey: this.getAoiAlignedMetricLabelKey(blueprint),
+            descriptionKey: blueprint.descriptionKey,
+            iconClass: blueprint.iconClass,
+            value: blueprint.dummyValue,
+            fullValue: null,
+            unit: this.localizedText(blueprint.dummyUnitKey ?? ''),
+          },
+        ];
+      }
+
+      return [];
+    });
+  }
+
+  private getAoiAlignedMetricLabelKey(blueprint: AoiAlignedMetricBlueprint): string {
+    if (this.isCustomAoiSelected() && blueprint.customAoiLabelKey) {
+      return blueprint.customAoiLabelKey;
+    }
+
+    return blueprint.labelKey;
   }
 
   private buildMetricComparisons(

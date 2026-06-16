@@ -36,6 +36,8 @@ import {
   ManifestRasterLayerService,
   OMEC_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
   OMEC_OVERLAY_LAYER_ID,
+  RUNAP_NATIONAL_PARKS_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
+  RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
   RUNAP_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
   RUNAP_OVERLAY_LAYER_ID,
   type VectorOverlayBorderStyle,
@@ -103,6 +105,7 @@ interface VectorOverlayConfig {
   readonly overlayId: string;
   readonly arcgisLayerId: string;
   readonly geojsonUrl: string;
+  readonly definitionExpression?: string;
   readonly outFields: readonly string[];
   readonly aoiType: 'omec' | 'runap';
   readonly idField: string;
@@ -161,6 +164,35 @@ const VECTOR_OVERLAY_CONFIGS: readonly VectorOverlayConfig[] = [
       { field: 'runap_dt', label: 'Territorial' },
     ],
     fallbackName: 'RUNAP',
+    loadingI18nKey: 'mapView.loadingRunap',
+  },
+  {
+    overlayId: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
+    arcgisLayerId: RUNAP_NATIONAL_PARKS_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
+    geojsonUrl:
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
+    definitionExpression: "runap_category = 'Parque Nacional Natural'",
+    outFields: [
+      'runap_id',
+      'runap_name',
+      'runap_category',
+      'runap_status',
+      'runap_area_ha',
+      'runap_url',
+      'runap_sirap',
+      'runap_dt',
+    ],
+    aoiType: 'runap',
+    idField: 'runap_id',
+    nameField: 'runap_name',
+    subtypeField: 'runap_category',
+    popupFields: [
+      { field: 'runap_category' },
+      { field: 'runap_status', label: 'Status' },
+      { field: 'runap_area_ha', label: 'Area (ha)' },
+      { field: 'runap_dt', label: 'Territorial' },
+    ],
+    fallbackName: 'National Natural Park',
     loadingI18nKey: 'mapView.loadingRunap',
   },
 ];
@@ -819,6 +851,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       const layer = new GeoJSONLayer({
         id: config.arcgisLayerId,
         url: config.geojsonUrl,
+        definitionExpression: config.definitionExpression,
         visible: false,
         opacity: DEFAULT_VECTOR_OVERLAY_OPACITY,
         listMode: 'hide',

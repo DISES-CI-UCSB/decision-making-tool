@@ -15,15 +15,20 @@ import type { RuntimeLayerManifestRenderingConfig } from '@core/models/layer-man
  */
 export const OMEC_OVERLAY_LAYER_ID = 'overlay-omecs';
 export const RUNAP_OVERLAY_LAYER_ID = 'overlay-runap';
+export const RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID = 'overlay-runap-national-parks';
 export const OMEC_VECTOR_OVERLAY_ARCGIS_LAYER_ID = 'map-view-omec-vector-layer';
 export const RUNAP_VECTOR_OVERLAY_ARCGIS_LAYER_ID = 'map-view-runap-vector-layer';
+export const RUNAP_NATIONAL_PARKS_VECTOR_OVERLAY_ARCGIS_LAYER_ID =
+  'map-view-runap-national-parks-vector-layer';
 export const VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID: Readonly<Record<string, string>> = {
   [OMEC_OVERLAY_LAYER_ID]: OMEC_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
   [RUNAP_OVERLAY_LAYER_ID]: RUNAP_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
+  [RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]: RUNAP_NATIONAL_PARKS_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
 };
 export const VECTOR_OVERLAY_LAYER_IDS: ReadonlySet<string> = new Set([
   OMEC_OVERLAY_LAYER_ID,
   RUNAP_OVERLAY_LAYER_ID,
+  RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
 ]);
 
 export type VectorOverlayFillStyle = 'solid' | 'hatch' | 'mesh' | 'dots';

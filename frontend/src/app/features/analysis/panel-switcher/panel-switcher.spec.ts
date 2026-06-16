@@ -189,17 +189,26 @@ describe('PanelSwitcherComponent', () => {
       geometry,
       metrics: expect.arrayContaining(['species_richness_mammals']),
     });
-    expect(compiled.querySelector('#aoi-custom-metrics-loaded')).not.toBeNull();
-    expect(compiled.querySelector('#aoi-custom-metrics-loaded')?.textContent).toContain(
-      'analysis.aoi.customMetrics.loaded',
+    expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
+    expect(compiled.querySelector('#aoi-custom-metrics-summary-grid')).toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-scope-explanation')?.textContent).toContain(
+      'analysis.aoi.scopeExplanation',
     );
-    expect(compiled.querySelector('#aoi-custom-species-metrics-loading')).not.toBeNull();
-    expect(compiled.querySelector('#aoi-custom-species-metrics-loading')?.textContent).toContain(
-      'analysis.aoi.customMetrics.speciesLoading.initial.small',
+    expect(compiled.querySelector('#aoi-overview-aligned-title')?.textContent).toContain(
+      'analysis.aoi.alignedMetrics.title',
     );
     expect(
-      compiled.querySelector('#aoi-custom-species-metrics-loading')?.textContent,
-    ).not.toContain('35-45');
+      compiled.querySelector('#aoi-overview-aligned-value-aoi-summary-priority-area')?.textContent,
+    ).toContain('2,5 km²');
+    expect(
+      compiled.querySelector('#aoi-overview-aligned-name-aoi-summary-priority-area')?.textContent,
+    ).toContain('analysis.aoi.alignedMetrics.priorityAreaDrawn');
+    expect(
+      compiled.querySelector('#aoi-overview-aligned-value-aoi-summary-carbon')?.textContent,
+    ).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-local-drilldown-title')?.textContent).toContain(
+      'analysis.aoi.drillDown.title',
+    );
     const biodiversityLoadingStatus = compiled.querySelector(
       '#aoi-biodiversity-species-loading-status',
     );
@@ -215,14 +224,11 @@ describe('PanelSwitcherComponent', () => {
       'analysis.aoi.customMetrics.speciesLoading.initial.small',
     );
     expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
-    expect(compiled.querySelector('#aoi-custom-metrics-summary-value-area')?.textContent).toContain(
-      '10 km²',
-    );
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
     expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
     expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
 
     speciesMetrics$.complete();
   });
@@ -415,14 +421,13 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('#aoi-custom-species-metrics-warning')?.textContent).toContain(
-      'species request timed out',
-    );
+    expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
+    expect(compiled.querySelector('#aoi-custom-species-metrics-warning')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-loading-status')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-loading-spinner')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
     expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
   });
 
@@ -456,7 +461,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('30%');
   });
 
-  it('surfaces custom AOI backend loading errors', async () => {
+  it('falls back when custom AOI backend loading fails', async () => {
     const solution = buildTestSolution();
     const geometry = buildTestGeometry();
     vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
@@ -473,9 +478,8 @@ describe('PanelSwitcherComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledOnce();
-    expect(compiled.querySelector('#aoi-custom-metrics-error')?.textContent).toContain(
-      'backend unavailable',
-    );
+    expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
+    expect(compiled.querySelector('#aoi-custom-metrics-error')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('--');
   });
 
