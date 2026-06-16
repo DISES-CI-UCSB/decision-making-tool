@@ -137,6 +137,30 @@
                 }
               </div>
               <span id="right-sidebar-v3-overview-date" class="v3-header-date">Nov 2024</span>
+              <div id="right-sidebar-overview-area-unit-row" class="rs-area-unit-row">
+                <span id="right-sidebar-overview-area-unit-label" class="rs-area-unit-label">
+                  {{ 'analysis.areaUnitToggle.label' | translate }}
+                </span>
+                <div
+                  id="right-sidebar-overview-area-unit-toggle"
+                  class="rs-area-unit-toggle"
+                  role="group"
+                  [attr.aria-label]="'analysis.areaUnitToggle.ariaLabel' | translate"
+                >
+                  @for (unit of areaUnitOptions; track unit) {
+                    <button
+                      [id]="'right-sidebar-overview-area-unit-toggle-' + unit"
+                      type="button"
+                      class="rs-area-unit-button"
+                      [class.rs-area-unit-button-active]="isAreaDisplayUnitSelected(unit)"
+                      [attr.aria-pressed]="isAreaDisplayUnitSelected(unit)"
+                      (click)="selectAreaDisplayUnit(unit)"
+                    >
+                      {{ getAreaDisplayUnitLabel(unit) }}
+                    </button>
+                  }
+                </div>
+              </div>
             </header>
 
             <div id="right-sidebar-v3-overview-body" class="v3-panel-body">
@@ -638,6 +662,30 @@
                   {{ aoi.name }}
                 </h3>
               </div>
+              <div id="aoi-dashboard-area-unit-row" class="rs-area-unit-row">
+                <span id="aoi-dashboard-area-unit-label" class="rs-area-unit-label">
+                  {{ 'analysis.areaUnitToggle.label' | translate }}
+                </span>
+                <div
+                  id="aoi-dashboard-area-unit-toggle"
+                  class="rs-area-unit-toggle"
+                  role="group"
+                  [attr.aria-label]="'analysis.areaUnitToggle.ariaLabel' | translate"
+                >
+                  @for (unit of areaUnitOptions; track unit) {
+                    <button
+                      [id]="'aoi-dashboard-area-unit-toggle-' + unit"
+                      type="button"
+                      class="rs-area-unit-button"
+                      [class.rs-area-unit-button-active]="isAreaDisplayUnitSelected(unit)"
+                      [attr.aria-pressed]="isAreaDisplayUnitSelected(unit)"
+                      (click)="selectAreaDisplayUnit(unit)"
+                    >
+                      {{ getAreaDisplayUnitLabel(unit) }}
+                    </button>
+                  }
+                </div>
+              </div>
 
               @if (isSirapAoiSelected()) {
                 <div
@@ -785,7 +833,9 @@
                             getAoiMetricFullValue('priority_area_in_region') ? 0 : null
                           "
                         >
-                          {{ getAoiMetricValue('priority_area_in_region', '230 km²') }}
+                          {{
+                            getAoiMetricValue('priority_area_in_region', formatAreaFallback(230))
+                          }}
                         </div>
                         <div class="aoi-hero-bar">
                           <span
@@ -852,7 +902,9 @@
                             getAoiMetricFullValue('protected_area_runap_km2') ? 0 : null
                           "
                         >
-                          {{ getAoiMetricValue('protected_area_runap_km2', '72 km²') }}
+                          {{
+                            getAoiMetricValue('protected_area_runap_km2', formatAreaFallback(72))
+                          }}
                         </p>
                         <p class="aoi-stat-unit">
                           {{
@@ -1499,7 +1551,12 @@
                               getAoiMetricFullValue('indigenous_reservations_area') ? 0 : null
                             "
                           >
-                            {{ getAoiMetricValue('indigenous_reservations_area', '41 km²') }}
+                            {{
+                              getAoiMetricValue(
+                                'indigenous_reservations_area',
+                                formatAreaFallback(41)
+                              )
+                            }}
                           </div>
                           @if (
                             getAoiMetricStatus('indigenous_reservations_area');
@@ -1533,7 +1590,9 @@
                               getAoiMetricFullValue('community_councils_area') ? 0 : null
                             "
                           >
-                            {{ getAoiMetricValue('community_councils_area', '27 km²') }}
+                            {{
+                              getAoiMetricValue('community_councils_area', formatAreaFallback(27))
+                            }}
                           </div>
                           @if (getAoiMetricStatus('community_councils_area'); as metricStatus) {
                             <div id="aoi-row-community-unit" class="aoi-m-unit">
@@ -1786,6 +1845,30 @@
             <p id="right-sidebar-comparison-description" class="c2-description">
               {{ 'analysis.comparison.description' | translate }}
             </p>
+            <div id="right-sidebar-comparison-area-unit-row" class="rs-area-unit-row">
+              <span id="right-sidebar-comparison-area-unit-label" class="rs-area-unit-label">
+                {{ 'analysis.areaUnitToggle.label' | translate }}
+              </span>
+              <div
+                id="right-sidebar-comparison-area-unit-toggle"
+                class="rs-area-unit-toggle"
+                role="group"
+                [attr.aria-label]="'analysis.areaUnitToggle.ariaLabel' | translate"
+              >
+                @for (unit of areaUnitOptions; track unit) {
+                  <button
+                    [id]="'right-sidebar-comparison-area-unit-toggle-' + unit"
+                    type="button"
+                    class="rs-area-unit-button"
+                    [class.rs-area-unit-button-active]="isAreaDisplayUnitSelected(unit)"
+                    [attr.aria-pressed]="isAreaDisplayUnitSelected(unit)"
+                    (click)="selectAreaDisplayUnit(unit)"
+                  >
+                    {{ getAreaDisplayUnitLabel(unit) }}
+                  </button>
+                }
+              </div>
+            </div>
           </header>
 
           @if (activeSolution(); as baselineSolution) {

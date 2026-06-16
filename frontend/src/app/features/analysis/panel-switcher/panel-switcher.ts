@@ -19,6 +19,7 @@ import { AppLocaleService } from '@core/services/app-locale.service';
 import { metricsForScope, nationalMetrics } from '@core/services/cached-metrics.utils';
 import {
   AppStateService,
+  type AreaDisplayUnit,
   type ComparisonVisualizationMode,
   type MetricNumberFormatMode,
   type RightSidebarMode,
@@ -52,6 +53,7 @@ interface OverviewMetricBlueprint {
   iconClass?: string;
   realMetricId?: string;
   dummyValue: string;
+  dummyAreaKm2?: number;
   dummyUnitKey?: string;
   conditional?: boolean;
 }
@@ -77,6 +79,9 @@ interface ComparisonMetricBlueprint {
   dummyBaseline: string;
   dummyCandidate: string;
   dummyDelta: string;
+  dummyBaselineAreaKm2?: number;
+  dummyCandidateAreaKm2?: number;
+  dummyDeltaAreaKm2?: number;
   conditional?: boolean;
   deltaTone?: ComparisonDeltaTone;
 }
@@ -185,6 +190,22 @@ type CustomAoiSpeciesLoadingStage = 'initial' | 'delayed' | 'extended';
 type CustomAoiBiodiversityEstimateBand = 'small' | 'medium' | 'large' | 'veryLarge' | 'unknown';
 
 type CustomAoiMetricDefinition = Pick<MetricValue, 'metricId' | 'unit' | 'labelKey' | 'formatHint'>;
+
+const AREA_UNIT_OPTIONS: AreaDisplayUnit[] = ['km2', 'hectares'];
+const KM2_TO_HECTARES = 100;
+const AREA_METRIC_IDS = new Set<string>([
+  'area',
+  'priority_area_in_region',
+  'ecosystem_coverage',
+  'ecosystem_coverage_paramo',
+  'ecosystem_coverage_dry_forest',
+  'ecosystem_coverage_wetlands',
+  'mangrove_coverage',
+  'indigenous_reservations_area',
+  'community_councils_area',
+  'protected_area_runap_km2',
+  'agricultural_area',
+]);
 
 const CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS = 10_000;
 const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
@@ -560,6 +581,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-square-check',
       realMetricId: 'priority_area_in_region',
       dummyValue: '199k km²',
+      dummyAreaKm2: 199_000,
       dummyUnitKey: 'analysis.overview.metricUnits.selected',
     },
     {
@@ -570,6 +592,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-mountain',
       realMetricId: 'ecosystem_coverage_paramo',
       dummyValue: '14k km²',
+      dummyAreaKm2: 14_000,
       dummyUnitKey: 'analysis.overview.metricUnits.paramo',
     },
     {
@@ -580,6 +603,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-tree',
       realMetricId: 'ecosystem_coverage_dry_forest',
       dummyValue: '1.7k km²',
+      dummyAreaKm2: 1_700,
       dummyUnitKey: 'analysis.overview.metricUnits.dryForest',
     },
     {
@@ -590,6 +614,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-water',
       realMetricId: 'ecosystem_coverage_wetlands',
       dummyValue: '30k km²',
+      dummyAreaKm2: 30_000,
       dummyUnitKey: 'analysis.overview.metricUnits.wetlands',
     },
     {
@@ -600,6 +625,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-spa',
       realMetricId: 'mangrove_coverage',
       dummyValue: '866 km²',
+      dummyAreaKm2: 866,
       dummyUnitKey: 'analysis.overview.metricUnits.mangrove',
     },
     {
@@ -610,6 +636,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-people-group',
       realMetricId: 'indigenous_reservations_area',
       dummyValue: '47k km²',
+      dummyAreaKm2: 47_000,
       dummyUnitKey: 'analysis.overview.metricUnits.resguardos',
     },
     {
@@ -620,6 +647,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-handshake',
       realMetricId: 'community_councils_area',
       dummyValue: '2.8k km²',
+      dummyAreaKm2: 2_800,
       dummyUnitKey: 'analysis.overview.metricUnits.communities',
     },
     {
@@ -650,6 +678,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-wheat-awn',
       realMetricId: 'agricultural_area',
       dummyValue: '8,500 km²',
+      dummyAreaKm2: 8_500,
       dummyUnitKey: 'analysis.overview.metricUnits.fifteenPercentOverlap',
     },
     {
@@ -701,6 +730,9 @@ export class PanelSwitcherComponent {
       dummyBaseline: '210 km²',
       dummyCandidate: '230 km²',
       dummyDelta: '+20 km²',
+      dummyBaselineAreaKm2: 210,
+      dummyCandidateAreaKm2: 230,
+      dummyDeltaAreaKm2: 20,
       deltaTone: 'positive',
     },
     {
@@ -798,6 +830,8 @@ export class PanelSwitcherComponent {
     this.appState.showGenerateRegionalReportButton$;
   protected readonly showMetricIcons = this.appState.showMetricIcons$;
   protected readonly metricNumberFormatMode = this.appState.metricNumberFormatMode$;
+  protected readonly areaDisplayUnit = this.appState.areaDisplayUnit$;
+  protected readonly areaUnitOptions = AREA_UNIT_OPTIONS;
   protected readonly isNotImplementedDialogOpen = signal(false);
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
@@ -1145,13 +1179,16 @@ export class PanelSwitcherComponent {
       return this.translate.instant('analysis.common.valueUnavailable');
     }
 
+    const displayValue = this.convertMetricValueForDisplay(metric, metric.value);
+    const displayUnit = this.getMetricDisplayUnit(metric);
+
     switch (metric.formatHint) {
       case 'percent':
-        return `${this.formatNumber(metric.value, mode, 0, 1)}%`;
+        return `${this.formatNumber(displayValue, mode, 0, 1)}%`;
       case 'currency':
-        return this.appendUnit(this.formatNumber(metric.value, mode, 1, 1), metric.unit);
+        return this.appendUnit(this.formatNumber(displayValue, mode, 1, 1), displayUnit);
       default:
-        return this.appendUnit(this.formatNumber(metric.value, mode, 0, 2), metric.unit);
+        return this.appendUnit(this.formatNumber(displayValue, mode, 0, 2), displayUnit);
     }
   }
 
@@ -1164,19 +1201,21 @@ export class PanelSwitcherComponent {
     }
 
     const sign = metric.delta > 0 ? '+' : '';
+    const displayValue = this.convertMetricValueForDisplay(metric.candidate, metric.delta);
+    const displayUnit = this.getMetricDisplayUnit(metric.candidate);
 
     switch (metric.formatHint) {
       case 'percent':
-        return `${sign}${this.formatNumber(metric.delta, mode, 0, 1)}%`;
+        return `${sign}${this.formatNumber(displayValue, mode, 0, 1)}%`;
       case 'currency':
         return this.appendUnit(
-          `${sign}${this.formatNumber(metric.delta, mode, 1, 1)}`,
-          metric.candidate.unit,
+          `${sign}${this.formatNumber(displayValue, mode, 1, 1)}`,
+          displayUnit,
         );
       default:
         return this.appendUnit(
-          `${sign}${this.formatNumber(metric.delta, mode, 0, 2)}`,
-          metric.candidate.unit,
+          `${sign}${this.formatNumber(displayValue, mode, 0, 2)}`,
+          displayUnit,
         );
     }
   }
@@ -1222,6 +1261,22 @@ export class PanelSwitcherComponent {
     }
 
     this.appState.setRightSidebarMode(tab);
+  }
+
+  protected getAreaDisplayUnitLabel(unit: AreaDisplayUnit): string {
+    return this.areaUnitLabel(unit);
+  }
+
+  protected isAreaDisplayUnitSelected(unit: AreaDisplayUnit): boolean {
+    return this.areaDisplayUnit() === unit;
+  }
+
+  protected selectAreaDisplayUnit(unit: AreaDisplayUnit): void {
+    this.appState.setAreaDisplayUnit(unit);
+  }
+
+  protected formatAreaFallback(valueKm2: number): string {
+    return this.formatAreaValue(valueKm2);
   }
 
   protected isSirapScopeSelected(scope: SirapSelectionScope): boolean {
@@ -1549,6 +1604,37 @@ export class PanelSwitcherComponent {
     return unit ? `${value} ${unit}` : value;
   }
 
+  private formatAreaValue(
+    valueKm2: number,
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string {
+    const displayUnit = this.areaDisplayUnit();
+    return this.appendUnit(
+      this.formatNumber(this.convertAreaValueForDisplay(valueKm2, displayUnit), mode, 0, 2),
+      this.areaUnitLabel(displayUnit),
+    );
+  }
+
+  private convertMetricValueForDisplay(metric: MetricValue, value: number): number {
+    if (!this.isAreaMetric(metric)) {
+      return value;
+    }
+
+    return this.convertAreaValueForDisplay(value, this.areaDisplayUnit());
+  }
+
+  private convertAreaValueForDisplay(valueKm2: number, unit: AreaDisplayUnit): number {
+    return unit === 'hectares' ? valueKm2 * KM2_TO_HECTARES : valueKm2;
+  }
+
+  private areaUnitLabel(unit: AreaDisplayUnit): string {
+    return unit === 'hectares' ? 'ha' : 'km²';
+  }
+
+  private isAreaMetric(metric: MetricValue | Pick<MetricValue, 'metricId'>): boolean {
+    return AREA_METRIC_IDS.has(metric.metricId);
+  }
+
   private formatMetricUnit(unit: string | null): string | null {
     if (!unit) {
       return null;
@@ -1562,8 +1648,9 @@ export class PanelSwitcherComponent {
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
     const formattedUnit = this.getMetricDisplayUnit(metric);
+    const displayValue = this.convertMetricValueForDisplay(metric, metric.value ?? 0);
     const number = this.formatNumber(
-      metric.value ?? 0,
+      displayValue,
       mode,
       0,
       metric.formatHint === 'percent' ? 1 : 2,
@@ -1575,6 +1662,10 @@ export class PanelSwitcherComponent {
   }
 
   private getMetricDisplayUnit(metric: MetricValue): string | null {
+    if (this.isAreaMetric(metric)) {
+      return this.areaUnitLabel(this.areaDisplayUnit());
+    }
+
     if (metric.metricId === 'carbon_biomass_total' || metric.metricId === 'soil_organic_carbon') {
       return 'Mg';
     }
@@ -2370,6 +2461,10 @@ export class PanelSwitcherComponent {
   }
 
   private formatOverviewDummyValue(metric: OverviewMetricBlueprint): string {
+    if (metric.dummyAreaKm2 !== undefined && metric.realMetricId) {
+      return this.formatAreaValue(metric.dummyAreaKm2);
+    }
+
     if (metric.id === 'metric-05-carbon-storage-capacity') {
       return this.formatNumber(2_300_000, this.metricNumberFormatMode(), 0, 1);
     }
@@ -2381,6 +2476,17 @@ export class PanelSwitcherComponent {
     blueprint: ComparisonMetricBlueprint,
     field: 'baseline' | 'candidate' | 'delta',
   ): string {
+    const areaValueByField = {
+      baseline: blueprint.dummyBaselineAreaKm2,
+      candidate: blueprint.dummyCandidateAreaKm2,
+      delta: blueprint.dummyDeltaAreaKm2,
+    } satisfies Record<typeof field, number | undefined>;
+    const areaValue = areaValueByField[field];
+    if (areaValue !== undefined) {
+      const sign = field === 'delta' && areaValue > 0 ? '+' : '';
+      return `${sign}${this.formatAreaValue(areaValue)}`;
+    }
+
     if (blueprint.id !== 'comp-carbon') {
       switch (field) {
         case 'baseline':
@@ -2535,6 +2641,6 @@ export class PanelSwitcherComponent {
     value: number,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    return this.appendUnit(this.formatNumber(value, mode, 0, 2), 'km²');
+    return this.formatAreaValue(value, mode);
   }
 }

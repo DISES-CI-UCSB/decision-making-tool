@@ -15,6 +15,7 @@ export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
 export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity' | 'swipe';
 export type MetricNumberFormatMode = 'compact' | 'full';
+export type AreaDisplayUnit = 'km2' | 'hectares';
 export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
 
 export interface MapLegendLayerCategoryEntry {
@@ -130,6 +131,7 @@ export class AppStateService {
   readonly showExistingProtectedCoverage$ = signal(true);
   /** Dev-only: compare readable compact metric numbers against full precision values. */
   readonly metricNumberFormatMode$ = signal<MetricNumberFormatMode>('compact');
+  readonly areaDisplayUnit$ = signal<AreaDisplayUnit>('km2');
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
@@ -252,6 +254,10 @@ export class AppStateService {
 
   setMetricNumberFormatMode(mode: MetricNumberFormatMode): void {
     this.metricNumberFormatMode$.set(mode);
+  }
+
+  setAreaDisplayUnit(unit: AreaDisplayUnit): void {
+    this.areaDisplayUnit$.set(unit);
   }
 
   setChartPaletteId(paletteId: ChartPaletteId): void {

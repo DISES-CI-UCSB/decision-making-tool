@@ -83,6 +83,94 @@
   cursor: not-allowed;
 }
 
+.rs-area-unit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.v3-panel-header .rs-area-unit-row {
+  margin-right: -20px;
+  margin-left: -20px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+.aoi-panel-header .rs-area-unit-row {
+  margin-right: -20px;
+  margin-left: -20px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+.c2-panel-header .rs-area-unit-row {
+  margin-right: -16px;
+  margin-left: -16px;
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+.rs-area-unit-label {
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.rs-area-unit-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid #dbe3ed;
+  border-radius: 999px;
+  background: #fff;
+  padding: 2px 3px;
+}
+
+.rs-area-unit-button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.rs-area-unit-button:hover {
+  color: #0f172a;
+}
+
+.rs-area-unit-button:focus-visible {
+  outline: 2px solid #94a3b8;
+  outline-offset: 2px;
+}
+
+.rs-area-unit-button-active {
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.16);
+}
+
+.rs-area-unit-button-active:hover {
+  color: #fff;
+}
+
 #solution-overview-panel {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -118,8 +206,8 @@
 }
 
 .v3-panel-header {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 20px 20px 16px;
+  border-bottom: none;
+  padding: 20px 20px 0;
 }
 
 .v3-header-date {
@@ -953,8 +1041,8 @@
 }
 
 .c2-panel-header {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 16px 16px 12px;
+  border-bottom: none;
+  padding: 16px 16px 0;
 }
 
 .c2-kicker {
@@ -1601,8 +1689,17 @@
 }
 
 .aoi-panel-header {
+  border-bottom: none;
+  padding: 16px 20px 0;
+}
+
+.aoi-panel-header:has(.aoi-scope-strip) .rs-area-unit-row {
+  border-bottom: none;
+}
+
+.aoi-panel-header:has(.aoi-scope-strip) {
   border-bottom: 1px solid #e2e8f0;
-  padding: 16px 20px 14px;
+  padding-bottom: 14px;
 }
 
 .aoi-title-block {

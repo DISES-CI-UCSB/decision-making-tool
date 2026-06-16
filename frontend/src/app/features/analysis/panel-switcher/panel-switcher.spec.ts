@@ -13,6 +13,7 @@ import type {
   CachedSolutionMetricsDocument,
   CustomPolygonMetricsGeometry,
   CustomPolygonMetricsResponse,
+  MetricComparisonValue,
   MetricValue,
   Solution,
 } from '@core/models';
@@ -222,7 +223,21 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
     expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
     expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
+
+    const hectaresToggle = compiled.querySelector(
+      '#aoi-dashboard-area-unit-toggle-hectares',
+    ) as HTMLButtonElement;
+    hectaresToggle.click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#aoi-custom-metrics-summary-value-area')?.textContent).toContain(
+      '1 mil ha',
+    );
+    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('250 ha');
+    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
+    expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
 
     speciesMetrics$.complete();
   });
@@ -422,7 +437,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-biodiversity-species-loading-spinner')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
     expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
   });
 
@@ -454,6 +469,37 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('9 km²');
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('30%');
+  });
+
+  it('normalizes comparison units and converts only area metrics to hectares', () => {
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      formatMetricValue(metric: MetricValue): string;
+      formatDelta(metric: MetricComparisonValue): string;
+    };
+    const areaMetric = buildMetric('priority_area_in_region', 9, 'km2', 'number');
+    const carbonMetric = buildMetric('carbon_storage_biomass', 40, 'Mg·km²', 'number');
+    const percentMetric = buildMetric('national_contribution', 1.25, '%', 'percent');
+    const areaComparison: MetricComparisonValue = {
+      metricId: 'priority_area_in_region',
+      labelKey: 'metrics.priority_area_total',
+      formatHint: 'number',
+      baseline: buildMetric('priority_area_in_region', 7, 'km2', 'number'),
+      candidate: areaMetric,
+      delta: 2,
+    };
+
+    expect(component.formatMetricValue(areaMetric)).toBe('9 km²');
+    expect(component.formatMetricValue(carbonMetric)).toBe('40 Mg');
+    expect(component.formatMetricValue(percentMetric)).toBe('1,3%');
+    expect(component.formatDelta(areaComparison)).toBe('+2 km²');
+
+    appState.setAreaDisplayUnit('hectares');
+
+    expect(component.formatMetricValue(areaMetric)).toBe('900 ha');
+    expect(component.formatMetricValue(carbonMetric)).toBe('40 Mg');
+    expect(component.formatMetricValue(percentMetric)).toBe('1,3%');
+    expect(component.formatDelta(areaComparison)).toBe('+200 ha');
   });
 
   it('surfaces custom AOI backend loading errors', async () => {

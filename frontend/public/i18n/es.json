@@ -103,6 +103,10 @@
   },
   "analysis": {
     "tabNavAriaLabel": "Pestañas del panel lateral derecho",
+    "areaUnitToggle": {
+      "ariaLabel": "Unidad para mostrar areas",
+      "label": "Unidades de area"
+    },
     "modes": {
       "welcome": "Sin escenario seleccionado",
       "overview": "Resumen",

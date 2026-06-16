@@ -103,6 +103,10 @@
   },
   "analysis": {
     "tabNavAriaLabel": "Right sidebar view tabs",
+    "areaUnitToggle": {
+      "ariaLabel": "Area display unit",
+      "label": "Area units"
+    },
     "modes": {
       "welcome": "No scenario selected",
       "overview": "Overview",
