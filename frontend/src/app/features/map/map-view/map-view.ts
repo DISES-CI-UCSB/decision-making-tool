@@ -23,6 +23,7 @@ import Polygon from '@arcgis/core/geometry/Polygon';
 import * as geometryEngine from '@arcgis/core/geometry/geometryEngine';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
+import type Layer from '@arcgis/core/layers/Layer';
 import Attribution from '@arcgis/core/widgets/Attribution';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
@@ -214,6 +215,13 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly vectorOverlayLoadStatusHandles = new Map<string, { remove: () => void }>();
   private readonly vectorOverlayLayerViewHandles = new Map<string, { remove: () => void }>();
   private readonly vectorOverlayLayerViewRequestIds = new Map<string, number>();
+  private readonly operationalLayersById = new Map<string, Layer>();
+  private readonly operationalLayerViewHandles = new Map<string, { remove: () => void }>();
+  private readonly operationalLayerViewRequestIds = new Map<string, number>();
+  private readonly operationalLayerRenderingSignals = new Map<
+    string,
+    ReturnType<typeof signal<boolean>>
+  >();
   /** Per-overlay loading flag (overlayId → is fetching GeoJSON). */
   private readonly vectorOverlayLoadingSignals = new Map<
     string,
@@ -277,6 +285,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       const layers = this.appState.visibleLayers$();
       console.info(`[MapView][${this.debugMarker}] visibleLayers$ -> ${layers.length} layer(s)`);
       this.layerRenderer.syncLayers(layers);
+      this.syncOperationalLayerViewTracking();
     });
 
     effect(() => {
@@ -284,7 +293,14 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.appState.comparisonSolution$();
       this.appState.rightSidebarMode$();
       this.appState.comparisonVisualizationMode$();
-      untracked(() => void this.syncComparisonMode());
+      this.solutionLayer.loadedSolution$();
+      this.solutionLayer.isLoading$();
+      this.manifestRasterLayerService.renderedLayerRevision$();
+      this.manifestRasterLayerService.isLayerRendering$();
+      untracked(() => {
+        void this.syncComparisonMode();
+        this.syncOperationalLayerViewTracking();
+      });
     });
 
     // Mirror every vector-overlay sidebar state (visibility, opacity, color)
@@ -319,6 +335,13 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     }
     this.vectorOverlayLayerViewHandles.clear();
     this.vectorOverlayLayerViewRequestIds.clear();
+    for (const handle of this.operationalLayerViewHandles.values()) {
+      handle.remove();
+    }
+    this.operationalLayerViewHandles.clear();
+    this.operationalLayerViewRequestIds.clear();
+    this.operationalLayersById.clear();
+    this.operationalLayerRenderingSignals.clear();
     this.teardownComparisonSwipeWidget();
     this.teardownCustomAoiDrawing();
     this.removeMapWidgets();
@@ -651,6 +674,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       });
 
       this.syncVectorOverlayLayerViews();
+      this.syncOperationalLayerViewTracking();
       this.addMapWidgets();
       this.setupCustomAoiDrawing();
       this.adminBoundaries.initialize(this.map, this.view);
@@ -1090,6 +1114,117 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.getOrCreateRenderingSignal(overlayId).set(isRendering);
   }
 
+  private syncOperationalLayerViewTracking(): void {
+    if (!this.map || !this.view) {
+      return;
+    }
+
+    const activeLayers = this.map.layers
+      .filter((layer) => this.shouldTrackOperationalLayerRendering(layer as Layer))
+      .toArray() as Layer[];
+    const activeLayerIds = new Set(activeLayers.map((layer) => layer.id));
+
+    for (const layerId of this.operationalLayersById.keys()) {
+      if (!activeLayerIds.has(layerId)) {
+        this.stopTrackingOperationalLayer(layerId);
+      }
+    }
+
+    for (const layer of activeLayers) {
+      if (this.operationalLayersById.get(layer.id) === layer) {
+        continue;
+      }
+      this.watchOperationalLayerView(layer);
+    }
+  }
+
+  private shouldTrackOperationalLayerRendering(layer: Layer): boolean {
+    if (!layer.id || !layer.visible) {
+      return false;
+    }
+    if (VECTOR_OVERLAY_CONFIGS.some((config) => config.arcgisLayerId === layer.id)) {
+      return false;
+    }
+
+    const layerWithMetadata = layer as Layer & { listMode?: string; type?: string };
+    return layerWithMetadata.listMode !== 'hide' && layerWithMetadata.type !== 'graphics';
+  }
+
+  private watchOperationalLayerView(layer: Layer): void {
+    if (!this.view) {
+      return;
+    }
+
+    const layerId = layer.id;
+    this.stopTrackingOperationalLayer(layerId);
+    this.operationalLayersById.set(layerId, layer);
+    this.setOperationalLayerRendering(layerId, true);
+    const requestId = this.bumpOperationalLayerViewRequest(layerId);
+
+    void this.view
+      .whenLayerView(layer)
+      .then((layerView) => {
+        if (requestId !== this.operationalLayerViewRequestIds.get(layerId)) {
+          return;
+        }
+
+        const sync = () => {
+          this.setOperationalLayerRendering(layerId, layer.visible && layerView.updating);
+        };
+        sync();
+        const handle = layerView.watch('updating', sync);
+        this.operationalLayerViewHandles.set(layerId, handle);
+      })
+      .catch((error: unknown) => {
+        if (requestId !== this.operationalLayerViewRequestIds.get(layerId)) {
+          return;
+        }
+        this.setOperationalLayerRendering(layerId, false);
+        console.warn(
+          `[MapView][${this.debugMarker}] operational layer view watch failed for "${layerId}"`,
+          error,
+        );
+      });
+  }
+
+  private stopTrackingOperationalLayer(layerId: string): void {
+    this.operationalLayerViewHandles.get(layerId)?.remove();
+    this.operationalLayerViewHandles.delete(layerId);
+    this.bumpOperationalLayerViewRequest(layerId);
+    this.operationalLayersById.delete(layerId);
+    this.setOperationalLayerRendering(layerId, false);
+  }
+
+  private bumpOperationalLayerViewRequest(layerId: string): number {
+    const nextRequestId = (this.operationalLayerViewRequestIds.get(layerId) ?? 0) + 1;
+    this.operationalLayerViewRequestIds.set(layerId, nextRequestId);
+    return nextRequestId;
+  }
+
+  private getOrCreateOperationalRenderingSignal(
+    layerId: string,
+  ): ReturnType<typeof signal<boolean>> {
+    let existing = this.operationalLayerRenderingSignals.get(layerId);
+    if (!existing) {
+      existing = signal(false);
+      this.operationalLayerRenderingSignals.set(layerId, existing);
+    }
+    return existing;
+  }
+
+  private setOperationalLayerRendering(layerId: string, isRendering: boolean): void {
+    this.getOrCreateOperationalRenderingSignal(layerId).set(isRendering);
+  }
+
+  private isAnyOperationalLayerRendering(): boolean {
+    for (const isRendering of this.operationalLayerRenderingSignals.values()) {
+      if (isRendering()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private isAnyVectorOverlayLoading(): boolean {
     for (const config of VECTOR_OVERLAY_CONFIGS) {
       if (
@@ -1103,7 +1238,9 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private isRasterLayerLoading(): boolean {
-    return this.manifestRasterLayerService.isLayerRendering$();
+    return (
+      this.manifestRasterLayerService.isLayerRendering$() || this.isAnyOperationalLayerRendering()
+    );
   }
 
   private activeLoadingOverlayKey(): string {
