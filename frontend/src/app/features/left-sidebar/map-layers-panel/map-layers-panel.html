@@ -709,7 +709,7 @@
                         <button
                           [id]="'map-layers-boundary-selected-button-' + row.id"
                           type="button"
-                          class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                          class="inline-flex h-7 min-w-11 shrink-0 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold leading-none transition"
                           [class.border-blue-200]="row.selected"
                           [class.bg-blue-50]="row.selected"
                           [class.text-blue-700]="row.selected"
@@ -808,19 +808,29 @@
                     [id]="'map-layers-overlay-row-header-' + overlay.id"
                     class="flex items-center gap-1.5 px-3 py-2.5"
                   >
-                    <button
-                      [id]="'map-layers-overlay-name-button-' + overlay.id"
-                      type="button"
-                      class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-slate-800"
-                      [title]="overlay.name"
-                      (click)="toggleOverlayExpanded(overlay.id)"
-                    >
-                      {{ overlay.name }}
-                    </button>
+                    @if (overlay.hasStyleControls) {
+                      <button
+                        [id]="'map-layers-overlay-name-button-' + overlay.id"
+                        type="button"
+                        class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-slate-800"
+                        [title]="overlay.name"
+                        (click)="toggleOverlayExpanded(overlay.id)"
+                      >
+                        {{ overlay.name }}
+                      </button>
+                    } @else {
+                      <span
+                        [id]="'map-layers-overlay-name-text-' + overlay.id"
+                        class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-slate-800"
+                        [title]="overlay.name"
+                      >
+                        {{ overlay.name }}
+                      </span>
+                    }
                     <button
                       [id]="'map-layers-overlay-selected-button-' + overlay.id"
                       type="button"
-                      class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                      class="inline-flex h-7 min-w-11 shrink-0 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold leading-none transition"
                       [class.border-blue-200]="overlay.selected"
                       [class.bg-blue-50]="overlay.selected"
                       [class.text-blue-700]="overlay.selected"
@@ -838,87 +848,62 @@
                     </button>
                   </div>
 
-                  <div
-                    [id]="'map-layers-overlay-controls-' + overlay.id"
-                    class="map-layers-collapsible"
-                    [class.map-layers-collapsible-collapsed]="!overlay.expanded"
-                    [attr.aria-hidden]="!overlay.expanded"
-                  >
-                    <div class="map-layers-collapsible-content">
-                      <div
-                        [id]="'map-layers-overlay-controls-content-' + overlay.id"
-                        class="flex items-center gap-2 px-3 pb-2.5"
-                      >
+                  @if (overlay.hasStyleControls) {
+                    <div
+                      [id]="'map-layers-overlay-controls-' + overlay.id"
+                      class="map-layers-collapsible"
+                      [class.map-layers-collapsible-collapsed]="!overlay.expanded"
+                      [attr.aria-hidden]="!overlay.expanded"
+                    >
+                      <div class="map-layers-collapsible-content">
                         <div
-                          [id]="'map-layers-overlay-opacity-group-' + overlay.id"
-                          class="flex min-w-0 flex-1 items-center gap-1.5"
+                          [id]="'map-layers-overlay-controls-content-' + overlay.id"
+                          class="flex items-center justify-end gap-2 px-3 pb-2.5"
                         >
-                          <label
-                            [id]="'map-layers-overlay-opacity-label-' + overlay.id"
-                            [for]="'map-layers-overlay-opacity-slider-' + overlay.id"
-                            class="shrink-0 text-[10px] text-slate-600"
+                          <div
+                            [id]="'map-layers-overlay-color-group-' + overlay.id"
+                            class="flex shrink-0 items-center gap-1"
                           >
-                            {{ 'mapLayersPanel.opacityLabel' | translate }}
-                          </label>
-                          <input
-                            [id]="'map-layers-overlay-opacity-slider-' + overlay.id"
-                            type="range"
-                            min="0"
-                            max="100"
-                            class="map-layers-opacity-slider w-full"
-                            [style.--map-layers-slider-progress]="overlay.opacity + '%'"
-                            [value]="overlay.opacity"
-                            (input)="updateOverlayOpacity(overlay.id, $any($event.target).value)"
-                          />
-                          <span
-                            [id]="'map-layers-overlay-opacity-value-' + overlay.id"
-                            class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
-                          >
-                            {{ overlay.opacity }}%
-                          </span>
-                        </div>
-                        <div
-                          [id]="'map-layers-overlay-color-group-' + overlay.id"
-                          class="flex shrink-0 items-center gap-1"
-                        >
-                          <label
-                            [id]="'map-layers-overlay-color-label-' + overlay.id"
-                            [for]="'map-layers-overlay-color-input-' + overlay.id"
-                            class="text-[10px] text-slate-600"
-                          >
-                            {{ 'mapLayersPanel.colorLabel' | translate }}
-                          </label>
-                          <span
-                            [id]="'map-layers-overlay-color-swatch-wrap-' + overlay.id"
-                            class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
-                          >
-                            <button
-                              #overlayColorPicker="ngxColorPicker"
-                              [id]="'map-layers-overlay-color-input-' + overlay.id"
-                              type="button"
-                              class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
-                              [style.backgroundColor]="overlay.color"
-                              [colorPicker]="overlay.color"
-                              cpOutputFormat="hex"
-                              cpAlphaChannel="disabled"
-                              cpPosition="auto"
-                              cpDialogDisplay="popup"
-                              [cpUseRootViewContainer]="true"
-                              [cpEyeDropper]="true"
-                              [cpSaveClickOutside]="true"
-                              [cpPresetColors]="colorPresetHexValues"
-                              cpPresetLabel=""
-                              (colorPickerOpen)="onColorPickerOpen(overlayColorPicker)"
-                              (colorPickerChange)="updateOverlayColor(overlay.id, $event)"
-                              [attr.aria-label]="
-                                'mapLayersPanel.chooseColorFor' | translate: { name: overlay.name }
-                              "
-                            ></button>
-                          </span>
+                            <label
+                              [id]="'map-layers-overlay-color-label-' + overlay.id"
+                              [for]="'map-layers-overlay-color-input-' + overlay.id"
+                              class="text-[10px] text-slate-600"
+                            >
+                              {{ 'mapLayersPanel.colorLabel' | translate }}
+                            </label>
+                            <span
+                              [id]="'map-layers-overlay-color-swatch-wrap-' + overlay.id"
+                              class="inline-flex h-7 w-5 shrink-0 items-center justify-center"
+                            >
+                              <button
+                                #overlayColorPicker="ngxColorPicker"
+                                [id]="'map-layers-overlay-color-input-' + overlay.id"
+                                type="button"
+                                class="map-layers-color-swatch h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-slate-200 p-0"
+                                [style.backgroundColor]="overlay.color"
+                                [colorPicker]="overlay.color"
+                                cpOutputFormat="hex"
+                                cpAlphaChannel="disabled"
+                                cpPosition="auto"
+                                cpDialogDisplay="popup"
+                                [cpUseRootViewContainer]="true"
+                                [cpEyeDropper]="true"
+                                [cpSaveClickOutside]="true"
+                                [cpPresetColors]="colorPresetHexValues"
+                                cpPresetLabel=""
+                                (colorPickerOpen)="onColorPickerOpen(overlayColorPicker)"
+                                (colorPickerChange)="updateOverlayColor(overlay.id, $event)"
+                                [attr.aria-label]="
+                                  'mapLayersPanel.chooseColorFor'
+                                    | translate: { name: overlay.name }
+                                "
+                              ></button>
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  }
                 </article>
               }
             </div>
@@ -1055,7 +1040,7 @@
                                 'map-layers-layer-row-selected-button-' + group.id + '-' + row.id
                               "
                               type="button"
-                              class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                              class="inline-flex h-7 min-w-11 shrink-0 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold leading-none transition"
                               [class.border-blue-200]="row.selected"
                               [class.bg-blue-50]="row.selected"
                               [class.text-blue-700]="row.selected"
@@ -1269,7 +1254,7 @@
                                       <button
                                         [id]="'map-layers-species-selected-button-' + species.id"
                                         type="button"
-                                        class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                                        class="inline-flex h-7 min-w-11 shrink-0 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold leading-none transition"
                                         [class.border-blue-200]="species.selected"
                                         [class.bg-blue-50]="species.selected"
                                         [class.text-blue-700]="species.selected"
@@ -1417,7 +1402,7 @@
                                 'map-layers-layer-row-selected-button-' + group.id + '-' + row.id
                               "
                               type="button"
-                              class="inline-flex h-7 shrink-0 items-center justify-center rounded-md border px-2 text-[10px] font-semibold leading-none transition"
+                              class="inline-flex h-7 min-w-11 shrink-0 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold leading-none transition"
                               [class.border-blue-200]="row.selected"
                               [class.bg-blue-50]="row.selected"
                               [class.text-blue-700]="row.selected"
