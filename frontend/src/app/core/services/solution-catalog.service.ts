@@ -27,7 +27,9 @@ export class SolutionCatalogService {
       next: (manifest) => {
         this.layersState.set(manifest.layers ?? []);
         this.scenariosState.set(
-          (manifest.solutions ?? []).map((solution) => this.toScenario(solution)),
+          (manifest.solutions ?? [])
+            .filter((solution) => !this.isConflictCostSolution(solution))
+            .map((solution) => this.toScenario(solution)),
         );
         this.hasLoadedState.set(true);
         this.loadErrorState.set(null);
@@ -122,13 +124,16 @@ export class SolutionCatalogService {
     return match ? Number(match[1]) : 0;
   }
 
+  private isConflictCostSolution(solution: RuntimeSolutionManifestEntry): boolean {
+    const costLayerId = solution.finderInputs.costLayerId ?? solution.inputLayerIds.cost ?? '';
+    const source = `${costLayerId} ${solution.id} ${solution.name}`.toLowerCase();
+    return source.includes('conflict') || source.includes('conflicto');
+  }
+
   private getCostLayerLabel(solution: RuntimeSolutionManifestEntry): string {
     const costLayerId = solution.finderInputs.costLayerId ?? solution.inputLayerIds.cost ?? '';
     const normalizedCostId = costLayerId.toLowerCase();
 
-    if (normalizedCostId.includes('conflict') || normalizedCostId.includes('conflicto')) {
-      return 'Conflict (Coca/Deaths)';
-    }
     if (
       normalizedCostId.includes('carbon') ||
       normalizedCostId.includes('renta') ||

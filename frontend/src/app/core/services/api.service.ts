@@ -5,10 +5,13 @@ import {
   type AoiMetricsResponse,
   type CachedSolutionMetricsDocument,
   type CompareSolutionsResponse,
+  type CustomPolygonMetricsRequest,
+  type CustomPolygonMetricsResponse,
   type LayerConfig,
   type Solution,
 } from '@core/models';
 import { Observable, switchMap, of } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { type LayerStats, type MatchingResult, type MatchingTarget } from './mock-data.service';
 import { MockDataService } from './mock-data.service';
 import { wrapFlatMetricsResponse } from './cached-metrics.utils';
@@ -22,6 +25,7 @@ export class ApiService {
   private readonly metricsLoader = inject(SolutionMetricsLoaderService);
   private readonly mockData = inject(MockDataService);
   private readonly baseUrl = '/api';
+  private readonly metricsApiBaseUrl = environment.metricsApiBaseUrl.replace(/\/$/, '');
 
   getSolution(id: string): Observable<Solution> {
     return this.http.get<Solution>(`${this.baseUrl}/solutions/${id}`);
@@ -47,6 +51,15 @@ export class ApiService {
   getAOIMetrics(solutionId: string, aoiId: string): Observable<AoiMetricsResponse> {
     return this.http.get<AoiMetricsResponse>(
       `${this.baseUrl}/solutions/${solutionId}/aoi/${aoiId}/metrics`,
+    );
+  }
+
+  getCustomPolygonMetrics(
+    request: CustomPolygonMetricsRequest,
+  ): Observable<CustomPolygonMetricsResponse> {
+    return this.http.post<CustomPolygonMetricsResponse>(
+      `${this.metricsApiBaseUrl}/metrics/custom-polygon`,
+      request,
     );
   }
 

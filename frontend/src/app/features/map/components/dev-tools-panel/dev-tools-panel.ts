@@ -56,7 +56,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
       @if (isOpen()) {
         <div
           id="dev-tools-panel"
-          class="pointer-events-auto absolute right-0 top-full z-40 mt-2 flex max-h-[70vh] w-104 flex-col overflow-auto rounded-md border border-slate-200 bg-white/98 p-4 font-mono text-xs shadow-lg"
+          class="dev-tools-scroll-area pointer-events-auto fixed right-50 top-16 z-10020 flex max-h-[66vh] w-104 flex-col overflow-auto rounded-md border border-slate-200 bg-white/98 p-4 font-mono text-xs shadow-lg"
         >
           <h3 id="dev-tools-title" class="text-sm font-bold text-slate-800 mb-3">
             Solution Dev Tools
@@ -892,6 +892,37 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
         text-box-edge: cap alphabetic;
         transform: none;
       }
+    }
+
+    .dev-tools-scroll-area {
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+
+    .dev-tools-scroll-area:hover,
+    .dev-tools-scroll-area:focus-within {
+      scrollbar-color: rgb(148 163 184 / 0.7) transparent;
+    }
+
+    .dev-tools-scroll-area::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .dev-tools-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .dev-tools-scroll-area::-webkit-scrollbar-thumb {
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background-color: transparent;
+      background-clip: content-box;
+    }
+
+    .dev-tools-scroll-area:hover::-webkit-scrollbar-thumb,
+    .dev-tools-scroll-area:focus-within::-webkit-scrollbar-thumb {
+      background-color: rgb(148 163 184 / 0.7);
     }
   `,
 })

@@ -1,5 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { type AOI, type LayerConfig, type Solution, UserTier } from '@core/models';
+import {
+  type AOI,
+  type CustomPolygonMetricsGeometry,
+  type LayerConfig,
+  type Solution,
+  UserTier,
+} from '@core/models';
 import { environment } from '../../../environments/environment';
 import {
   AppStateService,
@@ -107,6 +113,43 @@ describe('AppStateService', () => {
     expect(service.activeSolution$()).toBe(null);
     expect(service.hasActiveSolution()).toBe(false);
     expect(service.rightSidebarMode$()).toBe('welcome');
+  });
+
+  it('tracks custom AOI geometry separately from fixed boundary selections', () => {
+    const geometry: CustomPolygonMetricsGeometry = {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [-74.1, 4.6],
+          [-74.0, 4.6],
+          [-74.0, 4.7],
+          [-74.1, 4.6],
+        ],
+      ],
+    };
+    const fixedAoi: AOI = {
+      id: 'municipality:11001',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/boundaries/municipalities.geojson',
+    };
+
+    service.selectCustomAOI(geometry, { name: 'Drawn test AOI', areaKm2: 12.5 });
+
+    expect(service.customAOIGeometry$()).toEqual(geometry);
+    expect(service.selectedAOI$()).toEqual(
+      expect.objectContaining({
+        id: 'custom:drawn-polygon',
+        name: 'Drawn test AOI',
+        type: 'custom',
+        areaKm2: 12.5,
+      }),
+    );
+
+    service.selectAOI(fixedAoi);
+
+    expect(service.customAOIGeometry$()).toBeNull();
+    expect(service.selectedAOI$()).toEqual(fixedAoi);
   });
 
   it('toggles layer visibility and updates sidebar mode', () => {

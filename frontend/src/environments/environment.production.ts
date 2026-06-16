@@ -16,6 +16,7 @@ export const environment = {
   googleClientId: '',
   manifestBlobUrl: '',
   blobAssetProxyPath: '',
+  metricsApiBaseUrl: '/metrics-api',
   ENABLE_MANIFEST_EDITOR: true,
   bypassLoginForDevelopment: false,
 } as const;

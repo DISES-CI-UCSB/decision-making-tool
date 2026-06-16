@@ -50,7 +50,10 @@
     },
     "cost": {
       "label": "Costo de implementacion"
-    }
+    },
+    "custom_polygon_area": "Area del AOI dibujada",
+    "priority_area_total": "Area prioritaria",
+    "national_contribution": "Contribucion nacional"
   },
   "mapLegend": {
     "title": "Leyenda",
@@ -89,7 +92,14 @@
     "loadingSolution": "Cargando solución...",
     "loadingLayer": "Cargando capa del mapa...",
     "loadingOmecs": "Cargando OMECs...",
-    "loadingRunap": "Cargando RUNAP..."
+    "loadingRunap": "Cargando RUNAP...",
+    "customAoiDrawControls": "Controles para dibujar AOI personalizado",
+    "customAoiDrawStart": "Dibujar AOI personalizado",
+    "customAoiDrawDrawing": "Dibuja un poligono en el mapa. Haz doble clic para terminar.",
+    "customAoiDrawReady": "AOI personalizado seleccionado.",
+    "customAoiDrawInvalid": "Dibuja un poligono valido para usar un AOI personalizado.",
+    "customAoiDrawCancel": "Cancelar dibujo",
+    "customAoiDrawClear": "Borrar AOI personalizado"
   },
   "analysis": {
     "tabNavAriaLabel": "Pestañas del panel lateral derecho",
@@ -217,9 +227,7 @@
         "affectedAgriculturalArea": "Area agricola afectada",
         "affectedAgriculturalAreaDesc": "Tierra agricola dentro de prioridades",
         "agriculturalOpportunityCost": "Costo de oportunidad agricola",
-        "agriculturalOpportunityCostDesc": "Produccion sacrificada",
-        "conflictZoneOverlap": "Superposicion con zonas de conflicto",
-        "conflictZoneOverlapDesc": "Zonas de conflicto historicas"
+        "agriculturalOpportunityCostDesc": "Produccion sacrificada"
       },
       "metricUnits": {
         "ofTargets": "de las metas",
@@ -234,7 +242,9 @@
         "mangrove": "manglar",
         "resguardos": "resguardos",
         "communities": "comunidades",
-        "tco2e": "tCO2e",
+        "hectares": "ha",
+        "megagrams": "Mg",
+        "tco2e": "tCO₂e",
         "cubicMeterIndex": "indice m³",
         "fifteenPercentOverlap": "15% de superposicion",
         "usd": "USD",
@@ -252,7 +262,8 @@
         "department": "Departamento",
         "sirap": "SIRAP",
         "omec": "OMEC",
-        "runap": "RUNAP"
+        "runap": "RUNAP",
+        "custom": "AOI personalizado"
       },
       "emptyTitle": "No hay un area de interes seleccionada",
       "emptyDescription": "Selecciona un AOI para completar este panel con metricas locales y contexto.",
@@ -277,6 +288,28 @@
         "nationalContributionLabel": "Contribución 30×30",
         "existingAdds": "Existente {{existing}} + agrega {{added}}"
       },
+      "customMetrics": {
+        "loading": "Cargando métricas del polígono personalizado desde la API...",
+        "loadError": "No se pudieron cargar las métricas del polígono personalizado.",
+        "loaded": "Métricas del polígono personalizado cargadas desde la API: {{count}} métricas recibidas.",
+        "statusReturned": "Las métricas del polígono personalizado devolvieron {{status}}.",
+        "unavailable": "Las métricas del polígono personalizado no están disponibles.",
+        "speciesLoadError": "No se pudieron cargar las métricas de biodiversidad.",
+        "speciesLoading": {
+          "initial": {
+            "small": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: unos segundos.",
+            "medium": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 5-10 segundos.",
+            "large": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 15-30 segundos.",
+            "veryLarge": "Calculando metricas de biodiversidad. Tiempo estimado de calculo de biodiversidad: alrededor de 1-2 minutos.",
+            "unknown": "Calculando metricas de biodiversidad. El tiempo depende del tamano del AOI y puede variar."
+          },
+          "delayed": {
+            "longerThanExpected": "Este AOI esta tardando mas de lo esperado. Puedes seguir revisando otras metricas mientras termina biodiversidad.",
+            "largeAoi": "Los AOI grandes pueden tardar mas. Puedes seguir revisando otras metricas mientras termina biodiversidad."
+          },
+          "extended": "Todavia trabajando... Los AOI grandes pueden necesitar mas tiempo. Los valores de biodiversidad apareceran aqui cuando termine el calculo."
+        }
+      },
       "biodiversityTaxa": {
         "mammals": "Mamíferos",
         "birds": "Aves",
@@ -295,6 +328,10 @@
         "forest": "Bosque natural",
         "agriculture": "Agricultura",
         "other": "Otros"
+      },
+      "unitTooltips": {
+        "carbonMassArea": "Mg, con M mayúscula, significa megagramo: una tonelada métrica. Los rasters de origen suelen ser densidad de carbono, como Mg/km² o Mg/ha; esta tarjeta muestra el total del AOI después de sumar por área.",
+        "hectares": "ha significa hectáreas. Una hectárea equivale a 10.000 metros cuadrados, o aproximadamente 2,47 acres."
       },
       "stats": {
         "totalProtectedArea": "Área protegida total",
@@ -317,8 +354,6 @@
         "waterIndex": "Índice 78 / 100",
         "agOpportunityCost": "Costo de oportunidad agrícola",
         "agOpportunityCostDesc": "Valor económico de la producción agrícola sacrificada",
-        "conflictZoneOverlap": "Superposición con zonas de conflicto",
-        "conflictZoneOverlapDesc": "Área prioritaria con superposición en zonas de conflicto histórico",
         "indigenousReservations": "Reservaciones indígenas",
         "indigenousReservationsDesc": "Área dentro de las zonas prioritarias del AOI",
         "communityCounsils": "Consejos comunitarios",
@@ -342,6 +377,7 @@
         "consultationSensitive": "Sensible a consulta previa",
         "kmAndPct": "km² y %",
         "requestId": "ID de solicitud",
+        "unitDetails": "Detalles de unidad",
         "protectedAreaUnit": "31% del AOI bajo protección",
         "speciesCountBarAriaLabel": "Barra de conteo de especies para {{label}}",
         "ecosystemDistributionAriaLabel": "Distribución de cobertura de ecosistemas"
@@ -355,8 +391,7 @@
         "ecosystemWaterRegulationValue": "regulacion hidrica superior al promedio",
         "ecosystemSuffix": " para la cuenca del rio Cauca. Los ecosistemas representan la mayor parte de la cobertura ecosistemica.",
         "landPrefix": "60% del area prioritaria de este AOI es bosque natural. El costo de oportunidad agricola es ",
-        "landMiddle": ", con ",
-        "landSuffix": " en zonas de conflicto historicas.",
+        "landSuffix": ".",
         "culturalSuffix": " del area prioritaria de este AOI se superpone con territorios indigenas. Puede requerirse consulta previa bajo el Convenio 169 de la OIT.",
         "contextAfterName": " aporta ",
         "contextAfterContribution": " a la meta de conservacion 30x30 de Colombia. Con ",
@@ -432,8 +467,6 @@
         "implementationCostDesc": "Rango estimado de costos de implementacion.",
         "agriculturalOpportunityCost": "Costo de oportunidad agricola",
         "agriculturalOpportunityCostDesc": "Compensacion agricola estimada en zonas afectadas.",
-        "conflictZoneOverlap": "Superposicion con zonas de conflicto",
-        "conflictZoneOverlapDesc": "Superposicion con areas historicamente afectadas por el conflicto.",
         "protectedOverlap": "Superposicion con parques nacionales",
         "protectedOverlapDesc": "Superposicion del Escenario B con areas protegidas formales existentes.",
         "indigenousOverlap": "Superposicion con territorios indigenas",

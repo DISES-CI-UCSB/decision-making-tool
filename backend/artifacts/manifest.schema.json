@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://decision-making-tool.local/schemas/metrics-artifact-manifest.schema.json",
+  "title": "DMT Metrics Runtime Artifact Manifest",
+  "type": "object",
+  "required": [
+    "artifact_version",
+    "schema_version",
+    "created_at",
+    "checksum",
+    "source_manifest"
+  ],
+  "properties": {
+    "artifact_version": {
+      "type": "string",
+      "description": "Version or build identifier for this packaged artifact set."
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "metrics-artifact-manifest/v1"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "checksum": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_manifest": {
+      "type": "object",
+      "description": "Source metadata used to assemble this runtime artifact set.",
+      "additionalProperties": true
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "checksum"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "checksum": {
+            "type": "object",
+            "required": [
+              "algorithm",
+              "value"
+            ],
+            "properties": {
+              "algorithm": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "area_grid_path": {
+      "type": "string",
+      "description": "Relative or absolute path to the fixture-scale/custom polygon area grid artifact."
+    },
+    "area_grid_checksum": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

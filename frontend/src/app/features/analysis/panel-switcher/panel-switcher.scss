@@ -1881,9 +1881,111 @@
 }
 
 .aoi-stat-unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 10px;
   color: var(--color-subtext);
   margin-top: 2px;
+}
+
+.aoi-unit-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.aoi-unit-help:hover,
+.aoi-unit-help:focus-within {
+  z-index: 10000;
+}
+
+.aoi-unit-help-trigger {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: help;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.aoi-unit-help-trigger:focus-visible .aoi-unit-help-indicator {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.aoi-unit-help-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 9px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.aoi-unit-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  z-index: 10001;
+  width: 220px;
+  border-radius: 6px;
+  border: 1px solid #dbe4f0;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #0f172a;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(2px);
+  visibility: hidden;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.aoi-unit-help-start .aoi-unit-tooltip {
+  left: 0;
+}
+
+.aoi-unit-help-end .aoi-unit-tooltip {
+  right: 0;
+}
+
+.aoi-unit-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid #dbe4f0;
+  border-bottom: 1px solid #dbe4f0;
+  background: #ffffff;
+  transform: rotate(45deg);
+}
+
+.aoi-unit-help-start .aoi-unit-tooltip::before {
+  left: 8px;
+}
+
+.aoi-unit-help-end .aoi-unit-tooltip::before {
+  right: 8px;
+}
+
+.aoi-unit-help:hover .aoi-unit-tooltip,
+.aoi-unit-help:focus-within .aoi-unit-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
 }
 
 /* Bar chart */

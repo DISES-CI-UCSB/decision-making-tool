@@ -98,3 +98,9 @@ __pycache__/
 
 # Large species lookup CSV — kept in Vercel Blob at inputs/metadata/biomod_spp_ranges_updatedIUCN.csv
 data/biomod_spp_ranges_updatedIUCN.csv
+
+# Backend API local/runtime artifacts
+/backend/.venv/
+/backend/.pytest_cache/
+/backend/runtime-artifacts/*
+!/backend/runtime-artifacts/.gitkeep
