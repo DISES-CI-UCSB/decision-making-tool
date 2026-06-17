@@ -378,7 +378,56 @@
                             </span>
                           </div>
                         </div>
-                        @if (selectedLayerHasColorOnlyControl(selected.id)) {
+                        @if (selectedLayerHasSolutionCoverageControl(selected.id)) {
+                          <button
+                            [id]="
+                              'map-layers-selected-layer-row-solution-coverage-chip-button-' +
+                              selected.id
+                            "
+                            data-ui="selected-layer-solution-coverage-control"
+                            [attr.data-layer-id]="selected.id"
+                            type="button"
+                            class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent p-0 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                            [class.border-sky-300]="
+                              isSelectedLayerAppearancePopoverOpen(selected.id)
+                            "
+                            [class.bg-sky-50]="isSelectedLayerAppearancePopoverOpen(selected.id)"
+                            aria-haspopup="dialog"
+                            [attr.aria-expanded]="isSelectedLayerAppearancePopoverOpen(selected.id)"
+                            [attr.aria-controls]="
+                              'map-layers-selected-layer-appearance-popover-' + selected.id
+                            "
+                            [attr.aria-label]="
+                              'mapLayersPanel.openSolutionCoverageAppearance'
+                                | translate: { name: selected.name }
+                            "
+                            (click)="toggleSelectedLayerAppearancePopover(selected.id)"
+                          >
+                            <span
+                              [id]="
+                                'map-layers-selected-layer-row-solution-coverage-chip-preview-' +
+                                selected.id
+                              "
+                              class="map-layers-solution-coverage-preview h-5 w-5 rounded border border-slate-200"
+                              [style.--map-layers-included-coverage-color]="
+                                selectedLayerExistingProtectedColor(selected.id)
+                              "
+                              [style.--map-layers-new-coverage-color]="
+                                selectedLayerNewCoverageColor(selected.id)
+                              "
+                              aria-hidden="true"
+                            ></span>
+                            <span
+                              [id]="
+                                'map-layers-selected-layer-row-solution-coverage-chip-label-' +
+                                selected.id
+                              "
+                              class="sr-only"
+                            >
+                              {{ 'mapLayersPanel.solutionCoverageColorLabel' | translate }}
+                            </span>
+                          </button>
+                        } @else if (selectedLayerHasColorOnlyControl(selected.id)) {
                           <button
                             #selectedLayerColorOnlyPicker="ngxColorPicker"
                             [id]="'map-layers-selected-layer-row-color-button-' + selected.id"
@@ -1706,44 +1755,249 @@
             </button>
           </header>
 
-          <div
-            [id]="'map-layers-selected-layer-appearance-preview-' + selected.id"
-            class="mt-3 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2"
-          >
-            <span
-              [id]="'map-layers-selected-layer-appearance-combined-preview-' + selected.id"
-              class="map-layers-combined-preview h-12 w-12 shrink-0 rounded-lg bg-white"
-              [class.map-layers-fill-preview]="selectedLayerHasFillControl(selected.id)"
-              [ngClass]="[
-                selectedLayerHasFillControl(selected.id)
-                  ? selectedLayerFillPreviewClass(selected.id)
-                  : '',
-                selectedLayerBorderStyleClass(selected.id),
-              ]"
-              [style.--map-layers-fill-color]="selectedLayerColor(selected.id)"
-              [style.--map-layers-pattern-size]="selectedLayerFillPatternSize(selected.id)"
-              [style.--map-layers-border-color]="selectedLayerBorderColor(selected.id)"
-              [style.--map-layers-border-width]="selectedLayerBorderWidth(selected.id) + 'px'"
-              aria-hidden="true"
-            ></span>
+          @if (selectedLayerHasSolutionCoverageControl(selected.id)) {
             <div
-              [id]="'map-layers-selected-layer-appearance-preview-copy-' + selected.id"
-              class="min-w-0"
+              [id]="'map-layers-selected-layer-solution-coverage-preview-' + selected.id"
+              class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-2"
             >
               <p
-                [id]="'map-layers-selected-layer-appearance-preview-title-' + selected.id"
+                [id]="'map-layers-selected-layer-solution-coverage-preview-title-' + selected.id"
                 class="text-xs font-bold text-slate-700"
               >
                 {{ 'mapLayersPanel.appearancePreviewTitle' | translate }}
               </p>
-              <p
-                [id]="'map-layers-selected-layer-appearance-preview-text-' + selected.id"
-                class="mt-0.5 text-[11px] leading-4 text-slate-500"
+              <div
+                [id]="'map-layers-selected-layer-solution-coverage-preview-grid-' + selected.id"
+                class="mt-2 grid grid-cols-2 gap-2"
               >
-                {{ 'mapLayersPanel.appearancePreviewHelp' | translate }}
+                <div
+                  [id]="
+                    'map-layers-selected-layer-solution-coverage-included-preview-card-' +
+                    selected.id
+                  "
+                  class="rounded-md border border-slate-200 bg-white p-2"
+                >
+                  <span
+                    [id]="
+                      'map-layers-selected-layer-solution-coverage-included-preview-swatch-' +
+                      selected.id
+                    "
+                    class="block h-8 rounded border border-slate-200"
+                    [style.backgroundColor]="selectedLayerExistingProtectedColor(selected.id)"
+                    aria-hidden="true"
+                  ></span>
+                  <p
+                    [id]="
+                      'map-layers-selected-layer-solution-coverage-included-preview-label-' +
+                      selected.id
+                    "
+                    class="mt-1 text-[10px] font-bold text-slate-700"
+                  >
+                    {{ 'mapLayersPanel.solutionIncludedCoverageLabel' | translate }}
+                  </p>
+                </div>
+                <div
+                  [id]="
+                    'map-layers-selected-layer-solution-coverage-new-preview-card-' + selected.id
+                  "
+                  class="rounded-md border border-slate-200 bg-white p-2"
+                >
+                  <span
+                    [id]="
+                      'map-layers-selected-layer-solution-coverage-new-preview-swatch-' +
+                      selected.id
+                    "
+                    class="block h-8 rounded border border-slate-200"
+                    [style.backgroundColor]="selectedLayerNewCoverageColor(selected.id)"
+                    aria-hidden="true"
+                  ></span>
+                  <p
+                    [id]="
+                      'map-layers-selected-layer-solution-coverage-new-preview-label-' + selected.id
+                    "
+                    class="mt-1 text-[10px] font-bold text-slate-700"
+                  >
+                    {{ 'mapLayersPanel.solutionNewCoverageLabel' | translate }}
+                  </p>
+                </div>
+              </div>
+              <p
+                [id]="'map-layers-selected-layer-solution-coverage-preview-text-' + selected.id"
+                class="mt-2 text-[11px] leading-4 text-slate-500"
+              >
+                {{ 'mapLayersPanel.solutionCoveragePreviewHelp' | translate }}
               </p>
             </div>
-          </div>
+          } @else {
+            <div
+              [id]="'map-layers-selected-layer-appearance-preview-' + selected.id"
+              class="mt-3 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2"
+            >
+              <span
+                [id]="'map-layers-selected-layer-appearance-combined-preview-' + selected.id"
+                class="map-layers-combined-preview h-12 w-12 shrink-0 rounded-lg bg-white"
+                [class.map-layers-fill-preview]="selectedLayerHasFillControl(selected.id)"
+                [ngClass]="[
+                  selectedLayerHasFillControl(selected.id)
+                    ? selectedLayerFillPreviewClass(selected.id)
+                    : '',
+                  selectedLayerBorderStyleClass(selected.id),
+                ]"
+                [style.--map-layers-fill-color]="selectedLayerColor(selected.id)"
+                [style.--map-layers-pattern-size]="selectedLayerFillPatternSize(selected.id)"
+                [style.--map-layers-border-color]="selectedLayerBorderColor(selected.id)"
+                [style.--map-layers-border-width]="selectedLayerBorderWidth(selected.id) + 'px'"
+                aria-hidden="true"
+              ></span>
+              <div
+                [id]="'map-layers-selected-layer-appearance-preview-copy-' + selected.id"
+                class="min-w-0"
+              >
+                <p
+                  [id]="'map-layers-selected-layer-appearance-preview-title-' + selected.id"
+                  class="text-xs font-bold text-slate-700"
+                >
+                  {{ 'mapLayersPanel.appearancePreviewTitle' | translate }}
+                </p>
+                <p
+                  [id]="'map-layers-selected-layer-appearance-preview-text-' + selected.id"
+                  class="mt-0.5 text-[11px] leading-4 text-slate-500"
+                >
+                  {{ 'mapLayersPanel.appearancePreviewHelp' | translate }}
+                </p>
+              </div>
+            </div>
+          }
+
+          @if (selectedLayerHasSolutionCoverageControl(selected.id)) {
+            <section
+              [id]="'map-layers-selected-layer-solution-included-section-' + selected.id"
+              data-ui="selected-layer-solution-included-section"
+              [attr.data-layer-id]="selected.id"
+              class="mt-3 rounded-lg border border-slate-200 p-2"
+            >
+              <div
+                [id]="'map-layers-selected-layer-solution-included-header-' + selected.id"
+                class="mb-2 flex items-center justify-between gap-2"
+              >
+                <div
+                  [id]="'map-layers-selected-layer-solution-included-title-group-' + selected.id"
+                  class="min-w-0"
+                >
+                  <h4
+                    [id]="'map-layers-selected-layer-solution-included-title-' + selected.id"
+                    class="text-xs font-bold text-slate-800"
+                  >
+                    {{ 'mapLayersPanel.solutionIncludedCoverageFillLabel' | translate }}
+                  </h4>
+                  <p
+                    [id]="'map-layers-selected-layer-solution-included-help-' + selected.id"
+                    class="mt-0.5 text-[11px] leading-4 text-slate-500"
+                  >
+                    {{ 'mapLayersPanel.solutionIncludedCoverageHelp' | translate }}
+                  </p>
+                </div>
+                <button
+                  #selectedLayerIncludedCoverageColorPicker="ngxColorPicker"
+                  [id]="'map-layers-selected-layer-solution-included-color-button-' + selected.id"
+                  data-ui="selected-layer-solution-included-color-control"
+                  [attr.data-layer-id]="selected.id"
+                  type="button"
+                  class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent p-0 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  [colorPicker]="selectedLayerExistingProtectedColor(selected.id)"
+                  cpOutputFormat="hex"
+                  cpAlphaChannel="disabled"
+                  cpPosition="auto"
+                  cpDialogDisplay="popup"
+                  [cpUseRootViewContainer]="true"
+                  [cpEyeDropper]="true"
+                  [cpSaveClickOutside]="true"
+                  [cpPresetColors]="colorPresetHexValues"
+                  cpPresetLabel=""
+                  (colorPickerOpen)="onColorPickerOpen(selectedLayerIncludedCoverageColorPicker)"
+                  (colorPickerChange)="
+                    updateSelectedLayerExistingProtectedColor(selected.id, $event)
+                  "
+                  [attr.aria-label]="
+                    'mapLayersPanel.chooseIncludedCoverageColorFor'
+                      | translate: { name: selected.name }
+                  "
+                >
+                  <span
+                    [id]="
+                      'map-layers-selected-layer-solution-included-color-chip-preview-' +
+                      selected.id
+                    "
+                    class="map-layers-color-swatch h-5 w-5 rounded border border-slate-200"
+                    [style.backgroundColor]="selectedLayerExistingProtectedColor(selected.id)"
+                    aria-hidden="true"
+                  ></span>
+                </button>
+              </div>
+            </section>
+
+            <section
+              [id]="'map-layers-selected-layer-solution-new-section-' + selected.id"
+              data-ui="selected-layer-solution-new-section"
+              [attr.data-layer-id]="selected.id"
+              class="mt-3 rounded-lg border border-slate-200 p-2"
+            >
+              <div
+                [id]="'map-layers-selected-layer-solution-new-header-' + selected.id"
+                class="mb-2 flex items-center justify-between gap-2"
+              >
+                <div
+                  [id]="'map-layers-selected-layer-solution-new-title-group-' + selected.id"
+                  class="min-w-0"
+                >
+                  <h4
+                    [id]="'map-layers-selected-layer-solution-new-title-' + selected.id"
+                    class="text-xs font-bold text-slate-800"
+                  >
+                    {{ 'mapLayersPanel.solutionNewCoverageFillLabel' | translate }}
+                  </h4>
+                  <p
+                    [id]="'map-layers-selected-layer-solution-new-help-' + selected.id"
+                    class="mt-0.5 text-[11px] leading-4 text-slate-500"
+                  >
+                    {{ 'mapLayersPanel.solutionNewCoverageHelp' | translate }}
+                  </p>
+                </div>
+                <button
+                  #selectedLayerNewCoverageColorPicker="ngxColorPicker"
+                  [id]="'map-layers-selected-layer-solution-new-color-button-' + selected.id"
+                  data-ui="selected-layer-solution-new-color-control"
+                  [attr.data-layer-id]="selected.id"
+                  type="button"
+                  class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent p-0 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  [colorPicker]="selectedLayerNewCoverageColor(selected.id)"
+                  cpOutputFormat="hex"
+                  cpAlphaChannel="disabled"
+                  cpPosition="auto"
+                  cpDialogDisplay="popup"
+                  [cpUseRootViewContainer]="true"
+                  [cpEyeDropper]="true"
+                  [cpSaveClickOutside]="true"
+                  [cpPresetColors]="colorPresetHexValues"
+                  cpPresetLabel=""
+                  (colorPickerOpen)="onColorPickerOpen(selectedLayerNewCoverageColorPicker)"
+                  (colorPickerChange)="updateSelectedLayerNewCoverageColor(selected.id, $event)"
+                  [attr.aria-label]="
+                    'mapLayersPanel.chooseNewCoverageColorFor' | translate: { name: selected.name }
+                  "
+                >
+                  <span
+                    [id]="
+                      'map-layers-selected-layer-solution-new-color-chip-preview-' + selected.id
+                    "
+                    class="map-layers-color-swatch h-5 w-5 rounded border border-slate-200"
+                    [style.backgroundColor]="selectedLayerNewCoverageColor(selected.id)"
+                    aria-hidden="true"
+                  ></span>
+                </button>
+              </div>
+            </section>
+          }
 
           @if (selectedLayerHasFillControl(selected.id)) {
             <section

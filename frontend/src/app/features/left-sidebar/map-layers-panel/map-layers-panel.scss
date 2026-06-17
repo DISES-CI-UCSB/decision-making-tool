@@ -328,6 +328,17 @@
   background-size: var(--map-layers-pattern-size) var(--map-layers-pattern-size);
 }
 
+.map-layers-solution-coverage-preview {
+  --map-layers-included-coverage-color: #2563eb;
+  --map-layers-new-coverage-color: #16a34a;
+  display: inline-block;
+  background: linear-gradient(
+    to right,
+    var(--map-layers-included-coverage-color) 0 50%,
+    var(--map-layers-new-coverage-color) 50% 100%
+  );
+}
+
 .map-layers-border-preview,
 .map-layers-combined-preview {
   --map-layers-border-color: #0f172a;

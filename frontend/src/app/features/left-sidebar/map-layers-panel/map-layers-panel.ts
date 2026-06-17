@@ -51,6 +51,7 @@ import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_EXISTING_PROTECTED_HEX,
   DEFAULT_SOLUTION_LAYER_OPACITY,
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
@@ -505,6 +506,7 @@ const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
 };
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
 const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
+const EXISTING_PROTECTED_COLOR = DEFAULT_EXISTING_PROTECTED_HEX;
 const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
 const COMPARISON_CANDIDATE_COLOR = DEFAULT_COMPARISON_CANDIDATE_HEX;
 const COMPARISON_OVERLAP_COLOR = DEFAULT_COMPARISON_OVERLAP_HEX;
@@ -2442,13 +2444,23 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected selectedLayerHasColorOnlyControl(rowId: string): boolean {
     return (
       this.selectedLayerHasColorControl(rowId) &&
+      !this.selectedLayerHasSolutionCoverageControl(rowId) &&
       !this.selectedLayerHasFillControl(rowId) &&
       !this.selectedLayerHasBorderControl(rowId)
     );
   }
 
   protected selectedLayerHasAppearanceControls(rowId: string): boolean {
-    return this.selectedLayerHasFillControl(rowId) || this.selectedLayerHasBorderControl(rowId);
+    return (
+      this.selectedLayerHasSolutionCoverageControl(rowId) ||
+      this.selectedLayerHasFillControl(rowId) ||
+      this.selectedLayerHasBorderControl(rowId)
+    );
+  }
+
+  protected selectedLayerHasSolutionCoverageControl(rowId: string): boolean {
+    const row = this.findLayerControlRowById(rowId);
+    return row?.mapSync?.type === 'solution-baseline' && !this.isComparisonSelectionActive();
   }
 
   protected selectedLayerColor(rowId: string): string {
@@ -2486,6 +2498,30 @@ export class MapLayersPanelComponent implements OnDestroy {
       this.updateLayerColor(groupId, rowId, color);
       return;
     }
+  }
+
+  protected selectedLayerExistingProtectedColor(rowId: string): string {
+    return this.selectedLayerHasSolutionCoverageControl(rowId)
+      ? this.solutionLayerService.existingProtectedColor$()
+      : EXISTING_PROTECTED_COLOR;
+  }
+
+  protected selectedLayerNewCoverageColor(rowId: string): string {
+    return this.selectedLayerColor(rowId);
+  }
+
+  protected updateSelectedLayerExistingProtectedColor(rowId: string, color: string): void {
+    if (!this.selectedLayerHasSolutionCoverageControl(rowId)) {
+      return;
+    }
+    this.solutionLayerService.setExistingProtectedColor(color);
+  }
+
+  protected updateSelectedLayerNewCoverageColor(rowId: string, color: string): void {
+    if (!this.selectedLayerHasSolutionCoverageControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerColor(rowId, color);
   }
 
   protected isSelectedLayerAppearancePopoverOpen(rowId: string): boolean {
@@ -2602,6 +2638,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       targetElement?.closest(
         [
           '[data-ui="selected-layer-appearance-popover"]',
+          '[data-ui="selected-layer-solution-coverage-control"]',
           '[data-ui="selected-layer-fill-control"]',
           '[data-ui="selected-layer-border-control"]',
           '.color-picker',
@@ -3609,6 +3646,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       mapType === 'solution-baseline' ||
       mapType === 'solution-candidate' ||
       mapType === 'solution-overlap'
+    );
+  }
+
+  private isComparisonSelectionActive(): boolean {
+    return (
+      this.appState.rightSidebarMode$() === 'comparison' && !!this.appState.comparisonSolution$()
     );
   }
 
