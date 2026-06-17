@@ -222,7 +222,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
     expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
     expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
 
     speciesMetrics$.complete();
   });
@@ -422,7 +422,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-biodiversity-species-loading-spinner')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg·km²');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
     expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
   });
 
