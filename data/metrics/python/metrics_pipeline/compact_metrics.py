@@ -89,9 +89,9 @@ def _metric_from_catalog(
     source_catalog: list[str],
     notes_catalog: list[str | None],
 ) -> dict[str, Any]:
-    metric_index, value, status_index, source_index, notes_index = row
+    metric_index, value, status_index, source_index, notes_index = row[:5]
     metric_id, unit, label_key, format_hint = metric_catalog[metric_index]
-    return {
+    metric = {
         "metricId": metric_id,
         "value": value,
         "unit": unit,
@@ -101,6 +101,9 @@ def _metric_from_catalog(
         "labelKey": label_key,
         "formatHint": format_hint,
     }
+    if len(row) > 5:
+        metric["details"] = row[5]
+    return metric
 
 
 def to_compact_document(doc: dict[str, Any]) -> dict[str, Any]:
@@ -125,13 +128,16 @@ def to_compact_document(doc: dict[str, Any]) -> dict[str, Any]:
             for metric in scope.get("metrics") or []:
                 if not isinstance(metric, dict):
                     continue
-                compact_metrics.append([
+                compact_row = [
                     metric_catalog.index(_metric_catalog_entry(metric)),
                     metric.get("value"),
                     status_catalog.index(metric.get("status")),
                     source_catalog.index(metric.get("source")),
                     notes_catalog.index(metric.get("notes")),
-                ])
+                ]
+                if "details" in metric:
+                    compact_row.append(metric.get("details"))
+                compact_metrics.append(compact_row)
             compact_scope["metrics"] = compact_metrics
             compact_scopes[scope_id] = compact_scope
         geographies[level] = compact_scopes

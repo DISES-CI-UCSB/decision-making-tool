@@ -53,7 +53,7 @@ export function expandCompactMetricsDocument(
           ...(scope.kind ? { kind: scope.kind } : {}),
           ...(scope.subtype ? { subtype: scope.subtype } : {}),
           metrics: scope.metrics.map(
-            ([metricIndex, value, statusIndex, sourceIndex, notesIndex]) => {
+            ([metricIndex, value, statusIndex, sourceIndex, notesIndex, details]) => {
               const [metricId, unit, labelKey, formatHint] = document.metricCatalog[metricIndex];
               return {
                 metricId,
@@ -64,6 +64,7 @@ export function expandCompactMetricsDocument(
                 notes: document.notesCatalog[notesIndex],
                 labelKey,
                 formatHint,
+                ...(details !== undefined ? { details } : {}),
               };
             },
           ),

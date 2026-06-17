@@ -89,7 +89,7 @@
       "id": "species_richness",
       "spanishLabel": "Riqueza de especies",
       "englishLabel": "Species Richness",
-      "description": "Biodiversity richness surface summarizing ecosystem-level species richness across the country.\n\n[Inserta la espanol aqui]", // TODO: We need english + Spanish description
+      "description": "Biodiversity richness surface summarizing ecosystem-level species richness across the country.\n\nSuperficie de riqueza de biodiversidad que resume la riqueza de especies a nivel ecosistémico en todo el país.", // TODO: We need english + Spanish description
       "tooltip": null,
       "dataRole": "feature_layer",
       "category": "species_and_biodiversity",
@@ -137,7 +137,7 @@
       "id": "paramos",
       "spanishLabel": "Páramos",
       "englishLabel": null,
-      "description": "Contiene la delimitación oficial de los complejos de páramo su propósito es servir de referencia oficial para la gestión ambiental, la planificación territorial, la conservación y el manejo sostenible de los ecosistemas de alta montaña.",
+      "description": "Contiene la delimitación oficial de los complejos de páramo; su propósito es servir de referencia oficial para la gestión ambiental, la planificación territorial, la conservación y el manejo sostenible de los ecosistemas de alta montaña.",
       "tooltip": null,
       "dataRole": "feature_layer",
       "category": "ecosystems",
@@ -230,7 +230,7 @@
       "id": "ecosistemas",
       "spanishLabel": "Ecosistemas",
       "englishLabel": "Ecosystems",
-      "description": "Descripcion de biomas y ecosistemas a escala 1:100.000",
+      "description": "Descripción de biomas y ecosistemas a escala 1:100.000",
       "tooltip": null,
       "dataRole": "feature_layer",
       "category": "ecosystems",
@@ -325,7 +325,7 @@
     },
     {
       "id": "siraps",
-      "spanishLabel": "Limites SIRAPS",
+      "spanishLabel": "Límites SIRAP",
       "englishLabel": null,
       "description": "Boundaries of SIRAPs",
       "tooltip": null,
@@ -348,7 +348,7 @@
     },
     {
       "id": "omecs",
-      "spanishLabel": "OMECs (raster)",
+      "spanishLabel": "OMECs (ráster)",
       "englishLabel": null,
       "description": "Other Effective Conservation Measures (OMECs) recognized for conservation outcomes outside formal protected areas.",
       "tooltip": null,

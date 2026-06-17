@@ -1696,6 +1696,9 @@ export class PanelSwitcherComponent {
     if (unit === '%') {
       return `${value}%`;
     }
+    if (unit === 'count') {
+      return value;
+    }
     return unit ? `${value} ${unit}` : value;
   }
 
@@ -1732,6 +1735,9 @@ export class PanelSwitcherComponent {
 
   private formatMetricUnit(unit: string | null): string | null {
     if (!unit) {
+      return null;
+    }
+    if (unit === 'count') {
       return null;
     }
 

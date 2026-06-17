@@ -212,8 +212,8 @@
         "nationalContributionDesc": "Share of Colombia selected by this scenario",
         "priorityAreaTotal": "Priority Area (Selected)",
         "priorityAreaTotalDesc": "Total area selected by the scenario",
-        "paramoCoverage": "Paramo Coverage",
-        "paramoCoverageDesc": "High-altitude paramo within priorities",
+        "paramoCoverage": "Páramo Coverage",
+        "paramoCoverageDesc": "High-altitude páramo within priorities",
         "dryForestCoverage": "Dry Forest Coverage",
         "dryForestCoverageDesc": "Tropical dry forest within priorities",
         "wetlandsCoverage": "Wetlands Coverage",
@@ -240,7 +240,7 @@
         "eightyFivePercentOfTarget": "85% of target",
         "ofColombia": "of Colombia",
         "selected": "selected",
-        "paramo": "paramo",
+        "paramo": "páramo",
         "dryForest": "dry forest",
         "wetlands": "wetlands",
         "mangrove": "mangrove",
@@ -406,7 +406,7 @@
       },
       "ecosystemLegend": {
         "ecosystems": "Ecosystems",
-        "paramo": "Paramo",
+        "paramo": "Páramo",
         "dryForest": "Dry Forest",
         "wetlands": "Wetlands",
         "mangroves": "Mangroves"

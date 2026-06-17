@@ -101,7 +101,7 @@ reference rows in `docs/design/DISES Metrics - Finalized Metrics.csv`.
 | metric-4  | 4 | Ecosystem Coverage                 | raster ∩ `ecosistemas`                |
 | metric-17 | 17 | National Contribution             | selectedCells / validCells × 100      |
 | metric-18 | 18 | Priority Area (Selected)          | solution raster                       |
-| metric-30 | 30 | Ecosystem Coverage - Paramo       | raster ∩ `paramos`                    |
+| metric-30 | 30 | Ecosystem Coverage - Páramo       | raster ∩ `paramos`                    |
 | metric-31 | 31 | Ecosystem Coverage - Dry Forest   | raster ∩ `bosque_seco`                |
 | metric-32 | 32 | Ecosystem Coverage - Wetlands     | raster ∩ `wetlands`                   |
 | metric-36 | 36 | Mangrove Coverage                 | raster ∩ `mangroves`                  |

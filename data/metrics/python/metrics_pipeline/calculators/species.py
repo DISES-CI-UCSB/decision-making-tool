@@ -53,6 +53,15 @@ import numpy as np
 
 from species_data import CLASS_BUCKETS, SpeciesPoolSizes, SpeciesRecord
 
+IUCN_STATUS_ORDER: tuple[str, ...] = ("CR", "EN", "VU", "NT", "LC", "DD", "other", "unknown")
+_GROUP_LABELS: dict[str, str] = {
+    "mammals": "Mammals",
+    "birds": "Birds",
+    "amphibians": "Amphibians",
+    "reptiles": "Reptiles",
+    "plants": "Plants",
+}
+
 
 # ---------------------------------------------------------------------------
 # Per-scope counters
@@ -63,11 +72,39 @@ class SpeciesScopeCounts:
     """Counters for one geography scope (national or one boundary feature)."""
     # Richness counts (#21–#25): species present per class bucket.
     by_bucket: dict[str, int] = field(default_factory=lambda: {b: 0 for b in CLASS_BUCKETS})
+    # Species group coverage (#2): species with usable range, and subset meeting
+    # the scenario target in this scope.
+    coverage_by_bucket: dict[str, "SpeciesCoverageCounts"] = field(
+        default_factory=lambda: {b: SpeciesCoverageCounts() for b in CLASS_BUCKETS}
+    )
     # Threatened metrics (#26 / #3).
     threatened_present: int = 0           # CR/EN/VU non-fish whose range overlaps selection
     threatened_secured: int = 0           # subset whose coverage ratio >= scenario_target_pct
     # All-non-fish present (numerator of #28).
     all_present: int = 0
+
+
+@dataclass
+class SpeciesCoverageCounts:
+    """Met/total counts for species target coverage, with IUCN breakdown."""
+    met: int = 0
+    total: int = 0
+    by_status: dict[str, "SpeciesCoverageCounts"] = field(default_factory=dict)
+
+    def record(self, met: bool, iucn_status: str | None = None) -> None:
+        self.total += 1
+        if met:
+            self.met += 1
+        if iucn_status is not None:
+            normalized = _normalize_iucn_status(iucn_status)
+            status_count = self.by_status.setdefault(normalized, SpeciesCoverageCounts())
+            status_count.record(met)
+
+    def as_dict(self) -> dict[str, int]:
+        return {
+            "metSpeciesCount": self.met,
+            "totalSpeciesCount": self.total,
+        }
 
 
 @dataclass
@@ -102,6 +139,17 @@ class SpeciesAccumulator:
         n_selected_in_range: int,
         total_range: int,
     ) -> None:
+        coverage_target_met = _species_coverage_target_met(
+            n_selected=n_selected_in_range,
+            total=total_range,
+            target_pct=self.target_pct,
+        )
+        if sp.bucket is not None:
+            self.national.coverage_by_bucket[sp.bucket].record(
+                coverage_target_met,
+                sp.iucn_status,
+            )
+
         if n_selected_in_range == 0:
             return
         self.national.all_present += 1
@@ -128,13 +176,28 @@ class SpeciesAccumulator:
         Both arrays have length equal to the number of boundaries at this level
         and are precomputed via ``np.bincount`` over ``boundary_id`` arrays.
         """
-        present_indices = np.flatnonzero(sel_per_boundary > 0)
-        if present_indices.size == 0:
-            return
         scope_counts = self.sub[level]
         is_threatened = sp.threatened
         target = self.target_pct
         bucket = sp.bucket
+
+        if bucket is not None:
+            range_indices = np.flatnonzero(total_per_boundary > 0)
+            for bidx in range_indices.tolist():
+                denom = int(total_per_boundary[bidx])
+                selected = int(sel_per_boundary[bidx])
+                scope_counts[bidx].coverage_by_bucket[bucket].record(
+                    _species_coverage_target_met(
+                        n_selected=selected,
+                        total=denom,
+                        target_pct=target,
+                    ),
+                    sp.iucn_status,
+                )
+
+        present_indices = np.flatnonzero(sel_per_boundary > 0)
+        if present_indices.size == 0:
+            return
         for bidx in present_indices.tolist():
             counts = scope_counts[bidx]
             counts.all_present += 1
@@ -169,6 +232,7 @@ class SpeciesScopeMetrics:
     threatened_present: int               # #26
     threatened_secured: int               # #3
     pct_of_national: float                # #28: all_present / pool * 100
+    species_group_coverage: dict[str, object]  # #2 details payload
 
     @classmethod
     def from_counts(
@@ -187,6 +251,7 @@ class SpeciesScopeMetrics:
             threatened_present=counts.threatened_present,
             threatened_secured=counts.threatened_secured,
             pct_of_national=pct,
+            species_group_coverage=_species_group_coverage_details(counts),
         )
 
 
@@ -207,3 +272,47 @@ def filter_records_with_pool(records: Iterable[SpeciesRecord]) -> list[SpeciesRe
     ``species_data`` rather than here.
     """
     return [r for r in records if r.bucket is not None]
+
+
+def _species_coverage_target_met(
+    *,
+    n_selected: int,
+    total: int,
+    target_pct: float | None,
+) -> bool:
+    return target_pct is not None and total > 0 and (n_selected / total) * 100.0 >= target_pct
+
+
+def _species_group_coverage_details(counts: SpeciesScopeCounts) -> dict[str, object]:
+    total = SpeciesCoverageCounts()
+    groups: dict[str, object] = {}
+
+    for group in CLASS_BUCKETS:
+        group_count = counts.coverage_by_bucket[group]
+        if group_count.total == 0:
+            continue
+        total.met += group_count.met
+        total.total += group_count.total
+        groups[group] = {
+            "label": _GROUP_LABELS[group],
+            **group_count.as_dict(),
+            "iucnStatusBreakdown": {
+                status: group_count.by_status[status].as_dict()
+                for status in IUCN_STATUS_ORDER
+                if status in group_count.by_status and group_count.by_status[status].total > 0
+            },
+        }
+
+    return {
+        "summary": total.as_dict(),
+        "groups": groups,
+    }
+
+
+def _normalize_iucn_status(value: str) -> str:
+    status = value.strip().upper()
+    if status in {"CR", "EN", "VU", "NT", "LC", "DD"}:
+        return status
+    if status:
+        return "other"
+    return "unknown"

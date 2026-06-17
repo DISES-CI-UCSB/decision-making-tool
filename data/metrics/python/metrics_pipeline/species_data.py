@@ -60,13 +60,15 @@ SPECIES_CSV_URL = f"{SPECIES_BLOB_PREFIX}/biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_TIF_SUFFIX = "_10_MAXENT.tif"
 
 # Solution-name regex parts for parsing scenario target percent.
-# The Solution Finder writes IDs like "Ecos17+ESTR30+RUNAP_HF" or
-# "ESTR30+RUNAP+OMEC_HF".  When both ``ESTR<NN>`` and ``Ecos<NN>`` appear we
-# take ``ESTR`` because that's the strategic-ecosystems / scenario target the
-# user picks in the Solution Finder.
+# The Solution Finder writes IDs like "Ecos17+ESTR30+RUNAP_HF",
+# "ESTR30+RUNAP+OMEC_HF", or Nick-run species scenarios like "Esp17+RUNAP".
+# When multiple target tokens appear we prefer the most specific species/strategic
+# token before falling back to the broad ecosystem token.
 _TARGET_TOKEN_PRIORITY: tuple[tuple[str, ...], ...] = (
     ("ESTR17", "estr17"),
     ("ESTR30", "estr30"),
+    ("Esp17", "esp17"),
+    ("Esp30", "esp30"),
     ("Ecos17", "ecos17"),
     ("Ecos30", "ecos30"),
 )
@@ -114,9 +116,9 @@ class SpeciesRecord:
 def parse_scenario_target_percent(solution_name_or_id: str) -> float | None:
     """Return the scenario target as a percent (e.g. 17.0 or 30.0) or None.
 
-    Looks for the first matching ``ESTR<NN>`` token, falling back to
+    Looks for the first matching ``ESTR<NN>``/``Esp<NN>`` token, falling back to
     ``Ecos<NN>``.  Both casings are accepted.  Returns ``None`` if no token
-    matches — the caller should mark species-secured metrics as
+    matches — the caller should mark target-dependent species metrics as
     ``derivation_needed`` in that case.
     """
     if not solution_name_or_id:

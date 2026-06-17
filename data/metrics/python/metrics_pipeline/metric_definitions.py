@@ -47,6 +47,7 @@ MetricKind = Literal[
     "weighted_percent_of_national",
     # Species range overlap (computed by the species accumulator, not per-scope rasters).
     # Distinct kinds let the frontend label/format each consistently with its number.
+    "species_group_coverage",             # #2: species meeting target by taxonomic group/IUCN
     "species_richness",                  # #21–#25: count of species in a class bucket
     "species_threatened_count",          # #26: count of CR/EN/VU non-fish present
     "species_threatened_secured",        # #3:  threatened species with coverage >= scenario target %
@@ -107,10 +108,11 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         unit="count",
         format_hint="number",
         source_note=(
-            "Counts coverage[] rows where met == true. Marked derivation_needed "
-            "when no usable coverage rows are present."
+            "Counts modeled non-fish species with usable range rasters whose "
+            "solution coverage meets the scenario target, grouped by taxonomic "
+            "bucket and IUCN status in metric.details."
         ),
-        kind="metadata_coverage",
+        kind="species_group_coverage",
     ),
     MetricDefinition(
         metric_id="ecosystem_coverage",
@@ -249,7 +251,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         metric_id="ecosystem_coverage_paramo",
         metric_number=30,
         label_key="metrics.tier1.ecosystem_paramo",
-        english_label="Ecosystem Coverage - Paramo",
+        english_label="Ecosystem Coverage - Páramo",
         spanish_label="Cobertura de páramo",
         unit="km2",
         format_hint="number",
@@ -670,6 +672,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
 
 
 _SPECIES_KINDS = frozenset({
+    "species_group_coverage",
     "species_richness",
     "species_threatened_count",
     "species_threatened_secured",

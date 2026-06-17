@@ -225,7 +225,7 @@ Four cards with icons and values:
 - Heading: "Ecosystem Distribution"
 - Donut chart (use Chart.js) showing:
   * Cloud Forest: 35% (blue-green slice)
-  * Paramo: 20% (purple)
+  * Páramo: 20% (purple)
   * Dry Forest: 25% (tan)
   * Wetlands: 10% (teal)
   * Other: 10% (gray)
@@ -240,7 +240,7 @@ Four cards with icons and values:
   | Feature | Regional | National | Significance |
   |---------|----------|----------|--------------|
   | Cloud Forest | 2,500 km² | 16,800 km² | **15%** 🟢 |
-  | Paramo | 800 km² | 4,000 km² | **20%** 🟢 |
+  | Páramo | 800 km² | 4,000 km² | **20%** 🟢 |
   | CE Species | 5 species | 32 species | **16%** 🟢 |
   | Carbon | 85M tCO2e | 1.2B tCO2e | **7%** 🟡 |
 
@@ -248,7 +248,7 @@ Four cards with icons and values:
 - Color coding: Green (>10%), Yellow (5-10%), Red (<5%)
 
 **Auto-Generated Narrative (Blue bordered box):**
-"This municipality is a CRITICAL national contributor, containing 15% of Colombia's cloud forests and 20% of paramo ecosystems. It supports 5 critically endangered species (16% of national total) and stores 85M tCO2e (7% of national carbon stocks). Priority areas serve dual functions: protecting above-average biodiversity while maintaining water regulation for 2.5M downstream residents."
+"This municipality is a CRITICAL national contributor, containing 15% of Colombia's cloud forests and 20% of páramo ecosystems. It supports 5 critically endangered species (16% of national total) and stores 85M tCO2e (7% of national carbon stocks). Priority areas serve dual functions: protecting above-average biodiversity while maintaining water regulation for 2.5M downstream residents."
 
 ACTION BUTTONS (Footer):
 - "Generate Regional Report (PDF)"
@@ -321,7 +321,7 @@ Example features:
 1. Mammal Species - 30% selected
 2. Cloud Forest - 32% selected
 3. Threatened Amphibians - 25% selected
-4. Paramo Ecosystems - 30% selected
+4. Páramo Ecosystems - 30% selected
 5. Wetlands - 17% selected
 6. Marine Protected Areas - 30% selected
 
@@ -458,7 +458,7 @@ REPORT HEADER (All Pages):
 | Mammal Species | 30% | 32% | ✓ Met 🟢 |
 | Cloud Forest | 30% | 35% | ✓ Met 🟢 |
 | Threatened Amphibians | 25% | 22% | ✗ Unmet 🔴 |
-| Paramo Ecosystems | 30% | 28% | ✗ Unmet 🔴 |
+| Páramo Ecosystems | 30% | 28% | ✗ Unmet 🔴 |
 | Wetlands | 25% | 18% | ✗ Unmet 🔴 |
 
 **Spatial Summary Stat Cards:**
@@ -540,7 +540,7 @@ Three large stat cards:
 - Dual-axis chart (Chart.js): Biodiversity Achievement (bars) vs. Economic Cost (line)
 
 **Key Trade-offs Statement (Large bold text):**
-"This scenario prioritizes high-elevation ecosystems (cloud forests, paramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
+"This scenario prioritizes high-elevation ecosystems (cloud forests, páramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
 
 **Why Goals Were Unmet:**
 Heading: "Explanation of Unmet Conservation Targets"
@@ -645,7 +645,7 @@ Side-by-side checklist (2 columns):
 | Mammals | ✓ 32% | ✓ 35% |
 | Cloud Forest | ✓ 35% | ✓ 28% |
 | Wetlands | ✗ 18% | ✓ 27% |
-| Paramo | ✗ 28% | ✓ 32% |
+| Páramo | ✗ 28% | ✓ 32% |
 
 Highlight rows where one meets goal and other doesn't
 
@@ -1146,7 +1146,7 @@ REPORT HEADER:
 | Ecosystem Type | Area in Solution (km²) | % of Solution | % of National Distribution | Protection Status |
 |---------------|------------------------|---------------|---------------------------|-------------------|
 | Cloud Forest | 2,500 km² | 35% | 15% of national | ✓ Goal Met (30%) |
-| Paramo | 800 km² | 20% | 20% of national | ✗ Below Goal (25% target) |
+| Páramo | 800 km² | 20% | 20% of national | ✗ Below Goal (25% target) |
 | Dry Forest | 1,200 km² | 25% | 8% of national | ✓ Goal Met (20%) |
 | Wetlands | 450 km² | 10% | 5% of national | ✗ Below Goal (15% target) |
 | Marine/Coral | 320 km² | 8% | 12% of national | ✓ Goal Met (10%) |
@@ -1176,11 +1176,11 @@ REPORT HEADER:
 - Ecosystem service score: HIGH (carbon storage, water regulation)
 - Map showing cloud forest priority areas
 
-**Paramo Ecosystems:**
+**Páramo Ecosystems:**
 - Total area: 800 km²
-- % of national paramo: 20%
+- % of national páramo: 20%
 - Protection status: "✗ Below 25% target (-3%)"
-- Why goal unmet: "High agricultural opportunity cost in remaining paramo areas ($85M) and optimization prioritizing lower-cost ecosystems"
+- Why goal unmet: "High agricultural opportunity cost in remaining páramo areas ($85M) and optimization prioritizing lower-cost ecosystems"
 - Human Footprint breakdown
 - Ecosystem service score: VERY HIGH (water regulation for 3M people)
 
@@ -1216,7 +1216,7 @@ REPORT HEADER:
 **Carbon Storage by Ecosystem Type:**
 - Table and bar chart:
   * Cloud Forest: 1.2B tCO2e (48%)
-  * Paramo: 450M tCO2e (18%)
+  * Páramo: 450M tCO2e (18%)
   * Dry Forest: 600M tCO2e (24%)
   * Mangroves: 200M tCO2e (8%)
   * Other: 50M tCO2e (2%)
@@ -1224,7 +1224,7 @@ REPORT HEADER:
 - Map showing carbon density distribution
 
 **Water Regulation Capacity:**
-- High-elevation ecosystems (Cloud Forest, Paramo) provide water for 8M downstream residents
+- High-elevation ecosystems (Cloud Forest, Páramo) provide water for 8M downstream residents
 - Watershed analysis showing beneficiary populations
 - Map of priority watersheds
 
@@ -1238,7 +1238,7 @@ REPORT HEADER:
 **PAGE 5 - RECOMMENDATIONS & IMPLEMENTATION:**
 
 **Priority Actions:**
-1. **Address Paramo Protection Gap:** Target remaining 200 km² to meet conservation goal
+1. **Address Páramo Protection Gap:** Target remaining 200 km² to meet conservation goal
 2. **Seagrass Restoration:** Identify 80 km² of degraded seagrass for restoration to meet marine targets
 3. **Cloud Forest Connectivity:** Maintain 8 identified corridors between protected cloud forest patches
 4. **Mangrove Protection:** Prioritize 150 km² of mangroves at high human pressure risk

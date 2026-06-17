@@ -191,7 +191,7 @@
     {
       "id": "paramos",
       "spanishLabel": "P\u00e1ramos",
-      "englishLabel": "Paramos",
+      "englishLabel": "Páramos",
       "description": "Official p\u00e1ramo complex boundaries for environmental management and conservation planning.",
       "tooltip": "Shows high-altitude p\u00e1ramo ecosystems.",
       "dataRole": "feature_layer",
