@@ -44,12 +44,18 @@ interface SirapRegionOption {
   departments: string;
 }
 
+interface SourceLinkOption {
+  labelKey: string;
+  urlKey: string;
+}
+
 interface TargetTypeOption {
   id: FinderTargetType;
   labelKey: string;
   helpKey: string;
   sourceLabelKey?: string;
   sourceUrlKey?: string;
+  sourceLinks?: readonly SourceLinkOption[];
   isStrategic: boolean;
   isAvailable: boolean;
 }
@@ -83,8 +89,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       id: 'ecosystems',
       labelKey: 'solutionControls.finder.step1.ecosystemsLabel',
       helpKey: 'solutionControls.finder.step1.ecosystemsHelp',
-      sourceLabelKey: 'solutionControls.finder.step1.ecosystemsSourceLabel',
-      sourceUrlKey: 'solutionControls.finder.step1.ecosystemsSourceUrl',
+      sourceLinks: [
+        {
+          labelKey: 'solutionControls.finder.step1.ecosystemsOverviewSourceLabel',
+          urlKey: 'solutionControls.finder.step1.ecosystemsOverviewSourceUrl',
+        },
+        {
+          labelKey: 'solutionControls.finder.step1.ecosystemsDataSourceLabel',
+          urlKey: 'solutionControls.finder.step1.ecosystemsDataSourceUrl',
+        },
+      ],
       isStrategic: false,
       isAvailable: true,
     },
@@ -92,6 +106,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       id: 'strategic-ecosystems',
       labelKey: 'solutionControls.finder.step1.strategicEcosystemsLabel',
       helpKey: 'solutionControls.finder.step1.strategicEcosystemsHelp',
+      sourceLinks: [
+        {
+          labelKey: 'solutionControls.finder.step1.strategicEcosystemsSiacSourceLabel',
+          urlKey: 'solutionControls.finder.step1.strategicEcosystemsSiacSourceUrl',
+        },
+        {
+          labelKey: 'solutionControls.finder.step1.strategicEcosystemsInvemarSourceLabel',
+          urlKey: 'solutionControls.finder.step1.strategicEcosystemsInvemarSourceUrl',
+        },
+      ],
       isStrategic: true,
       isAvailable: true,
     },
