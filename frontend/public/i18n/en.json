@@ -123,6 +123,68 @@
       "valueUnavailable": "Unavailable",
       "deltaUnavailable": "No delta"
     },
+    "exports": {
+      "downloadOverviewCsv": "DOWNLOAD OVERVIEW METRICS CSV",
+      "downloadAoiCsv": "DOWNLOAD AOI METRICS CSV",
+      "downloadComparisonCsv": "DOWNLOAD COMPARISON METRICS CSV",
+      "context": {
+        "currentScenario": "Current scenario",
+        "selectedAoi": "Selected area of interest",
+        "versus": "vs"
+      },
+      "csvColumns": {
+        "metric": "Metric",
+        "description": "Description",
+        "value": "Value",
+        "unit": "Unit",
+        "baselineValue": "Baseline value",
+        "candidateValue": "Candidate value",
+        "difference": "Difference"
+      },
+      "metadata": {
+        "exportDetailsTitle": "Export details",
+        "scenarioInputsTitle": "Scenario search inputs",
+        "metricsTitle": "Metrics",
+        "field": "Field",
+        "value": "Value",
+        "stepColumn": "Step",
+        "selectionTypeColumn": "Selection type",
+        "selectionColumn": "Selection",
+        "exportType": "Export type",
+        "exportedAt": "Exported at",
+        "scenarioName": "Scenario name",
+        "whatToProtect": "What to protect",
+        "coverageLevel": "Coverage level",
+        "includedAreas": "Included areas",
+        "costs": "Costs",
+        "selected": "Selected",
+        "alwaysApplied": "Always applied",
+        "omecs": "OMECs",
+        "afroColombianTerritories": "Afro-Colombian territories",
+        "indigenousReserves": "Indigenous reserves",
+        "areaUnit": "Area unit",
+        "aoiName": "Area of interest",
+        "aoiType": "Area type",
+        "sirapScope": "SIRAP scope",
+        "baselineScenario": "Baseline scenario",
+        "baselinePrefix": "Baseline",
+        "baselineWhatToProtect": "Baseline what to protect",
+        "baselineCoverageLevel": "Baseline coverage level",
+        "baselineIncludedAreas": "Baseline included areas",
+        "baselineCosts": "Baseline costs",
+        "candidateScenario": "Candidate scenario",
+        "candidatePrefix": "Candidate",
+        "candidateWhatToProtect": "Candidate what to protect",
+        "candidateCoverageLevel": "Candidate coverage level",
+        "candidateIncludedAreas": "Candidate included areas",
+        "candidateCosts": "Candidate costs",
+        "exportTypes": {
+          "overview": "Overview metrics",
+          "aoi": "Area of interest metrics",
+          "comparison": "Scenario comparison metrics"
+        }
+      }
+    },
     "empty": {
       "title": "Select a scenario",
       "description": "Load a scenario from the left sidebar."
@@ -296,12 +358,12 @@
         "protection": "Cultural & Protection"
       },
       "metrics": {
-        "agreementArea": "Selected by both",
-        "agreementAreaDesc": "Places where Scenario A and Scenario B choose the same planning units.",
-        "uniqueScenarioA": "Only Scenario A",
-        "uniqueScenarioADesc": "Places selected by Scenario A that Scenario B does not select.",
-        "uniqueScenarioB": "Only Scenario B",
-        "uniqueScenarioBDesc": "Places selected by Scenario B that Scenario A does not select.",
+        "agreementArea": "Selected by Both Scenario A and Scenario B",
+        "agreementAreaDesc": "Selected by Both Scenario A and Scenario B",
+        "uniqueScenarioA": "Selected by Scenario A Only",
+        "uniqueScenarioADesc": "Selected by Scenario A Only",
+        "uniqueScenarioB": "Selected by Scenario B Only",
+        "uniqueScenarioBDesc": "Selected by Scenario B Only",
         "priorityArea": "Priority Conservation Area",
         "priorityAreaDesc": "Estimated protected footprint under each scenario.",
         "nationalTarget": "Contribution to 30x30 Target",

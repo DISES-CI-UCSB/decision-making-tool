@@ -123,6 +123,68 @@
       "valueUnavailable": "No disponible",
       "deltaUnavailable": "Sin delta"
     },
+    "exports": {
+      "downloadOverviewCsv": "DESCARGAR MÉTRICAS DEL RESUMEN CSV",
+      "downloadAoiCsv": "DESCARGAR MÉTRICAS DEL AOI CSV",
+      "downloadComparisonCsv": "DESCARGAR MÉTRICAS DE COMPARACIÓN CSV",
+      "context": {
+        "currentScenario": "Escenario actual",
+        "selectedAoi": "Área de interés seleccionada",
+        "versus": "vs"
+      },
+      "csvColumns": {
+        "metric": "Métrica",
+        "description": "Descripción",
+        "value": "Valor",
+        "unit": "Unidad",
+        "baselineValue": "Valor base",
+        "candidateValue": "Valor candidato",
+        "difference": "Diferencia"
+      },
+      "metadata": {
+        "exportDetailsTitle": "Detalles de exportación",
+        "scenarioInputsTitle": "Insumos de búsqueda del escenario",
+        "metricsTitle": "Métricas",
+        "field": "Campo",
+        "value": "Valor",
+        "stepColumn": "Paso",
+        "selectionTypeColumn": "Tipo de selección",
+        "selectionColumn": "Selección",
+        "exportType": "Tipo de exportación",
+        "exportedAt": "Exportado el",
+        "scenarioName": "Nombre del escenario",
+        "whatToProtect": "Qué proteger",
+        "coverageLevel": "Nivel de cobertura",
+        "includedAreas": "Áreas incluidas",
+        "costs": "Costos",
+        "selected": "Seleccionado",
+        "alwaysApplied": "Siempre aplicado",
+        "omecs": "OMECs",
+        "afroColombianTerritories": "Territorios afrocolombianos",
+        "indigenousReserves": "Resguardos indígenas",
+        "areaUnit": "Unidad de área",
+        "aoiName": "Área de interés",
+        "aoiType": "Tipo de área",
+        "sirapScope": "Alcance SIRAP",
+        "baselineScenario": "Escenario base",
+        "baselinePrefix": "Base",
+        "baselineWhatToProtect": "Qué proteger en escenario base",
+        "baselineCoverageLevel": "Nivel de cobertura base",
+        "baselineIncludedAreas": "Áreas incluidas base",
+        "baselineCosts": "Costos base",
+        "candidateScenario": "Escenario candidato",
+        "candidatePrefix": "Candidato",
+        "candidateWhatToProtect": "Qué proteger en escenario candidato",
+        "candidateCoverageLevel": "Nivel de cobertura candidato",
+        "candidateIncludedAreas": "Áreas incluidas candidatas",
+        "candidateCosts": "Costos candidato",
+        "exportTypes": {
+          "overview": "Métricas del resumen",
+          "aoi": "Métricas del área de interés",
+          "comparison": "Métricas de comparación de escenarios"
+        }
+      }
+    },
     "empty": {
       "title": "Selecciona un escenario",
       "description": "Carga un escenario desde la barra izquierda."
@@ -455,12 +517,12 @@
         "protection": "Cultural y protección"
       },
       "metrics": {
-        "agreementArea": "Seleccionado por ambos",
-        "agreementAreaDesc": "Lugares donde el Escenario A y el Escenario B eligen las mismas unidades de planificación.",
-        "uniqueScenarioA": "Solo Escenario A",
-        "uniqueScenarioADesc": "Lugares seleccionados por el Escenario A que el Escenario B no selecciona.",
-        "uniqueScenarioB": "Solo Escenario B",
-        "uniqueScenarioBDesc": "Lugares seleccionados por el Escenario B que el Escenario A no selecciona.",
+        "agreementArea": "Seleccionado por el Escenario A y el Escenario B",
+        "agreementAreaDesc": "Seleccionado por el Escenario A y el Escenario B",
+        "uniqueScenarioA": "Seleccionado solo por el Escenario A",
+        "uniqueScenarioADesc": "Seleccionado solo por el Escenario A",
+        "uniqueScenarioB": "Seleccionado solo por el Escenario B",
+        "uniqueScenarioBDesc": "Seleccionado solo por el Escenario B",
         "priorityArea": "Área prioritaria de conservación",
         "priorityAreaDesc": "Huella protegida estimada en cada escenario.",
         "nationalTarget": "Contribución a la meta 30x30",
