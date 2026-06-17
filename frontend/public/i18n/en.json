@@ -189,6 +189,13 @@
         "targetFamilyStrategic": "strategic ecosystems",
         "constraintsNone": "None"
       },
+      "solutionIdentity": {
+        "label": "Selected solution",
+        "breakdownToggle": "View full selection breakdown",
+        "step1": "Step 1 - What to protect",
+        "step2": "Step 2 - Costs",
+        "step3": "Step 3 - Included areas"
+      },
       "insightGains": "This scenario secures high-priority biodiversity and ecosystem targets with strong climate co-benefits.",
       "insightCosts": "This scenario affects priority implementation areas and should be balanced with socio-economic constraints.",
       "actions": {
@@ -699,6 +706,9 @@
     "selectScenario": "Select scenario",
     "activeScenarioLabel": "Active Scenario",
     "changeButton": "Change",
+    "viewBreakdown": "View breakdown",
+    "scenarioBreakdownTitle": "Scenario breakdown",
+    "closeBreakdown": "Close scenario breakdown",
     "selectedLayersTitle": "Selected Layers",
     "selectedLayersEmpty": "No layers selected yet. Add layers from Available Layers to control stack order.",
     "dragToReorder": "Drag to reorder {{name}}",
@@ -767,6 +777,10 @@
     "searchNoResults": "No layers match your search.",
     "searchNoResultsHint": "Try a broader term such as \"carbon\", \"wetlands\", or \"protected\".",
     "resetDefaults": "Reset Defaults",
+    "boundaryInfoAriaLabel": "Open more information about {{name}}",
+    "boundaryInfoKicker": "Layer info",
+    "boundaryInfoTitle": "About {{name}}",
+    "closeBoundaryInfo": "Close layer information",
     "sirapTooltip": "Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.",
     "speciesSearchPlaceholder": "Search {{taxon}}...",
     "chooseColorFor": "Choose color for {{name}}",

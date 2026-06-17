@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html id="breakdown-options-html-root" lang="en">
+  <head id="breakdown-options-head">
+    <meta id="breakdown-options-meta-charset" charset="UTF-8" />
+    <meta
+      id="breakdown-options-meta-viewport"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title id="breakdown-options-title">Active Scenario Breakdown Trigger Options</title>
+    <script id="breakdown-options-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="breakdown-options-font-link"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style id="breakdown-options-inline-styles">
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+
+      .breakdown-map-bg {
+        background-image:
+          radial-gradient(circle at 35% 28%, rgb(59 130 246 / 0.24), transparent 22%),
+          radial-gradient(circle at 58% 58%, rgb(16 185 129 / 0.2), transparent 20%),
+          linear-gradient(0deg, rgb(226 232 240) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(226 232 240) 1px, transparent 1px);
+        background-size:
+          auto,
+          auto,
+          32px 32px,
+          32px 32px;
+      }
+    </style>
+  </head>
+  <body id="breakdown-options-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <main id="breakdown-options-main" class="mx-auto max-w-7xl px-6 py-8">
+      <header id="breakdown-options-page-header" class="mb-6 max-w-3xl">
+        <p
+          id="breakdown-options-page-kicker"
+          class="text-[11px] font-bold uppercase tracking-[0.16em] text-sky-700"
+        >
+          Left Sidebar Mockup
+        </p>
+        <h1 id="breakdown-options-page-title" class="mt-2 text-3xl font-extrabold tracking-tight">
+          Active scenario breakdown trigger options
+        </h1>
+        <p id="breakdown-options-page-copy" class="mt-3 text-sm leading-6 text-slate-600">
+          Fifteen compact ways to expose the scenario breakdown without making the Active Scenario card feel
+          bottom-heavy or button-heavy.
+        </p>
+      </header>
+
+      <section
+        id="breakdown-options-layout"
+        class="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]"
+      >
+        <aside
+          id="breakdown-options-sidebar-panel"
+          class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        >
+          <header id="breakdown-options-sidebar-header" class="border-b border-slate-200 px-5 py-4">
+            <h2 id="breakdown-options-sidebar-title" class="text-xl font-bold tracking-tight">
+              Map Layers
+            </h2>
+          </header>
+
+          <div id="breakdown-options-sidebar-body" class="space-y-4 p-5">
+            <article
+              id="breakdown-options-option-one-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-one-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-one-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-one-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-one-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-one-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-one-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-one-change-label">Change</span>
+                </button>
+              </div>
+
+              <button
+                id="breakdown-options-option-one-trigger"
+                type="button"
+                class="mt-2 inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-bold leading-none text-slate-700"
+              >
+                <span id="breakdown-options-option-one-trigger-label">View breakdown</span>
+                <span
+                  id="breakdown-options-option-one-trigger-caret"
+                  class="inline-flex h-3 w-3 items-center justify-center text-slate-500"
+                  aria-hidden="true"
+                  >&#8964;</span
+                >
+              </button>
+            </article>
+
+            <article
+              id="breakdown-options-option-two-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-two-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-two-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-two-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-two-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-two-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-two-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-two-change-label">Change</span>
+                </button>
+              </div>
+
+              <button
+                id="breakdown-options-option-two-trigger"
+                type="button"
+                class="mt-2 inline-flex items-center gap-1 rounded-sm border-b border-slate-300 pb-0.5 text-[11px] font-bold leading-none text-slate-600"
+              >
+                <span id="breakdown-options-option-two-trigger-label">View breakdown</span>
+                <span id="breakdown-options-option-two-trigger-caret" aria-hidden="true">&#8964;</span>
+              </button>
+            </article>
+
+            <article
+              id="breakdown-options-option-three-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-three-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-three-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-three-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-three-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-three-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-three-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-three-change-label">Change</span>
+                </button>
+              </div>
+
+              <button
+                id="breakdown-options-option-three-trigger"
+                type="button"
+                class="mt-2 flex w-full items-center justify-between rounded-md border-t border-slate-100 pt-2 text-[11px] font-bold leading-none text-slate-600"
+              >
+                <span id="breakdown-options-option-three-trigger-label">View breakdown</span>
+                <span
+                  id="breakdown-options-option-three-trigger-caret"
+                  class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-500"
+                  aria-hidden="true"
+                  >&#8964;</span
+                >
+              </button>
+            </article>
+
+            <article
+              id="breakdown-options-option-four-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-four-header" class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-2">
+                <div id="breakdown-options-option-four-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-four-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-four-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-four-trigger"
+                  type="button"
+                  class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600"
+                  aria-label="View breakdown"
+                >
+                  <span id="breakdown-options-option-four-trigger-caret" aria-hidden="true">&#8964;</span>
+                </button>
+                <button
+                  id="breakdown-options-option-four-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-four-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-four-change-label">Change</span>
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-five-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <button
+                id="breakdown-options-option-five-trigger"
+                type="button"
+                class="flex w-full items-start justify-between gap-3 text-left"
+              >
+                <span id="breakdown-options-option-five-copy" class="min-w-0">
+                  <span
+                    id="breakdown-options-option-five-label"
+                    class="block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </span>
+                  <span
+                    id="breakdown-options-option-five-title"
+                    class="block truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </span>
+                  <span
+                    id="breakdown-options-option-five-hint"
+                    class="mt-1 block text-[11px] font-bold leading-none text-slate-500"
+                  >
+                    View breakdown
+                  </span>
+                </span>
+                <span
+                  id="breakdown-options-option-five-caret-shell"
+                  class="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600"
+                  aria-hidden="true"
+                >
+                  <span id="breakdown-options-option-five-caret">&#8964;</span>
+                </span>
+              </button>
+              <button
+                id="breakdown-options-option-five-change-button"
+                type="button"
+                class="mt-2 inline-flex items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+              >
+                <span
+                  id="breakdown-options-option-five-change-icon"
+                  class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                  aria-hidden="true"
+                  >&#8644;</span
+                >
+                <span id="breakdown-options-option-five-change-label">Change</span>
+              </button>
+            </article>
+
+            <article
+              id="breakdown-options-option-six-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-six-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-six-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-six-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-six-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-six-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-six-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-six-change-label">Change</span>
+                </button>
+              </div>
+              <div id="breakdown-options-option-six-footer" class="mt-2 flex justify-end">
+                <button
+                  id="breakdown-options-option-six-trigger"
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-bold leading-none text-slate-700"
+                >
+                  <span id="breakdown-options-option-six-trigger-label">View breakdown</span>
+                  <span id="breakdown-options-option-six-trigger-caret" aria-hidden="true">&#8964;</span>
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-seven-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-seven-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-seven-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-seven-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-seven-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-seven-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-seven-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-seven-change-label">Change</span>
+                </button>
+              </div>
+              <div id="breakdown-options-option-seven-footer" class="mt-2 flex justify-end border-t border-slate-100 pt-2">
+                <button
+                  id="breakdown-options-option-seven-trigger"
+                  type="button"
+                  class="inline-flex items-center gap-1 text-[11px] font-bold leading-none text-slate-600"
+                >
+                  <span id="breakdown-options-option-seven-trigger-label">View breakdown</span>
+                  <span id="breakdown-options-option-seven-trigger-caret" aria-hidden="true">&#8964;</span>
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-eight-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-eight-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-eight-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-eight-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-eight-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-eight-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-eight-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-eight-change-label">Change</span>
+                </button>
+              </div>
+              <div id="breakdown-options-option-eight-footer" class="mt-2 flex justify-end">
+                <button
+                  id="breakdown-options-option-eight-trigger"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-sm border-b border-slate-300 pb-0.5 text-[11px] font-bold leading-none text-slate-600"
+                >
+                  <span id="breakdown-options-option-eight-trigger-label">View breakdown</span>
+                  <span id="breakdown-options-option-eight-trigger-caret" aria-hidden="true">&#8964;</span>
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-nine-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-nine-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-nine-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-nine-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-nine-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-nine-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-nine-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-nine-change-label">Change</span>
+                </button>
+              </div>
+              <div id="breakdown-options-option-nine-footer" class="mt-2 flex justify-end">
+                <button
+                  id="breakdown-options-option-nine-trigger"
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-600"
+                >
+                  <span id="breakdown-options-option-nine-trigger-label">Breakdown</span>
+                  <span id="breakdown-options-option-nine-trigger-caret" aria-hidden="true">&#8964;</span>
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-ten-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-ten-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-ten-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-ten-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-ten-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-ten-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-ten-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-ten-change-label">Change</span>
+                </button>
+              </div>
+              <div id="breakdown-options-option-ten-footer" class="mt-2 flex justify-end">
+                <button
+                  id="breakdown-options-option-ten-trigger"
+                  type="button"
+                  class="inline-grid grid-cols-[1fr_auto] items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-right text-[11px] font-bold leading-none text-slate-700"
+                >
+                  <span id="breakdown-options-option-ten-trigger-label">View breakdown</span>
+                  <span
+                    id="breakdown-options-option-ten-trigger-caret"
+                    class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-slate-50 text-slate-500"
+                    aria-hidden="true"
+                    >&#8964;</span
+                  >
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-eleven-card"
+              class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-slate-900 bg-white p-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-eleven-copy" class="min-w-0 self-center">
+                <p
+                  id="breakdown-options-option-eleven-label"
+                  class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                >
+                  Active scenario
+                </p>
+                <p
+                  id="breakdown-options-option-eleven-title"
+                  class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                >
+                  2 targets at 17% + 1 cost + 3 includes
+                </p>
+              </div>
+              <div
+                id="breakdown-options-option-eleven-action-rail"
+                class="flex shrink-0 flex-col items-stretch justify-between gap-2"
+              >
+                <button
+                  id="breakdown-options-option-eleven-change-button"
+                  type="button"
+                  class="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-eleven-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-eleven-change-label">Change</span>
+                </button>
+                <button
+                  id="breakdown-options-option-eleven-trigger"
+                  type="button"
+                  class="inline-flex justify-end gap-1 text-[11px] font-bold leading-none text-slate-600"
+                >
+                  <span id="breakdown-options-option-eleven-trigger-label">View Breakdown</span>
+                  <span id="breakdown-options-option-eleven-trigger-caret" aria-hidden="true">&#8964;</span>
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-twelve-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-2.5 shadow-sm"
+            >
+              <div id="breakdown-options-option-twelve-top-row" class="flex items-center justify-between gap-3">
+                <p
+                  id="breakdown-options-option-twelve-label"
+                  class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                >
+                  Active scenario
+                </p>
+                <button
+                  id="breakdown-options-option-twelve-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-twelve-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-twelve-change-label">Change</span>
+                </button>
+              </div>
+              <div
+                id="breakdown-options-option-twelve-bottom-row"
+                class="mt-1.5 flex items-end justify-between gap-3"
+              >
+                <p
+                  id="breakdown-options-option-twelve-title"
+                  class="min-w-0 truncate text-[15px] font-bold leading-5 text-slate-900"
+                >
+                  2 targets at 17% + 1 cost + 3 includes
+                </p>
+                <button
+                  id="breakdown-options-option-twelve-trigger"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1 rounded-sm pb-0.5 text-[11px] font-bold leading-none text-slate-600"
+                >
+                  <span id="breakdown-options-option-twelve-trigger-label">View Breakdown</span>
+                  <span id="breakdown-options-option-twelve-trigger-caret" aria-hidden="true">&#8964;</span>
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-thirteen-card"
+              class="rounded-lg border border-slate-900 bg-white shadow-sm"
+            >
+              <div id="breakdown-options-option-thirteen-main" class="px-3 pb-2 pt-3">
+                <div id="breakdown-options-option-thirteen-header" class="flex items-start justify-between gap-3">
+                  <div id="breakdown-options-option-thirteen-copy" class="min-w-0">
+                    <p
+                      id="breakdown-options-option-thirteen-label"
+                      class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                    >
+                      Active scenario
+                    </p>
+                    <p
+                      id="breakdown-options-option-thirteen-title"
+                      class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                    >
+                      2 targets at 17% + 1 cost + 3 includes
+                    </p>
+                  </div>
+                  <button
+                    id="breakdown-options-option-thirteen-change-button"
+                    type="button"
+                    class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                  >
+                    <span
+                      id="breakdown-options-option-thirteen-change-icon"
+                      class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                      aria-hidden="true"
+                      >&#8644;</span
+                    >
+                    <span id="breakdown-options-option-thirteen-change-label">Change</span>
+                  </button>
+                </div>
+              </div>
+              <button
+                id="breakdown-options-option-thirteen-trigger"
+                type="button"
+                class="flex w-full items-center justify-between border-t border-slate-100 px-3 py-1.5 text-[11px] font-bold leading-none text-slate-600"
+              >
+                <span id="breakdown-options-option-thirteen-trigger-label">View Breakdown</span>
+                <span
+                  id="breakdown-options-option-thirteen-trigger-caret"
+                  class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-50 text-slate-500"
+                  aria-hidden="true"
+                  >&#8964;</span
+                >
+              </button>
+            </article>
+
+            <article
+              id="breakdown-options-option-fourteen-card"
+              class="rounded-lg border border-slate-900 bg-white p-3 shadow-sm"
+            >
+              <div id="breakdown-options-option-fourteen-header" class="flex items-center justify-between gap-3">
+                <p
+                  id="breakdown-options-option-fourteen-label"
+                  class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                >
+                  Active scenario
+                </p>
+                <button
+                  id="breakdown-options-option-fourteen-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-fourteen-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-fourteen-change-label">Change</span>
+                </button>
+              </div>
+              <p
+                id="breakdown-options-option-fourteen-title"
+                class="mt-1 truncate text-[15px] font-bold leading-5 text-slate-900"
+              >
+                2 targets at 17% + 1 cost + 3 includes
+              </p>
+              <div id="breakdown-options-option-fourteen-footer" class="mt-2 flex justify-end">
+                <button
+                  id="breakdown-options-option-fourteen-trigger"
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-full bg-slate-100 py-1 pl-2.5 pr-1 text-[11px] font-bold leading-none text-slate-600"
+                >
+                  <span id="breakdown-options-option-fourteen-trigger-label">View Breakdown</span>
+                  <span
+                    id="breakdown-options-option-fourteen-trigger-caret"
+                    class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm"
+                    aria-hidden="true"
+                    >&#8964;</span
+                  >
+                </button>
+              </div>
+            </article>
+
+            <article
+              id="breakdown-options-option-fifteen-card"
+              class="rounded-lg border border-slate-900 bg-white px-3 py-2.5 shadow-sm"
+            >
+              <div id="breakdown-options-option-fifteen-header" class="flex items-start justify-between gap-3">
+                <div id="breakdown-options-option-fifteen-copy" class="min-w-0">
+                  <p
+                    id="breakdown-options-option-fifteen-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active scenario
+                  </p>
+                  <p
+                    id="breakdown-options-option-fifteen-title"
+                    class="truncate text-[15px] font-bold leading-5 text-slate-900"
+                  >
+                    2 targets at 17% + 1 cost + 3 includes
+                  </p>
+                </div>
+                <button
+                  id="breakdown-options-option-fifteen-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <span
+                    id="breakdown-options-option-fifteen-change-icon"
+                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    aria-hidden="true"
+                    >&#8644;</span
+                  >
+                  <span id="breakdown-options-option-fifteen-change-label">Change</span>
+                </button>
+              </div>
+              <button
+                id="breakdown-options-option-fifteen-trigger"
+                type="button"
+                class="mt-2 flex w-full items-center justify-end gap-1.5 rounded-md bg-slate-50 px-2 py-1 text-[11px] font-bold leading-none text-slate-600"
+              >
+                <span id="breakdown-options-option-fifteen-trigger-rule" class="h-px flex-1 bg-slate-200"></span>
+                <span id="breakdown-options-option-fifteen-trigger-label">View Breakdown</span>
+                <span id="breakdown-options-option-fifteen-trigger-caret" aria-hidden="true">&#8964;</span>
+              </button>
+            </article>
+          </div>
+        </aside>
+
+        <section id="breakdown-options-analysis-panel" class="grid gap-4 lg:grid-cols-2">
+          <article id="breakdown-options-principles-card" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p
+              id="breakdown-options-principles-kicker"
+              class="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-700"
+            >
+              Quick read
+            </p>
+            <h2 id="breakdown-options-principles-title" class="mt-2 text-lg font-extrabold">
+              Fifteen visual strategies
+            </h2>
+            <ul id="breakdown-options-principles-list" class="mt-3 space-y-2 text-sm leading-5 text-slate-600">
+              <li id="breakdown-options-principles-item-one">
+                Option 1 keeps a small button but makes it optically tight.
+              </li>
+              <li id="breakdown-options-principles-item-two">
+                Option 2 reads like a text link and has the least visual weight.
+              </li>
+              <li id="breakdown-options-principles-item-three">
+                Option 3 uses a divider row to make the whole lower edge feel intentional.
+              </li>
+              <li id="breakdown-options-principles-item-four">
+                Option 4 makes the caret an icon action next to Change.
+              </li>
+              <li id="breakdown-options-principles-item-five">
+                Option 5 makes the whole card the disclosure target, reducing button clutter.
+              </li>
+              <li id="breakdown-options-principles-item-six">
+                Options 6-10 test bottom-right placement with different weights: pill, link, underline, badge, and compact split button.
+              </li>
+              <li id="breakdown-options-principles-item-seven">
+                Options 11-15 rebalance the whole widget by changing the card grid, footer, and action hierarchy.
+              </li>
+            </ul>
+          </article>
+
+          <article id="breakdown-options-recommendation-card" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p
+              id="breakdown-options-recommendation-kicker"
+              class="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700"
+            >
+              Recommendation
+            </p>
+            <h2 id="breakdown-options-recommendation-title" class="mt-2 text-lg font-extrabold">
+              Start with Option 12 or Option 13.
+            </h2>
+            <p id="breakdown-options-recommendation-copy" class="mt-3 text-sm leading-6 text-slate-600">
+              Option 12 keeps all three jobs visible without adding a heavy footer. Option 13 is the clearest
+              disclosure pattern if the breakdown should feel like a card-level action.
+            </p>
+            <div
+              id="breakdown-options-map-preview"
+              class="breakdown-map-bg mt-4 h-64 rounded-lg border border-slate-200"
+            ></div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

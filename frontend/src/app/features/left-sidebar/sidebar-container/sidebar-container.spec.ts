@@ -1,11 +1,31 @@
 import { TestBed } from '@angular/core/testing';
+import {
+  provideTranslateLoader,
+  provideTranslateService,
+  TranslateNoOpLoader,
+  TranslateService,
+} from '@ngx-translate/core';
 import { SidebarContainerComponent } from './sidebar-container';
 
 describe('SidebarContainerComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SidebarContainerComponent],
+      providers: [
+        provideTranslateService({
+          lang: 'en',
+          fallbackLang: 'en',
+          loader: provideTranslateLoader(TranslateNoOpLoader),
+        }),
+      ],
     }).compileComponents();
+
+    TestBed.inject(TranslateService).setTranslation('en', {
+      mapLayersPanel: {
+        title: 'Map Layers',
+        selectScenario: 'Select scenario',
+      },
+    });
   });
 
   it('renders the map layers panel shell', () => {

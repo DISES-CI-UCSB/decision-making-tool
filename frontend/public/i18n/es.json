@@ -189,6 +189,13 @@
         "targetFamilyStrategic": "ecosistemas estratégicos",
         "constraintsNone": "Ninguna"
       },
+      "solutionIdentity": {
+        "label": "Solución seleccionada",
+        "breakdownToggle": "Ver desglose completo de la selección",
+        "step1": "Paso 1 - Qué proteger",
+        "step2": "Paso 2 - Costos",
+        "step3": "Paso 3 - Áreas incluidas"
+      },
       "insightGains": "Este escenario asegura metas de biodiversidad y ecosistemas de alta prioridad con fuertes co-beneficios climáticos.",
       "insightCosts": "Este escenario afecta áreas prioritarias de implementación y debe equilibrarse con restricciones socioeconómicas.",
       "actions": {
@@ -699,6 +706,9 @@
     "selectScenario": "Seleccionar escenario",
     "activeScenarioLabel": "Escenario activo",
     "changeButton": "Cambiar",
+    "viewBreakdown": "Ver desglose",
+    "scenarioBreakdownTitle": "Desglose del escenario",
+    "closeBreakdown": "Cerrar desglose del escenario",
     "selectedLayersTitle": "Capas seleccionadas",
     "selectedLayersEmpty": "No hay capas seleccionadas aún. Agrega capas desde Capas disponibles para controlar el orden de la pila.",
     "dragToReorder": "Arrastrar para reordenar {{name}}",
@@ -767,6 +777,10 @@
     "searchNoResults": "Ninguna capa coincide con la búsqueda.",
     "searchNoResultsHint": "Prueba términos más amplios como \"carbon\", \"wetlands\" o \"protected\".",
     "resetDefaults": "Restablecer predeterminados",
+    "boundaryInfoAriaLabel": "Abrir más información sobre {{name}}",
+    "boundaryInfoKicker": "Información de la capa",
+    "boundaryInfoTitle": "Acerca de {{name}}",
+    "closeBoundaryInfo": "Cerrar información de la capa",
     "sirapTooltip": "Los SIRAP territoriales son amplios sistemas regionales de conservación. Los SIRAP temáticos son adiciones especiales, como Eje Cafetero y Macizo, que pueden superponerse con los SIRAP territoriales. La capa combinada muestra ambos juntos para revisión.",
     "speciesSearchPlaceholder": "Buscar {{taxon}}...",
     "chooseColorFor": "Elegir color para {{name}}",
