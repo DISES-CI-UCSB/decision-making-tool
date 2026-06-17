@@ -65,6 +65,7 @@ export interface MetricValue {
   notes: string | null;
   labelKey: string;
   formatHint: MetricValueFormatHint;
+  details?: Record<string, unknown>;
 }
 
 /** One administrative scope (national Colombia, a department, municipality, SIRAP, …). */
@@ -123,6 +124,7 @@ export type CompactMetricRow = [
   statusIndex: number,
   sourceIndex: number,
   notesIndex: number,
+  details?: Record<string, unknown>,
 ];
 
 export interface CompactGeographyMetricsScope {

@@ -101,6 +101,7 @@ from species_data import (
     parse_scenario_target_percent,
     read_species_mask,
 )
+from summary_species_coverage import compute_species_group_coverage_details
 from calculators import area as calc_area
 from calculators import carbon as calc_carbon
 from calculators import ecosystem_coverage as calc_ecosystem
@@ -466,8 +467,9 @@ def _metric_value(
     status: str,
     notes: str | None,
     source: str,
+    details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    metric = {
         "metricId": definition.metric_id,
         "value": value,
         "unit": definition.unit,
@@ -477,6 +479,9 @@ def _metric_value(
         "labelKey": definition.label_key,
         "formatHint": definition.format_hint,
     }
+    if details is not None:
+        metric["details"] = details
+    return metric
 
 
 def _not_applicable(definition: MetricDefinition) -> dict[str, Any]:
@@ -564,12 +569,28 @@ def _compute_metadata_summary(definition: MetricDefinition, solution: dict[str, 
     )
 
 
-def _compute_metadata_coverage(definition: MetricDefinition, solution: dict[str, Any]) -> dict[str, Any]:
+def _compute_metadata_coverage(
+    definition: MetricDefinition,
+    solution: dict[str, Any],
+    cache_dir: Path,
+    force_download: bool,
+    species_records: list[SpeciesRecord] | None,
+) -> dict[str, Any]:
+    summary_metric = _compute_metadata_summary_csv_coverage(
+        definition,
+        solution,
+        cache_dir,
+        force_download,
+        species_records,
+    )
+    if summary_metric is not None:
+        return summary_metric
+
     coverage = solution.get("coverage")
     if not isinstance(coverage, list) or not coverage:
         return _metric_value(
             definition, value=None, status="derivation_needed",
-            notes="No coverage rows in manifest; species-group definition needs review.",
+            notes="No usable summary CSV species coverage or manifest coverage rows.",
             source="manifest:coverage",
         )
     met_count = sum(1 for row in coverage if isinstance(row, dict) and row.get("met") is True)
@@ -578,6 +599,59 @@ def _compute_metadata_coverage(definition: MetricDefinition, solution: dict[str,
         notes=f"Counted {met_count} of {len(coverage)} coverage rows with met == true.",
         source="manifest:coverage",
     )
+
+
+def _compute_metadata_summary_csv_coverage(
+    definition: MetricDefinition,
+    solution: dict[str, Any],
+    cache_dir: Path,
+    force_download: bool,
+    species_records: list[SpeciesRecord] | None,
+) -> dict[str, Any] | None:
+    if definition.metric_id != "species_groups_protected" or not species_records:
+        return None
+
+    metadata_url = solution.get("metadataUrl")
+    if not isinstance(metadata_url, str) or not metadata_url:
+        return None
+
+    summary_url = _summary_csv_url_from_metadata_url(metadata_url)
+    try:
+        summary_download = cached_download(summary_url, cache_dir, force=force_download)
+        details = compute_species_group_coverage_details(summary_download.path, species_records)
+    except Exception as exc:
+        print(
+            f"[tier1-metrics]   WARNING: could not compute species group coverage from summary CSV: {exc}",
+            file=sys.stderr,
+        )
+        return None
+
+    if details is None:
+        return None
+
+    summary = details["summary"]
+    met_species_count = int(summary["metSpeciesCount"])
+    total_species_count = int(summary["totalSpeciesCount"])
+    group_count = len(details["groups"])
+    return _metric_value(
+        definition,
+        value=met_species_count,
+        status="ready",
+        notes=(
+            f"{met_species_count:,} of {total_species_count:,} species rows met targets "
+            f"across {group_count} taxonomic group(s). See details.groups for per-group ratios."
+        ),
+        source="solution:metadataUrl:summary_csv+csv:biomod_spp_ranges_updatedIUCN",
+        details=details,
+    )
+
+
+def _summary_csv_url_from_metadata_url(metadata_url: str) -> str:
+    if metadata_url.endswith("_summary.csv"):
+        return metadata_url
+    if metadata_url.endswith(".json"):
+        return f"{metadata_url[:-5]}_summary.csv"
+    return f"{metadata_url.rstrip('/')}_summary.csv"
 
 
 def _compute_selected_area(definition: MetricDefinition, raster: SolutionRaster, subnational: bool = False) -> dict[str, Any]:
@@ -792,6 +866,41 @@ def _compute_species_metric(
             source="csv:biomod_spp_ranges_updatedIUCN",
         )
 
+    if definition.kind == "species_group_coverage":
+        if target_pct is None:
+            return _metric_value(
+                definition, value=None, status="derivation_needed",
+                notes=(
+                    "Could not derive scenario target percent from solution name "
+                    "(no ESTR<NN> or Ecos<NN> token found); species group coverage cannot be computed."
+                ),
+                source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
+            )
+        details = species_metrics.species_group_coverage
+        summary = details.get("summary") if isinstance(details, dict) else None
+        met_species_count = (
+            int(summary.get("metSpeciesCount", 0))
+            if isinstance(summary, dict)
+            else 0
+        )
+        total_species_count = (
+            int(summary.get("totalSpeciesCount", 0))
+            if isinstance(summary, dict)
+            else 0
+        )
+        return _metric_value(
+            definition,
+            value=met_species_count,
+            status="ready",
+            notes=(
+                f"{met_species_count:,} of {total_species_count:,} modeled species with usable "
+                f"range rasters meet the {target_pct:g}% scenario target. "
+                "See details.groups for taxonomic and IUCN breakdowns."
+            ),
+            source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
+            details=details,
+        )
+
     if definition.kind == "species_richness":
         bucket = definition.species_bucket
         field_name = _SPECIES_BUCKET_TO_FIELD.get(bucket or "")
@@ -983,6 +1092,7 @@ def _build_metrics(
     preloaded_layer_values: dict[str, np.ndarray] | None = None,
     species_metrics: SpeciesScopeMetrics | None = None,
     species_target_pct: float | None = None,
+    species_records: list[SpeciesRecord] | None = None,
 ) -> list[dict[str, Any]]:
     """Compute all computable Tier 1 metrics for one raster scope.
 
@@ -993,6 +1103,7 @@ def _build_metrics(
       metrics will be marked 'derivation_needed').
     - species_target_pct: parsed scenario target (17.0 / 30.0). None means
       'threatened_secured' is reported as 'derivation_needed'.
+    - species_records: loaded species lookup records, used by metadata summary CSV coverage.
     """
     results: list[dict[str, Any]] = []
 
@@ -1010,7 +1121,13 @@ def _build_metrics(
             elif defn.kind == "metadata_summary":
                 results.append(_compute_metadata_summary(defn, solution))
             else:
-                results.append(_compute_metadata_coverage(defn, solution))
+                results.append(_compute_metadata_coverage(
+                    defn,
+                    solution,
+                    cache_dir,
+                    force_download,
+                    species_records,
+                ))
 
         elif defn.kind == "selected_area":
             results.append(_compute_selected_area(defn, raster, subnational=subnational))
@@ -1227,6 +1344,7 @@ def _process_solution(
         raster, solution, manifest, layer_cache, value_cache, cache_dir, force_download,
         species_metrics=national_species,
         species_target_pct=species_target,
+        species_records=species_records,
     )
 
     geographies: dict[str, Any] = {
@@ -1282,6 +1400,7 @@ def _process_solution(
                     preloaded_layer_values=layer_values,
                     species_metrics=feat_species,
                     species_target_pct=species_target,
+                    species_records=species_records,
                 )
                 entry: dict[str, Any] = {"name": feat.name, "metrics": metrics}
                 # Include sirap_kind if present (legacy SIRAP entry shape).

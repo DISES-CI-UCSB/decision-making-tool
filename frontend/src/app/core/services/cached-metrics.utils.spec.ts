@@ -79,15 +79,37 @@ describe('cached-metrics.utils', () => {
       format: 'metrics-compact-v1',
       solutionId: 'demo',
       generatedAt: '2026-05-28T00:00:00Z',
-      metricCatalog: [['national_contribution', '%', 'metrics.national_contribution', 'percent']],
+      metricCatalog: [
+        ['national_contribution', '%', 'metrics.national_contribution', 'percent'],
+        ['species_groups_protected', 'count', 'metrics.species_groups_protected', 'number'],
+      ],
       statusCatalog: ['ready'],
-      sourceCatalog: ['raster:solution'],
-      notesCatalog: [null],
+      sourceCatalog: ['raster:solution', 'solution:metadataUrl:summary_csv'],
+      notesCatalog: [null, 'See details.groups for per-group ratios.'],
       geographies: {
         national: {
           colombia: {
             name: 'Colombia',
-            metrics: [[0, 12.5, 0, 0, 0]],
+            metrics: [
+              [0, 12.5, 0, 0, 0],
+              [
+                1,
+                245,
+                0,
+                1,
+                1,
+                {
+                  summary: { metSpeciesCount: 245, totalSpeciesCount: 251 },
+                  groups: {
+                    mammals: {
+                      label: 'Mammals',
+                      metSpeciesCount: 245,
+                      totalSpeciesCount: 251,
+                    },
+                  },
+                },
+              ],
+            ],
           },
         },
       },
@@ -103,6 +125,26 @@ describe('cached-metrics.utils', () => {
         notes: null,
         labelKey: 'metrics.national_contribution',
         formatHint: 'percent',
+      },
+      {
+        metricId: 'species_groups_protected',
+        value: 245,
+        unit: 'count',
+        status: 'ready',
+        source: 'solution:metadataUrl:summary_csv',
+        notes: 'See details.groups for per-group ratios.',
+        labelKey: 'metrics.species_groups_protected',
+        formatHint: 'number',
+        details: {
+          summary: { metSpeciesCount: 245, totalSpeciesCount: 251 },
+          groups: {
+            mammals: {
+              label: 'Mammals',
+              metSpeciesCount: 245,
+              totalSpeciesCount: 251,
+            },
+          },
+        },
       },
     ]);
   });
