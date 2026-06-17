@@ -11,7 +11,8 @@
     "steps": {
       "selectSolution": "Click Select solution to open the guided scenario finder.",
       "exploreMap": "Choose conservation priorities and review the matching scenario on the map.",
-      "reviewAnalysis": "Use the side panels to inspect layers, metrics, and tradeoffs."
+      "reviewAnalysis": "Use the side panels to inspect layers, metrics, and tradeoffs.",
+      "downloadOutputs": "Download a PNG of the map or a CSV of the metrics for reporting and follow-up analysis."
     },
     "actions": {
       "exploreFirst": "Explore map first",

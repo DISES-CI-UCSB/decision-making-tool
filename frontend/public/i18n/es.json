@@ -11,7 +11,8 @@
     "steps": {
       "selectSolution": "Haz clic en Seleccionar solución para abrir el buscador guiado de escenarios.",
       "exploreMap": "Elige prioridades de conservación y revisa el escenario coincidente en el mapa.",
-      "reviewAnalysis": "Usa los paneles laterales para revisar capas, métricas y compensaciones."
+      "reviewAnalysis": "Usa los paneles laterales para revisar capas, métricas y compensaciones.",
+      "downloadOutputs": "Descarga un PNG del mapa o un CSV de las métricas para informes y análisis posteriores."
     },
     "actions": {
       "exploreFirst": "Explorar mapa primero",
