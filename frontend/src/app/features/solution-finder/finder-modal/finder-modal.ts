@@ -48,6 +48,8 @@ interface TargetTypeOption {
   id: FinderTargetType;
   labelKey: string;
   helpKey: string;
+  sourceLabelKey?: string;
+  sourceUrlKey?: string;
   isStrategic: boolean;
   isAvailable: boolean;
 }
@@ -81,6 +83,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       id: 'ecosystems',
       labelKey: 'solutionControls.finder.step1.ecosystemsLabel',
       helpKey: 'solutionControls.finder.step1.ecosystemsHelp',
+      sourceLabelKey: 'solutionControls.finder.step1.ecosystemsSourceLabel',
+      sourceUrlKey: 'solutionControls.finder.step1.ecosystemsSourceUrl',
       isStrategic: false,
       isAvailable: true,
     },
