@@ -54,7 +54,7 @@
     },
     "custom_polygon_area": "Drawn AOI area",
     "priority_area_total": "Priority area",
-    "national_contribution": "National contribution"
+    "national_contribution": "Share of Colombia selected"
   },
   "mapLegend": {
     "title": "Legend",
@@ -62,9 +62,9 @@
     "comparison": "Comparison",
     "scenarioAFallback": "Scenario A",
     "scenarioBFallback": "Scenario B",
-    "selected": "Areas included in this scenario ({{pct}}% of the nation)",
+    "selected": "Areas included in this scenario ({{pct}}% of Colombia)",
     "includedAreasFallback": "Included areas in solution",
-    "newCoverage": "New coverage added by this scenario ({{pct}}% of the nation)",
+    "newCoverage": "New priority area added by this scenario ({{pct}}% of Colombia)",
     "aOnly": "A only: {{name}}",
     "bOnly": "B only: {{name}}",
     "overlap": "Overlap (A + B)",
@@ -271,8 +271,8 @@
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",
         "ecosystemCoverageDesc": "Key ecosystems within scenario",
-        "nationalContribution": "Scenario Footprint",
-        "nationalContributionDesc": "Share of Colombia selected by this scenario",
+        "nationalContribution": "Share of Colombia selected",
+        "nationalContributionDesc": "Percentage of Colombia's land area included in this scenario's priority zones.",
         "priorityAreaTotal": "Priority Area (Selected)",
         "priorityAreaTotalDesc": "Total area selected by the scenario",
         "paramoCoverage": "Páramo Coverage",
@@ -367,8 +367,8 @@
         "uniqueScenarioBDesc": "Selected by Scenario B Only",
         "priorityArea": "Priority Conservation Area",
         "priorityAreaDesc": "Estimated protected footprint under each scenario.",
-        "nationalTarget": "Contribution to 30x30 Target",
-        "nationalTargetDesc": "Relative contribution toward national conservation commitments.",
+        "nationalTarget": "Share of Colombia selected",
+        "nationalTargetDesc": "Percentage of Colombia's land area included in this scenario's priority zones.",
         "biodiversity": "Biodiversity",
         "biodiversityDesc": "Composite biodiversity performance score.",
         "ecosystemCoverage": "Ecosystem Coverage",
@@ -435,7 +435,7 @@
       "hero": {
         "priorityAreaLabel": "Priority Area in Region",
         "ofMunicipality": "of this area of interest",
-        "nationalContributionLabel": "30×30 Contribution",
+        "nationalContributionLabel": "Share of Colombia selected",
         "existingAdds": "Existing {{existing}} + adds {{added}}"
       },
       "customMetrics": {

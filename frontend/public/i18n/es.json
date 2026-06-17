@@ -54,7 +54,7 @@
     },
     "custom_polygon_area": "Área del AOI dibujada",
     "priority_area_total": "Área prioritaria",
-    "national_contribution": "Contribución nacional"
+    "national_contribution": "Porcentaje de Colombia seleccionado"
   },
   "mapLegend": {
     "title": "Leyenda",
@@ -62,9 +62,9 @@
     "comparison": "Comparación",
     "scenarioAFallback": "Escenario A",
     "scenarioBFallback": "Escenario B",
-    "selected": "Áreas incluidas en este escenario ({{pct}}% del país)",
+    "selected": "Áreas incluidas en este escenario ({{pct}}% de Colombia)",
     "includedAreasFallback": "Áreas incluidas en la solución",
-    "newCoverage": "Nueva cobertura agregada por este escenario ({{pct}}% del país)",
+    "newCoverage": "Nueva área prioritaria agregada por este escenario ({{pct}}% de Colombia)",
     "aOnly": "Solo A: {{name}}",
     "bOnly": "Solo B: {{name}}",
     "overlap": "Superposición (A + B)",
@@ -271,8 +271,8 @@
         "threatenedSpeciesSecuredDesc": "Metas de hábitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",
         "ecosystemCoverageDesc": "Ecosistemas clave dentro del escenario",
-        "nationalContribution": "Huella del escenario",
-        "nationalContributionDesc": "Porcentaje de Colombia seleccionado por este escenario",
+        "nationalContribution": "Porcentaje de Colombia seleccionado",
+        "nationalContributionDesc": "Porcentaje del área terrestre de Colombia incluido en las zonas prioritarias de este escenario.",
         "priorityAreaTotal": "Área prioritaria seleccionada",
         "priorityAreaTotalDesc": "Área total seleccionada por el escenario",
         "paramoCoverage": "Cobertura de páramo",
@@ -362,7 +362,7 @@
       "hero": {
         "priorityAreaLabel": "Área prioritaria en la región",
         "ofMunicipality": "de esta área de interés",
-        "nationalContributionLabel": "Contribución 30×30",
+        "nationalContributionLabel": "Porcentaje de Colombia seleccionado",
         "existingAdds": "Existente {{existing}} + agrega {{added}}"
       },
       "customMetrics": {
@@ -526,8 +526,8 @@
         "uniqueScenarioBDesc": "Seleccionado solo por el Escenario B",
         "priorityArea": "Área prioritaria de conservación",
         "priorityAreaDesc": "Huella protegida estimada en cada escenario.",
-        "nationalTarget": "Contribución a la meta 30x30",
-        "nationalTargetDesc": "Contribución relativa a los compromisos nacionales de conservación.",
+        "nationalTarget": "Porcentaje de Colombia seleccionado",
+        "nationalTargetDesc": "Porcentaje del área terrestre de Colombia incluido en las zonas prioritarias de este escenario.",
         "biodiversity": "Biodiversidad",
         "biodiversityDesc": "Puntaje compuesto de desempeño en biodiversidad.",
         "ecosystemCoverage": "Cobertura de ecosistemas",
