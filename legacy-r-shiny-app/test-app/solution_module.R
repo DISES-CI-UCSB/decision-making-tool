@@ -176,7 +176,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data) {
       df$file_exists <- file.exists(file.path(base_folder(), df$file_path))
 
       # Keep only SolutionLayers schema columns + File
-      pl_columns <- c("scenario", "description", "author_name", "author_email", 
+      pl_columns <- c("solution", "description", "author_name", "author_email", 
         "user_group", "file_path", "file_exists",
         "themes","targets","weights","includes","excludes")
       df_subset <- df[, intersect(pl_columns, colnames(df)), drop = FALSE]
@@ -251,7 +251,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data) {
         bad_excludes <- parse_and_check(row$excludes, layers_df$name)
 
         if (length(c(bad_themes, bad_weights, bad_includes, bad_excludes)) > 0) {
-          invalid_refs[[row$scenario]] <- list(
+          invalid_refs[[row$solution]] <- list(
             themes = bad_themes,
             weights = bad_weights,
             includes = bad_includes,
@@ -264,7 +264,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data) {
       if (length(invalid_refs) > 0) {
         msg <- lapply(names(invalid_refs), function(scn) {
           bads <- invalid_refs[[scn]]
-          paste0("Scenario '", scn, "' invalid: ",
+          paste0("Solution '", scn, "' invalid: ",
                 paste(
                   unlist(mapply(function(type, vals) {
                     if (length(vals) > 0) paste0(type, " [", paste(vals, collapse = ", "), "]")
@@ -304,7 +304,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data) {
             uploaderId = as.character(user_info()$id),
             projectId = as.character(input$project_select),
             path = target_path,
-            name = row$scenario,
+            name = row$solution,
             description = paste("Solution file imported from ZIP:", row$description)
           )
           res_file <- client$exec(
@@ -365,7 +365,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data) {
             input = list(
               projectId   = as.character(input$project_select),
               authorId    = as.character(user_info()$id),
-              title       = row$scenario,
+              title       = row$solution,
               description = row$description,
               authorName  = row$author_name,
               authorEmail = row$author_email,
@@ -424,7 +424,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data) {
       #   payload <- list(
       #     input = list(
       #       projectId   = as.character(input$project_select),
-      #       title       = row$scenario,
+      #       title       = row$solution,
       #       description = row$description,
       #       authorName  = row$author_name,
       #       authorEmail = row$author_email,
@@ -444,7 +444,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data) {
       #     res_list <- jsonlite::fromJSON(res)
       #     showNotification(paste("✅ Added solution:", res_list$data$addSolution$title))
       #   }, error = function(e) {
-      #     showNotification(paste("❌ Failed to add solution", row$scenario, ":", e$message), type = "error")
+      #     showNotification(paste("❌ Failed to add solution", row$solution, ":", e$message), type = "error")
       #   })
       # }
 

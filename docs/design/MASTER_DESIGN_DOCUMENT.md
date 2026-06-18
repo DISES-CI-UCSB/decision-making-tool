@@ -135,7 +135,7 @@ These sections exist for traceability and accountability and should not be treat
 
 **The ECO-PLAN Decision Support Tool** is an interactive systematic conservation planning application for Colombia. It empowers users—from the general public to regional planners—to identify and prioritize conservation areas based on biodiversity, ecosystem services, and socio-economic data across **both terrestrial and marine/oceanic components** of Colombia's territory.
 
-The application operates on a **"Pre-calculated Exploration"** model. Instead of running complex optimizations in real-time, the system allows users to define their priorities, instantly matches them to the best-fitting pre-calculated scenario from a vast library, and provides deep analytical tools to explore that solution.
+The application operates on a **"Pre-calculated Exploration"** model. Instead of running complex optimizations in real-time, the system allows users to define their priorities, instantly matches them to the best-fitting pre-calculated solution from a vast library, and provides deep analytical tools to explore that solution.
 
 **Territorial Scope:** The tool covers Colombia's complete national territory, including:
 *   **Terrestrial Component:** Continental ecosystems, protected areas, and planning regions.
@@ -164,7 +164,7 @@ The application serves three distinct user tiers.
 *   **Primary Goal:** Perform detailed trade-off analysis and generate technical planning inputs.
 *   **Key Features:** 
     *   **All Tier 1 features.**
-    *   **Scenario Comparison:** Side-by-side views and difference mapping (conflict/agreement). Comparison tools are **Tier 2-only** to provide professional-grade trade-off analysis while maintaining simplicity for public users.
+    *   **Solution Comparison:** Side-by-side views and difference mapping (conflict/agreement). Comparison tools are **Tier 2-only** to provide professional-grade trade-off analysis while maintaining simplicity for public users.
     *   **Custom Data Upload:** 
         *   Upload **vector layers** (Shapefiles, GeoJSON, KML/KMZ) to overlay on the map
         *   Upload **raster layers** (GeoTIFF, IMG) for visualization
@@ -199,7 +199,7 @@ The application serves three distinct user tiers.
             *   **Deprecate outdated layers** (e.g., "OMEC Layer 2020" when replaced by "OMEC Layer 2025")
             *   Deprecated layers are hidden from Tier 1/2 users but retained for historical reference
             *   Clear documentation of deprecation reason and replacement layer
-            *   Warning notifications if existing scenarios use deprecated layers
+            *   Warning notifications if existing solutions use deprecated layers
     *   **Queue Management:** Submit and monitor backend optimization jobs.
     *   **Publishing:** Review and publish new solutions to the public library.
 
@@ -217,19 +217,19 @@ The application serves three distinct user tiers.
 
 1.  **Open the Solution Finder:**
     *   User clicks "Find a Solution" button to open the Solution Finder modal/panel
-    *   **Optional Starting Point - Featured Scenarios:** For new users, the Solution Finder can display 3-5 "starter scenarios" as quick-launch options:
+    *   **Optional Starting Point - Featured Solutions:** For new users, the Solution Finder can display 3-5 "starter solutions" as quick-launch options:
         *   "Balanced Conservation & Development"
         *   "Maximum Biodiversity Protection"
         *   "Low-Cost Conservation Strategy"
         *   "Carbon & Water Security Focus"
         *   "Cultural Heritage & Biodiversity"
-    *   Users can click a featured scenario to load it immediately, OR proceed to request custom priorities (requesting custom priorities may not even get developed)
+    *   Users can click a featured solution to load it immediately, OR proceed to request custom priorities (requesting custom priorities may not even get developed)
 
 2.  **Set Conservation Targets:**
     *   User interacts with the **Solution Finder** controls:
     *   **Themes (Conservation Goals):** Sets target percentages using **discrete target options** (e.g., 17%, 30%, or custom percentage)
         *   Users may also select specific data layers and request the system to automatically calculate standardized goal percentages (e.g., "Protect 30% of selected habitats")
-        *   This approach aligns with pre-calculated scenarios and international conservation targets
+        *   This approach aligns with pre-calculated solutions and international conservation targets
     *   **Weights (Cost/Benefit Layers):** Sets importance via sliders (-100 to +100)
         *   Example: "Agricultural Opportunity Cost: -80" (avoid high-cost areas)
         *   Example: "Connectivity: +60" (prefer areas that connect protected areas)
@@ -239,20 +239,20 @@ The application serves three distinct user tiers.
     *   **Warning System:** If user selects conflicting or extreme combinations, system provides feedback (e.g., "These settings may result in low-quality matches or no feasible solutions")
 
 #### 3.1.2. Instant Matching & Results
-*System finds the matched, pre-calculated scenario.*
+*System finds the matched, pre-calculated solution.*
 
 1.  **Real-Time Search:**
     *   The system performs a Nearest Neighbor search against the pre-calculated library
-    *   Result list shows top N matching scenarios with "Match %" badges
+    *   Result list shows top N matching solutions with "Match %" badges
     *   Preview thumbnails show spatial pattern of each result
 
 2.  **Apply Solution:**
-    *   User clicks "Apply Scenario" to load the best match onto the main map
-    *   The map updates immediately to display the **"Matched Scenario"**
-    *   A "Match Quality" indicator informs the user how closely this scenario fits their requests (e.g., "95% Match")
+    *   User clicks "Apply Solution" to load the best match onto the main map
+    *   The map updates immediately to display the **"Matched Solution"**
+    *   A "Match Quality" indicator informs the user how closely this solution fits their requests (e.g., "95% Match")
     *   If match quality is below threshold (e.g., <70%), system suggests:
-        *   Closest available scenario with explanation of differences
-        *   Option to submit a request for a new scenario (Tier 2 users can submit to Admin queue)
+        *   Closest available solution with explanation of differences
+        *   Option to submit a request for a new solution (Tier 2 users can submit to Admin queue)
 
 #### 3.1.3. Local Analysis (AOI)
 *After a solution is loaded, users can drill down into specific regions.*
@@ -268,9 +268,9 @@ The application serves three distinct user tiers.
 ### 3.2. The Analysis Workflow (Tier 2 Only)
 *Advanced tools for trade-off assessment.*
 
-1.  **Compare Scenarios:**
-    *   User selects a "Baseline" scenario (e.g., the current Best Fit).
-    *   User selects a "Comparison" scenario (e.g., a different set of priorities).
+1.  **Compare Solutions:**
+    *   User selects a "Baseline" solution (e.g., the current Best Fit).
+    *   User selects a "Comparison" solution (e.g., a different set of priorities).
     *   System renders a **Difference Map** showing:
         *   **Agreement:** Areas selected in both.
         *   **Conflict:** Areas selected in only one.
@@ -293,11 +293,11 @@ The application serves three distinct user tiers.
     *   User defines the geographic region where offset areas must be located (same biogeographic unit, watershed, etc.)
 
 2.  **Identify Candidate Offset Areas:**
-    *   User explores pre-calculated conservation scenarios to identify priority areas that provide **ecological equivalence**:
+    *   User explores pre-calculated conservation solutions to identify priority areas that provide **ecological equivalence**:
         *   Same ecosystem types as impacted area
         *   Similar or higher biodiversity value
         *   Connectivity to existing protected areas
-    *   User filters scenarios by relevant themes (e.g., "Cloud Forest protection", "Jaguar habitat")
+    *   User filters solutions by relevant themes (e.g., "Cloud Forest protection", "Jaguar habitat")
     *   **AOI Dashboard** provides metrics on ecosystem representation, species coverage, and conservation value
 
 3.  **Calculate Offset Equivalence:**
@@ -318,8 +318,8 @@ The application serves three distinct user tiers.
         *   Trade-offs and opportunity costs of the offset designation
     *   User exports reports (PDF) and spatial data (Shapefile/GeoJSON) for submission to environmental authorities
 
-5.  **Scenario Comparison for Offset Optimization (Tier 2):**
-    *   User compares multiple candidate offset scenarios using the **Scenario Comparison Panel**
+5.  **Solution Comparison for Offset Optimization (Tier 2):**
+    *   User compares multiple candidate offset solutions using the **Solution Comparison Panel**
     *   Difference maps show which areas provide the greatest ecological equivalence
     *   Comparative metrics help justify the final offset selection
 
@@ -355,7 +355,7 @@ These are the live UI components users interact with in the application.
 | **RIGHT SIDEBAR** | | | | | |
 | Solution Overview Panel | Right Sidebar | **Yes** | **10** | Conservation Goals Met, Carbon Storage Capacity, National Contribution, Agricultural Opportunity Cost, Conflict Zone Overlap | Area 4.4.1 |
 | AOI Dashboard | Right Sidebar | **Yes** | **36** | Priority Area in Region, Species Richness by Taxa, Ecosystem Coverage, Total Carbon Biomass, Protected Area Overlap | Area 4.4.2 |
-| Scenario Comparison Panel | Right Sidebar | **Yes** | **3** | Agreement Area (km²), Unique to Scenario A, Unique to Scenario B | Area 4.4.3 |
+| Solution Comparison Panel | Right Sidebar | **Yes** | **3** | Agreement Area (km²), Unique to Solution A, Unique to Solution B | Area 4.4.3 |
 | Welcome Panel | Right Sidebar | No | 0 | — | — |
 | **MODALS** | | | | | |
 | Solution Finder Modal | Modal | No | 0 | — | — |
@@ -373,7 +373,7 @@ Jan 26th, 2026 Note: We may have one report where the user can add bundles of me
 |-------------|---------------|----------------|-------------------------------|-------------------|
 | ~~Trade-off Analysis Report~~ | ~~PDF + Page View~~ | ~~Reuses Solution Overview Panel metrics~~ | ~~**0** (all metrics from 4.3.1)~~ | ~~4.5 (Report #1)~~ |
 | Ecosystem Assessment Report | PDF + Page View | Reuses AOI Dashboard ecosystem metrics | **TBD** (not finalized in CSV) | 4.5 (Report #2) |
-| Connectivity Report | PDF + Page View | Reuses AOI Dashboard and Scenario Comparison metrics | **TBD** (not finalized in CSV) | 4.5 (Report #3) |
+| Connectivity Report | PDF + Page View | Reuses AOI Dashboard and Solution Comparison metrics | **TBD** (not finalized in CSV) | 4.5 (Report #3) |
 | Species Conservation Report | PDF + Page View | Reuses AOI Dashboard biodiversity metrics | **TBD** (not finalized in CSV) | 4.5 (Report #4) |
 | Territorial Planning Report | PDF + Page View | Reuses AOI Dashboard socio-economic metrics | **TBD** (not finalized in CSV) | 4.5 (Report #5) |
 | Ethnic Territory Consultation Report | PDF + Page View | Reuses AOI Dashboard cultural metrics | **TBD** (not finalized in CSV) | 4.5 (Report #6) |
@@ -384,7 +384,7 @@ Jan 26th, 2026 Note: We may have one report where the user can add bundles of me
 
 **Interactive Components:**
 - **Total Interactive Components:** 12
-- **Components with Metrics:** 3 (Solution Overview Panel, AOI Dashboard, Scenario Comparison Panel)
+- **Components with Metrics:** 3 (Solution Overview Panel, AOI Dashboard, Solution Comparison Panel)
 - **Total Finalized Metrics in Interactive App:** 49 (from CSV)
 - **Most Metric-Heavy Component:** AOI Dashboard (36 metrics)
 
@@ -406,7 +406,7 @@ Jan 26th, 2026 Note: We may have one report where the user can add bundles of me
 1. **Right Sidebar Components (Analysis Dashboard)** - This is where all finalized metrics currently live
    - Solution Overview Panel: 10 finalized metrics (Component 4.3.1)
    - AOI Dashboard: 36 finalized metrics (Component 4.3.2)
-   - Scenario Comparison Panel: 3 finalized metrics (Component 4.3.3)
+   - Solution Comparison Panel: 3 finalized metrics (Component 4.3.3)
 
 2. **Reports** - Reports primarily reuse finalized metrics from the right sidebar components
    - Any report-unique metrics should be treated as proposed/TBD until they are added to the finalized metrics CSV
@@ -424,7 +424,7 @@ The interface follows a three-pane layout with a prominent modal workflow for so
 *   **Left Sidebar ("Control Dashboard"):**
     *   **Purpose:** Control what appears on the map. This is where users select solutions and toggle layer visibility—any changes here directly affect what is displayed in the Center Panel.
     *   **Components:**
-        *   **Solution Selector:** Interface for choosing which conservation scenario to display on the map. This may include:
+        *   **Solution Selector:** Interface for choosing which conservation solution to display on the map. This may include:
             *   A "Solution Finder" button that triggers the large "Selection Grid" modal.
             *   A dropdown or list showing the currently active solution (e.g., "Best Fit: 95% Match").
         *   **Layer Visibility Manager:** Toggles for map layers with advanced filtering capabilities:
@@ -443,9 +443,9 @@ The interface follows a three-pane layout with a prominent modal workflow for so
     *   **Purpose:** Interactive spatial visualization that reflects the user's selections from the Left Sidebar.
     *   **Display Modes:**
         *   **Single Map View (Default):** One map showing the currently selected conservation solution overlaid with visible layers (base maps, protected areas, biodiversity data, etc.).
-        *   **Side-by-Side Comparison View (Tier 2):** Two maps displayed side-by-side for comparing different conservation scenarios.
+        *   **Side-by-Side Comparison View (Tier 2):** Two maps displayed side-by-side for comparing different conservation solutions.
     *   **Map Content:**
-        *   **Conservation Solution Layer:** Visual representation of priority conservation areas (selected planning units) from the active scenario.
+        *   **Conservation Solution Layer:** Visual representation of priority conservation areas (selected planning units) from the active solution.
         *   **Base Layers:** Contextual map data such as:
             *   Administrative boundaries (Municipalities, Departments, SIRAPs)
             *   Roads and infrastructure
@@ -456,7 +456,7 @@ The interface follows a three-pane layout with a prominent modal workflow for so
             *   **Environmental data:** Carbon stocks, water resources, connectivity
             *   **Ethnic and Cultural Component:** Indigenous reservations, community councils, and ethnic territories for consultation and differential prioritization
             *   **Territorial Planning Determinants:** Official land-use planning layers showing determinants and their order of prevalence
-            *   **Prospective Models:** Future scenario layers showing deforestation projections, climate change impacts, transformation risks, and drivers of biodiversity loss
+            *   **Prospective Models:** Future solution layers showing deforestation projections, climate change impacts, transformation risks, and drivers of biodiversity loss
         *   **Management Figures Rendering Standard:**
             *   **Vector Representation Required:** Existing Protected Areas (APs), OMECs, and other management figures **must be displayed as vector shapes (polygons) rather than rasterized layers** to ensure precision and detail at regional and local scales
             *   **📋 User Requirement Origin:** This requirement directly addresses stakeholder feedback that the previous tool version displayed PAs/management figures as rasters. Users explicitly requested shapes for precision. **This fix must be maintained in the PNN technical handover documentation.**
@@ -466,8 +466,8 @@ The interface follows a three-pane layout with a prominent modal workflow for so
                 *   Precise area calculations for reporting
                 *   Interactive feature identification (click to see individual park details)
         *   **Difference Mapping (Comparison Mode only):** Visual overlay showing:
-            *   **Agreement (Green):** Areas selected in both scenarios
-            *   **Conflict (Orange/Blue):** Areas selected in only one scenario
+            *   **Agreement (Green):** Areas selected in both solutions
+            *   **Conflict (Orange/Blue):** Areas selected in only one solution
             *   **Connectivity/Synergy (Purple):** Potential corridors linking priority areas
     *   **Essential Map Controls:**
         *   **Compass Rose (North Arrow):** Orientation indicator
@@ -501,13 +501,13 @@ The interface follows a three-pane layout with a prominent modal workflow for so
     *   **Display Modes:** The right sidebar adapts based on user context and tier access. It dynamically shows one of several views:
         1. **Solution Overview Panel** (Section 4.3.1) - Default when a conservation solution is loaded/active but no specific region is selected. Shows high-level summary statistics, trade-off analysis, and national contribution.
         2. **AOI Dashboard** (Section 4.3.2) - When a user clicks on a Municipality, Department, or SIRAP on the map. Shows detailed region-specific statistics and regional vs. national contribution analysis.
-        3. **Scenario Comparison Panel** (Section 4.3.3) - Tier 2 only, when comparing two solutions. Shows side-by-side analysis and difference metrics.
+        3. **Solution Comparison Panel** (Section 4.3.3) - Tier 2 only, when comparing two solutions. Shows side-by-side analysis and difference metrics.
         4. **Welcome/Getting Started Panel** (Section 4.3.4) - When no solution is active. Guides new users to begin exploring.
 
 ## Area 4.2: Solution Finder ("Selection Grid") Modal
 
 *NOTE: The mock-ups referenced below are AI-generated and not meant to be considered the definitive design. Discussion is ongoing.*
-A large, centralized Modal interface for discovering conservation scenarios. This is separated from the sidebar to accommodate the comprehensive input options and narrative-driven exploration.
+A large, centralized Modal interface for discovering conservation solutions. This is separated from the sidebar to accommodate the comprehensive input options and narrative-driven exploration.
 
 *   **UI Components (Amy note: We decided (on 1/12) that users will only be able to select targets and includes/excludes. We will get rid of the middle sliders for the weights/costs):**
     *   **Theme Goal Selectors:** 
@@ -516,14 +516,14 @@ A large, centralized Modal interface for discovering conservation scenarios. Thi
         *   Visual indicators showing alignment with international conservation targets (e.g., 30x30 initiative)
     *   **Constraint Toggles:** Binary On/Off switches for Includes (Lock-in) and Excludes (Lock-out)
     *   **Narrative Navigation:** 
-        *   Guided workflows presenting scenarios organized by stakeholder narratives and use cases
+        *   Guided workflows presenting solutions organized by stakeholder narratives and use cases
         *   "Exploration Paths" to prevent users from overwhelming the system by selecting too many options at once
-    *   **Result List:** Displays top N matching scenarios with "Match %" badges and brief descriptions
-    *   **Preview Map:** Small preview of the selected scenario before applying it to the main map
+    *   **Result List:** Displays top N matching solutions with "Match %" badges and brief descriptions
+    *   **Preview Map:** Small preview of the selected solution before applying it to the main map
 *   **Behavior:**
     *   Inputs trigger a Nearest Neighbor search in the vector database
-    *   System provides feedback if selected combination has low match quality or is outside the scenario library coverage
-    *   User clicks "Apply Scenario" to load the best match onto the main Center Panel map
+    *   System provides feedback if selected combination has low match quality or is outside the solution library coverage
+    *   User clicks "Apply Solution" to load the best match onto the main Center Panel map
 
 ## Area 4.3: Right Sidebar Analysis Views (Right Sidebar Components)
 
@@ -538,17 +538,17 @@ There is also the welcome/getting started view. The following components describ
 ### Component 4.3.1: Solution Overview Panel
 *Trigger: A conservation solution is loaded/active, but no specific region is selected.*
 
-**Purpose:** Provide high-level summary statistics about the currently active conservation scenario.
+**Purpose:** Provide high-level summary statistics about the currently active conservation solution.
 
 **Content (Component Sections):**
 
-*   **Section A: Scenario Identity**
+*   **Section A: Solution Identity**
     *   Solution name/ID
     *   Match quality indicator (e.g., "95% Match to your priorities")
     *   Date created or last updated
     *   **Optimization Parameters Used:**
         *   **Theme Goals (Aggregated Display):** 
-            *   **Note:** If the scenario includes thousands of individual conservation features (e.g., individual species habitats), display them at an **aggregated level** to prevent overwhelming users
+            *   **Note:** If the solution includes thousands of individual conservation features (e.g., individual species habitats), display them at an **aggregated level** to prevent overwhelming users
             *   **Aggregated Groups:** Show high-level groups with target percentages:
                 *   "Mammal Species: 30% (15 of 50 species with adequate habitat protection)"
                 *   "Cloud Forest Ecosystems: 32% protected (Goal: 30%)"
@@ -580,9 +580,9 @@ There is also the welcome/getting started view. The following components describ
         *   Example: "✓ Species Protection: 32% (Goal: 30%)"
         *   Example: "✗ Wetlands: 18% (Goal: 25%)"
     *   **Goal Achievement Narrative:** Auto-generated text providing context and interpretation:
-        *   **National Level:** "This scenario protects 32% of critical species habitats, exceeding the 30x30 global target and contributing to Colombia's biodiversity commitments under the Kunming-Montreal Framework."
+        *   **National Level:** "This solution protects 32% of critical species habitats, exceeding the 30x30 global target and contributing to Colombia's biodiversity commitments under the Kunming-Montreal Framework."
         *   **Regional Level:** "Within Cauca Department, this solution conserves 45% of endemic bird habitats, significantly above the national average of 32%."
-        *   **Trade-off Context:** "While wetland goals are unmet (-7%), this scenario prioritizes high-elevation ecosystems critical for water regulation and carbon storage."
+        *   **Trade-off Context:** "While wetland goals are unmet (-7%), this solution prioritizes high-elevation ecosystems critical for water regulation and carbon storage."
     *   **Quick Stats Cards:** High-level metrics:
         *   Species habitats protected
         *   Carbon stored (tCO2e)
@@ -613,7 +613,7 @@ There is also the welcome/getting started view. The following components describ
             *   Connectivity between protected areas (corridor count or connectivity index)
         
         *   **Auto-Generated Gain Summary Text:** Template-based explanatory text such as:
-            *   "This scenario achieves **HIGH** biodiversity protection with **9 species groups** meeting conservation targets"
+            *   "This solution achieves **HIGH** biodiversity protection with **9 species groups** meeting conservation targets"
             *   "**EXCELLENT** ecosystem service provision with **2.5 billion tCO2e** carbon storage secured"
     
     *   **PART 2: LOSSES/COSTS (What You Lose)**
@@ -635,7 +635,7 @@ There is also the welcome/getting started view. The following components describ
             *   Area overlapping with active land-use disputes or social conflicts
         
         *   **Auto-Generated Cost Summary Text:** Template-based explanatory text such as:
-            *   "This scenario incurs **MODERATE** economic impact with **$350M USD** in agricultural opportunity cost"
+            *   "This solution incurs **MODERATE** economic impact with **$350M USD** in agricultural opportunity cost"
             *   "**15% of priority areas** overlap with moderate-to-high human pressure zones"
             *   "Conservation priorities overlap with **8,200 km²** of historical conflict zones, requiring careful implementation planning"
     
@@ -664,7 +664,7 @@ There is also the welcome/getting started view. The following components describ
         *   Limited: < 5 groups
     
     **Example Integrated Trade-off Narrative:**
-    *   "This scenario achieves **GOOD** biodiversity protection (**7 species groups** with adequate habitats) at **MODERATE** economic cost (**$350M** agricultural opportunity cost). While **HIGH** carbon storage is secured (**2.5B tCO2e**), implementation will require addressing **15% overlap** with human-modified landscapes and **8,200 km²** of historical conflict zones."
+    *   "This solution achieves **GOOD** biodiversity protection (**7 species groups** with adequate habitats) at **MODERATE** economic cost (**$350M** agricultural opportunity cost). While **HIGH** carbon storage is secured (**2.5B tCO2e**), implementation will require addressing **15% overlap** with human-modified landscapes and **8,200 km²** of historical conflict zones."
 
 *   **Section F: National Contribution Calculator**
     *   **Colombia's Conservation Target Contribution:**
@@ -680,8 +680,8 @@ There is also the welcome/getting started view. The following components describ
             *   Limited: < 5%
 
 *   **Section G: Actions**
-    *   "View Full Scenario Details" button
-    *   "Compare with Another Scenario" button (Tier 2)
+    *   "View Full Solution Details" button
+    *   "Compare with Another Solution" button (Tier 2)
     *   "Download Solution Data" button
     *   **"See Full Summary Report" button** (or similar Spanish equivalent: "Ver Informe Completo de Resumen"):
         *   **Workflow on Click:**
@@ -710,7 +710,7 @@ There is also the welcome/getting started view. The following components describ
 - **Visualizations** (charts, graphs, maps) — how metrics are displayed
 - **Narrative Text** (auto-generated explanations) — contextual interpretation of metrics
 
-If a data point is quantifiable and changes based on the selected region/scenario, it is a metric and appears in Area 4.4.2.
+If a data point is quantifiable and changes based on the selected region/solution, it is a metric and appears in Area 4.4.2.
 
 **Header:**
 *   Region name (e.g., "Municipality of Popayán" or "Cauca Department")
@@ -900,13 +900,13 @@ If a data point is quantifiable and changes based on the selected region/scenari
     *   **Temporal currency** of the data (e.g., "2023 species distribution models")
     *   **Methodology references** (links to technical documentation)
 
-### Component 4.3.3: Scenario Comparison Panel (Tier 2 Only)
-*Trigger: User clicks "Compare Scenarios" and selects two solutions to compare.*
+### Component 4.3.3: Solution Comparison Panel (Tier 2 Only)
+*Trigger: User clicks "Compare Solutions" and selects two solutions to compare.*
 
-**Purpose:** Show side-by-side analysis of two different conservation scenarios to support trade-off decisions.
+**Purpose:** Show side-by-side analysis of two different conservation solutions to support trade-off decisions.
 
 **Header:**
-*   Scenario A name vs. Scenario B name
+*   Solution A name vs. Solution B name
 *   Match quality for each
 
 **Content:**
@@ -917,7 +917,7 @@ If a data point is quantifiable and changes based on the selected region/scenari
     
     Visual table with rows and columns:
 
-    | Metric | Scenario A | Scenario B | Difference |
+    | Metric | Solution A | Solution B | Difference |
     |--------|-----------|-----------|------------|
     | **Total Priority Area (km²)** | 125,000 | 98,000 | -27,000 |
     | **% of Colombia Protected** | 12% | 9% | -3% |
@@ -929,24 +929,24 @@ If a data point is quantifiable and changes based on the selected region/scenari
 
 *   **Section B: Theme Achievement Comparison**
     *   Side-by-side goal achievement for each conservation feature
-    *   Visual indicators (✓/✗) for each scenario
-    *   Highlights where scenarios differ in goal achievement
+    *   Visual indicators (✓/✗) for each solution
+    *   Highlights where solutions differ in goal achievement
 
 *   **Section C: Spatial Overlap Analysis**
-    *   **Agreement:** Area (km²) selected in BOTH scenarios (shown in green on map)
-    *   **Conflict/Difference:** Area selected in only one scenario (shown in orange/blue on map)
-    *   **Unique to Scenario A:** Area (km²)
-    *   **Unique to Scenario B:** Area (km²)
+    *   **Agreement:** Area (km²) selected in BOTH solutions (shown in green on map)
+    *   **Conflict/Difference:** Area selected in only one solution (shown in orange/blue on map)
+    *   **Unique to Solution A:** Area (km²)
+    *   **Unique to Solution B:** Area (km²)
     *   **Connectivity/Synergy Zones:** Potential corridor areas that connect priority zones (purple on map)
 
 *   **Section D: Trade-off Narrative**
     *   Automatically generated summary text highlighting key trade-offs:
-        *   "Scenario A protects more area (+27,000 km²) but has higher opportunity cost (+$130M)"
-        *   "Scenario B achieves one additional species goal while reducing conflict exposure"
+        *   "Solution A protects more area (+27,000 km²) but has higher opportunity cost (+$130M)"
+        *   "Solution B achieves one additional species goal while reducing conflict exposure"
 
 **Actions:**
 *   "Switch Baseline/Comparison" button (swap which is A vs. B)
-*   "Add Third Scenario" button (if supporting 3-way comparisons)
+*   "Add Third Solution" button (if supporting 3-way comparisons)
 *   "Generate Comparison Report (PDF)" button
 *   "Export Comparison Data" button (Shapefile/GeoTIFF)
 *   "Export Comparison Map Image" button (PNG/JPG)
@@ -965,8 +965,8 @@ If a data point is quantifiable and changes based on the selected region/scenari
     *   Step 1: Click "Find a Solution" to define your priorities (takes you to the "Solution Finder")
     *   Step 2: Explore the map to see conservation areas
     *   Step 3: Click on a region for detailed local statistics
-*   **Featured Scenarios (Optional):**
-    *   List of 3-5 pre-selected "starter" scenarios:
+*   **Featured Solutions (Optional):**
+    *   List of 3-5 pre-selected "starter" solutions:
         *   "Balanced Conservation & Development"
         *   "Maximum Biodiversity Protection"
         *   "Low-Cost Conservation Strategy"
@@ -1100,11 +1100,11 @@ If a metric's Required Input(s) reference a layer that is ❌ Missing or ❓ Unk
 - ~~#46 Synergy Score~~ — Removed
 - ~~#47 Regional Significance Classification~~ — Removed
 
-#### 4.4.3. Scenario Comparison Panel Metrics (3 Finalized Metrics)
+#### 4.4.3. Solution Comparison Panel Metrics (3 Finalized Metrics)
 
 *Component Reference: Component 4.3.3*
 
-These metrics are unique to scenario comparison and do not appear elsewhere.
+These metrics are unique to solution comparison and do not appear elsewhere.
 
 **Table Legend:**
 - **Asset Status:** ✅ Available | ⚠️ Outdated/Issues | ❌ Missing | ❓ Unknown
@@ -1112,14 +1112,14 @@ These metrics are unique to scenario comparison and do not appear elsewhere.
 
 | # | Metric Name | Category | Description | Units | Required Input(s) | Asset Status | Calculation | Visualization | Verdict | Also Appears In |
 |---|-------------|----------|-------------|-------|-------------------|--------------|-------------|---------------|---------|-----------------|
-| 70 | Agreement Area | General | Area selected in both scenarios being compared | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario A ∩ Scenario B` | Green overlay on map, stat card | **Yes** | Comparison Report only |
-| 71 | Unique to Scenario A | General | Area selected only in Scenario A (baseline) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario A - Scenario B` | Orange overlay on map, stat card | **Yes** | Comparison Report only |
-| 72 | Unique to Scenario B | General | Area selected only in Scenario B (comparison) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Scenario B - Scenario A` | Blue overlay on map, stat card | **Yes** | Comparison Report only |
+| 70 | Agreement Area | General | Area selected in both solutions being compared | km² | Two Prioritizr solution outputs | ✅ System-generated | `Solution A ∩ Solution B` | Green overlay on map, stat card | **Yes** | Comparison Report only |
+| 71 | Unique to Solution A | General | Area selected only in Solution A (baseline) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Solution A - Solution B` | Orange overlay on map, stat card | **Yes** | Comparison Report only |
+| 72 | Unique to Solution B | General | Area selected only in Solution B (comparison) | km² | Two Prioritizr solution outputs | ✅ System-generated | `Solution B - Solution A` | Blue overlay on map, stat card | **Yes** | Comparison Report only |
 
 **Metrics Removed During Review:**
 - ~~#4 Connectivity/Synergy Zones~~ — Removed
 
-**Note:** The Scenario Comparison Panel also displays comparative versions of metrics from the Solution Overview Panel (Goal Achievement, Carbon Storage, Opportunity Cost, etc.) in a side-by-side table format. These are not counted as unique metrics since they reuse the same data definitions.
+**Note:** The Solution Comparison Panel also displays comparative versions of metrics from the Solution Overview Panel (Goal Achievement, Carbon Storage, Opportunity Cost, etc.) in a side-by-side table format. These are not counted as unique metrics since they reuse the same data definitions.
 
 ### Metrics for the 5 Reports (in Area 4.5)
 
@@ -1161,7 +1161,7 @@ Use finalized AOI cultural/territorial metrics from 4.4.2.
 
 - Solution Overview Panel: 10 metrics (7 Yes + 3 Maybe)
 - AOI Dashboard: 36 metrics (29 Yes + 7 Maybe)
-- Scenario Comparison Panel: 3 metrics (3 Yes)
+- Solution Comparison Panel: 3 metrics (3 Yes)
 - Report-unique finalized metrics: 0
 
 **Metric Table Column Definitions:**
@@ -1223,7 +1223,7 @@ Automated report generation for specific planning needs. Reports are available a
 ---
 
 ### Component 4.5.1: Trade-off Analysis Report (Gains vs. Losses)
-*Trigger: User clicks "Generate Trade-off Report" from Solution Overview Panel or Report menu. This report is MANDATORY for all conservation scenarios.*
+*Trigger: User clicks "Generate Trade-off Report" from Solution Overview Panel or Report menu. This report is MANDATORY for all conservation solutions.*
 
 **Metrics Reference:** See **Area 4.4.1** (Solution Overview Panel Metrics) — all 10 finalized metrics can be reused in this report.
 
@@ -1232,10 +1232,10 @@ Automated report generation for specific planning needs. Reports are available a
 **Primary Audience:** Decision-makers, regional planners, conservation program managers, stakeholders requiring formal documentation
 
 **Key Questions Answered:**
-*   What conservation goals does this scenario achieve? Which remain unmet?
+*   What conservation goals does this solution achieve? Which remain unmet?
 *   What are the economic costs (agricultural opportunity cost, development restrictions)?
 *   What implementation challenges exist (human footprint overlap, conflict zones)?
-*   How does this scenario compare to national conservation targets?
+*   How does this solution compare to national conservation targets?
 
 **Delivery Method:**
 *   **Dedicated Page View:** Opens as a full-screen or overlay page within the application for interactive browsing
@@ -1298,10 +1298,10 @@ Automated report generation for specific planning needs. Reports are available a
 
 *   **Section C: Full Narrative Analysis**
     *   Comprehensive auto-generated text (2-3 paragraphs) synthesizing the gains and losses
-    *   Explicit statement of major trade-offs: "This scenario prioritizes X at the cost of Y"
+    *   Explicit statement of major trade-offs: "This solution prioritizes X at the cost of Y"
     *   Contextual explanations: WHY certain goals are met or unmet (insufficient ecosystem area vs. cost constraints vs. optimization trade-offs)
     *   Risk assessment: Implementation challenges and recommended mitigation strategies
-    *   **Example Narrative:** "This conservation scenario achieves GOOD biodiversity protection (7 of 10 species groups with adequate habitats) and EXCELLENT ecosystem service provision (2.5B tCO2e carbon storage, water regulation for 8M people) at a MODERATE economic cost ($350M agricultural opportunity cost representing 12% of regional agricultural GDP). The solution prioritizes high-elevation ecosystems (cloud forests, páramo) which explain the unmet lowland wetland targets (-7% below goal). Implementation faces MODERATE challenges: 15% of priority areas overlap with human-modified landscapes requiring restoration approaches, and 8,200 km² overlap with historical conflict zones necessitating careful community engagement and consultation, particularly with 5 indigenous territories and 3 community councils within priority areas. The solution complements the existing protected area system well (35% overlap with current management figures) while identifying 65% as new priority areas filling critical conservation gaps."
+    *   **Example Narrative:** "This conservation solution achieves GOOD biodiversity protection (7 of 10 species groups with adequate habitats) and EXCELLENT ecosystem service provision (2.5B tCO2e carbon storage, water regulation for 8M people) at a MODERATE economic cost ($350M agricultural opportunity cost representing 12% of regional agricultural GDP). The solution prioritizes high-elevation ecosystems (cloud forests, páramo) which explain the unmet lowland wetland targets (-7% below goal). Implementation faces MODERATE challenges: 15% of priority areas overlap with human-modified landscapes requiring restoration approaches, and 8,200 km² overlap with historical conflict zones necessitating careful community engagement and consultation, particularly with 5 indigenous territories and 3 community councils within priority areas. The solution complements the existing protected area system well (35% overlap with current management figures) while identifying 65% as new priority areas filling critical conservation gaps."
 
 *   **Section D: Visual Report Components**
     *   Side-by-side bar charts: Goals Met vs. Goals Unmet
@@ -1313,12 +1313,12 @@ Automated report generation for specific planning needs. Reports are available a
 ### Component 4.5.2: Ecosystem Assessment Report
 *Trigger: User clicks "Generate Ecosystem Report" from Report menu or AOI Dashboard ecosystem section.*
 
-**Purpose:** Evaluate how well a conservation scenario represents Colombia's diverse ecosystems and identify gaps where critical habitats remain unprotected.
+**Purpose:** Evaluate how well a conservation solution represents Colombia's diverse ecosystems and identify gaps where critical habitats remain unprotected.
 
 **Primary Audience:** Conservation scientists, environmental authorities (CARs), protected area managers
 
 **Key Questions Answered:**
-*   Which ecosystems are well-represented in this scenario? Which have protection gaps?
+*   Which ecosystems are well-represented in this solution? Which have protection gaps?
 *   What is the condition (human footprint level) of ecosystems within priority areas?
 *   How does ecosystem coverage compare to representation targets?
 *   What is the relationship between priority areas and the existing protected area network?
@@ -1399,7 +1399,7 @@ Automated report generation for specific planning needs. Reports are available a
 ### Component 4.5.4: Species Conservation Report
 *Trigger: User clicks "Generate Species Report" from Report menu or AOI Dashboard biodiversity section.*
 
-**Purpose:** Provide species-level analysis of how well a conservation scenario protects biodiversity, with emphasis on threatened, endemic, and focal species.
+**Purpose:** Provide species-level analysis of how well a conservation solution protects biodiversity, with emphasis on threatened, endemic, and focal species.
 
 **Primary Audience:** Biodiversity specialists, IUCN Red List assessors, species conservation programs, environmental impact assessors
 
@@ -1469,7 +1469,7 @@ Automated report generation for specific planning needs. Reports are available a
     *   Opportunity cost analysis by land use category
     *   Agricultural opportunity cost by municipality/CAR
 
-*   **Section E: Future Scenarios**
+*   **Section E: Future Solutions**
     *   Projected agricultural expansion impacts
     *   Development restriction implications
 
@@ -1576,16 +1576,16 @@ The application must include the following data layers with complete metadata tr
     *   Marine jurisdictional boundaries (Territorial Sea, EEZ)
     *   **Metadata Required:** Administrative level, DIVIPOLA codes, legal boundaries source
 
-#### 4.6.5. Prospective & Future Scenario Layers
+#### 4.6.5. Prospective & Future Solution Layers
 *   **Deforestation Risk Models:**
     *   Future deforestation probability (short-term: 5 years, long-term: 20 years)
     *   Historical deforestation trends
     *   **Metadata Required:** Model methodology, baseline year, projection year
 *   **Climate Change Projections:**
-    *   Temperature and precipitation change scenarios (RCP 4.5, RCP 8.5)
+    *   Temperature and precipitation change solutions (RCP 4.5, RCP 8.5)
     *   Sea-level rise impacts on coastal/marine areas
     *   Ecosystem vulnerability assessments
-    *   **Metadata Required:** Climate model used, scenario name, projection timeframe
+    *   **Metadata Required:** Climate model used, solution name, projection timeframe
 *   **Biodiversity Loss Drivers:**
     *   Infrastructure expansion projections (roads, energy, mining)
     *   Agricultural expansion risk zones
@@ -1749,7 +1749,7 @@ The following high-impact usability features are mandatory for user trust and ef
 *   ☐ **Geocoding Search:** Location search by place name, address, or coordinates
 
 #### 4.8.5. Optimization Parameter Transparency
-*   ☐ **Explicit Layer Names in Weight Factors:** Scenario summaries must show actual layer names (e.g., "Agricultural Opportunity Cost 2021") instead of generic terms (e.g., "Cost")
+*   ☐ **Explicit Layer Names in Weight Factors:** Solution summaries must show actual layer names (e.g., "Agricultural Opportunity Cost 2021") instead of generic terms (e.g., "Cost")
 *   ☐ **Goal Context Narratives:** Auto-generated text explaining the significance of percentage goals at national and regional levels
 *   ☐ **Optimization Settings Display:** Full transparency on clustering parameters, budget constraints, and solver settings used
 
@@ -1772,7 +1772,7 @@ The following high-impact usability features are mandatory for user trust and ef
 
 #### 4.8.8. Analytical Output & Narrative Features
 *   ☐ **Trade-off Analysis Framework:** Mandatory "Gains vs. Losses" structure in Solution Overview Panel (condensed) and Advanced Reports (detailed)
-*   ☐ **Template-Based Explanatory Text Generation:** Auto-generated contextual narratives for all scenarios based on data thresholds (not AI-generated prose, but structured if-then text)
+*   ☐ **Template-Based Explanatory Text Generation:** Auto-generated contextual narratives for all solutions based on data thresholds (not AI-generated prose, but structured if-then text)
 *   ☐ **National Contribution Calculator:** Display solution's contribution toward Colombia's 30% conservation target at both:
     *   Overall solution level (Solution Overview Panel)
     *   Regional level (AOI Dashboard)
@@ -1795,7 +1795,7 @@ The following high-impact usability features are mandatory for user trust and ef
 
 This section provides explicit confirmation that all granular functional specifications requested by stakeholders are documented in the MDD.
 
-#### 4.9.1. Advanced Analytical & Scenario Features (Tier 2 & 3)
+#### 4.9.1. Advanced Analytical & Solution Features (Tier 2 & 3)
 
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
@@ -1807,7 +1807,7 @@ This section provides explicit confirmation that all granular functional specifi
 
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
-| **Explicit Layer Names in Weight Summaries** | ☐ Required | Section 4.3.1, 4.7.5 | Scenario Overview Panel must display actual layer names (e.g., "Agricultural Opportunity Cost 2021") instead of generic terms |
+| **Explicit Layer Names in Weight Summaries** | ☐ Required | Section 4.3.1, 4.7.5 | Solution Overview Panel must display actual layer names (e.g., "Agricultural Opportunity Cost 2021") instead of generic terms |
 | **Login Session Persistence** | ☐ Required | Section 2.2, 4.7.1 | Secure token-based authentication with 7-day session, no forced re-login on reload |
 | **Dynamic Symbology Control** | ☐ Required | Section 4.1, 4.6.2, 4.7.3 | Users can modify color/transparency of solutions and uploaded layers without deletion/reload |
 | **Goal Achievement Narratives** | ☐ Required | Section 4.3.1, 4.8.5 | System auto-generates contextual narratives explaining goal significance at national and regional scales |
@@ -1824,7 +1824,7 @@ This section provides explicit confirmation that all granular functional specifi
 
 | Requirement | Status | MDD Location | Implementation Notes |
 |------------|--------|--------------|---------------------|
-| **Mandatory Scenario Narrative Content** | ☐ Required | Section 4.3.1, 4.5, 4.8.8 | Explicit "Gains vs. Losses" framework with template-based text showing what you get vs. what you lose. Condensed version in Solution Overview Panel, detailed version in Trade-off Analysis Report (Section 4.5, Report Type 1) |
+| **Mandatory Solution Narrative Content** | ☐ Required | Section 4.3.1, 4.5, 4.8.8 | Explicit "Gains vs. Losses" framework with template-based text showing what you get vs. what you lose. Condensed version in Solution Overview Panel, detailed version in Trade-off Analysis Report (Section 4.5, Report Type 1) |
 | ~~**Explicit Tradeoff Analysis Report**~~ | ~~☐ Required~~ | ~~Section 4.5 (Report #1)~~ | ~~Full detailed report with GAINS section (conservation goals, species, ecosystem services) and LOSSES/COSTS section (opportunity cost, human footprint, development restrictions, conflict exposure) with comprehensive narrative analysis~~ |
 | **Quantitative Regional vs. National Contribution** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.8.8 | National Contribution Calculator in both Solution Overview Panel (overall solution level) and AOI Dashboard (regional level). Includes comparative statistics table showing AOI vs. national distribution with template-based significance classification |
 | **Template-Based Text Generation with Thresholds** | ☐ Required | Section 4.3.1, 4.3.2.F, 4.8.8 | Example thresholds specified for opportunity cost ($200M/$500M), human footprint (30%/60%), goal achievement (90%/75%/50%), species protection (8/5 groups), regional significance (10%/5%/2% of national distribution). Thresholds are examples for team refinement |
@@ -1905,7 +1905,7 @@ The back-end must provide the following from each Prioritizr optimization run:
 | Selected Planning Units | Binary or weighted selection of planning units | All solution displays |
 | Goal Achievement per Feature | Percentage of each conservation target met | Conservation Achievement metrics |
 | Total Solution Cost | Aggregate cost of the solution | Trade-off Analysis |
-| Solution Metadata | Parameters used (goals, weights, constraints) | Scenario Identity display |
+| Solution Metadata | Parameters used (goals, weights, constraints) | Solution Identity display |
 | Feature Representation | How much of each feature is protected | Goal Achievement narratives |
 
 ### 4.10.5. API Endpoints Required (Preliminary)
@@ -1959,7 +1959,7 @@ The following scalability elements are committed to but require technical specif
 1. ☐ Complete infrastructure specification document detailing server vs. container resource allocation
 2. ☐ Architecture diagram showing load balancing and scaling components
 3. ☐ Performance benchmarks for target user loads
-4. ☐ Cost estimates for different scaling scenarios
+4. ☐ Cost estimates for different scaling solutions
 
 ### 4.10.8. Interoperability & National Standards Compliance
 
@@ -2019,14 +2019,14 @@ The following scalability elements are committed to but require technical specif
 
 #### 4.11.1. System-Generated Layers (Prioritizr Outputs)
 
-These are produced by the Prioritizr optimization engine and are always available when a scenario exists.
+These are produced by the Prioritizr optimization engine and are always available when a solution exists.
 
 | Layer ID | Required Layer | Description | Status | Notes |
 |----------|----------------|-------------|--------|-------|
 | `SYS_SOLUTION` | Prioritizr solution output | Selected planning units (the conservation solution) | ✅ Available | Core system output |
 | `SYS_GOALS` | Goal achievement data | Target achievement per conservation feature | ✅ Available | Included in solution metadata |
 | `SYS_COSTS` | Cost summary | Total cost of solution | ✅ Available | Included in solution metadata |
-| `SYS_SCENARIO_MATCH` | Scenario matching algorithm | Nearest-neighbor similarity scoring | ✅ Available | Application logic |
+| `SYS_SOLUTION_MATCH` | Solution matching algorithm | Nearest-neighbor similarity scoring | ✅ Available | Application logic |
 
 ---
 
@@ -2118,7 +2118,7 @@ The OMECs layer (`PA_OMEC`) is flagged as outdated (2020 vintage). Stakeholders 
 | Validate layer against known OMEC sites (e.g., El Tuparro) | Data Team | ☐ TBD | Pending |
 | Deprecate `OMEC_2020.shp` via Layer Deprecation Workflow (Section 2.3) | Tier 3 Admin | ☐ TBD | Pending |
 | Publish new OMEC layer as current version | Tier 3 Admin | ☐ TBD | Pending |
-| Update scenarios using deprecated layer (warning notifications) | System/Admin | ☐ TBD | Pending |
+| Update solutions using deprecated layer (warning notifications) | System/Admin | ☐ TBD | Pending |
 
 ---
 
@@ -2231,7 +2231,7 @@ Areas that *must* be included in the solution (e.g., Existing National Parks).
 **Exclude (Constraint)**
 Areas that *must not* be included in the solution (e.g., Urban Centers).
 
-**Solution (Scenario)**
+**Solution (Solution)**
 A single pre-calculated result showing selected Planning Units. Defined by the specific combination of Goals, Weights, and Constraints used to generate it.
 
 ### 5.2. Naming Conventions & Acronym Policy

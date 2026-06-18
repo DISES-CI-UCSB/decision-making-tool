@@ -16,7 +16,7 @@ The Linear MCP is connected. Always use it to look up issues before working on t
 | Label | Branch / Meaning |
 |---|---|
 | `foundation` | Core scaffolding, services, layout — branch: `foundation` |
-| `solution-finder` | Solution finder modal (scenario selection, targets, includes/excludes) — branch: `feat/solution-controls` |
+| `solution-finder` | Solution finder modal (solution selection, targets, includes/excludes) — branch: `feat/solution-controls` |
 | `left-sidebar` | Left sidebar (map layers panel, selected layers, layer controls) — branch: `feat/solution-controls` |
 | ~~`solution-controls`~~ | **Deprecated.** Split into `solution-finder` + `left-sidebar`. Old issues being migrated. |
 | `map-spatial` | ArcGIS map panel — branch: `feat/map-spatial` |

@@ -25,7 +25,7 @@ def test_compute_species_group_coverage_details_counts_groups_and_iucn(tmp_path:
     summary_csv.write_text(
         "\n".join([
             "feature,met,total_amount,absolute_target,absolute_held,absolute_shortfall,"
-            "relative_target,relative_held,relative_shortfall,scenario,type,class",
+            "relative_target,relative_held,relative_shortfall,solution,type,class",
             "Panthera onca,true,1,1,1,0,30,30,0,demo,species,Mammalia",
             "Ara macao,false,1,1,0,1,30,10,20,demo,species,Aves",
             "Boa constrictor,true,1,1,1,0,30,30,0,demo,species,Squamata",
@@ -69,7 +69,7 @@ def test_compute_species_group_coverage_details_counts_groups_and_iucn(tmp_path:
 def test_compute_species_group_coverage_details_returns_none_without_species_rows(tmp_path: Path):
     summary_csv = tmp_path / "solution_summary.csv"
     summary_csv.write_text(
-        "feature,met,scenario,type,class\nForest,true,demo,ecosystem,Ecosystem\n",
+        "feature,met,solution,type,class\nForest,true,demo,ecosystem,Ecosystem\n",
         encoding="utf-8",
     )
 

@@ -19,7 +19,7 @@
 
 ## 1. `cost_constraints_stack_1km.tif`
 
-A multi-band GeoTIFF raster stack containing the cost layers and spatial constraints fed into the prioritizR optimization. Each band represents a different cost surface or constraint used across prioritization scenarios.
+A multi-band GeoTIFF raster stack containing the cost layers and spatial constraints fed into the prioritizR optimization. Each band represents a different cost surface or constraint used across prioritization solutions.
 
 ### Raster Metadata
 
@@ -35,7 +35,7 @@ A multi-band GeoTIFF raster stack containing the cost layers and spatial constra
 
 | Band | Name | Description | Values | Role in prioritizR |
 |------|------|-------------|--------|---------------------|
-| 1 | `HF_2030` | Projected Human Footprint 2030 (conservationist scenario). Index of anticipated human impact. | 0–100 (continuous) | **Cost layer** — the solver minimizes total cost (human footprint) while meeting conservation targets |
+| 1 | `HF_2030` | Projected Human Footprint 2030 (conservationist solution). Index of anticipated human impact. | 0–100 (continuous) | **Cost layer** — the solver minimizes total cost (human footprint) while meeting conservation targets |
 | 2 | `RUNAP_23_mode` | National System of Protected Areas of Colombia (RUNAP), 2023. Categorical IDs for 15 protected area management categories. | 1–15 (categorical) | **Locked-in constraint** — forces already-protected planning units into the solution |
 | 3 | `comunidades_mode` | Afro-Colombian community territories (*Comunidades Negras*). Binary indicator of community territory presence. | 0–1 (binary) | **Inclusion constraint** — can be locked into the solution |
 | 4 | `Renta_agropecuaria` |aka Net Benefit Agricultural income/rent (*Renta Agropecuaria*). Monetary opportunity cost of converting land from agriculture to conservation. | 0–2.15e9 (continuous) | **Alternative cost layer** |
@@ -55,14 +55,14 @@ Conservation feature rasters commonly used across prioritization runs. These rep
 
 | Property | Value |
 |----------|-------|
-| Description | Species richness layer  raster for Colombia. Each cell represents a continuous value for species richness. Used as the primary conservation feature in `Ecos17` and `Ecos30` scenarios. |
+| Description | Species richness layer  raster for Colombia. Each cell represents a continuous value for species richness. Used as the primary conservation feature in `Ecos17` and `Ecos30` solutions. |
 | Total amount | 358,015,939 (planning unit–cells) |
-| Typical targets | 17% (`Ecos17` scenarios) or 30% (`Ecos30` scenarios) representation of high species richness |
+| Typical targets | 17% (`Ecos17` solutions) or 30% (`Ecos30` solutions) representation of high species richness |
 | Format | GeoTIFF |
 
 ### `Ecos_Estrategico/` — Strategic Ecosystems
 
-Rasters for four nationally strategic ecosystem types used in the `ESTR30` scenarios (30% representation target each).
+Rasters for four nationally strategic ecosystem types used in the `ESTR30` solutions (30% representation target each).
 
 | File | Description | Total Amount |
 |------|-------------|-------------|
@@ -77,11 +77,11 @@ All strategic ecosystem rasters are binary (presence/absence) GeoTIFFs at ~1 km 
 
 ## 3. `Nacional_1km_solutions/`
 
-Contains a sample of final prioritizR solution rasters and summary statistics for multiple prioritization scenarios. Each scenario varies in the number of ecosystems targeted, cost layers used, and constraints applied.
+Contains a sample of final prioritizR solution rasters and summary statistics for multiple prioritization solutions. Each solution varies in the number of ecosystems targeted, cost layers used, and constraints applied.
 
 ### Solution Rasters (`.tif`)
 
-Binary (0/1) raster outputs indicating which planning units were selected in each prioritization run. File names encode the scenario parameters:
+Binary (0/1) raster outputs indicating which planning units were selected in each prioritization run. File names encode the solution parameters:
 
 | File | Ecosystems | Constraints | Cost |
 |------|------------|-------------|------|
@@ -104,18 +104,18 @@ Binary (0/1) raster outputs indicating which planning units were selected in eac
 
 #### `master_eval_summary.csv`
 
-Aggregated evaluation summary across all scenarios.
+Aggregated evaluation summary across all solutions.
 
 | Column | Description |
 |--------|-------------|
-| `run` | Scenario name (matches solution raster filename prefix) |
+| `run` | Solution name (matches solution raster filename prefix) |
 | `n_selected` | Number of planning units selected in the solution |
 | `cost` | Total cost of the solution (units depend on cost layer used) |
 | `pct_targets_met` | Percentage of conservation targets met (always 100% for feasible solutions) |
 
 #### `master_target_coverage.csv`
 
-Feature-level target coverage across all scenarios.
+Feature-level target coverage across all solutions.
 
 | Column | Description |
 |--------|-------------|
@@ -128,7 +128,7 @@ Feature-level target coverage across all scenarios.
 | `relative_target` | Target as a proportion of total (e.g., 0.17 = 17%, 0.30 = 30%) |
 | `relative_held` | Proportion of the feature held in the solution |
 | `relative_shortfall` | Proportional shortfall |
-| `run` | Scenario name |
+| `run` | Solution name |
 
 
 ### Supporting Data Files
@@ -198,7 +198,7 @@ Individual species distribution model (SDM) rasters for Colombia. Contains **8,7
 
 ---
 
-## Scenario Naming Key
+## Solution Naming Key
 
 The solution filenames follow a systematic naming convention:
 

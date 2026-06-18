@@ -9,7 +9,7 @@ PUs=raster(paste0("D:/Box/Proyectos_JBG/mesa_prioridades/PUs/PUS_",extension,".t
 features=read.xlsx("D:/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/features_v4_4_24_(MAPV).xlsx")
 features=features[-which(features$id_original == 0),]
 features=features[features$id_elemento_priorizacion != 20,]
-unique_features=read.xlsx("D:/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/scenarios_to_run_v4_4_24_JBG.xlsx")
+unique_features=read.xlsx("D:/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/solutions_to_run_v4_4_24_JBG.xlsx")
 unique_features=unique_features[unique_features$SIRAP==extension,]
 unique_features=unique_features$id_elemento_priorizacion
 unique_features=paste(unique_features,collapse=',')

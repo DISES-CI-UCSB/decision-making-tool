@@ -119,7 +119,7 @@ Cambio_Global/nacional_processing/
 - Significantly improved extraction speed
 
 ### Feature Filtering
-- Only extract features used in Nacional scenarios
-- Filter scenarios by `SIRAP == "Nacional"`
-- Dynamic ID→name mapping from scenarios spreadsheet
+- Only extract features used in Nacional solutions
+- Filter solutions by `SIRAP == "Nacional"`
+- Dynamic ID→name mapping from solutions spreadsheet
 

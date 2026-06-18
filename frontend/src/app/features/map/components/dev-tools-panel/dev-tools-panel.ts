@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
-import { type AoiType, type Solution, type SolutionScenario, UserTier } from '@core/models';
+import { type AoiType, type Solution, type CatalogSolution, UserTier } from '@core/models';
 import {
   CHART_PALETTE_IDS,
   CHART_PALETTES,
@@ -91,7 +91,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               </span>
             </div>
 
-            <div id="dev-tools-scenario-actions" class="mb-2 flex gap-1.5">
+            <div id="dev-tools-solution-actions" class="mb-2 flex gap-1.5">
               <button
                 id="dev-tools-clear-btn"
                 type="button"
@@ -195,62 +195,62 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               </span>
             </div>
 
-            <section id="dev-tools-finder-original-scenario-picker">
+            <section id="dev-tools-finder-original-solution-picker">
               <label
-                id="dev-tools-finder-original-scenario-label"
-                for="dev-tools-finder-original-scenario-select"
+                id="dev-tools-finder-original-solution-label"
+                for="dev-tools-finder-original-solution-select"
                 class="block text-slate-500 mb-1"
                 >Original solution</label
               >
               <select
-                id="dev-tools-finder-original-scenario-select"
+                id="dev-tools-finder-original-solution-select"
                 class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
-                [value]="selectedScenarioId()"
-                (change)="onScenarioChange($event)"
+                [value]="selectedSolutionId()"
+                (change)="onSolutionChange($event)"
               >
                 <option value="">-- select --</option>
-                @for (s of scenarios(); track s.id) {
-                  <option [value]="s.id">{{ formatScenarioOption(s) }}</option>
+                @for (s of solutions(); track s.id) {
+                  <option [value]="s.id">{{ formatSolutionOption(s) }}</option>
                 }
               </select>
-              <div id="dev-tools-finder-original-scenario-actions" class="mt-1.5 flex gap-1.5">
+              <div id="dev-tools-finder-original-solution-actions" class="mt-1.5 flex gap-1.5">
                 <button
                   id="dev-tools-finder-load-primary-btn"
                   type="button"
                   class="rounded border border-emerald-400 bg-emerald-50 px-2 py-1 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
-                  [disabled]="!selectedScenarioId() || solutionLayer.isLoading$()"
-                  (click)="loadScenario()"
+                  [disabled]="!selectedSolutionId() || solutionLayer.isLoading$()"
+                  (click)="loadSolution()"
                 >
                   {{ solutionLayer.isLoading$() ? 'Loading...' : 'Load Original' }}
                 </button>
               </div>
             </section>
 
-            <section id="dev-tools-finder-comparison-scenario-picker" class="mt-2">
+            <section id="dev-tools-finder-comparison-solution-picker" class="mt-2">
               <label
-                id="dev-tools-finder-comparison-scenario-label"
-                for="dev-tools-finder-comparison-scenario-select"
+                id="dev-tools-finder-comparison-solution-label"
+                for="dev-tools-finder-comparison-solution-select"
                 class="block text-slate-500 mb-1"
                 >Comparison solution</label
               >
               <select
-                id="dev-tools-finder-comparison-scenario-select"
+                id="dev-tools-finder-comparison-solution-select"
                 class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
-                [value]="selectedCandidateScenarioId()"
-                (change)="onCandidateScenarioChange($event)"
+                [value]="selectedCandidateSolutionId()"
+                (change)="onCandidateSolutionChange($event)"
               >
                 <option value="">-- select --</option>
-                @for (s of scenarios(); track s.id) {
-                  <option [value]="s.id">{{ formatScenarioOption(s) }}</option>
+                @for (s of solutions(); track s.id) {
+                  <option [value]="s.id">{{ formatSolutionOption(s) }}</option>
                 }
               </select>
-              <div id="dev-tools-finder-comparison-scenario-actions" class="mt-1.5 flex gap-1.5">
+              <div id="dev-tools-finder-comparison-solution-actions" class="mt-1.5 flex gap-1.5">
                 <button
                   id="dev-tools-finder-load-comparison-btn"
                   type="button"
                   class="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
-                  [disabled]="!selectedCandidateScenarioId() || solutionLayer.isLoading$()"
-                  (click)="loadCandidateScenario()"
+                  [disabled]="!selectedCandidateSolutionId() || solutionLayer.isLoading$()"
+                  (click)="loadCandidateSolution()"
                 >
                   Load Comparison
                 </button>
@@ -290,15 +290,15 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
               <p id="dev-tools-finder-filename-toggle-label" class="text-[11px] text-slate-600">
-                Finder scenario filenames
+                Finder solution filenames
               </p>
               <button
                 id="dev-tools-finder-filename-toggle-btn"
                 type="button"
                 class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
-                (click)="toggleFinderScenarioFilenames()"
+                (click)="toggleFinderSolutionFilenames()"
               >
-                {{ showFinderScenarioFilenames() ? 'Hide filenames' : 'Show filenames' }}
+                {{ showFinderSolutionFilenames() ? 'Hide filenames' : 'Show filenames' }}
               </button>
             </div>
 
@@ -570,31 +570,31 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               </span>
             </div>
 
-            <section id="dev-tools-candidate-scenario-picker">
+            <section id="dev-tools-candidate-solution-picker">
               <label
-                id="dev-tools-candidate-scenario-label"
-                for="dev-tools-candidate-scenario-select"
+                id="dev-tools-candidate-solution-label"
+                for="dev-tools-candidate-solution-select"
                 class="block text-slate-500 mb-1"
-                >Load Candidate Scenario</label
+                >Load Candidate Solution</label
               >
               <select
-                id="dev-tools-candidate-scenario-select"
+                id="dev-tools-candidate-solution-select"
                 class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
-                [value]="selectedCandidateScenarioId()"
-                (change)="onCandidateScenarioChange($event)"
+                [value]="selectedCandidateSolutionId()"
+                (change)="onCandidateSolutionChange($event)"
               >
                 <option value="">-- select --</option>
-                @for (s of scenarios(); track s.id) {
-                  <option [value]="s.id">{{ formatScenarioOption(s) }}</option>
+                @for (s of solutions(); track s.id) {
+                  <option [value]="s.id">{{ formatSolutionOption(s) }}</option>
                 }
               </select>
-              <div id="dev-tools-candidate-scenario-actions" class="mt-1.5 flex gap-1.5">
+              <div id="dev-tools-candidate-solution-actions" class="mt-1.5 flex gap-1.5">
                 <button
                   id="dev-tools-load-candidate-btn"
                   type="button"
                   class="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
-                  [disabled]="!selectedCandidateScenarioId() || solutionLayer.isLoading$()"
-                  (click)="loadCandidateScenario()"
+                  [disabled]="!selectedCandidateSolutionId() || solutionLayer.isLoading$()"
+                  (click)="loadCandidateSolution()"
                 >
                   Load in Comparison
                 </button>
@@ -788,22 +788,22 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
           }
 
           @if (loaded(); as sol) {
-            <!-- Scenario Info -->
-            <section id="dev-tools-scenario-info" class="mb-3 border-t border-slate-200 pt-3">
-              <h4 id="dev-tools-scenario-info-title" class="font-bold text-slate-700 mb-1">
-                Scenario
+            <!-- Solution Info -->
+            <section id="dev-tools-solution-info" class="mb-3 border-t border-slate-200 pt-3">
+              <h4 id="dev-tools-solution-info-title" class="font-bold text-slate-700 mb-1">
+                Solution
               </h4>
-              <dl id="dev-tools-scenario-dl" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+              <dl id="dev-tools-solution-dl" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
                 <dt class="text-slate-400">ID</dt>
-                <dd class="text-slate-800">{{ sol.scenario.id }}</dd>
+                <dd class="text-slate-800">{{ sol.solution.id }}</dd>
                 <dt class="text-slate-400">Targets</dt>
-                <dd class="text-slate-800">{{ sol.scenario.ecosystemTargets }}%</dd>
+                <dd class="text-slate-800">{{ sol.solution.ecosystemTargets }}%</dd>
                 <dt class="text-slate-400">Constraints</dt>
-                <dd class="text-slate-800">{{ sol.scenario.constraints.join(', ') }}</dd>
+                <dd class="text-slate-800">{{ sol.solution.constraints.join(', ') }}</dd>
                 <dt class="text-slate-400">Cost Layer</dt>
-                <dd class="text-slate-800">{{ sol.scenario.costLayer }}</dd>
+                <dd class="text-slate-800">{{ sol.solution.costLayer }}</dd>
                 <dt class="text-slate-400">Description</dt>
-                <dd class="text-slate-800">{{ sol.scenario.description }}</dd>
+                <dd class="text-slate-800">{{ sol.solution.description }}</dd>
               </dl>
             </section>
 
@@ -847,7 +847,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 <dt class="text-slate-400">Selected %</dt>
                 <dd class="text-slate-800">{{ sol.rasterMeta.selectedPct.toFixed(1) }}%</dd>
                 <dt class="text-slate-400">Cost</dt>
-                <dd class="text-slate-800">{{ sol.scenario.totalCost.toLocaleString() }}</dd>
+                <dd class="text-slate-800">{{ sol.solution.totalCost.toLocaleString() }}</dd>
                 <dt class="text-slate-400">Load Time</dt>
                 <dd class="text-slate-800">{{ sol.loadTimeMs }}ms</dd>
               </dl>
@@ -934,7 +934,7 @@ export class DevToolsPanelComponent {
   private readonly appState = inject(AppStateService);
   private readonly mockData = inject(MockDataService);
 
-  readonly scenarios = this.catalog.scenarios;
+  readonly solutions = this.catalog.solutions;
   readonly catalogLoadMessage = computed(() => {
     const error = this.catalog.loadError();
     if (error) {
@@ -943,13 +943,13 @@ export class DevToolsPanelComponent {
     if (this.catalog.isLoading()) {
       return 'Loading manifest solutions...';
     }
-    if (this.scenarios().length === 0) {
+    if (this.solutions().length === 0) {
       return 'No manifest solutions are available.';
     }
     return null;
   });
-  readonly selectedScenarioId = signal('');
-  readonly selectedCandidateScenarioId = signal('');
+  readonly selectedSolutionId = signal('');
+  readonly selectedCandidateSolutionId = signal('');
   readonly isOpen = signal(false);
 
   readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
@@ -961,7 +961,7 @@ export class DevToolsPanelComponent {
   readonly chartPaletteOptions = CHART_PALETTE_IDS.map((id) => CHART_PALETTES[id]);
   readonly selectedChartPalette = computed(() => CHART_PALETTES[this.chartPaletteId()]);
   readonly selectSolutionButtonHoverFx = this.appState.selectSolutionButtonHoverFx$;
-  readonly showFinderScenarioFilenames = this.appState.showFinderScenarioFilenames$;
+  readonly showFinderSolutionFilenames = this.appState.showFinderSolutionFilenames$;
   readonly showFinderScopeBar = this.appState.showFinderScopeBar$;
   readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
   readonly showGenerateRegionalReportButton = this.appState.showGenerateRegionalReportButton$;
@@ -1007,38 +1007,38 @@ export class DevToolsPanelComponent {
     }
   }
 
-  onScenarioChange(event: Event): void {
-    this.selectedScenarioId.set((event.target as HTMLSelectElement).value);
+  onSolutionChange(event: Event): void {
+    this.selectedSolutionId.set((event.target as HTMLSelectElement).value);
   }
 
-  onCandidateScenarioChange(event: Event): void {
-    this.selectedCandidateScenarioId.set((event.target as HTMLSelectElement).value);
+  onCandidateSolutionChange(event: Event): void {
+    this.selectedCandidateSolutionId.set((event.target as HTMLSelectElement).value);
   }
 
-  loadScenario(): void {
-    const id = this.selectedScenarioId();
+  loadSolution(): void {
+    const id = this.selectedSolutionId();
     if (!id) {
       return;
     }
 
-    // "Load on Map" should display a single scenario, not stay in comparison swipe mode.
+    // "Load on Map" should display a single solution, not stay in comparison swipe mode.
     this.appState.setComparisonSolution(null);
     this.appState.setRightSidebarMode('overview');
     void this.solutionLayer.showSolution(id);
   }
 
-  loadCandidateScenario(): void {
-    const scenarioId = this.selectedCandidateScenarioId();
-    if (!scenarioId) {
+  loadCandidateSolution(): void {
+    const solutionId = this.selectedCandidateSolutionId();
+    if (!solutionId) {
       return;
     }
 
-    const scenario = this.catalog.getById(scenarioId);
-    if (!scenario) {
+    const solution = this.catalog.getById(solutionId);
+    if (!solution) {
       return;
     }
 
-    this.appState.setComparisonSolution(this.buildCandidateComparisonSolution(scenarioId));
+    this.appState.setComparisonSolution(this.buildCandidateComparisonSolution(solutionId));
     this.appState.setRightSidebarMode('comparison');
   }
 
@@ -1069,8 +1069,8 @@ export class DevToolsPanelComponent {
     this.appState.setFillDummyOverviewMetrics(!this.fillDummyOverviewMetrics());
   }
 
-  toggleFinderScenarioFilenames(): void {
-    this.appState.setShowFinderScenarioFilenames(!this.showFinderScenarioFilenames());
+  toggleFinderSolutionFilenames(): void {
+    this.appState.setShowFinderSolutionFilenames(!this.showFinderSolutionFilenames());
   }
 
   toggleFinderScopeBar(): void {
@@ -1139,40 +1139,40 @@ export class DevToolsPanelComponent {
     return `[${bbox.map((v) => v.toFixed(2)).join(', ')}]`;
   }
 
-  protected formatScenarioOption(scenario: SolutionScenario): string {
-    const targetLabel = scenario.ecosystemTargets
-      ? `${scenario.ecosystemTargets}%`
+  protected formatSolutionOption(solution: CatalogSolution): string {
+    const targetLabel = solution.ecosystemTargets
+      ? `${solution.ecosystemTargets}%`
       : 'target unknown';
     const constraintsLabel =
-      scenario.constraints.length > 0 ? scenario.constraints.join('+') : 'no constraints';
-    return `${scenario.id} | ${scenario.scope} | ${targetLabel} | ${constraintsLabel} | ${scenario.costLayer}`;
+      solution.constraints.length > 0 ? solution.constraints.join('+') : 'no constraints';
+    return `${solution.id} | ${solution.scope} | ${targetLabel} | ${constraintsLabel} | ${solution.costLayer}`;
   }
 
-  private buildCandidateComparisonSolution(scenarioId: string): Solution {
-    const scenario = this.catalog.getById(scenarioId);
-    const mockSolution = this.getMockSolutionForScenario(scenarioId);
-    const hash = Array.from(scenarioId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  private buildCandidateComparisonSolution(solutionId: string): Solution {
+    const solution = this.catalog.getById(solutionId);
+    const mockSolution = this.getMockSolutionForSolution(solutionId);
+    const hash = Array.from(solutionId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const matchPercentage = 70 + (hash % 29);
 
     return {
       ...mockSolution,
-      // Use the real scenario id so cached metrics resolve against the manifest
+      // Use the real solution id so cached metrics resolve against the manifest
       // (mirrors the production solution-finder path in app.ts).
-      id: scenarioId,
-      name: scenario?.name ?? mockSolution.name,
-      description: scenario?.description ?? mockSolution.description,
-      geometryUrl: scenario?.filename ?? mockSolution.geometryUrl,
+      id: solutionId,
+      name: solution?.name ?? mockSolution.name,
+      description: solution?.description ?? mockSolution.description,
+      geometryUrl: solution?.filename ?? mockSolution.geometryUrl,
       matchPercentage,
       metadata: {
         ...mockSolution.metadata,
-        scenarioId,
+        solutionId,
       },
     };
   }
 
-  private getMockSolutionForScenario(scenarioId: string): Solution {
+  private getMockSolutionForSolution(solutionId: string): Solution {
     const mockSolutionIds = ['sol-001', 'sol-002', 'sol-003'] as const;
-    const hash = Array.from(scenarioId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hash = Array.from(solutionId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const fallbackId = mockSolutionIds[hash % mockSolutionIds.length];
     return this.mockData.getSolutionById(fallbackId) ?? this.mockData.getSolutionById('sol-001')!;
   }

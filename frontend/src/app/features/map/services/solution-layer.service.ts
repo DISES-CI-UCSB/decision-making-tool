@@ -17,7 +17,7 @@ import {
   type ComparisonVisualizationMode,
 } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
-import type { LoadedSolution } from '@core/models/solution-scenario.model';
+import type { LoadedSolution } from '@core/models/solution-catalog.model';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
 
 const SOLUTION_LAYER_ID = 'solution-raster-layer';
@@ -93,15 +93,15 @@ export class SolutionLayerService {
   private comparisonVisualizationMode: ComparisonVisualizationMode = 'threeColorOverlay';
 
   /**
-   * Per-scenario color memory so that returning to a previously-viewed scenario during the
+   * Per-solution color memory so that returning to a previously-viewed solution during the
    * same browsing session restores the user's chosen color rather than snapping back to the
    * canonical default (Option B). Colors are reset to defaults only when the user explicitly
    * removes the solution layer (removeSolutionLayer), which clears lastSingle/Comparison IDs.
    */
-  private readonly userSingleColorByScenarioId = new Map<string, string>();
-  private readonly userExistingProtectedColorByScenarioId = new Map<string, string>();
-  private readonly userBaselineColorByScenarioId = new Map<string, string>();
-  private readonly userCandidateColorByScenarioId = new Map<string, string>();
+  private readonly userSingleColorBySolutionId = new Map<string, string>();
+  private readonly userExistingProtectedColorBySolutionId = new Map<string, string>();
+  private readonly userBaselineColorBySolutionId = new Map<string, string>();
+  private readonly userCandidateColorBySolutionId = new Map<string, string>();
 
   /**
    * Canonical source of truth for all four solution-layer colors.
@@ -125,7 +125,7 @@ export class SolutionLayerService {
   }
 
   async showSolution(
-    scenarioId: string,
+    solutionId: string,
     options: {
       syncAppState?: boolean;
     } = {},
@@ -142,21 +142,21 @@ export class SolutionLayerService {
     try {
       this.removeAllLayers();
 
-      const loaded = await this.loader.loadSolution(scenarioId);
-      // Restore the user-picked color for this scenario (if any), otherwise use the default.
-      // This lets returning to a previously-viewed scenario preserve the chosen color.
+      const loaded = await this.loader.loadSolution(solutionId);
+      // Restore the user-picked color for this solution (if any), otherwise use the default.
+      // This lets returning to a previously-viewed solution preserve the chosen color.
       const restoredColor =
-        this.userSingleColorByScenarioId.get(loaded.scenario.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
+        this.userSingleColorBySolutionId.get(loaded.solution.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
       const restoredExistingProtectedColor =
-        this.userExistingProtectedColorByScenarioId.get(loaded.scenario.id) ??
+        this.userExistingProtectedColorBySolutionId.get(loaded.solution.id) ??
         this.defaultExistingProtectedColor(loaded);
       this.solutionColor$.set(restoredColor);
       this.existingProtectedColor$.set(restoredExistingProtectedColor);
-      this.lastSingleSolutionId = loaded.scenario.id;
+      this.lastSingleSolutionId = loaded.solution.id;
       this.currentLayer = this.createLayerFromLoaded(
         loaded,
         SOLUTION_LAYER_ID,
-        loaded.scenario.name,
+        loaded.solution.name,
         this.solutionColor$(),
       );
       this.comparisonMode = false;
@@ -172,7 +172,7 @@ export class SolutionLayerService {
       }
 
       console.info(
-        `[SolutionLayerService] rendered "${loaded.scenario.id}" in ${loaded.loadTimeMs}ms ` +
+        `[SolutionLayerService] rendered "${loaded.solution.id}" in ${loaded.loadTimeMs}ms ` +
           `(${loaded.rasterMeta.selectedCount.toLocaleString()} cells selected, ` +
           `${loaded.rasterMeta.selectedPct.toFixed(1)}%)`,
       );
@@ -185,7 +185,7 @@ export class SolutionLayerService {
     }
   }
 
-  async showComparison(baselineScenarioId: string, candidateScenarioId: string): Promise<void> {
+  async showComparison(baselineSolutionId: string, candidateSolutionId: string): Promise<void> {
     if (!this.map) {
       console.error('[SolutionLayerService] map not initialized');
       return;
@@ -196,55 +196,55 @@ export class SolutionLayerService {
 
     try {
       const currentlyLoaded = this.loadedSolution$();
-      const reuseIfLoaded = (scenarioId: string): LoadedSolution | null => {
-        return currentlyLoaded?.scenario.id === scenarioId ? currentlyLoaded : null;
+      const reuseIfLoaded = (solutionId: string): LoadedSolution | null => {
+        return currentlyLoaded?.solution.id === solutionId ? currentlyLoaded : null;
       };
 
       let baselineLoaded: LoadedSolution;
       let candidateLoaded: LoadedSolution;
 
-      if (baselineScenarioId === candidateScenarioId) {
+      if (baselineSolutionId === candidateSolutionId) {
         const sharedLoaded =
-          reuseIfLoaded(baselineScenarioId) ?? (await this.loader.loadSolution(baselineScenarioId));
+          reuseIfLoaded(baselineSolutionId) ?? (await this.loader.loadSolution(baselineSolutionId));
         baselineLoaded = sharedLoaded;
         candidateLoaded = sharedLoaded;
       } else {
         [baselineLoaded, candidateLoaded] = await Promise.all([
-          reuseIfLoaded(baselineScenarioId) ?? this.loader.loadSolution(baselineScenarioId),
-          reuseIfLoaded(candidateScenarioId) ?? this.loader.loadSolution(candidateScenarioId),
+          reuseIfLoaded(baselineSolutionId) ?? this.loader.loadSolution(baselineSolutionId),
+          reuseIfLoaded(candidateSolutionId) ?? this.loader.loadSolution(candidateSolutionId),
         ]);
       }
 
-      // Only clear existing map layers once both scenarios have loaded successfully.
+      // Only clear existing map layers once both solutions have loaded successfully.
       this.removeAllLayers();
-      // Restore user-picked colors for each scenario side (if any), otherwise use the default.
-      // Overlap resets whenever either side changes since it depends on both scenarios.
-      const baselineChanged = this.lastComparisonBaselineId !== baselineLoaded.scenario.id;
-      const candidateChanged = this.lastComparisonCandidateId !== candidateLoaded.scenario.id;
+      // Restore user-picked colors for each solution side (if any), otherwise use the default.
+      // Overlap resets whenever either side changes since it depends on both solutions.
+      const baselineChanged = this.lastComparisonBaselineId !== baselineLoaded.solution.id;
+      const candidateChanged = this.lastComparisonCandidateId !== candidateLoaded.solution.id;
       this.baselineColor$.set(
-        this.userBaselineColorByScenarioId.get(baselineLoaded.scenario.id) ??
+        this.userBaselineColorBySolutionId.get(baselineLoaded.solution.id) ??
           DEFAULT_COMPARISON_BASELINE_HEX,
       );
       this.candidateColor$.set(
-        this.userCandidateColorByScenarioId.get(candidateLoaded.scenario.id) ??
+        this.userCandidateColorBySolutionId.get(candidateLoaded.solution.id) ??
           DEFAULT_COMPARISON_CANDIDATE_HEX,
       );
       if (baselineChanged || candidateChanged) {
         this.overlapColor$.set(DEFAULT_COMPARISON_OVERLAP_HEX);
       }
-      this.lastComparisonBaselineId = baselineLoaded.scenario.id;
-      this.lastComparisonCandidateId = candidateLoaded.scenario.id;
+      this.lastComparisonBaselineId = baselineLoaded.solution.id;
+      this.lastComparisonCandidateId = candidateLoaded.solution.id;
       this.baselineComparisonLayer = this.createLayerFromLoaded(
         baselineLoaded,
         BASELINE_LAYER_ID,
-        `Scenario A: ${baselineLoaded.scenario.name}`,
+        `Solution A: ${baselineLoaded.solution.name}`,
         this.baselineColor$(),
         { collapseExistingProtectedCoverage: true },
       );
       this.candidateComparisonLayer = this.createLayerFromLoaded(
         candidateLoaded,
         CANDIDATE_LAYER_ID,
-        `Scenario B: ${candidateLoaded.scenario.name}`,
+        `Solution B: ${candidateLoaded.solution.name}`,
         this.candidateColor$(),
         { collapseExistingProtectedCoverage: true },
       );
@@ -271,7 +271,7 @@ export class SolutionLayerService {
     this.loadedSolution$.set(null);
     this.liveSolutionMetrics$.set(null);
     this.comparisonMode = false;
-    // Clear scenario tracking so a subsequent load of the same id is treated as a fresh start
+    // Clear solution tracking so a subsequent load of the same id is treated as a fresh start
     // (and therefore snaps colors back to defaults per Option B).
     this.lastSingleSolutionId = null;
     this.lastComparisonBaselineId = null;
@@ -332,13 +332,13 @@ export class SolutionLayerService {
     return this.overlapComparisonOpacity;
   }
 
-  hasComparisonScenarios(baselineScenarioId: string, candidateScenarioId: string): boolean {
+  hasComparisonSolutions(baselineSolutionId: string, candidateSolutionId: string): boolean {
     if (!this.baselineComparisonLoaded || !this.candidateComparisonLoaded) {
       return false;
     }
     return (
-      this.baselineComparisonLoaded.scenario.id === baselineScenarioId &&
-      this.candidateComparisonLoaded.scenario.id === candidateScenarioId
+      this.baselineComparisonLoaded.solution.id === baselineSolutionId &&
+      this.candidateComparisonLoaded.solution.id === candidateSolutionId
     );
   }
 
@@ -423,7 +423,7 @@ export class SolutionLayerService {
     }
     this.solutionColor$.set(normalized);
     if (this.lastSingleSolutionId) {
-      this.userSingleColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+      this.userSingleColorBySolutionId.set(this.lastSingleSolutionId, normalized);
     }
     const loaded = this.loadedSolution$();
     if (!loaded || !this.currentLayer) {
@@ -440,7 +440,7 @@ export class SolutionLayerService {
     }
     this.existingProtectedColor$.set(normalized);
     if (this.lastSingleSolutionId) {
-      this.userExistingProtectedColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+      this.userExistingProtectedColorBySolutionId.set(this.lastSingleSolutionId, normalized);
     }
     const loaded = this.loadedSolution$();
     if (!loaded || !this.currentLayer) {
@@ -460,10 +460,10 @@ export class SolutionLayerService {
     this.solutionColor$.set(normalized);
     this.baselineColor$.set(normalized);
     if (this.lastSingleSolutionId) {
-      this.userSingleColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+      this.userSingleColorBySolutionId.set(this.lastSingleSolutionId, normalized);
     }
     if (this.lastComparisonBaselineId) {
-      this.userBaselineColorByScenarioId.set(this.lastComparisonBaselineId, normalized);
+      this.userBaselineColorBySolutionId.set(this.lastComparisonBaselineId, normalized);
     }
 
     const loaded = this.loadedSolution$();
@@ -489,7 +489,7 @@ export class SolutionLayerService {
     }
     this.candidateColor$.set(normalized);
     if (this.lastComparisonCandidateId) {
-      this.userCandidateColorByScenarioId.set(this.lastComparisonCandidateId, normalized);
+      this.userCandidateColorBySolutionId.set(this.lastComparisonCandidateId, normalized);
     }
     if (this.candidateComparisonLayer && this.candidateComparisonLoaded) {
       this.applyLayerColor(
@@ -557,7 +557,7 @@ export class SolutionLayerService {
     colorHex = DEFAULT_SINGLE_SOLUTION_HEX,
     renderOptions: SolutionRenderOptions = {},
   ): SolutionDisplayLayer {
-    if (loaded.scenario.displayCogUrl) {
+    if (loaded.solution.displayCogUrl) {
       return this.createImageryTileLayer(loaded, layerId, title, colorHex, renderOptions);
     }
 
@@ -647,17 +647,17 @@ export class SolutionLayerService {
     const metricsFixture = this.mockData.getSolutionById(TEMPORARY_METRICS_FIXTURE_SOLUTION_ID);
 
     return {
-      id: loaded.scenario.id,
-      name: loaded.scenario.name,
-      description: loaded.scenario.description,
-      matchPercentage: loaded.scenario.pctTargetsMet,
-      geometryUrl: loaded.scenario.displayUrl,
+      id: loaded.solution.id,
+      name: loaded.solution.name,
+      description: loaded.solution.description,
+      matchPercentage: loaded.solution.pctTargetsMet,
+      geometryUrl: loaded.solution.displayUrl,
       metadata: {
-        scenarioId: loaded.scenario.id,
-        scope: loaded.scenario.scope,
-        rasterFile: loaded.scenario.filename,
-        displayCogUrl: loaded.scenario.displayCogUrl ?? null,
-        metadataUrl: loaded.scenario.metadataUrl,
+        solutionId: loaded.solution.id,
+        scope: loaded.solution.scope,
+        rasterFile: loaded.solution.filename,
+        displayCogUrl: loaded.solution.displayCogUrl ?? null,
+        metadataUrl: loaded.solution.metadataUrl,
       },
       metrics: metricsFixture?.metrics ?? [],
     };
@@ -699,7 +699,7 @@ export class SolutionLayerService {
   ): InstanceType<typeof ImageryTileLayer> {
     return new ImageryTileLayer({
       id: layerId,
-      url: loaded.scenario.displayCogUrl ?? loaded.scenario.displayUrl,
+      url: loaded.solution.displayCogUrl ?? loaded.solution.displayUrl,
       interpolation: 'nearest',
       renderer: this.createSolutionRenderer(loaded, colorHex, renderOptions),
       opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
@@ -949,8 +949,8 @@ export class SolutionLayerService {
     renderOptions: SolutionRenderOptions = {},
   ): RuntimeLayerManifestClassColor[] {
     const classColors =
-      loaded.scenario.rendering.renderMode === 'categorical'
-        ? (loaded.scenario.rendering.classColors ?? [])
+      loaded.solution.rendering.renderMode === 'categorical'
+        ? (loaded.solution.rendering.classColors ?? [])
         : [];
     const existingProtectedClass = classColors.find(
       (entry) => entry.value === EXISTING_PROTECTED_VALUE,
@@ -985,7 +985,7 @@ export class SolutionLayerService {
           this.existingProtectedColor$() ??
           existingProtectedClass?.color ??
           DEFAULT_EXISTING_PROTECTED_HEX,
-        label: getSolutionIncludedAreasLegendLabel(loaded.scenario),
+        label: getSolutionIncludedAreasLegendLabel(loaded.solution),
       },
       {
         value: NEW_COVERAGE_VALUE,
@@ -997,8 +997,8 @@ export class SolutionLayerService {
 
   private defaultExistingProtectedColor(loaded: LoadedSolution): string {
     const classColors =
-      loaded.scenario.rendering.renderMode === 'categorical'
-        ? (loaded.scenario.rendering.classColors ?? [])
+      loaded.solution.rendering.renderMode === 'categorical'
+        ? (loaded.solution.rendering.classColors ?? [])
         : [];
     return (
       classColors.find((entry) => entry.value === EXISTING_PROTECTED_VALUE)?.color ??

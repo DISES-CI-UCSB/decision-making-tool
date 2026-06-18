@@ -15,7 +15,7 @@ PUs_p=read_sf((paste0("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/PUs/PUS_",ex
 features=read.xlsx("./input/features_v4_4_24_(MAPV).xlsx")
 features=features[-which(features$id_original == 0),]
 features=features[features$id_elemento_priorizacion != 20,]
-unique_features=read.xlsx("./input/scenarios_to_run_v4_4_24_JBG.xlsx")
+unique_features=read.xlsx("./input/solutions_to_run_v4_4_24_JBG.xlsx")
 #unique_features=unique_features[unique_features$SIRAP==extension,]
 unique_features=unique_features$id_elemento_priorizacion
 unique_features=paste(unique_features,collapse=',')

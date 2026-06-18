@@ -154,7 +154,7 @@ Spatial Distribution Map
 [Full-page map showing carbon density]
 
 Narrative:
-"This conservation scenario secures 2.5 billion 
+"This conservation solution secures 2.5 billion 
 tonnes of CO2 equivalent carbon storage, 
 representing 7% of Colombia's terrestrial carbon 
 stocks. High-elevation ecosystems (cloud forests 

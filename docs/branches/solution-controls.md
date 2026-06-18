@@ -30,7 +30,7 @@
 | SOL-14 | ⚪ Not Started | — | Layer category grouping | Group by: Biodiversity, Ecosystem, Socio-Economic, etc. |
 | SOL-15 | 🔶 Stretch | — | Layer search/filter input | Filter layer list by name |
 | | | | **── Checkpoint 4: Comparison & Polish ──** | |
-| SOL-16 | ⚪ Not Started | — | Scenario comparison selector (Tier 2) | Pick Scenario A + B, gated by `userTier$` |
+| SOL-16 | ⚪ Not Started | — | Solution comparison selector (Tier 2) | Pick Solution A + B, gated by `userTier$` |
 | SOL-17 | ⚪ Not Started | — | Export trigger buttons | Wire to export service stubs (Shapefile, GeoJSON, PNG, PDF) |
 | SOL-18 | ⚪ Not Started | — | [Design] Perspective selection flow | How users pick pre-set conservation perspectives |
 | SOL-19 | ⚪ Not Started | — | Perspective selection modal | Pre-built target presets (e.g., "Biodiversity Focus") |
@@ -44,7 +44,7 @@
 |--------|-----------|-------|
 | `activeSolution$` | **Write** | When user applies a solution → write the loaded solution |
 | `visibleLayers$` | **Write** | When user toggles layers → update visibility array |
-| `comparisonSolution$` | **Write** | When user selects Scenario B → write comparison solution |
+| `comparisonSolution$` | **Write** | When user selects Solution B → write comparison solution |
 | `rightSidebarMode$` | **Write** | When solution applied → set to `'overview'` |
 | `userTier$` | **Read** | Gate Tier 2 features (comparison, upload, export) |
 | `activeSolution$` | **Read** | Show currently loaded solution info in sidebar |
@@ -142,9 +142,9 @@ src/app/features/left-sidebar/
 
 **SOL-08: Nearest-neighbor matching service**
 - Given user's target selections → search pre-calculated solution library
-- Calculate distance metric between user targets and each pre-calculated scenario
+- Calculate distance metric between user targets and each pre-calculated solution
 - Return top N matches sorted by match quality (closest distance = best match)
-- For V1.5: mock library with 10-20 pre-built scenarios
+- For V1.5: mock library with 10-20 pre-built solutions
 
 **SOL-09: Match results panel**
 - Ranked list of matched solutions
@@ -181,11 +181,11 @@ src/app/features/left-sidebar/
 
 ### Checkpoint 4: Comparison & Polish
 
-**Goal:** Tier 2 users can compare scenarios, trigger exports, and use perspective presets.
+**Goal:** Tier 2 users can compare solutions, trigger exports, and use perspective presets.
 
-**SOL-16: Scenario comparison selector (Tier 2)**
+**SOL-16: Solution comparison selector (Tier 2)**
 - Only visible when `canAccessTier2` is true
-- Two dropdowns: Scenario A (baseline), Scenario B (comparison)
+- Two dropdowns: Solution A (baseline), Solution B (comparison)
 - Selecting both → writes `comparisonSolution$` → triggers map split + comparison panel
 - "Clear Comparison" button to exit comparison mode
 

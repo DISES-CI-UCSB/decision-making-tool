@@ -88,7 +88,7 @@ Solution artifacts (`.tif` + same-name `.json`) are tracked in `data/solutions/`
 
 ## Inputs (`inputs/`)
 
-Inputs are grouped by solver role. This reinforces the optimization mental model: these layers are the canonical data that feed scenario generation.
+Inputs are grouped by solver role. This reinforces the optimization mental model: these layers are the canonical data that feed solution generation.
 
 ### Features (`inputs/features/`)
 
@@ -102,7 +102,7 @@ Inputs are grouped by solver role. This reinforces the optimization mental model
 
 | File | Description | Values |
 |------|-------------|--------|
-| `human_footprint_2030.tif` | Projected human footprint index (conservationist scenario) | 0–100 continuous |
+| `human_footprint_2030.tif` | Projected human footprint index (conservationist solution) | 0–100 continuous |
 | `net_benefit.tif` | Agricultural income / opportunity cost (Renta Agropecuaria) | 0–2.15e9 continuous |
 | `conflict.tif` | Coca cultivation + conflict-related deaths composite, 2016–2022 | 0–265.56 continuous |
 
@@ -128,10 +128,10 @@ Inputs are grouped by solver role. This reinforces the optimization mental model
 
 | Subfolder | Contents |
 |-----------|----------|
-| `nacional/` | 14 national-level 1km scenarios (`.tif`) + sidecar metadata (`.json`) + manifest (`solution_manifest.csv`) + evaluation CSVs + species RDS files |
+| `nacional/` | 14 national-level 1km solutions (`.tif`) + sidecar metadata (`.json`) + manifest (`solution_manifest.csv`) + evaluation CSVs + species RDS files |
 | `sirap/` | Regional SIRAP solutions (empty — future) |
 
-Solution filenames encode scenario parameters. Example: `Ecos17+RUNAP_HF.tif` = 17% ecosystem target, RUNAP locked-in, Human Footprint cost.
+Solution filenames encode solution parameters. Example: `Ecos17+RUNAP_HF.tif` = 17% ecosystem target, RUNAP locked-in, Human Footprint cost.
 Each solution has a same-name JSON file next to it (for provenance and input IDs), e.g. `Ecos17+RUNAP_HF.tif` + `Ecos17+RUNAP_HF.json`.
 `solutions/nacional/` is the canonical source; deploy scripts copy required files from there to `frontend/public/data/solutions/`.
 Canonical solution JSON metadata is provided by collaborators (for now, Kevin/Mesa workflow), not auto-generated in this repo.

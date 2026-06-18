@@ -9,7 +9,7 @@
 
 **ECO-PLAN Decision Support Tool** — interactive conservation planning app for Colombia (terrestrial + marine).
 
-**Model:** "Pre-calculated Exploration" — users define priorities → system matches best pre-calculated scenario from a library via nearest-neighbor search.
+**Model:** "Pre-calculated Exploration" — users define priorities → system matches best pre-calculated solution from a library via nearest-neighbor search.
 
 **Scope:** Colombia's complete territory including EEZ and territorial waters.
 
@@ -20,7 +20,7 @@
 | Tier | Role | Auth | Key Capabilities |
 |------|------|------|------------------|
 | **1** | Open User (Public) | None | Solution Finder (checkbox matrix), Map, AOI Dashboard, Basic PDF Report |
-| **2** | Decision Maker (Planner) | Login (7-day persistent session) | All Tier 1 + Scenario Comparison, Custom Data Upload (vector/raster/draw), Advanced Thematic Reports, Data Export (Shapefile/GeoTIFF/PNG) |
+| **2** | Decision Maker (Planner) | Login (7-day persistent session) | All Tier 1 + Solution Comparison, Custom Data Upload (vector/raster/draw), Advanced Thematic Reports, Data Export (Shapefile/GeoTIFF/PNG) |
 | **3** | Manager (Admin) | Admin Dashboard | Run Configuration, Species Group Fragmentation, Data Layer Management, Queue Management, Publishing |
 
 **Note:** Tier 3 functionality is acknowledged but will be managed by the Mesa — no separate UI design needed.
@@ -36,7 +36,7 @@
 4. **Local Analysis** → Click region → AOI Dashboard in right sidebar
 
 ### 2. Analysis Workflow (Tier 2 Only)
-1. Select Baseline + Comparison scenarios
+1. Select Baseline + Comparison solutions
 2. Difference Map: Agreement (green) / Conflict (orange/blue) / Connectivity (purple)
 3. Export thematic reports + spatial data
 
@@ -51,13 +51,13 @@ Specialized workflow for offset planning — ecological equivalence analysis via
 |------|---------|----------------|
 | **Left Sidebar** | Control what's on the map | Solution Selector, Layer Visibility Manager, Symbology Controls, Export/Report Buttons |
 | **Center Panel** | Interactive map | Single Map (default) or Side-by-Side Comparison (Tier 2). Vector rendering required for Protected Areas/OMECs. |
-| **Right Sidebar** | Analysis & insights | Solution Overview Panel, AOI Dashboard, Scenario Comparison Panel, Welcome Panel |
+| **Right Sidebar** | Analysis & insights | Solution Overview Panel, AOI Dashboard, Solution Comparison Panel, Welcome Panel |
 | **Modal** | Solution discovery | Solution Finder ("Selection Grid"), Perspective Selection |
 
 **Right Sidebar Display Modes:**
 1. **Solution Overview** — When solution loaded, no region selected
 2. **AOI Dashboard** — When user clicks a Municipality/Department/SIRAP
-3. **Scenario Comparison** — Tier 2, when comparing two solutions
+3. **Solution Comparison** — Tier 2, when comparing two solutions
 4. **Welcome Panel** — No solution active
 
 ---
@@ -123,13 +123,13 @@ Specialized workflow for offset planning — ecological equivalence analysis via
 
 **Removed:** HF Distribution (5 metrics), Average Carbon Density, Downstream Beneficiaries, % of Region in Agriculture, Social Conflict Risk Level, Consultation Requirement Flag/Area, % Overlap with OMECs, Coverage Gap, Synergy Score, Regional Significance Classification
 
-### Scenario Comparison Panel (3 metrics, all Yes)
+### Solution Comparison Panel (3 metrics, all Yes)
 
 | # | Metric | Calculation |
 |---|--------|-------------|
-| 70 | Agreement Area (km²) | Scenario A ∩ Scenario B |
-| 71 | Unique to Scenario A (km²) | Scenario A - Scenario B |
-| 72 | Unique to Scenario B (km²) | Scenario B - Scenario A |
+| 70 | Agreement Area (km²) | Solution A ∩ Solution B |
+| 71 | Unique to Solution A (km²) | Solution A - Solution B |
+| 72 | Unique to Solution B (km²) | Solution B - Solution A |
 
 **Removed:** Connectivity/Synergy Zones
 

@@ -15,7 +15,7 @@ This document outlines the **delta** between the current application state and t
 
 **New User Flow (The "Discovery" Paradigm):**
 1.  **User Input:** The user sets their preferences using sliders (e.g., "I want 30% Species Protection" and "Avoid High Cost Areas").
-2.  **Pre-run Solution Finder:** The system does *not* run a new optimization. Instead, it searches a library of pre-run scenarios to find the **"Best Fit"**.
+2.  **Pre-run Solution Finder:** The system does *not* run a new optimization. Instead, it searches a library of pre-run solutions to find the **"Best Fit"**.
 3.  **Feedback:** The system tells the user something like: *"We found a solution that matches 95% of your criteria."*
 4.  **Analysis:** The user can then explore this matched solution using the AOI and Narrative tools.
 
@@ -24,23 +24,23 @@ This document outlines the **delta** between the current application state and t
 #### A. The "Open User" (Public / Non-Technical)
 *Goal: Understand conservation priorities in their region.*
 1.  **Landing:** Sees national map.
-2.  **Discovery:** Uses the **Solution Finder** to define their priorities (e.g., "High Biodiversity"). The system instantly matches them to the best pre-run scenario. (See Section 1.3.C for details).
+2.  **Discovery:** Uses the **Solution Finder** to define their priorities (e.g., "High Biodiversity"). The system instantly matches them to the best pre-run solution. (See Section 1.3.C for details).
 3.  **Context & Comparison:**
-    -   Clicks "About this Scenario" to read a narrative explanation (Pros/Cons).
-    -   Clicks "Compare" to see this scenario side-by-side with a "Baseline" scenario. We can either set a fixed "Baseline" scenario, or set a default and let the user change the "Baseline" to do AB comparisons.
+    -   Clicks "About this Solution" to read a narrative explanation (Pros/Cons).
+    -   Clicks "Compare" to see this solution side-by-side with a "Baseline" solution. We can either set a fixed "Baseline" solution, or set a default and let the user change the "Baseline" to do AB comparisons.
 4.  **Filtering:** Uses **AOI Toolkit** to select their municipality or SIRAP.
 5.  **Deep Dive:** Uses the **AOI Dashboard** to see specific stats for their region (Post-Hoc Analytics).
 6.  **Report:** Downloads a PDF summary for that municipality.
 
 **🚩 TEAM FEEDBACK REQUEST:**
-*   **Specific Statistics:** What specific statistics should appear in the "About this Scenario" pop-up for the general public?
+*   **Specific Statistics:** What specific statistics should appear in the "About this Solution" pop-up for the general public?
 *   **Comparison Complexity:** Is a "Difference Map" (showing conflict areas) too complex for the public? Should we stick to a simple "Swipe" tool?
 *   **Metrics:** Should we show "Area Protected (km²)" or "% of Municipality Protected"? Which is more meaningful for a non-technical user?
 
 #### B. The "Decision Maker" (Regional Planner)
 *Goal: Tailored analysis for planning.*
 1.  **Login:** Authenticates.
-2.  **Scenario Comparisons:** Access to advanced "Difference Maps" (Overlaps/Conflicts) and comparative statistics tables.
+2.  **Solution Comparisons:** Access to advanced "Difference Maps" (Overlaps/Conflicts) and comparative statistics tables.
 3.  **Upload Custom Data:** Ability to upload local shapefiles (e.g. specific project boundaries) to overlay on the national map.
 4.  **Advanced AOI:** Draw custom AOI polygons rather than just selecting predefined municipalities.
 5.  **Export:** Download raw spatial data (Shapefile/GeoTIFF) for use in desktop GIS.
@@ -85,7 +85,7 @@ The following metrics are explicitly extracted from the feedback document.
 **🚩 TEAM FEEDBACK REQUEST:**
 *   **Verification:** Please review the table above. Are we missing any critical metrics or mis-categorizing any data?
 
-#### B. Scenario Comparison Module ("Map Arithmetic")
+#### B. Solution Comparison Module ("Map Arithmetic")
 *Trigger: "Compare" button.*
 
 **Specific Outputs Requested:**
@@ -96,7 +96,7 @@ The following metrics are explicitly extracted from the feedback document.
     -   **Synergy (Purple):** Not prioritized but "connects high-priority areas" (Corridors).
 3.  **Comparative Statistics Table:**
     -   Rows: Total Area, Key Species Coverage, Opportunity Cost.
-    -   Cols: Scenario A, Scenario B.
+    -   Cols: Solution A, Solution B.
 
 **🚩 TEAM FEEDBACK REQUEST:**
 *   **Defining "Synergy":** The feedback mentions "areas positioned to connect high-priority areas." Do we have a specific algorithm/metric for this connectivity, or should we focus on visual overlap for V1?
@@ -107,7 +107,7 @@ The following metrics are explicitly extracted from the feedback document.
 
 **Functional Specs:**
 -   **Sliders (Priorities):** Adjusts goals for Themes (e.g., "Species", "Ecosystems") and importance for Weights (e.g., "Cost", "Connectivity").
--   **Toggles (Constraints):** Filters for scenarios that used specific Includes/Excludes (e.g., "Must include Jaguar Corridor").
+-   **Toggles (Constraints):** Filters for solutions that used specific Includes/Excludes (e.g., "Must include Jaguar Corridor").
 -   **Logic:** "Nearest Neighbor" search against the Pre-run Library.
 -   **Output:**
     -   **Result List:** System displays the top N closest solution matches.
@@ -152,11 +152,11 @@ These reports provide specialized views of the data for specific planning contex
 *Technical architecture details for the web developer.*
 
 ### 2.1. Data Architecture for "Solution Finder"
-**Requirement:** Efficiently search thousands of pre-run scenarios.
+**Requirement:** Efficiently search thousands of pre-run solutions.
 **Implementation:**
--   **Vector Database / KNN Search:** Store scenario metadata (goal achievements, total cost) as vectors.
--   **Query:** When user moves sliders, perform a K-Nearest Neighbors search to find the `scenario_id` with the smallest Euclidean distance to the user's desired vector.
--   **Frontend State:** The "Map" component subscribes to the `active_scenario_id`.
+-   **Vector Database / KNN Search:** Store solution metadata (goal achievements, total cost) as vectors.
+-   **Query:** When user moves sliders, perform a K-Nearest Neighbors search to find the `solution_id` with the smallest Euclidean distance to the user's desired vector.
+-   **Frontend State:** The "Map" component subscribes to the `active_solution_id`.
 
 ### 2.2. Optimization Pipeline ("The Queue")
 **Architecture for the 24-hour runs:**
@@ -173,6 +173,6 @@ These reports provide specialized views of the data for specific planning contex
 
 ### 2.3. Tech Stack Migration (React)
 -   **Frontend:** React + Vite + Tailwind.
--   **State Management:** Zustand (Global Store for "Active Scenario", "User Preferences").
+-   **State Management:** Zustand (Global Store for "Active Solution", "User Preferences").
 -   **Mapping:** MapLibre GL JS (Vector Tiles for performance).
 -   **Backend:** Python FastAPI (Auth, Queue Management, KNN Search).

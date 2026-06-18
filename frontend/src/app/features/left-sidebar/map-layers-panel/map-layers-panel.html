@@ -29,30 +29,30 @@
             (pointermove)="onSelectSolutionSpotlightMove($event)"
           >
             <span id="map-layers-select-solution-button-label" class="relative z-10">{{
-              'mapLayersPanel.selectScenario' | translate
+              'mapLayersPanel.selectSolution' | translate
             }}</span>
           </button>
         </div>
       } @else {
         @if (activeSolutionIdentity(); as identity) {
           <section
-            id="map-layers-active-scenario-card"
+            id="map-layers-active-solution-card"
             class="group overflow-hidden rounded-lg border border-slate-900 bg-white shadow-sm"
           >
-            <div id="map-layers-active-scenario-main" class="px-3 pb-2 pt-3">
+            <div id="map-layers-active-solution-main" class="px-3 pb-2 pt-3">
               <div
-                id="map-layers-active-scenario-header"
+                id="map-layers-active-solution-header"
                 class="flex items-start justify-between gap-3"
               >
-                <div id="map-layers-active-scenario-info" class="min-w-0">
+                <div id="map-layers-active-solution-info" class="min-w-0">
                   <p
-                    id="map-layers-active-scenario-label"
+                    id="map-layers-active-solution-label"
                     class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
                   >
-                    {{ 'mapLayersPanel.activeScenarioLabel' | translate }}
+                    {{ 'mapLayersPanel.activeSolutionLabel' | translate }}
                   </p>
                   <p
-                    id="map-layers-active-scenario-name"
+                    id="map-layers-active-solution-name"
                     class="truncate text-[15px] font-bold leading-5 text-slate-800"
                     [title]="identity.title"
                   >
@@ -61,18 +61,18 @@
                 </div>
 
                 <button
-                  id="map-layers-change-scenario-button"
+                  id="map-layers-change-solution-button"
                   type="button"
                   class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                   (click)="requestSolutionFinder()"
                 >
                   <span
-                    id="map-layers-change-scenario-button-icon"
+                    id="map-layers-change-solution-button-icon"
                     class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
                     aria-hidden="true"
                     >⇄</span
                   >
-                  <span id="map-layers-change-scenario-button-label">{{
+                  <span id="map-layers-change-solution-button-label">{{
                     'mapLayersPanel.changeButton' | translate
                   }}</span>
                 </button>
@@ -80,24 +80,24 @@
             </div>
 
             <button
-              id="map-layers-active-scenario-breakdown-button"
+              id="map-layers-active-solution-breakdown-button"
               type="button"
               class="flex w-full items-center justify-between border-t border-slate-100 px-3 py-1.5 text-left text-[11px] font-bold leading-none text-slate-700 transition group-hover:bg-slate-50 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
               [attr.aria-expanded]="activeSolutionBreakdownOpen()"
-              aria-controls="map-layers-active-scenario-breakdown-flyout"
+              aria-controls="map-layers-active-solution-breakdown-flyout"
               (click)="toggleActiveSolutionBreakdown()"
             >
-              <span id="map-layers-active-scenario-breakdown-button-label">{{
+              <span id="map-layers-active-solution-breakdown-button-label">{{
                 'mapLayersPanel.viewBreakdown' | translate
               }}</span>
               <span
-                id="map-layers-active-scenario-breakdown-button-chevron"
+                id="map-layers-active-solution-breakdown-button-chevron"
                 class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
                 [class.map-layers-chevron-collapsed]="!activeSolutionBreakdownOpen()"
                 aria-hidden="true"
               >
                 <svg
-                  id="map-layers-active-scenario-breakdown-button-chevron-icon"
+                  id="map-layers-active-solution-breakdown-button-chevron-icon"
                   class="map-layers-chevron-icon h-3 w-3"
                   viewBox="0 0 12 12"
                   fill="none"
@@ -113,38 +113,38 @@
 
             @if (activeSolutionBreakdownOpen()) {
               <aside
-                id="map-layers-active-scenario-breakdown-flyout"
-                class="map-layers-active-scenario-breakdown-flyout"
+                id="map-layers-active-solution-breakdown-flyout"
+                class="map-layers-active-solution-breakdown-flyout"
                 role="dialog"
-                aria-labelledby="map-layers-active-scenario-breakdown-title"
+                aria-labelledby="map-layers-active-solution-breakdown-title"
               >
                 <header
-                  id="map-layers-active-scenario-breakdown-header"
+                  id="map-layers-active-solution-breakdown-header"
                   class="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3"
                 >
-                  <div id="map-layers-active-scenario-breakdown-heading-group" class="min-w-0">
+                  <div id="map-layers-active-solution-breakdown-heading-group" class="min-w-0">
                     <p
-                      id="map-layers-active-scenario-breakdown-kicker"
+                      id="map-layers-active-solution-breakdown-kicker"
                       class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
                     >
-                      {{ 'mapLayersPanel.activeScenarioLabel' | translate }}
+                      {{ 'mapLayersPanel.activeSolutionLabel' | translate }}
                     </p>
                     <h3
-                      id="map-layers-active-scenario-breakdown-title"
+                      id="map-layers-active-solution-breakdown-title"
                       class="mt-1 text-base font-extrabold leading-5 text-slate-900"
                     >
-                      {{ 'mapLayersPanel.scenarioBreakdownTitle' | translate }}
+                      {{ 'mapLayersPanel.solutionBreakdownTitle' | translate }}
                     </h3>
                   </div>
                   <button
-                    id="map-layers-active-scenario-breakdown-close-button"
+                    id="map-layers-active-solution-breakdown-close-button"
                     type="button"
                     class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                     [attr.aria-label]="'mapLayersPanel.closeBreakdown' | translate"
                     (click)="closeActiveSolutionBreakdown()"
                   >
                     <svg
-                      id="map-layers-active-scenario-breakdown-close-icon"
+                      id="map-layers-active-solution-breakdown-close-icon"
                       aria-hidden="true"
                       viewBox="0 0 24 24"
                       class="h-4 w-4 fill-none stroke-current"
@@ -155,25 +155,25 @@
                   </button>
                 </header>
 
-                <div id="map-layers-active-scenario-breakdown-body" class="space-y-2 p-4">
+                <div id="map-layers-active-solution-breakdown-body" class="space-y-2 p-4">
                   <article
-                    id="map-layers-active-scenario-breakdown-targets"
+                    id="map-layers-active-solution-breakdown-targets"
                     class="rounded-md border border-emerald-200 bg-emerald-50 p-3"
                   >
                     <p
-                      id="map-layers-active-scenario-breakdown-targets-label"
+                      id="map-layers-active-solution-breakdown-targets-label"
                       class="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700"
                     >
                       {{ 'analysis.overview.solutionIdentity.step1' | translate }}
                       ({{ identity.targetItems.length }})
                     </p>
                     <div
-                      id="map-layers-active-scenario-breakdown-targets-list"
+                      id="map-layers-active-solution-breakdown-targets-list"
                       class="mt-2 space-y-1"
                     >
                       @for (item of identity.targetItems; track item; let index = $index) {
                         <p
-                          [id]="'map-layers-active-scenario-breakdown-targets-item-' + index"
+                          [id]="'map-layers-active-solution-breakdown-targets-item-' + index"
                           class="text-[13px] font-extrabold leading-4 text-slate-900"
                         >
                           {{ item }}
@@ -183,23 +183,23 @@
                   </article>
 
                   <article
-                    id="map-layers-active-scenario-breakdown-costs"
+                    id="map-layers-active-solution-breakdown-costs"
                     class="rounded-md border border-amber-200 bg-amber-50 p-3"
                   >
                     <p
-                      id="map-layers-active-scenario-breakdown-costs-label"
+                      id="map-layers-active-solution-breakdown-costs-label"
                       class="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700"
                     >
                       {{ 'analysis.overview.solutionIdentity.step2' | translate }}
                       ({{ identity.costItems.length }})
                     </p>
                     <div
-                      id="map-layers-active-scenario-breakdown-costs-list"
+                      id="map-layers-active-solution-breakdown-costs-list"
                       class="mt-2 space-y-1"
                     >
                       @for (item of identity.costItems; track item; let index = $index) {
                         <p
-                          [id]="'map-layers-active-scenario-breakdown-costs-item-' + index"
+                          [id]="'map-layers-active-solution-breakdown-costs-item-' + index"
                           class="text-[13px] font-extrabold leading-4 text-slate-900"
                         >
                           {{ item }}
@@ -209,23 +209,23 @@
                   </article>
 
                   <article
-                    id="map-layers-active-scenario-breakdown-includes"
+                    id="map-layers-active-solution-breakdown-includes"
                     class="rounded-md border border-slate-200 bg-white p-3"
                   >
                     <p
-                      id="map-layers-active-scenario-breakdown-includes-label"
+                      id="map-layers-active-solution-breakdown-includes-label"
                       class="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"
                     >
                       {{ 'analysis.overview.solutionIdentity.step3' | translate }}
                       ({{ identity.includeItems.length }})
                     </p>
                     <div
-                      id="map-layers-active-scenario-breakdown-includes-list"
+                      id="map-layers-active-solution-breakdown-includes-list"
                       class="mt-2 space-y-1"
                     >
                       @for (item of identity.includeItems; track item; let index = $index) {
                         <p
-                          [id]="'map-layers-active-scenario-breakdown-includes-item-' + index"
+                          [id]="'map-layers-active-solution-breakdown-includes-item-' + index"
                           class="text-[13px] font-extrabold leading-4 text-slate-900"
                         >
                           {{ item }}

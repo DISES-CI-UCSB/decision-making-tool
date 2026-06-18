@@ -16,7 +16,7 @@ setwd("C:/Users/danwillett/Code/SCALE/decision-making-tool/Cambio_Global")
 pu_raster_file <- "./PUs/PUs_ORINOQUIA_3km.tif"
 pu_csv_file <- "./input/PUs_ORINOQUIA_3km.csv"
 features_file <- "./input/features_v4_4_24_(MAPV).xlsx"
-scenarios_file <- "./input/scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx"
+solutions_file <- "./input/solutions_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx"
 extracted_features_dir <- "./orinoquia_processing/extracted_features"
 solutions_dir <- "./output/ORINOQUIA"
 upload_dir <- "./orinoquia_processing/upload_ready"
@@ -46,25 +46,25 @@ pu_raster <- raster(pu_raster_file)
 pu_data <- read.csv(pu_csv_file)
 cat(sprintf("  Planning units: %d\n", nrow(pu_data)))
 
-# Load scenarios
-cat("\nLoading scenarios...\n")
-scenarios <- openxlsx::read.xlsx(scenarios_file, sheet = 1, detectDates = FALSE)
+# Load solutions
+cat("\nLoading solutions...\n")
+solutions <- openxlsx::read.xlsx(solutions_file, sheet = 1, detectDates = FALSE)
 
 # Filter for ORINOQUIA if SIRAP column exists
-if ("SIRAP" %in% names(scenarios)) {
-  scenarios <- scenarios[scenarios$SIRAP == "ORINOQUIA" | scenarios$SIRAP == "orinoquia" | scenarios$SIRAP == "Orinoquia", ]
-  cat(sprintf("  Filtered to %d ORINOQUIA scenarios\n", nrow(scenarios)))
+if ("SIRAP" %in% names(solutions)) {
+  solutions <- solutions[solutions$SIRAP == "ORINOQUIA" | solutions$SIRAP == "orinoquia" | solutions$SIRAP == "Orinoquia", ]
+  cat(sprintf("  Filtered to %d ORINOQUIA solutions\n", nrow(solutions)))
 } else {
   cat("  WARNING: No SIRAP column found\n")
 }
 
-# Create feature ID to name mapping from scenarios (if available)
+# Create feature ID to name mapping from solutions (if available)
 feature_id_to_name <- list()
 
-if (nrow(scenarios) > 0 && "id_elemento_priorizacion" %in% names(scenarios) && "elemento_priorizacion" %in% names(scenarios)) {
-  for (i in 1:nrow(scenarios)) {
-    ids_str <- as.character(scenarios$id_elemento_priorizacion[i])
-    names_str <- as.character(scenarios$elemento_priorizacion[i])
+if (nrow(solutions) > 0 && "id_elemento_priorizacion" %in% names(solutions) && "elemento_priorizacion" %in% names(solutions)) {
+  for (i in 1:nrow(solutions)) {
+    ids_str <- as.character(solutions$id_elemento_priorizacion[i])
+    names_str <- as.character(solutions$elemento_priorizacion[i])
     
     if (!is.na(ids_str) && !is.na(names_str)) {
       ids <- trimws(strsplit(ids_str, ",")[[1]])
@@ -77,7 +77,7 @@ if (nrow(scenarios) > 0 && "id_elemento_priorizacion" %in% names(scenarios) && "
       }
     }
   }
-  cat(sprintf("  Mapped %d features from scenarios\n", length(feature_id_to_name)))
+  cat(sprintf("  Mapped %d features from solutions\n", length(feature_id_to_name)))
 }
 
 # ============================================================================
@@ -527,44 +527,44 @@ if (nrow(extracted_constraints) > 0) {
 cat(sprintf("\nAvailable weights for solutions: %s\n", paste(names(cost_name_map), collapse = ", ")))
 cat(sprintf("Available includes for solutions: %s\n", paste(names(constraint_name_map), collapse = ", ")))
 
-# Process each scenario from spreadsheet
+# Process each solution from spreadsheet
 solutions_metadata <- data.frame()
 
-for (i in 1:nrow(scenarios)) {
-  scenario_row <- scenarios[i, ]
+for (i in 1:nrow(solutions)) {
+  solution_row <- solutions[i, ]
   
-  # Get escenario value - should match filename exactly (without .tif)
-  if (!"escenario" %in% names(scenario_row) || is.na(scenario_row$escenario)) {
-    cat(sprintf("  WARNING: Row %d has no escenario value, skipping\n", i))
+  # Get esolution value - should match filename exactly (without .tif)
+  if (!"esolution" %in% names(solution_row) || is.na(solution_row$esolution)) {
+    cat(sprintf("  WARNING: Row %d has no esolution value, skipping\n", i))
     next
   }
   
-  escenario_name <- as.character(scenario_row$escenario)
+  esolution_name <- as.character(solution_row$esolution)
   
-  # Expected filename is just escenario + .tif
-  expected_filename <- paste0(escenario_name, ".tif")
+  # Expected filename is just esolution + .tif
+  expected_filename <- paste0(esolution_name, ".tif")
   
   # Check if this file exists in our solution files
   if (!expected_filename %in% solution_files) {
-    cat(sprintf("  WARNING: No solution file found for escenario '%s' (expected: %s)\n", 
-                escenario_name, expected_filename))
+    cat(sprintf("  WARNING: No solution file found for esolution '%s' (expected: %s)\n", 
+                esolution_name, expected_filename))
     next
   }
   
   sol_file <- expected_filename
   
-  # Extract scenario number for display
-  scenario_num <- sub("R([0-9]+)O.*", "\\1", escenario_name)
+  # Extract solution number for display
+  solution_num <- sub("R([0-9]+)O.*", "\\1", esolution_name)
   
-  cat(sprintf("  Processing scenario %s: %s\n", scenario_num, sol_file))
+  cat(sprintf("  Processing solution %s: %s\n", solution_num, sol_file))
   
   # Extract themes from id_elemento_priorizacion
-  themes_ids_str <- as.character(scenario_row$id_elemento_priorizacion)
-  themes_names_str <- as.character(scenario_row$elemento_priorizacion)
+  themes_ids_str <- as.character(solution_row$id_elemento_priorizacion)
+  themes_names_str <- as.character(solution_row$elemento_priorizacion)
   
-  # Hard-coded mapping dictionary: scenario names → database layer names WITH units
+  # Hard-coded mapping dictionary: solution names → database layer names WITH units
   # NOTE: Only include layers that actually exist in Orinoquia
-  scenario_to_layer_map <- c(
+  solution_to_layer_map <- c(
     # Species
     "Especies(8700)" = "Riqueza de Especies",
     "Especies" = "Riqueza de Especies",
@@ -605,16 +605,16 @@ for (i in 1:nrow(scenarios)) {
     # Map spreadsheet names to actual layer names in layers.csv
     themes_display <- sapply(themes_raw, function(theme_name) {
       # First try direct lookup in mapping dictionary
-      if (theme_name %in% names(scenario_to_layer_map)) {
-        return(scenario_to_layer_map[[theme_name]])
+      if (theme_name %in% names(solution_to_layer_map)) {
+        return(solution_to_layer_map[[theme_name]])
       }
       
       # Try case-insensitive match
       lower_name <- tolower(theme_name)
-      lower_keys <- tolower(names(scenario_to_layer_map))
+      lower_keys <- tolower(names(solution_to_layer_map))
       case_insensitive_match <- match(lower_name, lower_keys)
       if (!is.na(case_insensitive_match)) {
-        return(scenario_to_layer_map[[case_insensitive_match]])
+        return(solution_to_layer_map[[case_insensitive_match]])
       }
       
       # Fallback: look up in feature_name_map
@@ -631,7 +631,7 @@ for (i in 1:nrow(scenarios)) {
   themes <- paste(themes_display, collapse = ",")
   
   # Extract targets from sensibilidad
-  targets_str <- as.character(scenario_row$sensibilidad)
+  targets_str <- as.character(solution_row$sensibilidad)
   targets <- ""
   if (!is.na(targets_str) && targets_str != "") {
     # Parse comma-separated targets
@@ -648,7 +648,7 @@ for (i in 1:nrow(scenarios)) {
   }
   
   # Extract weights from costo
-  weights_str <- as.character(scenario_row$costo)
+  weights_str <- as.character(solution_row$costo)
   weights <- ""
   if (!is.na(weights_str) && weights_str != "") {
     weight_cols <- trimws(strsplit(weights_str, ",")[[1]])
@@ -663,7 +663,7 @@ for (i in 1:nrow(scenarios)) {
   }
   
   # Extract includes from inclusion
-  includes_str <- as.character(scenario_row$inclusion)
+  includes_str <- as.character(solution_row$inclusion)
   includes <- ""
   if (!is.na(includes_str) && includes_str != "") {
     include_cols <- trimws(strsplit(includes_str, ",")[[1]])
@@ -679,10 +679,10 @@ for (i in 1:nrow(scenarios)) {
   
   # Extract excludes from exlusion (note typo in column name)
   excludes_str <- ""
-  if ("exlusion" %in% names(scenario_row)) {
-    excludes_str <- as.character(scenario_row$exlusion)
-  } else if ("exclusion" %in% names(scenario_row)) {
-    excludes_str <- as.character(scenario_row$exclusion)
+  if ("exlusion" %in% names(solution_row)) {
+    excludes_str <- as.character(solution_row$exlusion)
+  } else if ("exclusion" %in% names(solution_row)) {
+    excludes_str <- as.character(solution_row$exclusion)
   }
   excludes <- ""
   if (!is.na(excludes_str) && excludes_str != "") {
@@ -697,8 +697,8 @@ for (i in 1:nrow(scenarios)) {
     excludes <- paste(exclude_display, collapse = ",")
   }
   
-  # Create descriptive scenario name
-  scenario_name <- paste0("R", scenario_num, "O")
+  # Create descriptive solution name
+  solution_name <- paste0("R", solution_num, "O")
   if (!is.na(themes_names_str) && themes_names_str != "") {
     # Add abbreviated theme info
     theme_abbrev <- gsub("Ecosistemas", "Ecos", themes_names_str)
@@ -707,11 +707,11 @@ for (i in 1:nrow(scenarios)) {
     if (nchar(theme_abbrev) > 30) {
       theme_abbrev <- substr(theme_abbrev, 1, 30)
     }
-    scenario_name <- paste0(scenario_name, "_", theme_abbrev)
+    solution_name <- paste0(solution_name, "_", theme_abbrev)
   }
   
   # Create description
-  description <- paste("ORINOQUIA - Escenario", scenario_num)
+  description <- paste("ORINOQUIA - Esolution", solution_num)
   if (!is.na(weights_str) && weights_str != "") {
     description <- paste0(description, " - ", weights)
   }
@@ -732,7 +732,7 @@ for (i in 1:nrow(scenarios)) {
     author_name = "Cambio Global Project",
     author_email = "info@cambioglobal.org",
     user_group = "public",
-    scenario = scenario_name,
+    solution = solution_name,
     file_path = sol_file,
     themes = themes,
     targets = targets,
@@ -756,9 +756,9 @@ cat("ORINOQUIA data organization complete!\n")
 cat(sprintf("Upload directory: %s\n", normalizePath(upload_dir)))
 cat("\n")
 cat("NOTE: Review solutions.csv to verify:\n")
-cat("  - Themes/targets extracted from scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx\n")
+cat("  - Themes/targets extracted from solutions_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx\n")
 cat("  - Weights/includes mapped from column names to display names\n")
-cat("  - Solution files matched correctly by scenario number (R#O)\n")
+cat("  - Solution files matched correctly by solution number (R#O)\n")
 cat("\n")
 cat("All metadata extracted from spreadsheet - manual review recommended.\n")
 cat("============================================================================\n")

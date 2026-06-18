@@ -16,7 +16,7 @@ setwd("C:/Users/danwillett/Code/SCALE/decision-making-tool/Cambio_Global")
 pu_raster_file <- "./features/PUs_Nacional_5km.tif"
 pu_csv_file <- "./input/PUs_Nacional_5km.csv"
 features_file <- "./input/features_v4_4_24_(MAPV).xlsx"
-scenarios_file <- "./input/scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx"
+solutions_file <- "./input/solutions_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx"
 extracted_features_dir <- "./nacional_processing/extracted_features"
 solutions_dir <- "./output/Nacional"
 upload_dir <- "./nacional_processing/upload_ready"
@@ -46,28 +46,28 @@ pu_data <- read.csv(pu_csv_file)
 pu_raster <- raster(pu_raster_file)
 features <- openxlsx::read.xlsx(features_file, sheet = 1)
 
-# Load scenarios spreadsheet
-cat("  Loading scenarios from Excel...\n")
-scenarios <- openxlsx::read.xlsx(scenarios_file, sheet = 1, detectDates = FALSE)
-cat(sprintf("  Total scenarios in file: %d\n", nrow(scenarios)))
-cat("  Scenario columns:", paste(names(scenarios), collapse=", "), "\n")
+# Load solutions spreadsheet
+cat("  Loading solutions from Excel...\n")
+solutions <- openxlsx::read.xlsx(solutions_file, sheet = 1, detectDates = FALSE)
+cat(sprintf("  Total solutions in file: %d\n", nrow(solutions)))
+cat("  Solution columns:", paste(names(solutions), collapse=", "), "\n")
 
-# Filter for Nacional scenarios if SIRAP column exists
-if ("SIRAP" %in% names(scenarios)) {
-  scenarios <- scenarios[scenarios$SIRAP == "Nacional" | scenarios$SIRAP == "nacional", ]
-  cat(sprintf("  Filtered to Nacional scenarios: %d\n", nrow(scenarios)))
+# Filter for Nacional solutions if SIRAP column exists
+if ("SIRAP" %in% names(solutions)) {
+  solutions <- solutions[solutions$SIRAP == "Nacional" | solutions$SIRAP == "nacional", ]
+  cat(sprintf("  Filtered to Nacional solutions: %d\n", nrow(solutions)))
 } else {
-  cat("  WARNING: No SIRAP column found. Using all scenarios.\n")
+  cat("  WARNING: No SIRAP column found. Using all solutions.\n")
 }
 
-# Extract feature name mapping from Nacional scenarios (same as in extraction script)
-cat("  Extracting feature names from Nacional scenarios...\n")
+# Extract feature name mapping from Nacional solutions (same as in extraction script)
+cat("  Extracting feature names from Nacional solutions...\n")
 all_id_elementos <- c()
 all_elemento_names <- c()
 
-for (i in 1:nrow(scenarios)) {
-  ids_str <- as.character(scenarios$id_elemento_priorizacion[i])
-  names_str <- as.character(scenarios$elemento_priorizacion[i])
+for (i in 1:nrow(solutions)) {
+  ids_str <- as.character(solutions$id_elemento_priorizacion[i])
+  names_str <- as.character(solutions$elemento_priorizacion[i])
   
   if (!is.na(ids_str) && !is.na(names_str)) {
     ids <- trimws(strsplit(ids_str, ",")[[1]])
@@ -237,7 +237,7 @@ feature_name_map <- data.frame(
 )
 
 # Create metadata for extracted features with proper display names
-# Match filenames back to feature names from scenarios
+# Match filenames back to feature names from solutions
 display_names_for_layers <- c()
 colors_for_layers <- c()
 for (feat_file in extracted_files) {
@@ -489,10 +489,10 @@ write.csv(layers_metadata,
 cat(sprintf("  ✓ layers.csv created with %d features\n", nrow(layers_metadata)))
 
 # ============================================================================
-# 6. Process Solutions from Scenarios
+# 6. Process Solutions from Solutions
 # ============================================================================
 
-cat("\nProcessing solutions from scenarios...\n")
+cat("\nProcessing solutions from solutions...\n")
 
 # Get list of solution files
 solution_files <- list.files(solutions_dir, pattern = "\\.tif$", full.names = FALSE)
@@ -501,15 +501,15 @@ cat(sprintf("  Found %d solution TIF files in output directory\n", length(soluti
 # Initialize solutions metadata
 solutions_metadata <- data.frame()
 
-# Process each scenario and match to solution file
-for (i in 1:nrow(scenarios)) {
-  # Get scenario name (assuming it matches filename)
-  scenario_name <- scenarios$escenario[i]
-  solution_file <- paste0(scenario_name, ".tif")
+# Process each solution and match to solution file
+for (i in 1:nrow(solutions)) {
+  # Get solution name (assuming it matches filename)
+  solution_name <- solutions$esolution[i]
+  solution_file <- paste0(solution_name, ".tif")
   
   # Check if solution file exists
   if (!solution_file %in% solution_files) {
-    cat(sprintf("  WARNING: Solution file not found for scenario '%s'. Skipping...\n", scenario_name))
+    cat(sprintf("  WARNING: Solution file not found for solution '%s'. Skipping...\n", solution_name))
     next
   }
   
@@ -520,14 +520,14 @@ for (i in 1:nrow(scenarios)) {
     overwrite = TRUE
   )
   
-  # Extract scenario information
-  # Get feature IDs used in this scenario
-  features_used <- scenarios$id_elemento_priorizacion[i]
+  # Extract solution information
+  # Get feature IDs used in this solution
+  features_used <- solutions$id_elemento_priorizacion[i]
   features_used <- paste(features_used, collapse = ',')
   features_used <- as.numeric(strsplit(features_used, ",")[[1]])
   
-  # Hard-coded mapping dictionary: scenario names → database layer names
-  scenario_to_layer_map <- c(
+  # Hard-coded mapping dictionary: solution names → database layer names
+  solution_to_layer_map <- c(
     # Species
     "Especies(8700)" = "Riqueza de Especies",
     "Especies (8700)" = "Riqueza de Especies",
@@ -562,7 +562,7 @@ for (i in 1:nrow(scenarios)) {
     "recarga_agua_subterranea" = "Recarga de Agua Subterránea"
   )
   
-  # Get feature display names for themes using scenarios mapping
+  # Get feature display names for themes using solutions mapping
   feature_names <- c()
   for (feat_id in features_used) {
     feat_id_str <- as.character(feat_id)
@@ -570,15 +570,15 @@ for (i in 1:nrow(scenarios)) {
       feat_name <- feature_id_to_name[[feat_id_str]]
       
       # First try direct lookup in mapping dictionary
-      if (feat_name %in% names(scenario_to_layer_map)) {
-        feat_name <- scenario_to_layer_map[[feat_name]]
+      if (feat_name %in% names(solution_to_layer_map)) {
+        feat_name <- solution_to_layer_map[[feat_name]]
       } else {
         # Try case-insensitive match
         lower_name <- tolower(feat_name)
-        lower_keys <- tolower(names(scenario_to_layer_map))
+        lower_keys <- tolower(names(solution_to_layer_map))
         case_insensitive_match <- match(lower_name, lower_keys)
         if (!is.na(case_insensitive_match)) {
-          feat_name <- scenario_to_layer_map[[case_insensitive_match]]
+          feat_name <- solution_to_layer_map[[case_insensitive_match]]
         } else {
           # Look up in feature_name_map to get proper display name
           simple_match <- match(feat_name, feature_name_map$simple_name)
@@ -597,13 +597,13 @@ for (i in 1:nrow(scenarios)) {
   themes_str <- paste(feature_names, collapse = ",")
   
   # Get targets
-  targets_used <- scenarios$sensibilidad[i]
+  targets_used <- solutions$sensibilidad[i]
   targets_used <- paste(targets_used, collapse = ',')
   targets_used <- as.numeric(strsplit(targets_used, ",")[[1]])
   targets_str <- paste(targets_used / 100, collapse = ",")
   
   # Get cost/weight information and map column names to display names
-  cost_col <- if (!is.null(scenarios$costo) && !is.na(scenarios$costo[i])) scenarios$costo[i] else ""
+  cost_col <- if (!is.null(solutions$costo) && !is.na(solutions$costo[i])) solutions$costo[i] else ""
   
   # Map cost column names to display layer names (with units)
   cost_name_map <- c(
@@ -626,8 +626,8 @@ for (i in 1:nrow(scenarios)) {
   
   # Get inclusion constraints and map column names to display names
   includes_str <- ""
-  if (!is.null(scenarios$inclusion) && !is.na(scenarios$inclusion[i]) && scenarios$inclusion[i] != "") {
-    inclusion_cols <- trimws(strsplit(scenarios$inclusion[i], ",")[[1]])
+  if (!is.null(solutions$inclusion) && !is.na(solutions$inclusion[i]) && solutions$inclusion[i] != "") {
+    inclusion_cols <- trimws(strsplit(solutions$inclusion[i], ",")[[1]])
     
     # Map constraint column names to display layer names
     constraint_name_map <- c(
@@ -650,11 +650,11 @@ for (i in 1:nrow(scenarios)) {
     includes_str <- paste(mapped_includes, collapse = ",")
   }
   
-  # Create descriptive scenario name
-  scenario_display_name <- as.character(scenario_name)
+  # Create descriptive solution name
+  solution_display_name <- as.character(solution_name)
   
   # Create description
-  description <- paste0("Nacional - ", scenario_display_name)
+  description <- paste0("Nacional - ", solution_display_name)
   if (nchar(weights_str) > 0) {
     description <- paste0(description, " - ", weights_str)
   }
@@ -668,7 +668,7 @@ for (i in 1:nrow(scenarios)) {
     author_name = "Cambio Global Project",
     author_email = "info@cambioglobal.org",
     user_group = "public",
-    scenario = scenario_display_name,
+    solution = solution_display_name,
     file_path = solution_file,
     themes = themes_str,
     targets = targets_str,
@@ -678,7 +678,7 @@ for (i in 1:nrow(scenarios)) {
     stringsAsFactors = FALSE
   ))
   
-  cat(sprintf("  Processed: %s\n", scenario_name))
+  cat(sprintf("  Processed: %s\n", solution_name))
 }
 
 # Write solutions.csv with UTF-8 encoding
@@ -688,7 +688,7 @@ write.csv(solutions_metadata,
           quote = TRUE,
           fileEncoding = "UTF-8")
 
-cat(sprintf("\n  ✓ solutions.csv created with %d scenarios\n", nrow(solutions_metadata)))
+cat(sprintf("\n  ✓ solutions.csv created with %d solutions\n", nrow(solutions_metadata)))
 
 # ============================================================================
 # Summary

@@ -9,7 +9,7 @@ NULL
 #'
 #' @param dataset [Dataset] object.
 #'
-#' @param name `character` name for the scenario.
+#' @param name `character` name for the solution.
 #'
 #' @param path `character` file path to save the configuration file.
 #'

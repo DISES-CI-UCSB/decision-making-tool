@@ -162,7 +162,7 @@ graph TB
 **Lo que indexa el manifest:**
 
 - Rásteres de entrada que se pueden mostrar en el mapa.
-- Rásteres de soluciones generadas a partir de escenarios de priorización.
+- Rásteres de soluciones generadas a partir de esolutions de priorización.
 - URL de metadatos y métricas precalculadas.
 - Insumos comprimidos de métricas para cálculos en vivo.
 - Un manifest secundario de especies, para que miles de capas de especies queden fuera del manifest principal.
@@ -196,7 +196,7 @@ sequenceDiagram
 
 **Puntos para la diapositiva:**
 
-- Se prefieren métricas precalculadas cuando las fronteras o escenarios se conocen de antemano.
+- Se prefieren métricas precalculadas cuando las fronteras o esolutions se conocen de antemano.
 - Las métricas en vivo para polígonos dibujados por usuarios son la principal incertidumbre de rendimiento.
 - Si los cálculos en vivo son suficientemente rápidos, no se necesita servidor de métricas.
 - Si son demasiado lentos, se agrega una API pequeña que lea insumos optimizados en caché.

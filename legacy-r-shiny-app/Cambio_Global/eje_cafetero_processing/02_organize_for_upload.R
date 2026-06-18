@@ -388,12 +388,12 @@ cat("  layers.csv created\n")
 
 cat("\nProcessing solutions...\n")
 
-# Read scenarios from Excel with proper encoding
+# Read solutions from Excel with proper encoding
 # openxlsx handles UTF-8 by default, but ensure proper reading
 options(encoding = "UTF-8")
-scenarios <- read.xlsx("./input/Propuesta_Ejecafero_26625.xlsx", sheet = "escenarios_nuevos")
+solutions <- read.xlsx("./input/Propuesta_Ejecafero_26625.xlsx", sheet = "esolutions_nuevos")
 
-cat(sprintf("  Found %d scenarios in Excel file\n", nrow(scenarios)))
+cat(sprintf("  Found %d solutions in Excel file\n", nrow(solutions)))
 
 # Initialize solutions metadata data frame
 solutions_metadata <- data.frame(
@@ -401,7 +401,7 @@ solutions_metadata <- data.frame(
   author_name = character(),
   author_email = character(),
   user_group = character(),
-  scenario = character(),
+  solution = character(),
   file_path = character(),
   themes = character(),
   targets = character(),
@@ -416,14 +416,14 @@ solution_files <- list.files(solutions_dir, pattern = "\\.tif$", full.names = FA
 
 cat(sprintf("  Found %d solution TIF files in output directory\n", length(solution_files)))
 
-# Process each scenario
-for (i in 1:nrow(scenarios)) {
-  scenario_number <- scenarios$escenario[i]
-  solution_file <- paste0(scenario_number, ".tif")
+# Process each solution
+for (i in 1:nrow(solutions)) {
+  solution_number <- solutions$esolution[i]
+  solution_file <- paste0(solution_number, ".tif")
   
   # Check if solution file exists
   if (!solution_file %in% solution_files) {
-    cat(sprintf("  WARNING: Solution file not found for scenario '%s'. Skipping...\n", scenario_number))
+    cat(sprintf("  WARNING: Solution file not found for solution '%s'. Skipping...\n", solution_number))
     next
   }
   
@@ -434,8 +434,8 @@ for (i in 1:nrow(scenarios)) {
     overwrite = TRUE
   )
   
-  # Extract scenario information
-  features_used <- scenarios$id_elemento_priorizacion[i]
+  # Extract solution information
+  features_used <- solutions$id_elemento_priorizacion[i]
   features_used <- paste(features_used, collapse = ',')
   features_used <- as.numeric(strsplit(features_used, ",")[[1]])
   
@@ -446,13 +446,13 @@ for (i in 1:nrow(scenarios)) {
   themes_str <- paste(feature_names, collapse = ",")
   
   # Get targets
-  targets_used <- scenarios$sensibilidad[i]
+  targets_used <- solutions$sensibilidad[i]
   targets_used <- paste(targets_used, collapse = ',')
   targets_used <- as.numeric(strsplit(targets_used, ",")[[1]])
   targets_str <- paste(targets_used / 100, collapse = ",")
   
   # Get cost/weight information and map to layer names
-  cost_col <- scenarios$costo[i]
+  cost_col <- solutions$costo[i]
   
   # Map cost column names to display layer names
   cost_name_map <- c(
@@ -462,7 +462,7 @@ for (i in 1:nrow(scenarios)) {
     # Add more mappings as needed
   )
   
-  # Short names for cost columns (for scenario name)
+  # Short names for cost columns (for solution name)
   cost_short_map <- c(
     "IHEH_2022" = "IHEH2022",
     "IHEH_2030_desarrollista" = "IHEH2030",
@@ -486,9 +486,9 @@ for (i in 1:nrow(scenarios)) {
   # Get inclusion constraints and map to layer names
   includes_str <- ""
   constraint_short <- ""
-  if (!is.na(scenarios$inclusion[i]) && scenarios$inclusion[i] != "") {
+  if (!is.na(solutions$inclusion[i]) && solutions$inclusion[i] != "") {
     # Split by comma to get individual constraint names
-    inclusion_cols <- trimws(strsplit(scenarios$inclusion[i], ",")[[1]])
+    inclusion_cols <- trimws(strsplit(solutions$inclusion[i], ",")[[1]])
     
     # Map constraint column names to display layer names
     constraint_name_map <- c(
@@ -500,7 +500,7 @@ for (i in 1:nrow(scenarios)) {
       # Add more mappings as needed
     )
     
-    # Short names for constraints (for scenario name)
+    # Short names for constraints (for solution name)
     constraint_short_map <- c(
       "Resguardos_Indígenas" = "ResInd",
       "Comunidades_Negras" = "ComNeg",
@@ -519,7 +519,7 @@ for (i in 1:nrow(scenarios)) {
       }
     })
     
-    # Create short version for scenario name
+    # Create short version for solution name
     short_includes <- sapply(inclusion_cols, function(col) {
       if (col %in% names(constraint_short_map)) {
         constraint_short_map[[col]]
@@ -532,19 +532,19 @@ for (i in 1:nrow(scenarios)) {
     constraint_short <- paste(short_includes, collapse = "+")
   }
   
-  # Create descriptive scenario name
+  # Create descriptive solution name
   # Format: "S##_CostName_Constraints" (e.g., "S01_IHEH2022_RUNAP", "S02_IHEH2022_RUNAP+OMECs")
-  scenario_name_parts <- c(sprintf("S%02d", scenario_number))
+  solution_name_parts <- c(sprintf("S%02d", solution_number))
   if (cost_short != "") {
-    scenario_name_parts <- c(scenario_name_parts, cost_short)
+    solution_name_parts <- c(solution_name_parts, cost_short)
   }
   if (constraint_short != "") {
-    scenario_name_parts <- c(scenario_name_parts, constraint_short)
+    solution_name_parts <- c(solution_name_parts, constraint_short)
   }
-  scenario_name <- paste(scenario_name_parts, collapse = "_")
+  solution_name <- paste(solution_name_parts, collapse = "_")
   
   # Create description
-  description <- paste0("Eje Cafetero - Escenario ", scenario_number, 
+  description <- paste0("Eje Cafetero - Esolution ", solution_number, 
                        if (cost_short != "") paste0(" - ", weights_str) else "",
                        if (constraint_short != "") paste0(" - ", includes_str) else "")
   
@@ -554,7 +554,7 @@ for (i in 1:nrow(scenarios)) {
     author_name = "Cambio Global Project",
     author_email = "info@cambioglobal.org",
     user_group = "public",
-    scenario = scenario_name,  # Now a descriptive string like "S01_IHEH2022_RUNAP"
+    solution = solution_name,  # Now a descriptive string like "S01_IHEH2022_RUNAP"
     file_path = solution_file,
     themes = themes_str,
     targets = targets_str,
@@ -564,7 +564,7 @@ for (i in 1:nrow(scenarios)) {
     stringsAsFactors = FALSE
   ))
   
-  cat(sprintf("  Processed: %s -> %s\n", scenario_number, scenario_name))
+  cat(sprintf("  Processed: %s -> %s\n", solution_number, solution_name))
 }
 
 # Write solutions.csv with UTF-8 encoding
@@ -574,7 +574,7 @@ write.csv(solutions_metadata,
           quote = TRUE,
           fileEncoding = "UTF-8")
 
-cat(sprintf("\n  solutions.csv created with %d scenarios\n", nrow(solutions_metadata)))
+cat(sprintf("\n  solutions.csv created with %d solutions\n", nrow(solutions_metadata)))
 
 # ============================================================================
 # Summary

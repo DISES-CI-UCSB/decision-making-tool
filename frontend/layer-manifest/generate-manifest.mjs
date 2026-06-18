@@ -1828,7 +1828,7 @@ function createPublishedSolutionCatalogReport(solutionCatalogReport, solutions, 
       strategy: 'published_manifest',
       source,
       reason:
-        'Preserved the solution catalog currently published in Vercel so generated layer updates do not replace the active scenario set.',
+        'Preserved the solution catalog currently published in Vercel so generated layer updates do not replace the active solution set.',
     },
     publishedManifestSolutions: solutions.map((solution) => ({
       id: solution.id,

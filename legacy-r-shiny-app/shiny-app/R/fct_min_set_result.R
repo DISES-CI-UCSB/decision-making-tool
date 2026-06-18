@@ -330,7 +330,7 @@ min_set_result <- function(area_data,
     
     stop("WtW: Exclude error: the following features can not have their goal", 
          " met: ", theme_names, ". Try reducing the goals on these features, ", 
-         " deselecting them or turn off exclude layers from the scenario.")
+         " deselecting them or turn off exclude layers from the solution.")
   } 
   
   # calculate cost values

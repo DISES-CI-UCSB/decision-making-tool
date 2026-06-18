@@ -98,7 +98,7 @@ from species_data import (
     SpeciesRecord,
     compute_pool_sizes,
     load_species_records,
-    parse_scenario_target_percent,
+    parse_solution_target_percent,
     read_species_mask,
 )
 from summary_species_coverage import compute_species_group_coverage_details
@@ -871,7 +871,7 @@ def _compute_species_metric(
             return _metric_value(
                 definition, value=None, status="derivation_needed",
                 notes=(
-                    "Could not derive scenario target percent from solution name "
+                    "Could not derive solution target percent from solution name "
                     "(no ESTR<NN> or Ecos<NN> token found); species group coverage cannot be computed."
                 ),
                 source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
@@ -894,7 +894,7 @@ def _compute_species_metric(
             status="ready",
             notes=(
                 f"{met_species_count:,} of {total_species_count:,} modeled species with usable "
-                f"range rasters meet the {target_pct:g}% scenario target. "
+                f"range rasters meet the {target_pct:g}% solution target. "
                 "See details.groups for taxonomic and IUCN breakdowns."
             ),
             source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
@@ -929,7 +929,7 @@ def _compute_species_metric(
             return _metric_value(
                 definition, value=None, status="derivation_needed",
                 notes=(
-                    "Could not derive scenario target percent from solution name "
+                    "Could not derive solution target percent from solution name "
                     "(no ESTR<NN> or Ecos<NN> token found); secured count cannot be computed."
                 ),
                 source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
@@ -983,10 +983,10 @@ def _process_species_for_solution(
       ``BoundaryIdGrid`` at the same range indices and using ``np.bincount``
       to fan out per-boundary totals in one call.
 
-    The caller is responsible for passing the parsed scenario target percent;
+    The caller is responsible for passing the parsed solution target percent;
     when None, the secured-count metric (#3) is reported as 'derivation_needed'.
     """
-    target_pct = parse_scenario_target_percent(solution.get("name") or solution.get("id") or "")
+    target_pct = parse_solution_target_percent(solution.get("name") or solution.get("id") or "")
 
     sub_sizes = {level: g.num_boundaries for level, g in boundary_grids.items()}
     accumulator = SpeciesAccumulator(target_pct=target_pct, pool_sizes=pool_sizes)
@@ -1101,7 +1101,7 @@ def _build_metrics(
     - preloaded_layer_values: if provided, skip value layer downloads and use these directly.
     - species_metrics: precomputed species values for this scope (None means species
       metrics will be marked 'derivation_needed').
-    - species_target_pct: parsed scenario target (17.0 / 30.0). None means
+    - species_target_pct: parsed solution target (17.0 / 30.0). None means
       'threatened_secured' is reported as 'derivation_needed'.
     - species_records: loaded species lookup records, used by metadata summary CSV coverage.
     """

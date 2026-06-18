@@ -162,7 +162,7 @@ graph TB
 **What the manifest indexes:**
 
 - Mappable input rasters.
-- Solution rasters generated from prioritization scenarios.
+- Solution rasters generated from prioritization solutions.
 - Metadata and precomputed metric URLs.
 - Compressed metric inputs for live calculations.
 - A secondary species manifest, so thousands of species layers stay out of the main manifest.
@@ -196,7 +196,7 @@ sequenceDiagram
 
 **Slide bullets:**
 
-- Precomputed metrics are preferred where boundaries or scenarios are known in advance.
+- Precomputed metrics are preferred where boundaries or solutions are known in advance.
 - Live metrics for user-drawn polygons are the main performance uncertainty.
 - If live calculations are fast enough, no metrics server is needed.
 - If they are too slow, add a small API that reads optimized cached inputs.

@@ -13,7 +13,7 @@ import {
   ViewChildren,
   inject,
 } from '@angular/core';
-import type { SolutionScenario } from '@core/models/solution-scenario.model';
+import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import type { SolutionFinderContext } from '@core/services/app-state.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
@@ -60,10 +60,9 @@ interface TargetTypeOption {
   isAvailable: boolean;
 }
 
-interface ScenarioMatch {
+interface SolutionMatch {
   id: string;
   solutionId: string;
-  scenarioId: string;
   name: string;
   description: string;
   mapLabel: string;
@@ -136,9 +135,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   @Input() mode: SolutionFinderContext = 'default';
   @Output() readonly closeRequested = new EventEmitter<void>();
-  @Output() readonly scenarioApplied = new EventEmitter<ScenarioMatch>();
+  @Output() readonly solutionApplied = new EventEmitter<SolutionMatch>();
 
-  protected readonly showScenarioFilenames = this.appState.showFinderScenarioFilenames$;
+  protected readonly showSolutionFilenames = this.appState.showFinderSolutionFilenames$;
   protected readonly showScopeBar = this.appState.showFinderScopeBar$;
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
@@ -200,9 +199,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   private readonly columnHeaderRefs?: QueryList<ElementRef<HTMLElement>>;
 
   protected matchState: FinderMatchState = 'empty';
-  protected matchResults: ScenarioMatch[] = [];
+  protected matchResults: SolutionMatch[] = [];
   protected selectedMatchId: string | null = null;
-  protected selectedMatch: ScenarioMatch | null = null;
+  protected selectedMatch: SolutionMatch | null = null;
 
   private loadingTimer: ReturnType<typeof setTimeout> | null = null;
   private scrollThumbHideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -337,8 +336,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       this.loadingTimer = null;
       const filtered = this.solutionCatalog
         .getAll()
-        .filter((scenario) => this.scenarioMatchesSelection(scenario));
-      this.matchResults = filtered.map((scenario) => this.toScenarioMatch(scenario));
+        .filter((solution) => this.solutionMatchesSelection(solution));
+      this.matchResults = filtered.map((solution) => this.toSolutionMatch(solution));
       this.selectedMatchId = this.matchResults[0]?.id ?? null;
       this.selectedMatch = this.matchResults[0] ?? null;
       this.matchState = 'ready';
@@ -395,13 +394,13 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.closeRequested.emit();
   }
 
-  protected applySelectedScenario(): void {
+  protected applySelectedSolution(): void {
     const selectedMatch = this.selectedMatch;
     if (!selectedMatch) {
       return;
     }
 
-    this.scenarioApplied.emit(selectedMatch);
+    this.solutionApplied.emit(selectedMatch);
     this.closeRequested.emit();
   }
 
@@ -435,7 +434,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     );
   }
 
-  protected canApplyScenario(): boolean {
+  protected canApplySolution(): boolean {
     return this.matchState === 'ready' && this.selectedMatchId !== null;
   }
 
@@ -461,20 +460,20 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.runMatching();
   }
 
-  private scenarioMatchesSelection(scenario: SolutionScenario): boolean {
-    if (!this.scenarioScopeMatchesSelection(scenario)) {
+  private solutionMatchesSelection(solution: CatalogSolution): boolean {
+    if (!this.solutionScopeMatchesSelection(solution)) {
       return false;
     }
 
-    if (!this.scenarioTargetTypesMatchSelection(scenario)) {
+    if (!this.solutionTargetTypesMatchSelection(solution)) {
       return false;
     }
 
-    if (!this.scenarioTargetLevelsMatchSelection(scenario)) {
+    if (!this.solutionTargetLevelsMatchSelection(solution)) {
       return false;
     }
 
-    const includeIds = this.getScenarioIncludeIds(scenario);
+    const includeIds = this.getSolutionIncludeIds(solution);
     const hasOmec = includeIds.some((id) => id.includes('omec'));
     if (hasOmec !== this.includeOmecs) {
       return false;
@@ -490,7 +489,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       return false;
     }
 
-    if (!this.scenarioCostMatchesSelection(scenario)) {
+    if (!this.solutionCostMatchesSelection(solution)) {
       return false;
     }
 
@@ -527,11 +526,11 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }, 0);
   }
 
-  private scenarioScopeMatchesSelection(scenario: SolutionScenario): boolean {
-    const scenarioScope = this.normalizeManifestToken(
-      scenario.finderInputs.scope || scenario.scope,
+  private solutionScopeMatchesSelection(solution: CatalogSolution): boolean {
+    const solutionScope = this.normalizeManifestToken(
+      solution.finderInputs.scope || solution.scope,
     );
-    if (scenarioScope !== this.selectedScope) {
+    if (solutionScope !== this.selectedScope) {
       return false;
     }
 
@@ -539,38 +538,38 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       return true;
     }
 
-    return !this.selectedSirapRegion || scenario.sirapId === this.selectedSirapRegion;
+    return !this.selectedSirapRegion || solution.sirapId === this.selectedSirapRegion;
   }
 
-  private scenarioTargetTypesMatchSelection(scenario: SolutionScenario): boolean {
-    const scenarioTargetTypes = this.getScenarioTargetTypes(scenario);
+  private solutionTargetTypesMatchSelection(solution: CatalogSolution): boolean {
+    const solutionTargetTypes = this.getSolutionTargetTypes(solution);
     const selectedTargetTypes = this.selectedTargetTypeIds.filter((type) =>
       this.isTargetTypeAvailable(type),
     );
 
     return (
-      selectedTargetTypes.every((type) => scenarioTargetTypes.has(type)) &&
-      [...scenarioTargetTypes].every((type) => selectedTargetTypes.includes(type))
+      selectedTargetTypes.every((type) => solutionTargetTypes.has(type)) &&
+      [...solutionTargetTypes].every((type) => selectedTargetTypes.includes(type))
     );
   }
 
-  private scenarioTargetLevelsMatchSelection(scenario: SolutionScenario): boolean {
+  private solutionTargetLevelsMatchSelection(solution: CatalogSolution): boolean {
     return this.selectedTargetTypeIds.every((type) => {
       const selectedLevel = this.targetLevelByType[type];
       if (selectedLevel === undefined) {
         return false;
       }
 
-      return this.getScenarioTargetLevel(scenario, type) === selectedLevel;
+      return this.getSolutionTargetLevel(solution, type) === selectedLevel;
     });
   }
 
-  private getScenarioTargetTypes(scenario: SolutionScenario): Set<FinderTargetType> {
+  private getSolutionTargetTypes(solution: CatalogSolution): Set<FinderTargetType> {
     const targetTypes = new Set<FinderTargetType>();
     const targetFeatureSet = this.normalizeManifestToken(
-      scenario.finderInputs.targetFeatureSet ?? '',
+      solution.finderInputs.targetFeatureSet ?? '',
     );
-    const targetFeatureIds = scenario.finderInputs.targetFeatureIds.map((id) =>
+    const targetFeatureIds = solution.finderInputs.targetFeatureIds.map((id) =>
       this.normalizeManifestToken(id),
     );
 
@@ -599,21 +598,21 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     );
   }
 
-  private getScenarioTargetLevel(
-    scenario: SolutionScenario,
+  private getSolutionTargetLevel(
+    solution: CatalogSolution,
     targetType: FinderTargetType,
   ): 17 | 30 | null {
-    const parsedLevel = this.parseTargetLevelFromScenarioName(scenario, targetType);
+    const parsedLevel = this.parseTargetLevelFromSolutionName(solution, targetType);
     if (parsedLevel !== null) {
       return parsedLevel;
     }
 
-    const manifestLevel = scenario.finderInputs.targetPercent;
+    const manifestLevel = solution.finderInputs.targetPercent;
     return manifestLevel === 17 || manifestLevel === 30 ? manifestLevel : null;
   }
 
-  private parseTargetLevelFromScenarioName(
-    scenario: SolutionScenario,
+  private parseTargetLevelFromSolutionName(
+    solution: CatalogSolution,
     targetType: FinderTargetType,
   ): 17 | 30 | null {
     const prefixByTargetType: Partial<Record<FinderTargetType, string>> = {
@@ -625,7 +624,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       return null;
     }
 
-    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
+    const source = `${solution.id} ${solution.name}`.toLowerCase();
     const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
     if (!match) {
       return null;
@@ -634,23 +633,23 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     return Number(match[1]) as 17 | 30;
   }
 
-  private getScenarioIncludeIds(scenario: SolutionScenario): string[] {
-    return [...scenario.finderInputs.includeLayerIds, ...scenario.inputLayerIds.includes].map(
+  private getSolutionIncludeIds(solution: CatalogSolution): string[] {
+    return [...solution.finderInputs.includeLayerIds, ...solution.inputLayerIds.includes].map(
       (id) => this.normalizeManifestToken(id),
     );
   }
 
-  private scenarioCostMatchesSelection(scenario: SolutionScenario): boolean {
+  private solutionCostMatchesSelection(solution: CatalogSolution): boolean {
     const selectedCostLayerId = this.selectedCostLayerId;
     if (!selectedCostLayerId) {
       return false;
     }
 
     const costIds = [
-      scenario.finderInputs.costLayerId,
-      scenario.inputLayerIds.cost,
-      scenario.costLayer,
-      scenario.id,
+      solution.finderInputs.costLayerId,
+      solution.inputLayerIds.cost,
+      solution.costLayer,
+      solution.id,
     ]
       .filter((id): id is string => Boolean(id))
       .map((id) => this.normalizeManifestToken(id));
@@ -680,22 +679,21 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       .replace(/[_\s]+/g, '-');
   }
 
-  private toScenarioMatch(scenario: SolutionScenario): ScenarioMatch {
+  private toSolutionMatch(solution: CatalogSolution): SolutionMatch {
     return {
-      id: this.toScenarioMatchId(scenario.id),
-      solutionId: scenario.id,
-      scenarioId: scenario.id,
-      name: scenario.name,
-      description: scenario.description,
-      mapLabel: scenario.costLayer,
-      ecosystemTargets: scenario.ecosystemTargets,
-      selectedUnits: scenario.nSelected,
+      id: this.toSolutionMatchId(solution.id),
+      solutionId: solution.id,
+      name: solution.name,
+      description: solution.description,
+      mapLabel: solution.costLayer,
+      ecosystemTargets: solution.ecosystemTargets,
+      selectedUnits: solution.nSelected,
       matchPercentage: 100,
     };
   }
 
-  private toScenarioMatchId(scenarioId: string): string {
-    return `scenario-${scenarioId.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  private toSolutionMatchId(solutionId: string): string {
+    return `solution-${solutionId.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   }
 
   private clearLoadingTimer(): void {

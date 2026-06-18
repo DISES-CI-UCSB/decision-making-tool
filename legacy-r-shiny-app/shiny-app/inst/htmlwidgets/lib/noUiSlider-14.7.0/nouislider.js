@@ -42,7 +42,7 @@
         var pageOffset = getPageOffset(doc);
         // getBoundingClientRect contains left scroll in Chrome on Android.
         // I haven't found a feature detection that proves this. Worst case
-        // scenario on mis-match: the 'tap' feature on horizontal sliders breaks.
+        // solution on mis-match: the 'tap' feature on horizontal sliders breaks.
         if (/webkit.*Chrome.*Mobile/i.test(navigator.userAgent)) {
             pageOffset.x = 0;
         }

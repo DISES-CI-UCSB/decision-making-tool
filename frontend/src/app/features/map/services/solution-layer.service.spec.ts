@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import type { LoadedSolution } from '@core/models/solution-scenario.model';
+import type { LoadedSolution } from '@core/models/solution-catalog.model';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
@@ -13,13 +13,13 @@ import {
 
 function createLoadedSolution(
   id: string,
-  overrides: Partial<LoadedSolution['scenario']> = {},
+  overrides: Partial<LoadedSolution['solution']> = {},
 ): LoadedSolution {
   return {
-    scenario: {
+    solution: {
       id,
       filename: `${id}.tif`,
-      name: `Scenario ${id}`,
+      name: `Solution ${id}`,
       description: `Description ${id}`,
       scope: 'nacional',
       sirapId: null,
@@ -81,7 +81,7 @@ function createLoadedSolution(
 describe('SolutionLayerService', () => {
   let service: SolutionLayerService;
   const loaderMock = {
-    loadSolution: vi.fn<(scenarioId: string) => Promise<LoadedSolution>>(),
+    loadSolution: vi.fn<(solutionId: string) => Promise<LoadedSolution>>(),
   };
   const appStateMock = {
     loadSolution: vi.fn(),
@@ -123,7 +123,7 @@ describe('SolutionLayerService', () => {
     service.initialize(mapMock as never);
   });
 
-  it('loads a single scenario and syncs active solution state', async () => {
+  it('loads a single solution and syncs active solution state', async () => {
     const loaded = createLoadedSolution('baseline');
     loaderMock.loadSolution.mockResolvedValue(loaded);
 
@@ -134,11 +134,11 @@ describe('SolutionLayerService', () => {
     expect(appStateMock.loadSolution).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'baseline',
-        name: 'Scenario baseline',
+        name: 'Solution baseline',
         matchPercentage: 70,
         geometryUrl: 'https://example.com/baseline.tif',
         metadata: expect.objectContaining({
-          scenarioId: 'baseline',
+          solutionId: 'baseline',
           rasterFile: 'baseline.tif',
           metadataUrl: 'https://example.com/baseline.json',
         }),
@@ -200,7 +200,7 @@ describe('SolutionLayerService', () => {
     );
   });
 
-  it('uses an imagery tile layer when the scenario has a COG display URL', async () => {
+  it('uses an imagery tile layer when the solution has a COG display URL', async () => {
     const loaded = createLoadedSolution('baseline', {
       displayCogUrl: 'https://example.com/baseline.cog.tif',
     });
@@ -218,7 +218,7 @@ describe('SolutionLayerService', () => {
     expect(addedLayer.renderer).toBeTruthy();
   });
 
-  it('uses the raster EPSG code when georeferencing canvas-rendered scenarios', () => {
+  it('uses the raster EPSG code when georeferencing canvas-rendered solutions', () => {
     const spatialReference = (
       service as unknown as {
         spatialReferenceForRaster: (rasterMeta: LoadedSolution['rasterMeta']) => { wkid: number };
@@ -315,11 +315,11 @@ describe('SolutionLayerService', () => {
     ]);
   });
 
-  it('loads two scenarios for comparison and exposes both layers', async () => {
+  it('loads two solutions for comparison and exposes both layers', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
-    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
-      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
     );
     const baselineLayer = { id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 };
     const candidateLayer = { id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 };
@@ -368,8 +368,8 @@ describe('SolutionLayerService', () => {
       rasterMeta,
       rasterData: new Float64Array([1, 2, 0, 0]),
     };
-    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
-      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
     );
     const createLayerSpy = vi.spyOn(
       service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
@@ -403,8 +403,8 @@ describe('SolutionLayerService', () => {
         width: 3,
       },
     };
-    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
-      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
     );
     const createLayerSpy = vi.spyOn(
       service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
@@ -447,8 +447,8 @@ describe('SolutionLayerService', () => {
   it('keeps the baseline default color distinct from the other comparison defaults', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
-    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
-      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
     );
     const createLayerSpy = vi.spyOn(
       service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
@@ -488,8 +488,8 @@ describe('SolutionLayerService', () => {
   it('updates baseline and candidate layer visibility/opacities independently in comparison mode', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
-    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
-      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
     );
     const baselineLayer = { id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7, visible: true };
     const candidateLayer = { id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7, visible: true };
@@ -563,8 +563,8 @@ describe('SolutionLayerService', () => {
   it('clears map layers and app state when removing solution', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
-    loaderMock.loadSolution.mockImplementation(async (scenarioId: string) =>
-      scenarioId === 'baseline' ? baselineLoaded : candidateLoaded,
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
     );
     const baselineLayer = { id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 };
     const candidateLayer = { id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 };

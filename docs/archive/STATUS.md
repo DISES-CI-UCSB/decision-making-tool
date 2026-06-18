@@ -93,7 +93,7 @@ This document tracks the status of all design documentation and helps prioritize
 - **Action Required:**
   - [ ] Review all 🚩 sections requiring team feedback
   - [ ] Answer questions about:
-    - Specific statistics for "About this Scenario" popup
+    - Specific statistics for "About this Solution" popup
     - Comparison complexity for public users
     - Tier 2 feature definitions
     - Report specifics (Territorial Planning, Connectivity)

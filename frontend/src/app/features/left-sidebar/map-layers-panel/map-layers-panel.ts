@@ -619,9 +619,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
   protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
-    const solution = this.appState.activeSolution$();
-    const scenario = this.findActiveSolutionScenario(solution);
-    return buildSolutionIdentitySummary(solution, scenario);
+    const activeSolution = this.appState.activeSolution$();
+    const catalogSolution = this.findActiveCatalogSolution(activeSolution);
+    return buildSolutionIdentitySummary(activeSolution, catalogSolution);
   });
   protected readonly activeSolutionBreakdownOpen = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
@@ -771,7 +771,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
         if (!comparisonSolution) {
           // Comparison cleared entirely — destructively remove rows so a fresh
-          // scenario pick starts from defaults.
+          // solution pick starts from defaults.
           this.syncComparisonSolutionOverlay(null);
           this.syncComparisonOverlapOverlay(null, false);
           return;
@@ -912,10 +912,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     const breakdownFlyout = this.document.getElementById(
-      'map-layers-active-scenario-breakdown-flyout',
+      'map-layers-active-solution-breakdown-flyout',
     );
     const breakdownTrigger = this.document.getElementById(
-      'map-layers-active-scenario-breakdown-button',
+      'map-layers-active-solution-breakdown-button',
     );
 
     if (breakdownFlyout?.contains(target) || breakdownTrigger?.contains(target)) {
@@ -929,17 +929,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.solutionFinderRequested.emit();
   }
 
-  protected setSidebarScrollbarInteracting(value: boolean): void {
-    this.sidebarScrollbarInteracting = value;
-  }
-
-  protected isSidebarOverlayThumbVisible(): boolean {
-    return (
-      this.sidebarOverlayScrollbar.thumbHeight() > 0 &&
-      (this.sidebarOverlayScrollbar.isScrolling() || this.sidebarScrollbarInteracting)
-    );
-  }
-
   protected toggleActiveSolutionBreakdown(): void {
     this.activeSolutionBreakdownOpen.update((open) => !open);
   }
@@ -948,10 +937,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.activeSolutionBreakdownOpen.set(false);
   }
 
-  private findActiveSolutionScenario(solution: Solution | null) {
-    const metadataScenarioId = solution?.metadata?.['scenarioId'];
-    const scenarioId = typeof metadataScenarioId === 'string' ? metadataScenarioId : solution?.id;
-    return scenarioId ? this.solutionCatalog.getById(scenarioId) : null;
+  private findActiveCatalogSolution(solution: Solution | null) {
+    const metadataSolutionId = solution?.metadata?.['solutionId'];
+    const solutionId = typeof metadataSolutionId === 'string' ? metadataSolutionId : solution?.id;
+    return solutionId ? this.solutionCatalog.getById(solutionId) : null;
   }
 
   private resolveActiveLanguage(): SupportedLanguage {
@@ -3686,9 +3675,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         name: overlay.name,
         sourceLabel:
           overlay.id === BASELINE_SOLUTION_OVERLAY_ID
-            ? this.localizedText('mapLayersPanel.sourceLabels.selectedScenario')
+            ? this.localizedText('mapLayersPanel.sourceLabels.selectedSolution')
             : overlay.id === CANDIDATE_SOLUTION_OVERLAY_ID
-              ? this.localizedText('mapLayersPanel.sourceLabels.comparisonScenario')
+              ? this.localizedText('mapLayersPanel.sourceLabels.comparisonSolution')
               : overlay.id === OVERLAP_SOLUTION_OVERLAY_ID
                 ? this.localizedText('mapLayersPanel.sourceLabels.comparisonOverlay')
                 : this.localizedText('mapLayersPanel.sourceLabels.availableLayers'),

@@ -43,7 +43,7 @@ export class MockDataService {
       description: 'Prioritizes high-elevation forest connectivity.',
       matchPercentage: 86,
       geometryUrl: '/mock/geometry/solutions/sol-001.geojson',
-      metadata: { scenario: 'habitat-connectivity' },
+      metadata: { solution: 'habitat-connectivity' },
       metrics: [
         this.metric('m-biodiversity', 'Biodiversity', 92, '%', 'ecology', 'percentage'),
         this.metric('m-carbon', 'Carbon Storage', 74, 'Mg', 'climate', 'number'),
@@ -56,7 +56,7 @@ export class MockDataService {
       description: 'Balances watershed protection and social access.',
       matchPercentage: 79,
       geometryUrl: '/mock/geometry/solutions/sol-002.geojson',
-      metadata: { scenario: 'watershed-protection' },
+      metadata: { solution: 'watershed-protection' },
       metrics: [
         this.metric('m-biodiversity', 'Biodiversity', 83, '%', 'ecology', 'percentage'),
         this.metric('m-carbon', 'Carbon Storage', 69, 'Mg', 'climate', 'number'),
@@ -69,7 +69,7 @@ export class MockDataService {
       description: 'Optimizes conservation and productive land use.',
       matchPercentage: 72,
       geometryUrl: '/mock/geometry/solutions/sol-003.geojson',
-      metadata: { scenario: 'mixed-use' },
+      metadata: { solution: 'mixed-use' },
       metrics: [
         this.metric('m-biodiversity', 'Biodiversity', 76, '%', 'ecology', 'percentage'),
         this.metric('m-carbon', 'Carbon Storage', 65, 'Mg', 'climate', 'number'),

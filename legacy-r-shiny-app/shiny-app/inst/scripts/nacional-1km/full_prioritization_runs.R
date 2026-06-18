@@ -42,13 +42,13 @@ normalize <- function(r) {
 PU <- raster("layers/PU_Nacional_1km.tif")
 
 ################################################################################
-# Define the scenarios to run
-scenarios <- read.xlsx("../scenarios_to_run_webtool.xlsx")
-scenarios <- scenarios[scenarios$SIRAP == "Nacional" & (scenarios$costo == "PU" | scenarios$costo == "IHEH_2022"),]
+# Define the solutions to run
+solutions <- read.xlsx("../solutions_to_run_webtool.xlsx")
+solutions <- solutions[solutions$SIRAP == "Nacional" & (solutions$costo == "PU" | solutions$costo == "IHEH_2022"),]
 
-# iterate over the scenarios
-for (i in 1:nrow(scenarios)) {
-  print(paste0("Running scenario: ", scenarios$escenario[i]))
+# iterate over the solutions
+for (i in 1:nrow(solutions)) {
+  print(paste0("Running solution: ", solutions$esolution[i]))
 
   ################################################################################
   # Features
@@ -56,7 +56,7 @@ for (i in 1:nrow(scenarios)) {
   feature_stack <- stack()
 
   # read the feature layer
-  feature_list <- strsplit(scenarios$elemento_priorizacion[i], ",")[[1]] %>% str_trim()
+  feature_list <- strsplit(solutions$elemento_priorizacion[i], ",")[[1]] %>% str_trim()
 
   if ("Biomas" %in% feature_list) {
       biomas <- list.files("layers/Biomas", pattern = ".tif$", full.names = TRUE) %>%
@@ -115,7 +115,7 @@ for (i in 1:nrow(scenarios)) {
 
   ################################################################################
   # Cost
-  if ("IHEH_2022" == scenarios$costo[i]) {
+  if ("IHEH_2022" == solutions$costo[i]) {
     cost_layer <- raster("layers/IHEH_2022_log.tif")
   } else {
     cost_layer <- PU
@@ -123,12 +123,12 @@ for (i in 1:nrow(scenarios)) {
 
   ################################################################################
   # Targets
-    targets <- as.numeric(strsplit(scenarios$sensibilidad[i], ",")[[1]])[[1]]/100
+    targets <- as.numeric(strsplit(solutions$sensibilidad[i], ",")[[1]])[[1]]/100
 
   ################################################################################
   # Includes
   include_stack <- stack()
-  includes_list <- strsplit(scenarios$inclusion[i], ",")[[1]] %>% str_trim()
+  includes_list <- strsplit(solutions$inclusion[i], ",")[[1]] %>% str_trim()
 
   if ("RUNAP" %in% includes_list) {
     runap <- raster("layers/RUNAP.tif")
@@ -162,7 +162,7 @@ for (i in 1:nrow(scenarios)) {
   print(cp_solution)
 
   # save the solution
-  file_name <- glue("solutions/{scenarios$escenario[i]}-solution.tif")
+  file_name <- glue("solutions/{solutions$esolution[i]}-solution.tif")
   terra::writeRaster(cp_solution, file_name, filetype = "GTiff", overwrite = TRUE)
 
 }

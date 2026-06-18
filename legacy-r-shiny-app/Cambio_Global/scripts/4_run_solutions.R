@@ -11,24 +11,24 @@ extension="EJE_CAFETERO"
 resolution="1km"
 
 # Cargar archivos y definición de parámetros necesarios
-scenarios=read.xlsx("./input/Propuesta_Ejecafero_26625.xlsx","escenarios_nuevos")
-#scenarios=scenarios[scenarios$SIRAP == extension,]
+solutions=read.xlsx("./input/Propuesta_Ejecafero_26625.xlsx","esolutions_nuevos")
+#solutions=solutions[solutions$SIRAP == extension,]
 pus=raster(paste0("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/PUs/PUS_",extension,"_",resolution,".tif"))
 pu_ids=read.csv(paste0("./input/PUs_",extension,"_",resolution,".csv"))
 costs_and_constraints=read.xlsx("./input/costs_and_constraints_v3_05_24.xlsx")
 gc(reset = T)
 
 # Priorización
-#n_cores=ifelse(detectCores()<nrow(scenarios),detectCores(),nrow(scenarios))
+#n_cores=ifelse(detectCores()<nrow(solutions),detectCores(),nrow(solutions))
 n_cores=8
 cl=makeCluster(n_cores,type="PSOCK")
 registerDoParallel(cl,cores=n_cores)
-foreach(i=1:nrow(scenarios),.verbose=T,.errorhandling="remove",
+foreach(i=1:nrow(solutions),.verbose=T,.errorhandling="remove",
         .packages=c("prioritizr","gurobi","raster","dplyr","doParallel","fst","openxlsx")) %dopar%{
-  unique_features=scenarios$id_elemento_priorizacion[i]
+  unique_features=solutions$id_elemento_priorizacion[i]
   unique_features=paste(unique_features,collapse=',')
   unique_features=as.numeric(strsplit(unique_features, ",")[[1]])
-  target=scenarios$sensibilidad[i]
+  target=solutions$sensibilidad[i]
   target=paste(target,collapse=',')
   target=as.numeric(strsplit(target, ",")[[1]])
   rij=read.fst(paste0("./input/rij_",extension,"_",resolution,".fst"))
@@ -50,19 +50,19 @@ foreach(i=1:nrow(scenarios),.verbose=T,.errorhandling="remove",
   features$target=as.numeric(features$target)
   features=features[,c("id","name","target")]
   features=features %>% group_by(id) %>% slice_max(target, n = 1) %>% ungroup()
-  if (costs_and_constraints$cost_relation[costs_and_constraints$name==scenarios$costo[i]]=="directa"){
-    pu_ids[,scenarios$costo[i]]=(((pu_ids[,scenarios$costo[i]]-min(pu_ids[,scenarios$costo[i]]))/(max(pu_ids[,scenarios$costo[i]])-min(pu_ids[,scenarios$costo[i]])))*100)+1
+  if (costs_and_constraints$cost_relation[costs_and_constraints$name==solutions$costo[i]]=="directa"){
+    pu_ids[,solutions$costo[i]]=(((pu_ids[,solutions$costo[i]]-min(pu_ids[,solutions$costo[i]]))/(max(pu_ids[,solutions$costo[i]])-min(pu_ids[,solutions$costo[i]])))*100)+1
   } else{
-    pu_ids[,scenarios$costo[i]]=100-(((pu_ids[,scenarios$costo[i]]-min(pu_ids[,scenarios$costo[i]]))/(max(pu_ids[,scenarios$costo[i]])-min(pu_ids[,scenarios$costo[i]])))*100)+1
+    pu_ids[,solutions$costo[i]]=100-(((pu_ids[,solutions$costo[i]]-min(pu_ids[,solutions$costo[i]]))/(max(pu_ids[,solutions$costo[i]])-min(pu_ids[,solutions$costo[i]])))*100)+1
   }
   gc(reset = T)
-  p=problem(x=pu_ids,features=features,rij=rij,cost_column=scenarios$costo[i]) %>%
+  p=problem(x=pu_ids,features=features,rij=rij,cost_column=solutions$costo[i]) %>%
     add_min_set_objective() %>%
     add_relative_targets("target") %>%
     add_proportion_decisions() %>%
     add_gurobi_solver(gap = 0.1, threads = detectCores(), node_file_start=4)
   gc(reset = T)
-  constraints=scenarios$inclusion[i]
+  constraints=solutions$inclusion[i]
   if (!is.na(constraints)){
     constraints=paste(constraints,collapse=',')
     constraints=strsplit(constraints, ",")[[1]]
@@ -76,7 +76,7 @@ foreach(i=1:nrow(scenarios),.verbose=T,.errorhandling="remove",
   if(unique(!is.na(constraints))){
     p=p %>% add_locked_in_constraints(pu_ids$id %in% constraints)
   }
-  # constraints=scenarios$exlusion[i]
+  # constraints=solutions$exlusion[i]
   # if (!is.na(constraints)){
   #   constraints=paste(constraints,collapse=',')
   #   constraints=strsplit(constraints, ",")[[1]]
@@ -96,7 +96,7 @@ foreach(i=1:nrow(scenarios),.verbose=T,.errorhandling="remove",
   r=pus*0
   ids=s$id[s$best==1]
   r[pus %in% ids]=1
-  writeRaster(r,paste0("./output/",extension,"/",scenarios$escenario[i],".tif"),overwrite=T,options="COMPRESS=DEFLATE",datatype='INT1U',NAflag=0)
+  writeRaster(r,paste0("./output/",extension,"/",solutions$esolution[i],".tif"),overwrite=T,options="COMPRESS=DEFLATE",datatype='INT1U',NAflag=0)
   gc(reset = T)
 }
 stopCluster(cl)

@@ -23,7 +23,7 @@ describe('SidebarContainerComponent', () => {
     TestBed.inject(TranslateService).setTranslation('en', {
       mapLayersPanel: {
         title: 'Map Layers',
-        selectScenario: 'Select scenario',
+        selectSolution: 'Select solution',
       },
     });
   });

@@ -34,7 +34,7 @@ All parallel branches are synchronized around **4 merge checkpoints**. At each c
 | **CP1** | Skeleton | Empty panes render, panel switching works, basemap shows | Click left sidebar button → right panel changes mode |
 | **CP2** | Solution Flow | Solution Finder → match → load on map → show metrics | Full discovery workflow with mock data |
 | **CP3** | Regional Analysis | Click map → AOI Dashboard populates, layers toggle | Click department → see 35 metrics in sidebar |
-| **CP4** | Comparison & Polish | Side-by-side, scenario comparison, exports, demo-ready | Full demo flow in Spanish for Mesa Nacional |
+| **CP4** | Comparison & Polish | Side-by-side, solution comparison, exports, demo-ready | Full demo flow in Spanish for Mesa Nacional |
 
 ### Checkpoint Alignment (which tasks merge together)
 

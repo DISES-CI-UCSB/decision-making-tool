@@ -51,14 +51,14 @@
                 id="master-legend-solution-section-title"
                 class="master-legend-section-label text-sm font-medium"
               >
-                {{ 'mapLegend.activeScenarioLabel' | translate }}
+                {{ 'mapLegend.activeSolutionLabel' | translate }}
               </p>
-              @if (shouldShowActiveScenarioName()) {
+              @if (shouldShowActiveSolutionName()) {
                 <p
                   id="master-legend-solution-name"
                   class="truncate text-sm font-medium text-slate-500"
                 >
-                  {{ isComparing() ? ('mapLegend.comparison' | translate) : sol.scenario.name }}
+                  {{ isComparing() ? ('mapLegend.comparison' | translate) : sol.solution.name }}
                 </p>
               }
             </div>
@@ -165,7 +165,7 @@
                     [style.opacity]="baselineOpacity()"
                   ></span>
                   {{
-                    'mapLegend.scenarioA'
+                    'mapLegend.solutionA'
                       | translate: { name: baselineName(), pct: baselineOpacityPercent() }
                   }}
                 </li>
@@ -180,7 +180,7 @@
                     [style.opacity]="candidateOpacity()"
                   ></span>
                   {{
-                    'mapLegend.scenarioB'
+                    'mapLegend.solutionB'
                       | translate: { name: candidateName(), pct: candidateOpacityPercent() }
                   }}
                 </li>

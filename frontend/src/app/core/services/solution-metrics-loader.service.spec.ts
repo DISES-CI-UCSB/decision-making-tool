@@ -1,21 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import type { SolutionScenario } from '@core/models/solution-scenario.model';
+import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import { SolutionMetricsLoaderService } from './solution-metrics-loader.service';
 import { SolutionCatalogService } from './solution-catalog.service';
 
 describe('SolutionMetricsLoaderService', () => {
   let service: SolutionMetricsLoaderService;
   let httpMock: HttpTestingController;
-  let catalogScenario: SolutionScenario | null = null;
+  let catalogSolution: CatalogSolution | null = null;
 
   const catalogStub = {
-    getById: () => catalogScenario,
+    getById: () => catalogSolution,
   };
 
   beforeEach(() => {
-    catalogScenario = null;
+    catalogSolution = null;
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -34,11 +34,11 @@ describe('SolutionMetricsLoaderService', () => {
   });
 
   it('builds the metrics/cache blob URL from the solution displayUrl host', () => {
-    catalogScenario = {
+    catalogSolution = {
       id: 'ecos17_estr30_runap_hf',
       displayUrl:
         'https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif',
-    } as unknown as SolutionScenario;
+    } as unknown as CatalogSolution;
 
     expect(service.buildCacheUrl('ecos17_estr30_runap_hf')).toBe(
       'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/cache/ecos17_estr30_runap_hf.metrics.json',
@@ -46,7 +46,7 @@ describe('SolutionMetricsLoaderService', () => {
   });
 
   it('prefers manifest-provided compact metrics URLs when available', () => {
-    catalogScenario = {
+    catalogSolution = {
       id: 'ecos17_estr30_runap_hf',
       displayUrl:
         'https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif',
@@ -54,7 +54,7 @@ describe('SolutionMetricsLoaderService', () => {
         compactCache:
           'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/nick-runs/2026-05-27/compact-cache/ecos17_estr30_runap_hf.metrics.compact.json',
       },
-    } as unknown as SolutionScenario;
+    } as unknown as CatalogSolution;
 
     expect(service.buildCacheUrl('ecos17_estr30_runap_hf')).toBe(
       'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/nick-runs/2026-05-27/compact-cache/ecos17_estr30_runap_hf.metrics.compact.json',
@@ -62,16 +62,16 @@ describe('SolutionMetricsLoaderService', () => {
   });
 
   it('returns null when the solution is unknown', () => {
-    catalogScenario = null;
+    catalogSolution = null;
     expect(service.buildCacheUrl('missing')).toBeNull();
   });
 
   it('loads the cached metrics document from blob', () => {
-    catalogScenario = {
+    catalogSolution = {
       id: 'ecos17_estr30_runap_hf',
       displayUrl:
         'https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif',
-    } as unknown as SolutionScenario;
+    } as unknown as CatalogSolution;
 
     let result: unknown;
     service.loadCachedMetrics('ecos17_estr30_runap_hf').subscribe((value) => {
@@ -99,7 +99,7 @@ describe('SolutionMetricsLoaderService', () => {
   });
 
   it('expands compact cached metrics documents from blob', () => {
-    catalogScenario = {
+    catalogSolution = {
       id: 'ecos17_estr30_runap_hf',
       displayUrl:
         'https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif',
@@ -107,7 +107,7 @@ describe('SolutionMetricsLoaderService', () => {
         compactCache:
           'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/compact/ecos17_estr30_runap_hf.metrics.compact.json',
       },
-    } as unknown as SolutionScenario;
+    } as unknown as CatalogSolution;
 
     let result: unknown;
     service.loadCachedMetrics('ecos17_estr30_runap_hf').subscribe((value) => {
