@@ -61,6 +61,7 @@ import {
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
+import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
 import { FEATURE_FLAGS } from '@feature-flags';
 
@@ -174,6 +175,11 @@ interface AppearancePopoverPosition {
   left: number;
   width: number;
   arrowRightPx: number;
+}
+
+interface LayerInfoPopoverPosition {
+  top: number;
+  left: number;
 }
 
 const COLOR_PICKER_HEX_FORMAT = 0;
@@ -302,17 +308,15 @@ const STRATEGIC_ECOSYSTEM_LAYER_IDS = new Set(['paramos', 'wetlands', 'bosque_se
 const ECOSYSTEMS_COPY = {
   en: {
     groupTitle: 'Ecosystems',
-    groupNote:
-      'Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. IAVH Ecosystems Classification is a 430-class national reference layer, grouped into broad biome families for display.',
-    iavhRowName: 'IAVH Ecosystems Classification (2024)',
+    groupNote: '',
+    iavhRowName: 'Ecosystems',
     strategicGroupName: 'Strategic Ecosystems',
     otherBiomeFamily: 'Other / N.A.',
   },
   es: {
     groupTitle: 'Ecosistemas',
-    groupNote:
-      'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. La Clasificación de ecosistemas IAVH es una capa nacional de referencia con 430 clases, agrupada en grandes familias de biomas para su visualización.',
-    iavhRowName: 'Clasificación de ecosistemas IAVH (2024)',
+    groupNote: '',
+    iavhRowName: 'Ecosistemas',
     strategicGroupName: 'Ecosistemas estratégicos',
     otherBiomeFamily: 'Otro / N.A.',
   },
@@ -560,6 +564,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly translate = inject(TranslateService);
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly document = inject(DOCUMENT);
+  protected readonly sidebarOverlayScrollbar = useOverlayScrollbar();
+  protected sidebarScrollbarInteracting = false;
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
   private formatSelectIdSequence = 0;
@@ -707,6 +713,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectedLayerDragId = signal<string | null>(null);
   protected readonly selectedLayerDropTargetId = signal<string | null>(null);
   protected readonly selectedLayerDropPosition = signal<SelectedLayerDropPosition>('before');
+  protected readonly openLayerInfoPopoverId = signal<string | null>(null);
+  protected readonly layerInfoPopoverPosition = signal<LayerInfoPopoverPosition | null>(null);
   protected readonly selectedLayerAppearancePopoverId = signal<string | null>(null);
   protected readonly appearancePopoverPosition = signal<AppearancePopoverPosition | null>(null);
   protected readonly selectedLayerAppearancePopoverRow = computed(() => {
@@ -725,6 +733,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private appearancePopoverRepositionFrame: number | null = null;
   private appearancePopoverRepositionListener: (() => void) | null = null;
   private appearancePopoverOutsidePointerListener: ((event: PointerEvent) => void) | null = null;
+  private layerInfoOutsidePointerListener: ((event: PointerEvent) => void) | null = null;
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
 
   constructor() {
@@ -853,10 +862,22 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
       });
     });
+
+    effect(() => {
+      const rowId = this.openLayerInfoPopoverId();
+      untracked(() => {
+        if (rowId) {
+          this.bindLayerInfoOutsidePointerListener();
+        } else {
+          this.unbindLayerInfoOutsidePointerListener();
+        }
+      });
+    });
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('pointermove', this.rainforestProximityHandler);
+    this.unbindLayerInfoOutsidePointerListener();
     this.unbindAppearancePopoverRepositionListeners();
     this.unbindAppearancePopoverOutsidePointerListener();
     this.unmountAppearancePopoverPortal();
@@ -2660,6 +2681,150 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (!rowId || this.selectedLayerAppearancePopoverId() === rowId) {
       this.selectedLayerAppearancePopoverId.set(null);
     }
+  }
+
+  protected layerInfoPopoverId(groupId: string, rowId: string): string {
+    return `${groupId}:${rowId}`;
+  }
+
+  protected isLayerInfoPopoverOpen(groupId: string, rowId: string): boolean {
+    return this.openLayerInfoPopoverId() === this.layerInfoPopoverId(groupId, rowId);
+  }
+
+  protected toggleLayerInfoPopover(event: Event, groupId: string, rowId: string): void {
+    event.stopPropagation();
+    const popoverId = this.layerInfoPopoverId(groupId, rowId);
+    if (this.openLayerInfoPopoverId() === popoverId) {
+      this.closeLayerInfoPopover();
+      return;
+    }
+    this.layerInfoPopoverPosition.set(this.resolveLayerInfoPopoverPosition(event));
+    this.openLayerInfoPopoverId.set(popoverId);
+  }
+
+  protected closeLayerInfoPopover(): void {
+    this.openLayerInfoPopoverId.set(null);
+    this.layerInfoPopoverPosition.set(null);
+  }
+
+  private resolveLayerInfoPopoverPosition(event: Event): LayerInfoPopoverPosition {
+    const button = event.currentTarget;
+    if (!(button instanceof HTMLElement)) {
+      return { top: 0, left: 0 };
+    }
+    const rect = button.getBoundingClientRect();
+    const popoverWidth = 384;
+    const estimatedPopoverHeight = 260;
+    const viewportPadding = 12;
+    const left = Math.min(
+      Math.max(rect.right + 10, viewportPadding),
+      window.innerWidth - popoverWidth - viewportPadding,
+    );
+    const top = Math.min(
+      Math.max(rect.top - 8, viewportPadding),
+      window.innerHeight - estimatedPopoverHeight - viewportPadding,
+    );
+    return {
+      top,
+      left,
+    };
+  }
+
+  protected layerInfoText(row: LayerControlRow): string | null {
+    const copy = this.ecosystemsCopy();
+    const language = this.activeLanguage();
+    const ecosystemInfo = {
+      en: 'Official MEC 2024 ecosystem data from IDEAM, with biodiversity classification inputs from the Humboldt Institute (IAvH). The source layer has several related classification attributes, including broad biome, synthesis ecosystem, general ecosystem, and biotic-unit fields; since these different classification levels overlap one another, they are not a perfectly clean UI hierarchy. DISES displays the raster as broad biome families for easier scanning.',
+      es: 'Datos oficiales de ecosistemas MEC 2024 del IDEAM, con insumos de clasificación de biodiversidad del Instituto Humboldt (IAvH). La capa fuente tiene varios atributos de clasificación relacionados, incluidos bioma amplio, ecosistema de síntesis, ecosistema general y campos de unidades bióticas; como estos niveles de clasificación se superponen entre sí, no forman una jerarquía de interfaz perfectamente limpia. DISES muestra el ráster como grandes familias de biomas para facilitar la lectura.',
+    };
+    const strategicInfo = {
+      en: 'Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. They are separate input layers, not classes pulled from the full MEC ecosystem map.',
+      es: 'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. Son capas de entrada separadas, no clases extraídas del mapa completo de ecosistemas MEC.',
+    };
+    const layerInfoById: Record<string, { en: string; es: string }> = {
+      'layer-ecosistemas': ecosystemInfo,
+      'layer-eco-types': ecosystemInfo,
+      [STRATEGIC_ECOSYSTEM_GROUP_ROW_ID]: strategicInfo,
+      'layer-paramos': {
+        en: 'Official paramo complexes layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de complejos de páramo de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+      'layer-eco-paramos': {
+        en: 'Official paramo complexes layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de complejos de páramo de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+      'layer-wetlands': {
+        en: 'Official continental wetlands layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de humedales continentales de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+      'layer-eco-wetlands': {
+        en: 'Official continental wetlands layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de humedales continentales de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+      'layer-bosque_seco': {
+        en: 'Official tropical dry forest layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de bosque seco tropical de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+      'layer-eco-dry-forest': {
+        en: 'Official tropical dry forest layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de bosque seco tropical de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+      'layer-mangroves': {
+        en: 'Official mangroves layer from INVEMAR. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de manglares de INVEMAR. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+      'layer-eco-mangroves': {
+        en: 'Official mangroves layer from INVEMAR. Used as one of the strategic ecosystem inputs.',
+        es: 'Capa oficial de manglares de INVEMAR. Se usa como una de las entradas de ecosistemas estratégicos.',
+      },
+    };
+
+    if (row.id === 'layer-ecosistemas' || row.id === 'layer-eco-types') {
+      return layerInfoById[row.id][language];
+    }
+    return (
+      layerInfoById[row.id]?.[language] ??
+      (row.id === STRATEGIC_ECOSYSTEM_GROUP_ROW_ID ? copy.groupNote : null)
+    );
+  }
+
+  private bindLayerInfoOutsidePointerListener(): void {
+    if (this.layerInfoOutsidePointerListener) {
+      return;
+    }
+    this.layerInfoOutsidePointerListener = (event) => this.onLayerInfoDocumentPointerDown(event);
+    this.document.addEventListener('pointerdown', this.layerInfoOutsidePointerListener, {
+      capture: true,
+    });
+  }
+
+  private unbindLayerInfoOutsidePointerListener(): void {
+    if (!this.layerInfoOutsidePointerListener) {
+      return;
+    }
+    this.document.removeEventListener('pointerdown', this.layerInfoOutsidePointerListener, true);
+    this.layerInfoOutsidePointerListener = null;
+  }
+
+  private onLayerInfoDocumentPointerDown(event: PointerEvent): void {
+    if (!this.openLayerInfoPopoverId()) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Node)) {
+      this.closeLayerInfoPopover();
+      return;
+    }
+    const targetElement =
+      target instanceof Element
+        ? target
+        : target.parentElement instanceof Element
+          ? target.parentElement
+          : null;
+    if (targetElement?.closest('[data-ui="map-layer-info-control"]')) {
+      return;
+    }
+    this.closeLayerInfoPopover();
   }
 
   /**

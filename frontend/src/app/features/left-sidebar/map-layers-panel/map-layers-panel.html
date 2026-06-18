@@ -1636,6 +1636,57 @@
                           >
                             {{ row.name }}
                           </button>
+                          @if (layerInfoText(row); as infoText) {
+                            <span
+                              [id]="'map-layers-layer-row-info-wrap-' + group.id + '-' + row.id"
+                              data-ui="map-layer-info-control"
+                              class="relative inline-flex shrink-0"
+                            >
+                              <button
+                                [id]="'map-layers-layer-row-info-button-' + group.id + '-' + row.id"
+                                type="button"
+                                class="map-layers-layer-info-button inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                [attr.aria-label]="'Layer information: ' + row.name"
+                                [attr.aria-expanded]="isLayerInfoPopoverOpen(group.id, row.id)"
+                                [attr.aria-controls]="
+                                  'map-layers-layer-row-info-popover-' + group.id + '-' + row.id
+                                "
+                                (click)="toggleLayerInfoPopover($event, group.id, row.id)"
+                                (keydown.escape)="closeLayerInfoPopover()"
+                              >
+                                <span
+                                  [id]="'map-layers-layer-row-info-icon-' + group.id + '-' + row.id"
+                                  class="map-layers-info-icon-glyph"
+                                  aria-hidden="true"
+                                  >i</span
+                                >
+                              </button>
+                              @if (isLayerInfoPopoverOpen(group.id, row.id)) {
+                                <div
+                                  [id]="
+                                    'map-layers-layer-row-info-popover-' + group.id + '-' + row.id
+                                  "
+                                  class="fixed z-2000 max-h-[calc(100vh-1.5rem)] w-96 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3 text-left shadow-xl shadow-slate-900/15"
+                                  [style.top.px]="layerInfoPopoverPosition()?.top ?? 0"
+                                  [style.left.px]="layerInfoPopoverPosition()?.left ?? 0"
+                                  role="dialog"
+                                  [attr.aria-label]="'Layer information: ' + row.name"
+                                >
+                                  <p
+                                    [id]="
+                                      'map-layers-layer-row-info-popover-copy-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
+                                    "
+                                    class="text-[11px] leading-5 text-slate-800"
+                                  >
+                                    {{ infoText }}
+                                  </p>
+                                </div>
+                              }
+                            </span>
+                          }
                           @if (!row.hideAddButton) {
                             <button
                               [id]="
