@@ -460,11 +460,21 @@
                         [attr.data-layer-id]="selected.id"
                         type="button"
                         class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
-                        [class.rotate-180]="!isSelectedLayerExpanded(selected.id)"
-                        [attr.aria-label]="
-                          'mapLayersPanel.toggleControls' | translate: { name: selected.name }
+                        [class.rotate-180]="
+                          selected.mapUnavailable || !isSelectedLayerExpanded(selected.id)
                         "
-                        [attr.aria-expanded]="isSelectedLayerExpanded(selected.id)"
+                        [class.cursor-not-allowed]="selected.mapUnavailable"
+                        [class.opacity-50]="selected.mapUnavailable"
+                        [disabled]="selected.mapUnavailable"
+                        [attr.aria-label]="
+                          selected.mapUnavailable
+                            ? ('mapLayersPanel.styleControlsUnavailable'
+                              | translate: { name: selected.name })
+                            : ('mapLayersPanel.toggleControls' | translate: { name: selected.name })
+                        "
+                        [attr.aria-expanded]="
+                          selected.mapUnavailable ? false : isSelectedLayerExpanded(selected.id)
+                        "
                         (click)="toggleSelectedLayerExpanded(selected.id)"
                       >
                         <svg
@@ -485,7 +495,7 @@
                   </div>
                 </div>
 
-                @if (selectedLayerCanExpand(selected.id)) {
+                @if (selectedLayerCanExpand(selected.id) && !selected.mapUnavailable) {
                   <div
                     [id]="'map-layers-selected-layer-row-controls-' + selected.id"
                     data-ui="selected-layer-controls"

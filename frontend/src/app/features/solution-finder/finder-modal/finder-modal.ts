@@ -44,10 +44,18 @@ interface SirapRegionOption {
   departments: string;
 }
 
+interface SourceLinkOption {
+  labelKey: string;
+  urlKey: string;
+}
+
 interface TargetTypeOption {
   id: FinderTargetType;
   labelKey: string;
   helpKey: string;
+  sourceLabelKey?: string;
+  sourceUrlKey?: string;
+  sourceLinks?: readonly SourceLinkOption[];
   isStrategic: boolean;
   isAvailable: boolean;
 }
@@ -81,6 +89,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       id: 'ecosystems',
       labelKey: 'solutionControls.finder.step1.ecosystemsLabel',
       helpKey: 'solutionControls.finder.step1.ecosystemsHelp',
+      sourceLinks: [
+        {
+          labelKey: 'solutionControls.finder.step1.ecosystemsOverviewSourceLabel',
+          urlKey: 'solutionControls.finder.step1.ecosystemsOverviewSourceUrl',
+        },
+        {
+          labelKey: 'solutionControls.finder.step1.ecosystemsDataSourceLabel',
+          urlKey: 'solutionControls.finder.step1.ecosystemsDataSourceUrl',
+        },
+      ],
       isStrategic: false,
       isAvailable: true,
     },
@@ -88,6 +106,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       id: 'strategic-ecosystems',
       labelKey: 'solutionControls.finder.step1.strategicEcosystemsLabel',
       helpKey: 'solutionControls.finder.step1.strategicEcosystemsHelp',
+      sourceLinks: [
+        {
+          labelKey: 'solutionControls.finder.step1.strategicEcosystemsSiacSourceLabel',
+          urlKey: 'solutionControls.finder.step1.strategicEcosystemsSiacSourceUrl',
+        },
+        {
+          labelKey: 'solutionControls.finder.step1.strategicEcosystemsInvemarSourceLabel',
+          urlKey: 'solutionControls.finder.step1.strategicEcosystemsInvemarSourceUrl',
+        },
+      ],
       isStrategic: true,
       isAvailable: true,
     },
@@ -186,20 +214,24 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   private loadingTimer: ReturnType<typeof setTimeout> | null = null;
   private scrollThumbHideTimer: ReturnType<typeof setTimeout> | null = null;
+  private columnHeaderResizeObserver: ResizeObserver | null = null;
+  private columnHeaderSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnDestroy(): void {
     this.clearLoadingTimer();
     this.clearScrollThumbHideTimer();
+    this.clearColumnHeaderSyncTimer();
+    this.columnHeaderResizeObserver?.disconnect();
   }
 
   ngAfterViewInit(): void {
-    this.syncColumnHeaderHeights();
-    setTimeout(() => this.syncColumnHeaderHeights());
+    this.observeColumnHeaders();
+    this.scheduleColumnHeaderHeightSync();
   }
 
   @HostListener('window:resize')
   protected onWindowResize(): void {
-    this.syncColumnHeaderHeights();
+    this.scheduleColumnHeaderHeightSync();
   }
 
   protected toggleTargetType(type: FinderTargetType): void {
@@ -742,6 +774,42 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.scrollThumbHideTimer = null;
   }
 
+  private observeColumnHeaders(): void {
+    const headerElements = this.columnHeaderRefs?.toArray().map((ref) => ref.nativeElement) ?? [];
+    if (headerElements.length === 0 || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    this.columnHeaderResizeObserver?.disconnect();
+    this.columnHeaderResizeObserver = new ResizeObserver(() => {
+      this.scheduleColumnHeaderHeightSync();
+    });
+
+    for (const header of headerElements) {
+      this.columnHeaderResizeObserver.observe(header);
+    }
+  }
+
+  private scheduleColumnHeaderHeightSync(): void {
+    if (this.columnHeaderSyncTimer) {
+      return;
+    }
+
+    this.columnHeaderSyncTimer = setTimeout(() => {
+      this.columnHeaderSyncTimer = null;
+      this.syncColumnHeaderHeights();
+    });
+  }
+
+  private clearColumnHeaderSyncTimer(): void {
+    if (!this.columnHeaderSyncTimer) {
+      return;
+    }
+
+    clearTimeout(this.columnHeaderSyncTimer);
+    this.columnHeaderSyncTimer = null;
+  }
+
   private syncColumnHeaderHeights(): void {
     const headerElements = this.columnHeaderRefs?.toArray().map((ref) => ref.nativeElement) ?? [];
     if (headerElements.length === 0) {
@@ -749,6 +817,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
 
     for (const header of headerElements) {
+      header.style.height = 'auto';
       header.style.minHeight = '0px';
     }
 
@@ -757,6 +826,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     );
 
     for (const header of headerElements) {
+      header.style.height = `${maxHeaderHeight}px`;
       header.style.minHeight = `${maxHeaderHeight}px`;
     }
   }

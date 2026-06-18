@@ -908,6 +908,17 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.solutionFinderRequested.emit();
   }
 
+  protected setSidebarScrollbarInteracting(value: boolean): void {
+    this.sidebarScrollbarInteracting = value;
+  }
+
+  protected isSidebarOverlayThumbVisible(): boolean {
+    return (
+      this.sidebarOverlayScrollbar.thumbHeight() > 0 &&
+      (this.sidebarOverlayScrollbar.isScrolling() || this.sidebarScrollbarInteracting)
+    );
+  }
+
   protected toggleActiveSolutionBreakdown(): void {
     this.activeSolutionBreakdownOpen.update((open) => !open);
   }

@@ -5,31 +5,35 @@
 }
 
 #map-layers-sidebar-body {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-#map-layers-sidebar-body:hover,
-#map-layers-sidebar-body:focus-within {
-  scrollbar-color: rgb(203 213 225) transparent;
+  scrollbar-width: none;
 }
 
 #map-layers-sidebar-body::-webkit-scrollbar {
-  width: 6px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
-#map-layers-sidebar-body::-webkit-scrollbar-track {
-  background: transparent;
+.map-layers-layer-info-popover {
+  right: -3rem;
 }
 
-#map-layers-sidebar-body::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
+.map-layers-layer-info-button {
+  line-height: 1;
 }
 
-#map-layers-sidebar-body:hover::-webkit-scrollbar-thumb,
-#map-layers-sidebar-body:focus-within::-webkit-scrollbar-thumb {
-  background: rgb(203 213 225);
+.map-layers-info-icon-glyph {
+  display: inline-block;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+@supports (text-box-trim: trim-both) {
+  .map-layers-info-icon-glyph {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    transform: none;
+  }
 }
 
 /* Cursor-follow radial wash — opt-in via DevTools; only while :hover. */
@@ -212,6 +216,10 @@
 .map-layers-collapsible-content {
   min-height: 0;
   overflow: hidden;
+}
+
+.map-layers-collapsible-content-info-open {
+  overflow: visible;
 }
 
 .map-layers-nested-layer-row-content {

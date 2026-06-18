@@ -47,25 +47,34 @@
             }
           </div>
 
-          @if (showCloseButton) {
-            <button
-              [id]="rootId + '-close-button'"
-              type="button"
-              [attr.aria-label]="'common.close' | translate"
-              class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-              (click)="onCloseButtonClick()"
-            >
-              <svg
-                [id]="rootId + '-close-icon'"
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="h-5 w-5 fill-none stroke-current"
+          <div
+            [id]="rootId + '-header-trailing'"
+            class="flex shrink-0 gap-2"
+            [class.items-center]="headerAlign === 'center'"
+            [class.items-start]="headerAlign === 'start'"
+          >
+            <ng-content select="[modal-shell-header-actions]"></ng-content>
+
+            @if (showCloseButton) {
+              <button
+                [id]="rootId + '-close-button'"
+                type="button"
+                [attr.aria-label]="'common.close' | translate"
+                class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                (click)="onCloseButtonClick()"
               >
-                <path d="M6 6L18 18" stroke-width="2.25" stroke-linecap="square" />
-                <path d="M18 6L6 18" stroke-width="2.25" stroke-linecap="square" />
-              </svg>
-            </button>
-          }
+                <svg
+                  [id]="rootId + '-close-icon'"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  class="h-5 w-5 fill-none stroke-current"
+                >
+                  <path d="M6 6L18 18" stroke-width="2.25" stroke-linecap="square" />
+                  <path d="M18 6L6 18" stroke-width="2.25" stroke-linecap="square" />
+                </svg>
+              </button>
+            }
+          </div>
         </header>
       }
 

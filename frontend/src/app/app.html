@@ -248,6 +248,64 @@
       }}
     </p>
   </section>
+  <nav
+    id="solution-finder-modal-language-picker-nav"
+    modal-shell-header-actions
+    [attr.aria-label]="'header.languageSwitcherLabel' | translate"
+    class="inline-flex items-center text-sm"
+  >
+    @if (activeLanguage === 'es') {
+      <button
+        id="solution-finder-modal-language-picker-link-en"
+        type="button"
+        class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        [attr.aria-label]="
+          'header.languageToggleLabel' | translate: { lang: ('header.languageEnglish' | translate) }
+        "
+        (click)="setLanguage('en')"
+      >
+        EN
+      </button>
+      <span
+        id="solution-finder-modal-language-picker-divider-es"
+        class="px-1.5 text-slate-400"
+        aria-hidden="true"
+        >|</span
+      >
+      <span
+        id="solution-finder-modal-language-picker-current-es"
+        aria-current="page"
+        class="font-semibold text-slate-900"
+      >
+        ES
+      </span>
+    } @else {
+      <span
+        id="solution-finder-modal-language-picker-current-en"
+        aria-current="page"
+        class="font-semibold text-slate-900"
+      >
+        EN
+      </span>
+      <span
+        id="solution-finder-modal-language-picker-divider-en"
+        class="px-1.5 text-slate-400"
+        aria-hidden="true"
+        >|</span
+      >
+      <button
+        id="solution-finder-modal-language-picker-link-es"
+        type="button"
+        class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        [attr.aria-label]="
+          'header.languageToggleLabel' | translate: { lang: ('header.languageSpanish' | translate) }
+        "
+        (click)="setLanguage('es')"
+      >
+        ES
+      </button>
+    }
+  </nav>
   <section id="solution-finder-modal-content-shell" class="h-full">
     <app-finder-modal
       id="solution-finder-modal-workflow-component"
