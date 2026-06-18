@@ -11,18 +11,18 @@ PUs=raster(paste0("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/PUs/PUS_",extens
 pu_ids=as.data.frame(PUs,na.rm=T)
 names(pu_ids)="id"
 
-# DELIMIT TO ONLY COSTS AND COSTRAINTS TO BE USED IN SCENARIOS
+# DELIMIT TO ONLY COSTS AND COSTRAINTS TO BE USED IN SOLUTIONS
 
-scenarios=read.xlsx("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/scenarios_to_run_v4_4_24_JBG.xlsx")
-scenarios=scenarios[scenarios$SIRAP == extension,]
-costs=unique(scenarios$costo)
-scenarios=c(scenarios$costo,scenarios$inclusion,scenarios$exlusion)
-scenarios=paste(scenarios,collapse=',')
-scenarios=unique(strsplit(scenarios, ",")[[1]])
-scenarios=scenarios[scenarios != "NA"]
-#scenarios=c(scenarios,"SIRAP")
+solutions=read.xlsx("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/solutions_to_run_v4_4_24_JBG.xlsx")
+solutions=solutions[solutions$SIRAP == extension,]
+costs=unique(solutions$costo)
+solutions=c(solutions$costo,solutions$inclusion,solutions$exlusion)
+solutions=paste(solutions,collapse=',')
+solutions=unique(strsplit(solutions, ",")[[1]])
+solutions=solutions[solutions != "NA"]
+#solutions=c(solutions,"SIRAP")
 costs_and_constraints=read.xlsx("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/costs_and_constraints_v3_05_24.xlsx")
-costs_and_constraints=costs_and_constraints[costs_and_constraints$name %in% scenarios,]
+costs_and_constraints=costs_and_constraints[costs_and_constraints$name %in% solutions,]
 #costs=c("Huella_Humana")
 
 # PRODUCE PU FILE INCLUDING COSTS AND CONSTRAINTS DATA 

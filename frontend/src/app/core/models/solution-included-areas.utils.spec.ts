@@ -1,25 +1,25 @@
-import type { SolutionScenario } from './solution-scenario.model';
+import type { CatalogSolution } from './solution-catalog.model';
 import { getSolutionIncludedAreasLegendLabel } from './solution-included-areas.utils';
 
 describe('solution included areas utils', () => {
-  it('formats RUNAP-only scenario labels', () => {
-    const scenario = buildScenario(['runap'], 'Ecos30+RUNAP_HF');
+  it('formats RUNAP-only solution labels', () => {
+    const solution = buildSolution(['runap'], 'Ecos30+RUNAP_HF');
 
-    expect(getSolutionIncludedAreasLegendLabel(scenario)).toBe(
+    expect(getSolutionIncludedAreasLegendLabel(solution)).toBe(
       'Included areas in solution (RUNAP)',
     );
   });
 
-  it('formats optional included areas from ids and scenario names', () => {
-    const scenario = buildScenario(['runap', 'omecs'], 'Ecos30+RUNAP+OMEC_HF_comunidades');
+  it('formats optional included areas from ids and solution names', () => {
+    const solution = buildSolution(['runap', 'omecs'], 'Ecos30+RUNAP+OMEC_HF_comunidades');
 
-    expect(getSolutionIncludedAreasLegendLabel(scenario)).toBe(
+    expect(getSolutionIncludedAreasLegendLabel(solution)).toBe(
       'Included areas in solution (RUNAP + OMECs + Afro-Colombian and Indigenous territories)',
     );
   });
 });
 
-function buildScenario(includeLayerIds: string[], name: string): SolutionScenario {
+function buildSolution(includeLayerIds: string[], name: string): CatalogSolution {
   return {
     id: name.toLowerCase(),
     filename: `${name}.tif`,

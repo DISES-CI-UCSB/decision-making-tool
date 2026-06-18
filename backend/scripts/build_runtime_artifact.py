@@ -361,8 +361,8 @@ def metric_coverage(layer_specs: list[LayerSpec], species_specs: list[SpeciesMat
         "notes": {
             "implemented_now": "Area, binary overlap, percent overlap, land-cover, protected-area, water, carbon, species richness, threatened species count, and national species percent metrics.",
             "feasible_next": "No cataloged species overlap metrics remain feasible with the current custom AOI request contract.",
-            "metadata": "Manifest summary metrics are scenario metadata and do not apply directly to arbitrary custom polygons.",
-            "deferred": "Pairwise comparison metrics require two scenarios. Threatened species secured requires a scenario target percent that custom AOI requests do not currently provide.",
+            "metadata": "Manifest summary metrics are solution metadata and do not apply directly to arbitrary custom polygons.",
+            "deferred": "Pairwise comparison metrics require two solutions. Threatened species secured requires a solution target percent that custom AOI requests do not currently provide.",
         },
     }
 

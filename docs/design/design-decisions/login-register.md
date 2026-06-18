@@ -8,7 +8,7 @@
 
 ## 1. Why This Exists (Problem Statement)
 
-The MDD describes a rich three-tier auth model (Public / Decision Maker / Manager) with LDAP, SSO, custom data upload, scenario saving, etc. We are **not building that**. With the deadline approaching, the only concrete user-visible benefit of "being logged in" for MVP is one toggle:
+The MDD describes a rich three-tier auth model (Public / Decision Maker / Manager) with LDAP, SSO, custom data upload, solution saving, etc. We are **not building that**. With the deadline approaching, the only concrete user-visible benefit of "being logged in" for MVP is one toggle:
 
 > **Anonymous users see Nacional data only. Logged-in users see a "Nacional | SIRAP" scope toggle.**
 
@@ -37,12 +37,12 @@ Only this:
 - A visible **"Scope: Nacional | SIRAP"** toggle (location TBD — likely header or left sidebar)
 - That toggle, when the user switches to SIRAP, filters/augments data shown to the SIRAP level
 
-That's it. No scenario saving, no upload, no compare, no advanced reports.
+That's it. No solution saving, no upload, no compare, no advanced reports.
 
 **Deferred (not MVP):**
-- Scenario save/name
+- Solution save/name
 - Custom data upload
-- Scenario comparison
+- Solution comparison
 - Advanced thematic reports (PDF)
 - Any Manager/Admin dashboard UI
 
@@ -241,7 +241,7 @@ Flagging so we don't accidentally rebuild the MDD in a sprint:
 - ☐ Session expiry warning modal
 - ☐ LDAP / Active Directory / PNNC SSO
 - ☐ Custom data upload (Tier 2 MDD feature)
-- ☐ Scenario save / compare / advanced reports (Tier 2 MDD features)
+- ☐ Solution save / compare / advanced reports (Tier 2 MDD features)
 - ☐ Species group fragmentation (Tier 3 MDD feature)
 - ☐ Layer ingestion / deprecation workflow (Tier 3 MDD feature)
 - ☐ Audit log of approvals / denials

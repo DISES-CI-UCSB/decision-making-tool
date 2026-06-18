@@ -1,6 +1,6 @@
 # Decision Making Tool
 
-A spatial conservation prioritization platform for Colombia, enabling stakeholders to visualize and compare conservation planning scenarios using an interactive map interface.
+A spatial conservation prioritization platform for Colombia, enabling stakeholders to visualize and compare conservation planning solutions using an interactive map interface.
 
 ## Directory Structure
 

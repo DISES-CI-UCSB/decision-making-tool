@@ -17,7 +17,7 @@ The good news: deciding which metrics to include or exclude is much more straigh
 Area 4.4 contains all 91 metrics currently proposed for the tool, organized into tables:
 - **4.4.1** - Solution Overview Panel Metrics (17 metrics)
 - **4.4.2** - AOI Dashboard Metrics (47 metrics)
-- **4.4.3** - Scenario Comparison Panel Metrics (4 metrics)
+- **4.4.3** - Solution Comparison Panel Metrics (4 metrics)
 - **4.4.4–4.4.8** - Thematic Report Metrics (18 metrics)
 
 ## 🎯 Phase 1: Identify What to Include/Exclude

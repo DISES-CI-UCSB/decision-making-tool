@@ -17,7 +17,7 @@ T6 metrics added (17 additional):
 
 T10 metrics added (8 additional, species):
   Richness:           21, 22, 23, 24, 25  (per-class species counts)
-  Threatened:         26, 3                (CR/EN/VU non-fish; secured @ scenario target %)
+  Threatened:         26, 3                (CR/EN/VU non-fish; secured @ solution target %)
   Country share:      28                   (selected species count / non-fish pool × 100)
 
 Edit METRIC_CATALOG below if the Tier 1 scope changes.
@@ -50,7 +50,7 @@ MetricKind = Literal[
     "species_group_coverage",             # #2: species meeting target by taxonomic group/IUCN
     "species_richness",                  # #21–#25: count of species in a class bucket
     "species_threatened_count",          # #26: count of CR/EN/VU non-fish present
-    "species_threatened_secured",        # #3:  threatened species with coverage >= scenario target %
+    "species_threatened_secured",        # #3:  threatened species with coverage >= solution target %
     "species_pct_of_national",           # #28: present species / non-fish pool × 100
     # Metric defined but required data layer not yet available.
     "blocked_no_data",
@@ -109,7 +109,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         format_hint="number",
         source_note=(
             "Counts modeled non-fish species with usable range rasters whose "
-            "solution coverage meets the scenario target, grouped by taxonomic "
+            "solution coverage meets the solution target, grouped by taxonomic "
             "bucket and IUCN status in metric.details."
         ),
         kind="species_group_coverage",
@@ -138,7 +138,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         source_note=(
             "Count of CR/EN/VU non-fish species (Actinopteri excluded) where "
             "(species range ∩ priority area within scope) / (species range within scope) "
-            "× 100 ≥ the scenario target percent (parsed from the solution name: "
+            "× 100 ≥ the solution target percent (parsed from the solution name: "
             "ESTR<NN> takes precedence over Ecos<NN>).  Pool of 213 threatened "
             "species from biomod_spp_ranges_updatedIUCN.csv.  Per-scope denominator "
             "means a species is 'secured in this region' when ≥ target % of its "
@@ -632,18 +632,18 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         unit="km2",
         format_hint="number",
         source_note=(
-            "Pairwise A∩B: area selected in both scenarios. "
+            "Pairwise A∩B: area selected in both solutions. "
             "Calculator: calculators.comparison.agreement_area_km2(raster_a, raster_b). "
             "Deferred — requires two solution rasters; not included in per-solution cache."
         ),
         kind="deferred_pairwise",
     ),
     MetricDefinition(
-        metric_id="unique_to_scenario_a",
+        metric_id="unique_to_solution_a",
         metric_number=71,
         label_key="metrics.tier1.unique_to_a",
-        english_label="Unique to Scenario A",
-        spanish_label="Único en escenario A",
+        english_label="Unique to Solution A",
+        spanish_label="Único en esolution A",
         unit="km2",
         format_hint="number",
         source_note=(
@@ -654,11 +654,11 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="deferred_pairwise",
     ),
     MetricDefinition(
-        metric_id="unique_to_scenario_b",
+        metric_id="unique_to_solution_b",
         metric_number=72,
         label_key="metrics.tier1.unique_to_b",
-        english_label="Unique to Scenario B",
-        spanish_label="Único en escenario B",
+        english_label="Unique to Solution B",
+        spanish_label="Único en esolution B",
         unit="km2",
         format_hint="number",
         source_note=(

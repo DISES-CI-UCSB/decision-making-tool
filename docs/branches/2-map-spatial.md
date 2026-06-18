@@ -159,13 +159,13 @@ src/app/features/map/
 **MAP-14: [Design] Side-by-side comparison layout**
 - Output: `docs/design-decisions/map-comparison-layout.md`
 - Decide: Horizontal split vs. swipe divider vs. toggle?
-- Decide: How to label Scenario A vs. Scenario B?
+- Decide: How to label Solution A vs. Solution B?
 - Decide: Synchronized zoom/pan behavior
 - Archive after MAP-15 is implemented
 
 **MAP-15: Dual MapView with synchronized extent**
 - When `comparisonSolution$` is set → split center panel into two MapViews
-- Scenario A (left) = `activeSolution$`, Scenario B (right) = `comparisonSolution$`
+- Solution A (left) = `activeSolution$`, Solution B (right) = `comparisonSolution$`
 - Sync: pan/zoom one → other follows (use `mapExtent$` signal or view watcher)
 - When comparison cleared → return to single map
 

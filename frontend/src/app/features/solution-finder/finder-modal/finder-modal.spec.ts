@@ -5,7 +5,7 @@ import {
   provideTranslateService,
 } from '@ngx-translate/core';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
-import type { SolutionScenario } from '@core/models/solution-scenario.model';
+import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import { FinderModalComponent } from './finder-modal';
 
 describe('FinderModalComponent', () => {
@@ -82,18 +82,17 @@ describe('FinderModalComponent', () => {
     expect(closeRequestedSpy).toHaveBeenCalled();
   });
 
-  it('emits scenarioApplied and closeRequested when apply is called with a selected match', () => {
+  it('emits solutionApplied and closeRequested when apply is called with a selected match', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     const component = fixture.componentInstance;
-    const scenarioAppliedSpy = vi.spyOn(component.scenarioApplied, 'emit');
+    const solutionAppliedSpy = vi.spyOn(component.solutionApplied, 'emit');
     const closeRequestedSpy = vi.spyOn(component.closeRequested, 'emit');
 
     const selectedMatch = {
-      id: 'scenario-ecos30-runap-hf',
+      id: 'solution-ecos30-runap-hf',
       solutionId: 'ecos30_runap_hf',
-      scenarioId: 'ecos30_runap_hf',
       name: 'Ecos30 RUNAP HF',
-      description: 'Sample scenario description',
+      description: 'Sample solution description',
       mapLabel: 'Human Footprint',
       ecosystemTargets: 30,
       selectedUnits: 387656,
@@ -103,21 +102,21 @@ describe('FinderModalComponent', () => {
       component as unknown as {
         selectedMatch: typeof selectedMatch;
         selectedMatchId: string;
-        applySelectedScenario: () => void;
+        applySelectedSolution: () => void;
       }
     ).selectedMatch = selectedMatch;
     (component as unknown as { selectedMatchId: string }).selectedMatchId = selectedMatch.id;
 
-    (component as unknown as { applySelectedScenario: () => void }).applySelectedScenario();
+    (component as unknown as { applySelectedSolution: () => void }).applySelectedSolution();
 
-    expect(scenarioAppliedSpy).toHaveBeenCalledWith(selectedMatch);
+    expect(solutionAppliedSpy).toHaveBeenCalledWith(selectedMatch);
     expect(closeRequestedSpy).toHaveBeenCalled();
   });
 
-  it('matches manifest scenarios by finderInputs and emits real solution ids', () => {
+  it('matches manifest solutions by finderInputs and emits real solution ids', () => {
     vi.useFakeTimers();
     catalog.getAll.mockReturnValue([
-      buildScenario({
+      buildSolution({
         id: 'ecos30_runap_hf',
         name: 'Ecos30+RUNAP_HF',
         targetFeatureSet: 'ecosystems',
@@ -126,7 +125,7 @@ describe('FinderModalComponent', () => {
         costLayerId: 'human_footprint_2022',
         includeLayerIds: ['runap'],
       }),
-      buildScenario({
+      buildSolution({
         id: 'ecos17_runap_omec_hf',
         name: 'Ecos17+RUNAP+OMEC_HF',
         targetFeatureSet: 'ecosystems',
@@ -142,8 +141,8 @@ describe('FinderModalComponent', () => {
       targetLevelByType: Record<string, 17 | 30>;
       selectedCostLayerId: string;
       runMatching: () => void;
-      matchResults: { solutionId: string; scenarioId: string; name: string }[];
-      selectedMatch: { solutionId: string; scenarioId: string } | null;
+      matchResults: { solutionId: string; name: string }[];
+      selectedMatch: { solutionId: string } | null;
     };
 
     component.selectedTargetTypeIds = ['ecosystems'];
@@ -155,7 +154,6 @@ describe('FinderModalComponent', () => {
     expect(component.matchResults).toHaveLength(1);
     expect(component.matchResults[0]).toMatchObject({
       solutionId: 'ecos30_runap_hf',
-      scenarioId: 'ecos30_runap_hf',
       name: 'Ecos30+RUNAP_HF',
     });
     expect(component.selectedMatch?.solutionId).toBe('ecos30_runap_hf');
@@ -191,7 +189,7 @@ describe('FinderModalComponent', () => {
     ({ includeComunidades, includeResguardos, expectedSolutionId }) => {
       vi.useFakeTimers();
       catalog.getAll.mockReturnValue([
-        buildScenario({
+        buildSolution({
           id: 'ecos30_runap_hf',
           name: 'Ecos30+RUNAP_HF',
           targetFeatureSet: 'ecosystems',
@@ -200,7 +198,7 @@ describe('FinderModalComponent', () => {
           costLayerId: 'human_footprint_2022',
           includeLayerIds: ['runap'],
         }),
-        buildScenario({
+        buildSolution({
           id: 'ecos30_runap_com_hf',
           name: 'Ecos30+RUNAP+Com_HF',
           targetFeatureSet: 'ecosystems',
@@ -209,7 +207,7 @@ describe('FinderModalComponent', () => {
           costLayerId: 'human_footprint_2022',
           includeLayerIds: ['runap', 'comunidades'],
         }),
-        buildScenario({
+        buildSolution({
           id: 'ecos30_runap_res_hf',
           name: 'Ecos30+RUNAP+Res_HF',
           targetFeatureSet: 'ecosystems',
@@ -218,7 +216,7 @@ describe('FinderModalComponent', () => {
           costLayerId: 'human_footprint_2022',
           includeLayerIds: ['runap', 'resguardos'],
         }),
-        buildScenario({
+        buildSolution({
           id: 'ecos30_runap_com_res_hf',
           name: 'Ecos30+RUNAP+Com+Res_HF',
           targetFeatureSet: 'ecosystems',
@@ -251,10 +249,10 @@ describe('FinderModalComponent', () => {
     },
   );
 
-  it('does not match conflict-cost scenarios from stale selections', () => {
+  it('does not match conflict-cost solutions from stale selections', () => {
     vi.useFakeTimers();
     catalog.getAll.mockReturnValue([
-      buildScenario({
+      buildSolution({
         id: 'ecos30_runap_conflicto',
         name: 'Ecos30+RUNAP_CONFLICTO',
         targetFeatureSet: 'ecosystems',
@@ -285,15 +283,15 @@ describe('FinderModalComponent', () => {
   });
 });
 
-function buildScenario(
-  overrides: Pick<SolutionScenario, 'id' | 'name'> & {
+function buildSolution(
+  overrides: Pick<CatalogSolution, 'id' | 'name'> & {
     targetFeatureSet: string;
     targetFeatureIds: string[];
     targetPercent: number | null;
     costLayerId: string;
     includeLayerIds: string[];
   },
-): SolutionScenario {
+): CatalogSolution {
   return {
     id: overrides.id,
     filename: `${overrides.name}.tif`,

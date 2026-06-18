@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewContainerRef, inject } from '@angular/core';
-import type { LayerLocale, Solution, SolutionScenario } from '@core/models';
+import type { LayerLocale, Solution, CatalogSolution } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
@@ -100,7 +100,7 @@ export class App implements OnInit, OnDestroy {
     this.perspectiveModalOpen = false;
   }
 
-  protected onScenarioApplied(match: { solutionId: string; scenarioId: string }): void {
+  protected onSolutionApplied(match: { solutionId: string }): void {
     const selectedSolution =
       this.buildManifestSolution(match) ?? this.mockData.getSolutionById(match.solutionId);
     if (!selectedSolution) {
@@ -113,7 +113,7 @@ export class App implements OnInit, OnDestroy {
       );
       this.appState.setRightSidebarMode('comparison');
     } else {
-      this.applySolution(selectedSolution, match.scenarioId);
+      this.applySolution(selectedSolution, match.solutionId);
     }
 
     this.showSolutionLoadedToast();
@@ -129,58 +129,53 @@ export class App implements OnInit, OnDestroy {
     this.clearToastTimer();
   }
 
-  private applySolution(solution: Solution, scenarioId: string): void {
+  private applySolution(solution: Solution, solutionId: string): void {
     this.appState.setComparisonSolution(null);
     this.appState.loadSolution(solution);
     this.appState.setRightSidebarMode('overview');
-    void this.solutionLayer.showSolution(scenarioId);
+    void this.solutionLayer.showSolution(solutionId);
   }
 
   private buildCandidateComparisonSolution(
     selectedSolution: Solution,
-    match: { solutionId: string; scenarioId: string; matchPercentage?: number },
+    match: { solutionId: string; matchPercentage?: number },
   ): Solution {
-    const scenario = this.solutionCatalog.getById(match.scenarioId);
+    const solution = this.solutionCatalog.getById(match.solutionId);
     return {
       ...selectedSolution,
-      name: scenario?.name ?? selectedSolution.name,
-      description: scenario?.description ?? selectedSolution.description,
-      geometryUrl: scenario?.filename ?? selectedSolution.geometryUrl,
+      name: solution?.name ?? selectedSolution.name,
+      description: solution?.description ?? selectedSolution.description,
+      geometryUrl: solution?.filename ?? selectedSolution.geometryUrl,
       matchPercentage: match.matchPercentage ?? selectedSolution.matchPercentage,
       metadata: {
         ...selectedSolution.metadata,
-        scenarioId: match.scenarioId,
+        solutionId: match.solutionId,
       },
     };
   }
 
-  private buildManifestSolution(match: {
-    solutionId: string;
-    scenarioId: string;
-  }): Solution | null {
-    const scenario =
-      this.solutionCatalog.getById(match.scenarioId) ??
-      this.solutionCatalog.getById(match.solutionId);
-    if (!scenario) {
+  private buildManifestSolution(match: { solutionId: string }): Solution | null {
+    const solution = this.solutionCatalog.getById(match.solutionId);
+    if (!solution) {
       return null;
     }
 
-    return this.toSolution(scenario);
+    return this.toSolution(solution);
   }
 
-  private toSolution(scenario: SolutionScenario): Solution {
+  private toSolution(solution: CatalogSolution): Solution {
     return {
-      id: scenario.id,
-      name: scenario.name,
-      description: scenario.description,
-      matchPercentage: scenario.pctTargetsMet,
-      geometryUrl: scenario.displayUrl,
+      id: solution.id,
+      name: solution.name,
+      description: solution.description,
+      matchPercentage: solution.pctTargetsMet,
+      geometryUrl: solution.displayUrl,
       metrics: [],
       metadata: {
-        scenarioId: scenario.id,
-        scope: scenario.scope,
-        rasterFile: scenario.filename,
-        metadataUrl: scenario.metadataUrl,
+        solutionId: solution.id,
+        scope: solution.scope,
+        rasterFile: solution.filename,
+        metadataUrl: solution.metadataUrl,
       },
     };
   }

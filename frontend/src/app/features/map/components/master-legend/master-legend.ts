@@ -49,12 +49,12 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly baselineName = computed(
     () =>
       this.appState.activeSolution$()?.name ??
-      this.localizedText('mapLegend.scenarioAFallback', 'Scenario A'),
+      this.localizedText('mapLegend.solutionAFallback', 'Solution A'),
   );
   readonly candidateName = computed(
     () =>
       this.appState.comparisonSolution$()?.name ??
-      this.localizedText('mapLegend.scenarioBFallback', 'Scenario B'),
+      this.localizedText('mapLegend.solutionBFallback', 'Solution B'),
   );
   readonly solutionColor = this.solutionLayer.solutionColor$;
   readonly existingProtectedColor = this.solutionLayer.existingProtectedColor$;
@@ -72,13 +72,13 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
     if (!loaded) {
       return this.localizedText('mapLegend.includedAreasFallback', 'Included areas in solution');
     }
-    return getSolutionIncludedAreasLegendLabel(loaded.scenario, this.appLocaleService.locale());
+    return getSolutionIncludedAreasLegendLabel(loaded.solution, this.appLocaleService.locale());
   });
 
   readonly selectedLayerEntries = computed<MapLegendLayerEntry[]>(() =>
     this.appState.selectedLegendLayers$(),
   );
-  readonly shouldShowActiveScenarioName = computed(
+  readonly shouldShowActiveSolutionName = computed(
     () => this.isComparing() || this.isCompactViewport(),
   );
 
@@ -98,7 +98,7 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
       this.isComparing();
       this.comparisonMode();
       this.showExistingProtectedCoverage();
-      this.shouldShowActiveScenarioName();
+      this.shouldShowActiveSolutionName();
       this.collapsed();
 
       // Keep expanded height in sync even when ResizeObserver is unavailable.

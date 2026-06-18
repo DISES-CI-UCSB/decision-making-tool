@@ -295,7 +295,7 @@ def calculate_raster_metrics_for_aoi(
             continue
         if definition.kind == "deferred_pairwise":
             metrics[metric_id] = None
-            unavailable.append({"metric_id": metric_id, "reason": "requires_two_scenarios"})
+            unavailable.append({"metric_id": metric_id, "reason": "requires_two_solutions"})
             continue
         if definition.kind == "blocked_no_data":
             metrics[metric_id] = None

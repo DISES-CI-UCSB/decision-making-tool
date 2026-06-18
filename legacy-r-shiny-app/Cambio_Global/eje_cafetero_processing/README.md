@@ -11,7 +11,7 @@ The workflow consists of two main steps:
 ## Data Sources
 
 ### Input Data
-- **Scenarios**: `input/Propuesta_Ejecafero_26625.xlsx` (sheet: "escenarios_nuevos")
+- **Solutions**: `input/Propuesta_Ejecafero_26625.xlsx` (sheet: "esolutions_nuevos")
 - **RIJ Matrix**: `input/rij_EJE_CAFETERO_1km.fst`
 - **Features Metadata**: `input/features_v4_4_24_(MAPV).xlsx`
 - **Planning Units**: `features/PUs_EJE_CAFETERO_1km.tif`
@@ -67,7 +67,7 @@ This script:
 - Uses hard-coded theme mapping based on Excel `grupo` column structure
 - Creates `layers.csv` with metadata for all layers (themes + constraints/weights)
 - Copies solution TIF files from `output/EJE_CAFETERO/` to `upload_ready/solutions/`
-- Reads scenario information from `Propuesta_Ejecafero_26625.xlsx`
+- Reads solution information from `Propuesta_Ejecafero_26625.xlsx`
 - Creates `solutions.csv` with metadata for all solutions
 - All CSV files written with UTF-8 encoding to preserve accents
 
@@ -110,8 +110,8 @@ upload_ready/
 │   └── IHEH_2022.tif                       # Weight layers
 └── solutions/
     ├── solutions.csv                       # Metadata for all solutions
-    ├── scenario1.tif
-    ├── scenario2.tif
+    ├── solution1.tif
+    ├── solution2.tif
     └── ...
 ```
 
@@ -143,7 +143,7 @@ upload_ready/
 | author_name | Author name |
 | author_email | Author email |
 | user_group | Access level (public/private) |
-| scenario | Scenario name (must match TIF filename) |
+| solution | Solution name (must match TIF filename) |
 | file_path | TIF filename |
 | themes | Comma-separated list of theme names used |
 | targets | Comma-separated list of targets (0-1) |

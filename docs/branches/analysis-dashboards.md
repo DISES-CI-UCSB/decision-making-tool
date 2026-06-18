@@ -1,6 +1,6 @@
 # Branch 3: Analysis Dashboards
 
-> **Purpose:** Everything in the right sidebar — Welcome panel, Solution Overview, AOI Dashboard (35 metrics), Scenario Comparison.
+> **Purpose:** Everything in the right sidebar — Welcome panel, Solution Overview, AOI Dashboard (35 metrics), Solution Comparison.
 > **Git Branch:** `feat/analysis-dashboards`
 > **Prerequisite:** Foundation branch merged to `main`.
 > **File Boundary:** `src/app/features/analysis/**` — no other branch touches this folder.
@@ -34,7 +34,7 @@
 | ANL-18 | ⚪ Not Started | — | Cultural/Ethnic + Protection Status sections | #59, #60, #63, #64, #66: 5 metrics across 2 sections |
 | ANL-19 | 🔶 Stretch | — | "No data" states + collapsible section animations | Graceful handling when metrics unavailable |
 | | | | **── Checkpoint 4: Comparison & Polish ──** | |
-| ANL-20 | ⚪ Not Started | — | Scenario Comparison container | Subscribes to `comparisonSolution$`, fetches comparison data |
+| ANL-20 | ⚪ Not Started | — | Solution Comparison container | Subscribes to `comparisonSolution$`, fetches comparison data |
 | ANL-21 | ⚪ Not Started | — | Agreement/Unique area metrics | #70 Agreement, #71 Unique A, #72 Unique B |
 | ANL-22 | ⚪ Not Started | — | Comparison color coding in stat cards | Green (agreement), orange (A only), blue (B only) |
 | ANL-23 | 🔶 Stretch | — | Report preview pane stub | In-app preview of what PDF report would look like |
@@ -47,7 +47,7 @@
 |--------|-----------|-------|
 | `activeSolution$` | **Read** | When solution loads → switch to Overview, show metrics |
 | `selectedAOI$` | **Read** | When AOI selected → switch to AOI Dashboard, show regional metrics |
-| `comparisonSolution$` | **Read** | When set → enable Scenario Comparison panel |
+| `comparisonSolution$` | **Read** | When set → enable Solution Comparison panel |
 | `rightSidebarMode$` | **Read** | Determines which panel to display |
 | `userTier$` | **Read** | Gate Tier 2 features (Comparison panel) |
 
@@ -81,7 +81,7 @@ src/app/features/analysis/
 │   ├── carbon-section.component.ts         # ~200 lines — #39–#44
 │   ├── socio-economic-section.component.ts # ~250 lines — #51–#57
 │   └── cultural-protection.component.ts    # ~200 lines — #59–#66
-├── scenario-comparison/
+├── solution-comparison/
 │   ├── comparison-container.component.ts   # ~200 lines
 │   ├── comparison-container.component.html # ~50 lines
 │   └── agreement-metrics.component.ts      # ~150 lines — #70–#72
@@ -220,17 +220,17 @@ src/app/features/analysis/
 
 ### Checkpoint 4: Comparison & Polish
 
-**Goal:** Scenario Comparison panel works. Charts polished. Ready for Mesa demo.
+**Goal:** Solution Comparison panel works. Charts polished. Ready for Mesa demo.
 
-**ANL-20: Scenario Comparison container**
+**ANL-20: Solution Comparison container**
 - Only visible when `rightSidebarMode$ === 'comparison'` and `canAccessTier2`
 - Subscribes to `comparisonSolution$`
 - Calls `api.compareSolutions(id1, id2)` → gets agreement/conflict data
 
 **ANL-21: Agreement/Unique area metrics**
-- #70: Agreement Area (km²) — Scenario A ∩ B
-- #71: Unique to Scenario A (km²) — A minus B
-- #72: Unique to Scenario B (km²) — B minus A
+- #70: Agreement Area (km²) — Solution A ∩ B
+- #71: Unique to Solution A (km²) — A minus B
+- #72: Unique to Solution B (km²) — B minus A
 - Display as stat cards with clear labels
 
 **ANL-22: Comparison color coding**

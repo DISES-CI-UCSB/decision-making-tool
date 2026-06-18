@@ -896,12 +896,12 @@
                     >
                       {{ top.name }}
                     </p>
-                    @if (showScenarioFilenames()) {
+                    @if (showSolutionFilenames()) {
                       <p
                         id="solution-finder-modal-results-single-file"
                         class="finder-subtext-dark mt-2 font-mono text-[11px]"
                       >
-                        {{ top.scenarioId }}.tif
+                        {{ top.solutionId }}.tif
                       </p>
                     }
                   </div>
@@ -990,8 +990,8 @@
           id="solution-finder-modal-apply-button"
           type="button"
           class="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
-          [disabled]="!canApplyScenario()"
-          (click)="applySelectedScenario()"
+          [disabled]="!canApplySolution()"
+          (click)="applySelectedSolution()"
         >
           {{ getApplyActionKey() | translate }}
         </button>

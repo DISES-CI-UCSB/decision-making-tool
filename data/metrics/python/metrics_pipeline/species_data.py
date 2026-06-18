@@ -59,9 +59,9 @@ SPECIES_BLOB_PREFIX = f"{PUBLIC_BLOB_HOST}/inputs/features/species"
 SPECIES_CSV_URL = f"{SPECIES_BLOB_PREFIX}/biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_TIF_SUFFIX = "_10_MAXENT.tif"
 
-# Solution-name regex parts for parsing scenario target percent.
+# Solution-name regex parts for parsing solution target percent.
 # The Solution Finder writes IDs like "Ecos17+ESTR30+RUNAP_HF",
-# "ESTR30+RUNAP+OMEC_HF", or Nick-run species scenarios like "Esp17+RUNAP".
+# "ESTR30+RUNAP+OMEC_HF", or Nick-run species solutions like "Esp17+RUNAP".
 # When multiple target tokens appear we prefer the most specific species/strategic
 # token before falling back to the broad ecosystem token.
 _TARGET_TOKEN_PRIORITY: tuple[tuple[str, ...], ...] = (
@@ -113,8 +113,8 @@ class SpeciesRecord:
         return f"{SPECIES_BLOB_PREFIX}/{self.blob_filename}"
 
 
-def parse_scenario_target_percent(solution_name_or_id: str) -> float | None:
-    """Return the scenario target as a percent (e.g. 17.0 or 30.0) or None.
+def parse_solution_target_percent(solution_name_or_id: str) -> float | None:
+    """Return the solution target as a percent (e.g. 17.0 or 30.0) or None.
 
     Looks for the first matching ``ESTR<NN>``/``Esp<NN>`` token, falling back to
     ``Ecos<NN>``.  Both casings are accepted.  Returns ``None`` if no token

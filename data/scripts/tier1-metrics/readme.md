@@ -108,8 +108,8 @@ reference rows in `docs/design/DISES Metrics - Finalized Metrics.csv`.
 | metric-59 | 59 | Indigenous Reservations Area      | raster ∩ `resguardos`                 |
 | metric-60 | 60 | Community Councils Area           | raster ∩ `comunidades`                |
 | metric-70 | 70 | Agreement Area (deferred)         | live pairwise comparison              |
-| metric-71 | 71 | Unique to Scenario A (deferred)   | live pairwise comparison              |
-| metric-72 | 72 | Unique to Scenario B (deferred)   | live pairwise comparison              |
+| metric-71 | 71 | Unique to Solution A (deferred)   | live pairwise comparison              |
+| metric-72 | 72 | Unique to Solution B (deferred)   | live pairwise comparison              |
 
 Metrics 70–72 are kept in the catalog so Angular sees stable IDs, but their
 values are intentionally not generated here — they will be computed live in

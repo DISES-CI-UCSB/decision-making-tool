@@ -37,7 +37,7 @@ This section lists the specific layers currently identified for the initial depl
 | Weight Name | Original Layer Name | Abbreviation | Category | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **Opportunity Cost** | `Beneficio_neto` / `Costo_oportunidad` | | Cost | Net benefit / Opportunity cost analysis. |
-| **Human Footprint** | `Huella_Humana` / `IHEH_2022` | **IHEH** | Cost | Human pressure index (Cost layer for standard scenarios). |
+| **Human Footprint** | `Huella_Humana` / `IHEH_2022` | **IHEH** | Cost | Human pressure index (Cost layer for standard solutions). |
 | **Agricultural Rent** | `Renta_Agropecuaria` | | Cost | Economic rent from agricultural activities. |
 | **Conflict (2016-2022)** | `Conflicto_2016_2022` | | Cost | Coca crops and violent deaths data. |
 
@@ -47,7 +47,7 @@ This section lists the specific layers currently identified for the initial depl
 
 | Include Name | Original Layer | Abbreviation | Notes |
 | :--- | :--- | :--- | :--- |
-| **Protected Areas (RUNAP)** | `RUNAP` layers | **RUNAP** | Locked in for all standard scenarios. |
+| **Protected Areas (RUNAP)** | `RUNAP` layers | **RUNAP** | Locked in for all standard solutions. |
 | **RAMSAR Sites** | `Sitios_RAMSAR` | | |
 | **Indigenous Reserves** | `Resguardos_Indígenas` | | |
 | **Forest Reserves (Law 2nd)** | `Reservas_de_ley_2da` | | |
@@ -82,10 +82,10 @@ To prevent user overwhelm, layers will be organized hierarchically. The interfac
 *   **Basic Mode:** Users interact only with **Super-Groups**. Enabling "Biodiversity" implicitly selects representative features or an aggregate index.
 *   **Advanced Mode:** Users can expand groups to toggle **Individual Layers** or define custom weights for specific sub-layers (e.g., "I care about Birds more than Mammals").
 
-## 2. Example Scenarios (Pending Validation)
-*Draft scenarios illustrating how parameters can be mixed.*
+## 2. Example Solutions (Pending Validation)
+*Draft solutions illustrating how parameters can be mixed.*
 
-> **⚠️ DISCLAIMER:** These scenarios are derived from draft discussions and must be verified by the team. They serve as structural examples of "Preset" configurations.
+> **⚠️ DISCLAIMER:** These solutions are derived from draft discussions and must be verified by the team. They serve as structural examples of "Preset" configurations.
 
 These examples assume:
 *   **Lock-in:** Always `RUNAP`

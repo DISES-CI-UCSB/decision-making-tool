@@ -78,7 +78,7 @@ python data/metrics/python/metrics_pipeline/publish.py
 Requires `BLOB_READ_WRITE_TOKEN` in `.env.local` and the Vercel CLI on PATH.
 Use `publish.py --dry-run` to preview uploads without writing to Blob.
 
-For staged scenario batches, keep production metric blobs untouched by passing a
+For staged solution batches, keep production metric blobs untouched by passing a
 staging prefix into the generated publish report:
 
 ```bash
@@ -113,7 +113,7 @@ and notes in catalogs, then writes each boundary metric as a short row of
 catalog indexes plus the metric value. The frontend expands this wire format
 back into the normal cached metrics document before analysis panels read it.
 
-## Large scenario batches
+## Large solution batches
 
 The pipeline resumes by default: if `generated/tier1/cache/<solution_id>.metrics.json`
 already exists and has the expected `solutionId`/`geographies` shape, that solution is

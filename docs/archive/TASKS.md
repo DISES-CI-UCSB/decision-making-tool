@@ -48,7 +48,7 @@ This document tracks tasks, action items, and follow-ups from team discussions, 
 
 ### Open Questions (from ADDITIONAL_FEATURES.md)
 
-- [ ] **Answer: What statistics for "About this Scenario" popup?**
+- [ ] **Answer: What statistics for "About this Solution" popup?**
   - Question from ADDITIONAL_FEATURES.md Section 1.2.A
   - Needed for: Public user experience
   - Related: [ADDITIONAL_FEATURES.md](./workflows/ADDITIONAL_FEATURES.md)

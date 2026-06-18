@@ -217,14 +217,14 @@
   color: var(--color-subtext);
 }
 
-.v3-scenario-title-row {
+.v3-solution-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.v3-scenario-name {
+.v3-solution-name {
   font-size: 18px;
   font-weight: 700;
   line-height: 23px;
@@ -393,12 +393,12 @@
   background: #cbd5e1;
 }
 
-.v3-active-scenario-banner {
+.v3-active-solution-banner {
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 10px;
 }
 
-.v3-active-scenario-banner-label {
+.v3-active-solution-banner-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -406,7 +406,7 @@
   color: #64748b;
 }
 
-.v3-active-scenario-banner-title {
+.v3-active-solution-banner-title {
   margin-top: 4px;
   font-size: 14px;
   font-weight: 800;

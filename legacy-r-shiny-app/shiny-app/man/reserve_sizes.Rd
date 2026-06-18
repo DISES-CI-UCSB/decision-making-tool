@@ -26,6 +26,6 @@ Calculate the size of individual reserves in a solution.
 For spatial uploads (shapefile) with many planning units, building
 boundary data can result in a std::bad_alloc error. To avoid this, the
 user can skip generating a boundary matrix on the \code{new_dataset_from_auto}
-method. For these scenarios, reserve sizes can not be calculated when the
+method. For these solutions, reserve sizes can not be calculated when the
 \code{boundary_matrix} is set to \code{NA}.
 }

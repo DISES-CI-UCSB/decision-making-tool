@@ -25,7 +25,7 @@ write_project(
 
 \item{path}{\code{character} file path to save the configuration file.}
 
-\item{name}{\code{character} name for the scenario.}
+\item{name}{\code{character} name for the solution.}
 
 \item{spatial_path}{\code{character} file path for the spatial data.}
 

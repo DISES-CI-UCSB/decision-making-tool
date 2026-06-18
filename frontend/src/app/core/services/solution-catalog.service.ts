@@ -3,22 +3,22 @@ import type {
   RuntimeLayerManifestLayer,
   RuntimeSolutionManifestEntry,
 } from '@core/models/layer-manifest.model';
-import type { SolutionScenario } from '@core/models/solution-scenario.model';
+import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import { LayerManifestService } from './layer-manifest.service';
 
 /**
- * Catalog of real prioritizr solution scenarios from the generated layer manifest.
+ * Catalog of real prioritizr solutions from the generated layer manifest.
  * The manifest points at public Vercel Blob URLs; local /data/solutions assets are not used.
  */
 @Injectable({ providedIn: 'root' })
 export class SolutionCatalogService {
   private readonly manifest = inject(LayerManifestService);
-  private readonly scenariosState = signal<SolutionScenario[]>([]);
+  private readonly solutionsState = signal<CatalogSolution[]>([]);
   private readonly layersState = signal<RuntimeLayerManifestLayer[]>([]);
   private readonly loadErrorState = signal<string | null>(null);
   private readonly hasLoadedState = signal(false);
 
-  readonly scenarios = this.scenariosState.asReadonly();
+  readonly solutions = this.solutionsState.asReadonly();
   readonly loadError = this.loadErrorState.asReadonly();
   readonly isLoading = computed(() => !this.hasLoadedState() && !this.loadErrorState());
 
@@ -26,10 +26,10 @@ export class SolutionCatalogService {
     this.manifest.getManifest().subscribe({
       next: (manifest) => {
         this.layersState.set(manifest.layers ?? []);
-        this.scenariosState.set(
+        this.solutionsState.set(
           (manifest.solutions ?? [])
             .filter((solution) => !this.isConflictCostSolution(solution))
-            .map((solution) => this.toScenario(solution)),
+            .map((solution) => this.toSolution(solution)),
         );
         this.hasLoadedState.set(true);
         this.loadErrorState.set(null);
@@ -37,19 +37,19 @@ export class SolutionCatalogService {
       error: (error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         this.layersState.set([]);
-        this.scenariosState.set([]);
+        this.solutionsState.set([]);
         this.hasLoadedState.set(true);
         this.loadErrorState.set(message);
       },
     });
   }
 
-  getAll(): SolutionScenario[] {
-    return this.scenariosState();
+  getAll(): CatalogSolution[] {
+    return this.solutionsState();
   }
 
-  getById(id: string): SolutionScenario | null {
-    return this.scenariosState().find((s) => s.id === id) ?? null;
+  getById(id: string): CatalogSolution | null {
+    return this.solutionsState().find((s) => s.id === id) ?? null;
   }
 
   getLayerById(id: string | null | undefined): RuntimeLayerManifestLayer | null {
@@ -59,11 +59,11 @@ export class SolutionCatalogService {
     return this.layersState().find((layer) => layer.id === id) ?? null;
   }
 
-  getTifUrl(scenario: SolutionScenario): string {
-    return scenario.displayUrl;
+  getTifUrl(solution: CatalogSolution): string {
+    return solution.displayUrl;
   }
 
-  private toScenario(solution: RuntimeSolutionManifestEntry): SolutionScenario {
+  private toSolution(solution: RuntimeSolutionManifestEntry): CatalogSolution {
     const targetPercent = solution.finderInputs.targetPercent ?? this.inferTargetPercent(solution);
     const constraints = this.getConstraintLabels(solution);
     const costLayer = this.getCostLayerLabel(solution);

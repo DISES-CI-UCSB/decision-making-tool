@@ -11,7 +11,7 @@ The Nacional project uses **5km resolution** planning units covering the entire 
 - **Planning Units**: `input/PUs_Nacional_5km.csv` and corresponding TIF (created from `PUs_Nacional_5km.shp`)
 - **RIJ Matrix**: `input/rij_Nacional_5km.fst` (created from shapefile using `exact_extract`)
 - **Features Metadata**: `input/features_v4_4_24_(MAPV).xlsx`
-- **Scenarios**: `input/scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx`
+- **Solutions**: `input/solutions_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx`
 - **Solutions**: `output/Nacional/*.tif`
 
 ## Important Notes
@@ -33,7 +33,7 @@ upload_ready/
 │   ├── [feature].tif
 │   └── layers.csv
 └── solutions/
-    ├── [scenario].tif
+    ├── [solution].tif
     └── solutions.csv
 ```
 

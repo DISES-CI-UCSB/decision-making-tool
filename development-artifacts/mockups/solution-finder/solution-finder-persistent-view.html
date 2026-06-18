@@ -308,7 +308,7 @@
                 Step 3 - Results
               </h2>
               <p id="solution-finder-mockup-step3-helper" class="mt-1 text-xs text-slate-500">
-                Review best matches, then apply one scenario.
+                Review best matches, then apply one solution.
               </p>
             </div>
 
@@ -328,7 +328,7 @@
                 Select a result
               </p>
               <p id="solution-finder-mockup-preview-description" class="mt-1 text-xs text-slate-600">
-                The selected scenario details appear here.
+                The selected solution details appear here.
               </p>
             </article>
           </section>
@@ -356,7 +356,7 @@
                 Find Matches
               </button>
               <button id="solution-finder-mockup-apply-button" type="button" class="rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-sky-300" disabled>
-                Apply Scenario
+                Apply Solution
               </button>
             </div>
           </div>
@@ -382,7 +382,7 @@
         conflict: false,
       };
 
-      const scenarioLibrary = [
+      const solutionLibrary = [
         {
           id: "corridor-forward",
           name: "Corridor-Forward 30x30",
@@ -482,17 +482,17 @@
           : "rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700";
       }
 
-      function scoreScenario(scenarioIndex) {
+      function scoreSolution(solutionIndex) {
         const selectedTargetCount = getSelectedTargetCount();
         const enabledConstraintCount = getEnabledConstraintCount();
         const baseScore = 68 + selectedTargetCount * 4 + enabledConstraintCount * 2;
-        return Math.max(58, Math.min(99, baseScore - scenarioIndex * 3));
+        return Math.max(58, Math.min(99, baseScore - solutionIndex * 3));
       }
 
       function runMatches() {
-        currentResults = scenarioLibrary.map((scenario, index) => ({
-          ...scenario,
-          matchPercentage: scoreScenario(index),
+        currentResults = solutionLibrary.map((solution, index) => ({
+          ...solution,
+          matchPercentage: scoreSolution(index),
         }));
         selectedResultId = currentResults[0]?.id ?? null;
         renderResults();
@@ -559,7 +559,7 @@
         const selectedResult = currentResults.find((result) => result.id === selectedResultId);
         if (!selectedResult) {
           previewNameElement.textContent = "Select a result";
-          previewDescriptionElement.textContent = "The selected scenario details appear here.";
+          previewDescriptionElement.textContent = "The selected solution details appear here.";
           previewMatchChipElement.textContent = "--";
           previewMapElement.className =
             "mb-2 h-28 rounded-lg border border-slate-200 bg-gradient-to-r from-emerald-100 via-sky-100 to-indigo-100";

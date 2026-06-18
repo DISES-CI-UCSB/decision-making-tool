@@ -22,7 +22,7 @@ The following sections are **implementation-critical**. These sections define sy
 | Section | Title |
 |---------|-------|
 | 4.3 | Core Components and Decision Logic |
-| 4.4 | User Interactions and Scenario Exploration |
+| 4.4 | User Interactions and Solution Exploration |
 | 4.5 | Reports and Decision Outputs |
 | 4.6 | Metrics Definitions and Calculations |
 | 4.11 | Data Layer Registry and Asset Inventory |

@@ -1462,23 +1462,23 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const activeScenarioId = this.getScenarioId(this.appState.activeSolution$());
-    const comparisonScenarioId = this.getScenarioId(this.appState.comparisonSolution$());
+    const activeSolutionId = this.getSolutionId(this.appState.activeSolution$());
+    const comparisonSolutionId = this.getSolutionId(this.appState.comparisonSolution$());
     const shouldShowComparison =
       this.appState.rightSidebarMode$() === 'comparison' &&
-      !!activeScenarioId &&
-      !!comparisonScenarioId;
+      !!activeSolutionId &&
+      !!comparisonSolutionId;
     const visualizationMode = this.appState.comparisonVisualizationMode$();
     console.info(
-      `[MapView][${this.debugMarker}] comparison check mode=${this.appState.rightSidebarMode$()} viz=${visualizationMode} active=${activeScenarioId ?? 'none'} candidate=${comparisonScenarioId ?? 'none'} enabled=${shouldShowComparison}`,
+      `[MapView][${this.debugMarker}] comparison check mode=${this.appState.rightSidebarMode$()} viz=${visualizationMode} active=${activeSolutionId ?? 'none'} candidate=${comparisonSolutionId ?? 'none'} enabled=${shouldShowComparison}`,
     );
-    // Ignore stale async layer loads when users switch scenarios quickly.
+    // Ignore stale async layer loads when users switch solutions quickly.
     const requestId = ++this.comparisonSyncRequestId;
 
     if (!shouldShowComparison) {
       this.teardownComparisonSwipeWidget();
-      if (activeScenarioId && this.solutionLayer.isComparisonModeActive()) {
-        await this.solutionLayer.showSolution(activeScenarioId, { syncAppState: false });
+      if (activeSolutionId && this.solutionLayer.isComparisonModeActive()) {
+        await this.solutionLayer.showSolution(activeSolutionId, { syncAppState: false });
         if (requestId !== this.comparisonSyncRequestId) {
           return;
         }
@@ -1492,21 +1492,21 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.comparisonSwipeWidget && 'position' in this.comparisonSwipeWidget
         ? (this.comparisonSwipeWidget as unknown as { position: number }).position
         : 50;
-    const comparisonKey = `${activeScenarioId}::${comparisonScenarioId}::${visualizationMode}`;
+    const comparisonKey = `${activeSolutionId}::${comparisonSolutionId}::${visualizationMode}`;
     if (
       comparisonKey === this.lastComparisonKey &&
-      this.solutionLayer.hasComparisonScenarios(activeScenarioId, comparisonScenarioId)
+      this.solutionLayer.hasComparisonSolutions(activeSolutionId, comparisonSolutionId)
     ) {
       return;
     }
 
     this.teardownComparisonSwipeWidget();
-    if (!this.solutionLayer.hasComparisonScenarios(activeScenarioId, comparisonScenarioId)) {
-      await this.solutionLayer.showComparison(activeScenarioId, comparisonScenarioId);
+    if (!this.solutionLayer.hasComparisonSolutions(activeSolutionId, comparisonSolutionId)) {
+      await this.solutionLayer.showComparison(activeSolutionId, comparisonSolutionId);
       if (requestId !== this.comparisonSyncRequestId) {
         return;
       }
-      if (!this.solutionLayer.hasComparisonScenarios(activeScenarioId, comparisonScenarioId)) {
+      if (!this.solutionLayer.hasComparisonSolutions(activeSolutionId, comparisonSolutionId)) {
         // Comparison load failed (or was interrupted): keep key unset so future attempts can retry.
         this.lastComparisonKey = '';
         console.error(
@@ -1592,10 +1592,10 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     return this.swipeConstructor;
   }
 
-  private getScenarioId(solution: Solution | null): string | null {
+  private getSolutionId(solution: Solution | null): string | null {
     const metadata = solution?.metadata;
-    const scenarioId = metadata ? metadata['scenarioId'] : null;
-    return typeof scenarioId === 'string' && scenarioId.length > 0 ? scenarioId : null;
+    const solutionId = metadata ? metadata['solutionId'] : null;
+    return typeof solutionId === 'string' && solutionId.length > 0 ? solutionId : null;
   }
 
   private logContainerHierarchy(el: HTMLDivElement): void {

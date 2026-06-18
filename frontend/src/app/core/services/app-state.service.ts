@@ -119,7 +119,7 @@ export class AppStateService {
   readonly fillDummyAoiMetrics$ = signal(false);
   /** Dev-only: toggle metric-row icons in Overview/AOI panels for iconography review. */
   readonly showMetricIcons$ = signal(true);
-  readonly showFinderScenarioFilenames$ = signal(false);
+  readonly showFinderSolutionFilenames$ = signal(false);
   readonly showFinderScopeBar$ = signal(false);
   /** Dev-only: gate the overview panel's "View Full Report" CTA while the report experience is in flight. */
   readonly showViewFullReportButton$ = signal(true);
@@ -228,8 +228,8 @@ export class AppStateService {
     this.showMetricIcons$.set(enabled);
   }
 
-  setShowFinderScenarioFilenames(enabled: boolean): void {
-    this.showFinderScenarioFilenames$.set(enabled);
+  setShowFinderSolutionFilenames(enabled: boolean): void {
+    this.showFinderSolutionFilenames$.set(enabled);
   }
 
   setShowFinderScopeBar(enabled: boolean): void {

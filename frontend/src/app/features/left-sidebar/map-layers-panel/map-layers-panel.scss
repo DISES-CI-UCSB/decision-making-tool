@@ -166,7 +166,7 @@
   transform: rotate(180deg);
 }
 
-.map-layers-active-scenario-breakdown-flyout {
+.map-layers-active-solution-breakdown-flyout {
   position: fixed;
   top: 7.25rem;
   left: 20.5rem;
@@ -183,7 +183,7 @@
 }
 
 @media (max-width: 760px) {
-  .map-layers-active-scenario-breakdown-flyout {
+  .map-layers-active-solution-breakdown-flyout {
     right: 1rem;
     left: 1rem;
     width: auto;

@@ -10,7 +10,7 @@ Cambio_Global/
 │   ├── rij_*.fst             # Feature-by-planning-unit matrices
 │   ├── features_*.xlsx       # Feature definitions
 │   ├── costs_and_constraints_*.xlsx
-│   └── scenarios_*.xlsx      # Scenario configurations
+│   └── solutions_*.xlsx      # Solution configurations
 │
 ├── features/                 # Raw feature rasters (.tif)
 │
@@ -18,7 +18,7 @@ Cambio_Global/
 │   ├── 1_costs_and_constraints.R  # Generate cost/constraint layers
 │   ├── 2_rij_large_features.R     # Build rij matrices
 │   ├── 3_merge_rijs.R             # Merge partial rij files
-│   └── 4_run_scenarios.R          # Run prioritizr optimization
+│   └── 4_run_solutions.R          # Run prioritizr optimization
 │
 ├── output/                   # Prioritization solution outputs
 │   ├── Nacional/
@@ -72,8 +72,8 @@ layers/
 ```
 solutions/
 ├── solutions.csv           # Solution metadata (File, Name, Legend, etc.)
-├── scenario_1.tif          # Solution rasters (binary 0/1)
-├── scenario_2.tif
+├── solution_1.tif          # Solution rasters (binary 0/1)
+├── solution_2.tif
 └── ...
 ```
 

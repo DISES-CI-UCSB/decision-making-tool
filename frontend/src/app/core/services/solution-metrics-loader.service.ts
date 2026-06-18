@@ -24,22 +24,22 @@ export class SolutionMetricsLoaderService {
   private readonly catalog = inject(SolutionCatalogService);
 
   buildCacheUrl(solutionId: string): string | null {
-    const scenario = this.catalog.getById(solutionId);
-    if (!scenario?.displayUrl) {
+    const solution = this.catalog.getById(solutionId);
+    if (!solution?.displayUrl) {
       return null;
     }
     const precomputedUrl =
-      scenario.precomputedMetricUrls?.['compactCache'] ??
-      scenario.precomputedMetricUrls?.['compact'] ??
-      scenario.precomputedMetricUrls?.['cache'];
+      solution.precomputedMetricUrls?.['compactCache'] ??
+      solution.precomputedMetricUrls?.['compact'] ??
+      solution.precomputedMetricUrls?.['cache'];
     if (precomputedUrl) {
       return precomputedUrl;
     }
-    const nickRunCompactUrl = this.buildNickRunCompactCacheUrl(scenario.displayUrl, solutionId);
+    const nickRunCompactUrl = this.buildNickRunCompactCacheUrl(solution.displayUrl, solutionId);
     if (nickRunCompactUrl) {
       return nickRunCompactUrl;
     }
-    const blobHost = deriveBlobHostFromUrl(scenario.displayUrl);
+    const blobHost = deriveBlobHostFromUrl(solution.displayUrl);
     if (!blobHost) {
       return null;
     }

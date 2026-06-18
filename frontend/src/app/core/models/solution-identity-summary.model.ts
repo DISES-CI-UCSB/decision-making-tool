@@ -1,5 +1,5 @@
 import type { Solution } from './solution.model';
-import type { SolutionScenario } from './solution-scenario.model';
+import type { CatalogSolution } from './solution-catalog.model';
 
 export interface SolutionIdentitySummary {
   title: string;
@@ -16,19 +16,20 @@ export interface SolutionIdentitySummary {
 }
 
 export function buildSolutionIdentitySummary(
-  solution: Solution | null,
-  scenario: SolutionScenario | null,
+  activeSolution: Solution | null,
+  catalogSolution: CatalogSolution | null,
 ): SolutionIdentitySummary | null {
-  if (!solution) {
+  if (!activeSolution) {
     return null;
   }
 
-  if (!scenario) {
-    return buildFallbackSolutionIdentitySummary(solution.name);
+  if (!catalogSolution) {
+    return buildFallbackSolutionIdentitySummary(activeSolution.name);
   }
 
-  const targetPercent = scenario.finderInputs.targetPercent ?? scenario.ecosystemTargets;
-  const targetItems = buildTargetItems(scenario).map((target) =>
+  const targetPercent =
+    catalogSolution.finderInputs.targetPercent ?? catalogSolution.ecosystemTargets;
+  const targetItems = buildTargetItems(catalogSolution).map((target) =>
     targetPercent ? `${target} at ${targetPercent}%` : target,
   );
   const targetSummary =
@@ -36,10 +37,10 @@ export function buildSolutionIdentitySummary(
       ? `${formatCount(targetItems.length, 'target')} at ${targetPercent}%`
       : formatCount(Math.max(targetItems.length, 1), 'target');
 
-  const costItems = buildCostItems(scenario);
+  const costItems = buildCostItems(catalogSolution);
   const costSummary = formatCount(Math.max(costItems.length, 1), 'cost');
 
-  const includeItems = buildIncludeItems(scenario);
+  const includeItems = buildIncludeItems(catalogSolution);
   const includeSummary = formatCount(Math.max(includeItems.length, 1), 'include');
 
   const chips = [targetSummary, costSummary, includeSummary];
@@ -50,7 +51,7 @@ export function buildSolutionIdentitySummary(
     targetSummary,
     costSummary,
     includeSummary,
-    targetDetail: targetItems.length > 0 ? targetItems.join(', ') : solution.name,
+    targetDetail: targetItems.length > 0 ? targetItems.join(', ') : catalogSolution.name,
     costDetail: costItems.join(' + '),
     includeDetail: includeItems.join(', '),
     targetItems,
@@ -75,26 +76,26 @@ function buildFallbackSolutionIdentitySummary(solutionName: string): SolutionIde
   };
 }
 
-function buildTargetItems(scenario: SolutionScenario): string[] {
+function buildTargetItems(solution: CatalogSolution): string[] {
   const targetIds =
-    scenario.finderInputs.targetFeatureIds.length > 0
-      ? scenario.finderInputs.targetFeatureIds
-      : splitTokenList(scenario.finderInputs.targetFeatureSet);
+    solution.finderInputs.targetFeatureIds.length > 0
+      ? solution.finderInputs.targetFeatureIds
+      : splitTokenList(solution.finderInputs.targetFeatureSet);
 
   return unique(targetIds.map(labelTarget).filter(Boolean));
 }
 
-function buildCostItems(scenario: SolutionScenario): string[] {
-  const costIds = splitTokenList(scenario.finderInputs.costLayerId ?? scenario.inputLayerIds.cost);
+function buildCostItems(solution: CatalogSolution): string[] {
+  const costIds = splitTokenList(solution.finderInputs.costLayerId ?? solution.inputLayerIds.cost);
   const labels = unique(costIds.map(labelCost).filter(Boolean));
-  return labels.length > 0 ? labels : [scenario.costLayer].filter(Boolean);
+  return labels.length > 0 ? labels : [solution.costLayer].filter(Boolean);
 }
 
-function buildIncludeItems(scenario: SolutionScenario): string[] {
+function buildIncludeItems(solution: CatalogSolution): string[] {
   const includeIds = unique([
     'runap',
-    ...scenario.finderInputs.includeLayerIds,
-    ...scenario.inputLayerIds.includes,
+    ...solution.finderInputs.includeLayerIds,
+    ...solution.inputLayerIds.includes,
   ]);
 
   return unique(includeIds.map(labelInclude).filter(Boolean));

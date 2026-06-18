@@ -17,7 +17,7 @@
 | T03b | [UCS-153](https://linear.app/ucsb-spatial-center/issue/UCS-153) | 🆕 Created | 2026-03-30 | Generate and review label options for Steps 2 & 3 | `discussion-required` — AI-generate options, team picks |
 | T04 | UCS-121, UCS-122 | ✅ Already done | 2026-03-30 | Drop "exclude" from Step 2 | Confirmed: no excludes exist in model; both tickets already completed |
 | T05 | [UCS-154](https://linear.app/ucsb-spatial-center/issue/UCS-154) | 🆕 Created | 2026-03-30 | Fix "CO" cost label → "Net Benefit" (renta agropecuaria) | Kevin's email: CO is NOT carbon cost |
-| T06 | [UCS-126](https://linear.app/ucsb-spatial-center/issue/UCS-126), [UCS-127](https://linear.app/ucsb-spatial-center/issue/UCS-127) | 🔄 Update existing | 2026-03-30 | Update scenario labels from Kevin's markdown | v1 (~70% correct) received; v2 (~90%) incoming. Update incrementally. |
+| T06 | [UCS-126](https://linear.app/ucsb-spatial-center/issue/UCS-126), [UCS-127](https://linear.app/ucsb-spatial-center/issue/UCS-127) | 🔄 Update existing | 2026-03-30 | Update solution labels from Kevin's markdown | v1 (~70% correct) received; v2 (~90%) incoming. Update incrementally. |
 | T07 | [UCS-155](https://linear.app/ucsb-spatial-center/issue/UCS-155) | 🆕 Created | 2026-03-30 | Add "Always Included" info section to Step 2 | Shows features included in every run (e.g., RUNAP); read-only |
 | T08 | [UCS-124](https://linear.app/ucsb-spatial-center/issue/UCS-124), [UCS-129](https://linear.app/ucsb-spatial-center/issue/UCS-129) | 🔄 Low priority / backlog | 2026-03-30 | Design sub-optimal match visualization | Kevin proposed gray-out. **Low priority — may not do.** |
 | T09 | [UCS-156](https://linear.app/ucsb-spatial-center/issue/UCS-156) | 🆕 Created | 2026-03-30 | Remove two-color opacity comparison option | Keep only three-color overlay + swipe slider |
@@ -38,8 +38,8 @@ Cross-reference of this meeting's tasks against existing Linear issues. This pre
 | **UCS-120** | Simplify Step 1 categories to match actual model inputs | **Scope expanded:** was 3 categories → now 5 (Ecosystems, Strategic Ecosystems, Species, Ecosystem Services, Other Natural/Cultural). **Multi-select required** (was single-select). Sub-task UCS-148 (research) is Done; UCS-147 (confirm with team) is Pending Feedback — this meeting partially answers it. | Update description + add multi-select requirement |
 | **UCS-124** | Overhaul Step 3: inputs → single solution with map preview | Kevin proposed sub-optimal match gray-out UX. **Low priority / backlog — may not implement.** Depends on how many solutions we run. If all combos are pre-run, this is unnecessary. | Add Kevin's UX proposal as low-priority note only |
 | **UCS-125** | Ensure Step 2 options reflect actual model capabilities | Kevin providing AI-generated markdown files with correct labels. v1 (~70% correct) received; v2 (~90%) incoming. Still `discussion-required` but now with a clear path to resolution. | Add note: Kevin providing markdown; v1 available, v2 incoming |
-| **UCS-126** | Make scenario descriptions human-readable | Kevin providing AI-generated markdown (not Excel). v1 ~70% correct labels received. CO → Net_Benefit confirmed. eco17 = species richness at 17%. | Apply v1 corrections now; update again when v2 arrives |
-| **UCS-127** | Fix scenario descriptions that are factually wrong | Kevin's email confirms CO is Net_Benefit (not carbon cost). v1 markdown has ~70% of corrections. | Apply v1 corrections; iterate with v2 |
+| **UCS-126** | Make solution descriptions human-readable | Kevin providing AI-generated markdown (not Excel). v1 ~70% correct labels received. CO → Net_Benefit confirmed. eco17 = species richness at 17%. | Apply v1 corrections now; update again when v2 arrives |
+| **UCS-127** | Fix solution descriptions that are factually wrong | Kevin's email confirms CO is Net_Benefit (not carbon cost). v1 markdown has ~70% of corrections. | Apply v1 corrections; iterate with v2 |
 | **UCS-129** | Design "Solution Not Found" behavior and states | Kevin's gray-out proposal provides a possible UX direction. **Low priority / backlog.** Team prefers to pre-run all combos so "not found" is rare. | Add note: low priority, depends on solution coverage |
 
 ### Existing tickets that are CONFIRMED DONE (no action needed)
@@ -54,7 +54,7 @@ Cross-reference of this meeting's tasks against existing Linear issues. This pre
 | Existing UCS | Title | Why unaffected |
 |---|---|---|
 | UCS-123 | Add tooltip/info icons to Step 1 and Step 2 | Still needed, no new info from this meeting |
-| UCS-128 | Fix Load Scenario button visibility | Not discussed |
+| UCS-128 | Fix Load Solution button visibility | Not discussed |
 | UCS-113 | Restyle Solution Finder modal header Close control | Already Done |
 
 ---
@@ -82,13 +82,13 @@ Straightforward rename. Team agreed on this label. Should be done before Monday 
 3. Implement chosen labels after sign-off
 
 **T05 / UCS-154 — Fix "CO" cost layer label**
-Per Kevin's email: "CO" is actually `Net_Benefit` aka "renta agropecuaria." Update in Step 3 and any scenario descriptions. Should be done before Monday demo.
+Per Kevin's email: "CO" is actually `Net_Benefit` aka "renta agropecuaria." Update in Step 3 and any solution descriptions. Should be done before Monday demo.
 
 **T07 / UCS-155 — Add "Always Included" info section to Step 2**
 Read-only section showing features in every run (e.g., RUNAP at national level). No toggles — purely informational.
 
 **T08 addendum — Sub-optimal match visualization (NOT a new ticket)**
-Low priority / backlog update to UCS-124 / UCS-129. Kevin's gray-out proposal is a fallback only if we can't pre-run all scenario combos. May never be implemented.
+Low priority / backlog update to UCS-124 / UCS-129. Kevin's gray-out proposal is a fallback only if we can't pre-run all solution combos. May never be implemented.
 
 **T09 / UCS-156 — Remove two-color opacity comparison option**
 Keep only three-color overlay + swipe slider. Users can toggle agreement off within three-color for a de facto two-color view.

@@ -132,17 +132,17 @@
             line-height: 1.5;
         }
 
-        .featured-scenarios {
+        .featured-solutions {
             margin-bottom: 32px;
         }
 
-        .scenarios-subtext {
+        .solutions-subtext {
             font-size: 13px;
             color: #757575;
             margin-bottom: 12px;
         }
 
-        .scenario-card {
+        .solution-card {
             background: #F5F5F5;
             border: 1px solid #E0E0E0;
             border-radius: 8px;
@@ -155,35 +155,35 @@
             gap: 12px;
         }
 
-        .scenario-card:hover {
+        .solution-card:hover {
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             transform: translateY(-1px);
             border-color: #2E7D32;
         }
 
-        .scenario-icon {
+        .solution-icon {
             font-size: 24px;
             flex-shrink: 0;
         }
 
-        .scenario-content {
+        .solution-content {
             flex: 1;
         }
 
-        .scenario-name {
+        .solution-name {
             font-size: 14px;
             font-weight: 600;
             color: #212121;
             margin-bottom: 2px;
         }
 
-        .scenario-description {
+        .solution-description {
             font-size: 12px;
             color: #757575;
         }
 
-        .scenario-arrow {
+        .solution-arrow {
             color: #9E9E9E;
             font-size: 18px;
         }
@@ -262,7 +262,7 @@
                 <h1 class="welcome-title">Welcome to the Conservation Decision Support Tool</h1>
                 <p class="welcome-intro">
                     Explore conservation priorities across Colombia's terrestrial and marine ecosystems. 
-                    Discover optimal conservation scenarios based on biodiversity, ecosystem services, 
+                    Discover optimal conservation solutions based on biodiversity, ecosystem services, 
                     and socio-economic factors.
                 </p>
                 <p class="welcome-subtext">
@@ -319,65 +319,65 @@
                 </div>
             </div>
 
-            <!-- Featured Scenarios -->
-            <div class="featured-scenarios">
+            <!-- Featured Solutions -->
+            <div class="featured-solutions">
                 <h2 class="section-heading">
                     <i class="fas fa-star"></i>
-                    Featured Scenarios
+                    Featured Solutions
                 </h2>
-                <p class="scenarios-subtext">Click a scenario to explore immediately</p>
+                <p class="solutions-subtext">Click a solution to explore immediately</p>
 
-                <div class="scenario-card" onclick="loadScenario('balanced')">
-                    <div class="scenario-icon">⚖️</div>
-                    <div class="scenario-content">
-                        <div class="scenario-name">Balanced Conservation & Development</div>
-                        <div class="scenario-description">Moderate protection with economic considerations</div>
+                <div class="solution-card" onclick="loadSolution('balanced')">
+                    <div class="solution-icon">⚖️</div>
+                    <div class="solution-content">
+                        <div class="solution-name">Balanced Conservation & Development</div>
+                        <div class="solution-description">Moderate protection with economic considerations</div>
                     </div>
-                    <div class="scenario-arrow">
+                    <div class="solution-arrow">
                         <i class="fas fa-chevron-right"></i>
                     </div>
                 </div>
 
-                <div class="scenario-card" onclick="loadScenario('biodiversity')">
-                    <div class="scenario-icon">🦜</div>
-                    <div class="scenario-content">
-                        <div class="scenario-name">Maximum Biodiversity Protection</div>
-                        <div class="scenario-description">Prioritizes threatened species and ecosystem richness</div>
+                <div class="solution-card" onclick="loadSolution('biodiversity')">
+                    <div class="solution-icon">🦜</div>
+                    <div class="solution-content">
+                        <div class="solution-name">Maximum Biodiversity Protection</div>
+                        <div class="solution-description">Prioritizes threatened species and ecosystem richness</div>
                     </div>
-                    <div class="scenario-arrow">
+                    <div class="solution-arrow">
                         <i class="fas fa-chevron-right"></i>
                     </div>
                 </div>
 
-                <div class="scenario-card" onclick="loadScenario('low-cost')">
-                    <div class="scenario-icon">💰</div>
-                    <div class="scenario-content">
-                        <div class="scenario-name">Low-Cost Conservation Strategy</div>
-                        <div class="scenario-description">Achieves conservation goals with minimal economic impact</div>
+                <div class="solution-card" onclick="loadSolution('low-cost')">
+                    <div class="solution-icon">💰</div>
+                    <div class="solution-content">
+                        <div class="solution-name">Low-Cost Conservation Strategy</div>
+                        <div class="solution-description">Achieves conservation goals with minimal economic impact</div>
                     </div>
-                    <div class="scenario-arrow">
+                    <div class="solution-arrow">
                         <i class="fas fa-chevron-right"></i>
                     </div>
                 </div>
 
-                <div class="scenario-card" onclick="loadScenario('carbon-water')">
-                    <div class="scenario-icon">💧</div>
-                    <div class="scenario-content">
-                        <div class="scenario-name">Carbon & Water Security Focus</div>
-                        <div class="scenario-description">Emphasizes ecosystem services for climate resilience</div>
+                <div class="solution-card" onclick="loadSolution('carbon-water')">
+                    <div class="solution-icon">💧</div>
+                    <div class="solution-content">
+                        <div class="solution-name">Carbon & Water Security Focus</div>
+                        <div class="solution-description">Emphasizes ecosystem services for climate resilience</div>
                     </div>
-                    <div class="scenario-arrow">
+                    <div class="solution-arrow">
                         <i class="fas fa-chevron-right"></i>
                     </div>
                 </div>
 
-                <div class="scenario-card" onclick="loadScenario('cultural')">
-                    <div class="scenario-icon">🏛️</div>
-                    <div class="scenario-content">
-                        <div class="scenario-name">Cultural Heritage & Biodiversity</div>
-                        <div class="scenario-description">Integrates indigenous territories with conservation priorities</div>
+                <div class="solution-card" onclick="loadSolution('cultural')">
+                    <div class="solution-icon">🏛️</div>
+                    <div class="solution-content">
+                        <div class="solution-name">Cultural Heritage & Biodiversity</div>
+                        <div class="solution-description">Integrates indigenous territories with conservation priorities</div>
                     </div>
-                    <div class="scenario-arrow">
+                    <div class="solution-arrow">
                         <i class="fas fa-chevron-right"></i>
                     </div>
                 </div>
@@ -404,16 +404,16 @@
             <!-- Tip Box -->
             <div class="tip-box">
                 <i class="fas fa-lightbulb"></i>
-                <strong>Tip:</strong> You can compare scenarios, generate reports, and download data 
+                <strong>Tip:</strong> You can compare solutions, generate reports, and download data 
                 after selecting a solution.
             </div>
         </div>
     </div>
 
     <script>
-        function loadScenario(scenarioId) {
-            console.log('Loading featured scenario:', scenarioId);
-            alert(`Loading ${scenarioId} scenario...\n\n(In the real app, this would load the scenario onto the map and display the Solution Overview Panel)`);
+        function loadSolution(solutionId) {
+            console.log('Loading featured solution:', solutionId);
+            alert(`Loading ${solutionId} solution...\n\n(In the real app, this would load the solution onto the map and display the Solution Overview Panel)`);
         }
 
         function openSolutionFinder() {

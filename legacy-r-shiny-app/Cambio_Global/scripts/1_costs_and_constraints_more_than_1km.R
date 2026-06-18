@@ -10,17 +10,17 @@ resolution="5km"
 
 PUs_p=read_sf((paste0("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/PUs/PUs_",extension,"_",resolution,".shp")))
 
-# DELIMIT TO ONLY COSTS AND COSTRAINTS TO BE USED IN SCENARIOS
+# DELIMIT TO ONLY COSTS AND COSTRAINTS TO BE USED IN SOLUTIONS
 
-scenarios=read.xlsx("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/scenarios_to_run_v4_4_24_JBG.xlsx")
-scenarios=scenarios[scenarios$SIRAP == extension,]
-costs=unique(scenarios$costo)
-scenarios=c(scenarios$costo,scenarios$inclusion,scenarios$exlusion)
-scenarios=paste(scenarios,collapse=',')
-scenarios=unique(strsplit(scenarios, ",")[[1]])
-scenarios=scenarios[scenarios != "NA"]
+solutions=read.xlsx("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/solutions_to_run_v4_4_24_JBG.xlsx")
+solutions=solutions[solutions$SIRAP == extension,]
+costs=unique(solutions$costo)
+solutions=c(solutions$costo,solutions$inclusion,solutions$exlusion)
+solutions=paste(solutions,collapse=',')
+solutions=unique(strsplit(solutions, ",")[[1]])
+solutions=solutions[solutions != "NA"]
 costs_and_constraints=read.xlsx("C:/Clouds/Box/Proyectos_JBG/mesa_prioridades/Cambio_Global/input/costs_and_constraints_v3_05_24.xlsx")
-costs_and_constraints=costs_and_constraints[costs_and_constraints$name %in% scenarios,]
+costs_and_constraints=costs_and_constraints[costs_and_constraints$name %in% solutions,]
 
 # SEPARATE CATEGORY AND CONTINUOUS LAYERS
 cat_by_layer=as.data.frame(costs_and_constraints %>% group_by(archivo,name) %>% summarise(count=n(),sum=sum(id_original)))

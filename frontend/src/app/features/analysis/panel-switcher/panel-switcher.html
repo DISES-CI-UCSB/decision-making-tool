@@ -61,18 +61,18 @@
             <header id="right-sidebar-v3-overview-header" class="v3-panel-header">
               @if (activeSolutionIdentity(); as identity) {
                 <section
-                  id="right-sidebar-v3-overview-active-scenario-banner"
-                  class="v3-active-scenario-banner"
+                  id="right-sidebar-v3-overview-active-solution-banner"
+                  class="v3-active-solution-banner"
                 >
                   <p
-                    id="right-sidebar-v3-overview-active-scenario-banner-label"
-                    class="v3-active-scenario-banner-label"
+                    id="right-sidebar-v3-overview-active-solution-banner-label"
+                    class="v3-active-solution-banner-label"
                   >
                     {{ 'analysis.overview.solutionIdentity.label' | translate }}
                   </p>
                   <h3
                     id="right-sidebar-overview-solution-name"
-                    class="v3-active-scenario-banner-title"
+                    class="v3-active-solution-banner-title"
                     [title]="identity.title"
                   >
                     {{ identity.title }}
@@ -1872,7 +1872,7 @@
                       id="right-sidebar-comparison-candidate-name-empty"
                       class="c2-summary-name c2-summary-name-muted"
                     >
-                      {{ 'analysis.comparison.selectScenario' | translate }}
+                      {{ 'analysis.comparison.selectSolution' | translate }}
                     </h4>
                   }
                 </article>

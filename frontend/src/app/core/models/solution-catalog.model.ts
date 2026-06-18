@@ -4,7 +4,7 @@ import type {
   RuntimeSolutionManifestInputLayerIds,
 } from './layer-manifest.model';
 
-export interface SolutionScenario {
+export interface CatalogSolution {
   id: string;
   filename: string;
   name: string;
@@ -43,7 +43,7 @@ export interface RasterMetadata {
 }
 
 export interface LoadedSolution {
-  scenario: SolutionScenario;
+  solution: CatalogSolution;
   rasterMeta: RasterMetadata;
   rasterData: Float64Array | Float32Array | Uint8Array;
   canvas: HTMLCanvasElement;

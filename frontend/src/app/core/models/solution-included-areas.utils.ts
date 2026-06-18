@@ -1,5 +1,5 @@
 import type { LayerLocale } from './layer-manifest.model';
-import type { SolutionScenario } from './solution-scenario.model';
+import type { CatalogSolution } from './solution-catalog.model';
 
 export type SolutionIncludedAreaKey = 'runap' | 'omecs' | 'afroIndigenous';
 
@@ -23,14 +23,14 @@ const LEGEND_PREFIX: Record<LayerLocale, string> = {
   es: 'Áreas incluidas en la solución',
 };
 
-export function getSolutionIncludedAreaKeys(scenario: SolutionScenario): SolutionIncludedAreaKey[] {
+export function getSolutionIncludedAreaKeys(solution: CatalogSolution): SolutionIncludedAreaKey[] {
   const normalizedSource = [
-    scenario.id,
-    scenario.name,
-    scenario.filename,
-    ...scenario.constraints,
-    ...scenario.finderInputs.includeLayerIds,
-    ...scenario.inputLayerIds.includes,
+    solution.id,
+    solution.name,
+    solution.filename,
+    ...solution.constraints,
+    ...solution.finderInputs.includeLayerIds,
+    ...solution.inputLayerIds.includes,
   ]
     .join(' ')
     .toLowerCase();
@@ -57,17 +57,17 @@ export function getSolutionIncludedAreaKeys(scenario: SolutionScenario): Solutio
 }
 
 export function getSolutionIncludedAreaLabels(
-  scenario: SolutionScenario,
+  solution: CatalogSolution,
   locale: LayerLocale = 'en',
 ): string[] {
-  return getSolutionIncludedAreaKeys(scenario).map((key) => INCLUDED_AREA_LABELS[key][locale]);
+  return getSolutionIncludedAreaKeys(solution).map((key) => INCLUDED_AREA_LABELS[key][locale]);
 }
 
 export function getSolutionIncludedAreasLegendLabel(
-  scenario: SolutionScenario,
+  solution: CatalogSolution,
   locale: LayerLocale = 'en',
 ): string {
-  const labels = getSolutionIncludedAreaLabels(scenario, locale);
+  const labels = getSolutionIncludedAreaLabels(solution, locale);
   const prefix = LEGEND_PREFIX[locale];
 
   return labels.length > 0 ? `${prefix} (${labels.join(' + ')})` : prefix;

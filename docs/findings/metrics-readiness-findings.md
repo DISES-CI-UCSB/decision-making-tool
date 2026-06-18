@@ -5,8 +5,8 @@ Scope: Data availability and calculability review for finalized DISES metrics in
 
 ## What We Confirmed Exists in `data/`
 
-- Scenario outputs: multiple solution rasters in `data/Nacional_1km_solutions/*.tif`
-- Scenario summaries: `master_eval_summary.csv`, `master_target_coverage.csv`
+- Solution outputs: multiple solution rasters in `data/Nacional_1km_solutions/*.tif`
+- Solution summaries: `master_eval_summary.csv`, `master_target_coverage.csv`
 - Species inputs: `species(8700)/`, `species_names.rds`, `species_rij_matrix.rds`
 - Feature rasters: `features/ecosistemas.tif`, plus `features/Ecos_Estrategico/*.tif`
 - Cost/constraint stack: `cost_constraints_stack_1km.tif`

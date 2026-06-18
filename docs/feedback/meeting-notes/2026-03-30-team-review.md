@@ -86,7 +86,7 @@ Amy asked Kevin: are there ever multiple cost layers in a single run? Kevin conf
 
 ### Action items
 
-- Kevin: Pull count of how many scenarios use Agricultural Rent vs. Conflict vs. Climate Refugia as costs
+- Kevin: Pull count of how many solutions use Agricultural Rent vs. Conflict vs. Climate Refugia as costs
 - Kevin: Check correlation between Human Footprint and Agricultural Rent
 - Kevin: If Agricultural Rent is kept, the data needs **normalization** (zero-to-one scaling) — Prioritizr doesn't handle extreme digit ranges well
 - Monday discussion: Gently push to simplify cost layers to Human Footprint (+Climate Refugia)
@@ -105,14 +105,14 @@ No objections. Kevin: "Step two, great. Love it. No notes."
 
 ## 5. Sub-Optimal Match Visualization (Future Feature)
 
-Kevin proposed a UX approach for when a user's input combination doesn't have a **perfect** scenario match:
+Kevin proposed a UX approach for when a user's input combination doesn't have a **perfect** solution match:
 
 - When a perfect match exists: everything in Steps 1–3 stays highlighted normally
 - When the user selects a **sub-optimal** result card: the mismatched options in Steps 1, 2, or 3 **gray out** dynamically to show what's different about that solution vs. what the user requested
 
 **Example:** User requests 30% ecosystems + species + OMAX + community data. No perfect match. The closest solution doesn't include community data. When hovering/selecting that result, the community data toggle in Step 2 would gray out.
 
-Will confirmed this is technically feasible. However, **if all scenario combinations are pre-run**, this feature becomes unnecessary (there would always be a perfect match).
+Will confirmed this is technically feasible. However, **if all solution combinations are pre-run**, this feature becomes unnecessary (there would always be a perfect match).
 
 **Consensus:** Ideal is to pre-run all combinations. Sub-optimal match visualization is a fallback if that's not feasible.
 
@@ -155,9 +155,9 @@ Could be on the tool side or the data side (how the Mesa team rasterized the inp
 Meeting is 1 hour. Rough agenda:
 
 1. **Brief intros** — Monica is the new Round Table coordinator for this calendar year
-2. **Updates from their end** — marine scenarios, other work from the past couple months
-3. **Walk through tool updates** — show new Solution Finder, discuss scenario inputs
-4. **Model scenario questions** — clarify runs, includes, costs
+2. **Updates from their end** — marine solutions, other work from the past couple months
+3. **Walk through tool updates** — show new Solution Finder, discuss solution inputs
+4. **Model solution questions** — clarify runs, includes, costs
 5. **Updated timeline and next engagements** — confirm bi-weekly cadence, start planning next CDOP workshop (in-person?)
 
 Amy suggested combining items 3 and 4: show the tool and let the questions flow naturally from the demo.

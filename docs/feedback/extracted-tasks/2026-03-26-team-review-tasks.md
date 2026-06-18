@@ -18,13 +18,13 @@
 | T01 | [UCS-119](https://linear.app/ucsb-spatial-center/issue/UCS-119) | High | `foundation` | Audit and fix translation coverage across all UI components | | Some components untranslated; AI translations may be inaccurate |
 | T02 | [UCS-120](https://linear.app/ucsb-spatial-center/issue/UCS-120) | High | `solution-finder` | Simplify Step 1 categories to match actual model inputs | D07 | Replace individual taxa with broader categories: species richness, ecosystems, strategic ecosystems |
 | T03 | [UCS-121](https://linear.app/ucsb-spatial-center/issue/UCS-121) | High | `solution-finder` | Standardize Step 2 toggles to all use "include" pattern | | Currently a mix of include/exclude which is confusing |
-| T04 | [UCS-122](https://linear.app/ucsb-spatial-center/issue/UCS-122) | Medium | `solution-finder` | Replace "lock-in"/"lock-out" with "include"/"exclude" in scenario descriptions | | Joanna: current terms are jargon-heavy |
+| T04 | [UCS-122](https://linear.app/ucsb-spatial-center/issue/UCS-122) | Medium | `solution-finder` | Replace "lock-in"/"lock-out" with "include"/"exclude" in solution descriptions | | Joanna: current terms are jargon-heavy |
 | T05 | [UCS-123](https://linear.app/ucsb-spatial-center/issue/UCS-123) | High | `solution-finder` | Add tooltip/info icons to Step 1 and Step 2 options explaining what each means | | Users need context on what conservation targets and include/exclude actually do |
 | T06 | [UCS-124](https://linear.app/ucsb-spatial-center/issue/UCS-124) | High | `solution-finder`, `discussion-required` | Overhaul Step 3: inputs → single solution + map preview | D01, D06 | **See detailed notes.** Mockup single-solution approach, but NOT canonical until team consensus. |
 | T07 | [UCS-125](https://linear.app/ucsb-spatial-center/issue/UCS-125) | Medium | `solution-finder`, `discussion-required` | Ensure Step 2 options reflect actual model capabilities | D07 | **See detailed notes.** Need Kevin/team verification. MDD may not be complete. |
-| T08 | [UCS-126](https://linear.app/ucsb-spatial-center/issue/UCS-126) | High | `solution-finder`, `discussion-required` | Make scenario descriptions human-readable | D08 | **See detailed notes.** Need ideation pass + Kevin's domain input on naming. |
-| T09 | [UCS-127](https://linear.app/ucsb-spatial-center/issue/UCS-127) | Medium | `solution-finder`, `discussion-required` | Fix scenario descriptions that are factually wrong | D08 | Source of truth unclear — MDD may not paint full picture. Need Kevin confirmation. |
-| T10 | [UCS-128](https://linear.app/ucsb-spatial-center/issue/UCS-128) | Medium | `solution-finder` | Fix "Load Scenario" button visibility — hidden at bottom of panel | | **See detailed notes.** Need to test at multiple screen sizes; may not be reproducible. |
+| T08 | [UCS-126](https://linear.app/ucsb-spatial-center/issue/UCS-126) | High | `solution-finder`, `discussion-required` | Make solution descriptions human-readable | D08 | **See detailed notes.** Need ideation pass + Kevin's domain input on naming. |
+| T09 | [UCS-127](https://linear.app/ucsb-spatial-center/issue/UCS-127) | Medium | `solution-finder`, `discussion-required` | Fix solution descriptions that are factually wrong | D08 | Source of truth unclear — MDD may not paint full picture. Need Kevin confirmation. |
+| T10 | [UCS-128](https://linear.app/ucsb-spatial-center/issue/UCS-128) | Medium | `solution-finder` | Fix "Load Solution" button visibility — hidden at bottom of panel | | **See detailed notes.** Need to test at multiple screen sizes; may not be reproducible. |
 | T11 | [UCS-129](https://linear.app/ucsb-spatial-center/issue/UCS-129) | Medium | `solution-finder`, `discussion-required` | Design "Solution Not Found" behavior and states | D01, D06 | **See detailed notes.** Critical questions about solution space coverage for team. |
 | T12 | [UCS-130](https://linear.app/ucsb-spatial-center/issue/UCS-130) | Medium | `map-spatial`, `blocked-external` | Replace suitup shapefile with correct boundaries | | Need correct shapefile from Mesa team. Someone needs to reach out. |
 | T13 | [UCS-131](https://linear.app/ucsb-spatial-center/issue/UCS-131) | High | `map-spatial` | Fix: Adding biodiversity layers doesn't show in Selected Layers | | Layer selection bug — layers don't appear after being added |
@@ -36,7 +36,7 @@
 | T18 | [UCS-137](https://linear.app/ucsb-spatial-center/issue/UCS-137) | Medium | `analysis-dashboards`, `discussion-required` | Remove or rethink "Costs and trade-offs" section | D09 | Is this in the finalized metrics CSV? If not, remove unless team explicitly requests. |
 | T19 | [UCS-138](https://linear.app/ucsb-spatial-center/issue/UCS-138) | Medium | `analysis-dashboards` | Make Overview and AOI tabs structurally consistent | | Consensus: same layout unless metrics don't apply to AOI; Overview can have expandable sections |
 | T20 | [UCS-139](https://linear.app/ucsb-spatial-center/issue/UCS-139) | High | `analysis-dashboards` | Comparison view: color-coded overlay + opacity mode | | **See detailed notes.** Two visualization options for comparison view (right sidebar). Keep slider as optional. |
-| T21 | [UCS-140](https://linear.app/ucsb-spatial-center/issue/UCS-140) | Medium | `analysis-dashboards` | Show second comparison scenario in Selected Layers on left sidebar | | Currently only the first solution appears |
+| T21 | [UCS-140](https://linear.app/ucsb-spatial-center/issue/UCS-140) | Medium | `analysis-dashboards` | Show second comparison solution in Selected Layers on left sidebar | | Currently only the first solution appears |
 | T22 | [UCS-141](https://linear.app/ucsb-spatial-center/issue/UCS-141) | Medium | `analysis-dashboards` | Allow users to customize comparison overlay colors | | Mentioned during comparison discussion |
 | T23 | [UCS-142](https://linear.app/ucsb-spatial-center/issue/UCS-142) | High | `analysis-dashboards` | Fix: Cannot unselect area of interest once selected | | Bug — no way to deselect/clear AOI |
 | T24 | [UCS-143](https://linear.app/ucsb-spatial-center/issue/UCS-143) | High | `analysis-dashboards` | Fix: Tab navigation breaks after entering comparison mode | | Bug — cannot switch tabs after comparison is loaded |
@@ -66,7 +66,7 @@ Need verification from Kevin and the team on exactly which features are modeled.
 
 Example: mining is mentioned as an include/exclude option in the UI but may not be modeled. Need a definitive list of what's in vs. out.
 
-### T08 — Make scenario descriptions human-readable
+### T08 — Make solution descriptions human-readable
 
 **Status:** `discussion-required` (D08)
 
@@ -75,7 +75,7 @@ Current codes (`ECOS30`, `RUNAP`, `HFCommunidatus`) are inscrutable. No clear an
 2. Bring ideas to Kevin for domain-specific naming conventions
 3. Iterate with team
 
-### T10 — Fix "Load Scenario" button visibility
+### T10 — Fix "Load Solution" button visibility
 
 Need to test at different screen sizes — this may be viewport-dependent. **Sub-step:** attempt to reproduce the bug. It may not be present on all machines/resolutions. If not reproducible, gather more info on the reporter's screen setup.
 
@@ -128,14 +128,14 @@ These are items requiring team consensus before implementation can proceed. Task
 
 | ID | Topic | Context | Decision Needed | Related Tasks |
 |----|-------|---------|-----------------|---------------|
-| D01 | Single scenario vs. list of matches | Nick proposes inputs → one scenario; Kevin wants "doesn't exist" indicator | How to handle scenario selection UX — design spec needed | T06, T11 |
-| D02 | Hierarchical clustering for scenario comparison | Patrick referenced Jeff Hansen's approach for understanding scenario similarity | Future feature? Out of scope for now? | |
+| D01 | Single solution vs. list of matches | Nick proposes inputs → one solution; Kevin wants "doesn't exist" indicator | How to handle solution selection UX — design spec needed | T06, T11 |
+| D02 | Hierarchical clustering for solution comparison | Patrick referenced Jeff Hansen's approach for understanding solution similarity | Future feature? Out of scope for now? | |
 | D03 | Which metrics to highlight in Overview | Need to reference the previously-agreed metrics spreadsheet | Will needs access to the spreadsheet to implement | T15a |
 | D04 | Landscape-level metrics | Patrick suggested fragmentation, patch size, continuity as useful | Define which landscape metrics to include | T17 |
 | D05 | Individual species data in AOI | Patrick noted this may inject lag/latency | Performance vs. detail tradeoff | |
 | D06 | Solution space coverage | If inputs → single solution, we must pre-calculate most combinations. Workload may be very intensive. | What % of possible combinations do we plan to cover? How do we handle gaps? | T06, T11 |
 | D07 | Model input verification | Step 1 and 2 options must match what the model actually supports. MDD may be incomplete. | Kevin needs to provide definitive list of modeled features and constraints. | T02, T07 |
-| D08 | Scenario naming conventions | Codes like ECOS30 are inscrutable. Need human-readable naming. | Kevin/team to define naming scheme for scenarios. | T08, T09 |
+| D08 | Solution naming conventions | Codes like ECOS30 are inscrutable. Need human-readable naming. | Kevin/team to define naming scheme for solutions. | T08, T09 |
 | D09 | Metrics source of truth | Some displayed metrics may not be in the finalized metrics CSV. | Audit against CSV; remove anything not in it unless team re-requests. | T15a, T15b, T16, T18 |
 
 ---
@@ -151,19 +151,19 @@ These are cross-cutting items that should work correctly before any release:
 - [ ] All input layers appear in Selected Layers when added
 - [ ] Color picker works for all layers
 - [ ] Layer drag-reorder works
-- [ ] Scenario descriptions are accurate and human-readable
-- [ ] "Load Scenario" button is visible and accessible
+- [ ] Solution descriptions are accurate and human-readable
+- [ ] "Load Solution" button is visible and accessible
 - [ ] Administrative boundary layers load correctly
 - [ ] Suitup boundaries use correct shapefile
 - [ ] Overview metrics show real calculated values (not dummy data)
 - [ ] AOI tab populates when clicking a department on the map
 - [ ] AOI can be selected and deselected
 - [ ] Tab navigation works in all states (overview, AOI, comparison)
-- [ ] Comparison mode loads second scenario correctly
+- [ ] Comparison mode loads second solution correctly
 - [ ] Color overlay comparison renders with three distinct colors
 - [ ] Opacity-based comparison renders correctly at default 70%
 - [ ] Slider comparison works when toggled on
-- [ ] Second scenario appears in Selected Layers
+- [ ] Second solution appears in Selected Layers
 - [ ] Export report generates a document (when implemented)
 - [ ] Export data produces expected output (when implemented)
 - [ ] Map export produces an image (when implemented)

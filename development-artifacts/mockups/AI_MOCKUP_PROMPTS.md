@@ -33,8 +33,8 @@ LAYOUT & STRUCTURE:
 - White/light gray background with section dividers
 
 HEADER SECTION:
-- Title: "Conservation Scenario Overview"
-- Scenario name: "Cloud Forest Protection - 30% Target"
+- Title: "Conservation Solution Overview"
+- Solution name: "Cloud Forest Protection - 30% Target"
 - Match quality badge: "95% Match" in green pill badge
 - Small metadata line: "Last updated: Nov 2024"
 
@@ -62,7 +62,7 @@ This is the critical trade-off section with two distinct subsections:
   * "Carbon Storage: 2.5B tCO2e" with leaf icon
   * "Water Regulation: High capacity" with water droplet icon
   * "Threatened Species Secured: 45 species" with shield icon
-- Auto-generated green text box: "This scenario achieves HIGH biodiversity protection with 9 species groups meeting conservation targets and EXCELLENT ecosystem service provision with 2.5 billion tCO2e carbon storage secured."
+- Auto-generated green text box: "This solution achieves HIGH biodiversity protection with 9 species groups meeting conservation targets and EXCELLENT ecosystem service provision with 2.5 billion tCO2e carbon storage secured."
 
 **LOSSES/COSTS (What You Lose)** - Orange/amber accent color:
 - Heading with warning triangle icon
@@ -71,7 +71,7 @@ This is the critical trade-off section with two distinct subsections:
   * "Human Footprint Overlap: 15% of priority areas" with footprint icon
   * "Conflict Zone Overlap: 8,200 km²" with alert icon
   * "Development Restrictions: 95,000 km²" with construction cone icon
-- Auto-generated amber text box: "This scenario incurs MODERATE economic impact with $350M USD in agricultural opportunity cost and 15% of priority areas overlap with moderate-to-high human pressure zones requiring careful implementation planning."
+- Auto-generated amber text box: "This solution incurs MODERATE economic impact with $350M USD in agricultural opportunity cost and 15% of priority areas overlap with moderate-to-high human pressure zones requiring careful implementation planning."
 
 SECTION D - NATIONAL CONTRIBUTION:
 - Large progress bar showing: "Contributing 40% toward Colombia's 30% conservation target"
@@ -80,7 +80,7 @@ SECTION D - NATIONAL CONTRIBUTION:
 
 SECTION E - ACTION BUTTONS (Bottom):
 - Primary button: "See Full Summary Report"
-- Secondary buttons: "Compare Scenarios" | "Download Data"
+- Secondary buttons: "Compare Solutions" | "Download Data"
 
 STYLE:
 - Professional GIS tool aesthetic (think ArcGIS Online or QGIS)
@@ -197,7 +197,7 @@ STYLE:
 **Prompt:**
 
 ```
-Create a high-fidelity UI mockup of a large modal dialog for a conservation planning application called "Solution Finder" (also referred to as "Selection Grid"). This is the primary tool users use to discover conservation scenarios by setting priorities.
+Create a high-fidelity UI mockup of a large modal dialog for a conservation planning application called "Solution Finder" (also referred to as "Selection Grid"). This is the primary tool users use to discover conservation solutions by setting priorities.
 
 LAYOUT & STRUCTURE:
 - Large centered modal overlay (approximately 1200px wide x 800px tall)
@@ -206,7 +206,7 @@ LAYOUT & STRUCTURE:
 - Header, main content area, and footer sections
 
 HEADER:
-- Title: "Find a Conservation Scenario"
+- Title: "Find a Conservation Solution"
 - Subtitle: "Define your priorities to discover the best-matching conservation solution"
 - Close button (X) at top-right
 
@@ -248,15 +248,15 @@ MAIN CONTENT AREA (3-column layout or tabbed):
 
 **BOTTOM SECTION - RESULTS PREVIEW:**
 - Horizontal divider line
-- Heading: "Top Matching Scenarios"
-- 3-4 scenario result cards displayed horizontally:
+- Heading: "Top Matching Solutions"
+- 3-4 solution result cards displayed horizontally:
   * Each card shows:
     - Small preview map thumbnail (grayscale with green conservation areas)
-    - Scenario name: "Cloud Forest Protection - 30% Target"
+    - Solution name: "Cloud Forest Protection - 30% Target"
     - Match percentage badge: "95% Match" in large green pill
     - Brief description: "Prioritizes high-elevation ecosystems with moderate cost"
-    - "Apply Scenario" button (blue)
-- Currently matched scenario has blue highlight border
+    - "Apply Solution" button (blue)
+- Currently matched solution has blue highlight border
 - "View More Results" link at end
 
 **WARNING/FEEDBACK AREA (if needed):**
@@ -267,7 +267,7 @@ FOOTER:
 - Left side: "Need help?" link
 - Right side: Two buttons:
   * "Reset to Default" (ghost button)
-  * "Apply Selected Scenario" (primary blue button)
+  * "Apply Selected Solution" (primary blue button)
 
 STYLE:
 - Modern, clean modal design
@@ -301,14 +301,14 @@ LAYOUT & STRUCTURE:
 REPORT HEADER (All Pages):
 - Small logo/app name: "Conservation Decision Support Tool - Colombia"
 - Report title: "Trade-off Analysis Report"
-- Scenario name: "Cloud Forest Protection - 30% Target"
+- Solution name: "Cloud Forest Protection - 30% Target"
 - Generated date: "November 15, 2024"
 - Selected perspective badge: "Conservationist Perspective" (or "Regional Planner", "Economist", etc.)
 
-PAGE 1 - EXECUTIVE SUMMARY & SCENARIO OVERVIEW:
+PAGE 1 - EXECUTIVE SUMMARY & SOLUTION OVERVIEW:
 
-**Scenario Identity Card:**
-- Scenario name and ID
+**Solution Identity Card:**
+- Solution name and ID
 - Match quality: "95% Match to your priorities"
 - Date created
 - Small summary map showing priority areas in green on Colombia outline
@@ -333,7 +333,7 @@ PAGE 1 - EXECUTIVE SUMMARY & SCENARIO OVERVIEW:
 PAGE 2 - GAINS (WHAT YOU GET):
 
 **Large Section Heading with Green Accent:**
-"Conservation Gains: What This Scenario Achieves"
+"Conservation Gains: What This Solution Achieves"
 
 **Conservation Goals Met:**
 - Visual checkmark grid showing achieved targets
@@ -352,12 +352,12 @@ PAGE 2 - GAINS (WHAT YOU GET):
 - Small map showing connectivity corridors in purple
 
 **Auto-Generated Narrative Text (Green-bordered box):**
-"This scenario achieves HIGH biodiversity protection with 9 species groups meeting conservation targets. EXCELLENT ecosystem service provision is secured with 2.5 billion tCO2e carbon storage and water regulation for 8 million downstream residents. The solution successfully creates 15 connectivity corridors between existing protected areas, enhancing landscape-level conservation."
+"This solution achieves HIGH biodiversity protection with 9 species groups meeting conservation targets. EXCELLENT ecosystem service provision is secured with 2.5 billion tCO2e carbon storage and water regulation for 8 million downstream residents. The solution successfully creates 15 connectivity corridors between existing protected areas, enhancing landscape-level conservation."
 
 PAGE 3 - LOSSES/COSTS (WHAT YOU LOSE):
 
 **Large Section Heading with Orange/Amber Accent:**
-"Costs & Trade-offs: What This Scenario Requires"
+"Costs & Trade-offs: What This Solution Requires"
 
 **Agricultural Opportunity Cost:**
 - Large stat card: $350M USD
@@ -382,7 +382,7 @@ PAGE 3 - LOSSES/COSTS (WHAT YOU LOSE):
 - Small map showing conflict zones in orange overlay
 
 **Auto-Generated Narrative Text (Amber-bordered box):**
-"This scenario incurs MODERATE economic impact with $350M USD in agricultural opportunity cost representing 12% of regional agricultural GDP. 15% of priority areas overlap with moderate-to-high human pressure zones, requiring careful restoration approaches. Conservation priorities overlap with 8,200 km² of historical conflict zones and 5 indigenous territories, necessitating extensive community engagement and consultation processes under ILO Convention 169."
+"This solution incurs MODERATE economic impact with $350M USD in agricultural opportunity cost representing 12% of regional agricultural GDP. 15% of priority areas overlap with moderate-to-high human pressure zones, requiring careful restoration approaches. Conservation priorities overlap with 8,200 km² of historical conflict zones and 5 indigenous territories, necessitating extensive community engagement and consultation processes under ILO Convention 169."
 
 PAGE 4 - INTEGRATED SYNTHESIS & RECOMMENDATIONS:
 
@@ -393,7 +393,7 @@ PAGE 4 - INTEGRATED SYNTHESIS & RECOMMENDATIONS:
 - Dual-axis chart showing "Biodiversity Achievement vs. Economic Cost"
 
 **Key Trade-offs Statement (Large, Bold Text):**
-"This scenario prioritizes high-elevation ecosystems (cloud forests, páramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
+"This solution prioritizes high-elevation ecosystems (cloud forests, páramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
 
 **Why Goals Were Unmet (Critical Section):**
 - Text explaining unmet targets:
@@ -428,7 +428,7 @@ STYLE:
 
 ## TIER 2: Important for Development Clarity
 
-### 5. Scenario Comparison Panel (Right Sidebar)
+### 5. Solution Comparison Panel (Right Sidebar)
 
 **Component Reference:** MDD Section 4.3.3  
 **Complexity:** Medium - Side-by-side metrics with difference calculations
@@ -436,26 +436,26 @@ STYLE:
 **Prompt:**
 
 ```
-Create a high-fidelity UI mockup of a "Scenario Comparison Panel" displayed in a right sidebar for a conservation planning application. This shows side-by-side analysis of two conservation scenarios to support trade-off decisions (Tier 2 users only).
+Create a high-fidelity UI mockup of a "Solution Comparison Panel" displayed in a right sidebar for a conservation planning application. This shows side-by-side analysis of two conservation solutions to support trade-off decisions (Tier 2 users only).
 
 LAYOUT & STRUCTURE:
 - Right sidebar panel, approximately 400px wide
 - Scrollable content area
-- Clean comparison layout with clear visual separation between scenarios
+- Clean comparison layout with clear visual separation between solutions
 
 HEADER:
-- Title: "Scenario Comparison"
-- Two scenario labels side-by-side:
-  * "Scenario A: Cloud Forest Focus" (left, blue accent)
-  * "Scenario B: Biodiversity Maximum" (right, purple accent)
+- Title: "Solution Comparison"
+- Two solution labels side-by-side:
+  * "Solution A: Cloud Forest Focus" (left, blue accent)
+  * "Solution B: Biodiversity Maximum" (right, purple accent)
 - Each with match quality badge: "95% Match" and "88% Match"
 - Small "Switch" icon button between them to swap A/B
 
 COMPARATIVE STATISTICS TABLE (Primary Content):
-- Large comparison table with 3 columns: Metric | Scenario A | Scenario B | Difference
+- Large comparison table with 3 columns: Metric | Solution A | Solution B | Difference
 - Key metrics shown:
 
-| Metric | Scenario A | Scenario B | Difference |
+| Metric | Solution A | Solution B | Difference |
 |--------|-----------|-----------|------------|
 | **Total Priority Area** | 125,000 km² | 98,000 km² | -27,000 km² ↓ |
 | **% of Colombia** | 12% | 9% | -3% ↓ |
@@ -473,11 +473,11 @@ COMPARATIVE STATISTICS TABLE (Primary Content):
 
 THEME ACHIEVEMENT COMPARISON:
 - Side-by-side checklist showing conservation features:
-  * Left column (Scenario A): Checkmarks and X marks
-  * Right column (Scenario B): Checkmarks and X marks
+  * Left column (Solution A): Checkmarks and X marks
+  * Right column (Solution B): Checkmarks and X marks
   * Highlighted differences (where one meets goal and other doesn't)
 - Example:
-  | Feature | Scenario A | Scenario B |
+  | Feature | Solution A | Solution B |
   |---------|-----------|-----------|
   | Mammals | ✓ 32% | ✓ 35% |
   | Cloud Forest | ✓ 35% | ✓ 28% |
@@ -487,20 +487,20 @@ SPATIAL OVERLAP ANALYSIS:
 - Heading: "Spatial Agreement & Conflict"
 - Three large stat cards with icons:
   * "Agreement: 65,000 km²" with green checkmark icon (areas in both)
-  * "Unique to Scenario A: 60,000 km²" with blue circle icon
-  * "Unique to Scenario B: 33,000 km²" with purple circle icon
+  * "Unique to Solution A: 60,000 km²" with blue circle icon
+  * "Unique to Solution B: 33,000 km²" with purple circle icon
 - Small Venn diagram visualization showing overlap
 - Stat: "Synergy Zones: 12 corridors" with purple network icon
 
 AUTO-GENERATED TRADE-OFF NARRATIVE:
 - Light gray text box with auto-generated summary:
-  "Scenario A protects more area (+27,000 km²) and stores more carbon (+400M tCO2e) but has higher opportunity cost (+$130M) and greater conflict exposure (+3,100 km²). Scenario B achieves one additional species goal while reducing economic and social implementation costs, making it more feasible for near-term implementation."
+  "Solution A protects more area (+27,000 km²) and stores more carbon (+400M tCO2e) but has higher opportunity cost (+$130M) and greater conflict exposure (+3,100 km²). Solution B achieves one additional species goal while reducing economic and social implementation costs, making it more feasible for near-term implementation."
 
 MAP LEGEND REFERENCE:
 - Small legend box showing difference map colors:
-  * Green: Agreement (both scenarios)
-  * Blue: Unique to Scenario A
-  * Purple: Unique to Scenario B
+  * Green: Agreement (both solutions)
+  * Blue: Unique to Solution A
+  * Purple: Unique to Solution B
   * Orange: Synergy/Connectivity zones
 - Note: "See map for spatial visualization"
 
@@ -511,7 +511,7 @@ ACTION BUTTONS (Footer):
 
 STYLE:
 - Clean comparison layout with clear side-by-side structure
-- Color coding: Blue for Scenario A, Purple for Scenario B, Green for agreement
+- Color coding: Blue for Solution A, Purple for Solution B, Green for agreement
 - Professional data dashboard aesthetic
 - Clear visual hierarchy
 - Mix of tables, stat cards, and small visualizations
@@ -543,12 +543,12 @@ LEFT SIDEBAR - "CONTROL DASHBOARD":
 - User profile icon (top-right corner of sidebar)
 
 **Solution Selector Section:**
-- Current scenario card:
-  * "Active Scenario: Cloud Forest Protection"
+- Current solution card:
+  * "Active Solution: Cloud Forest Protection"
   * Match badge: "95% Match"
   * Small thumbnail preview map
 - Large primary button: "Find a New Solution" (opens Solution Finder modal)
-- Dropdown showing recent scenarios
+- Dropdown showing recent solutions
 
 **Layer Visibility Manager:**
 - Section heading: "Map Layers"
@@ -634,7 +634,7 @@ RIGHT SIDEBAR - "ANALYSIS DASHBOARD":
 
 APPLICATION HEADER (Top bar across all three panels):
 - Left: App title "Conservation Decision Support Tool"
-- Center: Active scenario name badge
+- Center: Active solution name badge
 - Right: User menu, notifications bell, help button
 
 STYLE:
@@ -802,7 +802,7 @@ After generating mockups, verify against the MDD:
 - [ ] AOI Dashboard shows regional vs. national comparison table
 - [ ] Solution Finder has all three input types (Themes, Weights, Constraints)
 - [ ] Trade-off Report has multi-page layout with both Gains and Losses sections
-- [ ] Scenario Comparison shows side-by-side metrics with difference calculations
+- [ ] Solution Comparison shows side-by-side metrics with difference calculations
 - [ ] Map interface shows all three panes with proper proportions
 - [ ] Perspective Selection shows all 5 personas with descriptions
 

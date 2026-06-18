@@ -33,8 +33,8 @@ After loading a conservation solution, the right sidebar (400–420px) displays 
 ```
 ┌─────────────────────────────────────┐
 │  HEADER                             │
-│  "Conservation Scenario Overview"   │
-│  Scenario name · [95% Match] · date │
+│  "Conservation Solution Overview"   │
+│  Solution name · [95% Match] · date │
 ├─────────────────────────────────────┤
 │  HERO SCORECARD  (2-column grid)    │
 │  ┌──────────┐  ┌──────────┐        │
@@ -77,7 +77,7 @@ After loading a conservation solution, the right sidebar (400–420px) displays 
 │    (collapsed by default)           │
 ├─────────────────────────────────────┤
 │  [See Full Summary Report]          │
-│  [Compare Scenarios] [Download]     │
+│  [Compare Solutions] [Download]     │
 └─────────────────────────────────────┘
 ```
 
@@ -85,7 +85,7 @@ After loading a conservation solution, the right sidebar (400–420px) displays 
 
 **Three visual tiers create a clear reading hierarchy:**
 
-1. **Hero Scorecard** — Two large metric cards (Conservation Goals Met + National Contribution %) answer "Is this scenario good?" in <3 seconds. Uses the Serial Position Effect — the first things seen are remembered best.
+1. **Hero Scorecard** — Two large metric cards (Conservation Goals Met + National Contribution %) answer "Is this solution good?" in <3 seconds. Uses the Serial Position Effect — the first things seen are remembered best.
 
 2. **Compact Metric Rows** — Gains and Losses sections use single-line rows (icon + label + value + status chip) rather than full cards. This fits ~8 metrics in the space that cards would need for ~4, reducing scrolling in a narrow sidebar. Binary Gains/Losses grouping leverages the Framing Effect for decision-making cognition.
 

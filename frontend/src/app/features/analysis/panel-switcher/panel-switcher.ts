@@ -15,7 +15,7 @@ import {
   type MetricValueFormatHint,
   type Solution,
   type SolutionIdentitySummary,
-  type SolutionScenario,
+  type CatalogSolution,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
@@ -919,9 +919,9 @@ export class PanelSwitcherComponent {
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
-    const solution = this.activeSolution();
-    const scenario = this.findActiveSolutionScenario(solution);
-    return buildSolutionIdentitySummary(solution, scenario);
+    const activeSolution = this.activeSolution();
+    const catalogSolution = this.findActiveCatalogSolution(activeSolution);
+    return buildSolutionIdentitySummary(activeSolution, catalogSolution);
   });
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiGeometry = this.appState.customAOIGeometry$;
@@ -1248,14 +1248,14 @@ export class PanelSwitcherComponent {
   }
 
   /**
-   * Resolve the scenario id used to load cached metrics. Prefer the real
-   * `metadata.scenarioId` (always the manifest id) over `solution.id`, which can
+   * Resolve the solution id used to load cached metrics. Prefer the real
+   * `metadata.solutionId` (always the manifest id) over `solution.id`, which can
    * be a mock id when the candidate is built via the dev-tools panel.
    */
   private resolveMetricsSolutionId(solution: Solution | null): string | null {
-    const scenarioId = solution?.metadata?.['scenarioId'];
-    if (typeof scenarioId === 'string' && scenarioId.length > 0) {
-      return scenarioId;
+    const solutionId = solution?.metadata?.['solutionId'];
+    if (typeof solutionId === 'string' && solutionId.length > 0) {
+      return solutionId;
     }
     return solution?.id ?? null;
   }
@@ -1882,10 +1882,10 @@ export class PanelSwitcherComponent {
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
   }
 
-  private findActiveSolutionScenario(solution: Solution | null): SolutionScenario | null {
-    const metadataScenarioId = solution?.metadata?.['scenarioId'];
-    const scenarioId = typeof metadataScenarioId === 'string' ? metadataScenarioId : solution?.id;
-    return scenarioId ? this.solutionCatalog.getById(scenarioId) : null;
+  private findActiveCatalogSolution(solution: Solution | null): CatalogSolution | null {
+    const metadataSolutionId = solution?.metadata?.['solutionId'];
+    const solutionId = typeof metadataSolutionId === 'string' ? metadataSolutionId : solution?.id;
+    return solutionId ? this.solutionCatalog.getById(solutionId) : null;
   }
 
   private loadCustomAoiMetricBatch(
@@ -2652,16 +2652,16 @@ export class PanelSwitcherComponent {
         'overlap',
       ),
       this.buildSpatialOverlapEntry(
-        'unique-scenario-a',
-        'analysis.comparison.metrics.uniqueScenarioA',
-        'analysis.comparison.metrics.uniqueScenarioADesc',
+        'unique-solution-a',
+        'analysis.comparison.metrics.uniqueSolutionA',
+        'analysis.comparison.metrics.uniqueSolutionADesc',
         liveMetrics.uniqueToBaselineKm2,
         'baseline',
       ),
       this.buildSpatialOverlapEntry(
-        'unique-scenario-b',
-        'analysis.comparison.metrics.uniqueScenarioB',
-        'analysis.comparison.metrics.uniqueScenarioBDesc',
+        'unique-solution-b',
+        'analysis.comparison.metrics.uniqueSolutionB',
+        'analysis.comparison.metrics.uniqueSolutionBDesc',
         liveMetrics.uniqueToCandidateKm2,
         'candidate',
       ),

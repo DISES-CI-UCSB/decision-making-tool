@@ -32,7 +32,7 @@ For each species with at least one valid range pixel:
 
 For the "secured" metric (#3), the per-scope coverage ratio is::
 
-    cells_in_scope_selected / cells_in_scope_range >= scenario_target_pct
+    cells_in_scope_selected / cells_in_scope_range >= solution_target_pct
 
 i.e. "what fraction of this species's range *that exists in this region* is
 captured by the priority area?".  That gives intuitive sub-national readouts
@@ -73,13 +73,13 @@ class SpeciesScopeCounts:
     # Richness counts (#21–#25): species present per class bucket.
     by_bucket: dict[str, int] = field(default_factory=lambda: {b: 0 for b in CLASS_BUCKETS})
     # Species group coverage (#2): species with usable range, and subset meeting
-    # the scenario target in this scope.
+    # the solution target in this scope.
     coverage_by_bucket: dict[str, "SpeciesCoverageCounts"] = field(
         default_factory=lambda: {b: SpeciesCoverageCounts() for b in CLASS_BUCKETS}
     )
     # Threatened metrics (#26 / #3).
     threatened_present: int = 0           # CR/EN/VU non-fish whose range overlaps selection
-    threatened_secured: int = 0           # subset whose coverage ratio >= scenario_target_pct
+    threatened_secured: int = 0           # subset whose coverage ratio >= solution_target_pct
     # All-non-fish present (numerator of #28).
     all_present: int = 0
 

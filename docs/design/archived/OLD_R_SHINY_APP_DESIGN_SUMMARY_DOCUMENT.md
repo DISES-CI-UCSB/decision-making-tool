@@ -52,7 +52,7 @@ User Actions:
 - View solution on map (see spatial pattern)
 - Review statistics (goals met? area needed? cost?)
 - Compare trade-offs (what you get vs. what you give up)
-- Download results or try different scenarios
+- Download results or try different solutions
 ↓
 Result: Informed decision about conservation priorities
 ```
@@ -133,7 +133,7 @@ Option A: Satisfied → Download solution + results → Done
     ↓
 Option B: Not satisfied → Adjust parameters → Return to Stage 2
     ↓
-Option C: Compare scenarios → Generate additional solutions → Compare results
+Option C: Compare solutions → Generate additional solutions → Compare results
 ```
 
 ### Key Concepts (Quick Reference)
@@ -1182,14 +1182,14 @@ Based on current architecture, potential extensions could include:
 ### Data & Analysis
 - Multiple objective optimization
 - Uncertainty analysis
-- Scenario comparison tools
+- Solution comparison tools
 - Time-series/dynamic planning
 - Climate change projections
 - Connectivity algorithms beyond boundary matrix
 
 ### UI/UX
 - Solution comparison view (side-by-side)
-- Interactive what-if scenarios
+- Interactive what-if solutions
 - Real-time budget constraint visualization
 - Mobile-responsive design
 - Collaborative features (multi-user)
@@ -1279,7 +1279,7 @@ Based on current architecture, potential extensions could include:
 - A constraint layer that forces specific planning units to be excluded (locked-out) from the solution. Binary layer (0 or 1) where 1 = cannot be selected. Used for urban areas, incompatible land uses, or unavailable areas.
 
 **Solution**
-- The output of an optimization run; a spatial pattern showing which planning units should be prioritized for conservation (selected = 1, not selected = 0). Also called a "conservation plan" or "prioritization scenario."
+- The output of an optimization run; a spatial pattern showing which planning units should be prioritized for conservation (selected = 1, not selected = 0). Also called a "conservation plan" or "prioritization solution."
 
 ### Settings & Parameters
 

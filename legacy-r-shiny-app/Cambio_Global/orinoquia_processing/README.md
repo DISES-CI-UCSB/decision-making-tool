@@ -11,14 +11,14 @@ The ORINOQUIA project uses **3km resolution** planning units covering the Orinoq
 - **Planning Units**: `PUs/PUs_ORINOQUIA_3km.tif` and `input/PUs_ORINOQUIA_3km.csv`
 - **RIJ Matrix**: `input/rij_ORINOQUIA_3km.fst` (created from shapefile using `exact_extract`)
 - **Features Metadata**: `input/features_v4_4_24_(MAPV).xlsx`
-- **Scenarios**: `input/scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx` (contains ORINOQUIA scenarios)
+- **Solutions**: `input/solutions_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx` (contains ORINOQUIA solutions)
 - **Solutions**: `output/ORINOQUIA/*.tif`
 
 ## Important Notes
 
 - **Binary Features**: Features classified as "ONE CATEGORY" layers (where `count==1` and `sum(id_original)==1`) are automatically thresholded to 0/1 after extraction to ensure they remain binary, even though the rij stores coverage amounts that may be > 1.
 
-- **Solution Naming**: ORINOQUIA solutions have a unique naming convention (e.g., `R1O_Especies focales+RUNAP_HF_30.tif`). The script matches these to scenarios in `scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx` to extract themes, targets, weights, and includes/excludes. Manual review is recommended to verify the mapping is correct.
+- **Solution Naming**: ORINOQUIA solutions have a unique naming convention (e.g., `R1O_Especies focales+RUNAP_HF_30.tif`). The script matches these to solutions in `solutions_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx` to extract themes, targets, weights, and includes/excludes. Manual review is recommended to verify the mapping is correct.
 
 - **No ORINOQUIA-specific scripts**: Unlike Nacional and Eje Cafetero, there are no original processing scripts that explicitly reference ORINOQUIA. This pipeline is reverse-engineered based on available data files.
 
@@ -45,7 +45,7 @@ upload_ready/
 │   ├── [feature].tif
 │   └── layers.csv           (inside layers folder)
 └── solutions/
-    ├── [scenario].tif
+    ├── [solution].tif
     └── solutions.csv         (inside solutions folder)
 ```
 
@@ -64,18 +64,18 @@ source("02_organize_for_upload.R")
 
 After running the scripts, **review** `upload_ready/solutions/solutions.csv`:
 
-1. **themes**: Verify feature names from scenarios are correctly mapped
+1. **themes**: Verify feature names from solutions are correctly mapped
 2. **targets**: Check that targets from `sensibilidad` column are correct (auto-converted from percentages)
 3. **weights**: Confirm cost layers from `costo` column are properly mapped to display names
-4. **includes/excludes**: Verify constraint layers from `inclusion`/`exlusion` columns match scenario intent
+4. **includes/excludes**: Verify constraint layers from `inclusion`/`exlusion` columns match solution intent
 
-The script extracts these from `scenarios_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx` and maps solution files by scenario number (R1O, R3O, etc.).
+The script extracts these from `solutions_to_run_4_24 _Iteraciones Prioritarias_v2.xlsx` and maps solution files by solution number (R1O, R3O, etc.).
 
 ## Solution Filename Patterns
 
 Common patterns in ORINOQUIA filenames:
 
-- `R[#]O`: Scenario ID (e.g., R1O, R3O, R5O)
+- `R[#]O`: Solution ID (e.g., R1O, R3O, R5O)
 - `Especies focales`: Focal species
 - `Especies17`: Species with 17% target
 - `Ecos17`: Ecosystems with 17% target  

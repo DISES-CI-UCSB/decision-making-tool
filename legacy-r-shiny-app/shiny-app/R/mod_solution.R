@@ -220,7 +220,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
       df$file_exists <- file.exists(file.path(base_folder(), df$file_path))
 
       # Keep only SolutionLayers schema columns + File
-      pl_columns <- c("scenario", "description", "author_name", "author_email", 
+      pl_columns <- c("solution", "description", "author_name", "author_email", 
         "user_group", "file_path", "file_exists",
         "themes","targets","weights","includes","excludes")
       df_subset <- df[, intersect(pl_columns, colnames(df)), drop = FALSE]
@@ -348,7 +348,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
       for (i in seq_len(nrow(df))) {
         row <- df[i, ]
         
-        cat("*** Validating solution:", row$scenario, "***\n")
+        cat("*** Validating solution:", row$solution, "***\n")
         cat("***   themes:", row$themes, "***\n")
         cat("***   weights:", row$weights, "***\n")
         cat("***   includes:", row$includes, "***\n")
@@ -366,7 +366,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
         if (length(bad_excludes) > 0) cat("***   BAD excludes:", paste(bad_excludes, collapse=", "), "***\n")
 
         if (length(c(bad_themes, bad_weights, bad_includes, bad_excludes)) > 0) {
-          invalid_refs[[row$scenario]] <- list(
+          invalid_refs[[row$solution]] <- list(
             themes = bad_themes,
             weights = bad_weights,
             includes = bad_includes,
@@ -381,7 +381,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
         
         msg <- lapply(names(invalid_refs), function(scn) {
           bads <- invalid_refs[[scn]]
-          paste0("Scenario '", scn, "' references non-existent layers:\n",
+          paste0("Solution '", scn, "' references non-existent layers:\n",
                 paste(
                   unlist(mapply(function(type, vals) {
                     if (length(vals) > 0) paste0("  ", type, ": [", paste(vals, collapse = ", "), "]")
@@ -417,7 +417,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
         shinyjs::html("progress_details", paste("Procesando soluciones (0 de", nrow(df), ")..."))
         for (i in seq_len(nrow(df))) {
           row <- df[i, ]
-          shinyjs::html("progress_details", paste("Procesando solución", i, "de", nrow(df), ":", row$scenario))
+          shinyjs::html("progress_details", paste("Procesando solución", i, "de", nrow(df), ":", row$solution))
 
           # Copy solution file to uploads folder
           cat("*** SOLUTION UPLOAD DEBUG ***\n")
@@ -485,7 +485,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
               
               # Check if grids match
               if (!terra::compareGeom(pu_raster, solution_raster, stopOnError = FALSE)) {
-                cat("*** Solution grid mismatch for:", row$scenario, "***\n")
+                cat("*** Solution grid mismatch for:", row$solution, "***\n")
                 cat("*** Attempting to align solution to planning unit grid ***\n")
                 
                 # Attempt to align solution to planning unit grid
@@ -563,7 +563,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
             } else {
               sub(paste0("^", normalizePath(getwd(), winslash = "/"), "/"), "", normalizePath(target_path, winslash = "/")) # Store relative path (Local)
             },
-            name = as.character(row$scenario),  # Ensure it's a string, not a number
+            name = as.character(row$solution),  # Ensure it's a string, not a number
             description = paste("Solution file imported from ZIP:", row$description)
           )
           
@@ -679,7 +679,7 @@ solutionServer <- function(id, client, auth_token, user_info, projects_data, ref
             input = list(
               projectId   = as.character(input$project_select),
               authorId    = as.character(user_info()$id),
-              title       = safe_char(row$scenario),
+              title       = safe_char(row$solution),
               description = safe_char(row$description),
               authorName  = safe_char(row$author_name),
               authorEmail = safe_char(row$author_email),

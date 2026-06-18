@@ -35,7 +35,7 @@
 4. Trade-off Analysis Report (Multi-page PDF layout)
 
 **Tier 2 - Important for Development Clarity (4 prompts):**
-5. Scenario Comparison Panel (Side-by-side analysis)
+5. Solution Comparison Panel (Side-by-side analysis)
 6. Full Application Layout (3-pane interface)
 7. Perspective Selection Modal (5 personas)
 8. Welcome/Getting Started Panel (Onboarding state)
@@ -78,8 +78,8 @@ STRUCTURE & CONTENT:
 <body>
 
 HEADER SECTION:
-- Title: "Conservation Scenario Overview"
-- Scenario name: "Cloud Forest Protection - 30% Target"
+- Title: "Conservation Solution Overview"
+- Solution name: "Cloud Forest Protection - 30% Target"
 - Green pill badge: "95% Match"
 - Small gray text: "Last updated: Nov 2024"
 
@@ -111,7 +111,7 @@ SECTION C - GAINS/LOSSES FRAMEWORK (CRITICAL):
   * Additional placeholder cards
 
 - Auto-generated narrative in green-bordered box:
-  "This scenario achieves HIGH biodiversity protection with 9 species groups meeting conservation targets and EXCELLENT ecosystem service provision with 2.3 bilion tCO2e carbon storage secured"
+  "This solution achieves HIGH biodiversity protection with 9 species groups meeting conservation targets and EXCELLENT ecosystem service provision with 2.3 bilion tCO2e carbon storage secured"
 
 **LOSSES/COSTS Section** (Orange accent):
 - Large heading: "⚠ LOSSES/COSTS (What Yose Lou Lose)" with warning icon
@@ -122,7 +122,7 @@ SECTION C - GAINS/LOSSES FRAMEWORK (CRITICAL):
   * "Conflict Zone Overlap" - Alert icon - "95,000 km²"
 
 - Auto-generated narrative in orange-bordered box:
-  "This scenario incurs MODERATE economic impact with $350M in agricultural oppotunity cost and 15% of priorates moderate-to-high hutess. ing qequirian presures"
+  "This solution incurs MODERATE economic impact with $350M in agricultural oppotunity cost and 15% of priorates moderate-to-high hutess. ing qequirian presures"
 
 SECTION D - NATIONAL CONTRIBUTION:
 - Heading: "National Contribution"
@@ -132,7 +132,7 @@ SECTION D - NATIONAL CONTRIBUTION:
 
 ACTION BUTTONS (Bottom):
 - Primary green button: "See Full Summary Report"
-- Two secondary gray buttons: "Compare Scenarios" | "Download Data"
+- Two secondary gray buttons: "Compare Solutions" | "Download Data"
 
 CSS STYLING REQUIREMENTS:
 - Color palette:
@@ -279,7 +279,7 @@ JAVASCRIPT REQUIREMENTS:
 **Prompt:**
 
 ```
-Generate a complete HTML file that creates a mockup of the "Solution Finder" modal for a conservation planning application. This is a large centered modal with interactive sliders, toggles, and scenario results.
+Generate a complete HTML file that creates a mockup of the "Solution Finder" modal for a conservation planning application. This is a large centered modal with interactive sliders, toggles, and solution results.
 
 REQUIREMENTS:
 - Single HTML file with embedded CSS and JavaScript
@@ -300,7 +300,7 @@ MODAL (Centered, 1200px wide x 800px tall):
 - Overflow: scroll for content
 
 HEADER:
-- Title: "Find a Conservation Scenario"
+- Title: "Find a Conservation Solution"
 - Subtitle: "Define your priorities to discover the best-matching conservation solution"
 - Close button (X) at top-right
 
@@ -361,17 +361,17 @@ Toggles:
 
 **BOTTOM SECTION - Results Preview:**
 - Horizontal divider
-- Heading: "Top Matching Scenarios"
-- 3 scenario result cards displayed horizontally:
+- Heading: "Top Matching Solutions"
+- 3 solution result cards displayed horizontally:
 
 Each card shows:
 - Small map thumbnail (placeholder gray box with green shapes)
-- Scenario name: "Cloud Forest Protection - 30% Target"
+- Solution name: "Cloud Forest Protection - 30% Target"
 - Large green pill badge: "95% Match"
 - Brief description: "Prioritizes high-elevation ecosystems with moderate cost"
-- Blue button: "Apply Scenario"
+- Blue button: "Apply Solution"
 
-- Currently selected scenario has blue border
+- Currently selected solution has blue border
 - "View More Results" link at right
 
 **WARNING BOX (Optional, if constraints are extreme):**
@@ -382,7 +382,7 @@ FOOTER:
 - Left: "Need help?" text link
 - Right: Two buttons:
   * "Reset to Default" (ghost button)
-  * "Apply Selected Scenario" (primary blue button)
+  * "Apply Selected Solution" (primary blue button)
 
 CSS REQUIREMENTS:
 - Modal: max-width 1200px, max-height 800px, overflow-y: auto
@@ -395,7 +395,7 @@ CSS REQUIREMENTS:
   * OFF: gray background, toggle left
   * ON: green background, toggle right
 - Pill buttons for target percentages (rounded, blue when selected)
-- Scenario cards with subtle hover effect (lift shadow)
+- Solution cards with subtle hover effect (lift shadow)
 - Responsive: stack columns vertically on narrow screens
 
 JAVASCRIPT REQUIREMENTS:
@@ -403,7 +403,7 @@ JAVASCRIPT REQUIREMENTS:
 - Toggle switch state (click to toggle on/off, change color)
 - Pill button selection (click to select, blue highlight)
 - Close modal on backdrop click or X button
-- "Apply Scenario" button highlights selected card
+- "Apply Solution" button highlights selected card
 - Optional: Calculate "match percentage" based on selections (random for demo)
 ```
 
@@ -436,7 +436,7 @@ PAGE LAYOUT:
 REPORT HEADER (All Pages):
 - Small logo text: "Conservation Decision Support Tool - Colombia"
 - Report title: "Trade-off Analysis Report"
-- Scenario name: "Cloud Forest Protection - 30% Target"
+- Solution name: "Cloud Forest Protection - 30% Target"
 - Generated date: "November 15, 2024"
 - Selected perspective badge: "Conservationist Perspective" (blue pill)
 
@@ -444,8 +444,8 @@ REPORT HEADER (All Pages):
 
 **PAGE 1 - EXECUTIVE SUMMARY:**
 
-**Scenario Identity Card:**
-- Scenario name and ID
+**Solution Identity Card:**
+- Solution name and ID
 - Match quality badge: "95% Match"
 - Date created: Nov 2024
 - Small map placeholder (gray box with Colombia outline and green areas)
@@ -473,7 +473,7 @@ Four cards in horizontal row:
 **PAGE 2 - GAINS (WHAT YOU GET):**
 
 **Large Section Heading (Green):**
-"✓ Conservation Gains: What This Scenario Achieves"
+"✓ Conservation Gains: What This Solution Achieves"
 
 **Conservation Goals Met:**
 - Checkmark grid showing 8 of 10 themes with green checks
@@ -495,14 +495,14 @@ Three large stat cards:
    - Small map showing purple corridor lines
 
 **Auto-Generated Narrative (Green-bordered box):**
-"This scenario achieves HIGH biodiversity protection with 9 species groups meeting conservation targets. EXCELLENT ecosystem service provision is secured with 2.5 billion tCO2e carbon storage and water regulation for 8 million downstream residents. The solution successfully creates 15 connectivity corridors between existing protected areas, enhancing landscape-level conservation."
+"This solution achieves HIGH biodiversity protection with 9 species groups meeting conservation targets. EXCELLENT ecosystem service provision is secured with 2.5 billion tCO2e carbon storage and water regulation for 8 million downstream residents. The solution successfully creates 15 connectivity corridors between existing protected areas, enhancing landscape-level conservation."
 
 ---
 
 **PAGE 3 - LOSSES/COSTS (WHAT YOU LOSE):**
 
 **Large Section Heading (Orange):**
-"⚠ Costs & Trade-offs: What This Scenario Requires"
+"⚠ Costs & Trade-offs: What This Solution Requires"
 
 **Agricultural Opportunity Cost:**
 - Large stat card: "$350M USD"
@@ -527,7 +527,7 @@ Three large stat cards:
 - Small map showing orange conflict zone overlay
 
 **Auto-Generated Narrative (Orange-bordered box):**
-"This scenario incurs MODERATE economic impact with $350M USD in agricultural opportunity cost representing 12% of regional agricultural GDP. 15% of priority areas overlap with moderate-to-high human pressure zones, requiring careful restoration approaches. Conservation priorities overlap with 8,200 km² of historical conflict zones and 5 indigenous territories, necessitating extensive community engagement and consultation processes."
+"This solution incurs MODERATE economic impact with $350M USD in agricultural opportunity cost representing 12% of regional agricultural GDP. 15% of priority areas overlap with moderate-to-high human pressure zones, requiring careful restoration approaches. Conservation priorities overlap with 8,200 km² of historical conflict zones and 5 indigenous territories, necessitating extensive community engagement and consultation processes."
 
 ---
 
@@ -540,7 +540,7 @@ Three large stat cards:
 - Dual-axis chart (Chart.js): Biodiversity Achievement (bars) vs. Economic Cost (line)
 
 **Key Trade-offs Statement (Large bold text):**
-"This scenario prioritizes high-elevation ecosystems (cloud forests, páramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
+"This solution prioritizes high-elevation ecosystems (cloud forests, páramo) at moderate economic cost, achieving excellent carbon and water outcomes while requiring careful navigation of land-use conflicts in 15% of priority areas."
 
 **Why Goals Were Unmet:**
 Heading: "Explanation of Unmet Conservation Targets"
@@ -594,35 +594,35 @@ CHART.JS REQUIREMENTS:
 
 ## TIER 2: Important for Development Clarity
 
-### 5. Scenario Comparison Panel
+### 5. Solution Comparison Panel
 
 **Component Reference:** MDD Section 4.3.3
 
 **Prompt:**
 
 ```
-Generate a complete HTML file that creates a mockup of the "Scenario Comparison Panel" as a right sidebar component. This shows side-by-side comparison of two conservation scenarios.
+Generate a complete HTML file that creates a mockup of the "Solution Comparison Panel" as a right sidebar component. This shows side-by-side comparison of two conservation solutions.
 
 REQUIREMENTS:
 - Single HTML file with embedded CSS
 - 400px sidebar width
 - Comparison table with color-coded differences
-- Interactive "Switch" button to swap scenarios
+- Interactive "Switch" button to swap solutions
 
 STRUCTURE & CONTENT:
 
 HEADER:
-- Title: "Scenario Comparison"
-- Two scenario labels side-by-side (flex row):
-  * "Scenario A: Cloud Forest Focus" (left, blue accent)
-  * "Scenario B: Biodiversity Maximum" (right, purple accent)
+- Title: "Solution Comparison"
+- Two solution labels side-by-side (flex row):
+  * "Solution A: Cloud Forest Focus" (left, blue accent)
+  * "Solution B: Biodiversity Maximum" (right, purple accent)
 - Match badges: "95% Match" and "88% Match"
 - Small circular swap icon button between them
 
 COMPARATIVE STATISTICS TABLE:
 Large table with 4 columns and 7 rows:
 
-| Metric | Scenario A | Scenario B | Difference |
+| Metric | Solution A | Solution B | Difference |
 |--------|-----------|-----------|------------|
 | Total Priority Area | 125,000 km² | 98,000 km² | -27,000 km² ↓ 🔴 |
 | % of Colombia | 12% | 9% | -3% ↓ 🔴 |
@@ -640,7 +640,7 @@ Difference column styling:
 THEME ACHIEVEMENT COMPARISON:
 Side-by-side checklist (2 columns):
 
-| Feature | Scenario A | Scenario B |
+| Feature | Solution A | Solution B |
 |---------|-----------|-----------|
 | Mammals | ✓ 32% | ✓ 35% |
 | Cloud Forest | ✓ 35% | ✓ 28% |
@@ -652,8 +652,8 @@ Highlight rows where one meets goal and other doesn't
 SPATIAL OVERLAP ANALYSIS:
 Three stat cards (vertical stack):
 1. "Agreement: 65,000 km²" - Green background, checkmark icon
-2. "Unique to Scenario A: 60,000 km²" - Blue background, circle icon
-3. "Unique to Scenario B: 33,000 km²" - Purple background, circle icon
+2. "Unique to Solution A: 60,000 km²" - Blue background, circle icon
+3. "Unique to Solution B: 33,000 km²" - Purple background, circle icon
 
 Small Venn diagram visualization (CSS/SVG):
 - Two overlapping circles (blue and purple)
@@ -664,13 +664,13 @@ Stat: "Synergy Zones: 12 corridors" - Purple badge with network icon
 
 AUTO-GENERATED NARRATIVE:
 Light gray text box:
-"Scenario A protects more area (+27,000 km²) and stores more carbon (+400M tCO2e) but has higher opportunity cost (+$130M) and greater conflict exposure (+3,100 km²). Scenario B achieves one additional species goal while reducing economic and social implementation costs, making it more feasible for near-term implementation."
+"Solution A protects more area (+27,000 km²) and stores more carbon (+400M tCO2e) but has higher opportunity cost (+$130M) and greater conflict exposure (+3,100 km²). Solution B achieves one additional species goal while reducing economic and social implementation costs, making it more feasible for near-term implementation."
 
 MAP LEGEND REFERENCE:
 Small legend box:
-- Green square: "Agreement (both scenarios)"
-- Blue square: "Unique to Scenario A"
-- Purple square: "Unique to Scenario B"
+- Green square: "Agreement (both solutions)"
+- Blue square: "Unique to Solution A"
+- Purple square: "Unique to Solution B"
 - Orange square: "Synergy/Connectivity"
 - Note: "See map for spatial visualization"
 
@@ -680,8 +680,8 @@ ACTION BUTTONS (Footer):
 - "Exit Comparison Mode"
 
 CSS REQUIREMENTS:
-- Blue accent for Scenario A
-- Purple accent for Scenario B
+- Blue accent for Solution A
+- Purple accent for Solution B
 - Green for agreement/improvements
 - Red for trade-offs
 - Clean table design with alternating row colors
@@ -717,7 +717,7 @@ OVERALL LAYOUT:
 
 TOP APPLICATION HEADER (Spans all 3 columns):
 - Left: Logo + "Conservation Decision Support Tool"
-- Center: Active scenario badge "Cloud Forest Protection - 95% Match"
+- Center: Active solution badge "Cloud Forest Protection - 95% Match"
 - Right: User icon, bell icon, help icon
 
 ---
@@ -727,12 +727,12 @@ TOP APPLICATION HEADER (Spans all 3 columns):
 Background: #F5F5F5 (light gray)
 
 **Solution Selector Section:**
-- Card showing active scenario:
+- Card showing active solution:
   * Small thumbnail map preview (placeholder gray with green)
-  * "Active Scenario: Cloud Forest Protection"
+  * "Active Solution: Cloud Forest Protection"
   * Green badge: "95% Match"
 - Large blue button: "Find a New Solution"
-- Dropdown: "Recent Scenarios ▼" (collapsed)
+- Dropdown: "Recent Solutions ▼" (collapsed)
 
 **Layer Visibility Manager:**
 - Heading: "Map Layers"
@@ -978,7 +978,7 @@ WELCOME MESSAGE:
 - Large friendly heading: "Welcome to the Conservation Decision Support Tool"
 - Icon above heading: 🌿 or leafy tree icon (large, centered)
 - Introductory text (2-3 sentences):
-  "Explore conservation priorities across Colombia's terrestrial and marine ecosystems. Discover optimal conservation scenarios based on biodiversity, ecosystem services, and socio-economic factors."
+  "Explore conservation priorities across Colombia's terrestrial and marine ecosystems. Discover optimal conservation solutions based on biodiversity, ecosystem services, and socio-economic factors."
 - Subtext: "Get started by selecting conservation priorities using the Solution Finder"
 
 QUICK START GUIDE:
@@ -1000,18 +1000,18 @@ Each step should have:
 - Bold step title
 - Description text in regular weight
 
-FEATURED SCENARIOS (Optional Section):
-- Heading: "Featured Scenarios" or "Quick Start Options"
-- Subtext: "Click a scenario to explore immediately"
-- 4-5 scenario cards displayed vertically:
+FEATURED SOLUTIONS (Optional Section):
+- Heading: "Featured Solutions" or "Quick Start Options"
+- Subtext: "Click a solution to explore immediately"
+- 4-5 solution cards displayed vertically:
 
 Each card shows:
-- Scenario name in bold
+- Solution name in bold
 - Small icon or color accent bar on left
 - Brief description (1 line)
-- "Load Scenario" link or arrow on right
+- "Load Solution" link or arrow on right
 
-Featured scenarios:
+Featured solutions:
 1. **Balanced Conservation & Development**
    Icon: ⚖️ Balance scale
    Description: "Moderate protection with economic considerations"
@@ -1053,7 +1053,7 @@ SECONDARY ACTIONS (Optional):
 
 HELPFUL TIPS SECTION (Optional):
 - Small info box at bottom with lightbulb icon:
-  "💡 Tip: You can compare scenarios, generate reports, and download data after selecting a solution."
+  "💡 Tip: You can compare solutions, generate reports, and download data after selecting a solution."
 
 CSS REQUIREMENTS:
 - Clean, modern onboarding design
@@ -1075,7 +1075,7 @@ CSS REQUIREMENTS:
   * Green background (#2E7D32)
   * White text
   * Bold number
-- Scenario cards:
+- Solution cards:
   * Light background (#F5F5F5)
   * Rounded corners (8px)
   * Subtle border (1px solid #E0E0E0)
@@ -1088,9 +1088,9 @@ CSS REQUIREMENTS:
   * Hover effect (darker green #1B5E20)
 
 INTERACTIVE ELEMENTS (JavaScript):
-- Hover effects on scenario cards (add class on mouseover)
+- Hover effects on solution cards (add class on mouseover)
 - Hover effect on primary button (color change)
-- Click on scenario cards logs scenario name (for demo)
+- Click on solution cards logs solution name (for demo)
 - Click on "Open Solution Finder" button logs action (for demo)
 
 ACCESSIBILITY:
@@ -1132,7 +1132,7 @@ STRUCTURE & CONTENT:
 REPORT HEADER:
 - Logo: "Conservation Decision Support Tool - Colombia"
 - Report title: "Ecosystem Assessment Report"
-- Scenario name: "Cloud Forest Protection - 30% Target"
+- Solution name: "Cloud Forest Protection - 30% Target"
 - AOI: "Cauca Department" (if region-specific)
 - Generated date
 
@@ -1283,7 +1283,7 @@ STRUCTURE & CONTENT:
 
 REPORT HEADER:
 - Title: "Connectivity Report"
-- Scenario and date
+- Solution and date
 
 ---
 
@@ -1421,7 +1421,7 @@ STRUCTURE & CONTENT:
 
 REPORT HEADER:
 - Title: "Species Conservation Report"
-- Scenario and date
+- Solution and date
 
 ---
 
@@ -1533,7 +1533,7 @@ STRUCTURE & CONTENT:
 
 REPORT HEADER:
 - Title: "Territorial Planning Report"
-- Scenario and date
+- Solution and date
 
 ---
 
@@ -1670,7 +1670,7 @@ STRUCTURE & CONTENT:
 REPORT HEADER:
 - Title: "Ethnic Territory Consultation Report"
 - Subtitle: "Prior Consultation Requirements under ILO Convention 169"
-- Scenario and date
+- Solution and date
 
 ---
 
@@ -1757,7 +1757,7 @@ Map showing cultural sites and traditional use areas
 - Develop culturally appropriate information materials
 
 **Phase 2: Information Stage (Months 4-6):**
-- Present conservation scenario to each community
+- Present conservation solution to each community
 - Provide full technical reports in accessible format
 - Translation to indigenous languages as needed
 - Community discussions and initial feedback
