@@ -511,65 +511,25 @@
               }
             </div>
 
-            @if (showViewFullReportButton()) {
-              <footer id="right-sidebar-v3-overview-footer" class="v3-panel-footer">
-                <button
-                  id="right-sidebar-v3-overview-btn-report"
-                  type="button"
-                  class="v3-btn v3-btn-primary"
-                  (click)="openNotImplementedDialog()"
-                >
-                  {{ 'analysis.overview.actions.viewFullReport' | translate }}
-                </button>
-              </footer>
-            }
-          </section>
-
-          @if (isNotImplementedDialogOpen()) {
-            <div
-              id="right-sidebar-not-implemented-dialog-backdrop"
-              class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6"
-              role="presentation"
-              tabindex="0"
-              (click)="onNotImplementedDialogBackdropClick($event)"
-              (keydown)="onNotImplementedDialogBackdropKeydown($event)"
-            >
-              <div
-                id="right-sidebar-not-implemented-dialog"
-                class="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-5 shadow-xl"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="right-sidebar-not-implemented-dialog-title"
-                aria-describedby="right-sidebar-not-implemented-dialog-description"
+            <footer id="right-sidebar-v3-overview-footer" class="v3-panel-footer">
+              <button
+                id="right-sidebar-overview-download-metrics-csv-btn"
+                type="button"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="!hasOverviewMetricsCsvRows()"
+                (click)="downloadOverviewMetricsCsv()"
               >
-                <h3
-                  id="right-sidebar-not-implemented-dialog-title"
-                  class="text-base font-semibold text-slate-900"
-                >
-                  {{ 'analysis.overview.notImplementedDialog.title' | translate }}
-                </h3>
-                <p
-                  id="right-sidebar-not-implemented-dialog-description"
-                  class="mt-2 text-sm leading-6 text-slate-600"
-                >
-                  {{ 'analysis.overview.notImplementedDialog.description' | translate }}
-                </p>
-                <div
-                  id="right-sidebar-not-implemented-dialog-actions"
-                  class="mt-4 flex justify-end"
-                >
-                  <button
-                    id="right-sidebar-not-implemented-dialog-close-btn"
-                    type="button"
-                    class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-                    (click)="closeNotImplementedDialog()"
-                  >
-                    {{ 'analysis.overview.notImplementedDialog.close' | translate }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          }
+                <i
+                  id="right-sidebar-overview-download-metrics-csv-icon"
+                  class="fas fa-download"
+                  aria-hidden="true"
+                ></i>
+                <span id="right-sidebar-overview-download-metrics-csv-label">
+                  {{ 'analysis.exports.downloadOverviewCsv' | translate }}
+                </span>
+              </button>
+            </footer>
+          </section>
         } @else {
           <section
             id="right-sidebar-overview-empty-state"
@@ -1762,14 +1722,24 @@
               }
             </div>
 
-            @if (showGenerateRegionalReportButton()) {
-              <footer id="aoi-dashboard-footer" class="aoi-panel-footer">
-                <button id="aoi-btn-report" type="button" class="aoi-btn aoi-btn-primary">
-                  <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                  {{ 'analysis.aoi.generateReport' | translate }}
-                </button>
-              </footer>
-            }
+            <footer id="aoi-dashboard-footer" class="aoi-panel-footer">
+              <button
+                id="aoi-dashboard-download-metrics-csv-btn"
+                type="button"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="!hasAoiMetricsCsvRows()"
+                (click)="downloadAoiMetricsCsv()"
+              >
+                <i
+                  id="aoi-dashboard-download-metrics-csv-icon"
+                  class="fas fa-download"
+                  aria-hidden="true"
+                ></i>
+                <span id="aoi-dashboard-download-metrics-csv-label">
+                  {{ 'analysis.exports.downloadAoiCsv' | translate }}
+                </span>
+              </button>
+            </footer>
           </section>
         } @else {
           <section
@@ -2227,6 +2197,27 @@
               </section>
             </div>
           }
+          <footer
+            id="right-sidebar-comparison-footer"
+            class="border-t border-slate-200 bg-slate-50 px-4 py-4"
+          >
+            <button
+              id="right-sidebar-comparison-download-metrics-csv-btn"
+              type="button"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="!hasComparisonMetricsCsvRows()"
+              (click)="downloadComparisonMetricsCsv()"
+            >
+              <i
+                id="right-sidebar-comparison-download-metrics-csv-icon"
+                class="fas fa-download"
+                aria-hidden="true"
+              ></i>
+              <span id="right-sidebar-comparison-download-metrics-csv-label">
+                {{ 'analysis.exports.downloadComparisonCsv' | translate }}
+              </span>
+            </button>
+          </footer>
         </section>
       }
     }

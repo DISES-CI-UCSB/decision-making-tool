@@ -2,6 +2,7 @@ import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   buildSolutionIdentitySummary,
+  resolveLayerLabel,
   type AOI,
   type AnalysisMetricSectionFixture,
   type CachedSolutionMetricsDocument,
@@ -9,6 +10,7 @@ import {
   type CustomPolygonMetricsGeometry,
   type CustomPolygonMetricsResponse,
   type GeographyLevel,
+  type LayerLocale,
   type MetricComparisonValue,
   type MetricReadinessStatus,
   type MetricValue,
@@ -47,6 +49,15 @@ type OverviewMetricSection = 'gains' | 'costs';
 type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'protection';
 type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
 type AoiSectionId = 'general' | 'bio' | 'eco' | 'land' | 'cultural' | 'marine';
+type MetricsCsvRow = string[];
+type CsvMetadataRow = [string, string];
+type CsvScenarioInputRow = [string, string, string];
+type MetricsCsvExportScope = 'overview' | 'aoi' | 'comparison';
+
+interface MetricsCsvPreamble {
+  exportDetails: CsvMetadataRow[];
+  scenarioInputs: CsvScenarioInputRow[];
+}
 
 interface OverviewMetricBlueprint {
   id: string;
@@ -930,14 +941,10 @@ export class PanelSwitcherComponent {
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   protected readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
-  protected readonly showViewFullReportButton = this.appState.showViewFullReportButton$;
-  protected readonly showGenerateRegionalReportButton =
-    this.appState.showGenerateRegionalReportButton$;
   protected readonly showMetricIcons = this.appState.showMetricIcons$;
   protected readonly metricNumberFormatMode = this.appState.metricNumberFormatMode$;
   protected readonly areaDisplayUnit = this.appState.areaDisplayUnit$;
   protected readonly areaUnitOptions = AREA_UNIT_OPTIONS;
-  protected readonly isNotImplementedDialogOpen = signal(false);
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
   protected readonly cachedMetricsDocument = signal<CachedSolutionMetricsDocument | null>(null);
@@ -1352,6 +1359,61 @@ export class PanelSwitcherComponent {
     this.appState.setRightSidebarMode(tab);
   }
 
+  protected hasOverviewMetricsCsvRows(): boolean {
+    return !this.isOverviewLoading() && this.buildOverviewMetricsCsvRows().length > 0;
+  }
+
+  protected downloadOverviewMetricsCsv(): void {
+    const rows = this.buildOverviewMetricsCsvRows();
+    if (rows.length === 0) {
+      return;
+    }
+
+    const solution = this.activeSolution();
+    this.downloadMetricsCsv(
+      rows,
+      this.buildCsvFilename('overview-metrics', solution?.name ?? 'scenario'),
+      this.buildOverviewCsvMetadata(),
+    );
+  }
+
+  protected hasAoiMetricsCsvRows(): boolean {
+    return this.buildAoiMetricsCsvRows().length > 0;
+  }
+
+  protected downloadAoiMetricsCsv(): void {
+    const rows = this.buildAoiMetricsCsvRows();
+    if (rows.length === 0) {
+      return;
+    }
+
+    const aoi = this.selectedAoi();
+    this.downloadMetricsCsv(
+      rows,
+      this.buildCsvFilename('aoi-metrics', aoi?.name ?? 'area'),
+      this.buildAoiCsvMetadata(),
+    );
+  }
+
+  protected hasComparisonMetricsCsvRows(): boolean {
+    return Boolean(this.comparisonSolution()) && this.buildComparisonMetricsCsvRows().length > 0;
+  }
+
+  protected downloadComparisonMetricsCsv(): void {
+    const rows = this.buildComparisonMetricsCsvRows();
+    if (rows.length === 0) {
+      return;
+    }
+
+    const baselineName = this.activeSolution()?.name ?? 'baseline';
+    const candidateName = this.comparisonSolution()?.name ?? 'candidate';
+    this.downloadMetricsCsv(
+      rows,
+      this.buildCsvFilename('comparison-metrics', `${baselineName}-vs-${candidateName}`),
+      this.buildComparisonCsvMetadata(),
+    );
+  }
+
   protected getAreaDisplayUnitLabel(unit: AreaDisplayUnit): string {
     return this.areaUnitLabel(unit);
   }
@@ -1622,27 +1684,6 @@ export class PanelSwitcherComponent {
     this.appState.setComparisonVisualizationMode(mode);
   }
 
-  protected openNotImplementedDialog(): void {
-    this.isNotImplementedDialogOpen.set(true);
-  }
-
-  protected closeNotImplementedDialog(): void {
-    this.isNotImplementedDialogOpen.set(false);
-  }
-
-  protected onNotImplementedDialogBackdropClick(event: Event): void {
-    if (event.target === event.currentTarget) {
-      this.closeNotImplementedDialog();
-    }
-  }
-
-  protected onNotImplementedDialogBackdropKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
-      event.preventDefault();
-      this.closeNotImplementedDialog();
-    }
-  }
-
   private formatNumber(
     value: number,
     mode: MetricNumberFormatMode,
@@ -1853,6 +1894,561 @@ export class PanelSwitcherComponent {
     return this.translate.instant(key) || fallback;
   }
 
+  private buildOverviewMetricsCsvRows(): MetricsCsvRow[] {
+    const solutionName =
+      this.activeSolution()?.name ?? this.localizedText('analysis.exports.context.currentScenario');
+
+    const buildRows = (
+      sectionKey: string,
+      entries: OverviewMetricDisplayEntry[],
+    ): MetricsCsvRow[] => {
+      const section = this.localizedText(sectionKey);
+      return entries.map((entry) =>
+        this.buildMetricsCsvRow({
+          context: solutionName,
+          section,
+          metricId: entry.id,
+          metric: this.localizedText(entry.labelKey),
+          description: this.localizedText(entry.descriptionKey),
+          value: entry.fullValue && entry.fullValue !== entry.value ? entry.fullValue : entry.value,
+          unit: entry.unit === '--' ? '' : entry.unit,
+          status: entry.unavailable
+            ? this.localizedText('analysis.common.valueUnavailable')
+            : this.localizedText('analysis.status.ready'),
+        }),
+      );
+    };
+
+    return [
+      ...buildRows('analysis.overview.sections.conservationGains', this.overviewGainMetrics()),
+      ...buildRows('analysis.overview.sections.costsAndTradeoffs', this.overviewCostMetrics()),
+    ];
+  }
+
+  private buildAoiMetricsCsvRows(): MetricsCsvRow[] {
+    const aoi = this.selectedAoi();
+    const context = aoi?.name ?? this.localizedText('analysis.exports.context.selectedAoi');
+    const section = this.localizedText('analysis.modes.aoi');
+    const realRows = this.aoiMetrics().map((metric) =>
+      this.buildMetricValueCsvRow(metric, context, section),
+    );
+
+    if (realRows.length > 0) {
+      return realRows;
+    }
+
+    return this.aoiAlignedMetricEntries().map((entry) =>
+      this.buildMetricsCsvRow({
+        context,
+        section: this.localizedText('analysis.aoi.alignedMetrics.title'),
+        metricId: entry.metricId,
+        metric: this.localizedText(entry.labelKey),
+        description: this.localizedText(entry.descriptionKey),
+        value: entry.fullValue && entry.fullValue !== entry.value ? entry.fullValue : entry.value,
+        unit: entry.unit,
+        status: this.localizedText('analysis.status.ready'),
+      }),
+    );
+  }
+
+  private buildComparisonMetricsCsvRows(): MetricsCsvRow[] {
+    const baselineName =
+      this.activeSolution()?.name ?? this.localizedText('analysis.comparison.baselineLabel');
+    const candidateName =
+      this.comparisonSolution()?.name ?? this.localizedText('analysis.comparison.candidateLabel');
+    const context = `${baselineName} ${this.localizedText('analysis.exports.context.versus')} ${candidateName}`;
+    const readyStatus = this.localizedText('analysis.status.ready');
+    const unavailableStatus = this.localizedText('analysis.common.valueUnavailable');
+    const spatialRows = this.spatialOverlapEntries().map((entry) =>
+      this.buildMetricsCsvRow({
+        context,
+        section: this.localizedText('analysis.comparison.spatialOverlapKicker'),
+        metricId: entry.id,
+        metric: this.localizedText(entry.labelKey),
+        description: this.localizedText(entry.descriptionKey),
+        value: entry.fullValue && entry.fullValue !== entry.value ? entry.fullValue : entry.value,
+        status: readyStatus,
+      }),
+    );
+    const tableRows = this.comparisonSections().flatMap((section) =>
+      section.metrics.map((metric) =>
+        this.buildMetricsCsvRow({
+          context,
+          section: this.localizedText(section.titleKey),
+          metricId: metric.id,
+          metric: this.localizedText(metric.labelKey),
+          description: this.localizedText(metric.descriptionKey),
+          baselineValue:
+            metric.baselineFull && metric.baselineFull !== metric.baseline
+              ? metric.baselineFull
+              : metric.baseline,
+          candidateValue:
+            metric.candidateFull && metric.candidateFull !== metric.candidate
+              ? metric.candidateFull
+              : metric.candidate,
+          difference:
+            metric.deltaFull && metric.deltaFull !== metric.delta ? metric.deltaFull : metric.delta,
+          status: metric.unavailable ? unavailableStatus : readyStatus,
+        }),
+      ),
+    );
+
+    return [...spatialRows, ...tableRows];
+  }
+
+  private buildMetricValueCsvRow(
+    metric: MetricValue,
+    context: string,
+    section: string,
+  ): MetricsCsvRow {
+    const value =
+      metric.status === 'ready' && metric.value !== null
+        ? this.formatMetricForPanel(metric, 'full')
+        : this.localizedText('analysis.common.valueUnavailable');
+
+    return this.buildMetricsCsvRow({
+      context,
+      section,
+      metricId: metric.metricId,
+      metric: this.localizedText(metric.labelKey, metric.metricId),
+      value,
+      unit: this.getMetricDisplayUnit(metric) ?? '',
+      status: this.localizedText(this.getStatusKey(metric.status), metric.status),
+      source: metric.source,
+      notes: metric.notes ?? '',
+    });
+  }
+
+  private buildMetricsCsvRow(values: {
+    context?: string;
+    section?: string;
+    metricId?: string;
+    metric?: string;
+    description?: string;
+    value?: string;
+    unit?: string;
+    baselineValue?: string;
+    candidateValue?: string;
+    difference?: string;
+    status?: string;
+    source?: string;
+    notes?: string;
+  }): MetricsCsvRow {
+    return [
+      values.metric ?? '',
+      values.description ?? '',
+      values.value ?? '',
+      values.unit ?? '',
+      values.baselineValue ?? '',
+      values.candidateValue ?? '',
+      values.difference ?? '',
+    ];
+  }
+
+  private buildOverviewCsvMetadata(): MetricsCsvPreamble {
+    const preamble = this.buildBaseCsvPreamble('overview');
+
+    this.appendSolutionInputsMetadata(preamble, this.activeSolution(), {
+      scenario: 'analysis.exports.metadata.scenarioName',
+    });
+
+    return preamble;
+  }
+
+  private buildAoiCsvMetadata(): MetricsCsvPreamble {
+    const aoi = this.selectedAoi();
+    const preamble = this.buildBaseCsvPreamble('aoi');
+
+    this.appendSolutionInputsMetadata(preamble, this.activeSolution(), {
+      scenario: 'analysis.exports.metadata.scenarioName',
+    });
+
+    if (aoi) {
+      preamble.exportDetails.push([
+        this.localizedText('analysis.exports.metadata.aoiName'),
+        aoi.name,
+      ]);
+      preamble.exportDetails.push([
+        this.localizedText('analysis.exports.metadata.aoiType'),
+        aoi.subtype || this.localizedText(`analysis.aoi.types.${aoi.type}`, aoi.type),
+      ]);
+
+      if (aoi.type === 'sirap') {
+        const scopeKey =
+          this.sirapSelectionScope() === 'whole'
+            ? 'analysis.aoi.scopeFull'
+            : 'analysis.aoi.scopePolygon';
+        preamble.exportDetails.push([
+          this.localizedText('analysis.exports.metadata.sirapScope'),
+          this.localizedText(scopeKey),
+        ]);
+      }
+    }
+
+    return preamble;
+  }
+
+  private buildComparisonCsvMetadata(): MetricsCsvPreamble {
+    const preamble = this.buildBaseCsvPreamble('comparison');
+
+    this.appendSolutionInputsMetadata(preamble, this.activeSolution(), {
+      scenario: 'analysis.exports.metadata.baselineScenario',
+      stepPrefix: 'analysis.exports.metadata.baselinePrefix',
+    });
+    this.appendSolutionInputsMetadata(preamble, this.comparisonSolution(), {
+      scenario: 'analysis.exports.metadata.candidateScenario',
+      stepPrefix: 'analysis.exports.metadata.candidatePrefix',
+    });
+
+    return preamble;
+  }
+
+  private buildCsvMetadataEntry(labelKey: string, value: string): CsvMetadataRow {
+    return [this.localizedText(labelKey), value];
+  }
+
+  private buildCsvMetadataExportTypeEntry(exportType: MetricsCsvExportScope): CsvMetadataRow {
+    return this.buildCsvMetadataEntry(
+      'analysis.exports.metadata.exportType',
+      this.localizedText(`analysis.exports.metadata.exportTypes.${exportType}`),
+    );
+  }
+
+  private buildBaseCsvPreamble(exportType: MetricsCsvExportScope): MetricsCsvPreamble {
+    return {
+      exportDetails: [
+        this.buildCsvMetadataExportTypeEntry(exportType),
+        this.buildCsvMetadataEntry(
+          'analysis.exports.metadata.exportedAt',
+          new Date().toISOString(),
+        ),
+        this.buildCsvMetadataEntry(
+          'analysis.exports.metadata.areaUnit',
+          this.getAreaDisplayUnitLabel(this.areaDisplayUnit()),
+        ),
+      ],
+      scenarioInputs: [],
+    };
+  }
+
+  private appendSolutionInputsMetadata(
+    preamble: MetricsCsvPreamble,
+    solution: Solution | null,
+    labelKeys: {
+      scenario: string;
+      stepPrefix?: string;
+    },
+  ): void {
+    if (!solution) {
+      return;
+    }
+
+    preamble.exportDetails.push([this.localizedText(labelKeys.scenario), solution.name]);
+
+    const scenario = this.getScenarioFromSolution(solution);
+    if (!scenario) {
+      return;
+    }
+
+    const stepPrefix = labelKeys.stepPrefix ? `${this.localizedText(labelKeys.stepPrefix)}: ` : '';
+
+    for (const target of this.buildScenarioTargetMetadata(scenario)) {
+      preamble.scenarioInputs.push([
+        `${stepPrefix}${this.localizedText('analysis.exports.metadata.whatToProtect')}`,
+        target.label,
+        `${target.coveragePercent}%`,
+      ]);
+    }
+
+    const includes = this.buildScenarioIncludedAreaSelections(scenario);
+    for (const include of includes) {
+      preamble.scenarioInputs.push([
+        `${stepPrefix}${this.localizedText('analysis.exports.metadata.includedAreas')}`,
+        include.label,
+        include.selection,
+      ]);
+    }
+
+    preamble.scenarioInputs.push([
+      `${stepPrefix}${this.localizedText('analysis.exports.metadata.costs')}`,
+      this.getScenarioCostLabel(scenario),
+      this.localizedText('analysis.exports.metadata.selected'),
+    ]);
+  }
+
+  private buildScenarioTargetMetadata(
+    scenario: SolutionScenario,
+  ): { label: string; coveragePercent: number }[] {
+    const targets = new Map<string, { label: string; coveragePercent: number }>();
+    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
+    const targetFeatureSet = this.normalizeManifestToken(
+      scenario.finderInputs.targetFeatureSet ?? '',
+    );
+    const targetFeatureIds = scenario.finderInputs.targetFeatureIds.map((id) =>
+      this.normalizeManifestToken(id),
+    );
+
+    if (
+      targetFeatureSet === 'ecosystems' ||
+      targetFeatureIds.includes('ecosistemas') ||
+      source.includes('ecos')
+    ) {
+      targets.set('ecosystems', {
+        label: this.localizedText('solutionControls.finder.step1.ecosystemsLabel'),
+        coveragePercent: this.getScenarioTargetPercent(scenario, 'ecos'),
+      });
+    }
+
+    if (
+      targetFeatureSet.includes('strategic') ||
+      targetFeatureIds.some((id) =>
+        ['paramos', 'bosque-seco', 'wetlands', 'mangroves'].includes(id),
+      ) ||
+      source.includes('estr')
+    ) {
+      targets.set('strategic-ecosystems', {
+        label: this.localizedText('solutionControls.finder.step1.strategicEcosystemsLabel'),
+        coveragePercent: this.getScenarioTargetPercent(scenario, 'estr'),
+      });
+    }
+
+    if (
+      targetFeatureSet.includes('species') ||
+      targetFeatureIds.includes('species-richness') ||
+      source.includes('esp')
+    ) {
+      targets.set('species-richness', {
+        label: this.localizedText('solutionControls.finder.step1.speciesRichnessLabel'),
+        coveragePercent: this.getScenarioTargetPercent(scenario, 'esp'),
+      });
+    }
+
+    for (const rawTargetId of scenario.finderInputs.targetFeatureIds) {
+      const normalizedTargetId = this.normalizeManifestToken(rawTargetId);
+      if (
+        normalizedTargetId === 'ecosistemas' ||
+        normalizedTargetId === 'strategic-ecosystems' ||
+        normalizedTargetId === 'species-richness' ||
+        ['paramos', 'bosque-seco', 'wetlands', 'mangroves'].includes(normalizedTargetId)
+      ) {
+        continue;
+      }
+
+      targets.set(normalizedTargetId, {
+        label: this.getLayerLabel(rawTargetId) ?? this.humanizeManifestToken(rawTargetId),
+        coveragePercent: scenario.ecosystemTargets,
+      });
+    }
+
+    if (targets.size === 0 && targetFeatureSet) {
+      targets.set(targetFeatureSet, {
+        label: this.humanizeManifestToken(targetFeatureSet),
+        coveragePercent: scenario.ecosystemTargets,
+      });
+    }
+
+    return [...targets.values()];
+  }
+
+  private buildScenarioIncludedAreaSelections(
+    scenario: SolutionScenario,
+  ): { label: string; selection: string }[] {
+    const tokens = this.getScenarioIncludeTokens(scenario);
+    const selections = [
+      {
+        key: 'runap',
+        label: this.localizedText('solutionControls.finder.step2a.alwaysRunapLabel'),
+        selected: true,
+        selection: this.localizedText('analysis.exports.metadata.alwaysApplied'),
+      },
+      {
+        key: 'omec',
+        label: this.localizedText('analysis.exports.metadata.omecs'),
+        selected: tokens.some((token) => token.includes('omec')),
+        selection: this.localizedText('analysis.exports.metadata.selected'),
+      },
+      {
+        key: 'comunidades',
+        label: this.localizedText('analysis.exports.metadata.afroColombianTerritories'),
+        selected: tokens.some((token) => token.includes('comunidades') || token === 'com'),
+        selection: this.localizedText('analysis.exports.metadata.selected'),
+      },
+      {
+        key: 'resguardos',
+        label: this.localizedText('analysis.exports.metadata.indigenousReserves'),
+        selected: tokens.some((token) => token.includes('resguardos') || token === 'res'),
+        selection: this.localizedText('analysis.exports.metadata.selected'),
+      },
+    ];
+
+    return selections
+      .filter((selection) => selection.selected)
+      .map(({ label, selection }) => ({ label, selection }));
+  }
+
+  private getScenarioIncludeTokens(scenario: SolutionScenario): string[] {
+    return [
+      ...scenario.finderInputs.includeLayerIds,
+      ...scenario.inputLayerIds.includes,
+      ...scenario.constraints,
+    ].map((id) => this.normalizeManifestToken(id));
+  }
+
+  private getScenarioTargetPercent(scenario: SolutionScenario, prefix: string): number {
+    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
+    const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
+    return match ? Number(match[1]) : scenario.ecosystemTargets;
+  }
+
+  private getScenarioSelectionLabel(id: string): string {
+    const layerLabel = this.getLayerLabel(id);
+    if (layerLabel) {
+      return layerLabel;
+    }
+
+    const normalizedId = this.normalizeManifestToken(id);
+    if (normalizedId.includes('runap')) {
+      return this.localizedText('solutionControls.finder.step2a.alwaysRunapLabel');
+    }
+    if (normalizedId.includes('omec')) {
+      return this.localizedText('solutionControls.finder.step2a.includeOmecsLabel');
+    }
+    if (normalizedId.includes('comunidades') || normalizedId === 'com') {
+      return this.localizedText('solutionControls.finder.step2a.includeComunidadesLabel');
+    }
+    if (normalizedId.includes('resguardos') || normalizedId === 'res') {
+      return this.localizedText('solutionControls.finder.step2a.includeResguardosLabel');
+    }
+
+    return this.humanizeManifestToken(id);
+  }
+
+  private getScenarioCostLabel(scenario: SolutionScenario): string {
+    const costLayerId = scenario.finderInputs.costLayerId ?? scenario.inputLayerIds.cost;
+    const layerLabel = costLayerId ? this.getLayerLabel(costLayerId) : null;
+    if (layerLabel) {
+      return layerLabel;
+    }
+
+    const costSource = `${costLayerId ?? ''} ${scenario.costLayer}`.toLowerCase();
+    if (
+      costSource.includes('carbon') ||
+      costSource.includes('net-benefit') ||
+      costSource.includes('renta') ||
+      costSource.includes('agropecuaria') ||
+      costSource.includes('_co')
+    ) {
+      return this.localizedText('solutionControls.finder.step2b.carbonOpportunityLabel');
+    }
+
+    return this.localizedText('solutionControls.finder.step2b.humanFootprintLabel');
+  }
+
+  private getLayerLabel(layerId: string): string | null {
+    const layer = this.solutionCatalog.getLayerById(layerId);
+    if (!layer) {
+      return null;
+    }
+
+    return resolveLayerLabel(layer.englishLabel, layer.spanishLabel, this.getLayerLocale());
+  }
+
+  private getLayerLocale(): LayerLocale {
+    return this.appLocale.locale() === 'es' ? 'es' : 'en';
+  }
+
+  private normalizeManifestToken(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/_/g, '-')
+      .toLowerCase();
+  }
+
+  private humanizeManifestToken(value: string): string {
+    return value
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (character) => character.toUpperCase());
+  }
+
+  private downloadMetricsCsv(
+    rows: MetricsCsvRow[],
+    filename: string,
+    preamble: MetricsCsvPreamble | null = null,
+  ): void {
+    const csvRows: string[][] = [];
+
+    if (preamble) {
+      csvRows.push([this.localizedText('analysis.exports.metadata.exportDetailsTitle')]);
+      csvRows.push([
+        this.localizedText('analysis.exports.metadata.field'),
+        this.localizedText('analysis.exports.metadata.value'),
+      ]);
+      csvRows.push(...preamble.exportDetails);
+      csvRows.push([]);
+
+      if (preamble.scenarioInputs.length > 0) {
+        csvRows.push([this.localizedText('analysis.exports.metadata.scenarioInputsTitle')]);
+        csvRows.push([
+          this.localizedText('analysis.exports.metadata.stepColumn'),
+          this.localizedText('analysis.exports.metadata.selectionTypeColumn'),
+          this.localizedText('analysis.exports.metadata.selectionColumn'),
+        ]);
+        csvRows.push(...preamble.scenarioInputs);
+        csvRows.push([]);
+      }
+    }
+
+    csvRows.push([this.localizedText('analysis.exports.metadata.metricsTitle')]);
+    csvRows.push(this.getMetricsCsvColumns(), ...rows);
+    const csvContent =
+      '\uFEFF' +
+      csvRows.map((row) => row.map((value) => this.escapeCsvValue(value)).join(',')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(objectUrl);
+  }
+
+  private getMetricsCsvColumns(): MetricsCsvRow {
+    return [
+      'analysis.exports.csvColumns.metric',
+      'analysis.exports.csvColumns.description',
+      'analysis.exports.csvColumns.value',
+      'analysis.exports.csvColumns.unit',
+      'analysis.exports.csvColumns.baselineValue',
+      'analysis.exports.csvColumns.candidateValue',
+      'analysis.exports.csvColumns.difference',
+    ].map((key) => this.localizedText(key));
+  }
+
+  private escapeCsvValue(value: string): string {
+    const escapedValue = value.replace(/"/g, '""');
+    return /[",\r\n]/.test(escapedValue) ? `"${escapedValue}"` : escapedValue;
+  }
+
+  private buildCsvFilename(prefix: string, descriptor: string): string {
+    const date = new Date().toISOString().slice(0, 10);
+    const slug = this.slugifyFilename(descriptor);
+    return `${prefix}-${slug}-${date}.csv`;
+  }
+
+  private slugifyFilename(value: string): string {
+    const slug = value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase();
+
+    return slug || 'metrics';
+  }
+
   private getPaletteColorBySlot(slot: number): string {
     const palette = this.chartPalette().colors;
     return palette[slot] ?? palette[0] ?? '#64748b';
@@ -1886,6 +2482,10 @@ export class PanelSwitcherComponent {
     const metadataSolutionId = solution?.metadata?.['solutionId'];
     const solutionId = typeof metadataSolutionId === 'string' ? metadataSolutionId : solution?.id;
     return solutionId ? this.solutionCatalog.getById(solutionId) : null;
+  }
+
+  private getScenarioFromSolution(solution: Solution | null): SolutionScenario | null {
+    return this.findActiveSolutionScenario(solution);
   }
 
   private loadCustomAoiMetricBatch(

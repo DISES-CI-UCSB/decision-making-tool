@@ -9,9 +9,10 @@
     "decisionSupportNote": "Los esolutions están pensados para informar conversaciones y planificación; no sustituyen la experiencia local, la revisión de políticas ni las decisiones finales de conservación.",
     "quickStartTitle": "Cómo empezar",
     "steps": {
-      "selectSolution": "Haz clic en Seleccionar solución para abrir el buscador guiado de esolutions.",
-      "exploreMap": "Elige prioridades de conservación y revisa el esolution coincidente en el mapa.",
-      "reviewAnalysis": "Usa los paneles laterales para revisar capas, métricas y compensaciones."
+      "selectSolution": "Haz clic en Seleccionar solución para abrir el buscador guiado de soluciones.",
+      "exploreMap": "Elige prioridades de conservación y revisa la solución coincidente en el mapa.",
+      "reviewAnalysis": "Usa los paneles laterales para revisar capas, métricas y compensaciones.",
+      "downloadOutputs": "Descarga un PNG del mapa o un CSV de las métricas para informes y análisis posteriores."
     },
     "actions": {
       "exploreFirst": "Explorar mapa primero",
@@ -56,17 +57,17 @@
     },
     "custom_polygon_area": "Área del AOI dibujada",
     "priority_area_total": "Área prioritaria",
-    "national_contribution": "Contribución nacional"
+    "national_contribution": "Porcentaje de Colombia seleccionado"
   },
   "mapLegend": {
     "title": "Leyenda",
     "activeSolutionLabel": "Esolution activo",
     "comparison": "Comparación",
-    "solutionAFallback": "Esolution A",
-    "solutionBFallback": "Esolution B",
-    "selected": "Áreas incluidas en este esolution ({{pct}}% del país)",
+    "solutionAFallback": "Solución A",
+    "solutionBFallback": "Solución B",
+    "selected": "Áreas incluidas en esta solución ({{pct}}% de Colombia)",
     "includedAreasFallback": "Áreas incluidas en la solución",
-    "newCoverage": "Nueva cobertura agregada por este esolution ({{pct}}% del país)",
+    "newCoverage": "Nueva área prioritaria agregada por esta solución ({{pct}}% de Colombia)",
     "aOnly": "Solo A: {{name}}",
     "bOnly": "Solo B: {{name}}",
     "overlap": "Superposición (A + B)",
@@ -125,6 +126,68 @@
     "common": {
       "valueUnavailable": "No disponible",
       "deltaUnavailable": "Sin delta"
+    },
+    "exports": {
+      "downloadOverviewCsv": "DESCARGAR MÉTRICAS DEL RESUMEN CSV",
+      "downloadAoiCsv": "DESCARGAR MÉTRICAS DEL AOI CSV",
+      "downloadComparisonCsv": "DESCARGAR MÉTRICAS DE COMPARACIÓN CSV",
+      "context": {
+        "currentScenario": "Escenario actual",
+        "selectedAoi": "Área de interés seleccionada",
+        "versus": "vs"
+      },
+      "csvColumns": {
+        "metric": "Métrica",
+        "description": "Descripción",
+        "value": "Valor",
+        "unit": "Unidad",
+        "baselineValue": "Valor base",
+        "candidateValue": "Valor candidato",
+        "difference": "Diferencia"
+      },
+      "metadata": {
+        "exportDetailsTitle": "Detalles de exportación",
+        "scenarioInputsTitle": "Insumos de búsqueda del escenario",
+        "metricsTitle": "Métricas",
+        "field": "Campo",
+        "value": "Valor",
+        "stepColumn": "Paso",
+        "selectionTypeColumn": "Tipo de selección",
+        "selectionColumn": "Selección",
+        "exportType": "Tipo de exportación",
+        "exportedAt": "Exportado el",
+        "scenarioName": "Nombre del escenario",
+        "whatToProtect": "Qué proteger",
+        "coverageLevel": "Nivel de cobertura",
+        "includedAreas": "Áreas incluidas",
+        "costs": "Costos",
+        "selected": "Seleccionado",
+        "alwaysApplied": "Siempre aplicado",
+        "omecs": "OMECs",
+        "afroColombianTerritories": "Territorios afrocolombianos",
+        "indigenousReserves": "Resguardos indígenas",
+        "areaUnit": "Unidad de área",
+        "aoiName": "Área de interés",
+        "aoiType": "Tipo de área",
+        "sirapScope": "Alcance SIRAP",
+        "baselineScenario": "Escenario base",
+        "baselinePrefix": "Base",
+        "baselineWhatToProtect": "Qué proteger en escenario base",
+        "baselineCoverageLevel": "Nivel de cobertura base",
+        "baselineIncludedAreas": "Áreas incluidas base",
+        "baselineCosts": "Costos base",
+        "candidateScenario": "Escenario candidato",
+        "candidatePrefix": "Candidato",
+        "candidateWhatToProtect": "Qué proteger en escenario candidato",
+        "candidateCoverageLevel": "Nivel de cobertura candidato",
+        "candidateIncludedAreas": "Áreas incluidas candidatas",
+        "candidateCosts": "Costos candidato",
+        "exportTypes": {
+          "overview": "Métricas del resumen",
+          "aoi": "Métricas del área de interés",
+          "comparison": "Métricas de comparación de escenarios"
+        }
+      }
     },
     "empty": {
       "title": "Selecciona un esolution",
@@ -217,9 +280,9 @@
         "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
         "threatenedSpeciesSecuredDesc": "Metas de hábitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",
-        "ecosystemCoverageDesc": "Ecosistemas clave dentro del esolution",
-        "nationalContribution": "Huella del esolution",
-        "nationalContributionDesc": "Porcentaje de Colombia seleccionado por este esolution",
+        "ecosystemCoverageDesc": "Ecosistemas clave dentro de la solución",
+        "nationalContribution": "Porcentaje de Colombia seleccionado",
+        "nationalContributionDesc": "Porcentaje de Colombia seleccionado por esta solución",
         "priorityAreaTotal": "Área prioritaria seleccionada",
         "priorityAreaTotalDesc": "Área total seleccionada por el esolution",
         "paramoCoverage": "Cobertura de páramo",
@@ -309,7 +372,7 @@
       "hero": {
         "priorityAreaLabel": "Área prioritaria en la región",
         "ofMunicipality": "de esta área de interés",
-        "nationalContributionLabel": "Contribución 30×30",
+        "nationalContributionLabel": "Porcentaje de Colombia seleccionado",
         "existingAdds": "Existente {{existing}} + agrega {{added}}"
       },
       "customMetrics": {
@@ -466,15 +529,15 @@
       },
       "metrics": {
         "agreementArea": "Seleccionado por ambos",
-        "agreementAreaDesc": "Lugares donde el Esolution A y el Esolution B eligen las mismas unidades de planificación.",
-        "uniqueSolutionA": "Solo Esolution A",
-        "uniqueSolutionADesc": "Lugares seleccionados por el Esolution A que el Esolution B no selecciona.",
-        "uniqueSolutionB": "Solo Esolution B",
-        "uniqueSolutionBDesc": "Lugares seleccionados por el Esolution B que el Esolution A no selecciona.",
+        "agreementAreaDesc": "Lugares donde la Solución A y la Solución B eligen las mismas unidades de planificación.",
+        "uniqueSolutionA": "Solo Solución A",
+        "uniqueSolutionADesc": "Lugares seleccionados por la Solución A que la Solución B no selecciona.",
+        "uniqueSolutionB": "Solo Solución B",
+        "uniqueSolutionBDesc": "Lugares seleccionados por la Solución B que la Solución A no selecciona.",
         "priorityArea": "Área prioritaria de conservación",
-        "priorityAreaDesc": "Huella protegida estimada en cada esolution.",
-        "nationalTarget": "Contribución a la meta 30x30",
-        "nationalTargetDesc": "Contribución relativa a los compromisos nacionales de conservación.",
+        "priorityAreaDesc": "Huella protegida estimada en cada solución.",
+        "nationalTarget": "Porcentaje de Colombia seleccionado",
+        "nationalTargetDesc": "Porcentaje del área terrestre de Colombia incluido en las zonas prioritarias de esta solución.",
         "biodiversity": "Biodiversidad",
         "biodiversityDesc": "Puntaje compuesto de desempeño en biodiversidad.",
         "ecosystemCoverage": "Cobertura de ecosistemas",

@@ -11,7 +11,8 @@
     "steps": {
       "selectSolution": "Click Select solution to open the guided solution finder.",
       "exploreMap": "Choose conservation priorities and review the matching solution on the map.",
-      "reviewAnalysis": "Use the side panels to inspect layers, metrics, and tradeoffs."
+      "reviewAnalysis": "Use the side panels to inspect layers, metrics, and tradeoffs.",
+      "downloadOutputs": "Download a PNG of the map or a CSV of the metrics for reporting and follow-up analysis."
     },
     "actions": {
       "exploreFirst": "Explore map first",
@@ -56,7 +57,7 @@
     },
     "custom_polygon_area": "Drawn AOI area",
     "priority_area_total": "Priority area",
-    "national_contribution": "National contribution"
+    "national_contribution": "Share of Colombia selected"
   },
   "mapLegend": {
     "title": "Legend",
@@ -64,9 +65,9 @@
     "comparison": "Comparison",
     "solutionAFallback": "Solution A",
     "solutionBFallback": "Solution B",
-    "selected": "Areas included in this solution ({{pct}}% of the nation)",
+    "selected": "Areas included in this solution ({{pct}}% of Colombia)",
     "includedAreasFallback": "Included areas in solution",
-    "newCoverage": "New coverage added by this solution ({{pct}}% of the nation)",
+    "newCoverage": "New priority area added by this solution ({{pct}}% of Colombia)",
     "aOnly": "A only: {{name}}",
     "bOnly": "B only: {{name}}",
     "overlap": "Overlap (A + B)",
@@ -125,6 +126,68 @@
     "common": {
       "valueUnavailable": "Unavailable",
       "deltaUnavailable": "No delta"
+    },
+    "exports": {
+      "downloadOverviewCsv": "DOWNLOAD OVERVIEW METRICS CSV",
+      "downloadAoiCsv": "DOWNLOAD AOI METRICS CSV",
+      "downloadComparisonCsv": "DOWNLOAD COMPARISON METRICS CSV",
+      "context": {
+        "currentScenario": "Current scenario",
+        "selectedAoi": "Selected area of interest",
+        "versus": "vs"
+      },
+      "csvColumns": {
+        "metric": "Metric",
+        "description": "Description",
+        "value": "Value",
+        "unit": "Unit",
+        "baselineValue": "Baseline value",
+        "candidateValue": "Candidate value",
+        "difference": "Difference"
+      },
+      "metadata": {
+        "exportDetailsTitle": "Export details",
+        "scenarioInputsTitle": "Scenario search inputs",
+        "metricsTitle": "Metrics",
+        "field": "Field",
+        "value": "Value",
+        "stepColumn": "Step",
+        "selectionTypeColumn": "Selection type",
+        "selectionColumn": "Selection",
+        "exportType": "Export type",
+        "exportedAt": "Exported at",
+        "scenarioName": "Scenario name",
+        "whatToProtect": "What to protect",
+        "coverageLevel": "Coverage level",
+        "includedAreas": "Included areas",
+        "costs": "Costs",
+        "selected": "Selected",
+        "alwaysApplied": "Always applied",
+        "omecs": "OMECs",
+        "afroColombianTerritories": "Afro-Colombian territories",
+        "indigenousReserves": "Indigenous reserves",
+        "areaUnit": "Area unit",
+        "aoiName": "Area of interest",
+        "aoiType": "Area type",
+        "sirapScope": "SIRAP scope",
+        "baselineScenario": "Baseline scenario",
+        "baselinePrefix": "Baseline",
+        "baselineWhatToProtect": "Baseline what to protect",
+        "baselineCoverageLevel": "Baseline coverage level",
+        "baselineIncludedAreas": "Baseline included areas",
+        "baselineCosts": "Baseline costs",
+        "candidateScenario": "Candidate scenario",
+        "candidatePrefix": "Candidate",
+        "candidateWhatToProtect": "Candidate what to protect",
+        "candidateCoverageLevel": "Candidate coverage level",
+        "candidateIncludedAreas": "Candidate included areas",
+        "candidateCosts": "Candidate costs",
+        "exportTypes": {
+          "overview": "Overview metrics",
+          "aoi": "Area of interest metrics",
+          "comparison": "Scenario comparison metrics"
+        }
+      }
     },
     "empty": {
       "title": "Select a solution",
@@ -218,7 +281,7 @@
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",
         "ecosystemCoverageDesc": "Key ecosystems within solution",
-        "nationalContribution": "Solution Footprint",
+        "nationalContribution": "Share of Colombia selected",
         "nationalContributionDesc": "Share of Colombia selected by this solution",
         "priorityAreaTotal": "Priority Area (Selected)",
         "priorityAreaTotalDesc": "Total area selected by the solution",
@@ -314,8 +377,8 @@
         "uniqueSolutionBDesc": "Places selected by Solution B that Solution A does not select.",
         "priorityArea": "Priority Conservation Area",
         "priorityAreaDesc": "Estimated protected footprint under each solution.",
-        "nationalTarget": "Contribution to 30x30 Target",
-        "nationalTargetDesc": "Relative contribution toward national conservation commitments.",
+        "nationalTarget": "Share of Colombia selected",
+        "nationalTargetDesc": "Percentage of Colombia's land area included in this solution's priority zones.",
         "biodiversity": "Biodiversity",
         "biodiversityDesc": "Composite biodiversity performance score.",
         "ecosystemCoverage": "Ecosystem Coverage",
@@ -382,7 +445,7 @@
       "hero": {
         "priorityAreaLabel": "Priority Area in Region",
         "ofMunicipality": "of this area of interest",
-        "nationalContributionLabel": "30×30 Contribution",
+        "nationalContributionLabel": "Share of Colombia selected",
         "existingAdds": "Existing {{existing}} + adds {{added}}"
       },
       "customMetrics": {
