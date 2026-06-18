@@ -59,84 +59,26 @@
         @if (activeSolution(); as solution) {
           <section id="solution-overview-panel" class="panel-enter v3-panel">
             <header id="right-sidebar-v3-overview-header" class="v3-panel-header">
-              <div id="right-sidebar-v3-overview-title-row" class="v3-scenario-title-row">
-                <h3
-                  id="right-sidebar-overview-solution-name"
-                  class="v3-scenario-name rs-header-optical-nudge"
+              @if (activeSolutionIdentity(); as identity) {
+                <section
+                  id="right-sidebar-v3-overview-active-scenario-banner"
+                  class="v3-active-scenario-banner"
                 >
-                  {{ solution.name }}
-                </h3>
-                @if (activeSolutionInputs(); as inputs) {
-                  <span id="right-sidebar-v3-overview-inputs-help" class="v3-inputs-help">
-                    <button
-                      id="right-sidebar-v3-overview-inputs-trigger"
-                      type="button"
-                      class="v3-inputs-trigger"
-                      [attr.aria-label]="'analysis.overview.inputsTooltip.triggerLabel' | translate"
-                      aria-describedby="right-sidebar-v3-overview-inputs-tooltip"
-                    >
-                      <span
-                        id="right-sidebar-v3-overview-inputs-indicator"
-                        class="v3-inputs-indicator"
-                        aria-hidden="true"
-                        >i</span
-                      >
-                    </button>
-                    <span
-                      id="right-sidebar-v3-overview-inputs-tooltip"
-                      role="tooltip"
-                      class="v3-inputs-tooltip"
-                    >
-                      <span
-                        id="right-sidebar-v3-overview-inputs-tooltip-title"
-                        class="v3-inputs-tooltip-title"
-                      >
-                        {{ 'analysis.overview.inputsTooltip.title' | translate }}
-                      </span>
-                      <span
-                        id="right-sidebar-v3-overview-inputs-tooltip-row-target"
-                        class="v3-inputs-tooltip-row"
-                      >
-                        <span class="v3-inputs-tooltip-label">{{
-                          'analysis.overview.inputsTooltip.targetLabel' | translate
-                        }}</span>
-                        <span
-                          id="right-sidebar-v3-overview-inputs-tooltip-target-value"
-                          class="v3-inputs-tooltip-value"
-                          >{{ inputs.targetText }}</span
-                        >
-                      </span>
-                      <span
-                        id="right-sidebar-v3-overview-inputs-tooltip-row-constraints"
-                        class="v3-inputs-tooltip-row"
-                      >
-                        <span class="v3-inputs-tooltip-label">{{
-                          'analysis.overview.inputsTooltip.constraintsLabel' | translate
-                        }}</span>
-                        <span
-                          id="right-sidebar-v3-overview-inputs-tooltip-constraints-value"
-                          class="v3-inputs-tooltip-value"
-                          >{{ inputs.constraintsText }}</span
-                        >
-                      </span>
-                      <span
-                        id="right-sidebar-v3-overview-inputs-tooltip-row-tradeoff"
-                        class="v3-inputs-tooltip-row"
-                      >
-                        <span class="v3-inputs-tooltip-label">{{
-                          'analysis.overview.inputsTooltip.tradeoffLabel' | translate
-                        }}</span>
-                        <span
-                          id="right-sidebar-v3-overview-inputs-tooltip-tradeoff-value"
-                          class="v3-inputs-tooltip-value"
-                          >{{ inputs.tradeoffText }}</span
-                        >
-                      </span>
-                    </span>
-                  </span>
-                }
-              </div>
-              <span id="right-sidebar-v3-overview-date" class="v3-header-date">Nov 2024</span>
+                  <p
+                    id="right-sidebar-v3-overview-active-scenario-banner-label"
+                    class="v3-active-scenario-banner-label"
+                  >
+                    {{ 'analysis.overview.solutionIdentity.label' | translate }}
+                  </p>
+                  <h3
+                    id="right-sidebar-overview-solution-name"
+                    class="v3-active-scenario-banner-title"
+                    [title]="identity.title"
+                  >
+                    {{ identity.title }}
+                  </h3>
+                </section>
+              }
               <div id="right-sidebar-overview-area-unit-row" class="rs-area-unit-row">
                 <span id="right-sidebar-overview-area-unit-label" class="rs-area-unit-label">
                   {{ 'analysis.areaUnitToggle.label' | translate }}

@@ -6,6 +6,7 @@ import {
   DestroyRef,
   ElementRef,
   EventEmitter,
+  HostListener,
   OnDestroy,
   Output,
   ViewChild,
@@ -20,6 +21,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ColorPickerComponent, ColorPickerDirective } from 'ngx-color-picker';
 
 import {
+  buildSolutionIdentitySummary,
   buildManifestSidebarLayerGroups,
   type AoiType,
   type ManifestSidebarLayerGroup,
@@ -28,6 +30,8 @@ import {
   type RuntimeLayerManifestRenderingConfig,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
+  type Solution,
+  type SolutionIdentitySummary,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import {
@@ -37,6 +41,7 @@ import {
   type MapLegendLayerEntry,
 } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
+import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import {
   AdminBoundaryService,
   type AdminBoundaryLayerKey,
@@ -51,6 +56,7 @@ import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_EXISTING_PROTECTED_HEX,
   DEFAULT_SOLUTION_LAYER_OPACITY,
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
@@ -505,6 +511,7 @@ const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
 };
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
 const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
+const EXISTING_PROTECTED_COLOR = DEFAULT_EXISTING_PROTECTED_HEX;
 const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
 const COMPARISON_CANDIDATE_COLOR = DEFAULT_COMPARISON_CANDIDATE_HEX;
 const COMPARISON_OVERLAP_COLOR = DEFAULT_COMPARISON_OVERLAP_HEX;
@@ -548,6 +555,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
   private readonly layerManifestService = inject(LayerManifestService);
+  private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly appLocaleService = inject(AppLocaleService);
@@ -603,8 +611,13 @@ export class MapLayersPanelComponent implements OnDestroy {
     { value: 'dotted', labelKey: 'mapLayersPanel.appearanceBorderStyleDotted' },
   ];
 
-  protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
+  protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
+    const solution = this.appState.activeSolution$();
+    const scenario = this.findActiveSolutionScenario(solution);
+    return buildSolutionIdentitySummary(solution, scenario);
+  });
+  protected readonly activeSolutionBreakdownOpen = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly managementFiguresTitle = signal(
     this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
@@ -627,6 +640,15 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
   );
+  protected readonly boundaryInfoRowId = signal<string | null>(null);
+  protected readonly boundaryInfoRow = computed(() => {
+    const rowId = this.boundaryInfoRowId();
+    if (!rowId) {
+      return null;
+    }
+    const row = this.adminBoundaryGroup()?.rows.find((candidate) => candidate.id === rowId) ?? null;
+    return row && this.hasBoundaryInfo(row) ? row : null;
+  });
   protected readonly layerSearchQuery = signal('');
   protected readonly normalizedLayerSearchQuery = computed(() =>
     this.layerSearchQuery().trim().toLowerCase(),
@@ -722,9 +744,6 @@ export class MapLayersPanelComponent implements OnDestroy {
       const solution = this.appState.activeSolution$();
       const speciesManifestUrl = this.speciesCollectionManifestUrl();
       untracked(() => {
-        if (solution?.name) {
-          this.activeScenarioName.set(solution.name);
-        }
         if (solution && speciesManifestUrl) {
           this.layerManifestService.preloadSpeciesManifest(speciesManifestUrl);
         }
@@ -855,8 +874,52 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.colorSyncFrames.clear();
   }
 
+  @HostListener('document:keydown.escape')
+  protected onDocumentEscape(): void {
+    this.closeActiveSolutionBreakdown();
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (!this.activeSolutionBreakdownOpen()) {
+      return;
+    }
+
+    const target = event.target as Node | null;
+    if (!target) {
+      return;
+    }
+
+    const breakdownFlyout = this.document.getElementById(
+      'map-layers-active-scenario-breakdown-flyout',
+    );
+    const breakdownTrigger = this.document.getElementById(
+      'map-layers-active-scenario-breakdown-button',
+    );
+
+    if (breakdownFlyout?.contains(target) || breakdownTrigger?.contains(target)) {
+      return;
+    }
+
+    this.closeActiveSolutionBreakdown();
+  }
+
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
+  }
+
+  protected toggleActiveSolutionBreakdown(): void {
+    this.activeSolutionBreakdownOpen.update((open) => !open);
+  }
+
+  protected closeActiveSolutionBreakdown(): void {
+    this.activeSolutionBreakdownOpen.set(false);
+  }
+
+  private findActiveSolutionScenario(solution: Solution | null) {
+    const metadataScenarioId = solution?.metadata?.['scenarioId'];
+    const scenarioId = typeof metadataScenarioId === 'string' ? metadataScenarioId : solution?.id;
+    return scenarioId ? this.solutionCatalog.getById(scenarioId) : null;
   }
 
   private resolveActiveLanguage(): SupportedLanguage {
@@ -1633,7 +1696,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...row,
           selected: nextSelected,
-          expanded: nextSelected ? true : row.expanded,
+          expanded: nextSelected && this.overlayCanExpand(row) ? true : row.expanded,
           visible: nextVisible,
         };
       }),
@@ -1656,7 +1719,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...row,
           selected: nextSelected,
-          expanded: nextSelected ? true : row.expanded,
+          expanded: nextSelected && this.overlayCanExpand(row) ? true : row.expanded,
           visible: row.mapUnavailable
             ? false
             : nextSelected
@@ -1675,10 +1738,36 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.overlaysCollapsed.update((collapsed) => !collapsed);
   }
 
+  protected overlayCanExpand(row: LayerControlRow): boolean {
+    return row.hasStyleControls && row.id !== RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID;
+  }
+
   protected toggleOverlayExpanded(rowId: string): void {
     this.overlays.update((rows) =>
-      rows.map((row) => (row.id === rowId ? { ...row, expanded: !row.expanded } : row)),
+      rows.map((row) =>
+        row.id === rowId && this.overlayCanExpand(row) ? { ...row, expanded: !row.expanded } : row,
+      ),
     );
+  }
+
+  protected hasBoundaryInfo(row: LayerControlRow): boolean {
+    const key = row.mapSync?.type === 'admin-boundary' ? row.mapSync.boundaryLayerKey : null;
+    return key === 'siraps' || key === 'siraps_territorial' || key === 'siraps_thematic';
+  }
+
+  protected openBoundaryInfo(rowId: string): void {
+    const row = this.adminBoundaryGroup()?.rows.find((candidate) => candidate.id === rowId);
+    if (row && this.hasBoundaryInfo(row)) {
+      this.boundaryInfoRowId.set(rowId);
+    }
+  }
+
+  protected closeBoundaryInfo(): void {
+    this.boundaryInfoRowId.set(null);
+  }
+
+  protected isBoundaryInfoOpen(rowId: string): boolean {
+    return this.boundaryInfoRowId() === rowId;
   }
 
   protected updateOverlayOpacity(rowId: string, opacityText: string): void {
@@ -2292,6 +2381,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected isSelectedLayerExpanded(rowId: string): boolean {
+    if (!this.selectedLayerCanExpand(rowId)) {
+      return false;
+    }
+
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.expanded;
@@ -2313,6 +2406,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     return false;
+  }
+
+  protected selectedLayerCanExpand(rowId: string): boolean {
+    if (rowId === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID) {
+      return false;
+    }
+
+    const row = this.findLayerControlRowById(rowId);
+    return !!row && !row.mapUnavailable;
   }
 
   protected toggleSelectedLayerVisibility(rowId: string): void {
@@ -2340,6 +2442,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected toggleSelectedLayerExpanded(rowId: string): void {
+    if (!this.selectedLayerCanExpand(rowId)) {
+      return;
+    }
+
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlayExpanded(rowId);
       return;
@@ -2442,13 +2548,23 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected selectedLayerHasColorOnlyControl(rowId: string): boolean {
     return (
       this.selectedLayerHasColorControl(rowId) &&
+      !this.selectedLayerHasSolutionCoverageControl(rowId) &&
       !this.selectedLayerHasFillControl(rowId) &&
       !this.selectedLayerHasBorderControl(rowId)
     );
   }
 
   protected selectedLayerHasAppearanceControls(rowId: string): boolean {
-    return this.selectedLayerHasFillControl(rowId) || this.selectedLayerHasBorderControl(rowId);
+    return (
+      this.selectedLayerHasSolutionCoverageControl(rowId) ||
+      this.selectedLayerHasFillControl(rowId) ||
+      this.selectedLayerHasBorderControl(rowId)
+    );
+  }
+
+  protected selectedLayerHasSolutionCoverageControl(rowId: string): boolean {
+    const row = this.findLayerControlRowById(rowId);
+    return row?.mapSync?.type === 'solution-baseline' && !this.isComparisonSelectionActive();
   }
 
   protected selectedLayerColor(rowId: string): string {
@@ -2486,6 +2602,30 @@ export class MapLayersPanelComponent implements OnDestroy {
       this.updateLayerColor(groupId, rowId, color);
       return;
     }
+  }
+
+  protected selectedLayerExistingProtectedColor(rowId: string): string {
+    return this.selectedLayerHasSolutionCoverageControl(rowId)
+      ? this.solutionLayerService.existingProtectedColor$()
+      : EXISTING_PROTECTED_COLOR;
+  }
+
+  protected selectedLayerNewCoverageColor(rowId: string): string {
+    return this.selectedLayerColor(rowId);
+  }
+
+  protected updateSelectedLayerExistingProtectedColor(rowId: string, color: string): void {
+    if (!this.selectedLayerHasSolutionCoverageControl(rowId)) {
+      return;
+    }
+    this.solutionLayerService.setExistingProtectedColor(color);
+  }
+
+  protected updateSelectedLayerNewCoverageColor(rowId: string, color: string): void {
+    if (!this.selectedLayerHasSolutionCoverageControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerColor(rowId, color);
   }
 
   protected isSelectedLayerAppearancePopoverOpen(rowId: string): boolean {
@@ -2602,6 +2742,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       targetElement?.closest(
         [
           '[data-ui="selected-layer-appearance-popover"]',
+          '[data-ui="selected-layer-solution-coverage-control"]',
           '[data-ui="selected-layer-fill-control"]',
           '[data-ui="selected-layer-border-control"]',
           '.color-picker',
@@ -3612,6 +3753,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
   }
 
+  private isComparisonSelectionActive(): boolean {
+    return (
+      this.appState.rightSidebarMode$() === 'comparison' && !!this.appState.comparisonSolution$()
+    );
+  }
+
   private isVectorPolygonStyleRow(row: LayerControlRow): boolean {
     if (this.isSolutionLayerRow(row)) {
       return false;
@@ -3693,7 +3840,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#dc2626',
         canReorder: true,
-        hasStyleControls: true,
+        hasStyleControls: false,
         hasColorControl: true,
         mapUnavailable: false,
         mapSync: {

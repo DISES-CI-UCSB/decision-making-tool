@@ -1,6 +1,7 @@
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
+  buildSolutionIdentitySummary,
   resolveLayerLabel,
   type AOI,
   type AnalysisMetricSectionFixture,
@@ -15,6 +16,7 @@ import {
   type MetricValue,
   type MetricValueFormatHint,
   type Solution,
+  type SolutionIdentitySummary,
   type SolutionScenario,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
@@ -435,17 +437,6 @@ const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
     formatHint: 'percent',
   },
 };
-
-/**
- * Human-readable reminder of the Solution Finder inputs that produced the
- * currently active solution. Rendered as a tooltip next to the solution name
- * in the Overview panel header.
- */
-interface ActiveSolutionInputs {
-  targetText: string;
-  constraintsText: string;
-  tradeoffText: string;
-}
 
 @Component({
   selector: 'app-panel-switcher',
@@ -938,9 +929,11 @@ export class PanelSwitcherComponent {
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
-  protected readonly activeSolutionInputs = computed<ActiveSolutionInputs | null>(() =>
-    this.buildActiveSolutionInputs(),
-  );
+  protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
+    const solution = this.activeSolution();
+    const scenario = this.findActiveSolutionScenario(solution);
+    return buildSolutionIdentitySummary(solution, scenario);
+  });
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiGeometry = this.appState.customAOIGeometry$;
   protected readonly sirapSelectionScope = this.adminBoundaries.sirapSelectionScope$;
@@ -2485,49 +2478,14 @@ export class PanelSwitcherComponent {
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
   }
 
-  private buildActiveSolutionInputs(): ActiveSolutionInputs | null {
-    if (!this.appState.showOverviewInputsReminder$()) {
-      return null;
-    }
-
-    return this.buildSolutionInputsFromSolution(this.activeSolution());
-  }
-
-  private buildSolutionInputsFromSolution(solution: Solution | null): ActiveSolutionInputs | null {
-    const scenario = this.getScenarioFromSolution(solution);
-    if (!scenario) {
-      return null;
-    }
-
-    const isStrategic = scenario.id.toLowerCase().startsWith('estr');
-    const targetFamilyKey = isStrategic
-      ? 'analysis.overview.inputsTooltip.targetFamilyStrategic'
-      : 'analysis.overview.inputsTooltip.targetFamilyEcosystems';
-
-    const targetText = this.translate.instant('analysis.overview.inputsTooltip.targetValue', {
-      pct: scenario.ecosystemTargets,
-      family: this.translate.instant(targetFamilyKey),
-    });
-
-    const constraintsText =
-      scenario.constraints.length > 0
-        ? scenario.constraints.join(', ')
-        : this.translate.instant('analysis.overview.inputsTooltip.constraintsNone');
-
-    return {
-      targetText,
-      constraintsText,
-      tradeoffText: scenario.costLayer,
-    };
+  private findActiveSolutionScenario(solution: Solution | null): SolutionScenario | null {
+    const metadataScenarioId = solution?.metadata?.['scenarioId'];
+    const scenarioId = typeof metadataScenarioId === 'string' ? metadataScenarioId : solution?.id;
+    return scenarioId ? this.solutionCatalog.getById(scenarioId) : null;
   }
 
   private getScenarioFromSolution(solution: Solution | null): SolutionScenario | null {
-    const scenarioId = solution?.metadata?.['scenarioId'];
-    if (typeof scenarioId !== 'string') {
-      return null;
-    }
-
-    return this.solutionCatalog.getById(scenarioId);
+    return this.findActiveSolutionScenario(solution);
   }
 
   private loadCustomAoiMetricBatch(

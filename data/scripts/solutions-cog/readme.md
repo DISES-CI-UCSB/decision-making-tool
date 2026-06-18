@@ -72,6 +72,31 @@ Default run for all nacional solutions:
 python data/scripts/solutions-cog/main.py
 ```
 
+Generate EPSG:9377 projected COGs from the currently published solution TIFFs:
+
+```bash
+python data/scripts/solutions-cog/main.py \
+  --target-epsg 9377 \
+  --target-resolution 1000 \
+  --target-aligned-pixels
+```
+
+Projected outputs use a distinct basename suffix, for example:
+
+```text
+solutions/nacional/Ecos17+RUNAP_HF.epsg9377.cog.tif
+```
+
+This keeps the original TIFFs and existing COGs untouched. After upload, the
+manifest publish step can point `displayCogUrl` at the projected COG URL while
+leaving each solution's source `displayUrl` unchanged.
+
+The projection path is source-aware. If a future source raster already reports
+the requested EPSG code, resolution, and aligned grid, the script copies it to a
+COG without warping. If an older source reports a different CRS, such as
+EPSG:4326, the script marks `warpRequired: true` in the publish report and
+reprojects it before COG creation.
+
 ## CLI Flags
 
 | Flag              | Default                         | Notes                                      |
@@ -84,6 +109,9 @@ python data/scripts/solutions-cog/main.py
 | `--no-cache`      | off                             | Force re-download of source rasters        |
 | `--force-rebuild` | off                             | Rebuild even when source SHA is unchanged  |
 | `--validate-only` | off                             | Fetch manifest + select solutions only     |
+| `--target-epsg`   | (none)                          | Reproject staged COGs to an EPSG code      |
+| `--target-resolution` | (none)                      | One square-pixel value or x/y values       |
+| `--target-aligned-pixels` | off                    | Align projected bounds to the output grid  |
 
 ## COG Settings
 
@@ -98,6 +126,12 @@ The converter uses rasterio's GDAL COG driver with:
 
 Nearest-neighbor overviews preserve binary 0/1 solution categories so the
 frontend can render crisp pixels through ArcGIS `ImageryTileLayer`.
+
+When `--target-epsg` is set, the converter reprojects with nearest-neighbor
+resampling before COG creation. Use nearest-neighbor for these solution rasters
+because they encode categorical selected/not-selected planning-unit values.
+The script first checks the source CRS/grid and only performs that reprojection
+when the source does not already match the requested target.
 
 ## Idempotency
 
