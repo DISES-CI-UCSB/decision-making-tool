@@ -2177,7 +2177,7 @@ export class PanelSwitcherComponent {
   }
 
   private buildScenarioTargetMetadata(
-    scenario: SolutionScenario,
+    scenario: CatalogSolution,
   ): { label: string; coveragePercent: number }[] {
     const targets = new Map<string, { label: string; coveragePercent: number }>();
     const source = `${scenario.id} ${scenario.name}`.toLowerCase();
@@ -2251,7 +2251,7 @@ export class PanelSwitcherComponent {
   }
 
   private buildScenarioIncludedAreaSelections(
-    scenario: SolutionScenario,
+    scenario: CatalogSolution,
   ): { label: string; selection: string }[] {
     const tokens = this.getScenarioIncludeTokens(scenario);
     const selections = [
@@ -2286,7 +2286,7 @@ export class PanelSwitcherComponent {
       .map(({ label, selection }) => ({ label, selection }));
   }
 
-  private getScenarioIncludeTokens(scenario: SolutionScenario): string[] {
+  private getScenarioIncludeTokens(scenario: CatalogSolution): string[] {
     return [
       ...scenario.finderInputs.includeLayerIds,
       ...scenario.inputLayerIds.includes,
@@ -2294,7 +2294,7 @@ export class PanelSwitcherComponent {
     ].map((id) => this.normalizeManifestToken(id));
   }
 
-  private getScenarioTargetPercent(scenario: SolutionScenario, prefix: string): number {
+  private getScenarioTargetPercent(scenario: CatalogSolution, prefix: string): number {
     const source = `${scenario.id} ${scenario.name}`.toLowerCase();
     const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
     return match ? Number(match[1]) : scenario.ecosystemTargets;
@@ -2323,7 +2323,7 @@ export class PanelSwitcherComponent {
     return this.humanizeManifestToken(id);
   }
 
-  private getScenarioCostLabel(scenario: SolutionScenario): string {
+  private getScenarioCostLabel(scenario: CatalogSolution): string {
     const costLayerId = scenario.finderInputs.costLayerId ?? scenario.inputLayerIds.cost;
     const layerLabel = costLayerId ? this.getLayerLabel(costLayerId) : null;
     if (layerLabel) {
@@ -2484,8 +2484,8 @@ export class PanelSwitcherComponent {
     return solutionId ? this.solutionCatalog.getById(solutionId) : null;
   }
 
-  private getScenarioFromSolution(solution: Solution | null): SolutionScenario | null {
-    return this.findActiveSolutionScenario(solution);
+  private getScenarioFromSolution(solution: Solution | null): CatalogSolution | null {
+    return this.findActiveCatalogSolution(solution);
   }
 
   private loadCustomAoiMetricBatch(
