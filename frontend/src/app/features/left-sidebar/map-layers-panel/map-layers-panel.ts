@@ -6,6 +6,7 @@ import {
   DestroyRef,
   ElementRef,
   EventEmitter,
+  HostListener,
   OnDestroy,
   Output,
   ViewChild,
@@ -20,6 +21,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ColorPickerComponent, ColorPickerDirective } from 'ngx-color-picker';
 
 import {
+  buildSolutionIdentitySummary,
   buildManifestSidebarLayerGroups,
   type AoiType,
   type ManifestSidebarLayerGroup,
@@ -28,6 +30,8 @@ import {
   type RuntimeLayerManifestRenderingConfig,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
+  type Solution,
+  type SolutionIdentitySummary,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import {
@@ -37,6 +41,7 @@ import {
   type MapLegendLayerEntry,
 } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
+import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import {
   AdminBoundaryService,
   type AdminBoundaryLayerKey,
@@ -51,11 +56,11 @@ import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_EXISTING_PROTECTED_HEX,
   DEFAULT_SOLUTION_LAYER_OPACITY,
   DEFAULT_SINGLE_SOLUTION_HEX,
   SolutionLayerService,
 } from '@features/map/services/solution-layer.service';
-import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
 import { FEATURE_FLAGS } from '@feature-flags';
 
@@ -298,16 +303,16 @@ const ECOSYSTEMS_COPY = {
   en: {
     groupTitle: 'Ecosystems',
     groupNote:
-      "Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. Humboldt Ecosystems Classification is the national MEC reference layer with roughly 430 mapped classes, grouped into broad biome families for display. It comes from the official bioma_iavh field; IAvH refers to Colombia's Alexander von Humboldt Biological Resources Research Institute.",
-    iavhRowName: 'Ecosystems',
+      'Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. IAVH Ecosystems Classification is a 430-class national reference layer, grouped into broad biome families for display.',
+    iavhRowName: 'IAVH Ecosystems Classification (2024)',
     strategicGroupName: 'Strategic Ecosystems',
     otherBiomeFamily: 'Other / N.A.',
   },
   es: {
     groupTitle: 'Ecosistemas',
     groupNote:
-      'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. La clasificación de ecosistemas Humboldt es la capa nacional de referencia del MEC, con aproximadamente 430 clases mapeadas y agrupadas en grandes familias de biomas para su visualización. Proviene del campo oficial bioma_iavh; IAvH significa Instituto de Investigación de Recursos Biológicos Alexander von Humboldt.',
-    iavhRowName: 'Ecosistemas',
+      'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. La Clasificación de ecosistemas IAVH es una capa nacional de referencia con 430 clases, agrupada en grandes familias de biomas para su visualización.',
+    iavhRowName: 'Clasificación de ecosistemas IAVH (2024)',
     strategicGroupName: 'Ecosistemas estratégicos',
     otherBiomeFamily: 'Otro / N.A.',
   },
@@ -506,6 +511,7 @@ const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
 };
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
 const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
+const EXISTING_PROTECTED_COLOR = DEFAULT_EXISTING_PROTECTED_HEX;
 const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
 const COMPARISON_CANDIDATE_COLOR = DEFAULT_COMPARISON_CANDIDATE_HEX;
 const COMPARISON_OVERLAP_COLOR = DEFAULT_COMPARISON_OVERLAP_HEX;
@@ -549,12 +555,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
   private readonly layerManifestService = inject(LayerManifestService);
+  private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionLayerService = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly document = inject(DOCUMENT);
-  protected readonly sidebarOverlayScrollbar = useOverlayScrollbar();
-  protected sidebarScrollbarInteracting = false;
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
   private formatSelectIdSequence = 0;
@@ -606,8 +611,13 @@ export class MapLayersPanelComponent implements OnDestroy {
     { value: 'dotted', labelKey: 'mapLayersPanel.appearanceBorderStyleDotted' },
   ];
 
-  protected readonly activeScenarioName = signal('Ecos30 + RUNAP + OMEC (HF)');
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
+  protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
+    const solution = this.appState.activeSolution$();
+    const scenario = this.findActiveSolutionScenario(solution);
+    return buildSolutionIdentitySummary(solution, scenario);
+  });
+  protected readonly activeSolutionBreakdownOpen = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly managementFiguresTitle = signal(
     this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
@@ -630,6 +640,15 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
   );
+  protected readonly boundaryInfoRowId = signal<string | null>(null);
+  protected readonly boundaryInfoRow = computed(() => {
+    const rowId = this.boundaryInfoRowId();
+    if (!rowId) {
+      return null;
+    }
+    const row = this.adminBoundaryGroup()?.rows.find((candidate) => candidate.id === rowId) ?? null;
+    return row && this.hasBoundaryInfo(row) ? row : null;
+  });
   protected readonly layerSearchQuery = signal('');
   protected readonly normalizedLayerSearchQuery = computed(() =>
     this.layerSearchQuery().trim().toLowerCase(),
@@ -688,7 +707,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectedLayerDragId = signal<string | null>(null);
   protected readonly selectedLayerDropTargetId = signal<string | null>(null);
   protected readonly selectedLayerDropPosition = signal<SelectedLayerDropPosition>('before');
-  protected readonly openLayerInfoPopoverId = signal<string | null>(null);
   protected readonly selectedLayerAppearancePopoverId = signal<string | null>(null);
   protected readonly appearancePopoverPosition = signal<AppearancePopoverPosition | null>(null);
   protected readonly selectedLayerAppearancePopoverRow = computed(() => {
@@ -701,19 +719,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectedLayers = computed<SelectedLayerRow[]>(() =>
     this.buildSelectedLayers(),
   );
-  @ViewChild('mapLayersSidebarBody')
-  private set mapLayersSidebarBodyRef(ref: ElementRef<HTMLElement> | undefined) {
-    this.sidebarOverlayScrollbar.scrollRef.set(ref?.nativeElement ?? null);
-    this.sidebarOverlayScrollbar.recalculate();
-  }
-
   @ViewChild('appearancePopoverPortalHost')
   private appearancePopoverPortalHost?: ElementRef<HTMLElement>;
   private appearancePopoverPortalHome: HTMLElement | null = null;
   private appearancePopoverRepositionFrame: number | null = null;
   private appearancePopoverRepositionListener: (() => void) | null = null;
   private appearancePopoverOutsidePointerListener: ((event: PointerEvent) => void) | null = null;
-  private layerInfoOutsidePointerListener: ((event: PointerEvent) => void) | null = null;
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
 
   constructor() {
@@ -733,9 +744,6 @@ export class MapLayersPanelComponent implements OnDestroy {
       const solution = this.appState.activeSolution$();
       const speciesManifestUrl = this.speciesCollectionManifestUrl();
       untracked(() => {
-        if (solution?.name) {
-          this.activeScenarioName.set(solution.name);
-        }
         if (solution && speciesManifestUrl) {
           this.layerManifestService.preloadSpeciesManifest(speciesManifestUrl);
         }
@@ -845,22 +853,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
       });
     });
-
-    effect(() => {
-      const rowId = this.openLayerInfoPopoverId();
-      untracked(() => {
-        if (rowId) {
-          this.bindLayerInfoOutsidePointerListener();
-        } else {
-          this.unbindLayerInfoOutsidePointerListener();
-        }
-      });
-    });
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('pointermove', this.rainforestProximityHandler);
-    this.unbindLayerInfoOutsidePointerListener();
     this.unbindAppearancePopoverRepositionListeners();
     this.unbindAppearancePopoverOutsidePointerListener();
     this.unmountAppearancePopoverPortal();
@@ -878,6 +874,36 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.colorSyncFrames.clear();
   }
 
+  @HostListener('document:keydown.escape')
+  protected onDocumentEscape(): void {
+    this.closeActiveSolutionBreakdown();
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (!this.activeSolutionBreakdownOpen()) {
+      return;
+    }
+
+    const target = event.target as Node | null;
+    if (!target) {
+      return;
+    }
+
+    const breakdownFlyout = this.document.getElementById(
+      'map-layers-active-scenario-breakdown-flyout',
+    );
+    const breakdownTrigger = this.document.getElementById(
+      'map-layers-active-scenario-breakdown-button',
+    );
+
+    if (breakdownFlyout?.contains(target) || breakdownTrigger?.contains(target)) {
+      return;
+    }
+
+    this.closeActiveSolutionBreakdown();
+  }
+
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
   }
@@ -891,6 +917,20 @@ export class MapLayersPanelComponent implements OnDestroy {
       this.sidebarOverlayScrollbar.thumbHeight() > 0 &&
       (this.sidebarOverlayScrollbar.isScrolling() || this.sidebarScrollbarInteracting)
     );
+  }
+
+  protected toggleActiveSolutionBreakdown(): void {
+    this.activeSolutionBreakdownOpen.update((open) => !open);
+  }
+
+  protected closeActiveSolutionBreakdown(): void {
+    this.activeSolutionBreakdownOpen.set(false);
+  }
+
+  private findActiveSolutionScenario(solution: Solution | null) {
+    const metadataScenarioId = solution?.metadata?.['scenarioId'];
+    const scenarioId = typeof metadataScenarioId === 'string' ? metadataScenarioId : solution?.id;
+    return scenarioId ? this.solutionCatalog.getById(scenarioId) : null;
   }
 
   private resolveActiveLanguage(): SupportedLanguage {
@@ -1667,7 +1707,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...row,
           selected: nextSelected,
-          expanded: nextSelected ? true : row.expanded,
+          expanded: nextSelected && this.overlayCanExpand(row) ? true : row.expanded,
           visible: nextVisible,
         };
       }),
@@ -1690,7 +1730,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         return {
           ...row,
           selected: nextSelected,
-          expanded: nextSelected ? true : row.expanded,
+          expanded: nextSelected && this.overlayCanExpand(row) ? true : row.expanded,
           visible: row.mapUnavailable
             ? false
             : nextSelected
@@ -1709,10 +1749,36 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.overlaysCollapsed.update((collapsed) => !collapsed);
   }
 
+  protected overlayCanExpand(row: LayerControlRow): boolean {
+    return row.hasStyleControls && row.id !== RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID;
+  }
+
   protected toggleOverlayExpanded(rowId: string): void {
     this.overlays.update((rows) =>
-      rows.map((row) => (row.id === rowId ? { ...row, expanded: !row.expanded } : row)),
+      rows.map((row) =>
+        row.id === rowId && this.overlayCanExpand(row) ? { ...row, expanded: !row.expanded } : row,
+      ),
     );
+  }
+
+  protected hasBoundaryInfo(row: LayerControlRow): boolean {
+    const key = row.mapSync?.type === 'admin-boundary' ? row.mapSync.boundaryLayerKey : null;
+    return key === 'siraps' || key === 'siraps_territorial' || key === 'siraps_thematic';
+  }
+
+  protected openBoundaryInfo(rowId: string): void {
+    const row = this.adminBoundaryGroup()?.rows.find((candidate) => candidate.id === rowId);
+    if (row && this.hasBoundaryInfo(row)) {
+      this.boundaryInfoRowId.set(rowId);
+    }
+  }
+
+  protected closeBoundaryInfo(): void {
+    this.boundaryInfoRowId.set(null);
+  }
+
+  protected isBoundaryInfoOpen(rowId: string): boolean {
+    return this.boundaryInfoRowId() === rowId;
   }
 
   protected updateOverlayOpacity(rowId: string, opacityText: string): void {
@@ -2326,6 +2392,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected isSelectedLayerExpanded(rowId: string): boolean {
+    if (!this.selectedLayerCanExpand(rowId)) {
+      return false;
+    }
+
     const overlay = this.overlays().find((row) => row.id === rowId);
     if (overlay) {
       return overlay.expanded;
@@ -2347,6 +2417,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     return false;
+  }
+
+  protected selectedLayerCanExpand(rowId: string): boolean {
+    if (rowId === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID) {
+      return false;
+    }
+
+    const row = this.findLayerControlRowById(rowId);
+    return !!row && !row.mapUnavailable;
   }
 
   protected toggleSelectedLayerVisibility(rowId: string): void {
@@ -2374,6 +2453,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected toggleSelectedLayerExpanded(rowId: string): void {
+    if (!this.selectedLayerCanExpand(rowId)) {
+      return;
+    }
+
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlayExpanded(rowId);
       return;
@@ -2476,13 +2559,23 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected selectedLayerHasColorOnlyControl(rowId: string): boolean {
     return (
       this.selectedLayerHasColorControl(rowId) &&
+      !this.selectedLayerHasSolutionCoverageControl(rowId) &&
       !this.selectedLayerHasFillControl(rowId) &&
       !this.selectedLayerHasBorderControl(rowId)
     );
   }
 
   protected selectedLayerHasAppearanceControls(rowId: string): boolean {
-    return this.selectedLayerHasFillControl(rowId) || this.selectedLayerHasBorderControl(rowId);
+    return (
+      this.selectedLayerHasSolutionCoverageControl(rowId) ||
+      this.selectedLayerHasFillControl(rowId) ||
+      this.selectedLayerHasBorderControl(rowId)
+    );
+  }
+
+  protected selectedLayerHasSolutionCoverageControl(rowId: string): boolean {
+    const row = this.findLayerControlRowById(rowId);
+    return row?.mapSync?.type === 'solution-baseline' && !this.isComparisonSelectionActive();
   }
 
   protected selectedLayerColor(rowId: string): string {
@@ -2522,6 +2615,30 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
   }
 
+  protected selectedLayerExistingProtectedColor(rowId: string): string {
+    return this.selectedLayerHasSolutionCoverageControl(rowId)
+      ? this.solutionLayerService.existingProtectedColor$()
+      : EXISTING_PROTECTED_COLOR;
+  }
+
+  protected selectedLayerNewCoverageColor(rowId: string): string {
+    return this.selectedLayerColor(rowId);
+  }
+
+  protected updateSelectedLayerExistingProtectedColor(rowId: string, color: string): void {
+    if (!this.selectedLayerHasSolutionCoverageControl(rowId)) {
+      return;
+    }
+    this.solutionLayerService.setExistingProtectedColor(color);
+  }
+
+  protected updateSelectedLayerNewCoverageColor(rowId: string, color: string): void {
+    if (!this.selectedLayerHasSolutionCoverageControl(rowId)) {
+      return;
+    }
+    this.updateSelectedLayerColor(rowId, color);
+  }
+
   protected isSelectedLayerAppearancePopoverOpen(rowId: string): boolean {
     return this.selectedLayerAppearancePopoverId() === rowId;
   }
@@ -2543,123 +2660,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (!rowId || this.selectedLayerAppearancePopoverId() === rowId) {
       this.selectedLayerAppearancePopoverId.set(null);
     }
-  }
-
-  protected layerInfoPopoverId(groupId: string, rowId: string): string {
-    return `${groupId}:${rowId}`;
-  }
-
-  protected isLayerInfoPopoverOpen(groupId: string, rowId: string): boolean {
-    return this.openLayerInfoPopoverId() === this.layerInfoPopoverId(groupId, rowId);
-  }
-
-  protected toggleLayerInfoPopover(event: Event, groupId: string, rowId: string): void {
-    event.stopPropagation();
-    const popoverId = this.layerInfoPopoverId(groupId, rowId);
-    this.openLayerInfoPopoverId.update((openPopoverId) =>
-      openPopoverId === popoverId ? null : popoverId,
-    );
-  }
-
-  protected closeLayerInfoPopover(): void {
-    this.openLayerInfoPopoverId.set(null);
-  }
-
-  protected layerInfoText(row: LayerControlRow): string | null {
-    const copy = this.ecosystemsCopy();
-    const language = this.activeLanguage();
-    const ecosystemInfo = {
-      en: "Colombia's official MEC ecosystem map. This display uses the official bioma_iavh field from Instituto Humboldt (IAvH, Colombia's Alexander von Humboldt Biological Resources Research Institute), grouped into broad biome families for readability.",
-      es: 'Mapa oficial de ecosistemas de Colombia (MEC). Esta visualización usa el campo oficial bioma_iavh del Instituto Humboldt (IAvH, Instituto de Investigación de Recursos Biológicos Alexander von Humboldt), agrupado en grandes familias de biomas para facilitar la lectura.',
-    };
-    const strategicInfo = {
-      en: 'Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. They are separate input layers, not classes pulled from the full MEC ecosystem map.',
-      es: 'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. Son capas de entrada separadas, no clases extraídas del mapa completo de ecosistemas MEC.',
-    };
-    const layerInfoById: Record<string, { en: string; es: string }> = {
-      'layer-ecosistemas': ecosystemInfo,
-      'layer-eco-types': ecosystemInfo,
-      [STRATEGIC_ECOSYSTEM_GROUP_ROW_ID]: strategicInfo,
-      'layer-paramos': {
-        en: 'Official paramo complexes layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de complejos de páramo de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-      'layer-eco-paramos': {
-        en: 'Official paramo complexes layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de complejos de páramo de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-      'layer-wetlands': {
-        en: 'Official continental wetlands layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de humedales continentales de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-      'layer-eco-wetlands': {
-        en: 'Official continental wetlands layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de humedales continentales de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-      'layer-bosque_seco': {
-        en: 'Official tropical dry forest layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de bosque seco tropical de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-      'layer-eco-dry-forest': {
-        en: 'Official tropical dry forest layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de bosque seco tropical de Minambiente/SIAC. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-      'layer-mangroves': {
-        en: 'Official mangroves layer from INVEMAR. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de manglares de INVEMAR. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-      'layer-eco-mangroves': {
-        en: 'Official mangroves layer from INVEMAR. Used as one of the strategic ecosystem inputs.',
-        es: 'Capa oficial de manglares de INVEMAR. Se usa como una de las entradas de ecosistemas estratégicos.',
-      },
-    };
-
-    if (row.id === 'layer-ecosistemas' || row.id === 'layer-eco-types') {
-      return layerInfoById[row.id][language];
-    }
-    return (
-      layerInfoById[row.id]?.[language] ??
-      (row.id === STRATEGIC_ECOSYSTEM_GROUP_ROW_ID ? copy.groupNote : null)
-    );
-  }
-
-  private bindLayerInfoOutsidePointerListener(): void {
-    if (this.layerInfoOutsidePointerListener) {
-      return;
-    }
-    this.layerInfoOutsidePointerListener = (event) => this.onLayerInfoDocumentPointerDown(event);
-    this.document.addEventListener('pointerdown', this.layerInfoOutsidePointerListener, {
-      capture: true,
-    });
-  }
-
-  private unbindLayerInfoOutsidePointerListener(): void {
-    if (!this.layerInfoOutsidePointerListener) {
-      return;
-    }
-    this.document.removeEventListener('pointerdown', this.layerInfoOutsidePointerListener, true);
-    this.layerInfoOutsidePointerListener = null;
-  }
-
-  private onLayerInfoDocumentPointerDown(event: PointerEvent): void {
-    if (!this.openLayerInfoPopoverId()) {
-      return;
-    }
-    const target = event.target;
-    if (!(target instanceof Node)) {
-      this.closeLayerInfoPopover();
-      return;
-    }
-    const targetElement =
-      target instanceof Element
-        ? target
-        : target.parentElement instanceof Element
-          ? target.parentElement
-          : null;
-    if (targetElement?.closest('[data-ui="map-layer-info-control"]')) {
-      return;
-    }
-    this.closeLayerInfoPopover();
   }
 
   /**
@@ -2753,6 +2753,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       targetElement?.closest(
         [
           '[data-ui="selected-layer-appearance-popover"]',
+          '[data-ui="selected-layer-solution-coverage-control"]',
           '[data-ui="selected-layer-fill-control"]',
           '[data-ui="selected-layer-border-control"]',
           '.color-picker',
@@ -3763,6 +3764,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     );
   }
 
+  private isComparisonSelectionActive(): boolean {
+    return (
+      this.appState.rightSidebarMode$() === 'comparison' && !!this.appState.comparisonSolution$()
+    );
+  }
+
   private isVectorPolygonStyleRow(row: LayerControlRow): boolean {
     if (this.isSolutionLayerRow(row)) {
       return false;
@@ -3844,7 +3851,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#dc2626',
         canReorder: true,
-        hasStyleControls: true,
+        hasStyleControls: false,
         hasColorControl: true,
         mapUnavailable: false,
         mapSync: {

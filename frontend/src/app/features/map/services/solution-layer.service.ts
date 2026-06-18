@@ -38,11 +38,13 @@ const NEW_COVERAGE_VALUE = 1;
 const EXISTING_PROTECTED_VALUE = 2;
 const EARTH_RADIUS_KM = 6371.0088;
 const GRID_ABSOLUTE_TOLERANCE = 1e-7;
+const DEFAULT_RASTER_WKID = 4326;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
 interface SolutionRenderOptions {
   collapseExistingProtectedCoverage?: boolean;
+  existingProtectedColorHex?: string;
 }
 
 export interface LiveComparisonMetrics {
@@ -97,6 +99,7 @@ export class SolutionLayerService {
    * removes the solution layer (removeSolutionLayer), which clears lastSingle/Comparison IDs.
    */
   private readonly userSingleColorByScenarioId = new Map<string, string>();
+  private readonly userExistingProtectedColorByScenarioId = new Map<string, string>();
   private readonly userBaselineColorByScenarioId = new Map<string, string>();
   private readonly userCandidateColorByScenarioId = new Map<string, string>();
 
@@ -144,8 +147,11 @@ export class SolutionLayerService {
       // This lets returning to a previously-viewed scenario preserve the chosen color.
       const restoredColor =
         this.userSingleColorByScenarioId.get(loaded.scenario.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
+      const restoredExistingProtectedColor =
+        this.userExistingProtectedColorByScenarioId.get(loaded.scenario.id) ??
+        this.defaultExistingProtectedColor(loaded);
       this.solutionColor$.set(restoredColor);
-      this.syncExistingProtectedColor(loaded, restoredColor);
+      this.existingProtectedColor$.set(restoredExistingProtectedColor);
       this.lastSingleSolutionId = loaded.scenario.id;
       this.currentLayer = this.createLayerFromLoaded(
         loaded,
@@ -427,6 +433,23 @@ export class SolutionLayerService {
     this.applyLayerColor(this.currentLayer, loaded, normalized);
   }
 
+  setExistingProtectedColor(color: string): void {
+    const normalized = this.normalizeHexColor(color);
+    if (!normalized || normalized === this.existingProtectedColor$()) {
+      return;
+    }
+    this.existingProtectedColor$.set(normalized);
+    if (this.lastSingleSolutionId) {
+      this.userExistingProtectedColorByScenarioId.set(this.lastSingleSolutionId, normalized);
+    }
+    const loaded = this.loadedSolution$();
+    if (!loaded || !this.currentLayer) {
+      return;
+    }
+
+    this.applyLayerColor(this.currentLayer, loaded, this.solutionColor$());
+  }
+
   setBaselineColor(color: string): void {
     const normalized = this.normalizeHexColor(color);
     if (!normalized || normalized === this.baselineColor$()) {
@@ -506,9 +529,6 @@ export class SolutionLayerService {
 
   refreshSolutionClassRendering(): void {
     const loaded = this.loadedSolution$();
-    if (loaded) {
-      this.syncExistingProtectedColor(loaded, this.solutionColor$());
-    }
     if (loaded && this.currentLayer) {
       this.applyLayerColor(this.currentLayer, loaded, this.solutionColor$());
     }
@@ -664,7 +684,7 @@ export class SolutionLayerService {
           ymin,
           xmax,
           ymax,
-          spatialReference: { wkid: 4326 },
+          spatialReference: this.spatialReferenceForRaster(loaded.rasterMeta),
         }),
       }),
     });
@@ -760,7 +780,7 @@ export class SolutionLayerService {
           ymin,
           xmax,
           ymax,
-          spatialReference: { wkid: 4326 },
+          spatialReference: this.spatialReferenceForRaster(loaded.rasterMeta),
         }),
       }),
     });
@@ -870,7 +890,7 @@ export class SolutionLayerService {
           ymin,
           xmax,
           ymax,
-          spatialReference: { wkid: 4326 },
+          spatialReference: this.spatialReferenceForRaster(loaded.rasterMeta),
         }),
       }),
     });
@@ -960,7 +980,11 @@ export class SolutionLayerService {
     return [
       {
         value: EXISTING_PROTECTED_VALUE,
-        color: existingProtectedClass?.color ?? DEFAULT_EXISTING_PROTECTED_HEX,
+        color:
+          renderOptions.existingProtectedColorHex ??
+          this.existingProtectedColor$() ??
+          existingProtectedClass?.color ??
+          DEFAULT_EXISTING_PROTECTED_HEX,
         label: getSolutionIncludedAreasLegendLabel(loaded.scenario),
       },
       {
@@ -971,9 +995,14 @@ export class SolutionLayerService {
     ];
   }
 
-  private syncExistingProtectedColor(loaded: LoadedSolution, newCoverageColorHex: string): void {
-    this.existingProtectedColor$.set(
-      this.solutionClassColors(loaded, newCoverageColorHex)[0].color,
+  private defaultExistingProtectedColor(loaded: LoadedSolution): string {
+    const classColors =
+      loaded.scenario.rendering.renderMode === 'categorical'
+        ? (loaded.scenario.rendering.classColors ?? [])
+        : [];
+    return (
+      classColors.find((entry) => entry.value === EXISTING_PROTECTED_VALUE)?.color ??
+      DEFAULT_EXISTING_PROTECTED_HEX
     );
   }
 
@@ -1336,5 +1365,21 @@ export class SolutionLayerService {
       xResolution <= 1 &&
       yResolution <= 1
     );
+  }
+
+  private spatialReferenceForRaster(rasterMeta: LoadedSolution['rasterMeta']): { wkid: number } {
+    return { wkid: this.wkidFromRasterCrs(rasterMeta.crs) ?? DEFAULT_RASTER_WKID };
+  }
+
+  private wkidFromRasterCrs(crs: string): number | null {
+    const match = crs
+      .trim()
+      .toUpperCase()
+      .match(/^EPSG:(\d+)$/);
+    if (!match) {
+      return null;
+    }
+    const wkid = Number(match[1]);
+    return Number.isInteger(wkid) && wkid > 0 ? wkid : null;
   }
 }

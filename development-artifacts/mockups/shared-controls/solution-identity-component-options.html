@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html id="solution-identity-html-root" lang="en">
+  <head id="solution-identity-head">
+    <meta id="solution-identity-meta-charset" charset="UTF-8" />
+    <meta
+      id="solution-identity-meta-viewport"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title id="solution-identity-title">Solution Identity Component Options</title>
+    <script id="solution-identity-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+    <link
+      id="solution-identity-font-link"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style id="solution-identity-inline-styles">
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+
+      .solution-identity-map-grid {
+        background-image:
+          linear-gradient(0deg, rgb(226 232 240) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(226 232 240) 1px, transparent 1px);
+        background-size: 34px 34px;
+      }
+
+      .solution-identity-map-shape {
+        clip-path: polygon(10% 34%, 34% 14%, 68% 17%, 92% 39%, 84% 74%, 58% 89%, 23% 83%, 6% 58%);
+      }
+    </style>
+  </head>
+  <body id="solution-identity-body" class="min-h-screen bg-slate-100 text-slate-900">
+    <main id="solution-identity-main" class="mx-auto max-w-7xl px-6 py-8">
+      <header id="solution-identity-page-header" class="mb-6 max-w-4xl">
+        <p
+          id="solution-identity-page-kicker"
+          class="text-[11px] font-bold uppercase tracking-[0.16em] text-sky-700"
+        >
+          Mockup
+        </p>
+        <h1 id="solution-identity-page-title" class="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+          Solution identity components
+        </h1>
+        <p id="solution-identity-page-summary" class="mt-3 text-sm leading-6 text-slate-600">
+          These options test how generated solution names can stay readable when targets become more complex,
+          including national responsibility targets across thousands of species.
+        </p>
+      </header>
+
+      <section
+        id="solution-identity-layout-grid"
+        class="grid items-start gap-6 lg:grid-cols-[420px_minmax(0,1fr)_360px]"
+      >
+        <section
+          id="solution-identity-left-sidebar-panel"
+          class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        >
+          <header id="solution-identity-left-sidebar-header" class="border-b border-slate-200 px-5 py-4">
+            <p
+              id="solution-identity-left-sidebar-kicker"
+              class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500"
+            >
+              Left Sidebar
+            </p>
+            <h2 id="solution-identity-left-sidebar-title" class="mt-1 text-xl font-bold tracking-tight">
+              Map layers
+            </h2>
+            <p id="solution-identity-left-sidebar-copy" class="mt-2 text-sm leading-5 text-slate-600">
+              The active solution card gets the shortest identity pattern because it competes with selected layers.
+            </p>
+          </header>
+
+          <div id="solution-identity-left-sidebar-body" class="space-y-4 p-5">
+            <article
+              id="solution-identity-left-option-a-card"
+              class="rounded-lg border border-slate-900 bg-white p-3 shadow-sm"
+            >
+              <header id="solution-identity-left-option-a-header" class="flex items-start justify-between gap-3">
+                <div id="solution-identity-left-option-a-title-group" class="min-w-0">
+                  <p
+                    id="solution-identity-left-option-a-label"
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                  >
+                    Active solution
+                  </p>
+                  <h3
+                    id="solution-identity-left-option-a-name"
+                    class="mt-0.5 truncate text-[15px] font-extrabold leading-5 text-slate-900"
+                    title="3 targets at 17% + 2 costs + 4 includes"
+                  >
+                    3 targets at 17% + 2 costs + 4 includes
+                  </h3>
+                </div>
+                <button
+                  id="solution-identity-left-option-a-change-button"
+                  type="button"
+                  class="inline-flex shrink-0 rounded-md border border-slate-900 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  Change
+                </button>
+              </header>
+
+              <p
+                id="solution-identity-left-option-a-subtitle"
+                class="mt-2 truncate text-[11px] font-medium text-slate-500"
+                title="What to protect: ecosystems, strategic ecosystems, and species"
+              >
+                What to protect: ecosystems, strategic ecosystems, and species
+              </p>
+
+              <div id="solution-identity-left-option-a-chip-row" class="mt-2 flex min-w-0 flex-wrap gap-1.5">
+                <span
+                  id="solution-identity-left-option-a-chip-what-to-protect"
+                  class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700"
+                >
+                  3 targets at 17%
+                </span>
+                <span
+                  id="solution-identity-left-option-a-chip-includes"
+                  class="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700"
+                >
+                  4 includes
+                </span>
+                <span
+                  id="solution-identity-left-option-a-chip-cost"
+                  class="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                >
+                  2 cost layers
+                </span>
+              </div>
+            </article>
+
+            <article id="solution-identity-selected-layers-card" class="overflow-hidden rounded-lg border border-slate-200">
+              <header
+                id="solution-identity-selected-layers-header"
+                class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2"
+              >
+                <h3
+                  id="solution-identity-selected-layers-title"
+                  class="text-xs font-bold uppercase tracking-[0.08em] text-slate-600"
+                >
+                  Selected layers
+                </h3>
+                <span id="solution-identity-selected-layers-count" class="text-xs font-semibold text-slate-400">
+                  4 layers
+                </span>
+              </header>
+
+              <div id="solution-identity-solution-layer-row" class="border-b border-slate-100 bg-white">
+                <div id="solution-identity-solution-layer-row-header" class="flex items-center gap-2 px-3 py-2.5">
+                  <span
+                    id="solution-identity-solution-layer-row-drag"
+                    class="w-3 text-center text-[12px] font-black leading-none text-slate-300"
+                  >
+                    ::
+                  </span>
+                  <div id="solution-identity-solution-layer-row-title-group" class="min-w-0 flex-1">
+                    <p
+                      id="solution-identity-solution-layer-row-name"
+                      class="truncate text-[13px] font-semibold text-slate-800"
+                    >
+                      Solution selection
+                    </p>
+                    <p
+                      id="solution-identity-solution-layer-row-source"
+                      class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400"
+                    >
+                      3 targets at 17% + 2 costs + 4 includes
+                    </p>
+                  </div>
+                  <button
+                    id="solution-identity-solution-layer-row-details-button"
+                    type="button"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600"
+                    aria-label="View solution identity details"
+                  >
+                    i
+                  </button>
+                  <button
+                    id="solution-identity-solution-layer-row-eye-button"
+                    type="button"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600"
+                    aria-label="Toggle solution selection visibility"
+                  >
+                    eye
+                  </button>
+                </div>
+              </div>
+
+              <div id="solution-identity-overlay-layer-row-one" class="border-b border-slate-100 bg-white">
+                <div id="solution-identity-overlay-layer-row-one-header" class="flex items-center gap-2 px-3 py-2.5">
+                  <span
+                    id="solution-identity-overlay-layer-row-one-drag"
+                    class="w-3 text-center text-[12px] font-black leading-none text-slate-300"
+                  >
+                    ::
+                  </span>
+                  <div id="solution-identity-overlay-layer-row-one-title-group" class="min-w-0 flex-1">
+                    <p
+                      id="solution-identity-overlay-layer-row-one-name"
+                      class="truncate text-[13px] font-semibold text-slate-800"
+                    >
+                      Existing protected areas
+                    </p>
+                    <p
+                      id="solution-identity-overlay-layer-row-one-source"
+                      class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400"
+                    >
+                      Included in solution
+                    </p>
+                  </div>
+                  <button
+                    id="solution-identity-overlay-layer-row-one-eye-button"
+                    type="button"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600"
+                    aria-label="Toggle existing protected areas visibility"
+                  >
+                    eye
+                  </button>
+                </div>
+              </div>
+
+              <div id="solution-identity-overlay-layer-row-two" class="bg-white">
+                <div id="solution-identity-overlay-layer-row-two-header" class="flex items-center gap-2 px-3 py-2.5">
+                  <span
+                    id="solution-identity-overlay-layer-row-two-drag"
+                    class="w-3 text-center text-[12px] font-black leading-none text-slate-300"
+                  >
+                    ::
+                  </span>
+                  <div id="solution-identity-overlay-layer-row-two-title-group" class="min-w-0 flex-1">
+                    <p
+                      id="solution-identity-overlay-layer-row-two-name"
+                      class="truncate text-[13px] font-semibold text-slate-800"
+                    >
+                      Human footprint
+                    </p>
+                    <p
+                      id="solution-identity-overlay-layer-row-two-source"
+                      class="truncate text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400"
+                    >
+                      Cost layer
+                    </p>
+                  </div>
+                  <button
+                    id="solution-identity-overlay-layer-row-two-eye-button"
+                    type="button"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600"
+                    aria-label="Toggle human footprint visibility"
+                  >
+                    eye
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <article
+              id="solution-identity-left-option-b-card"
+              class="rounded-lg border border-slate-200 bg-slate-50 p-3"
+            >
+              <p
+                id="solution-identity-left-option-b-label"
+                class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500"
+              >
+                Option B - title plus chips
+              </p>
+              <h3
+                id="solution-identity-left-option-b-name"
+                class="mt-1 truncate text-[14px] font-bold leading-5 text-slate-900"
+              >
+                Mixed target solution
+              </h3>
+              <div id="solution-identity-left-option-b-grid" class="mt-2 grid gap-1.5">
+                <span
+                  id="solution-identity-left-option-b-what-to-protect"
+                  class="truncate rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  3 targets with mixed coverage levels
+                </span>
+                <span
+                  id="solution-identity-left-option-b-targets"
+                  class="truncate rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  Example: 17%, 30%, national responsibility
+                </span>
+                <span
+                  id="solution-identity-left-option-b-includes"
+                  class="truncate rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  4 includes
+                </span>
+                <span
+                  id="solution-identity-left-option-b-cost"
+                  class="truncate rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  2 costs
+                </span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section
+          id="solution-identity-map-panel"
+          class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        >
+          <header id="solution-identity-map-header" class="border-b border-slate-200 px-5 py-4">
+            <p
+              id="solution-identity-map-kicker"
+              class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500"
+            >
+              Map Canvas
+            </p>
+            <h2 id="solution-identity-map-title" class="mt-1 text-lg font-bold text-slate-900">
+              Solution identity should travel with the selected result.
+            </h2>
+          </header>
+          <div
+            id="solution-identity-map-canvas"
+            class="solution-identity-map-grid relative h-[660px] overflow-hidden bg-slate-50"
+          >
+            <div
+              id="solution-identity-map-water-shape"
+              class="absolute left-16 top-24 h-56 w-72 rounded-[48%] bg-sky-200/60 blur-[1px]"
+            ></div>
+            <div
+              id="solution-identity-map-solution-shape"
+              class="solution-identity-map-shape absolute left-36 top-32 h-72 w-[31rem] rotate-[-5deg] bg-emerald-500/25 ring-2 ring-emerald-700/30"
+            ></div>
+            <div
+              id="solution-identity-map-overlap-shape"
+              class="solution-identity-map-shape absolute bottom-24 right-24 h-48 w-72 rotate-[8deg] bg-amber-300/30 ring-2 ring-amber-700/20"
+            ></div>
+            <aside
+              id="solution-identity-map-floating-card"
+              class="absolute left-5 top-5 max-w-72 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur"
+            >
+              <p
+                id="solution-identity-map-floating-label"
+                class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
+                Current solution
+              </p>
+              <h3 id="solution-identity-map-floating-title" class="mt-1 truncate text-sm font-extrabold text-slate-900">
+                3 targets at 17% + 2 costs + 4 includes
+              </h3>
+              <p id="solution-identity-map-floating-copy" class="mt-1 text-[11px] leading-4 text-slate-500">
+                Costs compare Human Footprint 2022 and Net benefit.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        <aside
+          id="solution-identity-right-sidebar-panel"
+          class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        >
+          <header id="solution-identity-right-sidebar-header" class="border-b border-slate-200 px-5 py-4">
+            <p
+              id="solution-identity-right-sidebar-kicker"
+              class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500"
+            >
+              Right Sidebar
+            </p>
+            <h2 id="solution-identity-right-sidebar-title" class="mt-1 text-xl font-bold tracking-tight">
+              Solution overview
+            </h2>
+          </header>
+
+          <div id="solution-identity-right-sidebar-body" class="space-y-4 p-5">
+            <article
+              id="solution-identity-right-option-a-card"
+              class="rounded-xl border border-slate-900 bg-white p-4 shadow-sm"
+            >
+              <p
+                id="solution-identity-right-option-a-label"
+                class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
+                Recommended pattern
+              </p>
+              <h3 id="solution-identity-right-option-a-title" class="mt-1 text-xl font-extrabold tracking-tight">
+                3 targets at 17% + 2 costs + 4 includes
+              </h3>
+
+              <details
+                id="solution-identity-right-option-a-breakdown-disclosure"
+                class="mt-4 rounded-lg border border-slate-200 bg-slate-50 transition open:bg-white"
+              >
+                <summary
+                  id="solution-identity-right-option-a-breakdown-summary"
+                  class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left"
+                >
+                  <span id="solution-identity-right-option-a-breakdown-summary-copy" class="min-w-0">
+                    <span
+                      id="solution-identity-right-option-a-breakdown-summary-title"
+                      class="block text-xs font-bold text-slate-800"
+                    >
+                      View full selection breakdown
+                    </span>
+                  </span>
+                  <span
+                    id="solution-identity-right-option-a-breakdown-summary-icon"
+                    class="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-600"
+                    aria-hidden="true"
+                  >
+                    Expand
+                  </span>
+                </summary>
+
+                <dl id="solution-identity-right-option-a-definition-list" class="grid gap-2 border-t border-slate-200 p-3">
+                  <div
+                    id="solution-identity-right-option-a-what-to-protect-metric"
+                    class="rounded-lg border border-emerald-100 bg-emerald-50 p-2"
+                  >
+                    <dt
+                      id="solution-identity-right-option-a-what-to-protect-label"
+                      class="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700"
+                    >
+                      Step 1 - What to protect
+                    </dt>
+                    <dd id="solution-identity-right-option-a-what-to-protect-value" class="mt-1 text-sm font-extrabold">
+                      3 target groups at 17%
+                    </dd>
+                    <dd
+                      id="solution-identity-right-option-a-what-to-protect-detail"
+                      class="mt-0.5 text-[11px] leading-4 text-emerald-800"
+                    >
+                      Ecosystems, strategic ecosystems, and species
+                    </dd>
+                    <div id="solution-identity-right-option-a-what-to-protect-chip-row" class="mt-2 flex flex-wrap gap-1">
+                      <span
+                        id="solution-identity-right-option-a-what-to-protect-chip-ecosystems"
+                        class="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-800"
+                      >
+                        Ecosystems 17%
+                      </span>
+                      <span
+                        id="solution-identity-right-option-a-what-to-protect-chip-strategic"
+                        class="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-800"
+                      >
+                        Strategic ecosystems 17%
+                      </span>
+                      <span
+                        id="solution-identity-right-option-a-what-to-protect-chip-species"
+                        class="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-800"
+                      >
+                        Species 17%
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    id="solution-identity-right-option-a-cost-metric"
+                    class="rounded-lg border border-amber-100 bg-amber-50 p-2"
+                  >
+                    <dt
+                      id="solution-identity-right-option-a-cost-label"
+                      class="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700"
+                    >
+                      Step 2 - Costs
+                    </dt>
+                    <dd id="solution-identity-right-option-a-cost-value" class="mt-1 text-sm font-extrabold">
+                      2 cost layers
+                    </dd>
+                    <dd
+                      id="solution-identity-right-option-a-cost-detail"
+                      class="mt-0.5 text-[11px] leading-4 text-amber-800"
+                    >
+                      Human Footprint 2022 + Net benefit
+                    </dd>
+                  </div>
+                  <div
+                    id="solution-identity-right-option-a-includes-metric"
+                    class="rounded-lg border border-slate-200 bg-white p-2"
+                  >
+                    <dt
+                      id="solution-identity-right-option-a-includes-label"
+                      class="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"
+                    >
+                      Step 3 - Included areas
+                    </dt>
+                    <dd id="solution-identity-right-option-a-includes-value" class="mt-1 text-sm font-extrabold">
+                      4 included areas
+                    </dd>
+                    <dd
+                      id="solution-identity-right-option-a-includes-detail"
+                      class="mt-0.5 text-[11px] leading-4 text-slate-600"
+                    >
+                      RUNAP protected areas, OMECs, Afro-Colombian territories, and Indigenous reserves
+                    </dd>
+                  </div>
+                </dl>
+              </details>
+            </article>
+
+            <article
+              id="solution-identity-right-option-b-card"
+              class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <p
+                id="solution-identity-right-option-b-label"
+                class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
+                Option C - generic display name
+              </p>
+              <div id="solution-identity-right-option-b-header-row" class="mt-1 flex items-center justify-between gap-3">
+                <h3 id="solution-identity-right-option-b-title" class="truncate text-lg font-extrabold">
+                  Solution A
+                </h3>
+                <span
+                  id="solution-identity-right-option-b-tag"
+                  class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500"
+                >
+                  Generated
+                </span>
+              </div>
+              <p id="solution-identity-right-option-b-copy" class="mt-2 text-sm leading-5 text-slate-600">
+                Best when users compare multiple runs, but too vague if this is the only place the identity appears.
+              </p>
+              <div id="solution-identity-right-option-b-chip-row" class="mt-3 flex flex-wrap gap-1.5">
+                <span
+                  id="solution-identity-right-option-b-chip-one"
+                  class="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  3 targets at 17%
+                </span>
+                <span
+                  id="solution-identity-right-option-b-chip-two"
+                  class="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  2 costs
+                </span>
+                <span
+                  id="solution-identity-right-option-b-chip-three"
+                  class="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  4 includes
+                </span>
+              </div>
+            </article>
+
+            <article
+              id="solution-identity-right-technical-card"
+              class="rounded-xl border border-slate-200 bg-white p-4"
+            >
+              <p
+                id="solution-identity-right-technical-label"
+                class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
+              >
+                Technical identity
+              </p>
+              <p
+                id="solution-identity-right-technical-filename"
+                class="mt-2 truncate rounded-md bg-slate-100 px-2 py-1.5 font-mono text-[10px] text-slate-600"
+                title="solution_ecos17_strategic17_species17_all-includes_two-costs_2026-06-17.tif"
+              >
+                solution_ecos17_strategic17_species17_all-includes_two-costs_2026-06-17.tif
+              </p>
+              <p id="solution-identity-right-technical-copy" class="mt-2 text-xs leading-5 text-slate-500">
+                The filename stays available for reproducibility, but it should not be asked to carry the whole UI label.
+              </p>
+            </article>
+          </div>
+        </aside>
+      </section>
+
+      <section
+        id="solution-identity-options-section"
+        class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-3"
+      >
+        <article id="solution-identity-option-summary-a" class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p
+            id="solution-identity-option-summary-a-kicker"
+            class="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700"
+          >
+            Option A
+          </p>
+          <h2 id="solution-identity-option-summary-a-title" class="mt-1 text-base font-extrabold">
+            Compact semantic code
+          </h2>
+          <p id="solution-identity-option-summary-a-copy" class="mt-2 text-sm leading-5 text-slate-600">
+            Use a count-first label like "3 targets at 17% + 2 costs + 4 includes" when target levels match.
+            If target levels differ, drop the percent and use "3 targets + 2 costs + 4 includes."
+          </p>
+        </article>
+
+        <article id="solution-identity-option-summary-b" class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p
+            id="solution-identity-option-summary-b-kicker"
+            class="text-[10px] font-bold uppercase tracking-[0.12em] text-sky-700"
+          >
+            Option B
+          </p>
+          <h2 id="solution-identity-option-summary-b-title" class="mt-1 text-base font-extrabold">
+            Plain title plus chips
+          </h2>
+          <p id="solution-identity-option-summary-b-copy" class="mt-2 text-sm leading-5 text-slate-600">
+            Use a readable title and rely on compact chips for what to protect, costs, and included areas.
+          </p>
+        </article>
+
+        <article id="solution-identity-option-summary-c" class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p
+            id="solution-identity-option-summary-c-kicker"
+            class="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700"
+          >
+            Option C
+          </p>
+          <h2 id="solution-identity-option-summary-c-title" class="mt-1 text-base font-extrabold">
+            Generic run label
+          </h2>
+          <p id="solution-identity-option-summary-c-copy" class="mt-2 text-sm leading-5 text-slate-600">
+            Use "Solution A" or "Run 14" as the primary title, then put all meaning in chips. Useful for comparison,
+            weaker for recognition.
+          </p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

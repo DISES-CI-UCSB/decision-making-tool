@@ -162,6 +162,34 @@
   transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.map-layers-chevron-collapsed {
+  transform: rotate(180deg);
+}
+
+.map-layers-active-scenario-breakdown-flyout {
+  position: fixed;
+  top: 7.25rem;
+  left: 20.5rem;
+  z-index: 70;
+  width: min(18rem, calc(100vw - 22rem));
+  max-height: calc(100vh - 9.5rem);
+  overflow-y: auto;
+  border: 1px solid rgb(203 213 225);
+  border-radius: 0.5rem;
+  background: rgb(255 255 255);
+  box-shadow:
+    0 18px 45px rgb(15 23 42 / 0.14),
+    0 2px 8px rgb(15 23 42 / 0.08);
+}
+
+@media (max-width: 760px) {
+  .map-layers-active-scenario-breakdown-flyout {
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+  }
+}
+
 /*
   Collapsible pattern.
   - grid-template-rows 0fr → 1fr animates the row height in modern browsers.
@@ -334,6 +362,17 @@
     2px 2px,
     calc(var(--map-layers-pattern-size) / 2 + 2px) calc(var(--map-layers-pattern-size) / 2 + 2px);
   background-size: var(--map-layers-pattern-size) var(--map-layers-pattern-size);
+}
+
+.map-layers-solution-coverage-preview {
+  --map-layers-included-coverage-color: #2563eb;
+  --map-layers-new-coverage-color: #16a34a;
+  display: inline-block;
+  background: linear-gradient(
+    to right,
+    var(--map-layers-included-coverage-color) 0 50%,
+    var(--map-layers-new-coverage-color) 50% 100%
+  );
 }
 
 .map-layers-border-preview,

@@ -218,6 +218,32 @@ describe('SolutionLayerService', () => {
     expect(addedLayer.renderer).toBeTruthy();
   });
 
+  it('uses the raster EPSG code when georeferencing canvas-rendered scenarios', () => {
+    const spatialReference = (
+      service as unknown as {
+        spatialReferenceForRaster: (rasterMeta: LoadedSolution['rasterMeta']) => { wkid: number };
+      }
+    ).spatialReferenceForRaster({
+      ...createLoadedSolution('baseline').rasterMeta,
+      crs: 'EPSG:9377',
+    });
+
+    expect(spatialReference).toEqual({ wkid: 9377 });
+  });
+
+  it('falls back to WGS84 when raster CRS metadata is unavailable', () => {
+    const spatialReference = (
+      service as unknown as {
+        spatialReferenceForRaster: (rasterMeta: LoadedSolution['rasterMeta']) => { wkid: number };
+      }
+    ).spatialReferenceForRaster({
+      ...createLoadedSolution('baseline').rasterMeta,
+      crs: 'Unknown',
+    });
+
+    expect(spatialReference).toEqual({ wkid: 4326 });
+  });
+
   it('splits included area coverage into its own color by default', () => {
     const loaded = createLoadedSolution('baseline');
     const classColors = (
@@ -231,6 +257,24 @@ describe('SolutionLayerService', () => {
 
     expect(classColors).toEqual([
       { value: 2, color: '#2563eb', label: 'Included areas in solution (RUNAP)' },
+      { value: 1, color: '#ff0000', label: 'New coverage' },
+    ]);
+  });
+
+  it('uses the user-selected included coverage color for single-solution rendering', () => {
+    const loaded = createLoadedSolution('baseline');
+    service.setExistingProtectedColor('#f97316');
+    const classColors = (
+      service as unknown as {
+        solutionClassColors: (
+          loaded: LoadedSolution,
+          newCoverageColorHex: string,
+        ) => { value: number; color: string; label: string }[];
+      }
+    ).solutionClassColors(loaded, '#ff0000');
+
+    expect(classColors).toEqual([
+      { value: 2, color: '#f97316', label: 'Included areas in solution (RUNAP)' },
       { value: 1, color: '#ff0000', label: 'New coverage' },
     ]);
   });
