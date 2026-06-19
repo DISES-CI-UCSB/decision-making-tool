@@ -633,7 +633,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       (row) => row.id !== BASELINE_SOLUTION_OVERLAY_ID && row.id !== CANDIDATE_SOLUTION_OVERLAY_ID,
     ),
   );
-  /** Management Figures card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
+  /** Conservation Areas card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   private readonly activeLanguage = signal<SupportedLanguage>(this.resolveActiveLanguage());
@@ -4541,8 +4541,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   /**
-   * Category cards below Management Figures — all start collapsed (UCS-101).
-   * Management Figures itself uses `overlaysCollapsed` (default expanded).
+   * Category cards below Conservation Areas — all start collapsed (UCS-101).
+   * Conservation Areas itself uses `overlaysCollapsed` (default expanded).
    */
   private createDefaultGroups(): LayerGroup[] {
     const sirapRows = [
