@@ -72,6 +72,20 @@ describe('FinderModalComponent', () => {
     ).not.toBeNull();
   });
 
+  it('renders a BioModelos source link for the species target option', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const sourceLink = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-step1-target-type-source-link-species-richness-0',
+    );
+
+    expect(sourceLink).not.toBeNull();
+    expect(sourceLink.textContent).toContain(
+      'solutionControls.finder.step1.speciesRichnessBioModelosSourceLabel',
+    );
+  });
+
   it('emits closeRequested when requestClose is called', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     const component = fixture.componentInstance;

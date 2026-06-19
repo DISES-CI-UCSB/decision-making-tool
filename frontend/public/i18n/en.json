@@ -695,6 +695,8 @@
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
         "speciesRichnessLabel": "Species",
         "speciesRichnessHelp": "Prioritizes places with many of the 8,751 species represented in Humboldt biomodels.",
+        "speciesRichnessBioModelosSourceLabel": "Humboldt BioModelos metadata",
+        "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
         "strategicEcosystemsLabel": "Strategic ecosystems",
         "strategicEcosystemsHelp": "Uses four strategic ecosystem input layers: páramos, wetlands, and tropical dry forest from Minambiente/SIAC, plus mangroves from INVEMAR. A 17% or 30% coverage level means the solution tries to include that share of each strategic ecosystem layer.",
         "strategicEcosystemsSiacSourceLabel": "Minambiente (SIAC)",

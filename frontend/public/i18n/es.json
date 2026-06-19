@@ -695,6 +695,8 @@
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
         "speciesRichnessLabel": "Especies",
         "speciesRichnessHelp": "Prioriza lugares con muchas de las 8.751 especies representadas en biomodelos del Instituto Humboldt.",
+        "speciesRichnessBioModelosSourceLabel": "Metadatos Humboldt BioModelos",
+        "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
         "strategicEcosystemsLabel": "Ecosistemas estratégicos",
         "strategicEcosystemsHelp": "Usa cuatro capas de ecosistemas estratégicos: páramos, humedales y bosque seco tropical de Minambiente/SIAC, además de manglares de INVEMAR. Un nivel de cobertura de 17% o 30% significa que el esolution intenta incluir esa proporción de cada capa de ecosistema estratégico.",
         "strategicEcosystemsSiacSourceLabel": "Minambiente (SIAC)",

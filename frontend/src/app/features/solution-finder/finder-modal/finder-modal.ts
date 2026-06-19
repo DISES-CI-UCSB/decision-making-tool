@@ -122,6 +122,12 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       id: 'species-richness',
       labelKey: 'solutionControls.finder.step1.speciesRichnessLabel',
       helpKey: 'solutionControls.finder.step1.speciesRichnessHelp',
+      sourceLinks: [
+        {
+          labelKey: 'solutionControls.finder.step1.speciesRichnessBioModelosSourceLabel',
+          urlKey: 'solutionControls.finder.step1.speciesRichnessBioModelosSourceUrl',
+        },
+      ],
       isStrategic: false,
       isAvailable: true,
     },
