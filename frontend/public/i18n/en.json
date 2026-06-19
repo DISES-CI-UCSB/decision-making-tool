@@ -686,7 +686,7 @@
         "modelBackedBadge": "Model-backed",
         "targetTypeIntro": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "ecosystemsLabel": "Ecosystems",
-        "ecosystemsHelp": "Uses Colombia’s official MEC ecosystem map from IDEAM and Humboldt-IAvH, with roughly 400 mapped ecosystem and biotic units across terrestrial, freshwater, coastal, marine, and island systems. These classifications can overlap conceptually with strategic ecosystem layers, but here a 17% or 30% coverage level means the solution tries to represent that share of each mapped MEC ecosystem unit.",
+        "ecosystemsHelp": "Uses detailed biome-region classes from Colombia’s official MEC 2024 ecosystem data. A 17% or 30% coverage level means the solution tries to represent that share of each of 429 detailed Humboldt/IAvH classes, such as “Hidrobioma Alto Caquetá”; the left sidebar groups those classes into 8 broad biome families so the map stays readable.",
         "ecosystemsSourceLabel": "Source: IDEAM MEC / Humboldt-IAvH (2024)",
         "ecosystemsSourceUrl": "https://www.ideam.gov.co/ecosistemas",
         "ecosystemsOverviewSourceLabel": "IDEAM overview",

@@ -686,7 +686,7 @@
         "modelBackedBadge": "Respaldado por modelo",
         "targetTypeIntro": "Seleccione uno o más grupos objetivo para definir qué proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
         "ecosystemsLabel": "Ecosistemas",
-        "ecosystemsHelp": "Usa el mapa oficial de ecosistemas de Colombia (MEC) de IDEAM y Humboldt-IAvH, con aproximadamente 400 unidades ecosistémicas y bióticas en sistemas terrestres, acuáticos, costeros, marinos e insulares. Estas clasificaciones pueden superponerse conceptualmente con las capas de ecosistemas estratégicos, pero aquí un nivel de cobertura de 17% o 30% significa que la solución intenta representar esa proporción de cada unidad ecosistémica MEC mapeada.",
+        "ecosystemsHelp": "Usa clases detalladas de bioma-región del mapa oficial de ecosistemas MEC 2024 de Colombia. Un nivel de cobertura de 17% o 30% significa que la solución intenta representar esa proporción de cada una de las 429 clases detalladas de Humboldt/IAvH, como “Hidrobioma Alto Caquetá”; la barra lateral agrupa esas clases en 8 grandes familias de biomas para que el mapa sea legible.",
         "ecosystemsSourceLabel": "Fuente: IDEAM MEC / Humboldt-IAvH (2024)",
         "ecosystemsSourceUrl": "https://www.ideam.gov.co/ecosistemas",
         "ecosystemsOverviewSourceLabel": "Resumen IDEAM",
