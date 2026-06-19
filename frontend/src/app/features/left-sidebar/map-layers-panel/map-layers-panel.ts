@@ -1328,7 +1328,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       name: displayName,
       color: nextColor,
       expanded: false,
-      hasStyleControls: false,
+      hasStyleControls: true,
       mapUnavailable: false,
       mapSync: {
         type: 'manifest-raster',
@@ -1760,7 +1760,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected overlayCanExpand(row: LayerControlRow): boolean {
-    return row.hasStyleControls && row.id !== RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID;
+    return row.hasStyleControls && !row.mapUnavailable;
   }
 
   protected toggleOverlayExpanded(rowId: string): void {
@@ -2430,10 +2430,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected selectedLayerCanExpand(rowId: string): boolean {
-    if (rowId === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID) {
-      return false;
-    }
-
     const row = this.findLayerControlRowById(rowId);
     return !!row && !row.mapUnavailable;
   }
@@ -3992,7 +3988,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#2563eb',
         canReorder: true,
-        hasStyleControls: false,
+        hasStyleControls: true,
         hasColorControl: true,
         mapUnavailable: true,
       },
@@ -4005,7 +4001,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#dc2626',
         canReorder: true,
-        hasStyleControls: false,
+        hasStyleControls: true,
         hasColorControl: true,
         mapUnavailable: false,
         mapSync: {
@@ -4029,7 +4025,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         opacity: DEFAULT_DATA_LAYER_OPACITY,
         color: '#7c3aed',
         canReorder: true,
-        hasStyleControls: false,
+        hasStyleControls: true,
         hasColorControl: true,
         mapUnavailable: true,
       },
