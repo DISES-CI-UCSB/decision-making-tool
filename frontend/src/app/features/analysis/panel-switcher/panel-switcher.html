@@ -106,75 +106,154 @@
             </header>
 
             <div id="right-sidebar-v3-overview-body" class="v3-panel-body">
-              <div id="right-sidebar-v3-overview-kpi-group" class="v3-overview-kpi-group">
-                <section id="right-sidebar-v3-overview-hero" class="v3-hero">
-                  <article
-                    id="right-sidebar-v3-overview-hero-goals"
-                    class="v3-hero-card v3-hero-card-goals"
-                  >
-                    <div id="right-sidebar-v3-overview-hero-goals-top" class="v3-hero-top">
-                      <p id="right-sidebar-v3-overview-hero-goals-label" class="v3-hero-label">
-                        {{ 'analysis.overview.goalsMet' | translate }}
-                      </p>
-                      <p id="right-sidebar-v3-overview-hero-goals-value" class="v3-hero-value">
-                        {{ getGoalsAchievedPercent(solution.matchPercentage)
-                        }}<span
-                          id="right-sidebar-v3-overview-hero-goals-value-total"
-                          class="v3-hero-value-small"
-                          >%</span
-                        >
-                      </p>
-                    </div>
-                    <div id="right-sidebar-v3-overview-hero-goals-bar" class="v3-hero-bar">
-                      <span
-                        id="right-sidebar-v3-overview-hero-goals-fill"
-                        class="v3-hero-fill-green"
-                        [style.width.%]="getGoalsAchievedBarWidth(solution.matchPercentage)"
-                      ></span>
-                    </div>
-                    <p id="right-sidebar-v3-overview-hero-goals-sub" class="v3-hero-sub">
-                      {{ 'analysis.overview.goalsMetSub' | translate }}
+              <section
+                id="right-sidebar-v3-overview-goals-widget"
+                class="rounded-lg border border-emerald-200 bg-linear-to-b from-emerald-50 to-white p-3.5"
+              >
+                <div
+                  id="right-sidebar-v3-overview-goals-widget-header"
+                  class="mb-3 flex items-start justify-between gap-3"
+                >
+                  <div id="right-sidebar-v3-overview-goals-widget-heading">
+                    <p
+                      id="right-sidebar-v3-overview-goals-widget-kicker"
+                      class="mb-0 text-[15px] font-bold tracking-[0.06em] text-slate-500 uppercase"
+                    >
+                      {{ 'analysis.overview.goalsWidget.kicker' | translate }}
                     </p>
-                  </article>
-                  <section id="right-sidebar-v3-overview-spatial" class="v3-spatial">
-                    <i
-                      id="right-sidebar-v3-overview-spatial-icon"
-                      class="fas fa-map-marked-alt"
-                      aria-hidden="true"
-                    ></i>
-                    <div id="right-sidebar-v3-overview-spatial-metrics" class="v3-spatial-metrics">
-                      <span id="right-sidebar-v3-overview-spatial-area"
-                        ><b
-                          id="right-sidebar-v3-overview-spatial-area-value"
-                          [attr.data-full-value]="
-                            getOverviewMetricFullValue('priority_area_in_region')
-                          "
-                          [attr.tabindex]="
-                            getOverviewMetricFullValue('priority_area_in_region') ? 0 : null
-                          "
-                          >{{ getOverviewMetricValue('priority_area_in_region') }}</b
+                    <h4
+                      id="right-sidebar-v3-overview-goals-widget-title"
+                      class="mt-1 mb-0 text-sm leading-[18px] font-extrabold text-slate-900"
+                    >
+                      {{ 'analysis.overview.goalsWidget.title' | translate }}
+                    </h4>
+                    <p
+                      id="right-sidebar-v3-overview-goals-widget-target-rule"
+                      class="mt-1 mb-0 text-xs leading-4 text-slate-700"
+                    >
+                      {{ getGoalsTargetRuleLabel() }}
+                    </p>
+                  </div>
+                </div>
+
+                @if (isGoalsLoading()) {
+                  <div
+                    id="right-sidebar-v3-overview-goals-widget-loading"
+                    class="rounded-md bg-white/75 p-2.5 text-xs text-slate-500"
+                  >
+                    {{ 'analysis.overview.goalsWidget.loading' | translate }}
+                  </div>
+                } @else if (overviewGoalsDomains().length === 0) {
+                  <p
+                    id="right-sidebar-v3-overview-goals-widget-empty"
+                    class="m-0 rounded-md bg-white/75 p-2.5 text-xs text-slate-500"
+                  >
+                    {{ 'analysis.overview.goalsWidget.unavailable' | translate }}
+                  </p>
+                } @else {
+                  <div id="right-sidebar-v3-overview-goals-widget-domains" class="grid gap-2.5">
+                    @for (domain of overviewGoalsDomains(); track domain.id) {
+                      <article
+                        [id]="'right-sidebar-v3-overview-goals-domain-' + domain.id"
+                        class="grid gap-1"
+                      >
+                        <div
+                          [id]="'right-sidebar-v3-overview-goals-domain-header-' + domain.id"
+                          class="flex items-baseline justify-between gap-2.5 text-xs text-slate-800"
                         >
-                        {{ 'analysis.overview.spatial.priorityArea' | translate }}</span
-                      >
-                      <span
-                        id="right-sidebar-v3-overview-spatial-separator"
-                        class="v3-spatial-sep"
-                        aria-hidden="true"
-                        >|</span
-                      >
-                      <span id="right-sidebar-v3-overview-spatial-zones"
-                        ><b
-                          id="right-sidebar-v3-overview-spatial-zones-value"
-                          [attr.data-full-value]="getOverviewPriorityZoneCountFullValue()"
-                          [attr.tabindex]="getOverviewPriorityZoneCountFullValue() ? 0 : null"
-                          >{{ getOverviewPriorityZoneCountValue() }}</b
+                          <span [id]="'right-sidebar-v3-overview-goals-domain-label-' + domain.id">
+                            {{ domain.labelKey | translate }}
+                          </span>
+                          <span
+                            [id]="'right-sidebar-v3-overview-goals-domain-target-' + domain.id"
+                            class="text-[11px] whitespace-nowrap text-slate-700"
+                          >
+                            {{ domain.targetLabel }}
+                          </span>
+                          <strong
+                            [id]="'right-sidebar-v3-overview-goals-domain-count-' + domain.id"
+                            class="text-xs font-extrabold whitespace-nowrap text-slate-900"
+                          >
+                            {{ formatGoalsCount(domain.metCount, domain.totalCount) }}
+                          </strong>
+                        </div>
+                        <div
+                          [id]="'right-sidebar-v3-overview-goals-domain-bar-' + domain.id"
+                          class="h-1.5 overflow-hidden rounded-full bg-slate-200"
+                          [attr.aria-label]="getGoalsPercentLabel(domain.pctMet)"
                         >
-                        {{ 'analysis.overview.spatial.zones' | translate }}</span
-                      >
-                    </div>
-                  </section>
-                </section>
-              </div>
+                          <span
+                            [id]="'right-sidebar-v3-overview-goals-domain-fill-' + domain.id"
+                            class="block h-full rounded-full bg-emerald-500"
+                            [style.width.%]="getGoalsProgressBarWidth(domain.pctMet)"
+                          ></span>
+                        </div>
+                        @if (domain.id === 'species' && overviewGoalsTaxa().length > 0) {
+                          <div
+                            id="right-sidebar-v3-overview-goals-widget-taxa"
+                            class="mt-2 ml-3 grid gap-2 border-l-2 border-emerald-100 pl-3"
+                          >
+                            <p
+                              id="right-sidebar-v3-overview-goals-widget-taxa-label"
+                              class="mb-0 text-[10px] font-extrabold tracking-[0.08em] text-slate-600 uppercase"
+                            >
+                              {{ 'analysis.overview.goalsWidget.taxaBreakdown' | translate }}
+                            </p>
+                            @for (taxa of overviewGoalsTaxa(); track taxa.id) {
+                              <div
+                                [id]="'right-sidebar-v3-overview-goals-taxa-' + taxa.id"
+                                class="grid gap-1"
+                              >
+                                <div
+                                  [id]="'right-sidebar-v3-overview-goals-taxa-header-' + taxa.id"
+                                  class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
+                                >
+                                  <span
+                                    [id]="'right-sidebar-v3-overview-goals-taxa-label-' + taxa.id"
+                                  >
+                                    {{ taxa.label }}
+                                  </span>
+                                  <strong
+                                    [id]="'right-sidebar-v3-overview-goals-taxa-count-' + taxa.id"
+                                    class="font-extrabold whitespace-nowrap text-slate-900"
+                                  >
+                                    {{ formatGoalsFullCount(taxa.metCount, taxa.totalCount) }}
+                                  </strong>
+                                </div>
+                                <div
+                                  [id]="'right-sidebar-v3-overview-goals-taxa-bar-' + taxa.id"
+                                  class="h-1 overflow-hidden rounded-full bg-slate-200"
+                                  [attr.aria-label]="getGoalsPercentLabel(taxa.pctMet)"
+                                >
+                                  <span
+                                    [id]="'right-sidebar-v3-overview-goals-taxa-fill-' + taxa.id"
+                                    class="block h-full rounded-full bg-emerald-400"
+                                    [style.width.%]="getGoalsProgressBarWidth(taxa.pctMet)"
+                                  ></span>
+                                </div>
+                              </div>
+                            }
+                            <div
+                              id="right-sidebar-v3-overview-goals-taxa-fish"
+                              class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
+                            >
+                              <span id="right-sidebar-v3-overview-goals-taxa-fish-label">
+                                {{ 'analysis.overview.goalsWidget.fish' | translate }}
+                              </span>
+                              <strong
+                                id="right-sidebar-v3-overview-goals-taxa-fish-value"
+                                class="font-extrabold whitespace-nowrap text-slate-700"
+                              >
+                                {{ 'analysis.overview.goalsWidget.notApplicable' | translate }}
+                              </strong>
+                            </div>
+                          </div>
+                        }
+                      </article>
+                    }
+                  </div>
+                }
+              </section>
 
               @if (isOverviewLoading()) {
                 <section
