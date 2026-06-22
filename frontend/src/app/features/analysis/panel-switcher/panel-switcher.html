@@ -389,6 +389,72 @@
                                 class="v3-m-name"
                               >
                                 {{ entry.labelKey | translate }}
+                                @if (entry.methodologyKey) {
+                                  <span
+                                    [id]="
+                                      'right-sidebar-v3-overview-gain-methodology-help-' + entry.id
+                                    "
+                                    class="v3-methodology-help"
+                                  >
+                                    <button
+                                      [id]="
+                                        'right-sidebar-v3-overview-gain-methodology-trigger-' +
+                                        entry.id
+                                      "
+                                      type="button"
+                                      class="v3-methodology-trigger"
+                                      [attr.aria-label]="
+                                        'analysis.overview.methodologyInfoLabel' | translate
+                                      "
+                                      [attr.aria-describedby]="
+                                        'right-sidebar-v3-overview-gain-methodology-tooltip-' +
+                                        entry.id
+                                      "
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-gain-methodology-indicator-' +
+                                          entry.id
+                                        "
+                                        class="v3-methodology-indicator trim-cut"
+                                        aria-hidden="true"
+                                        >i</span
+                                      >
+                                    </button>
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-gain-methodology-tooltip-' +
+                                        entry.id
+                                      "
+                                      role="tooltip"
+                                      class="v3-methodology-tooltip"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-gain-methodology-text-' +
+                                          entry.id
+                                        "
+                                        class="v3-methodology-tooltip-text"
+                                      >
+                                        {{ entry.methodologyKey | translate }}
+                                      </span>
+                                      @if (entry.sourceLabelKey && entry.sourceUrlKey) {
+                                        <a
+                                          [id]="
+                                            'right-sidebar-v3-overview-gain-methodology-source-' +
+                                            entry.id
+                                          "
+                                          class="v3-methodology-source-link"
+                                          [href]="entry.sourceUrlKey | translate"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          {{ entry.sourceLabelKey | translate }}
+                                        </a>
+                                      }
+                                    </span>
+                                  </span>
+                                }
                                 @if (entry.unavailable) {
                                   <span
                                     [id]="

@@ -66,6 +66,9 @@ interface OverviewMetricBlueprint {
   section: OverviewMetricSection;
   labelKey: string;
   descriptionKey: string;
+  methodologyKey?: string;
+  sourceLabelKey?: string;
+  sourceUrlKey?: string;
   iconClass?: string;
   realMetricId?: string;
   dummyValue: string;
@@ -78,6 +81,9 @@ interface OverviewMetricDisplayEntry {
   id: string;
   labelKey: string;
   descriptionKey: string;
+  methodologyKey?: string;
+  sourceLabelKey?: string;
+  sourceUrlKey?: string;
   iconClass?: string;
   value: string;
   fullValue: string | null;
@@ -687,6 +693,9 @@ export class PanelSwitcherComponent {
       section: 'gains',
       labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
       descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
+      methodologyKey: 'analysis.overview.metrics.carbonStorageCapacityMethodology',
+      sourceLabelKey: 'analysis.overview.metrics.carbonStorageCapacitySourceLabel',
+      sourceUrlKey: 'analysis.overview.metrics.carbonStorageCapacitySourceUrl',
       iconClass: 'fas fa-leaf',
       realMetricId: 'carbon_storage_biomass',
       dummyValue: '2,300,000',
@@ -697,10 +706,14 @@ export class PanelSwitcherComponent {
       section: 'gains',
       labelKey: 'analysis.overview.metrics.waterRegulationServices',
       descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
+      methodologyKey: 'analysis.overview.metrics.waterRegulationServicesMethodology',
+      sourceLabelKey: 'analysis.overview.metrics.waterRegulationServicesSourceLabel',
+      sourceUrlKey: 'analysis.overview.metrics.waterRegulationServicesSourceUrl',
       iconClass: 'fas fa-droplet',
       realMetricId: 'water_regulation_area',
-      dummyValue: '450M',
-      dummyUnitKey: 'analysis.overview.metricUnits.cubicMeterIndex',
+      dummyValue: '45k km²',
+      dummyAreaKm2: 45_000,
+      dummyUnitKey: 'analysis.overview.metricUnits.selected',
     },
     {
       id: 'metric-09-affected-agricultural-area',
@@ -3076,6 +3089,9 @@ export class PanelSwitcherComponent {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
+            methodologyKey: metric.methodologyKey,
+            sourceLabelKey: metric.sourceLabelKey,
+            sourceUrlKey: metric.sourceUrlKey,
             iconClass: metric.iconClass,
             value: '--',
             fullValue: null,
@@ -3098,6 +3114,9 @@ export class PanelSwitcherComponent {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
+            methodologyKey: metric.methodologyKey,
+            sourceLabelKey: metric.sourceLabelKey,
+            sourceUrlKey: metric.sourceUrlKey,
             iconClass: metric.iconClass,
             value: liveNationalContribution,
             fullValue,
@@ -3112,6 +3131,9 @@ export class PanelSwitcherComponent {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
+            methodologyKey: metric.methodologyKey,
+            sourceLabelKey: metric.sourceLabelKey,
+            sourceUrlKey: metric.sourceUrlKey,
             iconClass: metric.iconClass,
             value: this.formatMetricForPanel(realMetric),
             fullValue: this.formatMetricForPanel(realMetric, 'full'),
@@ -3126,6 +3148,9 @@ export class PanelSwitcherComponent {
             id: metric.id,
             labelKey: metric.labelKey,
             descriptionKey: metric.descriptionKey,
+            methodologyKey: metric.methodologyKey,
+            sourceLabelKey: metric.sourceLabelKey,
+            sourceUrlKey: metric.sourceUrlKey,
             iconClass: metric.iconClass,
             value: this.formatOverviewDummyValue(metric),
             fullValue: null,
@@ -3139,6 +3164,9 @@ export class PanelSwitcherComponent {
           id: metric.id,
           labelKey: metric.labelKey,
           descriptionKey: metric.descriptionKey,
+          methodologyKey: metric.methodologyKey,
+          sourceLabelKey: metric.sourceLabelKey,
+          sourceUrlKey: metric.sourceUrlKey,
           iconClass: metric.iconClass,
           value: '--',
           fullValue: null,
