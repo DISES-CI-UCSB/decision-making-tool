@@ -237,8 +237,44 @@
                               id="right-sidebar-v3-overview-goals-taxa-fish"
                               class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
                             >
-                              <span id="right-sidebar-v3-overview-goals-taxa-fish-label">
-                                {{ 'analysis.overview.goalsWidget.fish' | translate }}
+                              <span
+                                id="right-sidebar-v3-overview-goals-taxa-fish-label"
+                                class="inline-flex items-center gap-1.5"
+                              >
+                                <span id="right-sidebar-v3-overview-goals-taxa-fish-label-text">
+                                  {{ 'analysis.overview.goalsWidget.fish' | translate }}
+                                </span>
+                                <span
+                                  id="right-sidebar-v3-overview-goals-fish-info-help"
+                                  class="v3-fish-info-help"
+                                >
+                                  <button
+                                    id="right-sidebar-v3-overview-goals-fish-info-trigger"
+                                    type="button"
+                                    class="v3-fish-info-trigger"
+                                    [attr.aria-label]="
+                                      'analysis.overview.goalsWidget.fishInfoAriaLabel' | translate
+                                    "
+                                    aria-describedby="right-sidebar-v3-overview-goals-fish-info-tooltip"
+                                  >
+                                    <span
+                                      id="right-sidebar-v3-overview-goals-fish-info-indicator"
+                                      class="v3-fish-info-indicator"
+                                      aria-hidden="true"
+                                      >i</span
+                                    >
+                                  </button>
+                                  <span
+                                    id="right-sidebar-v3-overview-goals-fish-info-tooltip"
+                                    role="tooltip"
+                                    class="v3-fish-info-tooltip"
+                                  >
+                                    {{
+                                      'analysis.overview.goalsWidget.freshwaterClarification'
+                                        | translate
+                                    }}
+                                  </span>
+                                </span>
                               </span>
                               <strong
                                 id="right-sidebar-v3-overview-goals-taxa-fish-value"
