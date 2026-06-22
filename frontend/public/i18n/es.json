@@ -248,6 +248,8 @@
         "species": "Especies",
         "taxaBreakdown": "Especies por taxón",
         "fish": "Peces",
+        "fishInfoLabel": "Por qué no se incluyen peces",
+        "fishTooltip": "Los ecosistemas de agua dulce están representados por humedales en esta priorización. Las especies de peces no se incluyen porque los datos disponibles son demasiado generales; los servicios de regulación hídrica se representan por separado en las métricas de resumen.",
         "notApplicable": "N/A"
       },
       "spatial": {
@@ -260,6 +262,7 @@
         "costsAndTradeoffs": "Costos y compensaciones"
       },
       "conditional": "Condicional",
+      "methodologyInfoLabel": "Metodología y fuente de la métrica",
       "unavailableInfoLabel": "Por qué esta métrica no está disponible",
       "unavailableTooltip": "No disponible por ahora: esta métrica necesita una capa de datos adicional que aún no se ha entregado.",
       "inputsTooltip": {
@@ -316,9 +319,15 @@
         "communityCouncilsArea": "Área de consejos comunitarios",
         "communityCouncilsAreaDesc": "Consejos comunitarios afrocolombianos superpuestos",
         "carbonStorageCapacity": "Capacidad de almacenamiento de carbono",
-        "carbonStorageCapacityDesc": "Biomasa total en áreas prioritarias",
+        "carbonStorageCapacityDesc": "Biomasa aérea y subterránea en áreas prioritarias",
+        "carbonStorageCapacityMethodology": "Usa una capa de biomasa aérea y subterránea. Fórmula: suma del valor de biomasa × área del píxel en la solución seleccionada.",
+        "carbonStorageCapacitySourceLabel": "Fuente: Spawn et al. 2020",
+        "carbonStorageCapacitySourceUrl": "https://www.nature.com/articles/s41597-020-0444-4",
         "waterRegulationServices": "Servicios de regulación hídrica",
-        "waterRegulationServicesDesc": "Capacidad de regulación hidrológica",
+        "waterRegulationServicesDesc": "Área prioritaria superpuesta con zonas de recarga subterránea",
+        "waterRegulationServicesMethodology": "Usa la capa de IDEAM de recarga de aguas subterráneas moderada a alta. Fórmula: suma del área seleccionada por la solución que se superpone con zonas de recarga.",
+        "waterRegulationServicesSourceLabel": "Fuente: capa de recarga IDEAM ENA 2018",
+        "waterRegulationServicesSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
         "affectedAgriculturalArea": "Área agrícola afectada",
         "affectedAgriculturalAreaDesc": "Tierra agrícola dentro de prioridades",
         "agriculturalOpportunityCost": "Costo de oportunidad agrícola",

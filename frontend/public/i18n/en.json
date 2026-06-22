@@ -248,6 +248,8 @@
         "species": "Species",
         "taxaBreakdown": "Species by taxa",
         "fish": "Fish",
+        "fishInfoLabel": "Why fish are not included",
+        "fishTooltip": "Freshwater ecosystems are represented by wetlands in this prioritization. Fish species are not included because the available data is too coarse; water regulation services are represented separately in the overview metrics.",
         "notApplicable": "N/A"
       },
       "spatial": {
@@ -260,6 +262,7 @@
         "costsAndTradeoffs": "Costs & Trade-offs"
       },
       "conditional": "Conditional",
+      "methodologyInfoLabel": "Metric methodology and source",
       "unavailableInfoLabel": "Why this metric is unavailable",
       "unavailableTooltip": "Unavailable right now: this metric needs an additional source layer that has not been delivered yet.",
       "inputsTooltip": {
@@ -316,9 +319,15 @@
         "communityCouncilsArea": "Community Councils Area",
         "communityCouncilsAreaDesc": "Afro-Colombian councils overlapping the solution",
         "carbonStorageCapacity": "Carbon Storage Capacity",
-        "carbonStorageCapacityDesc": "Total biomass in priority areas",
+        "carbonStorageCapacityDesc": "Above- and belowground biomass in priority areas",
+        "carbonStorageCapacityMethodology": "Uses an above- and belowground biomass layer. Formula: sum biomass value × pixel area across the selected solution.",
+        "carbonStorageCapacitySourceLabel": "Source: Spawn et al. 2020",
+        "carbonStorageCapacitySourceUrl": "https://www.nature.com/articles/s41597-020-0444-4",
         "waterRegulationServices": "Water Regulation Services",
-        "waterRegulationServicesDesc": "Hydrological regulation capacity",
+        "waterRegulationServicesDesc": "Priority area overlapping groundwater recharge zones",
+        "waterRegulationServicesMethodology": "Uses IDEAM's moderate-to-high groundwater recharge layer. Formula: sum the selected solution area that overlaps recharge zones.",
+        "waterRegulationServicesSourceLabel": "Source: IDEAM ENA 2018 recharge layer",
+        "waterRegulationServicesSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
         "affectedAgriculturalArea": "Affected Agricultural Area",
         "affectedAgriculturalAreaDesc": "Agricultural land within priorities",
         "agriculturalOpportunityCost": "Agricultural Opportunity Cost",
