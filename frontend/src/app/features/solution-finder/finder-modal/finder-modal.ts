@@ -25,8 +25,7 @@ type FinderTargetType =
   | 'species-richness'
   | 'ecosystems'
   | 'strategic-ecosystems'
-  | 'ecosystem-services'
-  | 'other-natural-cultural-elements';
+  | 'ecosystem-services';
 
 type CostLayerChoice = 'human-footprint' | 'carbon-opportunity';
 
@@ -135,13 +134,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       id: 'ecosystem-services',
       labelKey: 'solutionControls.finder.step1.ecosystemServicesLabel',
       helpKey: 'solutionControls.finder.step1.ecosystemServicesHelp',
-      isStrategic: false,
-      isAvailable: false,
-    },
-    {
-      id: 'other-natural-cultural-elements',
-      labelKey: 'solutionControls.finder.step1.otherNaturalCulturalElementsLabel',
-      helpKey: 'solutionControls.finder.step1.otherNaturalCulturalElementsHelp',
       isStrategic: false,
       isAvailable: false,
     },

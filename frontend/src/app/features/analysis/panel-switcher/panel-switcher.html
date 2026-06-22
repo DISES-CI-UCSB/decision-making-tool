@@ -239,37 +239,40 @@
                             >
                               <span
                                 id="right-sidebar-v3-overview-goals-taxa-fish-label"
-                                class="inline-flex items-center gap-1"
+                                class="inline-flex items-center gap-1.5"
                               >
                                 <span id="right-sidebar-v3-overview-goals-taxa-fish-label-text">
                                   {{ 'analysis.overview.goalsWidget.fish' | translate }}
                                 </span>
                                 <span
-                                  id="right-sidebar-v3-overview-goals-taxa-fish-help"
-                                  class="v3-unavailable-help"
+                                  id="right-sidebar-v3-overview-goals-fish-info-help"
+                                  class="v3-fish-info-help"
                                 >
                                   <button
-                                    id="right-sidebar-v3-overview-goals-taxa-fish-tooltip-trigger"
+                                    id="right-sidebar-v3-overview-goals-fish-info-trigger"
                                     type="button"
-                                    class="v3-unavailable-trigger"
+                                    class="v3-fish-info-trigger"
                                     [attr.aria-label]="
-                                      'analysis.overview.goalsWidget.fishInfoLabel' | translate
+                                      'analysis.overview.goalsWidget.fishInfoAriaLabel' | translate
                                     "
-                                    aria-describedby="right-sidebar-v3-overview-goals-taxa-fish-tooltip"
+                                    aria-describedby="right-sidebar-v3-overview-goals-fish-info-tooltip"
                                   >
                                     <span
-                                      id="right-sidebar-v3-overview-goals-taxa-fish-tooltip-indicator"
-                                      class="v3-unavailable-indicator trim-cut"
+                                      id="right-sidebar-v3-overview-goals-fish-info-indicator"
+                                      class="v3-fish-info-indicator"
                                       aria-hidden="true"
                                       >i</span
                                     >
                                   </button>
                                   <span
-                                    id="right-sidebar-v3-overview-goals-taxa-fish-tooltip"
+                                    id="right-sidebar-v3-overview-goals-fish-info-tooltip"
                                     role="tooltip"
-                                    class="v3-unavailable-tooltip v3-fish-tooltip"
+                                    class="v3-fish-info-tooltip"
                                   >
-                                    {{ 'analysis.overview.goalsWidget.fishTooltip' | translate }}
+                                    {{
+                                      'analysis.overview.goalsWidget.freshwaterClarification'
+                                        | translate
+                                    }}
                                   </span>
                                 </span>
                               </span>

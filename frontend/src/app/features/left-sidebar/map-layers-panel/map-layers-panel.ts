@@ -433,7 +433,7 @@ const MANIFEST_LIVE_RENDER_POLICY = {
     'species_and_biodiversity',
   ]),
   blockedCategoryReasons: {
-    // Management figures are rendered via the dedicated overlays card
+    // Conservation areas are rendered via the dedicated overlays card
     // (see reconcileOverlaysWithManifest) rather than the generic group rows path.
     administrative_boundaries:
       'Administrative boundary rows use boundary feature services, not raster display assets.',
@@ -1183,7 +1183,9 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (!managementGroup) {
       return;
     }
-    this.managementFiguresTitle.set(managementGroup.title);
+    this.managementFiguresTitle.set(
+      this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+    );
 
     this.overlays.update((rows) => {
       const rowById = new Map(rows.map((row) => [row.id, row]));
@@ -1308,7 +1310,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   /**
-   * Management figures (RUNAP, OMECs) live in the dedicated overlays card but render
+   * Conservation areas (RUNAP, OMECs) live in the dedicated overlays card but render
    * via the same `manifest-raster` plumbing as ecosystems/socioeconomic rows.
    *
    * If the manifest exposes a renderable display asset, we wire up `mapSync` and clear
@@ -1338,7 +1340,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       manifestRow.rendering,
     );
 
-    // Management figures need distinct default styles even when the manifest's
+    // Conservation areas need distinct default styles even when the manifest's
     // category defaults are close together.
     const defaultAppearance = MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[existingOverlay.id];
     const manifestSelectedColor = this.colorFromRendering(rendering);
@@ -1376,7 +1378,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   /**
-   * Management figure rasters (RUNAP, OMECs) are mode-code grids rather than strict
+   * Conservation area rasters (RUNAP, OMECs) are mode-code grids rather than strict
    * binary 0/1 masks, so `selectedValue: 1` drops valid coverage. We intentionally
    * treat these as presence masks (any non-zero value) so they render as a single
    * category/color in the map and legend.
@@ -1776,7 +1778,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           return row;
         }
         nextSelected = !row.selected;
-        // Manifest-raster overlays (e.g. management figures) auto-show on add to
+        // Manifest-raster overlays (e.g. conservation areas) auto-show on add to
         // mirror the behavior used by manifest-driven group rows in toggleLayerSelected.
         const shouldAutoShowWhenAdded = row.mapSync?.type === 'manifest-raster';
         return {

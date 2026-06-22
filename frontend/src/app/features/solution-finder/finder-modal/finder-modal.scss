@@ -107,6 +107,24 @@
   padding: 0.25rem 0.5rem;
 }
 
+.finder-layer-info-button {
+  line-height: 1;
+}
+
+.finder-info-icon-glyph {
+  display: inline-block;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+@supports (text-box-trim: trim-both) {
+  .finder-info-icon-glyph {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    transform: none;
+  }
+}
+
 .finder-target-level-panel {
   max-height: 0;
   margin-top: 0;
@@ -129,6 +147,7 @@
   margin-top: 0.25rem;
   padding: 0.375rem 0.5rem;
   border-color: #e2e8f0;
+  overflow: visible;
   opacity: 1;
   transform: translateY(0);
 }
