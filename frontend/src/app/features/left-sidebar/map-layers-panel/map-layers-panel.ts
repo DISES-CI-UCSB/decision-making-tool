@@ -295,9 +295,9 @@ const MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE: Partial<
   >
 > = {
   [RUNAP_OVERLAY_LAYER_ID]: {
-    color: '#2563eb',
+    color: '#f97316',
     fillStyle: 'solid',
-    borderColor: '#1e40af',
+    borderColor: '#c2410c',
     borderWidth: 1,
   },
   [RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]: {
@@ -307,10 +307,10 @@ const MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE: Partial<
     borderWidth: 1,
   },
   [OMEC_OVERLAY_LAYER_ID]: {
-    color: '#0891b2',
+    color: '#c026d3',
     fillStyle: 'hatch',
     fillDensity: 4,
-    borderColor: '#0e7490',
+    borderColor: '#86198f',
     borderWidth: 1,
   },
 };
@@ -554,8 +554,8 @@ const LEGEND_BOUNDARY_STYLES: Record<
   { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
 > = {
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
-  siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#2563eb' },
-  siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#9333ea' },
+  siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
+  siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#475569' },
   admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
@@ -4031,10 +4031,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         visible: false,
         expanded: false,
         opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.color ?? '#2563eb',
+        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.color ?? '#f97316',
         fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.fillStyle,
         borderColor:
-          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderColor ?? '#1e40af',
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderColor ?? '#c2410c',
         borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderWidth,
         canReorder: true,
         hasStyleControls: true,
@@ -4081,11 +4081,11 @@ export class MapLayersPanelComponent implements OnDestroy {
         visible: false,
         expanded: false,
         opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.color ?? '#0891b2',
+        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.color ?? '#c026d3',
         fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.fillStyle,
         fillDensity: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.fillDensity,
         borderColor:
-          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.borderColor ?? '#0e7490',
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.borderColor ?? '#86198f',
         borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.borderWidth,
         canReorder: true,
         hasStyleControls: true,
@@ -4809,9 +4809,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       color: '#111827',
       borderColor: '#111827',
       borderStyle:
-        boundaryLayerKey === 'siraps' || boundaryLayerKey === 'siraps_thematic'
+        boundaryLayerKey === 'siraps'
           ? 'dashed'
-          : 'solid',
+          : boundaryLayerKey === 'siraps_thematic'
+            ? 'dotted'
+            : 'solid',
       borderWidth:
         boundaryLayerKey === 'admin_country_outline'
           ? 1.6
