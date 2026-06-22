@@ -15,14 +15,19 @@ const optionalLocalEnvPath = path.resolve(repoRoot, '.env.production.local');
 
 await loadLocalEnvIfPresent(optionalLocalEnvPath);
 
+const existingFirebaseConfig = await readExistingFirebaseConfig(productionEnvironmentPath);
+
 const firebaseConfig = {
-  apiKey: readRequiredEnv('FIREBASE_API_KEY'),
-  authDomain: readRequiredEnv('FIREBASE_AUTH_DOMAIN'),
-  projectId: readRequiredEnv('FIREBASE_PROJECT_ID'),
-  storageBucket: readRequiredEnv('FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: readRequiredEnv('FIREBASE_MESSAGING_SENDER_ID'),
-  appId: readRequiredEnv('FIREBASE_APP_ID'),
-  measurementId: readOptionalEnv('FIREBASE_MEASUREMENT_ID'),
+  apiKey: readRequiredEnv('FIREBASE_API_KEY', existingFirebaseConfig.apiKey),
+  authDomain: readRequiredEnv('FIREBASE_AUTH_DOMAIN', existingFirebaseConfig.authDomain),
+  projectId: readRequiredEnv('FIREBASE_PROJECT_ID', existingFirebaseConfig.projectId),
+  storageBucket: readRequiredEnv('FIREBASE_STORAGE_BUCKET', existingFirebaseConfig.storageBucket),
+  messagingSenderId: readRequiredEnv(
+    'FIREBASE_MESSAGING_SENDER_ID',
+    existingFirebaseConfig.messagingSenderId,
+  ),
+  appId: readRequiredEnv('FIREBASE_APP_ID', existingFirebaseConfig.appId),
+  measurementId: readOptionalEnv('FIREBASE_MEASUREMENT_ID') || existingFirebaseConfig.measurementId,
 };
 
 const environmentFile = `export const environment = {
@@ -68,8 +73,32 @@ async function loadLocalEnvIfPresent(envPath) {
   }
 }
 
-function readRequiredEnv(key) {
-  const value = readOptionalEnv(key);
+async function readExistingFirebaseConfig(environmentPath) {
+  let environmentSource;
+  try {
+    environmentSource = await readFile(environmentPath, 'utf-8');
+  } catch {
+    return {};
+  }
+
+  return {
+    apiKey: readStringProperty(environmentSource, 'apiKey'),
+    authDomain: readStringProperty(environmentSource, 'authDomain'),
+    projectId: readStringProperty(environmentSource, 'projectId'),
+    storageBucket: readStringProperty(environmentSource, 'storageBucket'),
+    messagingSenderId: readStringProperty(environmentSource, 'messagingSenderId'),
+    appId: readStringProperty(environmentSource, 'appId'),
+    measurementId: readStringProperty(environmentSource, 'measurementId'),
+  };
+}
+
+function readStringProperty(source, propertyName) {
+  const match = source.match(new RegExp(`${propertyName}: ['"]([^'"]*)['"]`));
+  return match?.[1] ?? '';
+}
+
+function readRequiredEnv(key, fallback = '') {
+  const value = readOptionalEnv(key) || fallback;
   if (!value) {
     throw new Error(`${key} is required to build the production Angular environment`);
   }

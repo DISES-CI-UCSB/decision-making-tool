@@ -58,21 +58,23 @@ interface BoundaryStyle {
 }
 
 const PUBLIC_BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
-const DEFAULT_ADMIN_BOUNDARY_HEX = '#111827';
-const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [17, 24, 39, 235];
-const DEFAULT_SIRAP_TERRITORIAL_COLOR: BoundaryStyle['color'] = [37, 99, 235, 235];
-const DEFAULT_SIRAP_THEMATIC_COLOR: BoundaryStyle['color'] = [147, 51, 234, 235];
+const DEFAULT_ADMIN_BOUNDARY_HEX = '#6b7280';
+const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [107, 114, 128, 235];
 const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, BoundaryStyle> = {
   siraps: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
-  siraps_territorial: { color: DEFAULT_SIRAP_TERRITORIAL_COLOR, width: 1.25, style: 'solid' },
-  siraps_thematic: { color: DEFAULT_SIRAP_THEMATIC_COLOR, width: 1.25, style: 'long-dash' },
+  siraps_territorial: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'solid' },
+  siraps_thematic: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   admin_country_outline: {
     color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
     width: 1.6,
     style: 'solid',
   },
   admin_departments: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
-  admin_municipalities: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1, style: 'solid' },
+  admin_municipalities: {
+    color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
+    width: 0.9,
+    style: 'long-dash',
+  },
 };
 
 const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [

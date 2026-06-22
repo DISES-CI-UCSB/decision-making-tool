@@ -153,7 +153,7 @@ const DEFAULT_SOLUTION_RENDERING = {
  */
 const englishLabelOverrideByLayerId = {
   paramos: 'Páramos',
-  siraps: 'SIRAP Boundaries',
+  siraps: 'SIRAP',
   siraps_territorial: 'Territorial SIRAPs',
   siraps_thematic: 'Thematic SIRAP Additions',
   omecs: 'OMECs (raster)',
@@ -370,7 +370,7 @@ const proposedLayerCategoryOverrides = {
 
 const tooltipOverrideByLayerId = {
   siraps:
-    'Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.',
+    `SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term "límites" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.`,
   siraps_territorial:
     'Territorial SIRAPs are the broad regional conservation systems used as overarching SIRAP categories.',
   siraps_thematic:

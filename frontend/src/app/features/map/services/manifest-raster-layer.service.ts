@@ -125,6 +125,7 @@ export class ManifestRasterLayerService {
       if (layerId === OMEC_OVERLAY_LAYER_ID) {
         this.omecOverlayState$.set(nextState);
       }
+      this.bumpRenderedLayerRevision();
       return;
     }
 
