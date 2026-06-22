@@ -857,7 +857,7 @@
     "boundaryInfoKicker": "Layer info",
     "boundaryInfoTitle": "About {{name}}",
     "closeBoundaryInfo": "Close layer information",
-    "sirapTooltip": "Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.",
+    "sirapTooltip": "SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term \"límites\" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.",
     "speciesSearchPlaceholder": "Search {{taxon}}...",
     "chooseColorFor": "Choose color for {{name}}",
     "speciesNoun": "species",
@@ -877,7 +877,7 @@
       "costs": "Costs"
     },
     "boundaryNames": {
-      "combinedSirapReviewLayer": "Combined SIRAP review layer",
+      "combinedSirapReviewLayer": "SIRAP",
       "territorialSiraps": "Territorial SIRAPs",
       "thematicSirapAdditions": "Thematic SIRAP additions",
       "colombiaOutline": "Colombia Outline",

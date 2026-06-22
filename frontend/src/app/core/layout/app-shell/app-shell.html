@@ -173,11 +173,6 @@
           ? ('layout.desktop.showLeft' | translate)
           : ('layout.desktop.collapse' | translate)
       "
-      [attr.title]="
-        leftCollapsed
-          ? ('layout.desktop.showLeft' | translate)
-          : ('layout.desktop.collapse' | translate)
-      "
       (click)="toggleLeftCollapse()"
     >
       <span
@@ -211,11 +206,6 @@
       [class.hidden]="isMobileViewport"
       [style.right]="rightCollapseControlOffset"
       [attr.aria-label]="
-        rightCollapsed
-          ? ('layout.desktop.showRight' | translate)
-          : ('layout.desktop.collapse' | translate)
-      "
-      [attr.title]="
         rightCollapsed
           ? ('layout.desktop.showRight' | translate)
           : ('layout.desktop.collapse' | translate)

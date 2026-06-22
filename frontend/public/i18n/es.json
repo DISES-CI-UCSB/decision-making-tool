@@ -857,7 +857,7 @@
     "boundaryInfoKicker": "Información de la capa",
     "boundaryInfoTitle": "Acerca de {{name}}",
     "closeBoundaryInfo": "Cerrar información de la capa",
-    "sirapTooltip": "Los SIRAP territoriales son amplios sistemas regionales de conservación. Los SIRAP temáticos son adiciones especiales, como Eje Cafetero y Macizo, que pueden superponerse con los SIRAP territoriales. La capa combinada muestra ambos juntos para revisión.",
+    "sirapTooltip": "SIRAP significa Sistema Regional de Áreas Protegidas. Esta es la capa de límites SIRAP, es decir, las líneas o polígonos de frontera que se muestran en el mapa. La capa combinada incluye límites SIRAP territoriales y adiciones temáticas como Eje Cafetero y Macizo.",
     "speciesSearchPlaceholder": "Buscar {{taxon}}...",
     "chooseColorFor": "Elegir color para {{name}}",
     "speciesNoun": "especies",
@@ -877,7 +877,7 @@
       "costs": "Costos"
     },
     "boundaryNames": {
-      "combinedSirapReviewLayer": "Capa combinada de revisión SIRAP",
+      "combinedSirapReviewLayer": "SIRAP",
       "territorialSiraps": "SIRAP territoriales",
       "thematicSirapAdditions": "Adiciones temáticas de SIRAP",
       "colombiaOutline": "Contorno de Colombia",
