@@ -272,28 +272,146 @@
                       [id]="'solution-finder-modal-step1-target-level-row-' + option.id"
                       class="flex flex-wrap items-center justify-between gap-2"
                     >
-                      <p
+                      <div
                         [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
-                        class="finder-all-caps-optical finder-subtext-dark finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide"
+                        class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
                       >
                         <span
-                          [id]="
-                            'solution-finder-modal-step1-target-level-coverage-label-' + option.id
-                          "
+                          [id]="'solution-finder-modal-step1-target-level-label-row-' + option.id"
+                          class="inline-flex items-center gap-1"
                         >
-                          {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
-                        </span>
-                        @if (isTargetTypeLevelMissing(option.id)) {
                           <span
                             [id]="
-                              'solution-finder-modal-step1-target-level-required-label-' + option.id
+                              'solution-finder-modal-step1-target-level-coverage-label-' + option.id
                             "
-                            class="ml-1 text-red-600"
+                            class="finder-all-caps-optical finder-target-level-title-optical"
                           >
-                            {{ 'solutionControls.finder.step1.requiredInline' | translate }}
+                            {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
                           </span>
-                        }
-                      </p>
+                          @if (isTargetTypeLevelMissing(option.id)) {
+                            <span
+                              [id]="
+                                'solution-finder-modal-step1-target-level-required-label-' +
+                                option.id
+                              "
+                              class="finder-all-caps-optical finder-target-level-title-optical text-red-600"
+                            >
+                              {{ 'solutionControls.finder.step1.requiredInline' | translate }}
+                            </span>
+                          }
+                          <span
+                            [id]="'solution-finder-modal-step1-target-level-rationale-' + option.id"
+                            class="group relative z-20 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
+                          >
+                            <button
+                              [id]="
+                                'solution-finder-modal-step1-target-level-rationale-toggle-' +
+                                option.id
+                              "
+                              type="button"
+                              class="finder-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                              [attr.aria-label]="
+                                'solutionControls.finder.step1.targetLevelRationaleToggle'
+                                  | translate
+                              "
+                              [attr.aria-describedby]="
+                                'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                option.id
+                              "
+                              (click)="$event.stopPropagation()"
+                            >
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-rationale-icon-' +
+                                  option.id
+                                "
+                                class="finder-info-icon-glyph"
+                                aria-hidden="true"
+                                >i</span
+                              >
+                            </button>
+                            <span
+                              [id]="
+                                'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                option.id
+                              "
+                              role="tooltip"
+                              class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                            >
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-rationale-text-' +
+                                  option.id
+                                "
+                                class="block"
+                              >
+                                {{
+                                  'solutionControls.finder.step1.targetLevelRationale' | translate
+                                }}
+                              </span>
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-rationale-sources-' +
+                                  option.id
+                                "
+                                class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1"
+                              >
+                                <a
+                                  [id]="
+                                    'solution-finder-modal-step1-target-level-rationale-aichi-source-' +
+                                    option.id
+                                  "
+                                  class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
+                                  [href]="
+                                    'solutionControls.finder.step1.targetLevelAichiSourceUrl'
+                                      | translate
+                                  "
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  (click)="$event.stopPropagation()"
+                                  (keydown.enter)="$event.stopPropagation()"
+                                  (keydown.space)="$event.stopPropagation()"
+                                >
+                                  {{
+                                    'solutionControls.finder.step1.targetLevelAichiSourceLabel'
+                                      | translate
+                                  }}
+                                </a>
+                                <span
+                                  [id]="
+                                    'solution-finder-modal-step1-target-level-rationale-source-separator-' +
+                                    option.id
+                                  "
+                                  aria-hidden="true"
+                                >
+                                  ·
+                                </span>
+                                <a
+                                  [id]="
+                                    'solution-finder-modal-step1-target-level-rationale-kunming-source-' +
+                                    option.id
+                                  "
+                                  class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
+                                  [href]="
+                                    'solutionControls.finder.step1.targetLevelKunmingSourceUrl'
+                                      | translate
+                                  "
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  (click)="$event.stopPropagation()"
+                                  (keydown.enter)="$event.stopPropagation()"
+                                  (keydown.space)="$event.stopPropagation()"
+                                >
+                                  {{
+                                    'solutionControls.finder.step1.targetLevelKunmingSourceLabel'
+                                      | translate
+                                  }}
+                                </a>
+                              </span>
+                            </span>
+                          </span>
+                        </span>
+                      </div>
                       <div
                         [id]="'solution-finder-modal-step1-target-level-group-' + option.id"
                         class="flex items-center gap-1"

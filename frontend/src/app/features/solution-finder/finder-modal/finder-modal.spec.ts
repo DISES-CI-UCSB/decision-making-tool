@@ -142,6 +142,47 @@ describe('FinderModalComponent', () => {
     }
   });
 
+  it('renders coverage target rationale with framework source links', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const rationale = compiled.querySelector(
+      '#solution-finder-modal-step1-target-level-rationale-ecosystems',
+    );
+    const rationaleToggle = compiled.querySelector(
+      '#solution-finder-modal-step1-target-level-rationale-toggle-ecosystems',
+    );
+    const rationaleIcon = compiled.querySelector(
+      '#solution-finder-modal-step1-target-level-rationale-icon-ecosystems',
+    );
+    const rationaleTooltip = compiled.querySelector(
+      '#solution-finder-modal-step1-target-level-rationale-tooltip-ecosystems',
+    );
+    const aichiSource = compiled.querySelector(
+      '#solution-finder-modal-step1-target-level-rationale-aichi-source-ecosystems',
+    );
+    const kunmingSource = compiled.querySelector(
+      '#solution-finder-modal-step1-target-level-rationale-kunming-source-ecosystems',
+    );
+
+    expect(rationale).not.toBeNull();
+    expect(rationaleToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.targetLevelRationaleToggle',
+    );
+    expect(rationaleIcon?.classList.contains('finder-info-icon-glyph')).toBe(true);
+    expect(rationaleIcon?.textContent?.trim()).toBe('i');
+    expect(rationaleTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(rationale?.textContent).toContain('solutionControls.finder.step1.targetLevelRationale');
+    expect(aichiSource?.textContent).toContain(
+      'solutionControls.finder.step1.targetLevelAichiSourceLabel',
+    );
+    expect(kunmingSource?.textContent).toContain(
+      'solutionControls.finder.step1.targetLevelKunmingSourceLabel',
+    );
+  });
+
   it('renders expandable definitions for cost choices', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();

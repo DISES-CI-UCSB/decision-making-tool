@@ -738,6 +738,12 @@
         "lockReasonSelectTargetType": "Choose at least one target type to continue.",
         "lockReasonSelectTargetLevel": "Choose 17% or 30% for each selected target type.",
         "targetLevelIntro": "National representation goal as a percent target (17% or 30%).",
+        "targetLevelRationaleToggle": "Why these values?",
+        "targetLevelRationale": "The 17% option follows Aichi Biodiversity Target 11 for terrestrial and inland water conservation by 2020. The 30% option follows Target 3 of the Kunming-Montreal Global Biodiversity Framework, which calls for conserving at least 30% of land, inland waters, and coastal and marine areas by 2030.",
+        "targetLevelAichiSourceLabel": "Aichi Target 11",
+        "targetLevelAichiSourceUrl": "https://www.cbd.int/sp/targets",
+        "targetLevelKunmingSourceLabel": "Kunming-Montreal Target 3",
+        "targetLevelKunmingSourceUrl": "https://www.cbd.int/gbf/targets/3",
         "targetLevelBadgeSpecies": "For species richness",
         "targetLevelBadgeStrategic": "Strategic only",
         "strategicLevelFixed": "30% — only level available for strategic ecosystems in the current catalog."
