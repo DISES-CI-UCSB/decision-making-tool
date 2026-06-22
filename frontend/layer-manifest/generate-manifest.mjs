@@ -308,9 +308,9 @@ const proposedManifestCategories = {
     frontendGroup: 'Environmental Services',
   },
   management_figures: {
-    spanishLabel: 'Figuras de manejo',
-    englishLabel: 'Management Figures',
-    frontendGroup: 'Management Figures',
+    spanishLabel: 'Áreas de conservación',
+    englishLabel: 'Conservation Areas',
+    frontendGroup: 'Conservation Areas',
   },
   administrative_boundaries: {
     spanishLabel: 'Límites administrativos',
@@ -406,7 +406,7 @@ const categoryMappingRules = {
   management_figures: {
     frontendCategoryIds: ['management-figures'],
     status: 'maps_cleanly',
-    notes: 'RUNAP and OMEC layers map to the existing Management Figures overlay group.',
+    notes: 'RUNAP and OMEC layers map to the existing Conservation Areas overlay group.',
   },
   administrative_boundaries: {
     frontendCategoryIds: ['group-admin-boundaries'],
@@ -444,7 +444,7 @@ const categoryMappingRules = {
   solutions: {
     frontendCategoryIds: ['management-figures'],
     status: 'maps_cleanly_with_existing_overlay_group',
-    notes: 'Solution layers currently appear in the existing Management Figures overlay group.',
+    notes: 'Solution layers currently appear in the existing Conservation Areas overlay group.',
   },
 };
 
@@ -2120,7 +2120,7 @@ async function extractCurrentFrontendCategories() {
   const categories = [
     {
       id: 'management-figures',
-      title: 'Management Figures',
+      title: 'Conservation Areas',
       source: 'createDefaultOverlays',
       notes:
         'Overlay card above category groups; currently contains solution, RUNAP, and OMEC rows.',

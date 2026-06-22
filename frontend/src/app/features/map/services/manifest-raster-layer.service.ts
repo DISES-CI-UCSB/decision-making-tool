@@ -326,7 +326,7 @@ export class ManifestRasterLayerService {
         // Mask semantics:
         //   • numeric `selectedValue`  → render only pixels equal to that value (default 1).
         //   • explicit `null`          → "presence mask": render any non-zero, non-noData pixel.
-        //                                Used for include_layers (e.g. management figures) whose
+        //                                Used for include_layers (e.g. conservation areas) whose
         //                                rasters are categorical mode codes rather than 0/1 binary.
         const selectedValue =
           rendering.selectedValue === null

@@ -52,8 +52,8 @@
     },
     {
       "id": "management_figures",
-      "spanishLabel": "Figuras de manejo",
-      "englishLabel": "Management Figures",
+      "spanishLabel": "Áreas de conservación",
+      "englishLabel": "Conservation Areas",
       "styleDefaults": {
         "selectedColor": "#3730a3",
         "startColor": "#e0e7ff",
