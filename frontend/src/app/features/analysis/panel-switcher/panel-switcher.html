@@ -237,8 +237,41 @@
                               id="right-sidebar-v3-overview-goals-taxa-fish"
                               class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
                             >
-                              <span id="right-sidebar-v3-overview-goals-taxa-fish-label">
-                                {{ 'analysis.overview.goalsWidget.fish' | translate }}
+                              <span
+                                id="right-sidebar-v3-overview-goals-taxa-fish-label"
+                                class="inline-flex items-center gap-1"
+                              >
+                                <span id="right-sidebar-v3-overview-goals-taxa-fish-label-text">
+                                  {{ 'analysis.overview.goalsWidget.fish' | translate }}
+                                </span>
+                                <span
+                                  id="right-sidebar-v3-overview-goals-taxa-fish-help"
+                                  class="v3-unavailable-help"
+                                >
+                                  <button
+                                    id="right-sidebar-v3-overview-goals-taxa-fish-tooltip-trigger"
+                                    type="button"
+                                    class="v3-unavailable-trigger"
+                                    [attr.aria-label]="
+                                      'analysis.overview.goalsWidget.fishInfoLabel' | translate
+                                    "
+                                    aria-describedby="right-sidebar-v3-overview-goals-taxa-fish-tooltip"
+                                  >
+                                    <span
+                                      id="right-sidebar-v3-overview-goals-taxa-fish-tooltip-indicator"
+                                      class="v3-unavailable-indicator trim-cut"
+                                      aria-hidden="true"
+                                      >i</span
+                                    >
+                                  </button>
+                                  <span
+                                    id="right-sidebar-v3-overview-goals-taxa-fish-tooltip"
+                                    role="tooltip"
+                                    class="v3-unavailable-tooltip v3-fish-tooltip"
+                                  >
+                                    {{ 'analysis.overview.goalsWidget.fishTooltip' | translate }}
+                                  </span>
+                                </span>
                               </span>
                               <strong
                                 id="right-sidebar-v3-overview-goals-taxa-fish-value"
@@ -353,6 +386,72 @@
                                 class="v3-m-name"
                               >
                                 {{ entry.labelKey | translate }}
+                                @if (entry.methodologyKey) {
+                                  <span
+                                    [id]="
+                                      'right-sidebar-v3-overview-gain-methodology-help-' + entry.id
+                                    "
+                                    class="v3-methodology-help"
+                                  >
+                                    <button
+                                      [id]="
+                                        'right-sidebar-v3-overview-gain-methodology-trigger-' +
+                                        entry.id
+                                      "
+                                      type="button"
+                                      class="v3-methodology-trigger"
+                                      [attr.aria-label]="
+                                        'analysis.overview.methodologyInfoLabel' | translate
+                                      "
+                                      [attr.aria-describedby]="
+                                        'right-sidebar-v3-overview-gain-methodology-tooltip-' +
+                                        entry.id
+                                      "
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-gain-methodology-indicator-' +
+                                          entry.id
+                                        "
+                                        class="v3-methodology-indicator trim-cut"
+                                        aria-hidden="true"
+                                        >i</span
+                                      >
+                                    </button>
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-gain-methodology-tooltip-' +
+                                        entry.id
+                                      "
+                                      role="tooltip"
+                                      class="v3-methodology-tooltip"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-gain-methodology-text-' +
+                                          entry.id
+                                        "
+                                        class="v3-methodology-tooltip-text"
+                                      >
+                                        {{ entry.methodologyKey | translate }}
+                                      </span>
+                                      @if (entry.sourceLabelKey && entry.sourceUrlKey) {
+                                        <a
+                                          [id]="
+                                            'right-sidebar-v3-overview-gain-methodology-source-' +
+                                            entry.id
+                                          "
+                                          class="v3-methodology-source-link"
+                                          [href]="entry.sourceUrlKey | translate"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          {{ entry.sourceLabelKey | translate }}
+                                        </a>
+                                      }
+                                    </span>
+                                  </span>
+                                }
                                 @if (entry.unavailable) {
                                   <span
                                     [id]="
