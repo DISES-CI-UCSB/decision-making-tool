@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T23:22:28.759Z",
+  "generatedAt": "2026-06-22T17:04:23.641Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -20,18 +20,115 @@
     "includedRows": 21,
     "generatedLayers": 21,
     "blobInventoryEntries": 105,
-    "missingRequired": 0,
-    "extraAvailable": 77,
+    "missingRequired": 16,
+    "extraAvailable": 92,
     "includedRowMetadataGaps": 20,
     "excludedRows": 3,
     "generatedSolutions": 18,
     "skippedSolutionMetadataFiles": 0,
-    "unmatchedSolutionRasters": 122,
+    "unmatchedSolutionRasters": 226,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 0,
     "renderingInferenceLowConfidence": 17
   },
-  "missingRequired": [],
+  "missingRequired": [
+    {
+      "layerId": "species_richness",
+      "displayName": "Riqueza de especies",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/species_richness/riqueza_especies.tif"
+    },
+    {
+      "layerId": "species",
+      "displayName": "Distribuciones de especies individuales (~8751)",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/species/"
+    },
+    {
+      "layerId": "paramos",
+      "displayName": "Páramos",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/strategic/paramos.tif"
+    },
+    {
+      "layerId": "wetlands",
+      "displayName": "Humedales",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/strategic/humedales.tif"
+    },
+    {
+      "layerId": "bosque_seco",
+      "displayName": "Bosque seco",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/strategic/bosque_seco.tif"
+    },
+    {
+      "layerId": "mangroves",
+      "displayName": "Manglares",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/strategic/mangroves.tif"
+    },
+    {
+      "layerId": "ecosistemas",
+      "displayName": "Ecosistemas",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/ecosystems/ecosistemas.tif"
+    },
+    {
+      "layerId": "recarga_agua_subterranea_moderado_alto",
+      "displayName": "Recarga de aguas subterraneas",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif"
+    },
+    {
+      "layerId": "human_footprint_2022",
+      "displayName": "Índice de Huella Espacial Humana 2022",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/costs/human_footprint_2022.tif"
+    },
+    {
+      "layerId": "net_benefit",
+      "displayName": "Beneficio neto (renta agropecuaria)",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/costs/net_benefit.tif"
+    },
+    {
+      "layerId": "conflict",
+      "displayName": "Conflictos (coca muertes)",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/costs/conflict.tif"
+    },
+    {
+      "layerId": "runap",
+      "displayName": "Áreas protegidas (RUNAP 2023)",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/includes/runap_protected_areas.tif"
+    },
+    {
+      "layerId": "omecs",
+      "displayName": "OMECs (raster)",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/includes/omecs.tif"
+    },
+    {
+      "layerId": "comunidades",
+      "displayName": "Comunidades Negras",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/includes/comunidades.tif"
+    },
+    {
+      "layerId": "resguardos",
+      "displayName": "Resguardos Indígenas",
+      "expectedBlobPath": null,
+      "storageLocation": "inputs/includes/resguardos.tif"
+    },
+    {
+      "layerId": "coberturas",
+      "displayName": "Cobertura de la tierra",
+      "expectedBlobPath": null,
+      "storageLocation": "boundaries/coberturas.tif"
+    }
+  ],
   "extraAvailable": [
     {
       "pathname": "boundaries/SIRAPS/shape_DTs.cpg",
@@ -82,6 +179,11 @@
       "pathname": "boundaries/coberturas.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.sparse.gz",
       "bytes": 199147
+    },
+    {
+      "pathname": "boundaries/coberturas.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.tif",
+      "bytes": 955973
     },
     {
       "pathname": "boundaries/coberturas.xlsx",
@@ -299,9 +401,24 @@
       "bytes": 3213633
     },
     {
+      "pathname": "inputs/costs/conflict.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/conflict.tif",
+      "bytes": 12402324
+    },
+    {
+      "pathname": "inputs/costs/human_footprint_2022.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2022.tif",
+      "bytes": 1816414
+    },
+    {
       "pathname": "inputs/costs/human_footprint_2030.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2030.tif",
       "bytes": 12402302
+    },
+    {
+      "pathname": "inputs/costs/net_benefit.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/net_benefit.tif",
+      "bytes": 12402320
     },
     {
       "pathname": "inputs/features/biomass/biomasa_areara+subterranea_1km.sparse.gz",
@@ -324,6 +441,11 @@
       "bytes": 6272115
     },
     {
+      "pathname": "inputs/features/ecosystems/ecosistemas.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas.tif",
+      "bytes": 366919
+    },
+    {
       "pathname": "inputs/features/ecosystems/ecosistemas_IAVH_2024.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IAVH_2024.sparse.gz",
       "bytes": 316507
@@ -342,6 +464,16 @@
       "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
       "bytes": 110336
+    },
+    {
+      "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "bytes": 166170
+    },
+    {
+      "pathname": "inputs/features/species_richness/riqueza_especies.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies.tif",
+      "bytes": 3405962
     },
     {
       "pathname": "inputs/features/species_richness/riqueza_especies_amphibians.tif",
@@ -374,9 +506,19 @@
       "bytes": 10537
     },
     {
+      "pathname": "inputs/features/strategic/bosque_seco.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/bosque_seco.tif",
+      "bytes": 30668
+    },
+    {
       "pathname": "inputs/features/strategic/humedales.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/humedales.sparse.gz",
       "bytes": 108725
+    },
+    {
+      "pathname": "inputs/features/strategic/humedales.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/humedales.tif",
+      "bytes": 143244
     },
     {
       "pathname": "inputs/features/strategic/mangroves.sparse.gz",
@@ -384,14 +526,34 @@
       "bytes": 2685
     },
     {
+      "pathname": "inputs/features/strategic/mangroves.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/mangroves.tif",
+      "bytes": 12414736
+    },
+    {
       "pathname": "inputs/features/strategic/paramos.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/paramos.sparse.gz",
       "bytes": 10055
     },
     {
+      "pathname": "inputs/features/strategic/paramos.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/paramos.tif",
+      "bytes": 49394
+    },
+    {
       "pathname": "inputs/includes/comunidades.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/comunidades.sparse.gz",
       "bytes": 7562
+    },
+    {
+      "pathname": "inputs/includes/comunidades.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/comunidades.tif",
+      "bytes": 12402310
+    },
+    {
+      "pathname": "inputs/includes/omecs.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/omecs.tif",
+      "bytes": 12402304
     },
     {
       "pathname": "inputs/includes/omecs_identify.geojson",
@@ -402,6 +564,11 @@
       "pathname": "inputs/includes/resguardos.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/resguardos.sparse.gz",
       "bytes": 27624
+    },
+    {
+      "pathname": "inputs/includes/resguardos.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/resguardos.tif",
+      "bytes": 12402308
     },
     {
       "pathname": "inputs/includes/runap_categories.csv",
@@ -417,6 +584,11 @@
       "pathname": "inputs/includes/runap_protected_areas.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_protected_areas.sparse.gz",
       "bytes": 34477
+    },
+    {
+      "pathname": "inputs/includes/runap_protected_areas.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_protected_areas.tif",
+      "bytes": 12402308
     }
   ],
   "includedRowMetadataGaps": [
@@ -602,13 +774,12 @@
     "reportPath": "development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json",
     "generatedSolutions": 18,
     "skippedSolutionMetadataFiles": 0,
-    "unmatchedSolutionRasters": 122
+    "unmatchedSolutionRasters": 226
   },
   "renderingInferenceSummary": {
     "byStrategy": {
       "manual_override": 4,
-      "legacy_non_raster": 6,
-      "fallback_after_uncertain_sampling": 11
+      "legacy_non_raster": 17
     },
     "lowConfidence": 17
   },

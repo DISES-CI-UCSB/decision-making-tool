@@ -48,6 +48,8 @@ import {
 } from '@features/map/services/admin-boundary.service';
 import {
   ManifestRasterLayerService,
+  OMEC_OVERLAY_LAYER_ID,
+  RUNAP_OVERLAY_LAYER_ID,
   RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
   VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID,
   VECTOR_OVERLAY_LAYER_IDS,
@@ -280,9 +282,37 @@ const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
   ['taxon-fish', 5],
 ]);
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
-  runap: 'overlay-runap',
+  runap: RUNAP_OVERLAY_LAYER_ID,
   runap_national_parks: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
-  omecs: 'overlay-omecs',
+  omecs: OMEC_OVERLAY_LAYER_ID,
+};
+const MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE: Partial<
+  Record<
+    string,
+    Partial<
+      Pick<LayerControlRow, 'color' | 'fillStyle' | 'fillDensity' | 'borderColor' | 'borderWidth'>
+    >
+  >
+> = {
+  [RUNAP_OVERLAY_LAYER_ID]: {
+    color: '#f97316',
+    fillStyle: 'solid',
+    borderColor: '#c2410c',
+    borderWidth: 1,
+  },
+  [RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]: {
+    color: '#dc2626',
+    fillStyle: 'solid',
+    borderColor: '#991b1b',
+    borderWidth: 1,
+  },
+  [OMEC_OVERLAY_LAYER_ID]: {
+    color: '#c026d3',
+    fillStyle: 'hatch',
+    fillDensity: 4,
+    borderColor: '#86198f',
+    borderWidth: 1,
+  },
 };
 const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
   string,
@@ -524,8 +554,8 @@ const LEGEND_BOUNDARY_STYLES: Record<
   { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
 > = {
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
-  siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#2563eb' },
-  siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#9333ea' },
+  siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
+  siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#475569' },
   admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
@@ -568,6 +598,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected sidebarScrollbarInteracting = false;
   private readonly opacitySyncFrames = new Map<string, number>();
   private readonly colorSyncFrames = new Map<string, number>();
+  private selectedLayerStackingSyncFrame: number | null = null;
   private formatSelectIdSequence = 0;
   private loadedSpeciesManifestUrl: string | null = null;
 
@@ -633,7 +664,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       (row) => row.id !== BASELINE_SOLUTION_OVERLAY_ID && row.id !== CANDIDATE_SOLUTION_OVERLAY_ID,
     ),
   );
-  /** Management Figures card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
+  /** Conservation Areas card: expanded by default so RUNAP/OMEC are visible; category groups start collapsed (UCS-101). */
   protected readonly overlaysCollapsed = signal(false);
   protected readonly taxa = signal<TaxonRow[]>(this.createDefaultTaxa());
   private readonly activeLanguage = signal<SupportedLanguage>(this.resolveActiveLanguage());
@@ -646,15 +677,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly adminBoundaryGroup = computed(
     () => this.groups().find((g) => g.id === 'group-admin-boundaries') ?? null,
   );
-  protected readonly boundaryInfoRowId = signal<string | null>(null);
-  protected readonly boundaryInfoRow = computed(() => {
-    const rowId = this.boundaryInfoRowId();
-    if (!rowId) {
-      return null;
-    }
-    const row = this.adminBoundaryGroup()?.rows.find((candidate) => candidate.id === rowId) ?? null;
-    return row && this.hasBoundaryInfo(row) ? row : null;
-  });
   protected readonly layerSearchQuery = signal('');
   protected readonly normalizedLayerSearchQuery = computed(() =>
     this.layerSearchQuery().trim().toLowerCase(),
@@ -798,7 +820,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       const taxa = this.taxa();
       this.manifestRasterLayerService.renderedLayerRevision$();
       untracked(() => {
-        this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
+        this.scheduleSelectedLayerStackingSync(order, overlays, groups, taxa);
       });
     });
 
@@ -893,6 +915,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       cancelAnimationFrame(frameId);
     }
     this.colorSyncFrames.clear();
+    if (this.selectedLayerStackingSyncFrame !== null) {
+      cancelAnimationFrame(this.selectedLayerStackingSyncFrame);
+      this.selectedLayerStackingSyncFrame = null;
+    }
   }
 
   @HostListener('document:keydown.escape')
@@ -1182,7 +1208,11 @@ export class MapLayersPanelComponent implements OnDestroy {
         reconciledManagementRows.push(
           this.applyManifestToManagementOverlay(existingOverlay, manifestRow),
         );
-        if (overlayId === 'overlay-runap' && nationalParksRow && !manifestHasNationalParksRow) {
+        if (
+          overlayId === RUNAP_OVERLAY_LAYER_ID &&
+          nationalParksRow &&
+          !manifestHasNationalParksRow
+        ) {
           reconciledManagementRows.push(nationalParksRow);
         }
       }
@@ -1242,7 +1272,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             }
             return {
               ...existingRow,
-              name: manifestRow.name,
+              name: this.manifestSidebarLayerName(manifestRow),
               color: this.colorFromRendering(manifestRow.rendering) ?? existingRow.color,
             };
           })
@@ -1308,18 +1338,20 @@ export class MapLayersPanelComponent implements OnDestroy {
       manifestRow.rendering,
     );
 
-    // Sync swatch color with the manifest's selectedColor so the sidebar swatch
-    // matches the raster fill (see ManifestRasterLayerService.rasterToCanvas).
+    // Management figures need distinct default styles even when the manifest's
+    // category defaults are close together.
+    const defaultAppearance = MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[existingOverlay.id];
     const manifestSelectedColor = this.colorFromRendering(rendering);
     const nextColor =
-      typeof manifestSelectedColor === 'string' && manifestSelectedColor.length > 0
+      defaultAppearance?.color ??
+      (typeof manifestSelectedColor === 'string' && manifestSelectedColor.length > 0
         ? manifestSelectedColor
-        : existingOverlay.color;
+        : existingOverlay.color);
 
     // OMECs render as smooth vector polygons (see MapView), so strip the
     // misleading "(raster)" suffix that the published manifest still carries.
     const displayName =
-      existingOverlay.id === 'overlay-omecs'
+      existingOverlay.id === OMEC_OVERLAY_LAYER_ID
         ? manifestRow.name.replace(/\s*\(raster\)\s*/i, '').trim() || 'OMECs'
         : manifestRow.name;
 
@@ -1327,8 +1359,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       ...existingOverlay,
       name: displayName,
       color: nextColor,
+      fillStyle: defaultAppearance?.fillStyle ?? existingOverlay.fillStyle,
+      fillDensity: defaultAppearance?.fillDensity ?? existingOverlay.fillDensity,
+      borderColor: defaultAppearance?.borderColor ?? existingOverlay.borderColor ?? nextColor,
+      borderWidth: defaultAppearance?.borderWidth ?? existingOverlay.borderWidth,
       expanded: false,
-      hasStyleControls: false,
+      hasStyleControls: true,
       mapUnavailable: false,
       mapSync: {
         type: 'manifest-raster',
@@ -1537,6 +1573,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
+    if (manifestRow.id === 'siraps') {
+      return this.localizedTextOrFallback(
+        'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
+        'SIRAP',
+      );
+    }
     if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
       return this.ecosystemsCopy().iavhRowName;
     }
@@ -1760,7 +1802,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected overlayCanExpand(row: LayerControlRow): boolean {
-    return row.hasStyleControls && row.id !== RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID;
+    return row.hasStyleControls && !row.mapUnavailable;
   }
 
   protected toggleOverlayExpanded(rowId: string): void {
@@ -1774,21 +1816,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected hasBoundaryInfo(row: LayerControlRow): boolean {
     const key = row.mapSync?.type === 'admin-boundary' ? row.mapSync.boundaryLayerKey : null;
     return key === 'siraps' || key === 'siraps_territorial' || key === 'siraps_thematic';
-  }
-
-  protected openBoundaryInfo(rowId: string): void {
-    const row = this.adminBoundaryGroup()?.rows.find((candidate) => candidate.id === rowId);
-    if (row && this.hasBoundaryInfo(row)) {
-      this.boundaryInfoRowId.set(rowId);
-    }
-  }
-
-  protected closeBoundaryInfo(): void {
-    this.boundaryInfoRowId.set(null);
-  }
-
-  protected isBoundaryInfoOpen(rowId: string): boolean {
-    return this.boundaryInfoRowId() === rowId;
   }
 
   protected updateOverlayOpacity(rowId: string, opacityText: string): void {
@@ -2430,10 +2457,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected selectedLayerCanExpand(rowId: string): boolean {
-    if (rowId === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID) {
-      return false;
-    }
-
     const row = this.findLayerControlRowById(rowId);
     return !!row && !row.mapUnavailable;
   }
@@ -3259,6 +3282,24 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.colorSyncFrames.set(rowKey, frameId);
   }
 
+  private scheduleSelectedLayerStackingSync(
+    order: string[],
+    overlays: LayerControlRow[],
+    groups: LayerGroup[],
+    taxa: TaxonRow[],
+  ): void {
+    this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
+
+    if (this.selectedLayerStackingSyncFrame !== null) {
+      cancelAnimationFrame(this.selectedLayerStackingSyncFrame);
+    }
+
+    this.selectedLayerStackingSyncFrame = requestAnimationFrame(() => {
+      this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
+      this.selectedLayerStackingSyncFrame = null;
+    });
+  }
+
   private syncSelectedLayerStackingToMap(
     order: string[],
     overlays: LayerControlRow[],
@@ -3984,15 +4025,19 @@ export class MapLayersPanelComponent implements OnDestroy {
         mapSync: { type: 'solution-baseline' },
       },
       {
-        id: 'overlay-runap',
+        id: RUNAP_OVERLAY_LAYER_ID,
         name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
         selected: false,
         visible: false,
         expanded: false,
         opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: '#2563eb',
+        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.color ?? '#f97316',
+        fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.fillStyle,
+        borderColor:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderColor ?? '#c2410c',
+        borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderWidth,
         canReorder: true,
-        hasStyleControls: false,
+        hasStyleControls: true,
         hasColorControl: true,
         mapUnavailable: true,
       },
@@ -4003,9 +4048,18 @@ export class MapLayersPanelComponent implements OnDestroy {
         visible: false,
         expanded: false,
         opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: '#dc2626',
+        color:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]?.color ??
+          '#dc2626',
+        fillStyle:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]?.fillStyle,
+        borderColor:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]
+            ?.borderColor ?? '#991b1b',
+        borderWidth:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]?.borderWidth,
         canReorder: true,
-        hasStyleControls: false,
+        hasStyleControls: true,
         hasColorControl: true,
         mapUnavailable: false,
         mapSync: {
@@ -4021,15 +4075,20 @@ export class MapLayersPanelComponent implements OnDestroy {
         },
       },
       {
-        id: 'overlay-omecs',
+        id: OMEC_OVERLAY_LAYER_ID,
         name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
         selected: false,
         visible: false,
         expanded: false,
         opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: '#7c3aed',
+        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.color ?? '#c026d3',
+        fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.fillStyle,
+        fillDensity: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.fillDensity,
+        borderColor:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.borderColor ?? '#86198f',
+        borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[OMEC_OVERLAY_LAYER_ID]?.borderWidth,
         canReorder: true,
-        hasStyleControls: false,
+        hasStyleControls: true,
         hasColorControl: true,
         mapUnavailable: true,
       },
@@ -4541,8 +4600,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   /**
-   * Category cards below Management Figures — all start collapsed (UCS-101).
-   * Management Figures itself uses `overlaysCollapsed` (default expanded).
+   * Category cards below Conservation Areas — all start collapsed (UCS-101).
+   * Conservation Areas itself uses `overlaysCollapsed` (default expanded).
    */
   private createDefaultGroups(): LayerGroup[] {
     const sirapRows = [
@@ -4750,9 +4809,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       color: '#111827',
       borderColor: '#111827',
       borderStyle:
-        boundaryLayerKey === 'siraps' || boundaryLayerKey === 'siraps_thematic'
+        boundaryLayerKey === 'siraps'
           ? 'dashed'
-          : 'solid',
+          : boundaryLayerKey === 'siraps_thematic'
+            ? 'dotted'
+            : 'solid',
       borderWidth:
         boundaryLayerKey === 'admin_country_outline'
           ? 1.6
@@ -4888,7 +4949,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       'boundary-admin_municipalities': 'mapLayersPanel.boundaryNames.municipalities',
     };
     const boundaryNameFallbacks: Record<string, string> = {
-      'boundary-siraps': 'Combined SIRAP review layer',
+      'boundary-siraps': 'SIRAP',
       'boundary-siraps_territorial': 'Territorial SIRAPs',
       'boundary-siraps_thematic': 'Thematic SIRAP additions',
       'boundary-admin_country_outline': 'Colombia Outline',

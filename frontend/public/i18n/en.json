@@ -232,6 +232,24 @@
       "matchBadge": "{{percent}}% Match",
       "goalsMet": "Targets Achieved",
       "goalsMetSub": "Share of optimization targets met",
+      "goalsWidget": {
+        "kicker": "Conservation targets",
+        "title": "Target progress",
+        "targetRuleSingle": "Counts features that reached the {{target}} target.",
+        "targetRuleVariable": "Counts features that reached their feature-specific targets.",
+        "targetRuleUnavailable": "Target details are loading.",
+        "targetPercent": "{{percent}}% target",
+        "targetVariable": "Variable targets",
+        "targetUnknown": "Target pending",
+        "loading": "Loading target breakdown...",
+        "unavailable": "Target breakdown is not available for this solution yet.",
+        "strategicEcosystems": "Strategic ecosystems",
+        "ecosystems": "Ecosystems",
+        "species": "Species",
+        "taxaBreakdown": "Species by taxa",
+        "fish": "Fish",
+        "notApplicable": "N/A"
+      },
       "spatial": {
         "priorityArea": "priority area",
         "zones": "priority zones",
@@ -873,7 +891,7 @@
     "boundaryInfoKicker": "Layer info",
     "boundaryInfoTitle": "About {{name}}",
     "closeBoundaryInfo": "Close layer information",
-    "sirapTooltip": "Territorial SIRAPs are broad regional conservation systems. Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs. The combined layer shows both together for review.",
+    "sirapTooltip": "SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term \"límites\" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.",
     "speciesSearchPlaceholder": "Search {{taxon}}...",
     "chooseColorFor": "Choose color for {{name}}",
     "speciesNoun": "species",
@@ -885,15 +903,15 @@
       "agreementOverlap": "Agreement / Overlap"
     },
     "groupTitles": {
-      "managementFigures": "Management Figures",
-      "administrativeBoundaries": "Administrative Boundaries",
+      "managementFigures": "Conservation Areas",
+      "administrativeBoundaries": "Jurisdictional Areas",
       "speciesBiodiversity": "Species & Biodiversity",
       "ecosystems": "Ecosystems",
       "culturalEthnicTerritories": "Cultural & Ethnic Territories",
       "costs": "Costs"
     },
     "boundaryNames": {
-      "combinedSirapReviewLayer": "Combined SIRAP review layer",
+      "combinedSirapReviewLayer": "SIRAP",
       "territorialSiraps": "Territorial SIRAPs",
       "thematicSirapAdditions": "Thematic SIRAP additions",
       "colombiaOutline": "Colombia Outline",

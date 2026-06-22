@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T23:22:28.759Z",
+  "generatedAt": "2026-06-22T17:04:23.641Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
