@@ -246,9 +246,11 @@
         "strategicEcosystems": "Strategic ecosystems",
         "ecosystems": "Ecosystems",
         "species": "Species",
-        "taxaBreakdown": "Species by taxa",
+        "taxaBreakdown": "Included species groups",
         "fish": "Fish",
-        "notApplicable": "N/A"
+        "notApplicable": "N/A",
+        "fishInfoAriaLabel": "Why fish species are not included",
+        "freshwaterClarification": "Freshwater ecosystems are represented by wetlands in this prioritization. Fish species are not included because the available data is too coarse; water regulation services are represented separately in the overview metrics."
       },
       "spatial": {
         "priorityArea": "priority area",
@@ -308,7 +310,7 @@
         "dryForestCoverage": "Dry Forest Coverage",
         "dryForestCoverageDesc": "Tropical dry forest within priorities",
         "wetlandsCoverage": "Wetlands Coverage",
-        "wetlandsCoverageDesc": "Wetland ecosystems within priorities",
+        "wetlandsCoverageDesc": "Freshwater wetland ecosystems within priorities",
         "mangroveCoverage": "Mangrove Coverage",
         "mangroveCoverageDesc": "Mangrove ecosystems within priorities",
         "indigenousReservationsArea": "Indigenous Reservations Area",
@@ -566,7 +568,7 @@
         "ecosystemPrefix": "This AOI stores ",
         "ecosystemCarbonValue": "7% of Colombia's carbon stocks",
         "ecosystemMiddle": " and provides ",
-        "ecosystemWaterRegulationValue": "above-average water regulation",
+        "ecosystemWaterRegulationValue": "partially represented water regulation services",
         "ecosystemSuffix": " for the Cauca River basin. Ecosystems account for the largest share of ecosystem coverage.",
         "landPrefix": "60% of this AOI's priority area is natural forest. Agricultural opportunity cost is ",
         "landSuffix": ".",

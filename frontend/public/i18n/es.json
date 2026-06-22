@@ -246,9 +246,11 @@
         "strategicEcosystems": "Ecosistemas estratégicos",
         "ecosystems": "Ecosistemas",
         "species": "Especies",
-        "taxaBreakdown": "Especies por taxón",
+        "taxaBreakdown": "Grupos de especies incluidos",
         "fish": "Peces",
-        "notApplicable": "N/A"
+        "notApplicable": "N/A",
+        "fishInfoAriaLabel": "Por qué no se incluyen las especies de peces",
+        "freshwaterClarification": "Los ecosistemas de agua dulce se representan mediante humedales en esta priorización. Las especies de peces no se incluyen porque los datos disponibles son demasiado generales; los servicios de regulación hídrica se representan por separado en las métricas del resumen."
       },
       "spatial": {
         "priorityArea": "área",
@@ -308,7 +310,7 @@
         "dryForestCoverage": "Cobertura de bosque seco",
         "dryForestCoverageDesc": "Bosque seco tropical en prioridades",
         "wetlandsCoverage": "Cobertura de humedales",
-        "wetlandsCoverageDesc": "Ecosistemas de humedales en prioridades",
+        "wetlandsCoverageDesc": "Ecosistemas de humedales de agua dulce en prioridades",
         "mangroveCoverage": "Cobertura de manglares",
         "mangroveCoverageDesc": "Ecosistemas de manglar en prioridades",
         "indigenousReservationsArea": "Área de resguardos indígenas",
@@ -493,7 +495,7 @@
         "ecosystemPrefix": "Este AOI almacena ",
         "ecosystemCarbonValue": "7% de las reservas de carbono de Colombia",
         "ecosystemMiddle": " y ofrece ",
-        "ecosystemWaterRegulationValue": "regulación hídrica superior al promedio",
+        "ecosystemWaterRegulationValue": "servicios de regulación hídrica parcialmente representados",
         "ecosystemSuffix": " para la cuenca del río Cauca. Los ecosistemas representan la mayor parte de la cobertura ecosistémica.",
         "landPrefix": "60% del área prioritaria de este AOI es bosque natural. El costo de oportunidad agrícola es ",
         "landSuffix": ".",
