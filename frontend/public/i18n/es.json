@@ -723,8 +723,6 @@
         "strategicEcosystemsInvemarSourceUrl": "https://acceso-datos-ambientales-invemar.hub.arcgis.com/datasets/INVEMAR::manglares-colombia/about",
         "ecosystemServicesLabel": "Ambientales / servicios ecosistémicos",
         "ecosystemServicesHelp": "Cubre beneficios que las personas reciben de la naturaleza, como regulación hídrica, amortiguación de inundaciones y polinización.",
-        "otherNaturalCulturalElementsLabel": "Otros elementos naturales y culturales",
-        "otherNaturalCulturalElementsHelp": "Cubre prioridades adicionales como paisajes sagrados o culturalmente importantes y áreas de uso tradicional.",
         "inputLayerNotFoundBadge": "Capa no encontrada",
         "targetLevelTitle": "Nivel de meta",
         "targetLevelRequiredTitle": "Nivel de cobertura (obligatorio)",
@@ -759,7 +757,9 @@
         "includeResguardosSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::resguardo-indigena-formalizado/about",
         "alwaysAppliedHeading": "Siempre aplicado",
         "alwaysRunapLabel": "Áreas protegidas RUNAP",
-        "alwaysRunapHelp": "Las áreas protegidas RUNAP siempre se tratan como cobertura ya incluida, por lo que las soluciones coincidentes se enfocan en áreas prioritarias adicionales fuera de ellas.",
+        "alwaysRunapHelp": "RUNAP es el Registro Único Nacional de Áreas Protegidas de Colombia. Estas áreas siempre se tratan como cobertura ya incluida, por lo que las soluciones coincidentes se enfocan en áreas prioritarias adicionales fuera de ellas.",
+        "alwaysRunapSourceLabel": "Fuente: datos RUNAP 2023 PNNC",
+        "alwaysRunapSourceUrl": "https://www.datos.gov.co/dataset/runap-Registro-Unico-Nacional-AP/n9kx-xwgg/about_data",
         "alwaysOnChip": "Siempre activo"
       },
       "step2b": {

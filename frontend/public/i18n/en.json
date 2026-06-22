@@ -723,8 +723,6 @@
         "strategicEcosystemsInvemarSourceUrl": "https://acceso-datos-ambientales-invemar.hub.arcgis.com/datasets/INVEMAR::manglares-colombia/about",
         "ecosystemServicesLabel": "Environmental / ecosystem services",
         "ecosystemServicesHelp": "Covers benefits people receive from nature, such as water regulation, flood buffering, and pollination.",
-        "otherNaturalCulturalElementsLabel": "Other natural and cultural elements",
-        "otherNaturalCulturalElementsHelp": "Covers additional priorities such as sacred or culturally important landscapes and traditional use areas.",
         "inputLayerNotFoundBadge": "Layer not found",
         "targetLevelTitle": "Target level",
         "targetLevelRequiredTitle": "Coverage level (required)",
@@ -759,7 +757,9 @@
         "includeResguardosSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::resguardo-indigena-formalizado/about",
         "alwaysAppliedHeading": "Always applied",
         "alwaysRunapLabel": "RUNAP protected areas",
-        "alwaysRunapHelp": "RUNAP protected areas are always treated as already included coverage, so matching solutions focus on additional priority areas outside them.",
+        "alwaysRunapHelp": "RUNAP is Colombia's National System of Protected Areas. These areas are always treated as already included coverage, so matching solutions focus on additional priority areas outside them.",
+        "alwaysRunapSourceLabel": "Source: PNNC RUNAP 2023 data",
+        "alwaysRunapSourceUrl": "https://www.datos.gov.co/dataset/runap-Registro-Unico-Nacional-AP/n9kx-xwgg/about_data",
         "alwaysOnChip": "Always on"
       },
       "step2b": {

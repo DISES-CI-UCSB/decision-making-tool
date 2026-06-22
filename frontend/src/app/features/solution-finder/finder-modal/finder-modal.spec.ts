@@ -57,6 +57,22 @@ describe('FinderModalComponent', () => {
     expect(compiled.textContent).not.toContain('solutionControls.finder.step2b.conflictLabel');
   });
 
+  it('does not render other natural and cultural elements as a target option', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector(
+        '#solution-finder-modal-step1-target-type-card-other-natural-cultural-elements',
+      ),
+    ).toBeNull();
+    expect(compiled.textContent).not.toContain(
+      'solutionControls.finder.step1.otherNaturalCulturalElementsLabel',
+    );
+  });
+
   it('renders workflow action buttons in the footer', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
@@ -111,6 +127,10 @@ describe('FinderModalComponent', () => {
       {
         id: 'solution-finder-modal-step2a-row-resguardos-source-link',
         labelKey: 'solutionControls.finder.step2a.includeResguardosSourceLabel',
+      },
+      {
+        id: 'solution-finder-modal-step2a-always-runap-source-link',
+        labelKey: 'solutionControls.finder.step2a.alwaysRunapSourceLabel',
       },
     ];
 
