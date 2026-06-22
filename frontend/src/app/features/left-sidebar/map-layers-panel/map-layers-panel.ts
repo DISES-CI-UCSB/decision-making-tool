@@ -219,6 +219,7 @@ interface ColorPickerComponentWithPrivateSliderDims {
 type SelectedLayerDropPosition = 'before' | 'after';
 type SelectedLayerFillStyle = 'solid' | 'hatch' | 'mesh' | 'dots';
 type SelectedLayerBorderStyle = 'none' | 'solid' | 'dashed' | 'dotted';
+type ScenarioLayerStatus = 'considered' | 'reference';
 type SupportedLanguage = 'en' | 'es';
 interface SpeciesRichnessTaxonLayerDefinition {
   rowId: string;
@@ -286,6 +287,9 @@ const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap_national_parks: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
   omecs: OMEC_OVERLAY_LAYER_ID,
 };
+const MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID = Object.fromEntries(
+  Object.entries(MANIFEST_OVERLAY_ROW_BY_LAYER_ID).map(([layerId, rowId]) => [rowId, layerId]),
+) as Record<string, string>;
 const MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE: Partial<
   Record<
     string,
@@ -654,6 +658,29 @@ export class MapLayersPanelComponent implements OnDestroy {
     const catalogSolution = this.findActiveCatalogSolution(activeSolution);
     return buildSolutionIdentitySummary(activeSolution, catalogSolution);
   });
+  private readonly activeSolutionConsideredLayerIds = computed<Set<string>>(() => {
+    const activeSolution = this.appState.activeSolution$();
+    const catalogSolution = this.findActiveCatalogSolution(activeSolution);
+    if (!catalogSolution) {
+      return new Set();
+    }
+
+    return this.buildConsideredLayerIdSet([
+      ...catalogSolution.inputLayerIds.features,
+      ...catalogSolution.inputLayerIds.includes,
+      ...catalogSolution.inputLayerIds.excludes,
+      catalogSolution.inputLayerIds.cost,
+      ...catalogSolution.finderInputs.targetFeatureIds,
+      ...catalogSolution.finderInputs.includeLayerIds,
+      ...catalogSolution.finderInputs.excludeLayerIds,
+      catalogSolution.finderInputs.targetFeatureSet,
+      catalogSolution.finderInputs.costLayerId,
+    ]);
+  });
+  protected readonly hasScenarioLayerStatus = computed(
+    () => this.hasActiveSolution() && this.activeSolutionConsideredLayerIds().size > 0,
+  );
+  protected readonly showScenarioLayerStatusLabels = signal(true);
   protected readonly activeSolutionBreakdownOpen = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly managementFiguresTitle = signal(
@@ -963,10 +990,66 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.activeSolutionBreakdownOpen.set(false);
   }
 
+  protected toggleScenarioLayerStatusLabels(): void {
+    this.showScenarioLayerStatusLabels.update((visible) => !visible);
+  }
+
+  protected scenarioLayerStatus(row: LayerControlRow): ScenarioLayerStatus | null {
+    if (!this.hasScenarioLayerStatus()) {
+      return null;
+    }
+
+    return this.rowConsideredLayerAliases(row).some((id) =>
+      this.activeSolutionConsideredLayerIds().has(id),
+    )
+      ? 'considered'
+      : 'reference';
+  }
+
+  protected isScenarioConsideredLayer(row: LayerControlRow): boolean {
+    return this.scenarioLayerStatus(row) === 'considered';
+  }
+
+  protected isScenarioReferenceLayer(row: LayerControlRow): boolean {
+    return this.scenarioLayerStatus(row) === 'reference';
+  }
+
   private findActiveCatalogSolution(solution: Solution | null) {
     const metadataSolutionId = solution?.metadata?.['solutionId'];
     const solutionId = typeof metadataSolutionId === 'string' ? metadataSolutionId : solution?.id;
     return solutionId ? this.solutionCatalog.getById(solutionId) : null;
+  }
+
+  private buildConsideredLayerIdSet(ids: (string | null | undefined)[]): Set<string> {
+    const consideredIds = new Set<string>();
+    for (const id of ids) {
+      for (const alias of this.normalizeLayerIdAliases(id)) {
+        consideredIds.add(alias);
+      }
+    }
+    return consideredIds;
+  }
+
+  private rowConsideredLayerAliases(row: LayerControlRow): string[] {
+    const overlayLayerId = MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID[row.id];
+    return [
+      ...this.normalizeLayerIdAliases(row.id),
+      ...this.normalizeLayerIdAliases(overlayLayerId),
+    ];
+  }
+
+  private normalizeLayerIdAliases(id: string | null | undefined): string[] {
+    if (!id) {
+      return [];
+    }
+
+    const trimmed = id.trim().toLowerCase();
+    const normalized = trimmed
+      .replace(/^layer-/, '')
+      .replace(/^overlay-/, '')
+      .replace(/-/g, '_');
+
+    return normalized && normalized !== trimmed ? [normalized, trimmed] : [trimmed].filter(Boolean);
   }
 
   private resolveActiveLanguage(): SupportedLanguage {

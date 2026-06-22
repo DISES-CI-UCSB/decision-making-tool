@@ -24,11 +24,50 @@
   transform: translateY(-1px);
 }
 
+.map-layers-scenario-status-chip {
+  padding-block: 0.3125rem;
+}
+
+.map-layers-scenario-status-chip-text {
+  display: inline-block;
+  line-height: 1;
+}
+
+.map-layers-nested-scenario-row {
+  --map-layers-scenario-rail-left: 0.5rem;
+
+  position: relative;
+  border-left-width: 0 !important;
+}
+
+.map-layers-nested-scenario-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--map-layers-scenario-rail-left);
+  width: 4px;
+  background-color: rgb(203 213 225);
+}
+
+.map-layers-nested-scenario-row-considered::before {
+  background-color: rgb(16 185 129);
+}
+
+.map-layers-nested-scenario-row-reference::before {
+  background-color: rgb(203 213 225);
+}
+
 @supports (text-box-trim: trim-both) {
   .map-layers-info-icon-glyph {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     transform: none;
+  }
+
+  .map-layers-scenario-status-chip-text {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
   }
 }
 
