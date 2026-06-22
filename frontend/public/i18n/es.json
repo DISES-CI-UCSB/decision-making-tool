@@ -653,13 +653,13 @@
       "stepLabels": {
         "step1": "Qué proteger",
         "step2a": "Áreas incluidas (opcional)",
-        "step2b": "Costos",
+        "step2b": "Áreas que se intentan evitar (costos)",
         "step3": "Resultados coincidentes"
       },
       "stepIntros": {
         "step1": "Seleccione uno o más grupos objetivo para definir qué proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
-        "step2a": "Elija áreas incluidas opcionales para aplicar junto con las áreas protegidas RUNAP siempre activas.",
-        "step2b": "Elija una capa de costo para evaluar áreas de conservación potenciales.",
+        "step2a": "Elija qué áreas debe tratar el escenario como cobertura ya incluida. Las soluciones coincidentes se enfocan en áreas prioritarias adicionales fuera de esa cobertura.",
+        "step2b": "Elija qué áreas debe intentar evitar la solución. El Buscador de Soluciones aún debe cumplir las metas de conservación, por lo que puede incluir áreas de alto costo cuando sea necesario.",
         "step3": "Los esolutions coincidentes se actualizan automáticamente al cambiar filtros."
       },
       "stepState": {
@@ -728,22 +728,36 @@
       },
       "step2a": {
         "includeOmecsLabel": "Incluir OMEC",
-        "includeOmecsHelp": "OMEC (WDPA/WDOECM, otras medidas efectivas) es opcional; los nombres incluyen +OMEC cuando está activo.",
+        "includeOmecsHelp": "Las OMEC son áreas fuera de las áreas protegidas formales que se reconocen por aportar resultados de conservación. Actívelas si el escenario debe tratarlas como cobertura ya incluida.",
+        "includeOmecsSourceLabel": "Fuente: datos OMEC de Protected Planet",
+        "includeOmecsSourceUrl": "https://www.protectedplanet.net/en/thematic-areas/oecms?tab=OECMs",
         "includeComunidadesLabel": "Incluir territorios afrocolombianos",
-        "includeComunidadesHelp": "Fija los territorios de comunidades afrocolombianas junto con RUNAP cuando se activa.",
+        "includeComunidadesHelp": "Actívelo si el escenario debe tratar los territorios legalmente reconocidos de comunidades afrocolombianas como cobertura ya incluida.",
+        "includeComunidadesSourceLabel": "Fuente: datos de consejos comunitarios ANT",
+        "includeComunidadesSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::consejo-comunitario-titulado/about",
         "includeResguardosLabel": "Incluir resguardos indígenas",
-        "includeResguardosHelp": "Fija los territorios de resguardos indígenas junto con RUNAP cuando se activa.",
+        "includeResguardosHelp": "Actívelo si el escenario debe tratar los territorios legalmente reconocidos de resguardos indígenas como cobertura ya incluida.",
+        "includeResguardosSourceLabel": "Fuente: datos de resguardos indígenas ANT",
+        "includeResguardosSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::resguardo-indigena-formalizado/about",
         "alwaysAppliedHeading": "Siempre aplicado",
         "alwaysRunapLabel": "Áreas protegidas RUNAP",
-        "alwaysRunapHelp": "La red nacional de áreas protegidas (RUNAP) está incluida en todos los esolutions precalculados de este catálogo.",
+        "alwaysRunapHelp": "Las áreas protegidas RUNAP siempre se tratan como cobertura ya incluida, por lo que las soluciones coincidentes se enfocan en áreas prioritarias adicionales fuera de ellas.",
         "alwaysOnChip": "Siempre activo"
       },
       "step2b": {
         "intro": "Elija una capa de costo para evaluar áreas de conservación potenciales.",
         "humanFootprintLabel": "Índice de Huella Espacial Humana 2022",
-        "humanFootprintHelp": "Muestra la intensidad de la huella humana proyectada para proporcionar contexto de presión en el territorio.",
+        "humanFootprintHelp": "Muestra dónde las actividades humanas han tenido un impacto mayor o menor sobre los paisajes de Colombia.",
+        "humanFootprintSourceLabel": "Fuente: metadatos de huella humana Humboldt",
+        "humanFootprintSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/7d8f0aeb-8136-45a7-a469-f0016f618250",
+        "humanFootprintDefinitionToggle": "¿Qué significa esto?",
+        "humanFootprintDefinition": "En esta búsqueda, la huella humana se usa como una capa de costo o compromiso. Los valores más altos generalmente indican mayor presión humana por uso del suelo, infraestructura, tiempo de intervención o vulnerabilidad del ecosistema. Es una señal de presión, no una medida completa de la condición ecológica por sí sola.",
         "carbonOpportunityLabel": "Beneficio neto (renta agropecuaria)",
-        "carbonOpportunityHelp": "Superficie monetaria de beneficio neto / renta agropecuaria (CO, Renta_agropecuaria en archivos).",
+        "carbonOpportunityHelp": "Muestra el beneficio neto agropecuario potencial; los valores más altos indican un mayor costo de oportunidad para la conservación.",
+        "carbonOpportunitySourceLabel": "Fuente: carpeta de datos compartidos Humboldt",
+        "carbonOpportunitySourceUrl": "https://drive.google.com/drive/folders/1HyzBF0BPa1dkxQUmvH3SpIVHmUIv5SIQ",
+        "carbonOpportunityDefinitionToggle": "¿Qué significa esto?",
+        "carbonOpportunityDefinition": "La renta agropecuaria estima el ingreso, la ganancia o el valor de renta que la tierra podría generar con usos productivos como agricultura, ganadería, silvicultura o pesca. Aquí se usa como una capa de costo: los valores más altos sugieren lugares donde la conservación podría implicar renunciar a un mayor beneficio agropecuario potencial.",
         "notAvailableBadge": "No disponible"
       },
       "actions": {

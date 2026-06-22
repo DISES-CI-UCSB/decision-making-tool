@@ -420,67 +420,149 @@
           class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div id="solution-finder-modal-step2b-options" class="space-y-2">
-            <button
-              id="solution-finder-modal-step2b-option-human-footprint"
-              type="button"
-              class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
+            <div
+              id="solution-finder-modal-step2b-option-human-footprint-card"
+              class="rounded-md border transition"
               [class.finder-selected-card-border]="selectedCostLayerId === 'human-footprint'"
               [class.bg-sky-100]="selectedCostLayerId === 'human-footprint'"
               [class.border-slate-200]="selectedCostLayerId !== 'human-footprint'"
               [class.bg-white]="selectedCostLayerId !== 'human-footprint'"
-              [class.cursor-not-allowed]="!isStep2Unlocked()"
-              [class.opacity-60]="!isStep2Unlocked()"
-              [disabled]="!isStep2Unlocked()"
-              [attr.aria-pressed]="selectedCostLayerId === 'human-footprint'"
-              (click)="selectCostLayer('human-footprint')"
+              [class.cursor-not-allowed]="
+                !isStep2Unlocked() || !isCostLayerAvailable('human-footprint')
+              "
+              [class.opacity-60]="!isStep2Unlocked() || !isCostLayerAvailable('human-footprint')"
             >
-              <span
-                id="solution-finder-modal-step2b-option-hf-title"
-                class="text-sm font-semibold text-slate-900"
+              <button
+                id="solution-finder-modal-step2b-option-human-footprint"
+                type="button"
+                class="flex w-full flex-col gap-1 rounded-t-md px-2 pt-2 text-left transition"
+                [class.cursor-not-allowed]="
+                  !isStep2Unlocked() || !isCostLayerAvailable('human-footprint')
+                "
+                [disabled]="!isStep2Unlocked() || !isCostLayerAvailable('human-footprint')"
+                [attr.aria-pressed]="selectedCostLayerId === 'human-footprint'"
+                (click)="selectCostLayer('human-footprint')"
               >
-                {{ 'solutionControls.finder.step2b.humanFootprintLabel' | translate }}
-              </span>
-              <span
-                id="solution-finder-modal-step2b-option-hf-help"
-                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                <span id="solution-finder-modal-step2b-option-hf-title-row">
+                  <span
+                    id="solution-finder-modal-step2b-option-hf-title"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.step2b.humanFootprintLabel' | translate }}
+                  </span>
+                  @if (!isCostLayerAvailable('human-footprint')) {
+                    <span
+                      id="solution-finder-modal-step2b-option-hf-unavailable-badge"
+                      class="ml-2 rounded-md border border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                    >
+                      {{ 'solutionControls.finder.step2b.notAvailableBadge' | translate }}
+                    </span>
+                  }
+                </span>
+                <span
+                  id="solution-finder-modal-step2b-option-hf-help"
+                  class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                >
+                  {{ 'solutionControls.finder.step2b.humanFootprintHelp' | translate }}
+                </span>
+              </button>
+              <details
+                id="solution-finder-modal-step2b-option-hf-definition"
+                class="mx-2 mt-1 text-xs leading-snug text-slate-600"
               >
-                {{ 'solutionControls.finder.step2b.humanFootprintHelp' | translate }}
-              </span>
-            </button>
+                <summary
+                  id="solution-finder-modal-step2b-option-hf-definition-toggle"
+                  class="cursor-pointer font-semibold text-slate-700 underline-offset-2 hover:underline"
+                >
+                  {{ 'solutionControls.finder.step2b.humanFootprintDefinitionToggle' | translate }}
+                </summary>
+                <p id="solution-finder-modal-step2b-option-hf-definition-text" class="mt-1">
+                  {{ 'solutionControls.finder.step2b.humanFootprintDefinition' | translate }}
+                </p>
+              </details>
+              <a
+                id="solution-finder-modal-step2b-option-hf-source-link"
+                class="mx-2 mb-2 mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                [href]="'solutionControls.finder.step2b.humanFootprintSourceUrl' | translate"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ 'solutionControls.finder.step2b.humanFootprintSourceLabel' | translate }}
+              </a>
+            </div>
 
-            <button
-              id="solution-finder-modal-step2b-option-carbon"
-              type="button"
-              class="flex w-full flex-col gap-1 rounded-md border px-2 py-2 text-left transition"
+            <div
+              id="solution-finder-modal-step2b-option-carbon-card"
+              class="rounded-md border transition"
               [class.finder-selected-card-border]="selectedCostLayerId === 'carbon-opportunity'"
               [class.bg-sky-100]="selectedCostLayerId === 'carbon-opportunity'"
               [class.border-slate-200]="selectedCostLayerId !== 'carbon-opportunity'"
               [class.bg-white]="selectedCostLayerId !== 'carbon-opportunity'"
-              [class.cursor-not-allowed]="!isStep2Unlocked()"
-              [class.opacity-60]="!isStep2Unlocked()"
-              [disabled]="!isStep2Unlocked()"
-              [attr.aria-pressed]="selectedCostLayerId === 'carbon-opportunity'"
-              (click)="selectCostLayer('carbon-opportunity')"
+              [class.cursor-not-allowed]="
+                !isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')
+              "
+              [class.opacity-60]="!isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')"
             >
-              <span
-                id="solution-finder-modal-step2b-option-co-title"
-                class="text-sm font-semibold text-slate-900"
+              <button
+                id="solution-finder-modal-step2b-option-carbon"
+                type="button"
+                class="flex w-full flex-col gap-1 rounded-t-md px-2 pt-2 text-left transition"
+                [class.cursor-not-allowed]="
+                  !isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')
+                "
+                [disabled]="!isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')"
+                [attr.aria-pressed]="selectedCostLayerId === 'carbon-opportunity'"
+                (click)="selectCostLayer('carbon-opportunity')"
               >
-                {{ 'solutionControls.finder.step2b.carbonOpportunityLabel' | translate }}
-                <span
-                  id="solution-finder-modal-step2b-option-co-code"
-                  class="font-normal opacity-90"
-                >
-                  (CO)
+                <span id="solution-finder-modal-step2b-option-co-title-row">
+                  <span
+                    id="solution-finder-modal-step2b-option-co-title"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.step2b.carbonOpportunityLabel' | translate }}
+                  </span>
+                  @if (!isCostLayerAvailable('carbon-opportunity')) {
+                    <span
+                      id="solution-finder-modal-step2b-option-co-unavailable-badge"
+                      class="ml-2 rounded-md border border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                    >
+                      {{ 'solutionControls.finder.step2b.notAvailableBadge' | translate }}
+                    </span>
+                  }
                 </span>
-              </span>
-              <span
-                id="solution-finder-modal-step2b-option-co-help"
-                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                <span
+                  id="solution-finder-modal-step2b-option-co-help"
+                  class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                >
+                  {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
+                </span>
+              </button>
+              <details
+                id="solution-finder-modal-step2b-option-carbon-definition"
+                class="mx-2 mt-1 text-xs leading-snug text-slate-600"
               >
-                {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
-              </span>
-            </button>
+                <summary
+                  id="solution-finder-modal-step2b-option-carbon-definition-toggle"
+                  class="cursor-pointer font-semibold text-slate-700 underline-offset-2 hover:underline"
+                >
+                  {{
+                    'solutionControls.finder.step2b.carbonOpportunityDefinitionToggle' | translate
+                  }}
+                </summary>
+                <p id="solution-finder-modal-step2b-option-carbon-definition-text" class="mt-1">
+                  {{ 'solutionControls.finder.step2b.carbonOpportunityDefinition' | translate }}
+                </p>
+              </details>
+              <a
+                id="solution-finder-modal-step2b-option-carbon-source-link"
+                class="mx-2 mb-2 mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                [href]="'solutionControls.finder.step2b.carbonOpportunitySourceUrl' | translate"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ 'solutionControls.finder.step2b.carbonOpportunitySourceLabel' | translate }}
+              </a>
+            </div>
           </div>
         </article>
         <div
@@ -568,6 +650,18 @@
               >
                 {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
               </p>
+              <a
+                id="solution-finder-modal-step2a-row-omec-source-link"
+                class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                [href]="'solutionControls.finder.step2a.includeOmecsSourceUrl' | translate"
+                target="_blank"
+                rel="noopener noreferrer"
+                (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()"
+                (keydown.space)="$event.stopPropagation()"
+              >
+                {{ 'solutionControls.finder.step2a.includeOmecsSourceLabel' | translate }}
+              </a>
             </div>
             <button
               id="solution-finder-modal-step2a-row-omec-toggle"
@@ -626,6 +720,18 @@
               >
                 {{ 'solutionControls.finder.step2a.includeComunidadesHelp' | translate }}
               </p>
+              <a
+                id="solution-finder-modal-step2a-row-comunidades-source-link"
+                class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                [href]="'solutionControls.finder.step2a.includeComunidadesSourceUrl' | translate"
+                target="_blank"
+                rel="noopener noreferrer"
+                (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()"
+                (keydown.space)="$event.stopPropagation()"
+              >
+                {{ 'solutionControls.finder.step2a.includeComunidadesSourceLabel' | translate }}
+              </a>
             </div>
             <button
               id="solution-finder-modal-step2a-row-comunidades-toggle"
@@ -686,6 +792,18 @@
               >
                 {{ 'solutionControls.finder.step2a.includeResguardosHelp' | translate }}
               </p>
+              <a
+                id="solution-finder-modal-step2a-row-resguardos-source-link"
+                class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                [href]="'solutionControls.finder.step2a.includeResguardosSourceUrl' | translate"
+                target="_blank"
+                rel="noopener noreferrer"
+                (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()"
+                (keydown.space)="$event.stopPropagation()"
+              >
+                {{ 'solutionControls.finder.step2a.includeResguardosSourceLabel' | translate }}
+              </a>
             </div>
             <button
               id="solution-finder-modal-step2a-row-resguardos-toggle"

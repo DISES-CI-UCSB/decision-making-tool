@@ -302,7 +302,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected isCostLayerAvailable(id: CostLayerChoice): boolean {
-    return id !== 'carbon-opportunity';
+    return this.solutionCatalog
+      .getAll()
+      .some((solution) => this.solutionCostMatchesChoice(solution, id));
   }
 
   protected selectCostLayer(id: CostLayerChoice): void {
@@ -659,6 +661,13 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       return false;
     }
 
+    return this.solutionCostMatchesChoice(solution, selectedCostLayerId);
+  }
+
+  private solutionCostMatchesChoice(
+    solution: CatalogSolution,
+    selectedCostLayerId: CostLayerChoice,
+  ): boolean {
     const costIds = [
       solution.finderInputs.costLayerId,
       solution.inputLayerIds.cost,
