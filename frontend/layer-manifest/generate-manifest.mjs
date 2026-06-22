@@ -61,6 +61,7 @@ const DEFAULT_CONTINUOUS_END_COLOR = '#166534';
 const MANIFEST_SCHEMA_VERSION = '0.2.0';
 const SPECIES_AND_BIODIVERSITY_CATEGORY_ID = 'species_and_biodiversity';
 const SPECIES_MANIFEST_URL = `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json`;
+const SOLUTION_GOALS_BLOB_DIRECTORY = 'metrics/goals';
 
 /**
  * Curated per-category palette used to seed brand-new layers and categories.
@@ -898,7 +899,15 @@ function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob }) {
     inputLayerIds,
     summaryMetrics: normalizeSolutionSummaryMetrics(metadata.evaluation, coverage),
     coverage,
+    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(id),
     rendering: DEFAULT_SOLUTION_RENDERING,
+  };
+}
+
+function createSolutionPrecomputedMetricUrls(solutionId, existingUrls = {}) {
+  return {
+    ...existingUrls,
+    goals: `${PUBLIC_BLOB_HOST}/${SOLUTION_GOALS_BLOB_DIRECTORY}/${solutionId}.goals.json`,
   };
 }
 
@@ -1790,7 +1799,7 @@ function hashStringToPositiveInt(value) {
   return hash;
 }
 
-function preserveSolutionCogUrls(solutions, existingManifestIndex) {
+function preserveSolutionUrls(solutions, existingManifestIndex) {
   const existingSolutions = new Map(
     (existingManifestIndex?.manifest?.solutions ?? [])
       .filter((solution) => solution && typeof solution.id === 'string')
@@ -1798,13 +1807,17 @@ function preserveSolutionCogUrls(solutions, existingManifestIndex) {
   );
 
   return solutions.map((solution) => {
-    const displayCogUrl = existingSolutions.get(solution.id)?.displayCogUrl;
-    if (typeof displayCogUrl !== 'string' || displayCogUrl.length === 0) {
-      return solution;
-    }
+    const existingSolution = existingSolutions.get(solution.id);
+    const displayCogUrl = existingSolution?.displayCogUrl;
+    const precomputedMetricUrls = createSolutionPrecomputedMetricUrls(
+      solution.id,
+      existingSolution?.precomputedMetricUrls ?? solution.precomputedMetricUrls ?? {},
+    );
+
     return {
       ...solution,
-      displayCogUrl,
+      ...(typeof displayCogUrl === 'string' && displayCogUrl.length > 0 ? { displayCogUrl } : {}),
+      precomputedMetricUrls,
     };
   });
 }
@@ -1814,7 +1827,13 @@ function publishedSolutions(existingManifestIndex) {
   if (!Array.isArray(solutions) || solutions.length === 0) {
     return [];
   }
-  return structuredClone(solutions);
+  return structuredClone(solutions).map((solution) => ({
+    ...solution,
+    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(
+      solution.id,
+      solution.precomputedMetricUrls ?? {},
+    ),
+  }));
 }
 
 function createPublishedSolutionCatalogReport(solutionCatalogReport, solutions, source) {
@@ -2422,12 +2441,19 @@ async function main() {
   );
   const layers = layerEntries.map((entry) => entry.manifestLayer);
   const preservedPublishedSolutions = publishedSolutions(publishedManifestIndex);
-  const solutions =
+  const rawSolutions =
     preservedPublishedSolutions.length > 0
       ? preservedPublishedSolutions
       : solutionCatalog.solutions.length > 0
-        ? preserveSolutionCogUrls(solutionCatalog.solutions, existingManifestIndex)
+        ? preserveSolutionUrls(solutionCatalog.solutions, existingManifestIndex)
         : (existingManifestIndex?.manifest?.solutions ?? []);
+  const solutions = rawSolutions.map((solution) => ({
+    ...solution,
+    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(
+      solution.id,
+      solution.precomputedMetricUrls ?? {},
+    ),
+  }));
   const preservedExistingSolutions =
     preservedPublishedSolutions.length === 0 && solutionCatalog.solutions.length === 0 && solutions.length > 0
       ? solutions

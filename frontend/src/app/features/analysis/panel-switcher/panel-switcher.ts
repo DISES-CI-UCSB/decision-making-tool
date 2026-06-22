@@ -16,6 +16,7 @@ import {
   type MetricValue,
   type MetricValueFormatHint,
   type Solution,
+  type SolutionGoalsDocument,
   type SolutionIdentitySummary,
   type CatalogSolution,
 } from '@core/models';
@@ -30,6 +31,7 @@ import {
   type RightSidebarMode,
 } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
 import {
   AdminBoundaryService,
   type SirapSelectionScope,
@@ -82,6 +84,23 @@ interface OverviewMetricDisplayEntry {
   unit: string;
   conditional: boolean;
   unavailable: boolean;
+}
+
+interface OverviewGoalsDomainEntry {
+  id: string;
+  labelKey: string;
+  targetLabel: string;
+  metCount: number;
+  totalCount: number;
+  pctMet: number | null;
+}
+
+interface OverviewGoalsTaxaEntry {
+  id: string;
+  label: string;
+  metCount: number;
+  totalCount: number;
+  pctMet: number | null;
 }
 
 interface AoiAlignedMetricBlueprint {
@@ -507,6 +526,7 @@ export class PanelSwitcherComponent {
   private readonly appLocale = inject(AppLocaleService);
   private readonly api = inject(ApiService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
+  private readonly solutionGoals = inject(SolutionGoalsLoaderService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
@@ -948,6 +968,9 @@ export class PanelSwitcherComponent {
   protected readonly sidebarTabs: SidebarTab[] = ['overview', 'aoi', 'comparison'];
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
   protected readonly cachedMetricsDocument = signal<CachedSolutionMetricsDocument | null>(null);
+  protected readonly solutionGoalsDocument = signal<SolutionGoalsDocument | null>(null);
+  protected readonly isGoalsLoading = signal(false);
+  protected readonly goalsLoadFailed = signal(false);
   protected readonly customAoiMetrics = signal<MetricValue[]>([]);
   protected readonly isCustomAoiMetricsLoading = signal(false);
   protected readonly customAoiMetricsLoadFailed = signal(false);
@@ -967,6 +990,12 @@ export class PanelSwitcherComponent {
   );
   protected readonly overviewCostMetrics = computed<OverviewMetricDisplayEntry[]>(() =>
     this.buildOverviewMetricDisplayEntries('costs'),
+  );
+  protected readonly overviewGoalsDomains = computed<OverviewGoalsDomainEntry[]>(() =>
+    this.buildOverviewGoalsDomains(),
+  );
+  protected readonly overviewGoalsTaxa = computed<OverviewGoalsTaxaEntry[]>(() =>
+    this.buildOverviewGoalsTaxa(),
   );
   protected readonly overviewSectionExpanded = signal<Record<OverviewMetricSection, boolean>>({
     gains: true,
@@ -1154,6 +1183,35 @@ export class PanelSwitcherComponent {
       .subscribe((document) => {
         this.cachedMetricsDocument.set(document);
         this.overviewSections.set(this.buildOverviewSections(nationalMetrics(document)));
+      });
+
+    toObservable(this.activeSolution)
+      .pipe(
+        map((solution) => this.resolveMetricsSolutionId(solution)),
+        distinctUntilChanged(),
+        switchMap((solutionId) => {
+          if (!solutionId) {
+            this.solutionGoalsDocument.set(null);
+            this.isGoalsLoading.set(false);
+            this.goalsLoadFailed.set(false);
+            return of<SolutionGoalsDocument | null>(null);
+          }
+
+          this.isGoalsLoading.set(true);
+          this.goalsLoadFailed.set(false);
+
+          return this.solutionGoals.loadGoals(solutionId).pipe(
+            catchError(() => {
+              this.goalsLoadFailed.set(true);
+              return of<SolutionGoalsDocument | null>(null);
+            }),
+            finalize(() => this.isGoalsLoading.set(false)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((document) => {
+        this.solutionGoalsDocument.set(document);
       });
 
     toObservable(this.customAoiGeometry)
@@ -1466,6 +1524,48 @@ export class PanelSwitcherComponent {
     return Math.max(0, Math.min(100, value ?? 0));
   }
 
+  protected formatGoalsCount(metCount: number, totalCount: number): string {
+    const met = this.formatNumber(metCount, this.metricNumberFormatMode(), 0, 0);
+    const total = this.formatNumber(totalCount, this.metricNumberFormatMode(), 0, 0);
+    return `${met} / ${total}`;
+  }
+
+  protected formatGoalsFullCount(metCount: number, totalCount: number): string {
+    const met = this.formatNumber(metCount, 'full', 0, 0);
+    const total = this.formatNumber(totalCount, 'full', 0, 0);
+    return `${met} / ${total}`;
+  }
+
+  protected getGoalsProgressBarWidth(pctMet: number | null): number {
+    return Math.max(0, Math.min(100, pctMet ?? 0));
+  }
+
+  protected getGoalsPercentLabel(pctMet: number | null): string {
+    if (pctMet === null) {
+      return '--';
+    }
+    return this.appendUnit(this.formatNumber(pctMet, this.metricNumberFormatMode(), 0, 1), '%');
+  }
+
+  protected getGoalsTargetRuleLabel(): string {
+    const document = this.solutionGoalsDocument();
+    if (!document) {
+      return this.localizedText('analysis.overview.goalsWidget.targetRuleUnavailable');
+    }
+
+    const targetLabels = this.overviewGoalsDomains()
+      .map((domain) => domain.targetLabel)
+      .filter((label, index, labels) => label && labels.indexOf(label) === index);
+
+    if (targetLabels.length === 1) {
+      return this.translate.instant('analysis.overview.goalsWidget.targetRuleSingle', {
+        target: targetLabels[0],
+      });
+    }
+
+    return this.localizedText('analysis.overview.goalsWidget.targetRuleVariable');
+  }
+
   protected getOverviewMetricValue(metricId: string, fallbackWhenMissing = '--'): string {
     if (metricId === 'national_contribution') {
       const liveValue = this.formatLiveNationalContribution();
@@ -1497,6 +1597,91 @@ export class PanelSwitcherComponent {
     const fullValue = this.formatMetricForPanel(metric, 'full');
     const compactValue = this.formatMetricForPanel(metric, 'compact');
     return fullValue !== compactValue ? fullValue : null;
+  }
+
+  private buildOverviewGoalsDomains(): OverviewGoalsDomainEntry[] {
+    const document = this.solutionGoalsDocument();
+    if (!document) {
+      return [];
+    }
+
+    const targetContext = document.targetContext;
+    const targetFeatureSet = (targetContext.targetFeatureSet ?? '').toLowerCase();
+    const targetFeatureIds = new Set(targetContext.targetFeatureIds.map((id) => id.toLowerCase()));
+    const hasTarget = (...tokens: string[]) =>
+      tokens.some((token) => targetFeatureSet.includes(token) || targetFeatureIds.has(token));
+    const entries: OverviewGoalsDomainEntry[] = [];
+
+    if (hasTarget('strategic_ecosystems', 'strategic', 'estr')) {
+      entries.push({
+        id: 'strategic-ecosystems',
+        labelKey: 'analysis.overview.goalsWidget.strategicEcosystems',
+        targetLabel: this.formatGoalsRelativeTargetLabel(
+          document.targetContext.relativeTargetsByType['strategicEcosystems'],
+        ),
+        metCount: document.summary.byType.strategicEcosystems.metCount,
+        totalCount: document.summary.byType.strategicEcosystems.totalCount,
+        pctMet: document.summary.byType.strategicEcosystems.pctMet,
+      });
+    }
+
+    if (hasTarget('ecosistemas', 'ecosystems', 'ecos')) {
+      entries.push({
+        id: 'ecosystems',
+        labelKey: 'analysis.overview.goalsWidget.ecosystems',
+        targetLabel: this.formatGoalsRelativeTargetLabel(
+          document.targetContext.relativeTargetsByType['ecosystems'],
+        ),
+        metCount: document.summary.byType.ecosystems.metCount,
+        totalCount: document.summary.byType.ecosystems.totalCount,
+        pctMet: document.summary.byType.ecosystems.pctMet,
+      });
+    }
+
+    if (hasTarget('species_richness', 'species', 'esp')) {
+      entries.push({
+        id: 'species',
+        labelKey: 'analysis.overview.goalsWidget.species',
+        targetLabel: this.formatGoalsRelativeTargetLabel(
+          document.targetContext.relativeTargetsByType['species'],
+        ),
+        metCount: document.summary.byType.species.metSpeciesCount,
+        totalCount: document.summary.byType.species.totalSpeciesCount,
+        pctMet: document.summary.byType.species.pctMet,
+      });
+    }
+
+    return entries.filter((entry) => entry.totalCount > 0);
+  }
+
+  private formatGoalsRelativeTargetLabel(targets: number[] | undefined): string {
+    const validTargets = (targets ?? []).filter((target) => Number.isFinite(target));
+    if (validTargets.length === 0) {
+      return this.localizedText('analysis.overview.goalsWidget.targetUnknown');
+    }
+
+    if (validTargets.length === 1) {
+      return this.translate.instant('analysis.overview.goalsWidget.targetPercent', {
+        percent: this.formatNumber(validTargets[0] * 100, this.metricNumberFormatMode(), 0, 1),
+      });
+    }
+
+    return this.localizedText('analysis.overview.goalsWidget.targetVariable');
+  }
+
+  private buildOverviewGoalsTaxa(): OverviewGoalsTaxaEntry[] {
+    const document = this.solutionGoalsDocument();
+    if (!document || !this.overviewGoalsDomains().some((entry) => entry.id === 'species')) {
+      return [];
+    }
+
+    return Object.entries(document.rollups.species.byTaxa).map(([id, rollup]) => ({
+      id,
+      label: rollup.label,
+      metCount: rollup.metSpeciesCount,
+      totalCount: rollup.totalSpeciesCount,
+      pctMet: rollup.pctMet,
+    }));
   }
 
   protected getOverviewPriorityZoneCountValue(): string {

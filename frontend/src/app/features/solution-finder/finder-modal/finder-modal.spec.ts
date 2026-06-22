@@ -72,6 +72,83 @@ describe('FinderModalComponent', () => {
     ).not.toBeNull();
   });
 
+  it('renders a BioModelos source link for the species target option', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const sourceLink = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-step1-target-type-source-link-species-richness-0',
+    );
+
+    expect(sourceLink).not.toBeNull();
+    expect(sourceLink.textContent).toContain(
+      'solutionControls.finder.step1.speciesRichnessBioModelosSourceLabel',
+    );
+  });
+
+  it('renders source links for cost and included-area choices', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const expectedSourceLinks = [
+      {
+        id: 'solution-finder-modal-step2b-option-hf-source-link',
+        labelKey: 'solutionControls.finder.step2b.humanFootprintSourceLabel',
+      },
+      {
+        id: 'solution-finder-modal-step2b-option-carbon-source-link',
+        labelKey: 'solutionControls.finder.step2b.carbonOpportunitySourceLabel',
+      },
+      {
+        id: 'solution-finder-modal-step2a-row-omec-source-link',
+        labelKey: 'solutionControls.finder.step2a.includeOmecsSourceLabel',
+      },
+      {
+        id: 'solution-finder-modal-step2a-row-comunidades-source-link',
+        labelKey: 'solutionControls.finder.step2a.includeComunidadesSourceLabel',
+      },
+      {
+        id: 'solution-finder-modal-step2a-row-resguardos-source-link',
+        labelKey: 'solutionControls.finder.step2a.includeResguardosSourceLabel',
+      },
+    ];
+
+    for (const { id, labelKey } of expectedSourceLinks) {
+      const sourceLink = compiled.querySelector(`#${id}`);
+
+      expect(sourceLink).not.toBeNull();
+      expect(sourceLink?.textContent).toContain(labelKey);
+    }
+  });
+
+  it('renders expandable definitions for cost choices', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const expectedDefinitions = [
+      {
+        id: 'solution-finder-modal-step2b-option-hf-definition',
+        toggleKey: 'solutionControls.finder.step2b.humanFootprintDefinitionToggle',
+        definitionKey: 'solutionControls.finder.step2b.humanFootprintDefinition',
+      },
+      {
+        id: 'solution-finder-modal-step2b-option-carbon-definition',
+        toggleKey: 'solutionControls.finder.step2b.carbonOpportunityDefinitionToggle',
+        definitionKey: 'solutionControls.finder.step2b.carbonOpportunityDefinition',
+      },
+    ];
+
+    for (const { id, toggleKey, definitionKey } of expectedDefinitions) {
+      const definition = compiled.querySelector(`#${id}`);
+
+      expect(definition).not.toBeNull();
+      expect(definition?.textContent).toContain(toggleKey);
+      expect(definition?.textContent).toContain(definitionKey);
+    }
+  });
+
   it('emits closeRequested when requestClose is called', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     const component = fixture.componentInstance;
@@ -248,6 +325,46 @@ describe('FinderModalComponent', () => {
       expect(component.matchResults.map((match) => match.solutionId)).toEqual([expectedSolutionId]);
     },
   );
+
+  it('matches net benefit solutions when the net benefit cost layer is selected', () => {
+    vi.useFakeTimers();
+    catalog.getAll.mockReturnValue([
+      buildSolution({
+        id: 'ecos30_runap_hf',
+        name: 'Ecos30+RUNAP_HF',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: null,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap'],
+      }),
+      buildSolution({
+        id: 'ecos30_runap_co',
+        name: 'Ecos30+RUNAP_CO',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: null,
+        costLayerId: 'net_benefit',
+        includeLayerIds: ['runap'],
+      }),
+    ]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      selectedCostLayerId: string;
+      runMatching: () => void;
+      matchResults: { solutionId: string }[];
+    };
+
+    component.selectedTargetTypeIds = ['ecosystems'];
+    component.targetLevelByType = { ecosystems: 30 };
+    component.selectedCostLayerId = 'carbon-opportunity';
+    component.runMatching();
+    vi.advanceTimersByTime(350);
+
+    expect(component.matchResults.map((match) => match.solutionId)).toEqual(['ecos30_runap_co']);
+  });
 
   it('does not match conflict-cost solutions from stale selections', () => {
     vi.useFakeTimers();
