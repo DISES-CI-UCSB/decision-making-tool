@@ -164,7 +164,7 @@
         "selected": "Seleccionado",
         "alwaysApplied": "Siempre aplicado",
         "omecs": "OMECs",
-        "afroColombianTerritories": "Territorios afrocolombianos",
+        "afroColombianTerritories": "Consejos Comunitarios de Comunidades Negras",
         "indigenousReserves": "Resguardos indígenas",
         "areaUnit": "Unidad de área",
         "aoiName": "Área de interés",
@@ -317,7 +317,7 @@
         "indigenousReservationsArea": "Área de resguardos indígenas",
         "indigenousReservationsAreaDesc": "Resguardos superpuestos al esolution",
         "communityCouncilsArea": "Área de consejos comunitarios",
-        "communityCouncilsAreaDesc": "Consejos comunitarios afrocolombianos superpuestos",
+        "communityCouncilsAreaDesc": "Consejos comunitarios de comunidades negras superpuestos",
         "carbonStorageCapacity": "Capacidad de almacenamiento de carbono",
         "carbonStorageCapacityDesc": "Biomasa aérea y subterránea en áreas prioritarias",
         "carbonStorageCapacityMethodology": "Usa una capa de biomasa aérea y subterránea. Fórmula: suma del valor de biomasa × área del píxel en la solución seleccionada.",
@@ -471,7 +471,7 @@
         "indigenousReservations": "Resguardos indígenas",
         "indigenousReservationsDesc": "Área dentro de las zonas prioritarias del AOI",
         "communityCounsils": "Consejos comunitarios",
-        "communityCouncilsDesc": "Territorios de consejos comunitarios afrocolombianos",
+        "communityCouncilsDesc": "Consejos Comunitarios de Comunidades Negras",
         "indigenousOverlap": "Superposición con territorios indígenas",
         "indigenousOverlapDesc": "Proporción del esolution en territorios indígenas",
         "mpaOverlap": "Superposición con AMP",
@@ -647,11 +647,14 @@
     "finder": {
       "kicker": "Búsqueda de esolutions de conservación",
       "title": "Encontrar un esolution de conservación",
-      "description": "Elija qué proteger, áreas incluidas opcionales y la base del compromiso (costo). Los esolutions coincidentes se actualizan automáticamente al cambiar filtros.",
+      "description": "Elija qué proteger, áreas incluidas opcionales y la base del compromiso (costo). El esolution coincidente se actualiza automáticamente al cambiar filtros.",
       "comparison": {
         "kicker": "Búsqueda de esolution de comparación",
         "title": "Encontrar un esolution de comparación",
         "description": "Use el mismo flujo para elegir el esolution de comparación para revisar lado a lado."
+      },
+      "memory": {
+        "duplicateSolutionWarning": "Esta coincidencia ya está cargada como Solución A. Cambie una opción antes de usarla como Solución B."
       },
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
@@ -681,13 +684,13 @@
         "step1": "Qué proteger",
         "step2a": "Áreas incluidas (opcional)",
         "step2b": "Áreas que se intentan evitar (costos)",
-        "step3": "Resultados coincidentes"
+        "step3": "Esolution seleccionado"
       },
       "stepIntros": {
         "step1": "Seleccione uno o más grupos objetivo para definir qué proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
         "step2a": "Elija qué áreas debe tratar el escenario como cobertura ya incluida. Las soluciones coincidentes se enfocan en áreas prioritarias adicionales fuera de esa cobertura.",
         "step2b": "Elija qué áreas debe intentar evitar la solución. El Buscador de Soluciones aún debe cumplir las metas de conservación, por lo que puede incluir áreas de alto costo cuando sea necesario.",
-        "step3": "Los esolutions coincidentes se actualizan automáticamente al cambiar filtros."
+        "step3": "El esolution seleccionado se actualiza automáticamente al cambiar filtros."
       },
       "stepState": {
         "inProgress": "En progreso",
@@ -721,7 +724,7 @@
         "ecosystemsDataSourceLabel": "Vista del mapa MEC",
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
         "speciesRichnessLabel": "Modelos de especies",
-        "speciesRichnessHelp": "Prioriza capas individuales de especies de Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas. Los peces se excluyen porque los datos disponibles de peces de agua dulce son demasiado generales.",
+        "speciesRichnessHelp": "Prioriza capas individuales de especies de Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas, cubriendo muchas de las 8.751 especies representadas en biomodelos del Instituto Humboldt. Los peces de agua dulce no se consideran porque los datos disponibles de especies de peces son demasiado generales para esta priorización.",
         "speciesRichnessBioModelosSourceLabel": "Metadatos Humboldt BioModelos",
         "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
         "strategicEcosystemsLabel": "Ecosistemas estratégicos",
@@ -762,8 +765,8 @@
         "includeOmecsHelp": "Las OMEC son áreas fuera de las áreas protegidas formales que se reconocen por aportar resultados de conservación. Actívelas si el escenario debe tratarlas como cobertura ya incluida.",
         "includeOmecsSourceLabel": "Fuente: datos OMEC de Protected Planet",
         "includeOmecsSourceUrl": "https://www.protectedplanet.net/en/thematic-areas/oecms?tab=OECMs",
-        "includeComunidadesLabel": "Incluir territorios afrocolombianos",
-        "includeComunidadesHelp": "Actívelo si el escenario debe tratar los territorios legalmente reconocidos de comunidades afrocolombianas como cobertura ya incluida.",
+        "includeComunidadesLabel": "Incluir Consejos Comunitarios de Comunidades Negras",
+        "includeComunidadesHelp": "Actívelo si el escenario debe tratar los consejos comunitarios de comunidades negras legalmente reconocidos como cobertura ya incluida.",
         "includeComunidadesSourceLabel": "Fuente: datos de consejos comunitarios ANT",
         "includeComunidadesSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::consejo-comunitario-titulado/about",
         "includeResguardosLabel": "Incluir resguardos indígenas",
@@ -795,10 +798,12 @@
       },
       "actions": {
         "reset": "Restablecer valores",
+        "clearSelection": "Limpiar selecciones",
         "cancel": "Cancelar",
         "findMatches": "Actualizar esolutions",
-        "apply": "Aplicar esolution seleccionado",
-        "loadAsCandidateSolution": "Cargar como esolution de comparación"
+        "apply": "Explorar esolution seleccionado",
+        "loadAsCandidateSolution": "Explorar como esolution de comparación",
+        "useAsSolutionB": "Usar solución seleccionada como Solución B"
       },
       "empty": {
         "title": "Defina filtros para ver un esolution",
@@ -820,9 +825,6 @@
         "solutionJaguarCorridor": "Mayor énfasis en continuidad de corredores de especies cerca de áreas protegidas.",
         "solutionAndesWater": "Balancea protección de ecosistemas estratégicos y metas de regulación hídrica en cuencas altas.",
         "solutionCarbonShield": "Prioriza densidad de carbono mientras excluye presión minera y bordes urbanos."
-      },
-      "toast": {
-        "solutionLoaded": "Esolution cargado"
       }
     }
   },

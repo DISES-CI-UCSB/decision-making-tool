@@ -18,6 +18,17 @@ export type MetricNumberFormatMode = 'compact' | 'full';
 export type AreaDisplayUnit = 'km2' | 'hectares';
 export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
 
+export interface FinderSelectionMemory {
+  selectedScope: 'nacional' | 'sirap';
+  selectedSirapRegion: string | null;
+  selectedTargetTypeIds: string[];
+  targetLevelByType: Record<string, 17 | 30>;
+  includeOmecs: boolean;
+  includeComunidades: boolean;
+  includeResguardos: boolean;
+  selectedCostLayerId: string | null;
+}
+
 export interface MapLegendLayerCategoryEntry {
   id: string;
   label: string;
@@ -135,6 +146,7 @@ export class AppStateService {
   readonly chartPaletteId$ = signal<ChartPaletteId>(DEFAULT_CHART_PALETTE_ID);
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
+  readonly finderSelectionMemory$ = signal<FinderSelectionMemory | null>(null);
   readonly userTier$ = signal<UserTier>(UserTier.Public);
   readonly userIsAdmin$ = signal(false);
   readonly mapExtent$ = signal<Extent | null>(null);
@@ -286,6 +298,18 @@ export class AppStateService {
   openSolutionFinder(context: SolutionFinderContext = 'default'): void {
     this.solutionFinderContext$.set(context);
     this.solutionFinderModalOpen$.set(true);
+  }
+
+  setFinderSelectionMemory(selection: FinderSelectionMemory): void {
+    this.finderSelectionMemory$.set({
+      ...selection,
+      selectedTargetTypeIds: [...selection.selectedTargetTypeIds],
+      targetLevelByType: { ...selection.targetLevelByType },
+    });
+  }
+
+  clearFinderSelectionMemory(): void {
+    this.finderSelectionMemory$.set(null);
   }
 
   closeSolutionFinder(): void {

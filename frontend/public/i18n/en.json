@@ -164,7 +164,7 @@
         "selected": "Selected",
         "alwaysApplied": "Always applied",
         "omecs": "OMECs",
-        "afroColombianTerritories": "Afro-Colombian territories",
+        "afroColombianTerritories": "Community Councils for Black Communities",
         "indigenousReserves": "Indigenous reserves",
         "areaUnit": "Area unit",
         "aoiName": "Area of interest",
@@ -317,7 +317,7 @@
         "indigenousReservationsArea": "Indigenous Reservations Area",
         "indigenousReservationsAreaDesc": "Resguardos overlapping the solution",
         "communityCouncilsArea": "Community Councils Area",
-        "communityCouncilsAreaDesc": "Afro-Colombian councils overlapping the solution",
+        "communityCouncilsAreaDesc": "Community councils for Black communities overlapping the solution",
         "carbonStorageCapacity": "Carbon Storage Capacity",
         "carbonStorageCapacityDesc": "Above- and belowground biomass in priority areas",
         "carbonStorageCapacityMethodology": "Uses an above- and belowground biomass layer. Formula: sum biomass value × pixel area across the selected solution.",
@@ -544,7 +544,7 @@
         "indigenousReservations": "Indigenous Reservations",
         "indigenousReservationsDesc": "Area within AOI priority zones",
         "communityCounsils": "Community Councils",
-        "communityCouncilsDesc": "Afro-Colombian community council territories",
+        "communityCouncilsDesc": "Community Councils for Black Communities",
         "indigenousOverlap": "Overlap w/ Indigenous Territories",
         "indigenousOverlapDesc": "Share of solution in indigenous territories",
         "mpaOverlap": "MPA Overlap",
@@ -647,11 +647,14 @@
     "finder": {
       "kicker": "Conservation solution search",
       "title": "Find a conservation solution",
-      "description": "Choose what to protect, optional included areas, and a trade-off basis. Matching solutions refresh automatically as you change filters.",
+      "description": "Choose what to protect, optional included areas, and a trade-off basis. The matching solution updates automatically as you change filters.",
       "comparison": {
         "kicker": "Comparison solution search",
         "title": "Find a comparison solution",
         "description": "Use the same guided workflow to choose a comparison solution for side-by-side comparison."
+      },
+      "memory": {
+        "duplicateSolutionWarning": "This match is already loaded as Solution A. Change one option before using it as Solution B."
       },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
@@ -681,13 +684,13 @@
         "step1": "What to protect",
         "step2a": "Included areas (optional)",
         "step2b": "Areas to try to avoid (costs)",
-        "step3": "Matching results"
+        "step3": "Selected solution"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "step2a": "Choose which areas the scenario should treat as already included coverage. Matching solutions then focus on additional priority areas outside that coverage.",
         "step2b": "Choose which areas the solution should try to avoid. The Solution Finder still has to meet conservation targets, so high-cost areas may be included when needed.",
-        "step3": "Matching solutions refresh automatically as you change filters."
+        "step3": "The selected solution updates automatically as you change filters."
       },
       "stepState": {
         "inProgress": "In Progress",
@@ -721,7 +724,7 @@
         "ecosystemsDataSourceLabel": "MEC map view",
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
         "speciesRichnessLabel": "Species models",
-        "speciesRichnessHelp": "Prioritizes individual Humboldt BioModelos species layers for mammals, birds, amphibians, reptiles, and plants. Fish species are excluded because the available freshwater fish data is too coarse.",
+        "speciesRichnessHelp": "Prioritizes individual Humboldt BioModelos species layers for mammals, birds, amphibians, reptiles, and plants, covering many of the 8,751 species represented in Humboldt biomodels. Freshwater fish are not considered because the available fish species data is too coarse for this prioritization.",
         "speciesRichnessBioModelosSourceLabel": "Humboldt BioModelos metadata",
         "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
         "strategicEcosystemsLabel": "Strategic ecosystems",
@@ -762,8 +765,8 @@
         "includeOmecsHelp": "OMECs are areas outside formal protected areas that are recognized for delivering conservation outcomes. Turn this on if the scenario should treat OMECs as already included coverage.",
         "includeOmecsSourceLabel": "Source: Protected Planet OECM data",
         "includeOmecsSourceUrl": "https://www.protectedplanet.net/en/thematic-areas/oecms?tab=OECMs",
-        "includeComunidadesLabel": "Include Afro-Colombian territories",
-        "includeComunidadesHelp": "Turn this on if the scenario should treat legally recognized Afro-Colombian community territories as already included coverage.",
+        "includeComunidadesLabel": "Include Community Councils for Black Communities",
+        "includeComunidadesHelp": "Turn this on if the scenario should treat legally recognized Community Councils for Black Communities as already included coverage.",
         "includeComunidadesSourceLabel": "Source: ANT community councils data",
         "includeComunidadesSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::consejo-comunitario-titulado/about",
         "includeResguardosLabel": "Include Indigenous reserves",
@@ -795,10 +798,12 @@
       },
       "actions": {
         "reset": "Reset to defaults",
+        "clearSelection": "Clear selections",
         "cancel": "Cancel",
         "findMatches": "Refresh solutions",
-        "apply": "Apply selected solution",
-        "loadAsCandidateSolution": "Load as comparison solution"
+        "apply": "Explore selected solution",
+        "loadAsCandidateSolution": "Explore as comparison solution",
+        "useAsSolutionB": "Use selected solution as Solution B"
       },
       "empty": {
         "title": "Set filters to view a solution",
@@ -820,9 +825,6 @@
         "solutionJaguarCorridor": "Higher emphasis on species corridor continuity near protected area buffers.",
         "solutionAndesWater": "Balances strategic ecosystem protection and water regulation targets in upland basins.",
         "solutionCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."
-      },
-      "toast": {
-        "solutionLoaded": "Solution loaded"
       }
     }
   },
