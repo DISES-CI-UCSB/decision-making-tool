@@ -797,12 +797,17 @@
               [attr.aria-label]="'solutionControls.finder.step2a.includeOmecsLabel' | translate"
               (click)="$event.stopPropagation(); toggleIncludeOmecs()"
             >
-              {{
-                (includeOmecs
-                  ? 'solutionControls.finder.toggle.on'
-                  : 'solutionControls.finder.toggle.off'
-                ) | translate
-              }}
+              <span
+                id="solution-finder-modal-step2a-row-omec-toggle-label"
+                class="finder-fixed-toggle-label"
+              >
+                {{
+                  (includeOmecs
+                    ? 'solutionControls.finder.toggle.on'
+                    : 'solutionControls.finder.toggle.off'
+                  ) | translate
+                }}
+              </span>
             </button>
           </div>
 
@@ -869,12 +874,17 @@
               "
               (click)="$event.stopPropagation(); toggleIncludeComunidades()"
             >
-              {{
-                (includeComunidades
-                  ? 'solutionControls.finder.toggle.on'
-                  : 'solutionControls.finder.toggle.off'
-                ) | translate
-              }}
+              <span
+                id="solution-finder-modal-step2a-row-comunidades-toggle-label"
+                class="finder-fixed-toggle-label"
+              >
+                {{
+                  (includeComunidades
+                    ? 'solutionControls.finder.toggle.on'
+                    : 'solutionControls.finder.toggle.off'
+                  ) | translate
+                }}
+              </span>
             </button>
           </div>
 
@@ -941,12 +951,17 @@
               "
               (click)="$event.stopPropagation(); toggleIncludeResguardos()"
             >
-              {{
-                (includeResguardos
-                  ? 'solutionControls.finder.toggle.on'
-                  : 'solutionControls.finder.toggle.off'
-                ) | translate
-              }}
+              <span
+                id="solution-finder-modal-step2a-row-resguardos-toggle-label"
+                class="finder-fixed-toggle-label"
+              >
+                {{
+                  (includeResguardos
+                    ? 'solutionControls.finder.toggle.on'
+                    : 'solutionControls.finder.toggle.off'
+                  ) | translate
+                }}
+              </span>
             </button>
           </div>
 
@@ -989,9 +1004,14 @@
               </div>
               <span
                 id="solution-finder-modal-step2a-always-runap-chip"
-                class="finder-control-button-padding shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+                class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
               >
-                {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
+                <span
+                  id="solution-finder-modal-step2a-always-runap-chip-label"
+                  class="finder-fixed-toggle-label"
+                >
+                  {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
+                </span>
               </span>
             </div>
           </div>

@@ -94,9 +94,18 @@
 }
 
 .finder-fixed-toggle {
-  --finder-all-caps-nudge-y: 2px;
-
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 2.5rem;
+  min-height: 1.5rem;
+  line-height: 1;
+}
+
+.finder-fixed-toggle-label {
+  display: inline-block;
+  line-height: 0.92;
+  transform: translateY(1px);
 }
 
 .finder-selected-card-border {
@@ -117,7 +126,14 @@
   transform: translateY(-1px);
 }
 
-@supports (text-box-trim: trim-both) {
+@supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
+  .finder-fixed-toggle-label {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    line-height: 1;
+    transform: none;
+  }
+
   .finder-info-icon-glyph {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
