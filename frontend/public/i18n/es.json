@@ -647,7 +647,7 @@
     "finder": {
       "kicker": "Búsqueda de esolutions de conservación",
       "title": "Encontrar un esolution de conservación",
-      "description": "Elija qué proteger, áreas incluidas opcionales y la base del compromiso (costo). Los esolutions coincidentes se actualizan automáticamente al cambiar filtros.",
+      "description": "Elija qué proteger, áreas incluidas opcionales y la base del compromiso (costo). El esolution coincidente se actualiza automáticamente al cambiar filtros.",
       "comparison": {
         "kicker": "Búsqueda de esolution de comparación",
         "title": "Encontrar un esolution de comparación",
@@ -681,13 +681,13 @@
         "step1": "Qué proteger",
         "step2a": "Áreas incluidas (opcional)",
         "step2b": "Áreas que se intentan evitar (costos)",
-        "step3": "Resultados coincidentes"
+        "step3": "Esolution seleccionado"
       },
       "stepIntros": {
         "step1": "Seleccione uno o más grupos objetivo para definir qué proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
         "step2a": "Elija qué áreas debe tratar el escenario como cobertura ya incluida. Las soluciones coincidentes se enfocan en áreas prioritarias adicionales fuera de esa cobertura.",
         "step2b": "Elija qué áreas debe intentar evitar la solución. El Buscador de Soluciones aún debe cumplir las metas de conservación, por lo que puede incluir áreas de alto costo cuando sea necesario.",
-        "step3": "Los esolutions coincidentes se actualizan automáticamente al cambiar filtros."
+        "step3": "El esolution seleccionado se actualiza automáticamente al cambiar filtros."
       },
       "stepState": {
         "inProgress": "En progreso",
@@ -797,8 +797,8 @@
         "reset": "Restablecer valores",
         "cancel": "Cancelar",
         "findMatches": "Actualizar esolutions",
-        "apply": "Aplicar esolution seleccionado",
-        "loadAsCandidateSolution": "Cargar como esolution de comparación"
+        "apply": "Explorar esolution seleccionado",
+        "loadAsCandidateSolution": "Explorar como esolution de comparación"
       },
       "empty": {
         "title": "Defina filtros para ver un esolution",

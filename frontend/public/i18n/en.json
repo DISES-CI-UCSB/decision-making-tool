@@ -647,7 +647,7 @@
     "finder": {
       "kicker": "Conservation solution search",
       "title": "Find a conservation solution",
-      "description": "Choose what to protect, optional included areas, and a trade-off basis. Matching solutions refresh automatically as you change filters.",
+      "description": "Choose what to protect, optional included areas, and a trade-off basis. The matching solution updates automatically as you change filters.",
       "comparison": {
         "kicker": "Comparison solution search",
         "title": "Find a comparison solution",
@@ -681,13 +681,13 @@
         "step1": "What to protect",
         "step2a": "Included areas (optional)",
         "step2b": "Areas to try to avoid (costs)",
-        "step3": "Matching results"
+        "step3": "Selected solution"
       },
       "stepIntros": {
         "step1": "Select one or more target groups for what to protect. For each selected target, choose a coverage level (17% or 30%).",
         "step2a": "Choose which areas the scenario should treat as already included coverage. Matching solutions then focus on additional priority areas outside that coverage.",
         "step2b": "Choose which areas the solution should try to avoid. The Solution Finder still has to meet conservation targets, so high-cost areas may be included when needed.",
-        "step3": "Matching solutions refresh automatically as you change filters."
+        "step3": "The selected solution updates automatically as you change filters."
       },
       "stepState": {
         "inProgress": "In Progress",
@@ -797,8 +797,8 @@
         "reset": "Reset to defaults",
         "cancel": "Cancel",
         "findMatches": "Refresh solutions",
-        "apply": "Apply selected solution",
-        "loadAsCandidateSolution": "Load as comparison solution"
+        "apply": "Explore selected solution",
+        "loadAsCandidateSolution": "Explore as comparison solution"
       },
       "empty": {
         "title": "Set filters to view a solution",

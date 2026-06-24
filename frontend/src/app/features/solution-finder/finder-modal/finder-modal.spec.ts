@@ -33,7 +33,7 @@ describe('FinderModalComponent', () => {
     vi.useRealTimers();
   });
 
-  it('renders step columns for targets, 2A, 2B, and results', () => {
+  it('renders step columns for targets, included areas, and costs', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
 
@@ -44,7 +44,7 @@ describe('FinderModalComponent', () => {
     expect(compiled.querySelector('#solution-finder-modal-step2a-row-comunidades')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2a-row-resguardos')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2b-column')).not.toBeNull();
-    expect(compiled.querySelector('#solution-finder-modal-results-column')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-results-column')).toBeNull();
   });
 
   it('does not render conflict as a trade-off option', () => {

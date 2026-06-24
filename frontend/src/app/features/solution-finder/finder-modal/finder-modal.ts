@@ -9,7 +9,6 @@ import {
   OnDestroy,
   Output,
   QueryList,
-  ViewChild,
   ViewChildren,
   inject,
 } from '@angular/core';
@@ -143,7 +142,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   @Output() readonly closeRequested = new EventEmitter<void>();
   @Output() readonly solutionApplied = new EventEmitter<SolutionMatch>();
 
-  protected readonly showSolutionFilenames = this.appState.showFinderSolutionFilenames$;
   protected readonly showScopeBar = this.appState.showFinderScopeBar$;
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
@@ -195,12 +193,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   /** Step 2B */
   protected selectedCostLayerId: CostLayerChoice | null = null;
 
-  @ViewChild('resultsScrollContainer')
-  private readonly resultsScrollRef?: ElementRef<HTMLElement>;
-
-  @ViewChild('resultsScrollThumb')
-  private readonly resultsThumbRef?: ElementRef<HTMLElement>;
-
   @ViewChildren('finderColumnHeader')
   private readonly columnHeaderRefs?: QueryList<ElementRef<HTMLElement>>;
 
@@ -210,13 +202,11 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   protected selectedMatch: SolutionMatch | null = null;
 
   private loadingTimer: ReturnType<typeof setTimeout> | null = null;
-  private scrollThumbHideTimer: ReturnType<typeof setTimeout> | null = null;
   private columnHeaderResizeObserver: ResizeObserver | null = null;
   private columnHeaderSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnDestroy(): void {
     this.clearLoadingTimer();
-    this.clearScrollThumbHideTimer();
     this.clearColumnHeaderSyncTimer();
     this.columnHeaderResizeObserver?.disconnect();
   }
@@ -350,25 +340,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
       this.selectedMatch = this.matchResults[0] ?? null;
       this.matchState = 'ready';
     }, 350);
-  }
-
-  protected selectMatch(matchId: string): void {
-    this.selectedMatchId = matchId;
-    this.selectedMatch = this.matchResults.find((match) => match.id === matchId) ?? null;
-  }
-
-  protected onResultsScroll(): void {
-    this.updateScrollThumb();
-    this.showScrollThumb();
-  }
-
-  protected onResultsMouseEnter(): void {
-    this.updateScrollThumb();
-    this.showScrollThumb();
-  }
-
-  protected onResultsMouseLeave(): void {
-    this.hideScrollThumbAfterDelay(400);
   }
 
   protected selectScope(scope: 'nacional' | 'sirap'): void {
@@ -725,58 +696,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.selectedMatchId = null;
     this.selectedMatch = null;
     this.matchState = 'empty';
-  }
-
-  private updateScrollThumb(): void {
-    const container = this.resultsScrollRef?.nativeElement;
-    const thumb = this.resultsThumbRef?.nativeElement;
-    if (!container || !thumb) {
-      return;
-    }
-
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    if (scrollHeight <= clientHeight) {
-      thumb.style.opacity = '0';
-      return;
-    }
-
-    const thumbHeight = Math.max(24, (clientHeight / scrollHeight) * clientHeight);
-    const maxScroll = scrollHeight - clientHeight;
-    const thumbTop = (scrollTop / maxScroll) * (clientHeight - thumbHeight);
-
-    thumb.style.height = `${thumbHeight}px`;
-    thumb.style.top = `${thumbTop}px`;
-  }
-
-  private showScrollThumb(): void {
-    const container = this.resultsScrollRef?.nativeElement;
-    const thumb = this.resultsThumbRef?.nativeElement;
-    if (!container || !thumb || container.scrollHeight <= container.clientHeight) {
-      return;
-    }
-
-    this.clearScrollThumbHideTimer();
-    thumb.style.opacity = '1';
-    this.hideScrollThumbAfterDelay(1200);
-  }
-
-  private hideScrollThumbAfterDelay(ms: number): void {
-    this.clearScrollThumbHideTimer();
-    this.scrollThumbHideTimer = setTimeout(() => {
-      const thumb = this.resultsThumbRef?.nativeElement;
-      if (thumb) {
-        thumb.style.opacity = '0';
-      }
-    }, ms);
-  }
-
-  private clearScrollThumbHideTimer(): void {
-    if (!this.scrollThumbHideTimer) {
-      return;
-    }
-
-    clearTimeout(this.scrollThumbHideTimer);
-    this.scrollThumbHideTimer = null;
   }
 
   private observeColumnHeaders(): void {
