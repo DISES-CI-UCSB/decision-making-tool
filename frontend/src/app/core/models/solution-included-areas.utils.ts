@@ -13,8 +13,8 @@ const INCLUDED_AREA_LABELS: Record<SolutionIncludedAreaKey, Record<LayerLocale, 
     es: 'OMECs',
   },
   afroIndigenous: {
-    en: 'community councils for Black communities and Indigenous territories',
-    es: 'consejos comunitarios de comunidades negras y territorios indígenas',
+    en: 'Community Councils for Black Communities and Indigenous Territories',
+    es: 'Consejos Comunitarios de Comunidades Negras y Territorios Indígenas',
   },
 };
 
