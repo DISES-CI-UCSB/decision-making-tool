@@ -235,7 +235,7 @@
       "goalsWidget": {
         "kicker": "Metas de conservación",
         "title": "Avance de metas",
-        "targetRuleSingle": "Cuenta elementos que alcanzaron la meta de {{target}}.",
+        "targetRuleSingle": "Cuenta elementos que alcanzaron la {{target}}.",
         "targetRuleVariable": "Cuenta elementos que alcanzaron sus metas específicas.",
         "targetRuleUnavailable": "Los detalles de la meta se están cargando.",
         "targetPercent": "Meta de {{percent}}%",
@@ -294,8 +294,8 @@
         "close": "Cerrar"
       },
       "metrics": {
-        "conservationGoalsMet": "Metas de conservación cumplidas",
-        "conservationGoalsMetDesc": "Porcentaje de metas alcanzadas",
+        "conservationGoalsMet": "Metas alcanzadas",
+        "conservationGoalsMetDesc": "Porcentaje de elementos de conservación alcanzados",
         "speciesGroupsProtected": "Grupos de especies protegidos",
         "speciesGroupsProtectedDesc": "Protección del hábitat",
         "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
@@ -334,7 +334,7 @@
         "agriculturalOpportunityCostDesc": "Producción sacrificada"
       },
       "metricUnits": {
-        "ofTargets": "de las metas",
+        "ofFeatures": "de los elementos",
         "ninetyPercentOfTotal": "90% del total",
         "eightyEightPercentSecured": "88% asegurado",
         "eightyFivePercentOfTarget": "85% de la meta",

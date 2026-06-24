@@ -235,7 +235,7 @@
       "goalsWidget": {
         "kicker": "Conservation targets",
         "title": "Target progress",
-        "targetRuleSingle": "Counts features that reached the {{target}} target.",
+        "targetRuleSingle": "Counts features that reached the {{target}}.",
         "targetRuleVariable": "Counts features that reached their feature-specific targets.",
         "targetRuleUnavailable": "Target details are loading.",
         "targetPercent": "{{percent}}% target",
@@ -294,8 +294,8 @@
         "close": "Close"
       },
       "metrics": {
-        "conservationGoalsMet": "Conservation Goals Met",
-        "conservationGoalsMetDesc": "Share of conservation targets achieved",
+        "conservationGoalsMet": "Targets Achieved",
+        "conservationGoalsMetDesc": "Share of conservation features achieved",
         "speciesGroupsProtected": "Species Groups Protected",
         "speciesGroupsProtectedDesc": "Habitat protection",
         "threatenedSpeciesSecured": "Threatened Species Secured",
@@ -334,7 +334,7 @@
         "agriculturalOpportunityCostDesc": "Production foregone"
       },
       "metricUnits": {
-        "ofTargets": "of targets",
+        "ofFeatures": "of features",
         "ninetyPercentOfTotal": "90% of total",
         "eightyEightPercentSecured": "88% secured",
         "eightyFivePercentOfTarget": "85% of target",

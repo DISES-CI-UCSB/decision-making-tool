@@ -579,7 +579,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-bullseye',
       realMetricId: 'conservation_goals_met',
       dummyValue: '92%',
-      dummyUnitKey: 'analysis.overview.metricUnits.ofTargets',
+      dummyUnitKey: 'analysis.overview.metricUnits.ofFeatures',
     },
     {
       id: 'metric-02-species-groups-protected',
