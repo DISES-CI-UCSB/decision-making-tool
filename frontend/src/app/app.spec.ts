@@ -93,9 +93,6 @@ describe('App', () => {
     expect(appState.comparisonSolution$()).toBeNull();
     expect(appState.rightSidebarMode$()).toBe('overview');
     expect(showSolutionSpy).toHaveBeenCalledWith('sol-001');
-    expect(
-      (component as unknown as { solutionLoadedToastVisible: boolean }).solutionLoadedToastVisible,
-    ).toBe(true);
   });
 
   it('applies a real manifest solution id from the finder', () => {

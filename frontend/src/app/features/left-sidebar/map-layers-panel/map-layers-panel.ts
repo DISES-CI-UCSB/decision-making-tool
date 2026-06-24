@@ -4831,7 +4831,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           ),
           this.layerRow(
             'cult-afro',
-            'Afro-Colombian Community Territories',
+            'Community Councils for Black Communities',
             '#a855f7',
             DEFAULT_DATA_LAYER_OPACITY,
           ),
