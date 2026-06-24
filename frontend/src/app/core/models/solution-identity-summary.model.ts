@@ -159,7 +159,7 @@ function labelInclude(value: string): string {
     return 'OMECs';
   }
   if (normalized.includes('comunidades') || normalized.includes('afro')) {
-    return 'Afro-Colombian territories';
+    return 'community councils for Black communities';
   }
   if (normalized.includes('resguardos') || normalized.includes('indigenous')) {
     return 'Indigenous reserves';

@@ -14,7 +14,7 @@ describe('solution included areas utils', () => {
     const solution = buildSolution(['runap', 'omecs'], 'Ecos30+RUNAP+OMEC_HF_comunidades');
 
     expect(getSolutionIncludedAreasLegendLabel(solution)).toBe(
-      'Included areas in solution (RUNAP + OMECs + Afro-Colombian and Indigenous territories)',
+      'Included areas in solution (RUNAP + OMECs + community councils for Black communities and Indigenous territories)',
     );
   });
 });

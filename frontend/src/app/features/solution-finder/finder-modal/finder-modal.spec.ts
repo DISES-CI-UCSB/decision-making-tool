@@ -305,7 +305,7 @@ describe('FinderModalComponent', () => {
       expectedSolutionId: 'ecos30_runap_hf',
     },
     {
-      description: 'Afro-Colombian communities only',
+      description: 'community councils for Black communities only',
       includeComunidades: true,
       includeResguardos: false,
       expectedSolutionId: 'ecos30_runap_com_hf',
