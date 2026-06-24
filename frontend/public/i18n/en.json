@@ -763,7 +763,7 @@
         "includeOmecsSourceLabel": "Source: Protected Planet OECM data",
         "includeOmecsSourceUrl": "https://www.protectedplanet.net/en/thematic-areas/oecms?tab=OECMs",
         "includeComunidadesLabel": "Include Community Councils for Black Communities",
-        "includeComunidadesHelp": "Turn this on if the scenario should treat legally recognized community councils for Black communities as already included coverage.",
+        "includeComunidadesHelp": "Turn this on if the scenario should treat legally recognized Community Councils for Black Communities as already included coverage.",
         "includeComunidadesSourceLabel": "Source: ANT community councils data",
         "includeComunidadesSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::consejo-comunitario-titulado/about",
         "includeResguardosLabel": "Include Indigenous reserves",
