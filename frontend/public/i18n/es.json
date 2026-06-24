@@ -653,6 +653,9 @@
         "title": "Encontrar un esolution de comparación",
         "description": "Use el mismo flujo para elegir el esolution de comparación para revisar lado a lado."
       },
+      "memory": {
+        "duplicateSolutionWarning": "Esta coincidencia ya está cargada como Solución A. Cambie una opción antes de usarla como Solución B."
+      },
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
       "scopeBar": {
@@ -795,10 +798,12 @@
       },
       "actions": {
         "reset": "Restablecer valores",
+        "clearSelection": "Limpiar selecciones",
         "cancel": "Cancelar",
         "findMatches": "Actualizar esolutions",
         "apply": "Explorar esolution seleccionado",
-        "loadAsCandidateSolution": "Explorar como esolution de comparación"
+        "loadAsCandidateSolution": "Explorar como esolution de comparación",
+        "useAsSolutionB": "Usar solución seleccionada como Solución B"
       },
       "empty": {
         "title": "Defina filtros para ver un esolution",
@@ -820,9 +825,6 @@
         "solutionJaguarCorridor": "Mayor énfasis en continuidad de corredores de especies cerca de áreas protegidas.",
         "solutionAndesWater": "Balancea protección de ecosistemas estratégicos y metas de regulación hídrica en cuencas altas.",
         "solutionCarbonShield": "Prioriza densidad de carbono mientras excluye presión minera y bordes urbanos."
-      },
-      "toast": {
-        "solutionLoaded": "Esolution cargado"
       }
     }
   },

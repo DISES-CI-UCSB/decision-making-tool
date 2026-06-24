@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewContainerRef, inject } from '@angular/core';
+import { Component, OnInit, ViewContainerRef, inject } from '@angular/core';
 import type { LayerLocale, Solution, CatalogSolution } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService } from '@core/services/app-state.service';
@@ -32,7 +32,7 @@ import { TranslatePipe } from '@ngx-translate/core';
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App implements OnInit, OnDestroy {
+export class App implements OnInit {
   /**
    * Exposed for ngx-color-picker `cpUseRootViewContainer`.
    * This lets popup dialogs render from the app root instead of being clipped
@@ -46,12 +46,9 @@ export class App implements OnInit, OnDestroy {
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly debugMarker = 'UCS-39-map-debug-v1';
-  private toastTimer: ReturnType<typeof setTimeout> | null = null;
   protected perspectiveModalOpen = false;
   protected landingWelcomeModalOpen = true;
   protected coordinateToolEnabled = false;
-  protected solutionLoadedToastVisible = false;
-  protected solutionLoadedToastMessage = '';
   protected readonly solutionFinderModalOpen = this.appState.solutionFinderModalOpen$;
   protected readonly solutionFinderContext = this.appState.solutionFinderContext$;
 
@@ -63,10 +60,6 @@ export class App implements OnInit, OnDestroy {
 
   protected get activeLanguage(): string {
     return this.translate.getCurrentLang() || this.translate.getDefaultLang() || 'es';
-  }
-
-  ngOnDestroy(): void {
-    this.clearToastTimer();
   }
 
   protected openSolutionFinderModal(): void {
@@ -116,17 +109,11 @@ export class App implements OnInit, OnDestroy {
       this.applySolution(selectedSolution, match.solutionId);
     }
 
-    this.showSolutionLoadedToast();
     this.closeSolutionFinderModal();
   }
 
   protected onCoordinateToolEnabledChange(isEnabled: boolean): void {
     this.coordinateToolEnabled = isEnabled;
-  }
-
-  protected dismissSolutionLoadedToast(): void {
-    this.solutionLoadedToastVisible = false;
-    this.clearToastTimer();
   }
 
   private applySolution(solution: Solution, solutionId: string): void {
@@ -178,26 +165,5 @@ export class App implements OnInit, OnDestroy {
         metadataUrl: solution.metadataUrl,
       },
     };
-  }
-
-  private showSolutionLoadedToast(): void {
-    this.solutionLoadedToastMessage = this.translate.instant(
-      'solutionControls.finder.toast.solutionLoaded',
-    );
-    this.solutionLoadedToastVisible = true;
-    this.clearToastTimer();
-    this.toastTimer = setTimeout(() => {
-      this.solutionLoadedToastVisible = false;
-      this.toastTimer = null;
-    }, 3200);
-  }
-
-  private clearToastTimer(): void {
-    if (!this.toastTimer) {
-      return;
-    }
-
-    clearTimeout(this.toastTimer);
-    this.toastTimer = null;
   }
 }

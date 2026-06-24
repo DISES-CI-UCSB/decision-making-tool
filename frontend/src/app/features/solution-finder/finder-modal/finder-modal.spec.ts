@@ -5,15 +5,17 @@ import {
   provideTranslateService,
 } from '@ngx-translate/core';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import { AppStateService } from '@core/services/app-state.service';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import { FinderModalComponent } from './finder-modal';
 
 describe('FinderModalComponent', () => {
-  let catalog: { getAll: ReturnType<typeof vi.fn> };
+  let catalog: { getAll: ReturnType<typeof vi.fn>; getById: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     catalog = {
       getAll: vi.fn(() => []),
+      getById: vi.fn(() => null),
     };
 
     await TestBed.configureTestingModule({
@@ -80,6 +82,9 @@ describe('FinderModalComponent', () => {
     expect(
       fixture.nativeElement.querySelector('#solution-finder-modal-reset-button'),
     ).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain(
+      'solutionControls.finder.actions.clearSelection',
+    );
     expect(
       fixture.nativeElement.querySelector('#solution-finder-modal-cancel-button'),
     ).not.toBeNull();
@@ -100,6 +105,63 @@ describe('FinderModalComponent', () => {
     expect(sourceLink.textContent).toContain(
       'solutionControls.finder.step1.speciesRichnessBioModelosSourceLabel',
     );
+  });
+
+  it('restores remembered finder selections from app state', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.setFinderSelectionMemory({
+      selectedScope: 'nacional',
+      selectedSirapRegion: null,
+      selectedTargetTypeIds: ['ecosystems'],
+      targetLevelByType: { ecosystems: 30 },
+      includeOmecs: true,
+      includeComunidades: false,
+      includeResguardos: true,
+      selectedCostLayerId: 'human-footprint',
+    });
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      includeOmecs: boolean;
+      includeResguardos: boolean;
+      selectedCostLayerId: string | null;
+    };
+
+    expect(fixture.nativeElement.querySelector('#solution-finder-modal-memory-panel')).toBeNull();
+    expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
+    expect(component.targetLevelByType).toEqual({ ecosystems: 30 });
+    expect(component.includeOmecs).toBe(true);
+    expect(component.includeResguardos).toBe(true);
+    expect(component.selectedCostLayerId).toBe('human-footprint');
+  });
+
+  it('clears remembered selections when clear selections is used', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.setFinderSelectionMemory({
+      selectedScope: 'nacional',
+      selectedSirapRegion: null,
+      selectedTargetTypeIds: ['ecosystems'],
+      targetLevelByType: { ecosystems: 30 },
+      includeOmecs: false,
+      includeComunidades: false,
+      includeResguardos: false,
+      selectedCostLayerId: 'human-footprint',
+    });
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      resetSelections: () => void;
+      selectedTargetTypeIds: string[];
+      selectedCostLayerId: string | null;
+    };
+
+    component.resetSelections();
+
+    expect(appState.finderSelectionMemory$()).toBeNull();
+    expect(component.selectedTargetTypeIds).toEqual([]);
+    expect(component.selectedCostLayerId).toBeNull();
   });
 
   it('renders source links for cost and included-area choices', () => {
@@ -249,6 +311,46 @@ describe('FinderModalComponent', () => {
 
     expect(solutionAppliedSpy).toHaveBeenCalledWith(selectedMatch);
     expect(closeRequestedSpy).toHaveBeenCalled();
+  });
+
+  it('blocks applying the baseline solution as the comparison candidate', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.loadSolution({
+      id: 'ecos30_runap_hf',
+      name: 'Ecos30 RUNAP HF',
+      description: 'Baseline solution',
+      matchPercentage: 100,
+      geometryUrl: 'https://example.test/ecos30_runap_hf.tif',
+      metrics: [],
+      metadata: { solutionId: 'ecos30_runap_hf' },
+    });
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      mode: string;
+      selectedMatch: { id: string; solutionId: string };
+      selectedMatchId: string;
+      matchState: string;
+      applySelectedSolution: () => void;
+    };
+    const solutionAppliedSpy = vi.spyOn(fixture.componentInstance.solutionApplied, 'emit');
+    component.mode = 'comparison-candidate';
+    component.selectedMatch = {
+      id: 'solution-ecos30-runap-hf',
+      solutionId: 'ecos30_runap_hf',
+    };
+    component.selectedMatchId = 'solution-ecos30-runap-hf';
+    component.matchState = 'ready';
+    fixture.detectChanges();
+
+    component.applySelectedSolution();
+
+    expect(solutionAppliedSpy).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-comparison-duplicate-warning'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-apply-button')?.disabled,
+    ).toBe(true);
   });
 
   it('matches manifest solutions by finderInputs and emits real solution ids', () => {

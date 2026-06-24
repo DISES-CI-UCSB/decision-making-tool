@@ -1045,14 +1045,24 @@
       id="solution-finder-modal-workflow-footer-content"
       class="flex flex-wrap items-center justify-between gap-3"
     >
-      <button
-        id="solution-finder-modal-reset-button"
-        type="button"
-        class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-        (click)="resetSelections()"
-      >
-        {{ 'solutionControls.finder.actions.reset' | translate }}
-      </button>
+      <div id="solution-finder-modal-footer-selection-status" class="min-w-0 space-y-1">
+        <button
+          id="solution-finder-modal-reset-button"
+          type="button"
+          class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          (click)="resetSelections()"
+        >
+          {{ 'solutionControls.finder.actions.clearSelection' | translate }}
+        </button>
+        @if (isSelectedMatchBaselineSolution()) {
+          <p
+            id="solution-finder-modal-comparison-duplicate-warning"
+            class="max-w-md text-xs font-semibold leading-snug text-amber-700"
+          >
+            {{ 'solutionControls.finder.memory.duplicateSolutionWarning' | translate }}
+          </p>
+        }
+      </div>
 
       <div id="solution-finder-modal-action-buttons" class="flex flex-wrap items-center gap-2">
         <button

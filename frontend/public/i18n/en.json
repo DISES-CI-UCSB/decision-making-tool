@@ -653,6 +653,9 @@
         "title": "Find a comparison solution",
         "description": "Use the same guided workflow to choose a comparison solution for side-by-side comparison."
       },
+      "memory": {
+        "duplicateSolutionWarning": "This match is already loaded as Solution A. Change one option before using it as Solution B."
+      },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
       "scopeBar": {
@@ -795,10 +798,12 @@
       },
       "actions": {
         "reset": "Reset to defaults",
+        "clearSelection": "Clear selections",
         "cancel": "Cancel",
         "findMatches": "Refresh solutions",
         "apply": "Explore selected solution",
-        "loadAsCandidateSolution": "Explore as comparison solution"
+        "loadAsCandidateSolution": "Explore as comparison solution",
+        "useAsSolutionB": "Use selected solution as Solution B"
       },
       "empty": {
         "title": "Set filters to view a solution",
@@ -820,9 +825,6 @@
         "solutionJaguarCorridor": "Higher emphasis on species corridor continuity near protected area buffers.",
         "solutionAndesWater": "Balances strategic ecosystem protection and water regulation targets in upland basins.",
         "solutionCarbonShield": "Prioritizes carbon density while excluding mining pressure and urban edge zones."
-      },
-      "toast": {
-        "solutionLoaded": "Solution loaded"
       }
     }
   },

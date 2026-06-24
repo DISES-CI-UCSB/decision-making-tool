@@ -7,13 +7,17 @@ import {
   HostListener,
   Input,
   OnDestroy,
+  OnInit,
   Output,
   QueryList,
   ViewChildren,
   inject,
 } from '@angular/core';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
-import type { SolutionFinderContext } from '@core/services/app-state.service';
+import type {
+  FinderSelectionMemory,
+  SolutionFinderContext,
+} from '@core/services/app-state.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -78,7 +82,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
   templateUrl: './finder-modal.html',
   styleUrl: './finder-modal.scss',
 })
-export class FinderModalComponent implements AfterViewInit, OnDestroy {
+export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   private readonly appState = inject(AppStateService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
@@ -143,6 +147,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   @Output() readonly solutionApplied = new EventEmitter<SolutionMatch>();
 
   protected readonly showScopeBar = this.appState.showFinderScopeBar$;
+  protected readonly activeSolution = this.appState.activeSolution$;
+  protected readonly finderSelectionMemory = this.appState.finderSelectionMemory$;
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
 
@@ -205,6 +211,10 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   private columnHeaderResizeObserver: ResizeObserver | null = null;
   private columnHeaderSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
+  ngOnInit(): void {
+    this.restoreRememberedSelections();
+  }
+
   ngOnDestroy(): void {
     this.clearLoadingTimer();
     this.clearColumnHeaderSyncTimer();
@@ -235,6 +245,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
 
     this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
   }
 
   protected selectTargetLevel(type: FinderTargetType, pct: 17 | 30): void {
@@ -243,6 +254,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
     this.targetLevelByType[type] = pct;
     this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
   }
 
   protected getTargetLevel(type: FinderTargetType): 17 | 30 | null {
@@ -295,6 +307,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
     this.selectedCostLayerId = id;
     this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
   }
 
   protected toggleIncludeOmecs(): void {
@@ -303,6 +316,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
     this.includeOmecs = !this.includeOmecs;
     this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
   }
 
   protected toggleIncludeComunidades(): void {
@@ -311,6 +325,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
     this.includeComunidades = !this.includeComunidades;
     this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
   }
 
   protected toggleIncludeResguardos(): void {
@@ -319,6 +334,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     }
     this.includeResguardos = !this.includeResguardos;
     this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
   }
 
   protected runMatching(): void {
@@ -346,16 +362,21 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     if (scope === this.selectedScope) return;
     this.selectedScope = scope;
     this.selectedSirapRegion = null;
-    this.resetSelections();
+    this.clearSelections({ remember: true });
   }
 
   protected selectSirapRegion(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.selectedSirapRegion = (value || null) as SirapRegionId | null;
-    this.resetSelections();
+    this.clearSelections({ remember: true });
   }
 
   protected resetSelections(): void {
+    this.clearSelections({ remember: false });
+    this.appState.clearFinderSelectionMemory();
+  }
+
+  private clearSelections(options: { remember: boolean }): void {
     this.selectedTargetTypeIds = [];
     this.targetLevelByType = {};
     this.includeOmecs = false;
@@ -367,6 +388,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
     this.selectedMatch = null;
     this.matchState = 'empty';
     this.clearLoadingTimer();
+    if (options.remember) {
+      this.rememberCurrentSelections();
+    }
   }
 
   protected requestClose(): void {
@@ -376,6 +400,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   protected applySelectedSolution(): void {
     const selectedMatch = this.selectedMatch;
     if (!selectedMatch) {
+      return;
+    }
+    if (this.isSelectedMatchBaselineSolution()) {
       return;
     }
 
@@ -414,7 +441,11 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
   }
 
   protected canApplySolution(): boolean {
-    return this.matchState === 'ready' && this.selectedMatchId !== null;
+    return (
+      this.matchState === 'ready' &&
+      this.selectedMatchId !== null &&
+      !this.isSelectedMatchBaselineSolution()
+    );
   }
 
   protected isStep1Complete(): boolean {
@@ -431,12 +462,83 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy {
 
   protected getApplyActionKey(): string {
     return this.mode === 'comparison-candidate'
-      ? 'solutionControls.finder.actions.loadAsCandidateSolution'
+      ? 'solutionControls.finder.actions.useAsSolutionB'
       : 'solutionControls.finder.actions.apply';
+  }
+
+  protected isSelectedMatchBaselineSolution(): boolean {
+    const selectedMatch = this.selectedMatch;
+    return (
+      this.mode === 'comparison-candidate' &&
+      selectedMatch !== null &&
+      selectedMatch.solutionId === this.getComparisonBaselineSolutionId()
+    );
   }
 
   private clearResultsIfNeeded(): void {
     this.runMatching();
+  }
+
+  private restoreRememberedSelections(): void {
+    const rememberedSelection = this.finderSelectionMemory();
+    if (!rememberedSelection) {
+      return;
+    }
+
+    this.selectedScope = rememberedSelection.selectedScope;
+    this.selectedSirapRegion = rememberedSelection.selectedSirapRegion as SirapRegionId | null;
+    this.selectedTargetTypeIds = rememberedSelection.selectedTargetTypeIds.filter((id) =>
+      this.isFinderTargetType(id),
+    );
+    this.targetLevelByType = this.toTargetLevelsByType(rememberedSelection.targetLevelByType);
+    this.includeOmecs = rememberedSelection.includeOmecs;
+    this.includeComunidades = rememberedSelection.includeComunidades;
+    this.includeResguardos = rememberedSelection.includeResguardos;
+    this.selectedCostLayerId = this.isCostLayerChoice(rememberedSelection.selectedCostLayerId)
+      ? rememberedSelection.selectedCostLayerId
+      : null;
+    this.runMatching();
+  }
+
+  private rememberCurrentSelections(): void {
+    this.appState.setFinderSelectionMemory({
+      selectedScope: this.selectedScope,
+      selectedSirapRegion: this.selectedSirapRegion,
+      selectedTargetTypeIds: [...this.selectedTargetTypeIds],
+      targetLevelByType: { ...this.targetLevelByType } as Record<string, 17 | 30>,
+      includeOmecs: this.includeOmecs,
+      includeComunidades: this.includeComunidades,
+      includeResguardos: this.includeResguardos,
+      selectedCostLayerId: this.selectedCostLayerId,
+    });
+  }
+
+  private isFinderTargetType(value: string): value is FinderTargetType {
+    return this.targetTypeOptions.some((option) => option.id === value);
+  }
+
+  private isCostLayerChoice(value: string | null): value is CostLayerChoice {
+    return value === 'human-footprint' || value === 'carbon-opportunity';
+  }
+
+  private toTargetLevelsByType(
+    levels: FinderSelectionMemory['targetLevelByType'],
+  ): TargetLevelsByType {
+    return Object.entries(levels).reduce<TargetLevelsByType>((acc, [key, value]) => {
+      if (this.isFinderTargetType(key) && (value === 17 || value === 30)) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+  }
+
+  private getComparisonBaselineSolutionId(): string | null {
+    const activeSolution = this.activeSolution();
+    if (!activeSolution) {
+      return null;
+    }
+    const metadataSolutionId = activeSolution.metadata?.['solutionId'];
+    return typeof metadataSolutionId === 'string' ? metadataSolutionId : activeSolution.id;
   }
 
   private solutionMatchesSelection(solution: CatalogSolution): boolean {
