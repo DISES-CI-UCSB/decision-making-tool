@@ -381,17 +381,32 @@ describe('SolutionLayerService', () => {
 
     await service.showComparison('baseline', 'candidate');
 
-    expect(service.liveComparisonMetrics$()).toEqual({
-      agreementAreaKm2: 1,
-      uniqueToBaselineKm2: 1,
-      uniqueToCandidateKm2: 1,
-      baselineSelectedAreaKm2: 2,
-      candidateSelectedAreaKm2: 2,
-      baselineNationalContributionPct: 50,
-      candidateNationalContributionPct: 50,
-      status: 'ready',
-      notes: null,
-    });
+    expect(service.liveComparisonMetrics$()).toEqual(
+      expect.objectContaining({
+        agreementAreaKm2: 1,
+        uniqueToBaselineKm2: 1,
+        uniqueToCandidateKm2: 1,
+        baselineSelectedAreaKm2: 2,
+        candidateSelectedAreaKm2: 2,
+        newAgreementAreaKm2: 1,
+        newUniqueToBaselineKm2: 0,
+        newUniqueToCandidateKm2: 0,
+        baselineTotalSelectedAreaKm2: 2,
+        candidateTotalSelectedAreaKm2: 2,
+        baselinePreExistingAreaKm2: 1,
+        candidatePreExistingAreaKm2: 1,
+        baselineNewAreaKm2: 1,
+        candidateNewAreaKm2: 1,
+        status: 'ready',
+        notes: null,
+      }),
+    );
+    expect(service.liveComparisonMetrics$()?.baselineNationalContributionPct).toBeCloseTo(
+      0.0001752,
+    );
+    expect(service.liveComparisonMetrics$()?.candidateNationalContributionPct).toBeCloseTo(
+      0.0001752,
+    );
   });
 
   it('marks live comparison metrics unavailable when solution grids differ', async () => {

@@ -434,13 +434,13 @@
         "classColors": [
           {
             "value": 1,
-            "color": "#2563eb",
-            "label": "Existing protected areas"
+            "color": "#16a34a",
+            "label": "New coverage"
           },
           {
             "value": 2,
-            "color": "#16a34a",
-            "label": "New coverage"
+            "color": "#2563eb",
+            "label": "Existing protected areas"
           }
         ]
       }

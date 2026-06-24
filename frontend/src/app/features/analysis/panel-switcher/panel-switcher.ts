@@ -579,7 +579,7 @@ export class PanelSwitcherComponent {
       iconClass: 'fas fa-bullseye',
       realMetricId: 'conservation_goals_met',
       dummyValue: '92%',
-      dummyUnitKey: 'analysis.overview.metricUnits.ofTargets',
+      dummyUnitKey: 'analysis.overview.metricUnits.ofFeatures',
     },
     {
       id: 'metric-02-species-groups-protected',
@@ -880,6 +880,34 @@ export class PanelSwitcherComponent {
       dummyBaselineAreaKm2: 210,
       dummyCandidateAreaKm2: 230,
       dummyDeltaAreaKm2: 20,
+      deltaTone: 'positive',
+    },
+    {
+      id: 'comp-pre-existing-area',
+      section: 'general',
+      labelKey: 'analysis.comparison.metrics.preExistingArea',
+      descriptionKey: 'analysis.comparison.metrics.preExistingAreaDesc',
+      metricId: 'pre_existing_selected_area',
+      dummyBaseline: '150 km²',
+      dummyCandidate: '155 km²',
+      dummyDelta: '+5 km²',
+      dummyBaselineAreaKm2: 150,
+      dummyCandidateAreaKm2: 155,
+      dummyDeltaAreaKm2: 5,
+      deltaTone: 'neutral',
+    },
+    {
+      id: 'comp-new-selected-area',
+      section: 'general',
+      labelKey: 'analysis.comparison.metrics.newSelectedArea',
+      descriptionKey: 'analysis.comparison.metrics.newSelectedAreaDesc',
+      metricId: 'new_selected_area',
+      dummyBaseline: '60 km²',
+      dummyCandidate: '75 km²',
+      dummyDelta: '+15 km²',
+      dummyBaselineAreaKm2: 60,
+      dummyCandidateAreaKm2: 75,
+      dummyDeltaAreaKm2: 15,
       deltaTone: 'positive',
     },
     {
@@ -3312,6 +3340,10 @@ export class PanelSwitcherComponent {
     shouldFillDummy: boolean,
   ): ComparisonMetricDisplayEntry {
     const realMetric = blueprint.metricId ? metricsById.get(blueprint.metricId) : undefined;
+    const liveMetricEntry = this.buildLiveRasterComparisonEntry(blueprint);
+    if (liveMetricEntry) {
+      return liveMetricEntry;
+    }
 
     if (realMetric && this.isComparisonMetricReady(realMetric)) {
       return {
@@ -3333,11 +3365,6 @@ export class PanelSwitcherComponent {
               ? 'positive'
               : 'negative',
       };
-    }
-
-    const liveMetricEntry = this.buildLiveRasterComparisonEntry(blueprint);
-    if (liveMetricEntry) {
-      return liveMetricEntry;
     }
 
     if (shouldFillDummy) {
@@ -3461,21 +3488,21 @@ export class PanelSwitcherComponent {
         'agreement-area',
         'analysis.comparison.metrics.agreementArea',
         'analysis.comparison.metrics.agreementAreaDesc',
-        liveMetrics.agreementAreaKm2,
+        liveMetrics.newAgreementAreaKm2,
         'overlap',
       ),
       this.buildSpatialOverlapEntry(
         'unique-solution-a',
         'analysis.comparison.metrics.uniqueSolutionA',
         'analysis.comparison.metrics.uniqueSolutionADesc',
-        liveMetrics.uniqueToBaselineKm2,
+        liveMetrics.newUniqueToBaselineKm2,
         'baseline',
       ),
       this.buildSpatialOverlapEntry(
         'unique-solution-b',
         'analysis.comparison.metrics.uniqueSolutionB',
         'analysis.comparison.metrics.uniqueSolutionBDesc',
-        liveMetrics.uniqueToCandidateKm2,
+        liveMetrics.newUniqueToCandidateKm2,
         'candidate',
       ),
     ];
@@ -3511,8 +3538,28 @@ export class PanelSwitcherComponent {
     if (blueprint.metricId === 'priority_area_in_region') {
       return this.buildLiveRasterDisplayEntry(
         blueprint,
-        liveMetrics.baselineSelectedAreaKm2,
-        liveMetrics.candidateSelectedAreaKm2,
+        liveMetrics.baselineTotalSelectedAreaKm2,
+        liveMetrics.candidateTotalSelectedAreaKm2,
+        (value) => this.formatLiveAreaMetric(value),
+        (value) => this.formatLiveAreaMetric(value, 'full'),
+      );
+    }
+
+    if (blueprint.metricId === 'pre_existing_selected_area') {
+      return this.buildLiveRasterDisplayEntry(
+        blueprint,
+        liveMetrics.baselinePreExistingAreaKm2,
+        liveMetrics.candidatePreExistingAreaKm2,
+        (value) => this.formatLiveAreaMetric(value),
+        (value) => this.formatLiveAreaMetric(value, 'full'),
+      );
+    }
+
+    if (blueprint.metricId === 'new_selected_area') {
+      return this.buildLiveRasterDisplayEntry(
+        blueprint,
+        liveMetrics.baselineNewAreaKm2,
+        liveMetrics.candidateNewAreaKm2,
         (value) => this.formatLiveAreaMetric(value),
         (value) => this.formatLiveAreaMetric(value, 'full'),
       );
