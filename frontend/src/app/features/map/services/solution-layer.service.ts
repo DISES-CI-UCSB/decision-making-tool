@@ -37,6 +37,7 @@ const SOLUTION_ALPHA = 255;
 const NEW_COVERAGE_VALUE = 1;
 const EXISTING_PROTECTED_VALUE = 2;
 const EARTH_RADIUS_KM = 6371.0088;
+const COLOMBIA_REFERENCE_AREA_KM2 = 1_141_748;
 const GRID_ABSOLUTE_TOLERANCE = 1e-7;
 const DEFAULT_RASTER_WKID = 4326;
 const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
@@ -53,6 +54,15 @@ export interface LiveComparisonMetrics {
   uniqueToCandidateKm2: number | null;
   baselineSelectedAreaKm2: number | null;
   candidateSelectedAreaKm2: number | null;
+  newAgreementAreaKm2: number | null;
+  newUniqueToBaselineKm2: number | null;
+  newUniqueToCandidateKm2: number | null;
+  baselineTotalSelectedAreaKm2: number | null;
+  candidateTotalSelectedAreaKm2: number | null;
+  baselinePreExistingAreaKm2: number | null;
+  candidatePreExistingAreaKm2: number | null;
+  baselineNewAreaKm2: number | null;
+  candidateNewAreaKm2: number | null;
   baselineNationalContributionPct: number | null;
   candidateNationalContributionPct: number | null;
   status: 'ready' | 'unavailable';
@@ -869,7 +879,27 @@ export class SolutionLayerService {
     if (typeof noDataValue === 'number' && value === noDataValue) {
       return false;
     }
-    return value > 0;
+    return value === NEW_COVERAGE_VALUE || value === EXISTING_PROTECTED_VALUE;
+  }
+
+  private isNewSolutionCell(value: number, noDataValue: number | null): boolean {
+    if (!Number.isFinite(value)) {
+      return false;
+    }
+    if (typeof noDataValue === 'number' && value === noDataValue) {
+      return false;
+    }
+    return value === NEW_COVERAGE_VALUE;
+  }
+
+  private isPreExistingSolutionCell(value: number, noDataValue: number | null): boolean {
+    if (!Number.isFinite(value)) {
+      return false;
+    }
+    if (typeof noDataValue === 'number' && value === noDataValue) {
+      return false;
+    }
+    return value === EXISTING_PROTECTED_VALUE;
   }
 
   private createImageElementWithRaster(
@@ -1079,6 +1109,15 @@ export class SolutionLayerService {
         uniqueToCandidateKm2: null,
         baselineSelectedAreaKm2: null,
         candidateSelectedAreaKm2: null,
+        newAgreementAreaKm2: null,
+        newUniqueToBaselineKm2: null,
+        newUniqueToCandidateKm2: null,
+        baselineTotalSelectedAreaKm2: null,
+        candidateTotalSelectedAreaKm2: null,
+        baselinePreExistingAreaKm2: null,
+        candidatePreExistingAreaKm2: null,
+        baselineNewAreaKm2: null,
+        candidateNewAreaKm2: null,
         baselineNationalContributionPct: null,
         candidateNationalContributionPct: null,
         status: 'unavailable',
@@ -1097,6 +1136,15 @@ export class SolutionLayerService {
         uniqueToCandidateKm2: null,
         baselineSelectedAreaKm2: null,
         candidateSelectedAreaKm2: null,
+        newAgreementAreaKm2: null,
+        newUniqueToBaselineKm2: null,
+        newUniqueToCandidateKm2: null,
+        baselineTotalSelectedAreaKm2: null,
+        candidateTotalSelectedAreaKm2: null,
+        baselinePreExistingAreaKm2: null,
+        candidatePreExistingAreaKm2: null,
+        baselineNewAreaKm2: null,
+        candidateNewAreaKm2: null,
         baselineNationalContributionPct: null,
         candidateNationalContributionPct: null,
         status: 'unavailable',
@@ -1112,6 +1160,15 @@ export class SolutionLayerService {
         uniqueToCandidateKm2: null,
         baselineSelectedAreaKm2: null,
         candidateSelectedAreaKm2: null,
+        newAgreementAreaKm2: null,
+        newUniqueToBaselineKm2: null,
+        newUniqueToCandidateKm2: null,
+        baselineTotalSelectedAreaKm2: null,
+        candidateTotalSelectedAreaKm2: null,
+        baselinePreExistingAreaKm2: null,
+        candidatePreExistingAreaKm2: null,
+        baselineNewAreaKm2: null,
+        candidateNewAreaKm2: null,
         baselineNationalContributionPct: null,
         candidateNationalContributionPct: null,
         status: 'unavailable',
@@ -1122,27 +1179,43 @@ export class SolutionLayerService {
     let agreementAreaKm2 = 0;
     let uniqueToBaselineKm2 = 0;
     let uniqueToCandidateKm2 = 0;
-    let baselineValidAreaKm2 = 0;
-    let candidateValidAreaKm2 = 0;
+    let newAgreementAreaKm2 = 0;
+    let newUniqueToBaselineKm2 = 0;
+    let newUniqueToCandidateKm2 = 0;
+    let baselinePreExistingAreaKm2 = 0;
+    let candidatePreExistingAreaKm2 = 0;
+    let baselineNewAreaKm2 = 0;
+    let candidateNewAreaKm2 = 0;
     const width = baseline.rasterMeta.width;
 
     for (let index = 0; index < expectedLength; index++) {
       const row = Math.floor(index / width);
       const cellAreaKm2 = pixelAreaByRow[row] ?? 0;
-      if (this.isValidSolutionCell(baseline.rasterData[index], baseline.rasterMeta.noDataValue)) {
-        baselineValidAreaKm2 += cellAreaKm2;
-      }
-      if (this.isValidSolutionCell(candidate.rasterData[index], candidate.rasterMeta.noDataValue)) {
-        candidateValidAreaKm2 += cellAreaKm2;
-      }
+      const baselineValue = baseline.rasterData[index];
+      const candidateValue = candidate.rasterData[index];
       const selectedBaseline = this.isSelectedSolutionCell(
-        baseline.rasterData[index],
+        baselineValue,
         baseline.rasterMeta.noDataValue,
       );
       const selectedCandidate = this.isSelectedSolutionCell(
-        candidate.rasterData[index],
+        candidateValue,
         candidate.rasterMeta.noDataValue,
       );
+      const newBaseline = this.isNewSolutionCell(baselineValue, baseline.rasterMeta.noDataValue);
+      const newCandidate = this.isNewSolutionCell(candidateValue, candidate.rasterMeta.noDataValue);
+
+      if (this.isPreExistingSolutionCell(baselineValue, baseline.rasterMeta.noDataValue)) {
+        baselinePreExistingAreaKm2 += cellAreaKm2;
+      }
+      if (this.isPreExistingSolutionCell(candidateValue, candidate.rasterMeta.noDataValue)) {
+        candidatePreExistingAreaKm2 += cellAreaKm2;
+      }
+      if (newBaseline) {
+        baselineNewAreaKm2 += cellAreaKm2;
+      }
+      if (newCandidate) {
+        candidateNewAreaKm2 += cellAreaKm2;
+      }
 
       if (selectedBaseline && selectedCandidate) {
         agreementAreaKm2 += cellAreaKm2;
@@ -1150,6 +1223,14 @@ export class SolutionLayerService {
         uniqueToBaselineKm2 += cellAreaKm2;
       } else if (selectedCandidate) {
         uniqueToCandidateKm2 += cellAreaKm2;
+      }
+
+      if (newBaseline && newCandidate) {
+        newAgreementAreaKm2 += cellAreaKm2;
+      } else if (newBaseline) {
+        newUniqueToBaselineKm2 += cellAreaKm2;
+      } else if (newCandidate) {
+        newUniqueToCandidateKm2 += cellAreaKm2;
       }
     }
 
@@ -1162,10 +1243,23 @@ export class SolutionLayerService {
       uniqueToCandidateKm2,
       baselineSelectedAreaKm2,
       candidateSelectedAreaKm2,
+      newAgreementAreaKm2,
+      newUniqueToBaselineKm2,
+      newUniqueToCandidateKm2,
+      baselineTotalSelectedAreaKm2: baselineSelectedAreaKm2,
+      candidateTotalSelectedAreaKm2: candidateSelectedAreaKm2,
+      baselinePreExistingAreaKm2,
+      candidatePreExistingAreaKm2,
+      baselineNewAreaKm2,
+      candidateNewAreaKm2,
       baselineNationalContributionPct:
-        baselineValidAreaKm2 > 0 ? (baselineSelectedAreaKm2 / baselineValidAreaKm2) * 100 : null,
+        COLOMBIA_REFERENCE_AREA_KM2 > 0
+          ? (baselineSelectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100
+          : null,
       candidateNationalContributionPct:
-        candidateValidAreaKm2 > 0 ? (candidateSelectedAreaKm2 / candidateValidAreaKm2) * 100 : null,
+        COLOMBIA_REFERENCE_AREA_KM2 > 0
+          ? (candidateSelectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100
+          : null,
       status: 'ready',
       notes: null,
     };
