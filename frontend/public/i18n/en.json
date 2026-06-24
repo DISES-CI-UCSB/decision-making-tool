@@ -248,9 +248,9 @@
         "species": "Species",
         "taxaBreakdown": "Included species groups",
         "fish": "Fish",
-        "notApplicable": "N/A",
+        "notApplicable": "Excluded",
         "fishInfoAriaLabel": "Why fish species are not included",
-        "freshwaterClarification": "Freshwater ecosystems are represented by wetlands in this prioritization. Fish species are not included because the available data is too coarse; water regulation services are represented separately in the overview metrics."
+        "freshwaterClarification": "Fish species are excluded because the available freshwater fish data is too coarse for this prioritization. Freshwater ecosystems are partially represented through wetlands, while water regulation services are represented separately in overview metrics #6 and #44."
       },
       "spatial": {
         "priorityArea": "priority area",
@@ -720,8 +720,8 @@
         "ecosystemsOverviewSourceUrl": "https://www.ideam.gov.co/ecosistemas",
         "ecosystemsDataSourceLabel": "MEC map view",
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
-        "speciesRichnessLabel": "Species",
-        "speciesRichnessHelp": "Prioritizes places with many of the 8,751 species represented in Humboldt biomodels.",
+        "speciesRichnessLabel": "Species models",
+        "speciesRichnessHelp": "Prioritizes individual Humboldt BioModelos species layers for mammals, birds, amphibians, reptiles, and plants. Fish species are excluded because the available freshwater fish data is too coarse.",
         "speciesRichnessBioModelosSourceLabel": "Humboldt BioModelos metadata",
         "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
         "strategicEcosystemsLabel": "Strategic ecosystems",
@@ -753,7 +753,7 @@
         "targetLevelAichiSourceUrl": "https://www.cbd.int/sp/targets",
         "targetLevelKunmingSourceLabel": "Kunming-Montreal Target 3",
         "targetLevelKunmingSourceUrl": "https://www.cbd.int/gbf/targets/3",
-        "targetLevelBadgeSpecies": "For species richness",
+        "targetLevelBadgeSpecies": "For species models",
         "targetLevelBadgeStrategic": "Strategic only",
         "strategicLevelFixed": "30% — only level available for strategic ecosystems in the current catalog."
       },
@@ -959,9 +959,11 @@
     "taxonMatchSingular": "taxon match",
     "taxonMatchPlural": "taxon matches",
     "noMatchesLabel": "0 matches",
-    "taxaHeading": "Taxa",
-    "speciesNote": "Species layers include only the 8,751 species with Humboldt biomodels. Search within a taxon group to find available individual species rasters.",
-    "solutionNote": "Distributions shown are only the 8,751 species with Humboldt biomodels included in this solution's calculation. Drill down to individual species when the solution includes species-level rasters.",
+    "taxaHeading": "Included taxa",
+    "speciesNote": "Species layers include Humboldt BioModelos for mammals, birds, amphibians, reptiles, and plants. Fish species are shown as excluded because the available freshwater fish data is too coarse for prioritization.",
+    "solutionNote": "Distributions shown are the non-fish Humboldt BioModelos species included in this solution's calculation. Drill down to individual species when the solution includes species-level rasters.",
+    "fishExcludedBadge": "Excluded",
+    "fishExcludedNote": "Freshwater fish data too coarse",
     "individualSpecies": "Individual species",
     "speciesRichness": "Species richness",
     "categoryLabel": "Category {{value}}"

@@ -248,9 +248,9 @@
         "species": "Especies",
         "taxaBreakdown": "Grupos de especies incluidos",
         "fish": "Peces",
-        "notApplicable": "N/A",
+        "notApplicable": "Excluido",
         "fishInfoAriaLabel": "Por qué no se incluyen las especies de peces",
-        "freshwaterClarification": "Los ecosistemas de agua dulce se representan mediante humedales en esta priorización. Las especies de peces no se incluyen porque los datos disponibles son demasiado generales; los servicios de regulación hídrica se representan por separado en las métricas del resumen."
+        "freshwaterClarification": "Las especies de peces se excluyen porque los datos disponibles de peces de agua dulce son demasiado generales para esta priorización. Los ecosistemas de agua dulce se representan parcialmente mediante humedales, mientras que los servicios de regulación hídrica se representan por separado en las métricas #6 y #44 del resumen."
       },
       "spatial": {
         "priorityArea": "área",
@@ -720,8 +720,8 @@
         "ecosystemsOverviewSourceUrl": "https://www.ideam.gov.co/ecosistemas",
         "ecosystemsDataSourceLabel": "Vista del mapa MEC",
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
-        "speciesRichnessLabel": "Especies",
-        "speciesRichnessHelp": "Prioriza lugares con muchas de las 8.751 especies representadas en biomodelos del Instituto Humboldt.",
+        "speciesRichnessLabel": "Modelos de especies",
+        "speciesRichnessHelp": "Prioriza capas individuales de especies de Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas. Los peces se excluyen porque los datos disponibles de peces de agua dulce son demasiado generales.",
         "speciesRichnessBioModelosSourceLabel": "Metadatos Humboldt BioModelos",
         "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
         "strategicEcosystemsLabel": "Ecosistemas estratégicos",
@@ -753,7 +753,7 @@
         "targetLevelAichiSourceUrl": "https://www.cbd.int/sp/targets",
         "targetLevelKunmingSourceLabel": "Meta 3 de Kunming-Montreal",
         "targetLevelKunmingSourceUrl": "https://www.cbd.int/gbf/targets/3",
-        "targetLevelBadgeSpecies": "Para riqueza de especies",
+        "targetLevelBadgeSpecies": "Para modelos de especies",
         "targetLevelBadgeStrategic": "Solo estratégico",
         "strategicLevelFixed": "30% — único nivel disponible para ecosistemas estratégicos en el catálogo actual."
       },
@@ -959,9 +959,11 @@
     "taxonMatchSingular": "taxón coincidente",
     "taxonMatchPlural": "taxones coincidentes",
     "noMatchesLabel": "0 coincidencias",
-    "taxaHeading": "Taxones",
-    "speciesNote": "Las capas de especies incluyen solo las 8.751 especies con biomodelos del Instituto Humboldt. Busca dentro de un grupo taxonómico para encontrar rásteres disponibles de especies individuales.",
-    "solutionNote": "Las distribuciones mostradas son solo las 8.751 especies con biomodelos del Instituto Humboldt incluidas en el cálculo de este esolution. Explora hasta las especies individuales cuando la solución incluya rásteres a nivel de especie.",
+    "taxaHeading": "Taxones incluidos",
+    "speciesNote": "Las capas de especies incluyen Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas. Los peces se muestran como excluidos porque los datos disponibles de peces de agua dulce son demasiado generales para la priorización.",
+    "solutionNote": "Las distribuciones mostradas son las especies no peces de Humboldt BioModelos incluidas en el cálculo de este esolution. Explora hasta las especies individuales cuando la solución incluya rásteres a nivel de especie.",
+    "fishExcludedBadge": "Excluido",
+    "fishExcludedNote": "Datos de peces de agua dulce demasiado generales",
     "individualSpecies": "Especies individuales",
     "speciesRichness": "Riqueza de especies",
     "categoryLabel": "Categoría {{value}}"
