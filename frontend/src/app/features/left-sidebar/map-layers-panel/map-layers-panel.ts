@@ -282,6 +282,8 @@ const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
   ['taxon-plants', 4],
   ['taxon-fish', 5],
 ]);
+const EXCLUDED_SPECIES_TAXON_IDS = new Set(['taxon-fish']);
+const FISH_TAXON_ROW_ID = 'taxon-fish';
 const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: RUNAP_OVERLAY_LAYER_ID,
   runap_national_parks: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
@@ -534,6 +536,12 @@ const SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS: SpeciesRichnessTaxonLayerDefinit
     },
   },
 ];
+const SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID = new Map(
+  SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS.map((definition) => [
+    `taxon-${definition.taxonId}`,
+    definition.rowId,
+  ]),
+);
 const HUMAN_FOOTPRINT_RENDER_RANGE = {
   minValue: 0,
   maxValue: 100,
@@ -1012,6 +1020,29 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected isScenarioReferenceLayer(row: LayerControlRow): boolean {
     return this.scenarioLayerStatus(row) === 'reference';
+  }
+
+  protected scenarioLayerStatusLabel(status: ScenarioLayerStatus): string {
+    return this.localizedText(
+      status === 'considered'
+        ? 'mapLayersPanel.consideredInRun'
+        : 'mapLayersPanel.notConsideredInRun',
+    );
+  }
+
+  protected taxonScenarioLayerStatus(taxon: TaxonRow): ScenarioLayerStatus | null {
+    const richnessLayerId = SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID.get(taxon.id);
+    if (richnessLayerId) {
+      return this.scenarioLayerStatus({ ...taxon, id: richnessLayerId });
+    }
+
+    if (!this.hasScenarioLayerStatus()) {
+      return null;
+    }
+
+    return taxon.species.some((species) => this.scenarioLayerStatus(species) === 'considered')
+      ? 'considered'
+      : 'reference';
   }
 
   private findActiveCatalogSolution(solution: Solution | null) {
@@ -2110,7 +2141,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected toggleTaxonExpanded(rowId: string): void {
     this.taxa.update((rows) =>
-      rows.map((row) => (row.id === rowId ? { ...row, expanded: !row.expanded } : row)),
+      rows.map((row) =>
+        row.id === rowId && !row.disabled ? { ...row, expanded: !row.expanded } : row,
+      ),
     );
   }
 
@@ -2284,6 +2317,27 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected rowHasNestedLayerRows(group: LayerGroup, row: LayerControlRow): boolean {
     return group.rows.some((candidate) => candidate.parentId === row.id);
+  }
+
+  protected isFirstVisibleNestedLayerRow(group: LayerGroup, row: LayerControlRow): boolean {
+    if (!row.parentId) {
+      return false;
+    }
+
+    return this.visibleNestedLayerRowsForParent(group, row.parentId)[0]?.id === row.id;
+  }
+
+  protected isLastVisibleNestedLayerRow(group: LayerGroup, row: LayerControlRow): boolean {
+    if (!row.parentId) {
+      return false;
+    }
+
+    const siblingRows = this.visibleNestedLayerRowsForParent(group, row.parentId);
+    return siblingRows.at(-1)?.id === row.id;
+  }
+
+  private visibleNestedLayerRowsForParent(group: LayerGroup, parentId: string): LayerControlRow[] {
+    return this.visibleGroupRows(group).filter((candidate) => candidate.parentId === parentId);
   }
 
   private groupRowMatchesSearch(group: LayerGroup, row: LayerControlRow, query: string): boolean {
@@ -4460,6 +4514,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           { common: 'Lobster Claw', latin: 'Heliconia rostrata' },
         ]),
       },
+      this.excludedSpeciesTaxonRow(undefined),
     ];
   }
 
@@ -4467,10 +4522,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     const existingTaxaById = new Map(this.taxa().map((taxon) => [taxon.id, taxon]));
     const manifestLayersByTaxonId = this.groupSpeciesManifestLayersByTaxon(manifestLayers);
     const taxa = Array.from(manifestLayersByTaxonId.entries())
+      .filter(([taxonId]) => !EXCLUDED_SPECIES_TAXON_IDS.has(taxonId))
       .map(([taxonId, layers]) =>
         this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
       )
       .sort((left, right) => this.compareSpeciesTaxa(left, right));
+    taxa.push(this.excludedSpeciesTaxonRow(existingTaxaById.get(FISH_TAXON_ROW_ID)));
     const speciesLayerCount = taxa.reduce((total, taxon) => total + taxon.speciesCount, 0);
 
     this.taxa.set(taxa);
@@ -4530,6 +4587,28 @@ export class MapLayersPanelComponent implements OnDestroy {
       searchQuery: existingTaxon?.searchQuery ?? '',
       showAll: existingTaxon?.showAll ?? false,
       species,
+    };
+  }
+
+  private excludedSpeciesTaxonRow(existingTaxon: TaxonRow | undefined): TaxonRow {
+    return {
+      id: FISH_TAXON_ROW_ID,
+      name: this.localizedTextOrFallback('mapLayersPanel.taxaNames.fish', 'Fish'),
+      countLabel: this.localizedTextOrFallback('mapLayersPanel.fishExcludedBadge', 'Excluded'),
+      speciesCount: 0,
+      selected: false,
+      visible: false,
+      expanded: false,
+      opacity: existingTaxon?.opacity ?? DEFAULT_DATA_LAYER_OPACITY,
+      color: existingTaxon?.color ?? '#64748b',
+      canReorder: false,
+      hasStyleControls: false,
+      hasColorControl: false,
+      disabled: true,
+      mapUnavailable: true,
+      searchQuery: '',
+      showAll: false,
+      species: [],
     };
   }
 

@@ -942,10 +942,6 @@
                     <article
                       [id]="'map-layers-boundary-row-' + row.id"
                       class="bg-white"
-                      [class.border-l-4]="scenarioLayerStatus(row)"
-                      [class.border-l-emerald-500]="isScenarioConsideredLayer(row)"
-                      [class.border-l-slate-300]="isScenarioReferenceLayer(row)"
-                      [class.bg-emerald-50]="isScenarioConsideredLayer(row)"
                       [class.border-b]="!isLast"
                       [class.border-slate-100]="!isLast"
                     >
@@ -1019,30 +1015,32 @@
                               </span>
                             }
                           </div>
-                          @if (
-                            showScenarioLayerStatusLabels() && scenarioLayerStatus(row);
-                            as status
-                          ) {
+                          @if (scenarioLayerStatus(row); as status) {
                             <span
                               [id]="'map-layers-boundary-scenario-status-' + row.id"
-                              class="map-layers-scenario-status-chip mt-1 inline-flex max-w-full items-center rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none tracking-[0.04em] whitespace-nowrap"
-                              [class.border-emerald-300]="status === 'considered'"
-                              [class.bg-emerald-100]="status === 'considered'"
-                              [class.text-emerald-800]="status === 'considered'"
-                              [class.border-slate-300]="status === 'reference'"
-                              [class.bg-slate-100]="status === 'reference'"
-                              [class.text-slate-600]="status === 'reference'"
+                              class="map-layers-scenario-status-inline mt-1 inline-flex max-w-full items-center gap-1.5 text-[10px] font-medium leading-none whitespace-nowrap text-slate-600"
+                              [attr.aria-label]="scenarioLayerStatusLabel(status)"
+                              [title]="scenarioLayerStatusLabel(status)"
                             >
                               <span
-                                [id]="'map-layers-boundary-scenario-status-label-' + row.id"
-                                class="map-layers-scenario-status-chip-text"
-                              >
-                                {{
+                                [id]="'map-layers-boundary-scenario-status-dot-' + row.id"
+                                class="map-layers-scenario-status-dot"
+                                [class.map-layers-scenario-status-dot-considered]="
                                   status === 'considered'
-                                    ? ('mapLayersPanel.consideredInRun' | translate)
-                                    : ('mapLayersPanel.notConsideredInRun' | translate)
-                                }}
-                              </span>
+                                "
+                                [class.map-layers-scenario-status-dot-reference]="
+                                  status === 'reference'
+                                "
+                                aria-hidden="true"
+                              ></span>
+                              @if (showScenarioLayerStatusLabels()) {
+                                <span
+                                  [id]="'map-layers-boundary-scenario-status-label-' + row.id"
+                                  class="map-layers-scenario-status-label"
+                                >
+                                  {{ scenarioLayerStatusLabel(status) }}
+                                </span>
+                              }
                             </span>
                           }
                         </div>
@@ -1141,10 +1139,6 @@
                 <article
                   [id]="'map-layers-overlay-row-' + overlay.id"
                   class="bg-white"
-                  [class.border-l-4]="scenarioLayerStatus(overlay)"
-                  [class.border-l-emerald-500]="isScenarioConsideredLayer(overlay)"
-                  [class.border-l-slate-300]="isScenarioReferenceLayer(overlay)"
-                  [class.bg-emerald-50]="isScenarioConsideredLayer(overlay)"
                   [class.border-b]="!isLast"
                   [class.border-slate-100]="!isLast"
                 >
@@ -1163,30 +1157,32 @@
                       >
                         {{ overlay.name }}
                       </span>
-                      @if (
-                        showScenarioLayerStatusLabels() && scenarioLayerStatus(overlay);
-                        as status
-                      ) {
+                      @if (scenarioLayerStatus(overlay); as status) {
                         <span
                           [id]="'map-layers-overlay-scenario-status-' + overlay.id"
-                          class="map-layers-scenario-status-chip mt-1 inline-flex max-w-full items-center rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none tracking-[0.04em] whitespace-nowrap"
-                          [class.border-emerald-300]="status === 'considered'"
-                          [class.bg-emerald-100]="status === 'considered'"
-                          [class.text-emerald-800]="status === 'considered'"
-                          [class.border-slate-300]="status === 'reference'"
-                          [class.bg-slate-100]="status === 'reference'"
-                          [class.text-slate-600]="status === 'reference'"
+                          class="map-layers-scenario-status-inline mt-1 inline-flex max-w-full items-center gap-1.5 text-[10px] font-medium leading-none whitespace-nowrap text-slate-600"
+                          [attr.aria-label]="scenarioLayerStatusLabel(status)"
+                          [title]="scenarioLayerStatusLabel(status)"
                         >
                           <span
-                            [id]="'map-layers-overlay-scenario-status-label-' + overlay.id"
-                            class="map-layers-scenario-status-chip-text"
-                          >
-                            {{
+                            [id]="'map-layers-overlay-scenario-status-dot-' + overlay.id"
+                            class="map-layers-scenario-status-dot"
+                            [class.map-layers-scenario-status-dot-considered]="
                               status === 'considered'
-                                ? ('mapLayersPanel.consideredInRun' | translate)
-                                : ('mapLayersPanel.notConsideredInRun' | translate)
-                            }}
-                          </span>
+                            "
+                            [class.map-layers-scenario-status-dot-reference]="
+                              status === 'reference'
+                            "
+                            aria-hidden="true"
+                          ></span>
+                          @if (showScenarioLayerStatusLabels()) {
+                            <span
+                              [id]="'map-layers-overlay-scenario-status-label-' + overlay.id"
+                              class="map-layers-scenario-status-label"
+                            >
+                              {{ scenarioLayerStatusLabel(status) }}
+                            </span>
+                          }
                         </span>
                       }
                     </div>
@@ -1307,18 +1303,14 @@
                       <article
                         [id]="'map-layers-layer-row-' + group.id + '-' + row.id"
                         class="bg-white"
-                        [class.border-l-4]="scenarioLayerStatus(row)"
-                        [class.border-l-emerald-500]="isScenarioConsideredLayer(row)"
-                        [class.border-l-slate-300]="isScenarioReferenceLayer(row)"
-                        [class.bg-emerald-50]="isScenarioConsideredLayer(row)"
                         [class.map-layers-nested-scenario-row]="
                           row.parentId && scenarioLayerStatus(row)
                         "
-                        [class.map-layers-nested-scenario-row-considered]="
-                          row.parentId && isScenarioConsideredLayer(row)
+                        [class.map-layers-nested-scenario-row-first]="
+                          row.parentId && isFirstVisibleNestedLayerRow(group, row)
                         "
-                        [class.map-layers-nested-scenario-row-reference]="
-                          row.parentId && isScenarioReferenceLayer(row)
+                        [class.map-layers-nested-scenario-row-last]="
+                          row.parentId && isLastVisibleNestedLayerRow(group, row)
                         "
                         [class.map-layers-collapsible]="row.parentId"
                         [class.map-layers-nested-layer-row]="row.parentId"
@@ -1341,6 +1333,9 @@
                           [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
                           class="flex items-center gap-1.5 px-3 py-2.5"
                           [class.pl-6]="row.parentId"
+                          [class.map-layers-nested-scenario-row-header]="
+                            row.parentId && scenarioLayerStatus(row)
+                          "
                           [class.map-layers-collapsible-content]="row.parentId"
                           [class.map-layers-nested-layer-row-content]="row.parentId"
                         >
@@ -1420,37 +1415,44 @@
                                 </span>
                               }
                             </div>
-                            @if (
-                              showScenarioLayerStatusLabels() && scenarioLayerStatus(row);
-                              as status
-                            ) {
+                            @if (scenarioLayerStatus(row); as status) {
                               <span
                                 [id]="
                                   'map-layers-layer-row-scenario-status-' + group.id + '-' + row.id
                                 "
-                                class="map-layers-scenario-status-chip mt-1 inline-flex max-w-full items-center rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none tracking-[0.04em] whitespace-nowrap"
-                                [class.border-emerald-300]="status === 'considered'"
-                                [class.bg-emerald-100]="status === 'considered'"
-                                [class.text-emerald-800]="status === 'considered'"
-                                [class.border-slate-300]="status === 'reference'"
-                                [class.bg-slate-100]="status === 'reference'"
-                                [class.text-slate-600]="status === 'reference'"
+                                class="map-layers-scenario-status-inline mt-1 inline-flex max-w-full items-center gap-1.5 text-[10px] font-medium leading-none whitespace-nowrap text-slate-600"
+                                [attr.aria-label]="scenarioLayerStatusLabel(status)"
+                                [title]="scenarioLayerStatusLabel(status)"
                               >
                                 <span
                                   [id]="
-                                    'map-layers-layer-row-scenario-status-label-' +
+                                    'map-layers-layer-row-scenario-status-dot-' +
                                     group.id +
                                     '-' +
                                     row.id
                                   "
-                                  class="map-layers-scenario-status-chip-text"
-                                >
-                                  {{
+                                  class="map-layers-scenario-status-dot"
+                                  [class.map-layers-scenario-status-dot-considered]="
                                     status === 'considered'
-                                      ? ('mapLayersPanel.consideredInRun' | translate)
-                                      : ('mapLayersPanel.notConsideredInRun' | translate)
-                                  }}
-                                </span>
+                                  "
+                                  [class.map-layers-scenario-status-dot-reference]="
+                                    status === 'reference'
+                                  "
+                                  aria-hidden="true"
+                                ></span>
+                                @if (showScenarioLayerStatusLabels()) {
+                                  <span
+                                    [id]="
+                                      'map-layers-layer-row-scenario-status-label-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
+                                    "
+                                    class="map-layers-scenario-status-label"
+                                  >
+                                    {{ scenarioLayerStatusLabel(status) }}
+                                  </span>
+                                }
                               </span>
                             }
                           </div>
@@ -1519,299 +1521,365 @@
                     }
 
                     @if (shouldShowSpeciesTaxa(group)) {
-                      <div
-                        id="map-layers-species-taxa-heading"
-                        class="border-b border-slate-100 bg-slate-50 px-3 py-1.5 pl-5 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500"
-                      >
-                        {{ 'mapLayersPanel.taxaHeading' | translate }}
-                      </div>
                       @for (taxon of filteredTaxa(); track taxon.id) {
                         <article
                           [id]="'map-layers-taxon-row-' + taxon.id"
                           class="border-b border-slate-100 bg-white last:border-b-0"
+                          [class.bg-slate-50]="taxon.disabled"
                         >
                           <div
                             [id]="'map-layers-taxon-row-header-' + taxon.id"
                             class="flex min-w-0 items-center gap-1.5 px-3 py-2 pl-5"
                           >
-                            <button
-                              [id]="'map-layers-taxon-name-button-' + taxon.id"
-                              type="button"
-                              class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-slate-800"
-                              [title]="taxon.name"
-                              (click)="toggleTaxonExpanded(taxon.id)"
+                            <div
+                              [id]="'map-layers-taxon-title-wrap-' + taxon.id"
+                              class="min-w-0 flex-1"
                             >
-                              {{ taxon.name }}
-                            </button>
+                              <button
+                                [id]="'map-layers-taxon-name-button-' + taxon.id"
+                                type="button"
+                                class="block min-w-0 max-w-full truncate text-left text-[13px] font-semibold text-slate-800"
+                                [class.text-slate-500]="taxon.disabled"
+                                [title]="taxon.name"
+                                [disabled]="taxon.disabled"
+                                (click)="toggleTaxonExpanded(taxon.id)"
+                              >
+                                {{ taxon.name }}
+                              </button>
+                              @if (taxonScenarioLayerStatus(taxon); as status) {
+                                <span
+                                  [id]="'map-layers-taxon-scenario-status-' + taxon.id"
+                                  class="map-layers-scenario-status-inline mt-1 inline-flex max-w-full items-center gap-1.5 text-[10px] font-medium leading-none whitespace-nowrap text-slate-600"
+                                  [attr.aria-label]="scenarioLayerStatusLabel(status)"
+                                  [title]="scenarioLayerStatusLabel(status)"
+                                >
+                                  <span
+                                    [id]="'map-layers-taxon-scenario-status-dot-' + taxon.id"
+                                    class="map-layers-scenario-status-dot"
+                                    [class.map-layers-scenario-status-dot-considered]="
+                                      status === 'considered'
+                                    "
+                                    [class.map-layers-scenario-status-dot-reference]="
+                                      status === 'reference'
+                                    "
+                                    aria-hidden="true"
+                                  ></span>
+                                  @if (showScenarioLayerStatusLabels()) {
+                                    <span
+                                      [id]="'map-layers-taxon-scenario-status-label-' + taxon.id"
+                                      class="map-layers-scenario-status-label"
+                                    >
+                                      {{ scenarioLayerStatusLabel(status) }}
+                                    </span>
+                                  }
+                                </span>
+                              }
+                            </div>
+                            @if (taxon.disabled) {
+                              <span
+                                [id]="'map-layers-taxon-excluded-note-' + taxon.id"
+                                class="min-w-0 flex-1 truncate text-[10px] font-medium text-slate-500"
+                              >
+                                {{ 'mapLayersPanel.fishExcludedNote' | translate }}
+                              </span>
+                            }
                             <span
                               [id]="'map-layers-taxon-count-' + taxon.id"
                               class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
+                              [class.rounded-full]="taxon.disabled"
+                              [class.border]="taxon.disabled"
+                              [class.border-amber-200]="taxon.disabled"
+                              [class.bg-amber-50]="taxon.disabled"
+                              [class.px-1.5]="taxon.disabled"
+                              [class.py-0.5]="taxon.disabled"
+                              [class.text-amber-700]="taxon.disabled"
                             >
                               {{ taxon.countLabel }}
                             </span>
-                            <button
-                              [id]="'map-layers-taxon-expand-button-' + taxon.id"
-                              type="button"
-                              class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
-                              [class.rotate-180]="!taxon.expanded && !hasLayerSearchQuery()"
-                              [attr.aria-expanded]="taxon.expanded || hasLayerSearchQuery()"
-                              [attr.aria-label]="
-                                taxon.expanded || hasLayerSearchQuery()
-                                  ? ('mapLayersPanel.collapseTaxon'
-                                    | translate: { name: taxon.name })
-                                  : ('mapLayersPanel.expandTaxon' | translate: { name: taxon.name })
-                              "
-                              (click)="toggleTaxonExpanded(taxon.id)"
-                            >
-                              <svg
-                                [id]="'map-layers-taxon-expand-icon-' + taxon.id"
-                                class="map-layers-chevron-icon h-3 w-3"
-                                viewBox="0 0 12 12"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
+                            @if (!taxon.disabled) {
+                              <button
+                                [id]="'map-layers-taxon-expand-button-' + taxon.id"
+                                type="button"
+                                class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
+                                [class.rotate-180]="!taxon.expanded && !hasLayerSearchQuery()"
+                                [attr.aria-expanded]="taxon.expanded || hasLayerSearchQuery()"
+                                [attr.aria-label]="
+                                  taxon.expanded || hasLayerSearchQuery()
+                                    ? ('mapLayersPanel.collapseTaxon'
+                                      | translate: { name: taxon.name })
+                                    : ('mapLayersPanel.expandTaxon'
+                                      | translate: { name: taxon.name })
+                                "
+                                (click)="toggleTaxonExpanded(taxon.id)"
                               >
-                                <path d="M3 4.5L6 7.5L9 4.5" />
-                              </svg>
-                            </button>
-                          </div>
-
-                          <div
-                            [id]="'map-layers-taxon-body-' + taxon.id"
-                            class="map-layers-collapsible"
-                            [class.map-layers-collapsible-collapsed]="
-                              !taxon.expanded && !hasLayerSearchQuery()
-                            "
-                            [attr.aria-hidden]="!taxon.expanded && !hasLayerSearchQuery()"
-                          >
-                            <div
-                              [id]="'map-layers-taxon-body-content-' + taxon.id"
-                              class="map-layers-collapsible-content border-t border-slate-100"
-                            >
-                              <div
-                                [id]="'map-layers-taxon-search-wrap-' + taxon.id"
-                                class="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2 pl-9"
-                              >
-                                <span
-                                  [id]="'map-layers-taxon-search-icon-' + taxon.id"
-                                  class="inline-flex h-4 w-4 shrink-0 items-center justify-center text-slate-600"
+                                <svg
+                                  [id]="'map-layers-taxon-expand-icon-' + taxon.id"
+                                  class="map-layers-chevron-icon h-3 w-3"
+                                  viewBox="0 0 12 12"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
                                   aria-hidden="true"
                                 >
-                                  <svg
-                                    [id]="'map-layers-taxon-search-icon-svg-' + taxon.id"
-                                    class="h-4 w-4"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                  >
-                                    <path
-                                      [id]="'map-layers-taxon-search-icon-circle-' + taxon.id"
-                                      d="m21 21-4.34-4.34"
-                                    />
-                                    <circle
-                                      [id]="'map-layers-taxon-search-icon-lens-' + taxon.id"
-                                      cx="11"
-                                      cy="11"
-                                      r="8"
-                                    />
-                                  </svg>
-                                </span>
-                                <input
-                                  [id]="'map-layers-taxon-search-input-' + taxon.id"
-                                  type="text"
-                                  class="min-h-7 flex-1 rounded border border-slate-200 px-2 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                                  [placeholder]="
-                                    'mapLayersPanel.speciesSearchPlaceholder'
-                                      | translate: { taxon: taxon.name.toLowerCase() }
-                                  "
-                                  [value]="taxon.searchQuery"
-                                  (input)="updateTaxonSearch(taxon.id, $any($event.target).value)"
-                                />
-                              </div>
+                                  <path d="M3 4.5L6 7.5L9 4.5" />
+                                </svg>
+                              </button>
+                            }
+                          </div>
 
-                              <div [id]="'map-layers-taxon-species-list-' + taxon.id">
-                                @for (
-                                  species of visibleSpeciesForTaxon(taxon);
-                                  track species.id;
-                                  let isLastSpecies = $last
-                                ) {
-                                  <article
-                                    [id]="'map-layers-species-row-' + species.id"
-                                    class="bg-white"
-                                    [class.border-l-4]="scenarioLayerStatus(species)"
-                                    [class.border-l-emerald-500]="
-                                      isScenarioConsideredLayer(species)
+                          @if (!taxon.disabled) {
+                            <div
+                              [id]="'map-layers-taxon-body-' + taxon.id"
+                              class="map-layers-collapsible"
+                              [class.map-layers-collapsible-collapsed]="
+                                !taxon.expanded && !hasLayerSearchQuery()
+                              "
+                              [attr.aria-hidden]="!taxon.expanded && !hasLayerSearchQuery()"
+                            >
+                              <div
+                                [id]="'map-layers-taxon-body-content-' + taxon.id"
+                                class="map-layers-collapsible-content border-t border-slate-100"
+                              >
+                                <div
+                                  [id]="'map-layers-taxon-search-wrap-' + taxon.id"
+                                  class="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2 pl-9"
+                                >
+                                  <span
+                                    [id]="'map-layers-taxon-search-icon-' + taxon.id"
+                                    class="inline-flex h-4 w-4 shrink-0 items-center justify-center text-slate-600"
+                                    aria-hidden="true"
+                                  >
+                                    <svg
+                                      [id]="'map-layers-taxon-search-icon-svg-' + taxon.id"
+                                      class="h-4 w-4"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      stroke-width="2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    >
+                                      <path
+                                        [id]="'map-layers-taxon-search-icon-circle-' + taxon.id"
+                                        d="m21 21-4.34-4.34"
+                                      />
+                                      <circle
+                                        [id]="'map-layers-taxon-search-icon-lens-' + taxon.id"
+                                        cx="11"
+                                        cy="11"
+                                        r="8"
+                                      />
+                                    </svg>
+                                  </span>
+                                  <input
+                                    [id]="'map-layers-taxon-search-input-' + taxon.id"
+                                    type="text"
+                                    class="min-h-7 flex-1 rounded border border-slate-200 px-2 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                                    [placeholder]="
+                                      'mapLayersPanel.speciesSearchPlaceholder'
+                                        | translate: { taxon: taxon.name.toLowerCase() }
                                     "
-                                    [class.border-l-slate-300]="isScenarioReferenceLayer(species)"
-                                    [class.bg-emerald-50]="isScenarioConsideredLayer(species)"
-                                    [class.border-b]="!isLastSpecies"
-                                    [class.border-slate-100]="!isLastSpecies"
-                                  >
-                                    <div
-                                      [id]="'map-layers-species-row-header-' + species.id"
-                                      class="flex min-w-0 items-center gap-1.5 px-3 py-2 pl-9"
-                                    >
-                                      <button
-                                        [id]="'map-layers-species-name-button-' + species.id"
-                                        type="button"
-                                        class="min-w-0 flex-1 text-left"
-                                        [title]="species.common + ' (' + species.latin + ')'"
-                                        (click)="toggleSpeciesExpanded(taxon.id, species.id)"
-                                      >
-                                        <p
-                                          [id]="'map-layers-species-common-' + species.id"
-                                          class="truncate text-[12px] font-semibold text-slate-800"
-                                        >
-                                          {{ species.common }}
-                                        </p>
-                                        <p
-                                          [id]="'map-layers-species-latin-' + species.id"
-                                          class="truncate text-[10px] italic text-slate-600"
-                                        >
-                                          {{ species.latin }}
-                                        </p>
-                                        @if (
-                                          showScenarioLayerStatusLabels() &&
-                                            scenarioLayerStatus(species);
-                                          as status
-                                        ) {
-                                          <span
-                                            [id]="
-                                              'map-layers-species-scenario-status-' + species.id
-                                            "
-                                            class="map-layers-scenario-status-chip mt-1 inline-flex max-w-full items-center rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none tracking-[0.04em] whitespace-nowrap"
-                                            [class.border-emerald-300]="status === 'considered'"
-                                            [class.bg-emerald-100]="status === 'considered'"
-                                            [class.text-emerald-800]="status === 'considered'"
-                                            [class.border-slate-300]="status === 'reference'"
-                                            [class.bg-slate-100]="status === 'reference'"
-                                            [class.text-slate-600]="status === 'reference'"
-                                          >
-                                            <span
-                                              [id]="
-                                                'map-layers-species-scenario-status-label-' +
-                                                species.id
-                                              "
-                                              class="map-layers-scenario-status-chip-text"
-                                            >
-                                              {{
-                                                status === 'considered'
-                                                  ? ('mapLayersPanel.consideredInRun' | translate)
-                                                  : ('mapLayersPanel.notConsideredInRun'
-                                                    | translate)
-                                              }}
-                                            </span>
-                                          </span>
-                                        }
-                                      </button>
-                                      <button
-                                        [id]="'map-layers-species-selected-button-' + species.id"
-                                        type="button"
-                                        class="inline-flex h-7 min-w-11 shrink-0 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold leading-none transition"
-                                        [class.border-blue-200]="species.selected"
-                                        [class.bg-blue-50]="species.selected"
-                                        [class.text-blue-700]="species.selected"
-                                        [class.border-slate-200]="!species.selected"
-                                        [class.bg-white]="!species.selected"
-                                        [class.text-slate-600]="!species.selected"
-                                        [attr.aria-pressed]="species.selected"
-                                        (click)="toggleSpeciesSelected(taxon.id, species.id)"
-                                      >
-                                        {{
-                                          species.selected
-                                            ? ('mapLayersPanel.addedButton' | translate)
-                                            : ('mapLayersPanel.addButton' | translate)
-                                        }}
-                                      </button>
-                                    </div>
+                                    [value]="taxon.searchQuery"
+                                    (input)="updateTaxonSearch(taxon.id, $any($event.target).value)"
+                                  />
+                                </div>
 
-                                    <div
-                                      [id]="'map-layers-species-controls-' + species.id"
-                                      class="map-layers-collapsible"
-                                      [class.map-layers-collapsible-collapsed]="!species.expanded"
-                                      [attr.aria-hidden]="!species.expanded"
+                                <div [id]="'map-layers-taxon-species-list-' + taxon.id">
+                                  @for (
+                                    species of visibleSpeciesForTaxon(taxon);
+                                    track species.id;
+                                    let isFirstSpecies = $first;
+                                    let isLastSpecies = $last
+                                  ) {
+                                    <article
+                                      [id]="'map-layers-species-row-' + species.id"
+                                      class="bg-white"
+                                      [class.map-layers-nested-scenario-row]="
+                                        !!(
+                                          taxonScenarioLayerStatus(taxon) ||
+                                          scenarioLayerStatus(species)
+                                        )
+                                      "
+                                      [class.map-layers-nested-scenario-row-first]="isFirstSpecies"
+                                      [class.map-layers-nested-scenario-row-last]="isLastSpecies"
+                                      [class.border-b]="!isLastSpecies"
+                                      [class.border-slate-100]="!isLastSpecies"
                                     >
-                                      <div class="map-layers-collapsible-content">
-                                        <div
-                                          [id]="'map-layers-species-controls-content-' + species.id"
-                                          class="flex items-center gap-2 px-3 pb-2.5 pl-9"
+                                      <div
+                                        [id]="'map-layers-species-row-header-' + species.id"
+                                        class="flex min-w-0 items-center gap-1.5 px-3 py-2 pl-9"
+                                        [class.map-layers-nested-scenario-row-header]="
+                                          !!(
+                                            taxonScenarioLayerStatus(taxon) ||
+                                            scenarioLayerStatus(species)
+                                          )
+                                        "
+                                      >
+                                        <button
+                                          [id]="'map-layers-species-name-button-' + species.id"
+                                          type="button"
+                                          class="min-w-0 flex-1 text-left"
+                                          [title]="species.common + ' (' + species.latin + ')'"
+                                          (click)="toggleSpeciesExpanded(taxon.id, species.id)"
                                         >
-                                          <div
-                                            [id]="'map-layers-species-opacity-group-' + species.id"
-                                            class="flex min-w-0 flex-1 items-center gap-1.5"
+                                          <p
+                                            [id]="'map-layers-species-common-' + species.id"
+                                            class="truncate text-[12px] font-semibold text-slate-800"
                                           >
-                                            <label
-                                              [id]="
-                                                'map-layers-species-opacity-label-' + species.id
-                                              "
-                                              [for]="
-                                                'map-layers-species-opacity-slider-' + species.id
-                                              "
-                                              class="shrink-0 text-[10px] text-slate-600"
-                                            >
-                                              {{ 'mapLayersPanel.opacityLabel' | translate }}
-                                            </label>
-                                            <input
-                                              [id]="
-                                                'map-layers-species-opacity-slider-' + species.id
-                                              "
-                                              type="range"
-                                              min="0"
-                                              max="100"
-                                              class="map-layers-opacity-slider w-full"
-                                              [style.--map-layers-slider-progress]="
-                                                species.opacity + '%'
-                                              "
-                                              [value]="species.opacity"
-                                              (input)="
-                                                updateSpeciesOpacity(
-                                                  taxon.id,
-                                                  species.id,
-                                                  $any($event.target).value
-                                                )
-                                              "
-                                            />
+                                            {{ species.common }}
+                                          </p>
+                                          <p
+                                            [id]="'map-layers-species-latin-' + species.id"
+                                            class="truncate text-[10px] italic text-slate-600"
+                                          >
+                                            {{ species.latin }}
+                                          </p>
+                                          @if (scenarioLayerStatus(species); as status) {
                                             <span
                                               [id]="
-                                                'map-layers-species-opacity-value-' + species.id
+                                                'map-layers-species-scenario-status-' + species.id
                                               "
-                                              class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
+                                              class="map-layers-scenario-status-inline mt-1 inline-flex max-w-full items-center gap-1.5 text-[10px] font-medium leading-none whitespace-nowrap text-slate-600"
+                                              [attr.aria-label]="scenarioLayerStatusLabel(status)"
+                                              [title]="scenarioLayerStatusLabel(status)"
                                             >
-                                              {{ species.opacity }}%
+                                              <span
+                                                [id]="
+                                                  'map-layers-species-scenario-status-dot-' +
+                                                  species.id
+                                                "
+                                                class="map-layers-scenario-status-dot"
+                                                [class.map-layers-scenario-status-dot-considered]="
+                                                  status === 'considered'
+                                                "
+                                                [class.map-layers-scenario-status-dot-reference]="
+                                                  status === 'reference'
+                                                "
+                                                aria-hidden="true"
+                                              ></span>
+                                              @if (showScenarioLayerStatusLabels()) {
+                                                <span
+                                                  [id]="
+                                                    'map-layers-species-scenario-status-label-' +
+                                                    species.id
+                                                  "
+                                                  class="map-layers-scenario-status-label"
+                                                >
+                                                  {{ scenarioLayerStatusLabel(status) }}
+                                                </span>
+                                              }
                                             </span>
+                                          }
+                                        </button>
+                                        <button
+                                          [id]="'map-layers-species-selected-button-' + species.id"
+                                          type="button"
+                                          class="inline-flex h-7 min-w-11 shrink-0 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold leading-none transition"
+                                          [class.border-blue-200]="species.selected"
+                                          [class.bg-blue-50]="species.selected"
+                                          [class.text-blue-700]="species.selected"
+                                          [class.border-slate-200]="!species.selected"
+                                          [class.bg-white]="!species.selected"
+                                          [class.text-slate-600]="!species.selected"
+                                          [attr.aria-pressed]="species.selected"
+                                          (click)="toggleSpeciesSelected(taxon.id, species.id)"
+                                        >
+                                          {{
+                                            species.selected
+                                              ? ('mapLayersPanel.addedButton' | translate)
+                                              : ('mapLayersPanel.addButton' | translate)
+                                          }}
+                                        </button>
+                                      </div>
+
+                                      <div
+                                        [id]="'map-layers-species-controls-' + species.id"
+                                        class="map-layers-collapsible"
+                                        [class.map-layers-collapsible-collapsed]="!species.expanded"
+                                        [attr.aria-hidden]="!species.expanded"
+                                      >
+                                        <div class="map-layers-collapsible-content">
+                                          <div
+                                            [id]="
+                                              'map-layers-species-controls-content-' + species.id
+                                            "
+                                            class="flex items-center gap-2 px-3 pb-2.5 pl-9"
+                                          >
+                                            <div
+                                              [id]="
+                                                'map-layers-species-opacity-group-' + species.id
+                                              "
+                                              class="flex min-w-0 flex-1 items-center gap-1.5"
+                                            >
+                                              <label
+                                                [id]="
+                                                  'map-layers-species-opacity-label-' + species.id
+                                                "
+                                                [for]="
+                                                  'map-layers-species-opacity-slider-' + species.id
+                                                "
+                                                class="shrink-0 text-[10px] text-slate-600"
+                                              >
+                                                {{ 'mapLayersPanel.opacityLabel' | translate }}
+                                              </label>
+                                              <input
+                                                [id]="
+                                                  'map-layers-species-opacity-slider-' + species.id
+                                                "
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                class="map-layers-opacity-slider w-full"
+                                                [style.--map-layers-slider-progress]="
+                                                  species.opacity + '%'
+                                                "
+                                                [value]="species.opacity"
+                                                (input)="
+                                                  updateSpeciesOpacity(
+                                                    taxon.id,
+                                                    species.id,
+                                                    $any($event.target).value
+                                                  )
+                                                "
+                                              />
+                                              <span
+                                                [id]="
+                                                  'map-layers-species-opacity-value-' + species.id
+                                                "
+                                                class="w-8 shrink-0 text-right text-[10px] font-semibold text-slate-600"
+                                              >
+                                                {{ species.opacity }}%
+                                              </span>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </article>
+                                    </article>
+                                  }
+                                </div>
+
+                                @if (shouldShowTaxonShowAll(taxon)) {
+                                  <button
+                                    [id]="'map-layers-taxon-show-all-button-' + taxon.id"
+                                    type="button"
+                                    class="w-full border-t border-slate-100 px-3 py-1.5 pl-9 text-left text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-700"
+                                    (click)="showAllTaxonSpecies(taxon.id)"
+                                  >
+                                    {{
+                                      'mapLayersPanel.showAllLabel'
+                                        | translate
+                                          : {
+                                              count: taxon.speciesCount.toLocaleString(),
+                                              name: taxon.name.toLowerCase(),
+                                            }
+                                    }}
+                                  </button>
                                 }
                               </div>
-
-                              @if (shouldShowTaxonShowAll(taxon)) {
-                                <button
-                                  [id]="'map-layers-taxon-show-all-button-' + taxon.id"
-                                  type="button"
-                                  class="w-full border-t border-slate-100 px-3 py-1.5 pl-9 text-left text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-700"
-                                  (click)="showAllTaxonSpecies(taxon.id)"
-                                >
-                                  {{
-                                    'mapLayersPanel.showAllLabel'
-                                      | translate
-                                        : {
-                                            count: taxon.speciesCount.toLocaleString(),
-                                            name: taxon.name.toLowerCase(),
-                                          }
-                                  }}
-                                </button>
-                              }
                             </div>
-                          </div>
+                          }
                         </article>
                       }
                     }
@@ -1828,18 +1896,14 @@
                       <article
                         [id]="'map-layers-layer-row-' + group.id + '-' + row.id"
                         class="bg-white"
-                        [class.border-l-4]="scenarioLayerStatus(row)"
-                        [class.border-l-emerald-500]="isScenarioConsideredLayer(row)"
-                        [class.border-l-slate-300]="isScenarioReferenceLayer(row)"
-                        [class.bg-emerald-50]="isScenarioConsideredLayer(row)"
                         [class.map-layers-nested-scenario-row]="
                           row.parentId && scenarioLayerStatus(row)
                         "
-                        [class.map-layers-nested-scenario-row-considered]="
-                          row.parentId && isScenarioConsideredLayer(row)
+                        [class.map-layers-nested-scenario-row-first]="
+                          row.parentId && isFirstVisibleNestedLayerRow(group, row)
                         "
-                        [class.map-layers-nested-scenario-row-reference]="
-                          row.parentId && isScenarioReferenceLayer(row)
+                        [class.map-layers-nested-scenario-row-last]="
+                          row.parentId && isLastVisibleNestedLayerRow(group, row)
                         "
                         [class.map-layers-collapsible]="row.parentId"
                         [class.map-layers-nested-layer-row]="row.parentId"
@@ -1856,6 +1920,9 @@
                           [id]="'map-layers-layer-row-header-' + group.id + '-' + row.id"
                           class="flex items-center gap-1.5 px-3 py-2.5"
                           [class.pl-6]="row.parentId"
+                          [class.map-layers-nested-scenario-row-header]="
+                            row.parentId && scenarioLayerStatus(row)
+                          "
                           [class.map-layers-collapsible-content]="row.parentId"
                           [class.map-layers-nested-layer-row-content]="row.parentId"
                         >
@@ -1935,37 +2002,44 @@
                                 </span>
                               }
                             </div>
-                            @if (
-                              showScenarioLayerStatusLabels() && scenarioLayerStatus(row);
-                              as status
-                            ) {
+                            @if (scenarioLayerStatus(row); as status) {
                               <span
                                 [id]="
                                   'map-layers-layer-row-scenario-status-' + group.id + '-' + row.id
                                 "
-                                class="map-layers-scenario-status-chip mt-1 inline-flex max-w-full items-center rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none tracking-[0.04em] whitespace-nowrap"
-                                [class.border-emerald-300]="status === 'considered'"
-                                [class.bg-emerald-100]="status === 'considered'"
-                                [class.text-emerald-800]="status === 'considered'"
-                                [class.border-slate-300]="status === 'reference'"
-                                [class.bg-slate-100]="status === 'reference'"
-                                [class.text-slate-600]="status === 'reference'"
+                                class="map-layers-scenario-status-inline mt-1 inline-flex max-w-full items-center gap-1.5 text-[10px] font-medium leading-none whitespace-nowrap text-slate-600"
+                                [attr.aria-label]="scenarioLayerStatusLabel(status)"
+                                [title]="scenarioLayerStatusLabel(status)"
                               >
                                 <span
                                   [id]="
-                                    'map-layers-layer-row-scenario-status-label-' +
+                                    'map-layers-layer-row-scenario-status-dot-' +
                                     group.id +
                                     '-' +
                                     row.id
                                   "
-                                  class="map-layers-scenario-status-chip-text"
-                                >
-                                  {{
+                                  class="map-layers-scenario-status-dot"
+                                  [class.map-layers-scenario-status-dot-considered]="
                                     status === 'considered'
-                                      ? ('mapLayersPanel.consideredInRun' | translate)
-                                      : ('mapLayersPanel.notConsideredInRun' | translate)
-                                  }}
-                                </span>
+                                  "
+                                  [class.map-layers-scenario-status-dot-reference]="
+                                    status === 'reference'
+                                  "
+                                  aria-hidden="true"
+                                ></span>
+                                @if (showScenarioLayerStatusLabels()) {
+                                  <span
+                                    [id]="
+                                      'map-layers-layer-row-scenario-status-label-' +
+                                      group.id +
+                                      '-' +
+                                      row.id
+                                    "
+                                    class="map-layers-scenario-status-label"
+                                  >
+                                    {{ scenarioLayerStatusLabel(status) }}
+                                  </span>
+                                }
                               </span>
                             }
                           </div>
