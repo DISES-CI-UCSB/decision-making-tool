@@ -59,26 +59,6 @@
         @if (activeSolution(); as solution) {
           <section id="solution-overview-panel" class="panel-enter v3-panel">
             <header id="right-sidebar-v3-overview-header" class="v3-panel-header">
-              @if (activeSolutionIdentity(); as identity) {
-                <section
-                  id="right-sidebar-v3-overview-active-solution-banner"
-                  class="v3-active-solution-banner"
-                >
-                  <p
-                    id="right-sidebar-v3-overview-active-solution-banner-label"
-                    class="v3-active-solution-banner-label"
-                  >
-                    {{ 'analysis.overview.solutionIdentity.label' | translate }}
-                  </p>
-                  <h3
-                    id="right-sidebar-overview-solution-name"
-                    class="v3-active-solution-banner-title"
-                    [title]="identity.title"
-                  >
-                    {{ identity.title }}
-                  </h3>
-                </section>
-              }
               <div id="right-sidebar-overview-area-unit-row" class="rs-area-unit-row">
                 <span id="right-sidebar-overview-area-unit-label" class="rs-area-unit-label">
                   {{ 'analysis.areaUnitToggle.label' | translate }}

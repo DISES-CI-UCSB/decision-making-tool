@@ -1,7 +1,6 @@
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
-  buildSolutionIdentitySummary,
   resolveLayerLabel,
   type AOI,
   type AnalysisMetricSectionFixture,
@@ -17,7 +16,6 @@ import {
   type MetricValueFormatHint,
   type Solution,
   type SolutionGoalsDocument,
-  type SolutionIdentitySummary,
   type CatalogSolution,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
@@ -990,11 +988,6 @@ export class PanelSwitcherComponent {
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
-  protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
-    const activeSolution = this.activeSolution();
-    const catalogSolution = this.findActiveCatalogSolution(activeSolution);
-    return buildSolutionIdentitySummary(activeSolution, catalogSolution);
-  });
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiGeometry = this.appState.customAOIGeometry$;
   protected readonly sirapSelectionScope = this.adminBoundaries.sirapSelectionScope$;

@@ -42,22 +42,15 @@
             <div id="map-layers-active-solution-main" class="px-3 pb-2 pt-3">
               <div
                 id="map-layers-active-solution-header"
-                class="flex items-start justify-between gap-3"
+                class="flex items-center justify-between gap-3"
               >
                 <div id="map-layers-active-solution-info" class="min-w-0">
-                  <p
+                  <h3
                     id="map-layers-active-solution-label"
-                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                    class="map-layers-text-box-trim-cap text-base font-extrabold leading-5 text-slate-900"
                   >
                     {{ 'mapLayersPanel.activeSolutionLabel' | translate }}
-                  </p>
-                  <p
-                    id="map-layers-active-solution-name"
-                    class="truncate text-[15px] font-bold leading-5 text-slate-800"
-                    [title]="identity.title"
-                  >
-                    {{ identity.title }}
-                  </p>
+                  </h3>
                 </div>
 
                 <button
@@ -68,13 +61,15 @@
                 >
                   <span
                     id="map-layers-change-solution-button-icon"
-                    class="inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
+                    class="map-layers-change-solution-button-glyph inline-flex h-4 w-4 items-center justify-center text-sm leading-none"
                     aria-hidden="true"
                     >⇄</span
                   >
-                  <span id="map-layers-change-solution-button-label">{{
-                    'mapLayersPanel.changeButton' | translate
-                  }}</span>
+                  <span
+                    id="map-layers-change-solution-button-label"
+                    class="map-layers-change-solution-button-label map-layers-text-box-trim-cap"
+                    >{{ 'mapLayersPanel.changeButton' | translate }}</span
+                  >
                 </button>
               </div>
             </div>
@@ -82,14 +77,19 @@
             <button
               id="map-layers-active-solution-breakdown-button"
               type="button"
-              class="flex w-full items-center justify-between border-t border-slate-100 px-3 py-1.5 text-left text-[11px] font-bold leading-none text-slate-700 transition group-hover:bg-slate-50 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
+              class="flex w-full items-center justify-between gap-2 border-t border-slate-100 px-3 py-1.5 text-left text-[11px] font-bold text-slate-700 transition group-hover:bg-slate-50 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
               [attr.aria-expanded]="activeSolutionBreakdownOpen()"
               aria-controls="map-layers-active-solution-breakdown-flyout"
               (click)="toggleActiveSolutionBreakdown()"
             >
-              <span id="map-layers-active-solution-breakdown-button-label">{{
-                'mapLayersPanel.viewBreakdown' | translate
-              }}</span>
+              <span
+                id="map-layers-active-solution-breakdown-button-copy"
+                class="min-w-0 leading-tight"
+              >
+                <span id="map-layers-active-solution-breakdown-button-label" class="block">
+                  {{ 'mapLayersPanel.viewBreakdown' | translate }}
+                </span>
+              </span>
               <span
                 id="map-layers-active-solution-breakdown-button-chevron"
                 class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
@@ -162,7 +162,7 @@
                   >
                     <p
                       id="map-layers-active-solution-breakdown-targets-label"
-                      class="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700"
+                      class="text-[10px] font-bold uppercase tracking-widest text-emerald-700"
                     >
                       {{ 'analysis.overview.solutionIdentity.step1' | translate }}
                       ({{ identity.targetItems.length }})
@@ -188,7 +188,7 @@
                   >
                     <p
                       id="map-layers-active-solution-breakdown-costs-label"
-                      class="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700"
+                      class="text-[10px] font-bold uppercase tracking-widest text-amber-700"
                     >
                       {{ 'analysis.overview.solutionIdentity.step2' | translate }}
                       ({{ identity.costItems.length }})
@@ -214,7 +214,7 @@
                   >
                     <p
                       id="map-layers-active-solution-breakdown-includes-label"
-                      class="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"
+                      class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
                     >
                       {{ 'analysis.overview.solutionIdentity.step3' | translate }}
                       ({{ identity.includeItems.length }})

@@ -25,7 +25,22 @@
   transform: translateY(-1px);
 }
 
+/* The ⇄ glyph renders high within its line box, leaving trailing space below.
+   Nudge it down so it optically centers against the "Change" label. */
+.map-layers-change-solution-button-glyph {
+  transform: translateY(1.5px);
+}
+
+.map-layers-change-solution-button-label {
+  transform: translateY(-1px);
+}
+
 .map-layers-scenario-status-label {
+  display: inline-block;
+  line-height: 1;
+}
+
+.map-layers-text-box-trim-cap {
   display: inline-block;
   line-height: 1;
 }
@@ -109,6 +124,11 @@
   }
 
   .map-layers-scenario-status-label {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+  }
+
+  .map-layers-text-box-trim-cap {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
   }
