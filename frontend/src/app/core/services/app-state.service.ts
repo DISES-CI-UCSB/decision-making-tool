@@ -17,6 +17,7 @@ export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity
 export type MetricNumberFormatMode = 'compact' | 'full';
 export type AreaDisplayUnit = 'km2' | 'hectares';
 export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
+export type CustomAoiDrawStatus = 'idle' | 'drawing' | 'selected' | 'invalid';
 
 export interface FinderSelectionMemory {
   selectedScope: 'nacional' | 'sirap';
@@ -201,6 +202,10 @@ export class AppStateService {
   readonly userTier$ = signal<UserTier>(UserTier.Public);
   readonly userIsAdmin$ = signal(false);
   readonly mapExtent$ = signal<Extent | null>(null);
+  readonly customAoiDrawRequest$ = signal(0);
+  readonly customAoiDrawCancelRequest$ = signal(0);
+  readonly customAoiDrawClearRequest$ = signal(0);
+  readonly customAoiDrawStatus$ = signal<CustomAoiDrawStatus>('idle');
   readonly selectedLegendLayers$ = signal<MapLegendLayerEntry[]>([]);
   readonly selectSolutionButtonHoverFx$ = signal<SelectSolutionButtonHoverFxMode>(
     readStoredSelectSolutionHoverFx(),
@@ -243,6 +248,7 @@ export class AppStateService {
     this.activeSolutionLabel$.set(null);
     this.selectedAOI$.set(null);
     this.customAOIGeometry$.set(null);
+    this.customAoiDrawStatus$.set('idle');
     this.comparisonSolution$.set(null);
     this.comparisonVisualizationMode$.set('threeColorOverlay');
     this.rightSidebarMode$.set('welcome');
@@ -250,6 +256,7 @@ export class AppStateService {
 
   selectAOI(aoi: AOI): void {
     this.customAOIGeometry$.set(null);
+    this.customAoiDrawStatus$.set('idle');
     this.selectedAOI$.set(aoi);
   }
 
@@ -258,6 +265,7 @@ export class AppStateService {
     options: { id?: string; name?: string; areaKm2?: number } = {},
   ): void {
     this.customAOIGeometry$.set(geometry);
+    this.customAoiDrawStatus$.set('selected');
     this.selectedAOI$.set({
       id: options.id ?? 'custom:drawn-polygon',
       name: options.name ?? 'Custom drawn AOI',
@@ -271,6 +279,23 @@ export class AppStateService {
   clearAOI(): void {
     this.selectedAOI$.set(null);
     this.customAOIGeometry$.set(null);
+    this.customAoiDrawStatus$.set('idle');
+  }
+
+  requestCustomAoiDraw(): void {
+    this.customAoiDrawRequest$.update((requestCount) => requestCount + 1);
+  }
+
+  requestCustomAoiDrawCancel(): void {
+    this.customAoiDrawCancelRequest$.update((requestCount) => requestCount + 1);
+  }
+
+  requestCustomAoiDrawClear(): void {
+    this.customAoiDrawClearRequest$.update((requestCount) => requestCount + 1);
+  }
+
+  setCustomAoiDrawStatus(status: CustomAoiDrawStatus): void {
+    this.customAoiDrawStatus$.set(status);
   }
 
   toggleLayer(layerId: string): void {

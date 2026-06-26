@@ -873,6 +873,62 @@
         </div>
       </section>
 
+      <section
+        id="map-layers-area-focus-section"
+        class="rounded-md border border-sky-100 bg-sky-50 px-3 py-3 shadow-sm shadow-sky-900/5"
+        [attr.aria-label]="'mapLayersPanel.areaFocusTitle' | translate"
+      >
+        <div id="map-layers-area-focus-row" class="flex items-center justify-between gap-3">
+          <div id="map-layers-area-focus-copy" class="min-w-0">
+            <p id="map-layers-area-focus-title" class="text-xs font-bold text-slate-800">
+              {{ 'mapLayersPanel.areaFocusTitle' | translate }}
+            </p>
+            <p id="map-layers-area-focus-description" class="mt-1 text-xs leading-4 text-slate-700">
+              @if (customAoiDrawStatus() === 'drawing') {
+                {{ 'mapLayersPanel.areaFocusDrawingDescription' | translate }}
+              } @else if (selectedAoi()?.type === 'custom') {
+                {{ 'mapLayersPanel.areaFocusSelectedDescription' | translate }}
+              } @else if (customAoiDrawStatus() === 'invalid') {
+                {{ 'mapLayersPanel.areaFocusInvalidDescription' | translate }}
+              } @else {
+                {{ 'mapLayersPanel.areaFocusDescription' | translate }}
+              }
+            </p>
+          </div>
+          @if (customAoiDrawStatus() === 'drawing') {
+            <button
+              id="map-layers-area-focus-cancel-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+              [attr.aria-label]="'mapLayersPanel.areaFocusCancelAriaLabel' | translate"
+              (click)="requestCustomAoiDrawCancel()"
+            >
+              {{ 'mapLayersPanel.areaFocusCancelButton' | translate }}
+            </button>
+          } @else if (selectedAoi()?.type === 'custom') {
+            <button
+              id="map-layers-area-focus-clear-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md border border-sky-200 bg-white px-2.5 text-[11px] font-semibold text-sky-700 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              [attr.aria-label]="'mapLayersPanel.areaFocusClearAriaLabel' | translate"
+              (click)="requestCustomAoiDrawClear()"
+            >
+              {{ 'mapLayersPanel.areaFocusClearButton' | translate }}
+            </button>
+          } @else {
+            <button
+              id="map-layers-area-focus-draw-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-2.5 text-[11px] font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              [attr.aria-label]="'mapLayersPanel.areaFocusDrawAriaLabel' | translate"
+              (click)="requestCustomAoiDraw()"
+            >
+              {{ 'mapLayersPanel.areaFocusDrawButton' | translate }}
+            </button>
+          }
+        </div>
+      </section>
+
       <!-- ─── AVAILABLE LAYERS ─── -->
       <section id="map-layers-overlays-section" class="flex flex-col gap-1.5">
         <div

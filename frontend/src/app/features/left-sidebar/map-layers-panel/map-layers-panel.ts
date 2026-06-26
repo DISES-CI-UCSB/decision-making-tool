@@ -662,6 +662,8 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
   protected readonly activeSolutionLabel = this.appState.activeSolutionLabel$;
+  protected readonly selectedAoi = this.appState.selectedAOI$;
+  protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeSolutionLabelDraft = signal('');
   protected readonly activeSolutionLabelEditorOpen = signal(false);
   protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
@@ -996,6 +998,18 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
+  }
+
+  protected requestCustomAoiDraw(): void {
+    this.appState.requestCustomAoiDraw();
+  }
+
+  protected requestCustomAoiDrawCancel(): void {
+    this.appState.requestCustomAoiDrawCancel();
+  }
+
+  protected requestCustomAoiDrawClear(): void {
+    this.appState.requestCustomAoiDrawClear();
   }
 
   protected openActiveSolutionLabelEditor(): void {

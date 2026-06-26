@@ -277,10 +277,8 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   private readonly debugMarker = 'UCS-40-layer-infra-v1';
   protected mapErrorMessage = '';
   protected isExportInProgress = false;
-  protected readonly isCustomAoiDrawAvailable = signal(false);
   protected readonly isCustomAoiDrawActive = signal(false);
   protected readonly hasCustomAoiDrawing = signal(false);
-  protected readonly customAoiDrawStatusI18nKey = signal<string | null>(null);
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
   protected readonly activeBasemap = this.basemapService.basemap;
@@ -333,6 +331,30 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         void this.syncComparisonMode();
         this.syncOperationalLayerViewTracking();
       });
+    });
+
+    effect(() => {
+      const requestCount = this.appState.customAoiDrawRequest$();
+      if (requestCount === 0) {
+        return;
+      }
+      untracked(() => this.startCustomAoiDraw());
+    });
+
+    effect(() => {
+      const requestCount = this.appState.customAoiDrawCancelRequest$();
+      if (requestCount === 0) {
+        return;
+      }
+      untracked(() => this.cancelCustomAoiDraw());
+    });
+
+    effect(() => {
+      const requestCount = this.appState.customAoiDrawClearRequest$();
+      if (requestCount === 0) {
+        return;
+      }
+      untracked(() => this.clearCustomAoiDrawing());
     });
 
     // Mirror every vector-overlay sidebar state (visibility, opacity, color)
@@ -422,21 +444,21 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.customAoiGraphicsLayer.removeAll();
     this.hasCustomAoiDrawing.set(false);
     this.isCustomAoiDrawActive.set(true);
-    this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawDrawing');
+    this.appState.setCustomAoiDrawStatus('drawing');
     this.customAoiSketchViewModel.create('polygon');
   }
 
   protected cancelCustomAoiDraw(): void {
     this.customAoiSketchViewModel?.cancel();
     this.isCustomAoiDrawActive.set(false);
-    this.customAoiDrawStatusI18nKey.set(null);
+    this.appState.setCustomAoiDrawStatus(this.hasCustomAoiDrawing() ? 'selected' : 'idle');
   }
 
   protected clearCustomAoiDrawing(): void {
     this.cancelCustomAoiDraw();
     this.customAoiGraphicsLayer?.removeAll();
     this.hasCustomAoiDrawing.set(false);
-    this.customAoiDrawStatusI18nKey.set(null);
+    this.appState.setCustomAoiDrawStatus('idle');
 
     if (this.appState.selectedAOI$()?.type === 'custom') {
       this.appState.clearAOI();
@@ -782,7 +804,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.customAoiSketchCreateHandle = this.customAoiSketchViewModel.on('create', (event) =>
       this.handleCustomAoiSketchCreate(event as SketchCreateEvent),
     );
-    this.isCustomAoiDrawAvailable.set(true);
   }
 
   private teardownCustomAoiDrawing(): void {
@@ -792,16 +813,15 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.customAoiSketchViewModel = null;
     this.customAoiGraphicsLayer?.removeAll();
     this.customAoiGraphicsLayer = null;
-    this.isCustomAoiDrawAvailable.set(false);
     this.isCustomAoiDrawActive.set(false);
     this.hasCustomAoiDrawing.set(false);
-    this.customAoiDrawStatusI18nKey.set(null);
+    this.appState.setCustomAoiDrawStatus('idle');
   }
 
   private handleCustomAoiSketchCreate(event: SketchCreateEvent): void {
     if (event.state === 'cancel') {
       this.isCustomAoiDrawActive.set(false);
-      this.customAoiDrawStatusI18nKey.set(null);
+      this.appState.setCustomAoiDrawStatus(this.hasCustomAoiDrawing() ? 'selected' : 'idle');
       return;
     }
 
@@ -812,19 +832,18 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     this.isCustomAoiDrawActive.set(false);
     const polygon = event.graphic?.geometry;
     if (!polygon || polygon.type !== 'polygon') {
-      this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawInvalid');
+      this.appState.setCustomAoiDrawStatus('invalid');
       return;
     }
 
     const customGeometry = polygonToCustomAoiGeometry(polygon as Polygon);
     if (!customGeometry) {
       this.customAoiGraphicsLayer?.removeAll();
-      this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawInvalid');
+      this.appState.setCustomAoiDrawStatus('invalid');
       return;
     }
 
     this.hasCustomAoiDrawing.set(true);
-    this.customAoiDrawStatusI18nKey.set('mapView.customAoiDrawReady');
     this.appState.selectCustomAOI(customGeometry, {
       name: 'Custom drawn AOI',
       areaKm2: this.calculateAreaKm2(polygon as Polygon),

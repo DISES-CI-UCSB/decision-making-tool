@@ -224,6 +224,24 @@ describe('AppStateService', () => {
     expect(service.selectedAOI$()).toEqual(fixedAoi);
   });
 
+  it('tracks custom AOI drawing requests and status for map listeners', () => {
+    expect(service.customAoiDrawRequest$()).toBe(0);
+    expect(service.customAoiDrawCancelRequest$()).toBe(0);
+    expect(service.customAoiDrawClearRequest$()).toBe(0);
+    expect(service.customAoiDrawStatus$()).toBe('idle');
+
+    service.requestCustomAoiDraw();
+    service.requestCustomAoiDraw();
+    service.requestCustomAoiDrawCancel();
+    service.requestCustomAoiDrawClear();
+    service.setCustomAoiDrawStatus('drawing');
+
+    expect(service.customAoiDrawRequest$()).toBe(2);
+    expect(service.customAoiDrawCancelRequest$()).toBe(1);
+    expect(service.customAoiDrawClearRequest$()).toBe(1);
+    expect(service.customAoiDrawStatus$()).toBe('drawing');
+  });
+
   it('toggles layer visibility and updates sidebar mode', () => {
     const layers: LayerConfig[] = [
       {
