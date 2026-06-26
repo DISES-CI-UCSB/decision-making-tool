@@ -1,5 +1,10 @@
+import type { LayerLocale } from '../app/core/models';
+
+const defaultLanguage: LayerLocale = 'en';
+
 export const environment = {
   production: false,
+  defaultLanguage,
   firebase: {
     enabled: true,
     config: {

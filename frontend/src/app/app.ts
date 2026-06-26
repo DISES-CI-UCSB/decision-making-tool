@@ -59,7 +59,11 @@ export class App implements OnInit {
   }
 
   protected get activeLanguage(): string {
-    return this.translate.getCurrentLang() || this.translate.getDefaultLang() || 'es';
+    return (
+      this.translate.getCurrentLang() ||
+      this.translate.getDefaultLang() ||
+      this.appLocaleService.locale()
+    );
   }
 
   protected openSolutionFinderModal(): void {

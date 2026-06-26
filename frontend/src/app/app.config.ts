@@ -7,6 +7,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
+import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -15,7 +16,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([mockApiInterceptor])),
     provideTranslateService({
-      lang: 'es',
+      lang: environment.defaultLanguage,
       fallbackLang: 'en',
       loader: provideTranslateHttpLoader({
         prefix: '/i18n/',
