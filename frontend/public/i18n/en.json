@@ -660,6 +660,14 @@
       "memory": {
         "duplicateSolutionWarning": "This match is already loaded as Solution A. Change one option before using it as Solution B."
       },
+      "savedScenarios": {
+        "title": "Saved custom solutions",
+        "help": "Select one to restore its finder controls.",
+        "searchLabel": "Search saved custom solutions",
+        "searchPlaceholder": "Search saved solutions...",
+        "clearSearch": "Clear saved solution search",
+        "noResults": "No saved custom solutions match this search."
+      },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
       "scopeBar": {
@@ -802,7 +810,7 @@
       },
       "actions": {
         "reset": "Reset to defaults",
-        "clearSelection": "Clear selections",
+        "clearSelection": "Clear All",
         "cancel": "Cancel",
         "findMatches": "Refresh solutions",
         "apply": "Explore selected solution",
@@ -836,6 +844,14 @@
     "title": "Map Layers",
     "selectSolution": "Select solution",
     "activeSolutionLabel": "Active Solution",
+    "addLabel": "Add custom label",
+    "sessionLabelLabel": "Session label",
+    "sessionLabelPlaceholder": "Name this scenario",
+    "sessionLabelHelp": "Only labels this current session. It does not save a reusable solution.",
+    "saveLabel": "Save",
+    "cancelLabel": "Cancel",
+    "editLabel": "Edit label",
+    "removeLabel": "Remove label",
     "changeButton": "Change",
     "viewBreakdown": "View breakdown",
     "solutionBreakdownTitle": "Solution breakdown",

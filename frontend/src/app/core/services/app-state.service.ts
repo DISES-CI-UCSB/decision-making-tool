@@ -29,6 +29,14 @@ export interface FinderSelectionMemory {
   selectedCostLayerId: string | null;
 }
 
+export interface SavedSolutionScenario {
+  id: string;
+  solutionId: string;
+  label: string;
+  solutionName: string;
+  updatedAt: string;
+}
+
 export interface MapLegendLayerCategoryEntry {
   id: string;
   label: string;
@@ -96,6 +104,8 @@ export type SelectSolutionButtonHoverFxMode =
   | 'rainforestReveal';
 
 const SELECT_SOLUTION_HOVER_FX_STORAGE_KEY = 'eco-plan:dev:selectSolutionButtonHoverFx';
+const SAVED_SOLUTION_SCENARIOS_STORAGE_KEY = 'eco-plan:savedSolutionScenarios';
+const MAX_SAVED_SOLUTION_SCENARIOS = 12;
 
 function readStoredSelectSolutionHoverFx(): SelectSolutionButtonHoverFxMode {
   if (typeof localStorage === 'undefined') {
@@ -111,11 +121,52 @@ function readStoredSelectSolutionHoverFx(): SelectSolutionButtonHoverFxMode {
   return 'professional';
 }
 
+function readStoredSavedSolutionScenarios(): SavedSolutionScenario[] {
+  if (typeof localStorage === 'undefined') {
+    return [];
+  }
+
+  const raw = localStorage.getItem(SAVED_SOLUTION_SCENARIOS_STORAGE_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(isSavedSolutionScenario).slice(0, MAX_SAVED_SOLUTION_SCENARIOS);
+  } catch {
+    return [];
+  }
+}
+
+function isSavedSolutionScenario(value: unknown): value is SavedSolutionScenario {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<SavedSolutionScenario>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.solutionId === 'string' &&
+    typeof candidate.label === 'string' &&
+    typeof candidate.solutionName === 'string' &&
+    typeof candidate.updatedAt === 'string'
+  );
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AppStateService {
   readonly activeSolution$ = signal<Solution | null>(null);
+  readonly activeSolutionLabel$ = signal<string | null>(null);
+  readonly savedSolutionScenarios$ = signal<SavedSolutionScenario[]>(
+    readStoredSavedSolutionScenarios(),
+  );
   readonly selectedAOI$ = signal<AOI | null>(null);
   readonly customAOIGeometry$ = signal<CustomPolygonMetricsGeometry | null>(null);
   readonly visibleLayers$ = signal<LayerConfig[]>([]);
@@ -163,13 +214,33 @@ export class AppStateService {
 
   loadSolution(solution: Solution): void {
     this.activeSolution$.set(solution);
+    this.activeSolutionLabel$.set(null);
     if (this.rightSidebarMode$() !== 'comparison') {
       this.rightSidebarMode$.set('overview');
     }
   }
 
+  labelActiveSolution(label: string | null): void {
+    const activeSolution = this.activeSolution$();
+    if (!activeSolution) {
+      return;
+    }
+
+    this.activeSolutionLabel$.set(label);
+    if (label) {
+      this.saveSolutionScenario({
+        solutionId: this.resolveSolutionId(activeSolution),
+        label,
+        solutionName: activeSolution.name,
+      });
+    } else {
+      this.removeSavedSolutionScenario(this.resolveSolutionId(activeSolution));
+    }
+  }
+
   clearSolution(): void {
     this.activeSolution$.set(null);
+    this.activeSolutionLabel$.set(null);
     this.selectedAOI$.set(null);
     this.customAOIGeometry$.set(null);
     this.comparisonSolution$.set(null);
@@ -281,6 +352,63 @@ export class AppStateService {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(SELECT_SOLUTION_HOVER_FX_STORAGE_KEY, mode);
     }
+  }
+
+  applySavedSolutionScenarioLabel(scenario: SavedSolutionScenario): void {
+    this.activeSolutionLabel$.set(scenario.label);
+    this.saveSolutionScenario({
+      solutionId: scenario.solutionId,
+      label: scenario.label,
+      solutionName: scenario.solutionName,
+    });
+  }
+
+  private saveSolutionScenario(input: {
+    solutionId: string;
+    label: string;
+    solutionName: string;
+  }): void {
+    const trimmedLabel = input.label.trim();
+    if (!trimmedLabel) {
+      return;
+    }
+
+    const scenario: SavedSolutionScenario = {
+      id: `saved-scenario-${input.solutionId}`,
+      solutionId: input.solutionId,
+      label: trimmedLabel,
+      solutionName: input.solutionName,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const nextScenarios = [
+      scenario,
+      ...this.savedSolutionScenarios$().filter((item) => item.solutionId !== input.solutionId),
+    ].slice(0, MAX_SAVED_SOLUTION_SCENARIOS);
+
+    this.savedSolutionScenarios$.set(nextScenarios);
+    this.persistSavedSolutionScenarios(nextScenarios);
+  }
+
+  private removeSavedSolutionScenario(solutionId: string): void {
+    const nextScenarios = this.savedSolutionScenarios$().filter(
+      (item) => item.solutionId !== solutionId,
+    );
+    this.savedSolutionScenarios$.set(nextScenarios);
+    this.persistSavedSolutionScenarios(nextScenarios);
+  }
+
+  private persistSavedSolutionScenarios(scenarios: SavedSolutionScenario[]): void {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem(SAVED_SOLUTION_SCENARIOS_STORAGE_KEY, JSON.stringify(scenarios));
+  }
+
+  private resolveSolutionId(solution: Solution): string {
+    const metadataSolutionId = solution.metadata?.['solutionId'];
+    return typeof metadataSolutionId === 'string' ? metadataSolutionId : solution.id;
   }
 
   toggleSelectSolutionButtonHoverFx(): void {

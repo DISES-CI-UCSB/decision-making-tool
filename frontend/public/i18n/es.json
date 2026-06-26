@@ -660,6 +660,14 @@
       "memory": {
         "duplicateSolutionWarning": "Esta coincidencia ya está cargada como Solución A. Cambie una opción antes de usarla como Solución B."
       },
+      "savedScenarios": {
+        "title": "Soluciones personalizadas guardadas",
+        "help": "Selecciona una para restaurar sus controles de búsqueda.",
+        "searchLabel": "Buscar soluciones personalizadas guardadas",
+        "searchPlaceholder": "Buscar soluciones guardadas...",
+        "clearSearch": "Limpiar búsqueda de soluciones guardadas",
+        "noResults": "Ninguna solución personalizada guardada coincide con esta búsqueda."
+      },
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
       "scopeBar": {
@@ -802,7 +810,7 @@
       },
       "actions": {
         "reset": "Restablecer valores",
-        "clearSelection": "Limpiar selecciones",
+        "clearSelection": "Limpiar todo",
         "cancel": "Cancelar",
         "findMatches": "Actualizar esolutions",
         "apply": "Explorar esolution seleccionado",
@@ -836,6 +844,14 @@
     "title": "Capas del mapa",
     "selectSolution": "Seleccionar esolution",
     "activeSolutionLabel": "Esolution activo",
+    "addLabel": "Agregar etiqueta personalizada",
+    "sessionLabelLabel": "Etiqueta de sesión",
+    "sessionLabelPlaceholder": "Nombra este escenario",
+    "sessionLabelHelp": "Solo etiqueta esta sesión actual. No guarda una solución reutilizable.",
+    "saveLabel": "Guardar",
+    "cancelLabel": "Cancelar",
+    "editLabel": "Editar etiqueta",
+    "removeLabel": "Quitar etiqueta",
     "changeButton": "Cambiar",
     "viewBreakdown": "Ver desglose",
     "solutionBreakdownTitle": "Desglose del esolution",
