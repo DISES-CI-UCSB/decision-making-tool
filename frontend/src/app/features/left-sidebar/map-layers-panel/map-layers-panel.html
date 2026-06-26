@@ -894,6 +894,14 @@
                 {{ 'mapLayersPanel.areaFocusDescription' | translate }}
               }
             </p>
+            @if (customAoiDrawStatus() === 'idle' && selectedAoi()?.type !== 'custom') {
+              <p
+                id="map-layers-area-focus-layer-hint"
+                class="mt-1 text-xs leading-4 text-slate-700"
+              >
+                {{ 'mapLayersPanel.areaFocusLayerHint' | translate }}
+              </p>
+            }
           </div>
           @if (customAoiDrawStatus() === 'drawing') {
             <button
