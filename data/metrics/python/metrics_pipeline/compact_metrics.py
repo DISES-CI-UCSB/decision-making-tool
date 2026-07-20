@@ -16,6 +16,11 @@ from pathlib import Path
 from typing import Any
 
 from cli_utils import find_repo_root, resolve_output_dir
+from path_contracts import (
+    solution_artifact_name,
+    solution_blob_path,
+    solution_public_url,
+)
 
 COMPACT_METRICS_FORMAT = "metrics-compact-v1"
 COMPACT_CACHE_SUFFIX = ".metrics.compact.json"
@@ -30,17 +35,16 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _safe_solution_id(solution_id: str) -> str:
-    return solution_id.replace("/", "_").replace(" ", "_")
-
-
 def expected_compact_blob_path(
     solution_id: str,
     *,
     cache_blob_directory: str = DEFAULT_COMPACT_BLOB_DIRECTORY,
 ) -> str:
-    normalized_directory = cache_blob_directory.strip("/")
-    return f"{normalized_directory}/{_safe_solution_id(solution_id)}{COMPACT_CACHE_SUFFIX}"
+    return solution_blob_path(
+        solution_id,
+        blob_directory=cache_blob_directory,
+        suffix=COMPACT_CACHE_SUFFIX,
+    )
 
 
 def expected_compact_public_url(
@@ -49,11 +53,12 @@ def expected_compact_public_url(
     *,
     cache_blob_directory: str = DEFAULT_COMPACT_BLOB_DIRECTORY,
 ) -> str:
-    blob_path = expected_compact_blob_path(
+    return solution_public_url(
+        public_blob_host,
         solution_id,
-        cache_blob_directory=cache_blob_directory,
+        blob_directory=cache_blob_directory,
+        suffix=COMPACT_CACHE_SUFFIX,
     )
-    return f"{public_blob_host.rstrip('/')}/{blob_path}"
 
 
 class _Catalog:
@@ -252,7 +257,10 @@ def convert_publish_report(
         verbose_path = _resolve_path(repo_root, str(entry.get("cachePath")))
         verbose_doc = json.loads(verbose_path.read_text(encoding="utf-8"))
         compact_doc = to_compact_document(verbose_doc)
-        compact_path = output_cache_dir / f"{_safe_solution_id(solution_id)}{COMPACT_CACHE_SUFFIX}"
+        compact_path = output_cache_dir / solution_artifact_name(
+            solution_id,
+            suffix=COMPACT_CACHE_SUFFIX,
+        )
         compact_path.write_text(
             json.dumps(compact_doc, ensure_ascii=False, separators=(",", ":")) + "\n",
             encoding="utf-8",

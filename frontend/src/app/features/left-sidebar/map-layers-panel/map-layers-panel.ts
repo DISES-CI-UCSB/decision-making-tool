@@ -35,12 +35,7 @@ import {
   type SolutionIdentitySummary,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
-import {
-  AppStateService,
-  buildContinuousGradientLegendEntry,
-  isContinuousGradientRendering,
-  type MapLegendLayerEntry,
-} from '@core/services/app-state.service';
+import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import {
@@ -67,6 +62,22 @@ import {
 import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
 import { FEATURE_FLAGS } from '@feature-flags';
+import {
+  buildConsideredLayerIdSet,
+  buildLegendCategories,
+  buildLegendLayerEntry,
+  computeSelectedLayerOrder,
+  nameMatchesSearch,
+  normalizeSelectedLayerOrder,
+  reorderRowsByDropTarget,
+  reorderRowsById,
+  scenarioLayerStatus,
+  speciesMatchesSearch,
+  taxonMatchesSearch,
+  type ScenarioLayerStatus,
+  type SelectedLayerDropPosition,
+  type SupportedLanguage,
+} from './map-layers-panel.utils';
 
 interface LayerControlRow {
   id: string;
@@ -218,11 +229,8 @@ interface ColorPickerComponentWithPrivateSliderDims {
   sliderDimMax?: { h: number; s: number; v: number; a: number } | null;
   updateColorPicker: (emit?: boolean, update?: boolean, cmykInput?: boolean) => void;
 }
-type SelectedLayerDropPosition = 'before' | 'after';
 type SelectedLayerFillStyle = 'solid' | 'hatch' | 'mesh' | 'dots';
 type SelectedLayerBorderStyle = 'none' | 'solid' | 'dashed' | 'dotted';
-type ScenarioLayerStatus = 'considered' | 'reference';
-type SupportedLanguage = 'en' | 'es';
 interface SpeciesRichnessTaxonLayerDefinition {
   rowId: string;
   taxonId: string;
@@ -258,6 +266,13 @@ const SPECIES_RICHNESS_LAYER_IDS = new Set([
 ]);
 const SPECIES_TAXONOMY_CSV_URL =
   'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv';
+
+export function resolveSpeciesTaxonomyLookupUrl(
+  manifest: RuntimeLayerManifest | null | undefined,
+): string {
+  return manifest?.referenceData?.speciesLookup?.url?.trim() || SPECIES_TAXONOMY_CSV_URL;
+}
+
 const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
   'group-ecosystems': 'ecosystems',
   'group-socio-economic': 'socioeconomic',
@@ -1155,15 +1170,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected scenarioLayerStatus(row: LayerControlRow): ScenarioLayerStatus | null {
-    if (!this.hasScenarioLayerStatus()) {
-      return null;
-    }
-
-    return this.rowConsideredLayerAliases(row).some((id) =>
-      this.activeSolutionConsideredLayerIds().has(id),
-    )
-      ? 'considered'
-      : 'reference';
+    return scenarioLayerStatus(
+      row.id,
+      MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID[row.id],
+      this.activeSolutionConsideredLayerIds(),
+      this.hasScenarioLayerStatus(),
+    );
   }
 
   protected isScenarioConsideredLayer(row: LayerControlRow): boolean {
@@ -1211,35 +1223,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private buildConsideredLayerIdSet(ids: (string | null | undefined)[]): Set<string> {
-    const consideredIds = new Set<string>();
-    for (const id of ids) {
-      for (const alias of this.normalizeLayerIdAliases(id)) {
-        consideredIds.add(alias);
-      }
-    }
-    return consideredIds;
-  }
-
-  private rowConsideredLayerAliases(row: LayerControlRow): string[] {
-    const overlayLayerId = MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID[row.id];
-    return [
-      ...this.normalizeLayerIdAliases(row.id),
-      ...this.normalizeLayerIdAliases(overlayLayerId),
-    ];
-  }
-
-  private normalizeLayerIdAliases(id: string | null | undefined): string[] {
-    if (!id) {
-      return [];
-    }
-
-    const trimmed = id.trim().toLowerCase();
-    const normalized = trimmed
-      .replace(/^layer-/, '')
-      .replace(/^overlay-/, '')
-      .replace(/-/g, '_');
-
-    return normalized && normalized !== trimmed ? [normalized, trimmed] : [trimmed].filter(Boolean);
+    return buildConsideredLayerIdSet(ids);
   }
 
   private resolveActiveLanguage(): SupportedLanguage {
@@ -1376,7 +1360,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private loadSpeciesTaxonomyLookup() {
-    return this.http.get(SPECIES_TAXONOMY_CSV_URL, { responseType: 'text' }).pipe(
+    const lookupUrl = resolveSpeciesTaxonomyLookupUrl(this.rawManifest());
+    return this.http.get(lookupUrl, { responseType: 'text' }).pipe(
       map((csvText) => this.parseSpeciesTaxonomyLookup(csvText)),
       catchError(() => of(new Map<string, { taxonId: string; taxonLabel: string }>())),
     );
@@ -4117,20 +4102,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private reorderRowsById(rows: string[], rowId: string, direction: 'up' | 'down'): string[] {
-    const index = rows.findIndex((id) => id === rowId);
-    if (index < 0) {
-      return rows;
-    }
-
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= rows.length) {
-      return rows;
-    }
-
-    const nextRows = [...rows];
-    const [row] = nextRows.splice(index, 1);
-    nextRows.splice(targetIndex, 0, row);
-    return nextRows;
+    return reorderRowsById(rows, rowId, direction);
   }
 
   private reorderRowsByDropTarget(
@@ -4139,21 +4111,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     targetRowId: string,
     dropPosition: SelectedLayerDropPosition,
   ): string[] {
-    const fromIndex = rows.findIndex((id) => id === draggedRowId);
-    const targetIndex = rows.findIndex((id) => id === targetRowId);
-    if (fromIndex < 0 || targetIndex < 0 || fromIndex === targetIndex) {
-      return rows;
-    }
-
-    const nextRows = [...rows];
-    const [movedRowId] = nextRows.splice(fromIndex, 1);
-    const nextTargetIndex = nextRows.findIndex((id) => id === targetRowId);
-    if (nextTargetIndex < 0) {
-      return rows;
-    }
-    const insertionIndex = dropPosition === 'before' ? nextTargetIndex : nextTargetIndex + 1;
-    nextRows.splice(insertionIndex, 0, movedRowId);
-    return nextRows;
+    return reorderRowsByDropTarget(rows, draggedRowId, targetRowId, dropPosition);
   }
 
   private clearSelectedLayerDragState(): void {
@@ -4295,20 +4253,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private normalizeSelectedLayerOrder(order: string[]): string[] {
-    if (!this.shouldPrioritizeComparisonLayers()) {
-      return order;
-    }
-
-    const priorityRowIds: string[] = COMPARISON_PRIORITY_OVERLAY_IDS.filter((id) =>
-      order.includes(id),
+    return normalizeSelectedLayerOrder(
+      order,
+      COMPARISON_PRIORITY_OVERLAY_IDS,
+      this.shouldPrioritizeComparisonLayers(),
     );
-    if (priorityRowIds.length === 0) {
-      return order;
-    }
-
-    const priorityRowIdSet = new Set(priorityRowIds);
-    const nonPriorityRows = order.filter((id) => !priorityRowIdSet.has(id));
-    return [...priorityRowIds, ...nonPriorityRows];
   }
 
   private areOrdersEqual(left: string[], right: string[]): boolean {
@@ -4330,22 +4279,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     groups: LayerGroup[],
     taxa: TaxonRow[],
   ): string[] {
-    const selectedOverlayIds = overlays.filter((row) => row.selected).map((row) => row.id);
-    const selectedGroupRowIds = groups
-      .flatMap((group) => group.rows)
-      .filter((row) => row.selected)
-      .map((row) => row.id);
-    const selectedTaxonIds = taxa.filter((taxon) => taxon.selected).map((taxon) => taxon.id);
-    const selectedSpeciesIds = taxa
-      .flatMap((taxon) => taxon.species)
-      .filter((species) => species.selected)
-      .map((species) => species.id);
-    return [
-      ...selectedOverlayIds,
-      ...selectedGroupRowIds,
-      ...selectedTaxonIds,
-      ...selectedSpeciesIds,
-    ];
+    return computeSelectedLayerOrder(overlays, groups, taxa);
   }
 
   private buildSelectedLayers(): SelectedLayerRow[] {
@@ -4508,79 +4442,26 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private toMasterLegendLayerEntry(row: LayerControlRow): MapLegendLayerEntry {
-    if (row.mapSync?.type === 'admin-boundary') {
-      const style = LEGEND_BOUNDARY_STYLES[row.mapSync.boundaryLayerKey];
-      return {
-        id: row.id,
-        name: row.name,
-        swatchType: 'line',
-        color: row.borderColor ?? row.color ?? style.color,
-        lineStyle: row.borderStyle === 'solid' ? 'solid' : 'dashed',
-        lineWidth: row.borderStyle === 'none' ? 0 : (row.borderWidth ?? style.lineWidth),
-      };
-    }
+    const rendering = row.mapSync?.type === 'manifest-raster' ? row.mapSync.rendering : undefined;
+    const categoryCount = rendering
+      ? buildLegendCategories(row.id, rendering, this.activeLanguage()).length
+      : 0;
 
-    if (this.isContinuousGradientRaster(row)) {
-      return buildContinuousGradientLegendEntry({
-        id: row.id,
-        name: row.name,
-        color: row.color,
-        rendering: row.mapSync.rendering,
-      });
-    }
-
-    if (
-      row.mapSync?.type === 'manifest-raster' &&
-      row.mapSync.rendering.renderMode === 'categorical' &&
-      Array.isArray(row.mapSync.rendering.classColors) &&
-      row.mapSync.rendering.classColors.length > 0
-    ) {
-      const categories = this.groupLegendCategories(row);
-      const denseCategorySummary = this.denseLegendSummaryForRow(row, categories.length);
-      return {
-        id: row.id,
-        name: row.name,
-        swatchType: 'fill',
-        color: categories[0]?.color ?? row.color ?? '#64748b',
-        lineStyle: 'solid',
-        lineWidth: 1,
-        categories: denseCategorySummary ? undefined : categories,
-        denseCategorySummary,
-      };
-    }
-
-    return {
+    return buildLegendLayerEntry({
       id: row.id,
       name: row.name,
-      swatchType: 'fill',
-      color: row.color || '#64748b',
-      lineStyle: 'solid',
-      lineWidth: 1,
-    };
-  }
-
-  private groupLegendCategories(
-    row: LayerControlRow,
-  ): NonNullable<MapLegendLayerEntry['categories']> {
-    if (row.mapSync?.type !== 'manifest-raster') {
-      return [];
-    }
-
-    const categoryByLabel = new Map<string, { id: string; label: string; color: string }>();
-    for (const entry of row.mapSync.rendering.classColors ?? []) {
-      const localizedLabel =
-        this.activeLanguage() === 'es' ? entry.spanishLabel : entry.englishLabel;
-      const label = localizedLabel?.trim() || entry.label?.trim() || `Category ${entry.value}`;
-      if (categoryByLabel.has(label)) {
-        continue;
-      }
-      categoryByLabel.set(label, {
-        id: `${row.id}-class-${this.toSlug(label)}`,
-        label,
-        color: entry.color,
-      });
-    }
-    return [...categoryByLabel.values()];
+      color: row.color,
+      borderColor: row.borderColor,
+      borderStyle: row.borderStyle,
+      borderWidth: row.borderWidth,
+      boundaryStyle:
+        row.mapSync?.type === 'admin-boundary'
+          ? LEGEND_BOUNDARY_STYLES[row.mapSync.boundaryLayerKey]
+          : undefined,
+      rendering,
+      language: this.activeLanguage(),
+      denseCategorySummary: this.denseLegendSummaryForRow(row, categoryCount),
+    });
   }
 
   private denseLegendSummaryForRow(
@@ -4599,20 +4480,6 @@ export class MapLayersPanelComponent implements OnDestroy {
       messageKey: 'mapLegend.iavhDenseCategories',
       sampleColors: [...IAVH_BIOME_REGION_SAMPLE_COLORS],
     };
-  }
-
-  private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
-    mapSync: {
-      type: 'manifest-raster';
-      layerId: string;
-      displayUrl: string;
-      rendering: RuntimeLayerManifestRenderingConfig;
-    };
-  } {
-    return (
-      row.mapSync?.type === 'manifest-raster' &&
-      isContinuousGradientRendering(row.mapSync.rendering)
-    );
   }
 
   private isSolutionLayerRow(row: LayerControlRow): boolean {
@@ -5750,18 +5617,14 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private nameMatchesSearch(name: string, normalizedQuery: string): boolean {
-    return name.toLowerCase().includes(normalizedQuery);
+    return nameMatchesSearch(name, normalizedQuery);
   }
 
   private speciesMatchesSearch(species: SpeciesRow, normalizedQuery: string): boolean {
-    const combinedName = `${species.common} ${species.latin}`.toLowerCase();
-    return combinedName.includes(normalizedQuery);
+    return speciesMatchesSearch(species, normalizedQuery);
   }
 
   private taxonMatchesSearch(taxon: TaxonRow, normalizedQuery: string): boolean {
-    return (
-      this.nameMatchesSearch(taxon.name, normalizedQuery) ||
-      taxon.species.some((species) => this.speciesMatchesSearch(species, normalizedQuery))
-    );
+    return taxonMatchesSearch(taxon, normalizedQuery);
   }
 }

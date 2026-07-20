@@ -27,12 +27,9 @@ describe('cached-metrics.utils', () => {
       'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/cache/ecos17_estr30_runap_hf.metrics.json',
     );
     expect(
-      buildGoalsUrl(
-        'https://aagibolq28slyfof.public.blob.vercel-storage.com/',
-        'ecos17_estr30_runap_hf',
-      ),
+      buildGoalsUrl('https://aagibolq28slyfof.public.blob.vercel-storage.com/', 'nick runs/ecos17'),
     ).toBe(
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/goals/ecos17_estr30_runap_hf.goals.json',
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/goals/nick_runs_ecos17.goals.json',
     );
   });
 

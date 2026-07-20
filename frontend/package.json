@@ -21,7 +21,7 @@
     "generate:layer-manifest": "node ./layer-manifest/generate-manifest.mjs && node ./layer-manifest/sync-latest-manifest.mjs",
     "sync:latest-layer-manifest": "node ./layer-manifest/sync-latest-manifest.mjs",
     "validate:layer-manifest": "node ./layer-manifest/validate-manifest.mjs",
-    "test:layer-manifest": "node --test ./layer-manifest/*.spec.mjs",
+    "test:layer-manifest": "node --test ./layer-manifest/*.spec.mjs ./layer-manifest/lib/*.spec.mjs",
     "publish:layer-manifest": "node ./layer-manifest/publish-manifest.mjs",
     "publish:styled-manifest": "node ./layer-manifest/publish-styled-manifest.mjs --publish",
     "rollback:layer-manifest": "node ./layer-manifest/rollback-manifest.mjs",

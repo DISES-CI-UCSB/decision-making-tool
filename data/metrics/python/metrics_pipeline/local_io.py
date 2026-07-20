@@ -17,6 +17,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from path_contracts import (
+    solution_artifact_name,
+    solution_artifact_path,
+    solution_blob_path,
+    solution_public_url,
+)
+
 DEFAULT_CACHE_DIR = Path("data/metrics/cache/tier1")
 DEFAULT_OUTPUT_DIR = Path("data/metrics/generated/tier1")
 # Legacy sidecar (national-only flat format kept for backwards compatibility).
@@ -113,8 +120,7 @@ def write_solution_sidecar(
 
 
 def cache_solution_path(output_dir: Path, solution_id: str) -> Path:
-    safe_id = solution_id.replace("/", "_").replace(" ", "_")
-    return output_dir / "cache" / f"{safe_id}{CACHE_SUFFIX}"
+    return solution_artifact_path(output_dir, solution_id, suffix=CACHE_SUFFIX)
 
 
 def expected_cache_blob_path(
@@ -122,9 +128,11 @@ def expected_cache_blob_path(
     *,
     cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
 ) -> str:
-    safe_id = solution_id.replace("/", "_").replace(" ", "_")
-    normalized_directory = cache_blob_directory.strip("/")
-    return f"{normalized_directory}/{safe_id}{CACHE_SUFFIX}"
+    return solution_blob_path(
+        solution_id,
+        blob_directory=cache_blob_directory,
+        suffix=CACHE_SUFFIX,
+    )
 
 
 def expected_cache_public_url(
@@ -133,11 +141,12 @@ def expected_cache_public_url(
     *,
     cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
 ) -> str:
-    blob_path = expected_cache_blob_path(
+    return solution_public_url(
+        public_blob_host,
         solution_id,
-        cache_blob_directory=cache_blob_directory,
+        blob_directory=cache_blob_directory,
+        suffix=CACHE_SUFFIX,
     )
-    return f"{public_blob_host.rstrip('/')}/{blob_path}"
 
 
 def write_solution_cache(
@@ -205,8 +214,7 @@ def write_example_output(
             }
         },
     }
-    safe_id = solution_id.replace("/", "_").replace(" ", "_")
-    target = examples_dir / f"{safe_id}.metrics.json"
+    target = examples_dir / solution_artifact_name(solution_id, suffix=CACHE_SUFFIX)
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("w", encoding="utf-8") as handle:
         json.dump(doc, handle, indent=2, ensure_ascii=False)

@@ -203,7 +203,7 @@ function shouldCheckReachability(url) {
   return url.startsWith('https://') && !url.endsWith('/');
 }
 
-async function validateManifest(manifest, manifestPath, options = {}) {
+export async function validateManifest(manifest, manifestPath, options = {}) {
   assert(
     manifest && typeof manifest === 'object' && !Array.isArray(manifest),
     'Manifest root must be an object',
@@ -497,6 +497,9 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
   validateSolutionSummaryMetrics(solution.summaryMetrics, `solutions[${index}].summaryMetrics`);
   validateSolutionCoverage(solution.coverage, `solutions[${index}].coverage`);
   validateRendering(solution.rendering, `solutions[${index}].rendering`);
+  if ('precomputedMetricUrls' in solution && solution.precomputedMetricUrls !== undefined) {
+    assertUrlMap(solution.precomputedMetricUrls, `solutions[${index}].precomputedMetricUrls`);
+  }
 
   if (options.checkRemoteDisplayUrls) {
     remoteDisplayUrls.push({ url: solution.displayUrl, label: `solutions[${index}].displayUrl` });
@@ -620,7 +623,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`[validate:layer-manifest] ${error.message}`);
-  process.exit(1);
-});
+const isCalledDirectly =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
+if (isCalledDirectly) {
+  main().catch((error) => {
+    console.error(`[validate:layer-manifest] ${error.message}`);
+    process.exit(1);
+  });
+}

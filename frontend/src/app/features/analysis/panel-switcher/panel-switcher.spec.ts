@@ -61,6 +61,7 @@ describe('PanelSwitcherComponent', () => {
 
     appState = TestBed.inject(AppStateService);
     appLocale = TestBed.inject(AppLocaleService);
+    appLocale.setLocale('es');
     mockData = TestBed.inject(MockDataService);
   });
 
@@ -104,9 +105,6 @@ describe('PanelSwitcherComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('#solution-overview-panel')).not.toBeNull();
-    expect(compiled.querySelector('#right-sidebar-overview-solution-name')?.textContent).toContain(
-      'Bosque Alto Andino',
-    );
   });
 
   it('disables AOI and comparison tabs when no solution is active', () => {

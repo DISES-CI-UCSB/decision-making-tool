@@ -8,7 +8,6 @@ import {
   type CustomPolygonMetricId,
   type CustomPolygonMetricsGeometry,
   type CustomPolygonMetricsResponse,
-  type GeographyLevel,
   type LayerLocale,
   type MetricComparisonValue,
   type MetricReadinessStatus,
@@ -27,7 +26,7 @@ import {
 } from '@core/models/solution-matching.utils';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
-import { metricsForScope, nationalMetrics } from '@core/services/cached-metrics.utils';
+import { nationalMetrics } from '@core/services/cached-metrics.utils';
 import {
   AppStateService,
   type AreaDisplayUnit,
@@ -50,6 +49,28 @@ import {
   CHART_PALETTES,
   type ChartPaletteId,
 } from '@core/models/chart-palette.model';
+import { resolveCachedAoiMetrics } from '../utils/aoi-cached-metrics.utils';
+import {
+  classifyCustomAoiBiodiversityEstimate,
+  getCustomAoiSpeciesLoadingKey as resolveCustomAoiSpeciesLoadingKey,
+  type CustomAoiBiodiversityEstimateBand,
+  type CustomAoiSpeciesLoadingStage,
+} from '../utils/custom-aoi-species.utils';
+import {
+  buildMetricComparisons as buildMetricComparisonValues,
+  buildMetricSections,
+} from '../utils/metric-display-builders.utils';
+import {
+  appendUnit as appendMetricUnit,
+  areaUnitLabel,
+  formatAreaValue as formatAreaMetricValue,
+  formatMetricDelta,
+  formatMetricValue as formatPresentedMetricValue,
+  formatNumber as formatPresentedNumber,
+  formatPanelMetric,
+  getMetricDisplayUnit,
+  type MetricFormatOptions,
+} from '../utils/metric-presentation.utils';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type OverviewMetricSection = 'gains' | 'costs';
@@ -239,37 +260,13 @@ const CUSTOM_AOI_SPECIES_METRIC_IDS: CustomPolygonMetricId[] = [
 ];
 
 type CustomAoiMetricRequestMode = 'fast' | 'species';
-type CustomAoiSpeciesLoadingStage = 'initial' | 'delayed' | 'extended';
-type CustomAoiBiodiversityEstimateBand = 'small' | 'medium' | 'large' | 'veryLarge' | 'unknown';
 
 type CustomAoiMetricDefinition = Pick<MetricValue, 'metricId' | 'unit' | 'labelKey' | 'formatHint'>;
 
 const AREA_UNIT_OPTIONS: AreaDisplayUnit[] = ['km2', 'hectares'];
-const KM2_TO_HECTARES = 100;
-const AREA_METRIC_IDS = new Set<string>([
-  'area',
-  'priority_area_in_region',
-  'ecosystem_coverage',
-  'ecosystem_coverage_paramo',
-  'ecosystem_coverage_dry_forest',
-  'ecosystem_coverage_wetlands',
-  'mangrove_coverage',
-  'indigenous_reservations_area',
-  'community_councils_area',
-  'protected_area_runap_km2',
-  'agricultural_area',
-]);
 
 const CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS = 10_000;
 const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
-// Heuristic proxy for species benchmark matched-cell bands. The API does not
-// currently expose matched cells before the species request, so browser area
-// keeps the estimate honest without implying exact progress.
-const CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2 = {
-  smallMax: 1_000,
-  mediumMax: 15_000,
-  largeMax: 75_000,
-} as const;
 
 const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
   Record<CustomPolygonMetricId, CustomAoiMetricDefinition>
@@ -1370,49 +1367,22 @@ export class PanelSwitcherComponent {
     metric: MetricValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    if (metric.value === null) {
-      return this.translate.instant('analysis.common.valueUnavailable');
-    }
-
-    const displayValue = this.convertMetricValueForDisplay(metric, metric.value);
-    const displayUnit = this.getMetricDisplayUnit(metric);
-
-    switch (metric.formatHint) {
-      case 'percent':
-        return `${this.formatNumber(displayValue, mode, 0, 1)}%`;
-      case 'currency':
-        return this.appendUnit(this.formatNumber(displayValue, mode, 1, 1), displayUnit);
-      default:
-        return this.appendUnit(this.formatNumber(displayValue, mode, 0, 2), displayUnit);
-    }
+    return formatPresentedMetricValue(
+      metric,
+      this.metricFormatOptions(mode),
+      this.translate.instant('analysis.common.valueUnavailable'),
+    );
   }
 
   protected formatDelta(
     metric: MetricComparisonValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    if (metric.delta === null) {
-      return this.translate.instant('analysis.common.deltaUnavailable');
-    }
-
-    const sign = metric.delta > 0 ? '+' : '';
-    const displayValue = this.convertMetricValueForDisplay(metric.candidate, metric.delta);
-    const displayUnit = this.getMetricDisplayUnit(metric.candidate);
-
-    switch (metric.formatHint) {
-      case 'percent':
-        return `${sign}${this.formatNumber(displayValue, mode, 0, 1)}%`;
-      case 'currency':
-        return this.appendUnit(
-          `${sign}${this.formatNumber(displayValue, mode, 1, 1)}`,
-          displayUnit,
-        );
-      default:
-        return this.appendUnit(
-          `${sign}${this.formatNumber(displayValue, mode, 0, 2)}`,
-          displayUnit,
-        );
-    }
+    return formatMetricDelta(
+      metric,
+      this.metricFormatOptions(mode),
+      this.translate.instant('analysis.common.deltaUnavailable'),
+    );
   }
 
   protected getModeLabelKey(mode: RightSidebarMode): string {
@@ -1916,135 +1886,42 @@ export class PanelSwitcherComponent {
     minimumFractionDigits: number,
     maximumFractionDigits: number,
   ): string {
-    if (mode === 'compact') {
-      return this.formatCompactNumber(value, minimumFractionDigits, maximumFractionDigits);
-    }
-
-    return new Intl.NumberFormat(this.resolveLocale(), {
+    return formatPresentedNumber(
+      value,
+      this.metricFormatOptions(mode),
       minimumFractionDigits,
       maximumFractionDigits,
-    }).format(value);
-  }
-
-  private formatCompactNumber(
-    value: number,
-    minimumFractionDigits: number,
-    maximumFractionDigits: number,
-  ): string {
-    const absoluteValue = Math.abs(value);
-    const appLocale = this.appLocale.locale();
-    const locale = this.resolveNumberLocale(appLocale);
-    const compactScale =
-      absoluteValue >= 1_000_000 ? 1_000_000 : absoluteValue >= 1_000 ? 1_000 : 1;
-    const scaledValue = value / compactScale;
-    const formattedValue = new Intl.NumberFormat(locale, {
-      minimumFractionDigits,
-      maximumFractionDigits: compactScale === 1 ? maximumFractionDigits : 1,
-    }).format(scaledValue);
-
-    if (compactScale === 1_000_000) {
-      return `${formattedValue}M`;
-    }
-
-    if (compactScale === 1_000) {
-      return appLocale === 'es' ? `${formattedValue} mil` : `${formattedValue}K`;
-    }
-
-    return formattedValue;
+    );
   }
 
   private appendUnit(value: string, unit: string | null): string {
-    if (unit === '%') {
-      return `${value}%`;
-    }
-    if (unit === 'count') {
-      return value;
-    }
-    return unit ? `${value} ${unit}` : value;
+    return appendMetricUnit(value, unit);
   }
 
   private formatAreaValue(
     valueKm2: number,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    const displayUnit = this.areaDisplayUnit();
-    return this.appendUnit(
-      this.formatNumber(this.convertAreaValueForDisplay(valueKm2, displayUnit), mode, 0, 2),
-      this.areaUnitLabel(displayUnit),
-    );
-  }
-
-  private convertMetricValueForDisplay(metric: MetricValue, value: number): number {
-    if (!this.isAreaMetric(metric)) {
-      return value;
-    }
-
-    return this.convertAreaValueForDisplay(value, this.areaDisplayUnit());
-  }
-
-  private convertAreaValueForDisplay(valueKm2: number, unit: AreaDisplayUnit): number {
-    return unit === 'hectares' ? valueKm2 * KM2_TO_HECTARES : valueKm2;
+    return formatAreaMetricValue(valueKm2, this.metricFormatOptions(mode));
   }
 
   private areaUnitLabel(unit: AreaDisplayUnit): string {
-    return unit === 'hectares' ? 'ha' : 'km²';
-  }
-
-  private isAreaMetric(metric: MetricValue | Pick<MetricValue, 'metricId'>): boolean {
-    return AREA_METRIC_IDS.has(metric.metricId);
-  }
-
-  private formatMetricUnit(unit: string | null): string | null {
-    if (!unit) {
-      return null;
-    }
-    if (unit === 'count') {
-      return null;
-    }
-
-    return unit.replace(/Mg\s*[-·x*/]\s*km\^?2\b/g, 'Mg/km²').replace(/km\^?2\b/g, 'km²');
+    return areaUnitLabel(unit);
   }
 
   private formatMetricForPanel(
     metric: MetricValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    const formattedUnit = this.getMetricDisplayUnit(metric);
-    const displayValue = this.convertMetricValueForDisplay(metric, metric.value ?? 0);
-    const number = this.formatNumber(
-      displayValue,
+    return formatPanelMetric(metric, this.metricFormatOptions(mode));
+  }
+
+  private metricFormatOptions(mode: MetricNumberFormatMode): MetricFormatOptions {
+    return {
+      areaUnit: this.areaDisplayUnit(),
+      locale: this.appLocale.locale(),
       mode,
-      0,
-      metric.formatHint === 'percent' ? 1 : 2,
-    );
-    if (metric.formatHint === 'percent' || formattedUnit === '%') {
-      return `${number}%`;
-    }
-    return formattedUnit ? `${number} ${formattedUnit}` : number;
-  }
-
-  private getMetricDisplayUnit(metric: MetricValue): string | null {
-    if (this.isAreaMetric(metric)) {
-      return this.areaUnitLabel(this.areaDisplayUnit());
-    }
-
-    if (metric.metricId === 'carbon_biomass_total' || metric.metricId === 'soil_organic_carbon') {
-      return 'Mg';
-    }
-
-    if (metric.metricId === 'carbon_storage_biomass') {
-      return 'Mg';
-    }
-
-    return this.formatMetricUnit(metric.unit);
-  }
-
-  private resolveLocale(): string {
-    return this.resolveNumberLocale(this.appLocale.locale());
-  }
-
-  private resolveNumberLocale(locale: string): string {
-    return locale === 'es' ? 'es-CO' : 'en-US';
+    };
   }
 
   private getAoiBiodiversityScale(aoiId: string): number {
@@ -2238,7 +2115,7 @@ export class PanelSwitcherComponent {
       metricId: metric.metricId,
       metric: this.localizedText(metric.labelKey, metric.metricId),
       value,
-      unit: this.getMetricDisplayUnit(metric) ?? '',
+      unit: getMetricDisplayUnit(metric, this.areaDisplayUnit()) ?? '',
       status: this.localizedText(this.getStatusKey(metric.status), metric.status),
       source: metric.source,
       notes: metric.notes ?? '',
@@ -2751,43 +2628,14 @@ export class PanelSwitcherComponent {
   }
 
   protected getCustomAoiSpeciesLoadingKey(): string {
-    const stage = this.customAoiSpeciesLoadingStage();
-    const estimateBand = this.customAoiBiodiversityEstimateBand();
-
-    if (stage === 'initial') {
-      return `analysis.aoi.customMetrics.speciesLoading.initial.${estimateBand}`;
-    }
-
-    if (stage === 'delayed') {
-      const delayedBand =
-        estimateBand === 'large' || estimateBand === 'veryLarge'
-          ? 'largeAoi'
-          : 'longerThanExpected';
-      return `analysis.aoi.customMetrics.speciesLoading.delayed.${delayedBand}`;
-    }
-
-    return 'analysis.aoi.customMetrics.speciesLoading.extended';
+    return resolveCustomAoiSpeciesLoadingKey(
+      this.customAoiSpeciesLoadingStage(),
+      this.customAoiBiodiversityEstimateBand(),
+    );
   }
 
   private classifyCustomAoiBiodiversityEstimate(): CustomAoiBiodiversityEstimateBand {
-    const areaKm2 = this.resolveSelectedAoiAreaKm2();
-    if (areaKm2 === null) {
-      return 'unknown';
-    }
-
-    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.smallMax) {
-      return 'small';
-    }
-
-    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.mediumMax) {
-      return 'medium';
-    }
-
-    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.largeMax) {
-      return 'large';
-    }
-
-    return 'veryLarge';
+    return classifyCustomAoiBiodiversityEstimate(this.resolveSelectedAoiAreaKm2());
   }
 
   private startCustomAoiSpeciesLoadingStages(): void {
@@ -2963,101 +2811,14 @@ export class PanelSwitcherComponent {
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {
-    const grouped = new Map<string, AnalysisMetricSectionFixture>();
-
-    for (const metric of metrics) {
-      const sectionDefinition = this.overviewSectionLookup[metric.metricId];
-      if (!sectionDefinition) {
-        continue;
-      }
-
-      const section =
-        grouped.get(sectionDefinition.id) ??
-        ({
-          sectionId: sectionDefinition.id,
-          sectionLabelKey: sectionDefinition.labelKey,
-          metrics: [],
-        } satisfies AnalysisMetricSectionFixture);
-
-      section.metrics.push(metric);
-      grouped.set(sectionDefinition.id, section);
-    }
-
-    return this.overviewSectionOrder
-      .map((sectionId) => grouped.get(sectionId))
-      .filter((section): section is AnalysisMetricSectionFixture => section !== undefined);
+    return buildMetricSections(metrics, this.overviewSectionLookup, this.overviewSectionOrder);
   }
 
   private resolveAoiMetrics(
     document: CachedSolutionMetricsDocument | null,
     aoi: AOI,
   ): MetricValue[] {
-    if (!document) {
-      return [];
-    }
-
-    const level = this.aoiTypeToGeographyLevel(aoi.type);
-    if (!level) {
-      return [];
-    }
-
-    const geographies = document.geographies[level] ?? {};
-    const rawId = this.extractRawAoiScopeId(aoi.id);
-    const directCandidates = [rawId, aoi.name].filter((candidate): candidate is string =>
-      Boolean(candidate?.trim()),
-    );
-
-    for (const scopeId of directCandidates) {
-      const metrics = metricsForScope(document, level, scopeId);
-      if (metrics.length > 0) {
-        return metrics;
-      }
-    }
-
-    const normalizedAoiName = this.normalizeScopeLabel(aoi.name);
-    for (const [scopeId, scope] of Object.entries(geographies)) {
-      if (this.normalizeScopeLabel(scopeId) === normalizedAoiName) {
-        return scope.metrics ?? [];
-      }
-      if (this.normalizeScopeLabel(scope.name ?? '') === normalizedAoiName) {
-        return scope.metrics ?? [];
-      }
-    }
-
-    return [];
-  }
-
-  private aoiTypeToGeographyLevel(type: AOI['type']): GeographyLevel | null {
-    switch (type) {
-      case 'department':
-        return 'departments';
-      case 'municipality':
-        return 'municipalities';
-      case 'sirap':
-        return 'siraps';
-      case 'runap':
-        return 'runaps';
-      case 'omec':
-        return 'omecs';
-      default:
-        return null;
-    }
-  }
-
-  private extractRawAoiScopeId(prefixedAoiId: string): string {
-    const separatorIndex = prefixedAoiId.indexOf(':');
-    if (separatorIndex === -1) {
-      return prefixedAoiId.trim();
-    }
-    return prefixedAoiId.slice(separatorIndex + 1).trim();
-  }
-
-  private normalizeScopeLabel(label: string): string {
-    return label
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/gi, '')
-      .toLowerCase();
+    return resolveCachedAoiMetrics(document, aoi);
   }
 
   private buildOverviewMetricDisplayEntries(
@@ -3267,32 +3028,7 @@ export class PanelSwitcherComponent {
     baselineMetrics: MetricValue[],
     candidateMetrics: MetricValue[],
   ): MetricComparisonValue[] {
-    const candidateById = new Map(candidateMetrics.map((metric) => [metric.metricId, metric]));
-    return baselineMetrics
-      .map((baseline): MetricComparisonValue | null => {
-        const candidate = candidateById.get(baseline.metricId);
-        if (!candidate) {
-          return null;
-        }
-
-        const delta =
-          baseline.status === 'ready' &&
-          candidate.status === 'ready' &&
-          baseline.value !== null &&
-          candidate.value !== null
-            ? Number((candidate.value - baseline.value).toFixed(2))
-            : null;
-
-        return {
-          metricId: baseline.metricId,
-          labelKey: baseline.labelKey,
-          formatHint: baseline.formatHint,
-          baseline,
-          candidate,
-          delta,
-        };
-      })
-      .filter((metric): metric is MetricComparisonValue => metric !== null);
+    return buildMetricComparisonValues(baselineMetrics, candidateMetrics);
   }
 
   private buildComparisonMetricDisplayEntry(

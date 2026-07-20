@@ -32,7 +32,7 @@ export function buildCachedMetricsUrl(blobHost: string, solutionId: string): str
 
 export function buildGoalsUrl(blobHost: string, solutionId: string): string {
   const host = blobHost.replace(/\/+$/, '');
-  return `${host}/${GOALS_BLOB_PREFIX}/${solutionId}${GOALS_SUFFIX}`;
+  return `${host}/${GOALS_BLOB_PREFIX}/${toSafeSolutionId(solutionId)}${GOALS_SUFFIX}`;
 }
 
 export function getPrecomputedMetricUrl(

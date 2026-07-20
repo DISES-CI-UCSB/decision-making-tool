@@ -4,6 +4,13 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadLocalEnv } from './load-local-env.mjs';
+import {
+  extractBlobCliUrl,
+  parseBlobListCursor,
+  parseBlobListOutput,
+} from './lib/blob-cli-output.mjs';
+import { parseCsv } from './lib/csv.mjs';
+import { toLayerId } from './lib/layer-normalization.mjs';
 import { PUBLIC_BLOB_HOST } from '../shared/runtime-manifest.constants.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -97,43 +104,6 @@ function randomIntInclusive(min, max) {
 async function sleepWithJitter(baseMs, jitterMs) {
   const jitter = randomIntInclusive(0, Math.max(0, jitterMs));
   await sleep(Math.max(0, baseMs) + jitter);
-}
-
-function parseBlobListOutput(output) {
-  const blobs = [];
-
-  for (const line of output.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('Vercel CLI') || trimmed.startsWith('Fetching blobs')) {
-      continue;
-    }
-    if (trimmed.startsWith('Uploaded At') || trimmed.startsWith('> To display')) {
-      continue;
-    }
-
-    const match = trimmed.match(/^\S+\s+(\d+)\s+(\S+)\s+(https:\/\/\S+)$/);
-    if (!match) {
-      continue;
-    }
-
-    blobs.push({
-      bytes: Number(match[1]),
-      pathname: match[2],
-      url: match[3],
-    });
-  }
-
-  return blobs;
-}
-
-function parseNextCursor(output) {
-  const match = output.match(/--cursor\s+([^\s`]+)/);
-  return match ? match[1] : null;
-}
-
-function extractBlobCliUrl(output) {
-  const match = output.match(/https:\/\/\S+/);
-  return match ? match[0] : null;
 }
 
 async function listBlobsByPrefixForUpload(token, prefix, limit) {
@@ -238,7 +208,7 @@ async function listBlobPage(prefix, cursor = null, limit = 100) {
   const output = `${stdout}\n${stderr}`;
   return {
     blobs: parseBlobListOutput(output),
-    nextCursor: parseNextCursor(output),
+    nextCursor: parseBlobListCursor(output),
   };
 }
 
@@ -423,33 +393,6 @@ function toDisplayLabel(value) {
     .join(' ');
 }
 
-function parseCsvRow(line) {
-  const fields = [];
-  let current = '';
-  let inQuotes = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (char === '"') {
-      const nextChar = line[index + 1];
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        index += 1;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-    if (char === ',' && !inQuotes) {
-      fields.push(current);
-      current = '';
-      continue;
-    }
-    current += char;
-  }
-  fields.push(current);
-  return fields.map((field) => field.trim());
-}
-
 function normalizeSpeciesLookupKey(value) {
   return value
     .normalize('NFD')
@@ -493,12 +436,12 @@ async function loadSpeciesTaxonomyLookup(csvPath, csvUrl) {
     console.log('[generate:species-manifest] loaded taxonomy CSV from blob URL fallback');
   }
 
-  const rows = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const rows = parseCsv(csvText);
   if (rows.length === 0) {
     throw new Error('species taxonomy CSV is empty');
   }
 
-  const header = parseCsvRow(rows[0]);
+  const header = rows[0].map((field) => field.trim());
   const scientificNameIndex = header.indexOf('scientific_name');
   const classIndex = header.indexOf('class');
   if (scientificNameIndex < 0 || classIndex < 0) {
@@ -507,7 +450,7 @@ async function loadSpeciesTaxonomyLookup(csvPath, csvUrl) {
 
   const lookup = new Map();
   for (const row of rows.slice(1)) {
-    const cells = parseCsvRow(row);
+    const cells = row.map((field) => field.trim());
     const scientificName = cells[scientificNameIndex] || '';
     const taxon = resolveTaxonFromCsvClass(cells[classIndex] || '');
     const key = normalizeSpeciesLookupKey(scientificName);
@@ -535,15 +478,6 @@ function inferTaxonFromPathname(pathname) {
     taxonId: toLayerId(taxonSlug),
     taxonLabel: toDisplayLabel(taxonSlug),
   };
-}
-
-function toLayerId(value) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Za-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .toLowerCase();
 }
 
 async function fetchArrayBufferWithRetry(url, maxAttempts, pacing) {

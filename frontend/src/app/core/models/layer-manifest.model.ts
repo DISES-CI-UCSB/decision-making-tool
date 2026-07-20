@@ -70,12 +70,21 @@ export interface RuntimeLayerManifestManualEdit {
   source?: string | null;
 }
 
+export interface RuntimeLayerManifestSpeciesLookup {
+  url?: string | null;
+}
+
+export interface RuntimeLayerManifestReferenceData {
+  speciesLookup?: RuntimeLayerManifestSpeciesLookup;
+}
+
 export interface RuntimeLayerManifest {
   version: string;
   generatedAt: string;
   publicBlobHost: string;
   sourceCsv: string;
   manualEdit?: RuntimeLayerManifestManualEdit;
+  referenceData?: RuntimeLayerManifestReferenceData;
   categories: RuntimeLayerManifestCategory[];
   layers: RuntimeLayerManifestLayer[];
   solutions: RuntimeSolutionManifestEntry[];

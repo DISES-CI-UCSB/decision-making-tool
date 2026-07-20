@@ -4,6 +4,14 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadLocalEnv } from './load-local-env.mjs';
+import { parseBlobListOutput } from './lib/blob-cli-output.mjs';
+import { parseCsv, rowsToObjects, toCsv } from './lib/csv.mjs';
+import { toBlobPath, toLayerId } from './lib/layer-normalization.mjs';
+import {
+  createPrecomputedMetricUrls,
+  createSolutionPrecomputedMetricUrls,
+} from './lib/metric-urls.mjs';
+import { selectManifestSolutions } from './lib/solution-preservation.mjs';
 import {
   LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
   PUBLIC_BLOB_HOST,
@@ -65,7 +73,6 @@ const DEFAULT_CONTINUOUS_END_COLOR = '#166534';
 const MANIFEST_SCHEMA_VERSION = '0.2.0';
 const SPECIES_AND_BIODIVERSITY_CATEGORY_ID = 'species_and_biodiversity';
 const SPECIES_MANIFEST_URL = `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json`;
-const SOLUTION_GOALS_BLOB_DIRECTORY = 'metrics/goals';
 
 /**
  * Curated per-category palette used to seed brand-new layers and categories.
@@ -488,93 +495,6 @@ const displayAssetFormats = new Set([
   'shapefile',
 ]);
 
-function parseCsv(raw) {
-  const rows = [];
-  let row = [];
-  let value = '';
-  let inQuotes = false;
-
-  for (let index = 0; index < raw.length; index += 1) {
-    const char = raw[index];
-    const next = raw[index + 1];
-
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        value += '"';
-        index += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (char === ',' && !inQuotes) {
-      row.push(value);
-      value = '';
-      continue;
-    }
-
-    if ((char === '\n' || char === '\r') && !inQuotes) {
-      if (char === '\r' && next === '\n') {
-        index += 1;
-      }
-      row.push(value);
-      if (row.some((cell) => cell.trim().length > 0)) {
-        rows.push(row);
-      }
-      row = [];
-      value = '';
-      continue;
-    }
-
-    value += char;
-  }
-
-  if (value.length > 0 || row.length > 0) {
-    row.push(value);
-    if (row.some((cell) => cell.trim().length > 0)) {
-      rows.push(row);
-    }
-  }
-
-  return rows;
-}
-
-function normalizeHeader(header) {
-  return header.toLowerCase().replace(/\s+/g, ' ').trim();
-}
-
-function mapHeaders(headers) {
-  return headers.map((header) => {
-    const normalized = normalizeHeader(header);
-
-    for (const [key, aliases] of Object.entries(columnAliases)) {
-      if (aliases.some((alias) => normalized.includes(alias))) {
-        return key;
-      }
-    }
-
-    return normalized.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  });
-}
-
-function rowsToObjects(parsedRows) {
-  const [headers, ...records] = parsedRows;
-  const keys = mapHeaders(headers);
-
-  return records.map((record) => {
-    const row = {};
-    keys.forEach((key, index) => {
-      row[key] = normalizeCell(record[index] ?? '');
-    });
-    return row;
-  });
-}
-
-function normalizeCell(value) {
-  return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-}
-
 function isTrue(value) {
   return value.trim().toLowerCase() === 'true';
 }
@@ -605,49 +525,6 @@ function splitLayerLabels(value) {
   };
 }
 
-function toLayerId(value) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Za-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .toLowerCase();
-}
-
-function toBlobPath(storageLocation, filename) {
-  if (!storageLocation || /^https?:\/\//i.test(storageLocation)) {
-    return null;
-  }
-
-  const normalizedLocation = storageLocation.replace(/\\/g, '/').replace(/^\/+/, '');
-  const paths = normalizedLocation
-    .split('\n')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  const candidate = paths.find((entry) => {
-    const lowerEntry = entry.toLowerCase();
-    return lowerEntry.includes('data/inputs/') || lowerEntry.includes('data/boundaries/');
-  });
-
-  if (!candidate) {
-    return null;
-  }
-
-  if (candidate.endsWith('/')) {
-    return candidate.replace(/^data\//, '');
-  }
-
-  if (path.posix.extname(candidate)) {
-    return candidate.replace(/^data\//, '');
-  }
-
-  if (filename && filename.toLowerCase() !== 'na') {
-    return `${candidate.replace(/\/+$/, '')}/${filename}`.replace(/^data\//, '');
-  }
-
-  return candidate.replace(/^data\//, '');
-}
-
 function isDisplayCandidate(row) {
   const normalizedFormat = row.data_format.toLowerCase();
   return [...displayAssetFormats].some((format) => normalizedFormat.includes(format));
@@ -658,33 +535,6 @@ function shouldIncludeManifestRow(row) {
     (isTrue(row.in_use_now) || metricAuditLayerIds.has(toLayerId(row.layer_id))) &&
     isDisplayCandidate(row)
   );
-}
-
-function parseBlobListOutput(output) {
-  const blobs = [];
-
-  for (const line of output.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('Vercel CLI') || trimmed.startsWith('Fetching blobs')) {
-      continue;
-    }
-    if (trimmed.startsWith('Uploaded At') || trimmed.startsWith('> To display')) {
-      continue;
-    }
-
-    const match = trimmed.match(/^\S+\s+(\d+)\s+(\S+)\s+(https:\/\/\S+)$/);
-    if (!match) {
-      continue;
-    }
-
-    blobs.push({
-      bytes: Number(match[1]),
-      pathname: match[2],
-      url: match[3],
-    });
-  }
-
-  return blobs;
 }
 
 async function listBlobPrefix(prefix, limit = 1000) {
@@ -902,15 +752,8 @@ function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob }) {
     inputLayerIds,
     summaryMetrics: normalizeSolutionSummaryMetrics(metadata.evaluation, coverage),
     coverage,
-    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(id),
+    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(id, {}, rasterBlob.url),
     rendering: DEFAULT_SOLUTION_RENDERING,
-  };
-}
-
-function createSolutionPrecomputedMetricUrls(solutionId, existingUrls = {}) {
-  return {
-    ...existingUrls,
-    goals: `${PUBLIC_BLOB_HOST}/${SOLUTION_GOALS_BLOB_DIRECTORY}/${solutionId}.goals.json`,
   };
 }
 
@@ -1802,43 +1645,6 @@ function hashStringToPositiveInt(value) {
   return hash;
 }
 
-function preserveSolutionUrls(solutions, existingManifestIndex) {
-  const existingSolutions = new Map(
-    (existingManifestIndex?.manifest?.solutions ?? [])
-      .filter((solution) => solution && typeof solution.id === 'string')
-      .map((solution) => [solution.id, solution]),
-  );
-
-  return solutions.map((solution) => {
-    const existingSolution = existingSolutions.get(solution.id);
-    const displayCogUrl = existingSolution?.displayCogUrl;
-    const precomputedMetricUrls = createSolutionPrecomputedMetricUrls(
-      solution.id,
-      existingSolution?.precomputedMetricUrls ?? solution.precomputedMetricUrls ?? {},
-    );
-
-    return {
-      ...solution,
-      ...(typeof displayCogUrl === 'string' && displayCogUrl.length > 0 ? { displayCogUrl } : {}),
-      precomputedMetricUrls,
-    };
-  });
-}
-
-function publishedSolutions(existingManifestIndex) {
-  const solutions = existingManifestIndex?.manifest?.solutions;
-  if (!Array.isArray(solutions) || solutions.length === 0) {
-    return [];
-  }
-  return structuredClone(solutions).map((solution) => ({
-    ...solution,
-    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(
-      solution.id,
-      solution.precomputedMetricUrls ?? {},
-    ),
-  }));
-}
-
 function createPublishedSolutionCatalogReport(solutionCatalogReport, solutions, source) {
   return {
     ...solutionCatalogReport,
@@ -2046,22 +1852,6 @@ function inferRoleInMetricCalculation(dataRole) {
   return 'data_used_for_live_metric_calculation';
 }
 
-function createPrecomputedMetricUrls(layerId, roleInMetricCalculation) {
-  if (roleInMetricCalculation === 'none') {
-    return {};
-  }
-
-  if (roleInMetricCalculation === 'boundary_used_for_precomputed_metric_lookup') {
-    return {
-      byBoundaryFeature: `${PUBLIC_BLOB_HOST}/metrics/precomputed/${layerId}/by-feature.json`,
-    };
-  }
-
-  return {
-    national: `${PUBLIC_BLOB_HOST}/metrics/precomputed/${layerId}/nacional.json`,
-  };
-}
-
 function inferProposedCategoryId(row) {
   const layerId = toLayerId(row.layer_id);
   const csvGroupId = toLayerId(row.layer_group || 'uncategorized');
@@ -2107,30 +1897,6 @@ function createCategoryReviewRows(rows) {
       team_notes: '',
     };
   });
-}
-
-function escapeCsvValue(value) {
-  const stringValue = String(value ?? '');
-
-  if (/[",\n\r]/.test(stringValue)) {
-    return `"${stringValue.replace(/"/g, '""')}"`;
-  }
-
-  return stringValue;
-}
-
-function toCsv(rows) {
-  if (rows.length === 0) {
-    return '';
-  }
-
-  const headers = Object.keys(rows[0]);
-  const lines = [
-    headers.join(','),
-    ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(',')),
-  ];
-
-  return `${lines.join('\n')}\n`;
 }
 
 async function extractCurrentFrontendCategories() {
@@ -2423,7 +2189,7 @@ async function main() {
   await loadLocalEnv(path.resolve(__dirname, '..'));
 
   const csvRaw = await fs.readFile(REQUIRED_LAYERS_CSV, 'utf-8');
-  const rows = rowsToObjects(parseCsv(csvRaw));
+  const rows = rowsToObjects(parseCsv(csvRaw), columnAliases);
   const includedRows = rows.filter(shouldIncludeManifestRow);
   const blobInventory = await readBlobInventory();
   const solutionBlobInventory = await readSolutionBlobInventory();
@@ -2443,26 +2209,12 @@ async function main() {
     speciesTaxa,
   );
   const layers = layerEntries.map((entry) => entry.manifestLayer);
-  const preservedPublishedSolutions = publishedSolutions(publishedManifestIndex);
-  const rawSolutions =
-    preservedPublishedSolutions.length > 0
-      ? preservedPublishedSolutions
-      : solutionCatalog.solutions.length > 0
-        ? preserveSolutionUrls(solutionCatalog.solutions, existingManifestIndex)
-        : (existingManifestIndex?.manifest?.solutions ?? []);
-  const solutions = rawSolutions.map((solution) => ({
-    ...solution,
-    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(
-      solution.id,
-      solution.precomputedMetricUrls ?? {},
-    ),
-  }));
-  const preservedExistingSolutions =
-    preservedPublishedSolutions.length === 0 &&
-    solutionCatalog.solutions.length === 0 &&
-    solutions.length > 0
-      ? solutions
-      : [];
+  const { solutions, preservedPublishedSolutions, preservedExistingSolutions } =
+    selectManifestSolutions({
+      publishedManifestIndex,
+      generatedSolutions: solutionCatalog.solutions,
+      existingManifestIndex,
+    });
   const solutionCatalogReport =
     preservedPublishedSolutions.length > 0
       ? createPublishedSolutionCatalogReport(
