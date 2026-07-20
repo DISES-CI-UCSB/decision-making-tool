@@ -150,6 +150,15 @@
   }
 
   .finder-saved-scenario-label-optical {
+    /* Trim to cap-height/baseline purely for layout/alignment purposes.
+       This does NOT clip painted glyphs; the paired overflow-x-clip
+       overflow-y-visible (see finder-modal.html) lets descenders (g, y, p)
+       spill past this box uncut, while the box itself still gives
+       predictable, consistent vertical centering regardless of whether the
+       label has descenders. Using overflow-x: clip (not hidden) is required
+       here: pairing hidden/scroll/auto on one axis with visible on the
+       other forces the visible axis to compute to auto (i.e. it clips too),
+       but clip + visible is an allowed non-scrollable/visible pairing. */
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     line-height: 1;
@@ -157,8 +166,8 @@
   }
 
   .finder-saved-scenario-search-input-optical {
-    text-box-trim: trim-both;
-    text-box-edge: cap alphabetic;
+    text-box-trim: trim-start;
+    text-box-edge: cap;
     line-height: 1;
   }
 }
