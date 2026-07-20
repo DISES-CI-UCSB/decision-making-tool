@@ -772,7 +772,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly activeSolutionBreakdownOpen = signal(false);
   protected readonly overlays = signal<LayerControlRow[]>(this.createDefaultOverlays());
   protected readonly managementFiguresTitle = signal(
-    this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+    this.localizedTextOrFallback(
+      'mapLayersPanel.groupTitles.managementFigures',
+      'Conservation Areas',
+    ),
   );
   protected readonly availableOverlays = computed(() =>
     this.overlays().filter(
@@ -1457,7 +1460,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
     this.managementFiguresTitle.set(
-      this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+      this.localizedTextOrFallback(
+        'mapLayersPanel.groupTitles.managementFigures',
+        'Conservation Areas',
+      ),
     );
 
     this.overlays.update((rows) => {
@@ -4681,7 +4687,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     return [
       {
         id: BASELINE_SOLUTION_OVERLAY_ID,
-        name: this.localizedText('mapLayersPanel.overlayNames.conservationSolution'),
+        name: this.localizedTextOrFallback(
+          'mapLayersPanel.overlayNames.conservationSolution',
+          'Conservation Solution',
+        ),
         selected: true,
         visible: true,
         expanded: true,
@@ -4694,7 +4703,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: RUNAP_OVERLAY_LAYER_ID,
-        name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
+        name: this.localizedTextOrFallback(
+          'mapLayersPanel.overlayNames.protectedAreasRunap',
+          'Protected Areas (RUNAP)',
+        ),
         selected: false,
         visible: false,
         expanded: false,
@@ -4711,7 +4723,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
-        name: this.localizedText('mapLayersPanel.overlayNames.nationalNaturalParks'),
+        name: this.localizedTextOrFallback(
+          'mapLayersPanel.overlayNames.nationalNaturalParks',
+          'National Natural Parks',
+        ),
         selected: false,
         visible: false,
         expanded: false,
@@ -4744,7 +4759,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
       {
         id: OMEC_OVERLAY_LAYER_ID,
-        name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
+        name: this.localizedTextOrFallback('mapLayersPanel.overlayNames.omecs', 'OMECs'),
         selected: false,
         visible: false,
         expanded: false,
@@ -4895,7 +4910,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         ...nextRows,
         {
           id: OVERLAP_SOLUTION_OVERLAY_ID,
-          name: this.localizedText('mapLayersPanel.overlayNames.agreementOverlap'),
+          name: this.localizedTextOrFallback(
+            'mapLayersPanel.overlayNames.agreementOverlap',
+            'Agreement / Overlap',
+          ),
           selected: true,
           visible: true,
           expanded: true,
@@ -5527,7 +5545,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     const speciesLayerCount = this.taxa().reduce((total, taxon) => total + taxon.speciesCount, 0);
 
     this.managementFiguresTitle.set(
-      this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+      this.localizedTextOrFallback(
+        'mapLayersPanel.groupTitles.managementFigures',
+        'Conservation Areas',
+      ),
     );
 
     this.overlays.update((rows) =>
@@ -5535,31 +5556,43 @@ export class MapLayersPanelComponent implements OnDestroy {
         if (row.id === BASELINE_SOLUTION_OVERLAY_ID && !activeSolutionName) {
           return {
             ...row,
-            name: this.localizedText('mapLayersPanel.overlayNames.conservationSolution'),
+            name: this.localizedTextOrFallback(
+              'mapLayersPanel.overlayNames.conservationSolution',
+              'Conservation Solution',
+            ),
           };
         }
         if (row.id === 'overlay-runap') {
           return {
             ...row,
-            name: this.localizedText('mapLayersPanel.overlayNames.protectedAreasRunap'),
+            name: this.localizedTextOrFallback(
+              'mapLayersPanel.overlayNames.protectedAreasRunap',
+              'Protected Areas (RUNAP)',
+            ),
           };
         }
         if (row.id === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID) {
           return {
             ...row,
-            name: this.localizedText('mapLayersPanel.overlayNames.nationalNaturalParks'),
+            name: this.localizedTextOrFallback(
+              'mapLayersPanel.overlayNames.nationalNaturalParks',
+              'National Natural Parks',
+            ),
           };
         }
         if (row.id === 'overlay-omecs') {
           return {
             ...row,
-            name: this.localizedText('mapLayersPanel.overlayNames.omecs'),
+            name: this.localizedTextOrFallback('mapLayersPanel.overlayNames.omecs', 'OMECs'),
           };
         }
         if (row.id === OVERLAP_SOLUTION_OVERLAY_ID) {
           return {
             ...row,
-            name: this.localizedText('mapLayersPanel.overlayNames.agreementOverlap'),
+            name: this.localizedTextOrFallback(
+              'mapLayersPanel.overlayNames.agreementOverlap',
+              'Agreement / Overlap',
+            ),
           };
         }
         return row;
