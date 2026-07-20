@@ -27,6 +27,7 @@ import {
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayerRow,
   type RuntimeLayerManifest,
+  type RuntimeLayerManifestClassColor,
   type RuntimeLayerManifestRenderingConfig,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
@@ -88,6 +89,7 @@ interface LayerControlRow {
   disabled?: boolean;
   mapUnavailable?: boolean;
   hideAddButton?: boolean;
+  metadataUrl?: string | null;
   mapSync?:
     | { type: 'solution-baseline' }
     | { type: 'solution-candidate' }
@@ -341,18 +343,71 @@ const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
 };
 const IAVH_ECOSYSTEM_LAYER_ID = 'ecosistemas';
 const STRATEGIC_ECOSYSTEM_LAYER_IDS = new Set(['paramos', 'wetlands', 'bosque_seco', 'mangroves']);
+type EcosystemClassificationView =
+  | 'biomeFamily'
+  | 'broadBiomeContext'
+  | 'biomeRegion'
+  | 'broadEcosystem'
+  | 'detailedEcosystem';
+interface EcosystemClassificationSummaryValue {
+  label: string;
+  areaHectares: number;
+  areaSquareKilometers: number;
+  polygonCount: number;
+}
+interface EcosystemClassificationSummarySection {
+  view: EcosystemClassificationView;
+  label: string;
+  sourceField: string;
+  valueCount: number;
+  values: EcosystemClassificationSummaryValue[];
+}
+interface EcosystemClassificationSummary {
+  version: string;
+  generatedAt: string;
+  classifications: EcosystemClassificationSummarySection[];
+}
+interface EcosystemLayerMetadata {
+  references?: {
+    classificationSummaryUrl?: string | null;
+  };
+}
+interface IavhBiomeRegionClass {
+  value: number;
+  label: string;
+}
+const ECOSYSTEM_CLASSIFICATION_VIEW_OPTIONS: readonly {
+  value: EcosystemClassificationView;
+  labelKey: string;
+}[] = [
+  { value: 'biomeFamily', labelKey: 'mapLayersPanel.ecosystemClassification.biomeFamily' },
+  {
+    value: 'broadBiomeContext',
+    labelKey: 'mapLayersPanel.ecosystemClassification.broadBiomeContext',
+  },
+  { value: 'biomeRegion', labelKey: 'mapLayersPanel.ecosystemClassification.biomeRegion' },
+  { value: 'broadEcosystem', labelKey: 'mapLayersPanel.ecosystemClassification.broadEcosystem' },
+  {
+    value: 'detailedEcosystem',
+    labelKey: 'mapLayersPanel.ecosystemClassification.detailedEcosystem',
+  },
+] as const;
+const ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT = 12;
+const IAVH_BIOME_REGION_CLASS_COUNT = 430;
+const IAVH_BIOME_REGION_LOOKUP_URL =
+  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv';
 const ECOSYSTEMS_COPY = {
   en: {
     groupTitle: 'Ecosystems',
     groupNote: '',
-    iavhRowName: 'Ecosystems',
+    iavhRowName: 'Ecosystems (Biome Family)',
     strategicGroupName: 'Strategic Ecosystems',
     otherBiomeFamily: 'Other / N.A.',
   },
   es: {
     groupTitle: 'Ecosistemas',
     groupNote: '',
-    iavhRowName: 'Ecosistemas',
+    iavhRowName: 'Ecosistemas (Familia de bioma)',
     strategicGroupName: 'Ecosistemas estratégicos',
     otherBiomeFamily: 'Otro / N.A.',
   },
@@ -430,6 +485,24 @@ const IAVH_ECOSYSTEM_BIOME_GROUPS = [
     color: '#64748b',
     values: [70],
   },
+] as const;
+const IAVH_BIOME_FAMILY_COLOR_RULES = [
+  { prefix: 'Orobioma', hue: 92, saturation: 62 },
+  { prefix: 'Zonobioma', hue: 138, saturation: 58 },
+  { prefix: 'Hidrobioma', hue: 202, saturation: 70 },
+  { prefix: 'Helobioma', hue: 174, saturation: 60 },
+  { prefix: 'Peinobioma', hue: 38, saturation: 70 },
+  { prefix: 'Litobioma', hue: 32, saturation: 18 },
+  { prefix: 'Halobioma', hue: 190, saturation: 68 },
+  { prefix: 'N.A.', hue: 215, saturation: 12 },
+] as const;
+const IAVH_BIOME_REGION_SAMPLE_COLORS = [
+  '#4d7c0f',
+  '#15803d',
+  '#0369a1',
+  '#0f766e',
+  '#a16207',
+  '#78716c',
 ] as const;
 const MANIFEST_LIVE_RENDER_POLICY = {
   enabledCategoryIds: new Set<string>([
@@ -628,6 +701,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   /** Stable bound reference so we can removeEventListener exactly. */
   private readonly rainforestProximityHandler = (e: PointerEvent): void =>
     this.onSidebarProximityMove(e);
+  private iavhBiomeRegionClasses: IavhBiomeRegionClass[] | null = null;
+  private iavhBiomeRegionLookupLoading = false;
 
   /** Preset swatches shown beneath the saturation/hue grid in the color picker popup. */
   protected readonly colorPresetHexValues: string[] = [
@@ -770,6 +845,24 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly selectedLayerDragId = signal<string | null>(null);
   protected readonly selectedLayerDropTargetId = signal<string | null>(null);
   protected readonly selectedLayerDropPosition = signal<SelectedLayerDropPosition>('before');
+  protected readonly ecosystemClassificationViewOptions = ECOSYSTEM_CLASSIFICATION_VIEW_OPTIONS;
+  protected readonly ecosystemClassificationView =
+    signal<EcosystemClassificationView>('biomeFamily');
+  protected readonly ecosystemInfoModalOpen = signal(false);
+  protected readonly ecosystemClassificationSummary = signal<EcosystemClassificationSummary | null>(
+    null,
+  );
+  protected readonly ecosystemClassificationSummaryLoading = signal(false);
+  protected readonly ecosystemClassificationSummaryError = signal(false);
+  protected readonly expandedEcosystemClassificationSummaryViews = signal<ReadonlySet<string>>(
+    new Set(),
+  );
+  protected readonly ecosystemClassificationSummaryFilterQueries = signal<Record<string, string>>(
+    {},
+  );
+  protected readonly ecosystemClassificationSummaryVisibleLimits = signal<Record<string, number>>(
+    {},
+  );
   protected readonly openLayerInfoPopoverId = signal<string | null>(null);
   protected readonly layerInfoPopoverPosition = signal<LayerInfoPopoverPosition | null>(null);
   protected readonly selectedLayerAppearancePopoverId = signal<string | null>(null);
@@ -805,6 +898,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
       ),
     );
+    this.ensureIavhBiomeRegionLookupLoaded();
 
     effect(() => {
       const solution = this.appState.activeSolution$();
@@ -958,6 +1052,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   protected onDocumentEscape(): void {
+    this.closeEcosystemInfoModal();
     this.closeActiveSolutionBreakdown();
   }
 
@@ -1016,6 +1111,13 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected isScenarioConsideredLayer(row: LayerControlRow): boolean {
     return this.scenarioLayerStatus(row) === 'considered';
+  }
+
+  protected isEcosystemConsideredInRun(): boolean {
+    const ecosystemRow =
+      this.findLayerControlRowById(IAVH_ECOSYSTEM_LAYER_ID) ??
+      this.findLayerControlRowById('layer-ecosistemas');
+    return ecosystemRow ? this.isScenarioConsideredLayer(ecosystemRow) : false;
   }
 
   protected isScenarioReferenceLayer(row: LayerControlRow): boolean {
@@ -1482,6 +1584,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       expanded: false,
       hasStyleControls: true,
       mapUnavailable: false,
+      metadataUrl: manifestRow.metadataUrl,
       mapSync: {
         type: 'manifest-raster',
         layerId: existingOverlay.id,
@@ -1559,6 +1662,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       hasStyleControls: true,
       hasColorControl: rendering.renderMode !== 'categorical',
       mapUnavailable: !isLiveRenderable,
+      metadataUrl: manifestRow.metadataUrl,
       mapSync:
         isLiveRenderable && manifestRow.displayUrl
           ? {
@@ -1696,7 +1800,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       );
     }
     if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
-      return this.ecosystemsCopy().iavhRowName;
+      return this.localizedTextOrFallback(
+        'mapLayersPanel.ecosystemsLayerName',
+        this.ecosystemsCopy().iavhRowName,
+      );
     }
     if (STRATEGIC_ECOSYSTEM_LAYER_IDS.has(manifestRow.id)) {
       return this.localizedManifestLayerName(manifestRow);
@@ -1738,7 +1845,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
-      return this.iavhEcosystemGroupedRendering();
+      return this.iavhEcosystemRenderingForSelectedView();
     }
 
     const knownRange = KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID[manifestRow.id];
@@ -1768,6 +1875,154 @@ export class MapLayersPanelComponent implements OnDestroy {
         })),
       ),
     };
+  }
+
+  private iavhEcosystemRenderingForSelectedView(): RuntimeLayerManifestRenderingConfig {
+    if (this.ecosystemClassificationView() === 'biomeRegion') {
+      return this.iavhBiomeRegionRendering();
+    }
+    return this.iavhEcosystemGroupedRendering();
+  }
+
+  private iavhBiomeRegionRendering(): RuntimeLayerManifestRenderingConfig {
+    return {
+      valueType: 'categorical',
+      renderMode: 'categorical',
+      noDataValue: IAVH_ECOSYSTEM_NO_DATA_VALUE,
+      classColors: this.iavhBiomeRegionClassColors(),
+    };
+  }
+
+  private iavhBiomeRegionClassColors(): RuntimeLayerManifestClassColor[] {
+    const classes = this.iavhBiomeRegionClasses ?? this.fallbackIavhBiomeRegionClasses();
+    return classes.map((item) => ({
+      value: item.value,
+      color: this.colorForIavhBiomeRegion(item.label, item.value),
+      label: item.label,
+      englishLabel: item.label,
+      spanishLabel: item.label,
+    }));
+  }
+
+  private fallbackIavhBiomeRegionClasses(): IavhBiomeRegionClass[] {
+    return Array.from({ length: IAVH_BIOME_REGION_CLASS_COUNT }, (_, index) => {
+      const value = index + 1;
+      return { value, label: `IAvH class ${value}` };
+    });
+  }
+
+  private ensureIavhBiomeRegionLookupLoaded(): void {
+    if (this.iavhBiomeRegionClasses || this.iavhBiomeRegionLookupLoading) {
+      return;
+    }
+    this.iavhBiomeRegionLookupLoading = true;
+    this.http
+      .get(IAVH_BIOME_REGION_LOOKUP_URL, { responseType: 'text' })
+      .pipe(
+        catchError(() => of('')),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((csvText) => {
+        this.iavhBiomeRegionLookupLoading = false;
+        const classes = this.parseIavhBiomeRegionCsv(csvText);
+        if (classes.length === 0) {
+          return;
+        }
+        this.iavhBiomeRegionClasses = classes;
+        if (this.ecosystemClassificationView() === 'biomeRegion') {
+          this.refreshIavhEcosystemRendering();
+        }
+      });
+  }
+
+  private parseIavhBiomeRegionCsv(csvText: string): IavhBiomeRegionClass[] {
+    const [headerLine, ...dataLines] = csvText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (!headerLine) {
+      return [];
+    }
+    const headers = this.parseCsvLine(headerLine).map((header) => header.trim());
+    const biomeIndex = headers.indexOf('biome');
+    const biomeIdIndex = headers.indexOf('biome_id');
+    if (biomeIndex < 0 || biomeIdIndex < 0) {
+      return [];
+    }
+    return dataLines
+      .map((line) => {
+        const columns = this.parseCsvLine(line);
+        const value = Number(columns[biomeIdIndex]);
+        const label = columns[biomeIndex]?.trim();
+        return Number.isInteger(value) && label ? { value, label } : null;
+      })
+      .filter((item): item is IavhBiomeRegionClass => Boolean(item))
+      .sort((a, b) => a.value - b.value);
+  }
+
+  private parseCsvLine(line: string): string[] {
+    const columns: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let index = 0; index < line.length; index += 1) {
+      const char = line[index];
+      const nextChar = line[index + 1];
+      if (char === '"' && inQuotes && nextChar === '"') {
+        current += '"';
+        index += 1;
+        continue;
+      }
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (char === ',' && !inQuotes) {
+        columns.push(current);
+        current = '';
+        continue;
+      }
+      current += char;
+    }
+    columns.push(current);
+    return columns;
+  }
+
+  private colorForIavhBiomeRegion(label: string, value: number): string {
+    const familyRule =
+      IAVH_BIOME_FAMILY_COLOR_RULES.find((rule) => label.startsWith(rule.prefix)) ??
+      IAVH_BIOME_FAMILY_COLOR_RULES[IAVH_BIOME_FAMILY_COLOR_RULES.length - 1];
+    const lightnessSteps = [34, 40, 46, 52, 58, 64, 70, 44, 50, 56, 62, 68];
+    const lightness = lightnessSteps[value % lightnessSteps.length];
+    const hue = (familyRule.hue + ((value * 7) % 18) - 9 + 360) % 360;
+    return this.hslToHex(hue, familyRule.saturation, lightness);
+  }
+
+  private hslToHex(hue: number, saturationPercent: number, lightnessPercent: number): string {
+    const saturation = saturationPercent / 100;
+    const lightness = lightnessPercent / 100;
+    const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+    const huePrime = hue / 60;
+    const secondComponent = chroma * (1 - Math.abs((huePrime % 2) - 1));
+    const match = lightness - chroma / 2;
+    const [red, green, blue] =
+      huePrime < 1
+        ? [chroma, secondComponent, 0]
+        : huePrime < 2
+          ? [secondComponent, chroma, 0]
+          : huePrime < 3
+            ? [0, chroma, secondComponent]
+            : huePrime < 4
+              ? [0, secondComponent, chroma]
+              : huePrime < 5
+                ? [secondComponent, 0, chroma]
+                : [chroma, 0, secondComponent];
+    return `#${[red, green, blue]
+      .map((channel) =>
+        Math.round((channel + match) * 255)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')}`;
   }
 
   private manifestRowOpacity(): number {
@@ -2600,6 +2855,193 @@ export class MapLayersPanelComponent implements OnDestroy {
     return !!row && !row.mapUnavailable;
   }
 
+  protected isEcosystemClassificationRow(rowId: string): boolean {
+    return rowId === IAVH_ECOSYSTEM_LAYER_ID || rowId === 'layer-ecosistemas';
+  }
+
+  protected openEcosystemInfoModal(event?: Event): void {
+    event?.stopPropagation();
+    this.closeLayerInfoPopover();
+    this.loadEcosystemClassificationSummary();
+    this.ecosystemInfoModalOpen.set(true);
+  }
+
+  protected closeEcosystemInfoModal(): void {
+    this.ecosystemInfoModalOpen.set(false);
+  }
+
+  protected ecosystemClassificationSummarySections(): EcosystemClassificationSummarySection[] {
+    const summary = this.ecosystemClassificationSummary();
+    if (!summary) {
+      return [];
+    }
+    const sectionByView = new Map(
+      summary.classifications.map((section) => [section.view, section]),
+    );
+    return ECOSYSTEM_CLASSIFICATION_VIEW_OPTIONS.map((option) =>
+      sectionByView.get(option.value),
+    ).filter((section): section is EcosystemClassificationSummarySection => Boolean(section));
+  }
+
+  protected isEcosystemClassificationSummarySectionExpanded(view: string): boolean {
+    return this.expandedEcosystemClassificationSummaryViews().has(view);
+  }
+
+  protected toggleEcosystemClassificationSummarySection(view: string): void {
+    this.expandedEcosystemClassificationSummaryViews.update((expandedViews) => {
+      const next = new Set(expandedViews);
+      if (next.has(view)) {
+        next.delete(view);
+      } else {
+        next.add(view);
+      }
+      return next;
+    });
+  }
+
+  protected updateEcosystemClassificationSummaryFilter(view: string, value: string): void {
+    this.ecosystemClassificationSummaryFilterQueries.update((queries) => ({
+      ...queries,
+      [view]: value,
+    }));
+    this.ecosystemClassificationSummaryVisibleLimits.update((limits) => ({
+      ...limits,
+      [view]: ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT,
+    }));
+  }
+
+  protected ecosystemClassificationSummaryFilter(view: string): string {
+    return this.ecosystemClassificationSummaryFilterQueries()[view] ?? '';
+  }
+
+  protected visibleEcosystemClassificationValues(
+    section: EcosystemClassificationSummarySection,
+  ): EcosystemClassificationSummaryValue[] {
+    const query = this.ecosystemClassificationSummaryFilter(section.view)
+      .trim()
+      .toLocaleLowerCase();
+    const values = query
+      ? section.values.filter((value) => value.label.toLocaleLowerCase().includes(query))
+      : section.values;
+    return values.slice(0, this.ecosystemClassificationSummaryVisibleLimit(section.view));
+  }
+
+  protected ecosystemClassificationHiddenValueCount(
+    section: EcosystemClassificationSummarySection,
+  ): number {
+    const query = this.ecosystemClassificationSummaryFilter(section.view)
+      .trim()
+      .toLocaleLowerCase();
+    const values = query
+      ? section.values.filter((value) => value.label.toLocaleLowerCase().includes(query))
+      : section.values;
+    return Math.max(
+      0,
+      values.length - this.ecosystemClassificationSummaryVisibleLimit(section.view),
+    );
+  }
+
+  protected loadMoreEcosystemClassificationValues(view: string): void {
+    this.ecosystemClassificationSummaryVisibleLimits.update((limits) => ({
+      ...limits,
+      [view]:
+        this.ecosystemClassificationSummaryVisibleLimit(view) +
+        ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT,
+    }));
+  }
+
+  private ecosystemClassificationSummaryVisibleLimit(view: string): number {
+    return (
+      this.ecosystemClassificationSummaryVisibleLimits()[view] ??
+      ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT
+    );
+  }
+
+  protected formatEcosystemAreaSquareKilometers(value: number): string {
+    return new Intl.NumberFormat(this.activeLanguage(), {
+      maximumFractionDigits: 0,
+    }).format(value);
+  }
+
+  protected formatEcosystemPolygonCount(value: number): string {
+    return new Intl.NumberFormat(this.activeLanguage(), {
+      maximumFractionDigits: 0,
+    }).format(value);
+  }
+
+  protected formattedEcosystemClassificationSummaryGeneratedAt(): string | null {
+    const generatedAt = this.ecosystemClassificationSummary()?.generatedAt;
+    if (!generatedAt) {
+      return null;
+    }
+    return new Intl.DateTimeFormat(this.activeLanguage(), {
+      dateStyle: 'medium',
+    }).format(new Date(generatedAt));
+  }
+
+  private loadEcosystemClassificationSummary(): void {
+    if (this.ecosystemClassificationSummary() || this.ecosystemClassificationSummaryLoading()) {
+      return;
+    }
+    const metadataUrl = this.ecosystemLayerMetadataUrl();
+    if (!metadataUrl) {
+      this.ecosystemClassificationSummaryError.set(true);
+      return;
+    }
+    this.ecosystemClassificationSummaryLoading.set(true);
+    this.ecosystemClassificationSummaryError.set(false);
+    this.http
+      .get<EcosystemLayerMetadata>(metadataUrl)
+      .pipe(
+        switchMap((metadata) => {
+          const summaryUrl = metadata.references?.classificationSummaryUrl?.trim();
+          return summaryUrl ? this.http.get<EcosystemClassificationSummary>(summaryUrl) : of(null);
+        }),
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((summary) => {
+        this.ecosystemClassificationSummaryLoading.set(false);
+        if (!summary) {
+          this.ecosystemClassificationSummaryError.set(true);
+          return;
+        }
+        this.ecosystemClassificationSummary.set(summary);
+      });
+  }
+
+  private ecosystemLayerMetadataUrl(): string | null {
+    return (
+      this.findLayerControlRowById('layer-ecosistemas')?.metadataUrl ??
+      this.findLayerControlRowById(IAVH_ECOSYSTEM_LAYER_ID)?.metadataUrl ??
+      null
+    );
+  }
+
+  private refreshIavhEcosystemRendering(): void {
+    this.groups.update((groups) =>
+      groups.map((group) => ({
+        ...group,
+        rows: group.rows.map((row) => {
+          if (
+            !this.isEcosystemClassificationRow(row.id) ||
+            row.mapSync?.type !== 'manifest-raster'
+          ) {
+            return row;
+          }
+          return {
+            ...row,
+            mapSync: {
+              ...row.mapSync,
+              rendering: this.iavhEcosystemRenderingForSelectedView(),
+            },
+          };
+        }),
+      })),
+    );
+    this.syncGroupRowById('group-ecosystems', IAVH_ECOSYSTEM_LAYER_ID);
+  }
+
   protected toggleSelectedLayerVisibility(rowId: string): void {
     if (rowId.startsWith('overlay-')) {
       this.toggleOverlayVisibility(rowId);
@@ -2893,6 +3335,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       es: 'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. Son capas de entrada separadas, no clases extraídas del mapa completo de ecosistemas MEC.',
     };
     const layerInfoById: Record<string, { en: string; es: string }> = {
+      [IAVH_ECOSYSTEM_LAYER_ID]: ecosystemInfo,
       'layer-ecosistemas': ecosystemInfo,
       'layer-eco-types': ecosystemInfo,
       [STRATEGIC_ECOSYSTEM_GROUP_ROW_ID]: strategicInfo,
@@ -2930,13 +3373,22 @@ export class MapLayersPanelComponent implements OnDestroy {
       },
     };
 
-    if (row.id === 'layer-ecosistemas' || row.id === 'layer-eco-types') {
+    if (
+      row.id === IAVH_ECOSYSTEM_LAYER_ID ||
+      row.id === 'layer-ecosistemas' ||
+      row.id === 'layer-eco-types'
+    ) {
       return layerInfoById[row.id][language];
     }
     return (
       layerInfoById[row.id]?.[language] ??
       (row.id === STRATEGIC_ECOSYSTEM_GROUP_ROW_ID ? copy.groupNote : null)
     );
+  }
+
+  protected selectedLayerInfoText(rowId: string): string | null {
+    const row = this.findLayerControlRowById(rowId);
+    return row ? this.layerInfoText(row) : null;
   }
 
   private bindLayerInfoOutsidePointerListener(): void {
@@ -4027,6 +4479,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       row.mapSync.rendering.classColors.length > 0
     ) {
       const categories = this.groupLegendCategories(row);
+      const denseCategorySummary = this.denseLegendSummaryForRow(row, categories.length);
       return {
         id: row.id,
         name: row.name,
@@ -4034,7 +4487,8 @@ export class MapLayersPanelComponent implements OnDestroy {
         color: categories[0]?.color ?? row.color ?? '#64748b',
         lineStyle: 'solid',
         lineWidth: 1,
-        categories,
+        categories: denseCategorySummary ? undefined : categories,
+        denseCategorySummary,
       };
     }
 
@@ -4070,6 +4524,24 @@ export class MapLayersPanelComponent implements OnDestroy {
       });
     }
     return [...categoryByLabel.values()];
+  }
+
+  private denseLegendSummaryForRow(
+    row: LayerControlRow,
+    categoryCount: number,
+  ): MapLegendLayerEntry['denseCategorySummary'] {
+    if (
+      !this.isEcosystemClassificationRow(row.id) ||
+      this.ecosystemClassificationView() !== 'biomeRegion' ||
+      categoryCount < 25
+    ) {
+      return undefined;
+    }
+    return {
+      count: categoryCount,
+      messageKey: 'mapLegend.iavhDenseCategories',
+      sampleColors: [...IAVH_BIOME_REGION_SAMPLE_COLORS],
+    };
   }
 
   private isContinuousGradientRaster(row: LayerControlRow): row is LayerControlRow & {
@@ -5142,8 +5614,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (rowId === STRATEGIC_ECOSYSTEM_GROUP_ROW_ID) {
       return copy.strategicGroupName;
     }
-    if (rowId === 'layer-ecosistemas' || rowId === 'layer-eco-types') {
-      return copy.iavhRowName;
+    if (
+      rowId === IAVH_ECOSYSTEM_LAYER_ID ||
+      rowId === 'layer-ecosistemas' ||
+      rowId === 'layer-eco-types'
+    ) {
+      return this.localizedTextOrFallback('mapLayersPanel.ecosystemsLayerName', copy.iavhRowName);
     }
     return strategicNames[rowId]?.[this.activeLanguage()];
   }

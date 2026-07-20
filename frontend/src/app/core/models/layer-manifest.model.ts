@@ -191,6 +191,7 @@ export interface ManifestSidebarLayerRow {
   displayUrl: string | null;
   displayCollectionUrl: string | null;
   speciesManifestUrl: string | null;
+  metadataUrl: string | null;
   rendering: RuntimeLayerManifestRenderingConfig;
   hasDisplayAsset: boolean;
   isSpeciesCollection: boolean;
@@ -266,6 +267,7 @@ export function mapManifestLayerToSidebarRow(
     displayUrl: layer.displayUrl ?? null,
     displayCollectionUrl: layer.displayCollectionUrl ?? null,
     speciesManifestUrl: layer.speciesManifestUrl ?? null,
+    metadataUrl: layer.metadataUrl ?? null,
     rendering: layer.rendering,
     hasDisplayAsset: Boolean(layer.displayUrl ?? layer.displayCollectionUrl),
     isSpeciesCollection: layer.dataRole === 'manifest_for_species_layers',

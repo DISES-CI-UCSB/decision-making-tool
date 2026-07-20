@@ -14,6 +14,84 @@
   height: 0;
 }
 
+.map-layers-modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.map-layers-ecosystem-info-modal-shell {
+  height: 100%;
+  max-height: 100%;
+}
+
+.map-layers-ecosystem-classification-toggle-icon {
+  display: inline-block;
+  transform: rotate(0deg);
+  transition: transform 0.18s ease;
+}
+
+.map-layers-ecosystem-classification-toggle-icon-expanded {
+  transform: rotate(90deg);
+}
+
+.map-layers-ecosystem-classification-panel {
+  border-top-color: transparent;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.22s ease,
+    border-color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.map-layers-ecosystem-classification-panel-expanded {
+  border-top-color: rgb(226 232 240);
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.map-layers-modal-scrollbar::-webkit-scrollbar {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.map-layers-modal-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.map-layers-modal-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  background-color: transparent;
+}
+
+.map-layers-modal-scrollbar:hover,
+.map-layers-modal-scrollbar:focus-within,
+.map-layers-modal-scrollbar:active {
+  scrollbar-color: rgb(100 116 139 / 0.65) transparent;
+}
+
+.map-layers-modal-scrollbar:hover::-webkit-scrollbar-thumb,
+.map-layers-modal-scrollbar:focus-within::-webkit-scrollbar-thumb,
+.map-layers-modal-scrollbar:active::-webkit-scrollbar-thumb {
+  background-color: rgb(100 116 139 / 0.65);
+}
+
+@media (min-width: 640px) {
+  .map-layers-ecosystem-info-modal-shell {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-layers-ecosystem-classification-toggle-icon,
+  .map-layers-ecosystem-classification-panel {
+    transition: none;
+  }
+}
+
 .map-layers-layer-info-button {
   line-height: 1;
   transform: translateY(-2px);

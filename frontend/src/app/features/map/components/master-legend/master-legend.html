@@ -303,6 +303,37 @@
                         }
                       </span>
                     }
+                    @if (entry.denseCategorySummary; as summary) {
+                      <span
+                        [id]="'master-legend-layer-dense-summary-' + entry.id"
+                        class="mt-1.5 flex flex-col gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] leading-4 text-slate-600"
+                      >
+                        <span
+                          [id]="'master-legend-layer-dense-summary-samples-' + entry.id"
+                          class="inline-flex items-center gap-1"
+                          aria-hidden="true"
+                        >
+                          @for (
+                            sampleColor of summary.sampleColors;
+                            track sampleColor + '-' + $index
+                          ) {
+                            <span
+                              [id]="
+                                'master-legend-layer-dense-summary-swatch-' +
+                                entry.id +
+                                '-' +
+                                $index
+                              "
+                              class="inline-block h-2.5 w-2.5 rounded-[2px] border border-slate-300"
+                              [style.background-color]="sampleColor"
+                            ></span>
+                          }
+                        </span>
+                        <span [id]="'master-legend-layer-dense-summary-label-' + entry.id">
+                          {{ summary.messageKey | translate: { count: summary.count } }}
+                        </span>
+                      </span>
+                    }
                   </span>
                 </li>
               }

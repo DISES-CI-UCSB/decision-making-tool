@@ -35,6 +35,12 @@ export interface MapLegendLayerCategoryEntry {
   color: string;
 }
 
+export interface MapLegendDenseCategorySummary {
+  count: number;
+  messageKey: string;
+  sampleColors: string[];
+}
+
 export interface MapLegendLayerEntry {
   id: string;
   name: string;
@@ -43,6 +49,7 @@ export interface MapLegendLayerEntry {
   lineStyle: 'solid' | 'dashed';
   lineWidth: number;
   categories?: MapLegendLayerCategoryEntry[];
+  denseCategorySummary?: MapLegendDenseCategorySummary;
   gradientStartColor?: string;
   gradientEndColor?: string;
   gradientMinLabel?: string;
