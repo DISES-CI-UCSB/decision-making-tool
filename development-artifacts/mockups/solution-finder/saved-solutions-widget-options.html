@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html id="saved-solutions-options-html" lang="en">
+<head id="saved-solutions-options-head">
+  <meta id="saved-solutions-options-meta-charset" charset="UTF-8" />
+  <meta id="saved-solutions-options-meta-viewport" name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="saved-solutions-options-title">Saved Custom Solutions Widget — Layout Options</title>
+  <script id="saved-solutions-options-tailwind-cdn" src="https://cdn.tailwindcss.com"></script>
+</head>
+<body id="saved-solutions-options-body" class="min-h-screen bg-slate-100 p-8 font-sans text-slate-900 antialiased">
+  <main id="saved-solutions-options-main" class="mx-auto flex w-full max-w-5xl flex-col gap-8">
+    <header id="saved-solutions-options-header" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h1 id="saved-solutions-options-heading" class="text-lg font-bold text-slate-900">
+        Saved Custom Solutions Widget — Layout Exploration
+      </h1>
+      <p id="saved-solutions-options-subheading" class="mt-1 text-sm text-slate-600">
+        Baseline (today) plus 3 alternative layouts for the "find &amp; restore a saved solution" panel in the
+        Conservation Solution Search modal. Sample names deliberately vary in length ("balooga" vs. a long name)
+        to stress-test each layout.
+      </p>
+    </header>
+
+    <!-- BASELINE: current shipped implementation -->
+    <section id="saved-solutions-option-baseline" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div id="saved-solutions-option-baseline-header" class="mb-3">
+        <span id="saved-solutions-option-baseline-tag" class="inline-block rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-700">
+          Baseline (shipped today)
+        </span>
+        <h2 id="saved-solutions-option-baseline-title" class="mt-1.5 text-base font-bold text-slate-900">
+          Fixed-width pills, shrink-to-fit, horizontal scroll
+        </h2>
+        <p id="saved-solutions-option-baseline-caption" class="mt-1 text-xs text-slate-500">
+          Already shipped fix: pills hug their label width (<code id="saved-solutions-option-baseline-caption-code">w-fit</code>) instead of a fixed <code>w-48</code>.
+          Row still scrolls horizontally past a handful of items, and shows no solution-name/timestamp metadata.
+        </p>
+      </div>
+      <div id="saved-solutions-option-baseline-panel" class="rounded-md border border-slate-200 bg-slate-50 p-2">
+        <div id="saved-solutions-option-baseline-layout" class="grid items-center gap-x-1.5 gap-y-2 lg:grid-cols-[minmax(10.5rem,13rem)_minmax(13rem,16rem)_minmax(0,1fr)]">
+          <div id="saved-solutions-option-baseline-copy" class="min-w-0">
+            <h4 id="saved-solutions-option-baseline-copy-title" class="truncate text-xs font-extrabold uppercase tracking-[0.12em] text-slate-700">
+              Saved custom solutions
+            </h4>
+            <p id="saved-solutions-option-baseline-copy-help" class="mt-0.5 truncate text-[11px] leading-tight text-slate-500">
+              Select one to restore its finder controls.
+            </p>
+          </div>
+          <div id="saved-solutions-option-baseline-search-shell" class="relative w-full">
+            <input
+              id="saved-solutions-option-baseline-search-input"
+              type="search"
+              class="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+              placeholder="Search saved solutions..."
+            />
+          </div>
+          <div id="saved-solutions-option-baseline-results" class="flex min-w-0 gap-2 overflow-x-auto">
+            <button id="saved-solutions-option-baseline-pill-1" type="button" class="w-fit min-w-[3rem] max-w-[12rem] shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+              <span class="block max-w-[10.5rem] truncate text-xs font-extrabold text-slate-900">balooga</span>
+            </button>
+            <button id="saved-solutions-option-baseline-pill-2" type="button" class="w-fit min-w-[3rem] max-w-[12rem] shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+              <span class="block max-w-[10.5rem] truncate text-xs font-extrabold text-slate-900">Coastal priority run</span>
+            </button>
+            <button id="saved-solutions-option-baseline-pill-3" type="button" class="w-fit min-w-[3rem] max-w-[12rem] shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+              <span class="block max-w-[10.5rem] truncate text-xs font-extrabold text-slate-900">Andes water v2</span>
+            </button>
+            <button id="saved-solutions-option-baseline-pill-4" type="button" class="w-fit min-w-[3rem] max-w-[12rem] shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+              <span class="block max-w-[10.5rem] truncate text-xs font-extrabold text-slate-900">Long custom name testing overflow behavior</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <ul id="saved-solutions-option-baseline-notes" class="mt-3 list-inside list-disc space-y-1 text-xs text-slate-500">
+        <li>Permanently occupies a full-width strip above the 3 main step columns, even before it's used.</li>
+        <li>Horizontal scrollbar only becomes visible on hover in most browsers — easy to miss additional saved items.</li>
+        <li>No solution-name or "saved 2 days ago" context; no delete action.</li>
+      </ul>
+    </section>
+
+    <!-- OPTION A: wrapping chip cloud -->
+    <section id="saved-solutions-option-a" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div id="saved-solutions-option-a-header" class="mb-3">
+        <span id="saved-solutions-option-a-tag" class="inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700">
+          Option A — smallest change
+        </span>
+        <h2 id="saved-solutions-option-a-title" class="mt-1.5 text-base font-bold text-slate-900">
+          Wrapping chip cloud (same visual language, no more hidden scrollbar)
+        </h2>
+        <p id="saved-solutions-option-a-caption" class="mt-1 text-xs text-slate-500">
+          Swap <code id="saved-solutions-option-a-caption-code-1">overflow-x-auto</code> for <code>flex-wrap</code>. Everything is visible at a glance;
+          panel grows taller instead of scrolling sideways. Still no metadata, but a hover delete "×" is easy to bolt on.
+        </p>
+      </div>
+      <div id="saved-solutions-option-a-panel" class="rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div id="saved-solutions-option-a-toolbar" class="mb-2 flex items-center justify-between gap-2">
+          <div id="saved-solutions-option-a-copy" class="min-w-0">
+            <h4 id="saved-solutions-option-a-copy-title" class="text-xs font-extrabold uppercase tracking-[0.12em] text-slate-700">
+              Saved custom solutions
+            </h4>
+          </div>
+          <input
+            id="saved-solutions-option-a-search-input"
+            type="search"
+            class="w-48 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+            placeholder="Search saved solutions..."
+          />
+        </div>
+        <div id="saved-solutions-option-a-results" class="flex flex-wrap gap-2">
+          <button id="saved-solutions-option-a-pill-1" type="button" class="group inline-flex w-fit max-w-[12rem] items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+            <span class="block max-w-[9.5rem] truncate text-xs font-extrabold text-slate-900">balooga</span>
+            <span id="saved-solutions-option-a-pill-1-remove" class="ml-auto hidden shrink-0 text-slate-400 group-hover:inline hover:text-slate-700" aria-hidden="true">×</span>
+          </button>
+          <button id="saved-solutions-option-a-pill-2" type="button" class="group inline-flex w-fit max-w-[12rem] items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+            <span class="block max-w-[9.5rem] truncate text-xs font-extrabold text-slate-900">Coastal priority run</span>
+            <span class="ml-auto hidden shrink-0 text-slate-400 group-hover:inline hover:text-slate-700" aria-hidden="true">×</span>
+          </button>
+          <button id="saved-solutions-option-a-pill-3" type="button" class="group inline-flex w-fit max-w-[12rem] items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+            <span class="block max-w-[9.5rem] truncate text-xs font-extrabold text-slate-900">Andes water v2</span>
+            <span class="ml-auto hidden shrink-0 text-slate-400 group-hover:inline hover:text-slate-700" aria-hidden="true">×</span>
+          </button>
+          <button id="saved-solutions-option-a-pill-4" type="button" class="group inline-flex w-fit max-w-[12rem] items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+            <span class="block max-w-[9.5rem] truncate text-xs font-extrabold text-slate-900">Long custom name testing overflow</span>
+            <span class="ml-auto hidden shrink-0 text-slate-400 group-hover:inline hover:text-slate-700" aria-hidden="true">×</span>
+          </button>
+          <button id="saved-solutions-option-a-pill-5" type="button" class="group inline-flex w-fit max-w-[12rem] items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+            <span class="block max-w-[9.5rem] truncate text-xs font-extrabold text-slate-900">Jaguar corridor run</span>
+            <span class="ml-auto hidden shrink-0 text-slate-400 group-hover:inline hover:text-slate-700" aria-hidden="true">×</span>
+          </button>
+          <button id="saved-solutions-option-a-pill-6" type="button" class="group inline-flex w-fit max-w-[12rem] items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100">
+            <span class="block max-w-[9.5rem] truncate text-xs font-extrabold text-slate-900">Carbon shield draft</span>
+            <span class="ml-auto hidden shrink-0 text-slate-400 group-hover:inline hover:text-slate-700" aria-hidden="true">×</span>
+          </button>
+        </div>
+      </div>
+      <ul id="saved-solutions-option-a-notes" class="mt-3 list-inside list-disc space-y-1 text-xs text-slate-500">
+        <li>Everything visible without a scroll gesture — better discoverability than a hidden horizontal scrollbar.</li>
+        <li>At 12 items, panel can grow to 2–3 rows tall, pushing the 3 step columns down further in a modal with limited height.</li>
+        <li>Hover-reveal "×" is a natural place for delete, but still no room for solution-name/timestamp context.</li>
+      </ul>
+    </section>
+
+    <!-- OPTION B: trigger + popover vertical list -->
+    <section id="saved-solutions-option-b" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div id="saved-solutions-option-b-header" class="mb-3">
+        <span id="saved-solutions-option-b-tag" class="inline-block rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sky-700">
+          Option B — recommended structural fix
+        </span>
+        <h2 id="saved-solutions-option-b-title" class="mt-1.5 text-base font-bold text-slate-900">
+          Compact trigger button + popover list (metadata + delete)
+        </h2>
+        <p id="saved-solutions-option-b-caption" class="mt-1 text-xs text-slate-500">
+          Panel is replaced by a small "Saved solutions (6)" button that opens a flyout. Rows are full-width, so
+          name length is no longer a layout problem, and there's finally room for the underlying solution name,
+          relative timestamp, and a delete icon.
+        </p>
+      </div>
+      <div id="saved-solutions-option-b-panel" class="flex flex-col items-start gap-2 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <button
+          id="saved-solutions-option-b-trigger"
+          type="button"
+          onclick="document.getElementById('saved-solutions-option-b-flyout').classList.toggle('hidden')"
+          class="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800 transition hover:border-sky-300 hover:bg-sky-100"
+        >
+          <span aria-hidden="true">🕘</span>
+          Saved solutions (6)
+          <span aria-hidden="true">▾</span>
+        </button>
+
+        <div id="saved-solutions-option-b-flyout" class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+          <div id="saved-solutions-option-b-flyout-search-shell" class="relative mb-2">
+            <input
+              id="saved-solutions-option-b-flyout-search-input"
+              type="search"
+              class="w-full rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+              placeholder="Search saved solutions..."
+            />
+          </div>
+          <ul id="saved-solutions-option-b-flyout-list" class="max-h-56 space-y-0.5 overflow-y-auto">
+            <li id="saved-solutions-option-b-row-1" class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-sky-50">
+              <button type="button" class="min-w-0 flex-1 text-left">
+                <p class="truncate text-xs font-bold text-slate-900">balooga</p>
+                <p class="truncate text-[10px] text-slate-500">Ecos30 + RUNAP + OMEC (HF) &middot; 2 days ago</p>
+              </button>
+              <button type="button" class="hidden shrink-0 rounded-md px-1.5 py-1 text-slate-400 group-hover:inline hover:bg-rose-50 hover:text-rose-600" aria-label="Delete saved solution">🗑</button>
+            </li>
+            <li id="saved-solutions-option-b-row-2" class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-sky-50">
+              <button type="button" class="min-w-0 flex-1 text-left">
+                <p class="truncate text-xs font-bold text-slate-900">Coastal priority run</p>
+                <p class="truncate text-[10px] text-slate-500">Ecos17 + HF exclusion &middot; 3 days ago</p>
+              </button>
+              <button type="button" class="hidden shrink-0 rounded-md px-1.5 py-1 text-slate-400 group-hover:inline hover:bg-rose-50 hover:text-rose-600" aria-label="Delete saved solution">🗑</button>
+            </li>
+            <li id="saved-solutions-option-b-row-3" class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-sky-50">
+              <button type="button" class="min-w-0 flex-1 text-left">
+                <p class="truncate text-xs font-bold text-slate-900">Andes water v2</p>
+                <p class="truncate text-[10px] text-slate-500">Strategic ecosystems &middot; 1 week ago</p>
+              </button>
+              <button type="button" class="hidden shrink-0 rounded-md px-1.5 py-1 text-slate-400 group-hover:inline hover:bg-rose-50 hover:text-rose-600" aria-label="Delete saved solution">🗑</button>
+            </li>
+            <li id="saved-solutions-option-b-row-4" class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-sky-50">
+              <button type="button" class="min-w-0 flex-1 text-left">
+                <p class="truncate text-xs font-bold text-slate-900">Long custom name testing overflow behavior</p>
+                <p class="truncate text-[10px] text-slate-500">Species richness &middot; 2 weeks ago</p>
+              </button>
+              <button type="button" class="hidden shrink-0 rounded-md px-1.5 py-1 text-slate-400 group-hover:inline hover:bg-rose-50 hover:text-rose-600" aria-label="Delete saved solution">🗑</button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <ul id="saved-solutions-option-b-notes" class="mt-3 list-inside list-disc space-y-1 text-xs text-slate-500">
+        <li>Reclaims the full-width strip for the 3 step columns until the user actively wants to browse saved solutions.</li>
+        <li>Vertical list + normal scroll handles 12 items more gracefully than a horizontal strip; room for solution-name + timestamp + delete.</li>
+        <li>Costs one extra click before restoring a scenario, and needs outside-click/escape-to-close behavior.</li>
+      </ul>
+    </section>
+
+    <!-- OPTION C: searchable combobox -->
+    <section id="saved-solutions-option-c" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div id="saved-solutions-option-c-header" class="mb-3">
+        <span id="saved-solutions-option-c-tag" class="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-700">
+          Option C — most minimal footprint
+        </span>
+        <h2 id="saved-solutions-option-c-title" class="mt-1.5 text-base font-bold text-slate-900">
+          Single searchable combobox (one row, dropdown-on-type)
+        </h2>
+        <p id="saved-solutions-option-c-caption" class="mt-1 text-xs text-slate-500">
+          Collapses search + browse into one input. Typing (or clicking) opens a dropdown of matches with the same
+          metadata as Option B. Smallest permanent footprint of all four options — a single row, always.
+        </p>
+      </div>
+      <div id="saved-solutions-option-c-panel" class="rounded-md border border-slate-200 bg-slate-50 p-4">
+        <label id="saved-solutions-option-c-label" for="saved-solutions-option-c-combobox-input" class="mb-1 block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-700">
+          Saved custom solutions
+        </label>
+        <div id="saved-solutions-option-c-combobox-shell" class="relative max-w-sm">
+          <input
+            id="saved-solutions-option-c-combobox-input"
+            type="text"
+            onfocus="document.getElementById('saved-solutions-option-c-combobox-dropdown').classList.remove('hidden')"
+            class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+            placeholder="Jump to a saved solution..."
+          />
+          <div id="saved-solutions-option-c-combobox-dropdown" class="absolute left-0 top-full z-10 mt-1 w-full rounded-md border border-slate-200 bg-white p-1 shadow-lg">
+            <button type="button" class="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-sky-50">
+              <span class="truncate text-xs font-bold text-slate-900">balooga</span>
+              <span class="truncate text-[10px] text-slate-500">Ecos30 + RUNAP + OMEC (HF) &middot; 2 days ago</span>
+            </button>
+            <button type="button" class="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-sky-50">
+              <span class="truncate text-xs font-bold text-slate-900">Coastal priority run</span>
+              <span class="truncate text-[10px] text-slate-500">Ecos17 + HF exclusion &middot; 3 days ago</span>
+            </button>
+            <button type="button" class="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-sky-50">
+              <span class="truncate text-xs font-bold text-slate-900">Andes water v2</span>
+              <span class="truncate text-[10px] text-slate-500">Strategic ecosystems &middot; 1 week ago</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <ul id="saved-solutions-option-c-notes" class="mt-3 list-inside list-disc space-y-1 text-xs text-slate-500">
+        <li>Smallest permanent footprint (one row) of the four options; familiar "command palette" / autocomplete pattern.</li>
+        <li>Search and browse are the same control, which is efficient but hides the full list until you interact with it (no at-a-glance "you have 6 saved" signal unless a badge/counter is added elsewhere).</li>
+        <li>Delete would need a secondary affordance (e.g. an icon inside each dropdown row, or a "manage saved solutions" link).</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
