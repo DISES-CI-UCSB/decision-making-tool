@@ -9,12 +9,12 @@ import {
   type RuntimeLayerManifest,
   type RuntimeSpeciesManifest,
 } from '@core/models/layer-manifest.model';
+import {
+  LOCAL_RUNTIME_MANIFEST_PUBLIC_PATH,
+  RUNTIME_MANIFEST_BLOB_URL,
+} from '@core/config/runtime-manifest.constants';
 import { environment } from '../../../environments/environment';
 import { EMPTY, catchError, map, of, shareReplay, take, throwError, type Observable } from 'rxjs';
-
-const LOCAL_LAYER_MANIFEST_URL = '/data/layer-manifest/manifest.json';
-const PUBLISHED_LAYER_MANIFEST_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
 
 interface RuntimeManifestWindow {
   __MANIFEST_BLOB_URL__?: string;
@@ -100,11 +100,11 @@ export class LayerManifestService {
       return configuredBlobUrl;
     }
 
-    return PUBLISHED_LAYER_MANIFEST_URL;
+    return RUNTIME_MANIFEST_BLOB_URL;
   }
 
   private buildManifestUrlCandidates(): string[] {
-    return Array.from(new Set([this.resolvedManifestUrl, LOCAL_LAYER_MANIFEST_URL]));
+    return Array.from(new Set([this.resolvedManifestUrl, LOCAL_RUNTIME_MANIFEST_PUBLIC_PATH]));
   }
 
   private loadManifestWithFallback(manifestUrls: string[]): Observable<RuntimeLayerManifest> {

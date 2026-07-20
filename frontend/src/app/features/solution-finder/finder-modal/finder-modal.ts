@@ -14,6 +14,15 @@ import {
   inject,
 } from '@angular/core';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
+import {
+  getSolutionIncludeFlags,
+  getSolutionTargetLevel,
+  getSolutionTargetTypes,
+  normalizeSolutionToken,
+  solutionCostMatchesChoice,
+  type SolutionCostChoice,
+  type SolutionTargetType,
+} from '@core/models/solution-matching.utils';
 import type {
   FinderSelectionMemory,
   SavedSolutionScenario,
@@ -25,13 +34,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 type FinderMatchState = 'empty' | 'loading' | 'ready';
 
-type FinderTargetType =
-  | 'species-richness'
-  | 'ecosystems'
-  | 'strategic-ecosystems'
-  | 'ecosystem-services';
-
-type CostLayerChoice = 'human-footprint' | 'carbon-opportunity';
+type FinderTargetType = SolutionTargetType;
+type CostLayerChoice = SolutionCostChoice;
 
 type SirapRegionId =
   | 'caribe'
@@ -302,7 +306,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   protected isCostLayerAvailable(id: CostLayerChoice): boolean {
     return this.solutionCatalog
       .getAll()
-      .some((solution) => this.solutionCostMatchesChoice(solution, id));
+      .some((solution) => solutionCostMatchesChoice(solution, id));
   }
 
   protected selectCostLayer(id: CostLayerChoice): void {
@@ -563,9 +567,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private restoreSelectionsFromSolution(solution: CatalogSolution): void {
-    const normalizedScope = this.normalizeManifestToken(
-      solution.finderInputs.scope || solution.scope,
-    );
+    const normalizedScope = normalizeSolutionToken(solution.finderInputs.scope || solution.scope);
     this.selectedScope = normalizedScope === 'sirap' ? 'sirap' : 'nacional';
     this.selectedSirapRegion =
       this.selectedScope === 'sirap' && this.isSirapRegionId(solution.sirapId)
@@ -574,11 +576,11 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
     this.selectedTargetTypeIds = this.targetTypeOptions
       .map((option) => option.id)
-      .filter((type) => this.getSolutionTargetTypes(solution).has(type));
+      .filter((type) => getSolutionTargetTypes(solution).has(type));
 
     this.targetLevelByType = this.selectedTargetTypeIds.reduce<TargetLevelsByType>(
       (levels, type) => {
-        const level = this.getSolutionTargetLevel(solution, type);
+        const level = getSolutionTargetLevel(solution, type);
         if (level) {
           levels[type] = level;
         }
@@ -587,14 +589,14 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       {},
     );
 
-    const includeIds = this.getSolutionIncludeIds(solution);
-    this.includeOmecs = includeIds.some((id) => id.includes('omec'));
-    this.includeComunidades = includeIds.some((id) => id.includes('comunidades'));
-    this.includeResguardos = includeIds.some((id) => id.includes('resguardos'));
+    const includes = getSolutionIncludeFlags(solution);
+    this.includeOmecs = includes.omecs;
+    this.includeComunidades = includes.comunidades;
+    this.includeResguardos = includes.resguardos;
 
-    if (this.solutionCostMatchesChoice(solution, 'human-footprint')) {
+    if (solutionCostMatchesChoice(solution, 'human-footprint')) {
       this.selectedCostLayerId = 'human-footprint';
-    } else if (this.solutionCostMatchesChoice(solution, 'carbon-opportunity')) {
+    } else if (solutionCostMatchesChoice(solution, 'carbon-opportunity')) {
       this.selectedCostLayerId = 'carbon-opportunity';
     } else {
       this.selectedCostLayerId = null;
@@ -646,19 +648,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       return false;
     }
 
-    const includeIds = this.getSolutionIncludeIds(solution);
-    const hasOmec = includeIds.some((id) => id.includes('omec'));
-    if (hasOmec !== this.includeOmecs) {
+    const includes = getSolutionIncludeFlags(solution);
+    if (includes.omecs !== this.includeOmecs) {
       return false;
     }
 
-    const hasComunidades = includeIds.some((id) => id.includes('comunidades'));
-    if (hasComunidades !== this.includeComunidades) {
+    if (includes.comunidades !== this.includeComunidades) {
       return false;
     }
 
-    const hasResguardos = includeIds.some((id) => id.includes('resguardos'));
-    if (hasResguardos !== this.includeResguardos) {
+    if (includes.resguardos !== this.includeResguardos) {
       return false;
     }
 
@@ -700,9 +699,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private solutionScopeMatchesSelection(solution: CatalogSolution): boolean {
-    const solutionScope = this.normalizeManifestToken(
-      solution.finderInputs.scope || solution.scope,
-    );
+    const solutionScope = normalizeSolutionToken(solution.finderInputs.scope || solution.scope);
     if (solutionScope !== this.selectedScope) {
       return false;
     }
@@ -715,7 +712,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private solutionTargetTypesMatchSelection(solution: CatalogSolution): boolean {
-    const solutionTargetTypes = this.getSolutionTargetTypes(solution);
+    const solutionTargetTypes = getSolutionTargetTypes(solution);
     const selectedTargetTypes = this.selectedTargetTypeIds.filter((type) =>
       this.isTargetTypeAvailable(type),
     );
@@ -733,83 +730,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
         return false;
       }
 
-      return this.getSolutionTargetLevel(solution, type) === selectedLevel;
+      return getSolutionTargetLevel(solution, type) === selectedLevel;
     });
-  }
-
-  private getSolutionTargetTypes(solution: CatalogSolution): Set<FinderTargetType> {
-    const targetTypes = new Set<FinderTargetType>();
-    const targetFeatureSet = this.normalizeManifestToken(
-      solution.finderInputs.targetFeatureSet ?? '',
-    );
-    const targetFeatureIds = solution.finderInputs.targetFeatureIds.map((id) =>
-      this.normalizeManifestToken(id),
-    );
-
-    if (
-      targetFeatureSet.includes('strategic') ||
-      this.hasStrategicTargetFeatures(targetFeatureIds)
-    ) {
-      targetTypes.add('strategic-ecosystems');
-    }
-    if (targetFeatureSet === 'ecosystems' || targetFeatureIds.includes('ecosistemas')) {
-      targetTypes.add('ecosystems');
-    }
-    if (
-      targetFeatureSet.includes('species') ||
-      (!targetFeatureSet && targetFeatureIds.includes('species-richness'))
-    ) {
-      targetTypes.add('species-richness');
-    }
-
-    return targetTypes;
-  }
-
-  private hasStrategicTargetFeatures(targetFeatureIds: string[]): boolean {
-    return targetFeatureIds.some((id) =>
-      ['paramos', 'bosque-seco', 'wetlands', 'mangroves'].includes(id),
-    );
-  }
-
-  private getSolutionTargetLevel(
-    solution: CatalogSolution,
-    targetType: FinderTargetType,
-  ): 17 | 30 | null {
-    const parsedLevel = this.parseTargetLevelFromSolutionName(solution, targetType);
-    if (parsedLevel !== null) {
-      return parsedLevel;
-    }
-
-    const manifestLevel = solution.finderInputs.targetPercent;
-    return manifestLevel === 17 || manifestLevel === 30 ? manifestLevel : null;
-  }
-
-  private parseTargetLevelFromSolutionName(
-    solution: CatalogSolution,
-    targetType: FinderTargetType,
-  ): 17 | 30 | null {
-    const prefixByTargetType: Partial<Record<FinderTargetType, string>> = {
-      ecosystems: 'ecos',
-      'strategic-ecosystems': 'estr',
-    };
-    const prefix = prefixByTargetType[targetType];
-    if (!prefix) {
-      return null;
-    }
-
-    const source = `${solution.id} ${solution.name}`.toLowerCase();
-    const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
-    if (!match) {
-      return null;
-    }
-
-    return Number(match[1]) as 17 | 30;
-  }
-
-  private getSolutionIncludeIds(solution: CatalogSolution): string[] {
-    return [...solution.finderInputs.includeLayerIds, ...solution.inputLayerIds.includes].map(
-      (id) => this.normalizeManifestToken(id),
-    );
   }
 
   private solutionCostMatchesSelection(solution: CatalogSolution): boolean {
@@ -818,45 +740,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       return false;
     }
 
-    return this.solutionCostMatchesChoice(solution, selectedCostLayerId);
-  }
-
-  private solutionCostMatchesChoice(
-    solution: CatalogSolution,
-    selectedCostLayerId: CostLayerChoice,
-  ): boolean {
-    const costIds = [
-      solution.finderInputs.costLayerId,
-      solution.inputLayerIds.cost,
-      solution.costLayer,
-      solution.id,
-    ]
-      .filter((id): id is string => Boolean(id))
-      .map((id) => this.normalizeManifestToken(id));
-
-    return costIds.some((id) => this.costIdMatchesChoice(id, selectedCostLayerId));
-  }
-
-  private costIdMatchesChoice(costId: string, choice: CostLayerChoice): boolean {
-    switch (choice) {
-      case 'human-footprint':
-        return costId.includes('human-footprint') || costId.endsWith('-hf');
-      case 'carbon-opportunity':
-        return (
-          costId.includes('carbon') ||
-          costId.includes('net-benefit') ||
-          costId.includes('renta') ||
-          costId.includes('agropecuaria') ||
-          costId.endsWith('-co')
-        );
-    }
-  }
-
-  private normalizeManifestToken(value: string): string {
-    return value
-      .trim()
-      .toLowerCase()
-      .replace(/[_\s]+/g, '-');
+    return solutionCostMatchesChoice(solution, selectedCostLayerId);
   }
 
   private toSolutionMatch(solution: CatalogSolution): SolutionMatch {

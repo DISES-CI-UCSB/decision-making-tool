@@ -16,7 +16,6 @@ import {
   AppStateService,
   type ComparisonVisualizationMode,
 } from '@core/services/app-state.service';
-import { MockDataService } from '@core/services/mock-data.service';
 import type { LoadedSolution } from '@core/models/solution-catalog.model';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
 
@@ -40,7 +39,6 @@ const EARTH_RADIUS_KM = 6371.0088;
 const COLOMBIA_REFERENCE_AREA_KM2 = 1_141_748;
 const GRID_ABSOLUTE_TOLERANCE = 1e-7;
 const DEFAULT_RASTER_WKID = 4326;
-const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
 interface SolutionRenderOptions {
@@ -82,7 +80,6 @@ export interface LiveSolutionMetrics {
 export class SolutionLayerService {
   private readonly loader = inject(GeoTiffLoaderService);
   private readonly appState = inject(AppStateService);
-  private readonly mockData = inject(MockDataService);
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private currentLayer: SolutionDisplayLayer | null = null;
   private baselineComparisonLayer: SolutionDisplayLayer | null = null;
@@ -654,8 +651,6 @@ export class SolutionLayerService {
   }
 
   private toSidebarSolution(loaded: LoadedSolution): Solution {
-    const metricsFixture = this.mockData.getSolutionById(TEMPORARY_METRICS_FIXTURE_SOLUTION_ID);
-
     return {
       id: loaded.solution.id,
       name: loaded.solution.name,
@@ -669,7 +664,7 @@ export class SolutionLayerService {
         displayCogUrl: loaded.solution.displayCogUrl ?? null,
         metadataUrl: loaded.solution.metadataUrl,
       },
-      metrics: metricsFixture?.metrics ?? [],
+      metrics: [],
     };
   }
 

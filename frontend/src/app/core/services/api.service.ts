@@ -1,20 +1,12 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import {
-  type AnalysisMetricFixturesResponse,
-  type AoiMetricsResponse,
   type CachedSolutionMetricsDocument,
-  type CompareSolutionsResponse,
   type CustomPolygonMetricsRequest,
   type CustomPolygonMetricsResponse,
-  type LayerConfig,
-  type Solution,
 } from '@core/models';
-import { Observable, switchMap, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { type LayerStats, type MatchingResult, type MatchingTarget } from './mock-data.service';
-import { MockDataService } from './mock-data.service';
-import { wrapFlatMetricsResponse } from './cached-metrics.utils';
 import { SolutionMetricsLoaderService } from './solution-metrics-loader.service';
 
 @Injectable({
@@ -23,35 +15,10 @@ import { SolutionMetricsLoaderService } from './solution-metrics-loader.service'
 export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly metricsLoader = inject(SolutionMetricsLoaderService);
-  private readonly mockData = inject(MockDataService);
-  private readonly baseUrl = '/api';
   private readonly metricsApiBaseUrl = environment.metricsApiBaseUrl.replace(/\/$/, '');
 
-  getSolution(id: string): Observable<Solution> {
-    return this.http.get<Solution>(`${this.baseUrl}/solutions/${id}`);
-  }
-
-  getSolutionMetrics(id: string): Observable<CachedSolutionMetricsDocument> {
-    return this.metricsLoader.loadCachedMetrics(id).pipe(
-      switchMap((cached) => {
-        if (cached) {
-          return of(cached);
-        }
-        const mock = this.mockData.getSolutionMetrics(id);
-        if (mock) {
-          return of(wrapFlatMetricsResponse(mock));
-        }
-        return this.http.get<CachedSolutionMetricsDocument>(
-          `${this.baseUrl}/solutions/${id}/metrics`,
-        );
-      }),
-    );
-  }
-
-  getAOIMetrics(solutionId: string, aoiId: string): Observable<AoiMetricsResponse> {
-    return this.http.get<AoiMetricsResponse>(
-      `${this.baseUrl}/solutions/${solutionId}/aoi/${aoiId}/metrics`,
-    );
+  getSolutionMetrics(id: string): Observable<CachedSolutionMetricsDocument | null> {
+    return this.metricsLoader.loadCachedMetrics(id);
   }
 
   getCustomPolygonMetrics(
@@ -60,31 +27,6 @@ export class ApiService {
     return this.http.post<CustomPolygonMetricsResponse>(
       `${this.metricsApiBaseUrl}/metrics/custom-polygon`,
       request,
-    );
-  }
-
-  compareSolutions(id1: string, id2: string): Observable<CompareSolutionsResponse> {
-    const params = new HttpParams().set('id1', id1).set('id2', id2);
-    return this.http.get<CompareSolutionsResponse>(`${this.baseUrl}/solutions/compare`, {
-      params,
-    });
-  }
-
-  getLayers(): Observable<LayerConfig[]> {
-    return this.http.get<LayerConfig[]>(`${this.baseUrl}/layers`);
-  }
-
-  getLayerStats(id: string): Observable<LayerStats> {
-    return this.http.get<LayerStats>(`${this.baseUrl}/layers/${id}/stats`);
-  }
-
-  findMatchingSolutions(targets: MatchingTarget[]): Observable<MatchingResult[]> {
-    return this.http.post<MatchingResult[]>(`${this.baseUrl}/solutions/match`, targets);
-  }
-
-  getAnalysisMetricFixtures(solutionId: string): Observable<AnalysisMetricFixturesResponse> {
-    return this.http.get<AnalysisMetricFixturesResponse>(
-      `${this.baseUrl}/solutions/${solutionId}/metrics/fixtures/anl`,
     );
   }
 }

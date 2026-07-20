@@ -4,21 +4,25 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadLocalEnv } from './load-local-env.mjs';
+import {
+  LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
+  PUBLIC_BLOB_HOST,
+  RUNTIME_MANIFEST_BLOB_URL,
+} from '../shared/runtime-manifest.constants.mjs';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../..');
 
-const PUBLIC_BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
-const PUBLISHED_LAYER_MANIFEST_URL = `${PUBLIC_BLOB_HOST}/manifest/manifest.json`;
 const REQUIRED_LAYERS_CSV = path.resolve(
   repoRoot,
   'data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv',
 );
 const GENERATED_MANIFEST_PATH = path.resolve(
-  __dirname,
-  '../public/data/layer-manifest/manifest.json',
+  repoRoot,
+  'frontend',
+  LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
 );
 const REPORTS_ROOT = path.resolve(repoRoot, 'development-artifacts/layer-manifest/reports');
 const MANIFEST_ARCHIVE_ROOT = path.resolve(
@@ -369,8 +373,7 @@ const proposedLayerCategoryOverrides = {
 };
 
 const tooltipOverrideByLayerId = {
-  siraps:
-    `SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term "límites" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.`,
+  siraps: `SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term "límites" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.`,
   siraps_territorial:
     'Territorial SIRAPs are the broad regional conservation systems used as overarching SIRAP categories.',
   siraps_thematic:
@@ -1759,7 +1762,7 @@ async function loadExistingManifest(filePath) {
 }
 
 async function loadPublishedManifest() {
-  const uncachedUrl = `${PUBLISHED_LAYER_MANIFEST_URL}?v=${Date.now()}`;
+  const uncachedUrl = `${RUNTIME_MANIFEST_BLOB_URL}?v=${Date.now()}`;
   let response;
   try {
     response = await fetch(uncachedUrl, { method: 'GET', redirect: 'follow' });
@@ -1780,7 +1783,7 @@ async function loadPublishedManifest() {
   }
 
   try {
-    return createManifestIndex(await response.json(), PUBLISHED_LAYER_MANIFEST_URL);
+    return createManifestIndex(await response.json(), RUNTIME_MANIFEST_BLOB_URL);
   } catch (error) {
     console.warn(
       `[generate:layer-manifest] failed to parse published manifest: ${
@@ -2455,7 +2458,9 @@ async function main() {
     ),
   }));
   const preservedExistingSolutions =
-    preservedPublishedSolutions.length === 0 && solutionCatalog.solutions.length === 0 && solutions.length > 0
+    preservedPublishedSolutions.length === 0 &&
+    solutionCatalog.solutions.length === 0 &&
+    solutions.length > 0
       ? solutions
       : [];
   const solutionCatalogReport =
@@ -2466,21 +2471,21 @@ async function main() {
           publishedManifestIndex.source,
         )
       : preservedExistingSolutions.length > 0
-      ? {
-          ...solutionCatalog.report,
-          counts: {
-            ...solutionCatalog.report.counts,
-            preservedExistingSolutions: preservedExistingSolutions.length,
-          },
-          preservedExistingSolutions: preservedExistingSolutions.map((solution) => ({
-            id: solution.id,
-            name: solution.name,
-            scope: solution.scope,
-            displayUrl: solution.displayUrl,
-            metadataUrl: solution.metadataUrl,
-          })),
-        }
-      : solutionCatalog.report;
+        ? {
+            ...solutionCatalog.report,
+            counts: {
+              ...solutionCatalog.report.counts,
+              preservedExistingSolutions: preservedExistingSolutions.length,
+            },
+            preservedExistingSolutions: preservedExistingSolutions.map((solution) => ({
+              id: solution.id,
+              name: solution.name,
+              scope: solution.scope,
+              displayUrl: solution.displayUrl,
+              metadataUrl: solution.metadataUrl,
+            })),
+          }
+        : solutionCatalog.report;
   if (preservedPublishedSolutions.length > 0) {
     console.log(
       `[generate:layer-manifest] preserving ${preservedPublishedSolutions.length} published solution(s) from ${publishedManifestIndex.source}`,

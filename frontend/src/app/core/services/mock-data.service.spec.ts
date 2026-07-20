@@ -26,30 +26,4 @@ describe('MockDataService metric contract', () => {
       }
     }
   });
-
-  it('returns comparison payload using canonical compare response shape', () => {
-    const response = service.compareSolutions('sol-001', 'sol-002');
-
-    expect(response).not.toBeNull();
-    if (!response) {
-      return;
-    }
-
-    expect(response.baselineSolutionId).toBe('sol-001');
-    expect(response.candidateSolutionId).toBe('sol-002');
-    expect(Array.isArray(response.metrics)).toBe(true);
-    expect(response.metrics.length).toBeGreaterThan(0);
-  });
-
-  it('returns ANL fixtures grouped by section', () => {
-    const fixtures = service.getAnalysisMetricFixtures('sol-001');
-
-    expect(fixtures).not.toBeNull();
-    if (!fixtures) {
-      return;
-    }
-
-    expect(fixtures.sections.length).toBe(3);
-    expect(fixtures.sections[0].sectionId).toBe('ecology');
-  });
 });

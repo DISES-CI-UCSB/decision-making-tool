@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { RUNTIME_MANIFEST_BLOB_PATHNAME } from '@core/config/runtime-manifest.constants';
 import type {
   ManifestStyleRequestChanges,
   ManifestStyleRequestDiffSummary,
@@ -847,7 +848,7 @@ export class ManifestStyleEditorOverlayComponent {
     draftManifest: RuntimeLayerManifest,
     payload: { targetPath?: string; archivePath?: string; manifestUrl?: string } | null,
   ): void {
-    this.publishTargetPath.set(payload?.targetPath ?? 'manifest/manifest.json');
+    this.publishTargetPath.set(payload?.targetPath ?? RUNTIME_MANIFEST_BLOB_PATHNAME);
     this.publishArchivePath.set(payload?.archivePath ?? '');
     this.publishedManifestUrl.set(payload?.manifestUrl ?? '');
     this.publishState.set('success');

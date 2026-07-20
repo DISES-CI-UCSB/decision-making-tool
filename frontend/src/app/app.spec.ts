@@ -69,7 +69,10 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const component = fixture.componentInstance;
     const appState = TestBed.inject(AppStateService);
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
     const solutionLayer = TestBed.inject(SolutionLayerService);
+    const solution = buildManifestSolution();
+    vi.spyOn(solutionCatalog, 'getById').mockReturnValue(solution);
     const showSolutionSpy = vi.spyOn(solutionLayer, 'showSolution').mockResolvedValue(undefined);
     appState.setComparisonSolution({
       id: 'sol-002',
@@ -86,13 +89,13 @@ describe('App', () => {
         onSolutionApplied: (match: { solutionId: string }) => void;
       }
     ).onSolutionApplied({
-      solutionId: 'sol-001',
+      solutionId: solution.id,
     });
 
-    expect(appState.activeSolution$()?.id).toBe('sol-001');
+    expect(appState.activeSolution$()?.id).toBe(solution.id);
     expect(appState.comparisonSolution$()).toBeNull();
     expect(appState.rightSidebarMode$()).toBe('overview');
-    expect(showSolutionSpy).toHaveBeenCalledWith('sol-001');
+    expect(showSolutionSpy).toHaveBeenCalledWith(solution.id);
   });
 
   it('applies a real manifest solution id from the finder', () => {

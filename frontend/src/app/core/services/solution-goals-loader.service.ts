@@ -3,7 +3,12 @@ import { Injectable, inject } from '@angular/core';
 import type { SolutionGoalsDocument } from '@core/models';
 import { Observable, catchError, of } from 'rxjs';
 
-import { deriveBlobHostFromUrl } from './cached-metrics.utils';
+import {
+  buildGoalsUrl as buildGoalsBlobUrl,
+  deriveBlobHostFromUrl,
+  getPrecomputedMetricUrl,
+  PRECOMPUTED_METRIC_URL_KEYS,
+} from './cached-metrics.utils';
 import { SolutionCatalogService } from './solution-catalog.service';
 
 @Injectable({ providedIn: 'root' })
@@ -17,13 +22,16 @@ export class SolutionGoalsLoaderService {
       return null;
     }
 
-    const precomputedUrl = solution.precomputedMetricUrls?.['goals'];
+    const precomputedUrl = getPrecomputedMetricUrl(
+      solution.precomputedMetricUrls,
+      PRECOMPUTED_METRIC_URL_KEYS.goals,
+    );
     if (precomputedUrl) {
       return precomputedUrl;
     }
 
     const blobHost = deriveBlobHostFromUrl(solution.displayUrl);
-    return blobHost ? `${blobHost}/metrics/goals/${solutionId}.goals.json` : null;
+    return blobHost ? buildGoalsBlobUrl(blobHost, solutionId) : null;
   }
 
   loadGoals(solutionId: string): Observable<SolutionGoalsDocument | null> {

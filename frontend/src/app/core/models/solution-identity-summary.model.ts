@@ -1,5 +1,6 @@
 import type { Solution } from './solution.model';
 import type { CatalogSolution } from './solution-catalog.model';
+import { getSolutionIncludeIds, normalizeSolutionToken } from './solution-matching.utils';
 
 export interface SolutionIdentitySummary {
   title: string;
@@ -92,11 +93,7 @@ function buildCostItems(solution: CatalogSolution): string[] {
 }
 
 function buildIncludeItems(solution: CatalogSolution): string[] {
-  const includeIds = unique([
-    'runap',
-    ...solution.finderInputs.includeLayerIds,
-    ...solution.inputLayerIds.includes,
-  ]);
+  const includeIds = unique(['runap', ...getSolutionIncludeIds(solution)]);
 
   return unique(includeIds.map(labelInclude).filter(Boolean));
 }
@@ -112,7 +109,7 @@ function splitTokenList(value: string | null | undefined): string[] {
 }
 
 function labelTarget(value: string): string {
-  const normalized = normalizeToken(value);
+  const normalized = normalizeDisplayToken(value);
   if (normalized.includes('strategic') || normalized.includes('estr')) {
     return 'Strategic ecosystems';
   }
@@ -130,7 +127,7 @@ function labelTarget(value: string): string {
 }
 
 function labelCost(value: string): string {
-  const normalized = normalizeToken(value);
+  const normalized = normalizeDisplayToken(value);
   if (
     normalized.includes('carbon') ||
     normalized.includes('renta') ||
@@ -151,7 +148,7 @@ function labelCost(value: string): string {
 }
 
 function labelInclude(value: string): string {
-  const normalized = normalizeToken(value);
+  const normalized = normalizeDisplayToken(value);
   if (normalized.includes('runap')) {
     return 'RUNAP protected areas';
   }
@@ -167,11 +164,8 @@ function labelInclude(value: string): string {
   return titleCaseToken(value);
 }
 
-function normalizeToken(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s-]+/g, '-');
+function normalizeDisplayToken(value: string): string {
+  return normalizeSolutionToken(value).replace(/-+/g, '-');
 }
 
 function titleCaseToken(value: string): string {

@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import type { LoadedSolution } from '@core/models/solution-catalog.model';
 import { AppStateService } from '@core/services/app-state.service';
-import { MockDataService } from '@core/services/mock-data.service';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
@@ -88,17 +87,6 @@ describe('SolutionLayerService', () => {
     clearSolution: vi.fn(),
     showExistingProtectedCoverage$: vi.fn(() => true),
   };
-  const mockDataMock = {
-    getSolutionById: vi.fn().mockReturnValue({
-      id: 'sol-001',
-      name: 'Mock Solution',
-      description: 'Mock description',
-      matchPercentage: 75,
-      geometryUrl: '/mock.geojson',
-      metrics: [],
-    }),
-  };
-
   const mapMock = {
     add: vi.fn(),
     addMany: vi.fn(),
@@ -116,7 +104,6 @@ describe('SolutionLayerService', () => {
         SolutionLayerService,
         { provide: GeoTiffLoaderService, useValue: loaderMock },
         { provide: AppStateService, useValue: appStateMock },
-        { provide: MockDataService, useValue: mockDataMock },
       ],
     });
     service = TestBed.inject(SolutionLayerService);

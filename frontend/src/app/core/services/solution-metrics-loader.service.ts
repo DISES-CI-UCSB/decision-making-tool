@@ -5,8 +5,11 @@ import { Observable, catchError, map, of } from 'rxjs';
 
 import {
   buildCachedMetricsUrl,
+  buildStagingCompactMetricsUrl,
   deriveBlobHostFromUrl,
+  getPrecomputedMetricUrl,
   normalizeMetricsDocument,
+  PRECOMPUTED_METRIC_URL_KEYS,
 } from './cached-metrics.utils';
 import { SolutionCatalogService } from './solution-catalog.service';
 
@@ -16,7 +19,7 @@ import { SolutionCatalogService } from './solution-catalog.service';
  *
  * The document holds metrics for every supported geography level (national,
  * departments, municipalities, SIRAPs). Returns `null` when the blob is not
- * published yet so callers can fall back to mock data.
+ * published yet.
  */
 @Injectable({ providedIn: 'root' })
 export class SolutionMetricsLoaderService {
@@ -28,16 +31,16 @@ export class SolutionMetricsLoaderService {
     if (!solution?.displayUrl) {
       return null;
     }
-    const precomputedUrl =
-      solution.precomputedMetricUrls?.['compactCache'] ??
-      solution.precomputedMetricUrls?.['compact'] ??
-      solution.precomputedMetricUrls?.['cache'];
+    const precomputedUrl = getPrecomputedMetricUrl(
+      solution.precomputedMetricUrls,
+      PRECOMPUTED_METRIC_URL_KEYS.cache,
+    );
     if (precomputedUrl) {
       return precomputedUrl;
     }
-    const nickRunCompactUrl = this.buildNickRunCompactCacheUrl(solution.displayUrl, solutionId);
-    if (nickRunCompactUrl) {
-      return nickRunCompactUrl;
+    const stagingUrl = buildStagingCompactMetricsUrl(solution.displayUrl, solutionId);
+    if (stagingUrl) {
+      return stagingUrl;
     }
     const blobHost = deriveBlobHostFromUrl(solution.displayUrl);
     if (!blobHost) {
@@ -57,18 +60,5 @@ export class SolutionMetricsLoaderService {
         map((document) => normalizeMetricsDocument(document)),
         catchError(() => of(null)),
       );
-  }
-
-  private buildNickRunCompactCacheUrl(displayUrl: string, solutionId: string): string | null {
-    try {
-      const url = new URL(displayUrl);
-      const match = url.pathname.match(/^\/solutions\/nick-runs\/([^/]+)\//);
-      if (!match?.[1]) {
-        return null;
-      }
-      return `${url.origin}/metrics/nick-runs/${match[1]}/compact-cache/${solutionId}.metrics.compact.json`;
-    } catch {
-      return null;
-    }
   }
 }

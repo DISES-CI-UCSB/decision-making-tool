@@ -3,7 +3,6 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import type { CachedSolutionMetricsDocument, CustomPolygonMetricsRequest } from '@core/models';
 import { environment } from '../../../environments/environment';
-import { MockDataService } from './mock-data.service';
 import { SolutionMetricsLoaderService } from './solution-metrics-loader.service';
 import { ApiService } from './api.service';
 import { of } from 'rxjs';
@@ -12,18 +11,15 @@ describe('ApiService', () => {
   let service: ApiService;
   let httpMock: HttpTestingController;
   let metricsLoader: { loadCachedMetrics: ReturnType<typeof vi.fn> };
-  let mockData: { getSolutionMetrics: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     metricsLoader = { loadCachedMetrics: vi.fn() };
-    mockData = { getSolutionMetrics: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: SolutionMetricsLoaderService, useValue: metricsLoader },
-        { provide: MockDataService, useValue: mockData },
       ],
     });
 
@@ -113,7 +109,19 @@ describe('ApiService', () => {
     });
 
     expect(metricsLoader.loadCachedMetrics).toHaveBeenCalledWith('solution-with-cache');
-    expect(mockData.getSolutionMetrics).not.toHaveBeenCalled();
     expect(result).toBe(cachedDocument);
+  });
+
+  it('returns a missing cached document without requesting a mock API fallback', () => {
+    metricsLoader.loadCachedMetrics.mockReturnValue(of(null));
+
+    let result: unknown = 'pending';
+    service.getSolutionMetrics('solution-without-cache').subscribe((response) => {
+      result = response;
+    });
+
+    expect(metricsLoader.loadCachedMetrics).toHaveBeenCalledWith('solution-without-cache');
+    expect(result).toBeNull();
+    httpMock.expectNone((request) => request.url.startsWith('/api/'));
   });
 });

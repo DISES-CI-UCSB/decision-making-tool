@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { RUNTIME_MANIFEST_BLOB_URL } from '../../shared/runtime-manifest.constants.mjs';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -11,9 +12,11 @@ const frontendRoot = path.resolve(__dirname, '../..');
 const repoRoot = path.resolve(frontendRoot, '..');
 
 const DEFAULT_UPLOAD_REPORT_PATH = path.resolve(repoRoot, 'data/cog/generated/upload-report.json');
-const DEFAULT_MANIFEST_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
-const DEFAULT_OUTPUT_DIR = path.resolve(frontendRoot, 'development-artifacts/layer-manifest/publish');
+const DEFAULT_MANIFEST_URL = RUNTIME_MANIFEST_BLOB_URL;
+const DEFAULT_OUTPUT_DIR = path.resolve(
+  frontendRoot,
+  'development-artifacts/layer-manifest/publish',
+);
 
 function parseArgs(rawArgs) {
   const args = {
@@ -31,7 +34,10 @@ function parseArgs(rawArgs) {
       continue;
     }
     if (value === '--upload-report') {
-      args.uploadReportPath = path.resolve(process.cwd(), rawArgs[index + 1] ?? args.uploadReportPath);
+      args.uploadReportPath = path.resolve(
+        process.cwd(),
+        rawArgs[index + 1] ?? args.uploadReportPath,
+      );
       index += 1;
       continue;
     }
@@ -78,7 +84,9 @@ async function fetchJson(url) {
 
 function solutionCogEntries(uploadReport) {
   if (uploadReport.dryRun === true) {
-    throw new Error('Upload report is marked dryRun=true; run upload:solutions-cogs without --dry-run before publishing.');
+    throw new Error(
+      'Upload report is marked dryRun=true; run upload:solutions-cogs without --dry-run before publishing.',
+    );
   }
 
   const entries = Array.isArray(uploadReport.entries) ? uploadReport.entries : [];
@@ -123,7 +131,9 @@ function applyDisplayCogUrls(manifest, uploadReport) {
     .map((entry) => entry.solutionId)
     .filter((solutionId) => !updatedSolutionIds.includes(solutionId));
   if (missing.length > 0) {
-    throw new Error(`Upload report references solution ids missing from manifest: ${missing.join(', ')}`);
+    throw new Error(
+      `Upload report references solution ids missing from manifest: ${missing.join(', ')}`,
+    );
   }
 
   return {
@@ -163,17 +173,24 @@ async function main() {
 
   const uploadReport = await readJson(args.uploadReportPath);
   const manifest = await fetchJson(args.manifestUrl);
-  const { manifest: updatedManifest, updatedSolutionIds } = applyDisplayCogUrls(manifest, uploadReport);
+  const { manifest: updatedManifest, updatedSolutionIds } = applyDisplayCogUrls(
+    manifest,
+    uploadReport,
+  );
   const artifactPath = await writeManifestArtifact(updatedManifest, args.outputDir);
 
   console.log(
     `[publish-solution-cog-manifest] wrote ${path.relative(repoRoot, artifactPath)} with ${updatedSolutionIds.length} displayCogUrl value(s)`,
   );
 
-  await runNodeScript(path.resolve(frontendRoot, 'layer-manifest/validate-manifest.mjs'), [artifactPath]);
+  await runNodeScript(path.resolve(frontendRoot, 'layer-manifest/validate-manifest.mjs'), [
+    artifactPath,
+  ]);
 
   if (!args.publish) {
-    console.log('[publish-solution-cog-manifest] validation passed. Re-run with --publish to upload manifest.');
+    console.log(
+      '[publish-solution-cog-manifest] validation passed. Re-run with --publish to upload manifest.',
+    );
     return;
   }
 
@@ -184,6 +201,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`[publish-solution-cog-manifest] ${(error instanceof Error && error.message) || String(error)}`);
+  console.error(
+    `[publish-solution-cog-manifest] ${(error instanceof Error && error.message) || String(error)}`,
+  );
   process.exit(1);
 });

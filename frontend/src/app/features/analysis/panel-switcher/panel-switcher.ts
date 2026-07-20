@@ -18,6 +18,13 @@ import {
   type SolutionGoalsDocument,
   type CatalogSolution,
 } from '@core/models';
+import {
+  getSolutionIncludeFlags,
+  getSolutionTargetLevel,
+  getSolutionTargetTypes,
+  normalizeSolutionToken,
+  solutionCostMatchesChoice,
+} from '@core/models/solution-matching.utils';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { metricsForScope, nationalMetrics } from '@core/services/cached-metrics.utils';
@@ -2399,46 +2406,32 @@ export class PanelSwitcherComponent {
     scenario: CatalogSolution,
   ): { label: string; coveragePercent: number }[] {
     const targets = new Map<string, { label: string; coveragePercent: number }>();
-    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
     const targetFeatureSet = this.normalizeManifestToken(
       scenario.finderInputs.targetFeatureSet ?? '',
     );
-    const targetFeatureIds = scenario.finderInputs.targetFeatureIds.map((id) =>
-      this.normalizeManifestToken(id),
-    );
+    const targetTypes = getSolutionTargetTypes(scenario, { inferFromName: true });
 
-    if (
-      targetFeatureSet === 'ecosystems' ||
-      targetFeatureIds.includes('ecosistemas') ||
-      source.includes('ecos')
-    ) {
+    if (targetTypes.has('ecosystems')) {
       targets.set('ecosystems', {
         label: this.localizedText('solutionControls.finder.step1.ecosystemsLabel'),
-        coveragePercent: this.getScenarioTargetPercent(scenario, 'ecos'),
+        coveragePercent:
+          getSolutionTargetLevel(scenario, 'ecosystems') ?? scenario.ecosystemTargets,
       });
     }
 
-    if (
-      targetFeatureSet.includes('strategic') ||
-      targetFeatureIds.some((id) =>
-        ['paramos', 'bosque-seco', 'wetlands', 'mangroves'].includes(id),
-      ) ||
-      source.includes('estr')
-    ) {
+    if (targetTypes.has('strategic-ecosystems')) {
       targets.set('strategic-ecosystems', {
         label: this.localizedText('solutionControls.finder.step1.strategicEcosystemsLabel'),
-        coveragePercent: this.getScenarioTargetPercent(scenario, 'estr'),
+        coveragePercent:
+          getSolutionTargetLevel(scenario, 'strategic-ecosystems') ?? scenario.ecosystemTargets,
       });
     }
 
-    if (
-      targetFeatureSet.includes('species') ||
-      targetFeatureIds.includes('species-richness') ||
-      source.includes('esp')
-    ) {
+    if (targetTypes.has('species-richness')) {
       targets.set('species-richness', {
         label: this.localizedText('solutionControls.finder.step1.speciesRichnessLabel'),
-        coveragePercent: this.getScenarioTargetPercent(scenario, 'esp'),
+        coveragePercent:
+          getSolutionTargetLevel(scenario, 'species-richness') ?? scenario.ecosystemTargets,
       });
     }
 
@@ -2472,7 +2465,7 @@ export class PanelSwitcherComponent {
   private buildScenarioIncludedAreaSelections(
     scenario: CatalogSolution,
   ): { label: string; selection: string }[] {
-    const tokens = this.getScenarioIncludeTokens(scenario);
+    const includes = getSolutionIncludeFlags(scenario, scenario.constraints);
     const selections = [
       {
         key: 'runap',
@@ -2483,19 +2476,19 @@ export class PanelSwitcherComponent {
       {
         key: 'omec',
         label: this.localizedText('analysis.exports.metadata.omecs'),
-        selected: tokens.some((token) => token.includes('omec')),
+        selected: includes.omecs,
         selection: this.localizedText('analysis.exports.metadata.selected'),
       },
       {
         key: 'comunidades',
         label: this.localizedText('analysis.exports.metadata.afroColombianTerritories'),
-        selected: tokens.some((token) => token.includes('comunidades') || token === 'com'),
+        selected: includes.comunidades,
         selection: this.localizedText('analysis.exports.metadata.selected'),
       },
       {
         key: 'resguardos',
         label: this.localizedText('analysis.exports.metadata.indigenousReserves'),
-        selected: tokens.some((token) => token.includes('resguardos') || token === 'res'),
+        selected: includes.resguardos,
         selection: this.localizedText('analysis.exports.metadata.selected'),
       },
     ];
@@ -2503,20 +2496,6 @@ export class PanelSwitcherComponent {
     return selections
       .filter((selection) => selection.selected)
       .map(({ label, selection }) => ({ label, selection }));
-  }
-
-  private getScenarioIncludeTokens(scenario: CatalogSolution): string[] {
-    return [
-      ...scenario.finderInputs.includeLayerIds,
-      ...scenario.inputLayerIds.includes,
-      ...scenario.constraints,
-    ].map((id) => this.normalizeManifestToken(id));
-  }
-
-  private getScenarioTargetPercent(scenario: CatalogSolution, prefix: string): number {
-    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
-    const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
-    return match ? Number(match[1]) : scenario.ecosystemTargets;
   }
 
   private getScenarioSelectionLabel(id: string): string {
@@ -2549,14 +2528,7 @@ export class PanelSwitcherComponent {
       return layerLabel;
     }
 
-    const costSource = `${costLayerId ?? ''} ${scenario.costLayer}`.toLowerCase();
-    if (
-      costSource.includes('carbon') ||
-      costSource.includes('net-benefit') ||
-      costSource.includes('renta') ||
-      costSource.includes('agropecuaria') ||
-      costSource.includes('_co')
-    ) {
+    if (solutionCostMatchesChoice(scenario, 'carbon-opportunity')) {
       return this.localizedText('solutionControls.finder.step2b.carbonOpportunityLabel');
     }
 
@@ -2577,11 +2549,7 @@ export class PanelSwitcherComponent {
   }
 
   private normalizeManifestToken(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/_/g, '-')
-      .toLowerCase();
+    return normalizeSolutionToken(value, { stripDiacritics: true });
   }
 
   private humanizeManifestToken(value: string): string {

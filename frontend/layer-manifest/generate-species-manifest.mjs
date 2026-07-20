@@ -4,13 +4,13 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadLocalEnv } from './load-local-env.mjs';
+import { PUBLIC_BLOB_HOST } from '../shared/runtime-manifest.constants.mjs';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../..');
 
-const PUBLIC_BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
 const SPECIES_BLOB_PREFIX = 'inputs/features/species/';
 const OUTPUT_PATH = path.resolve(__dirname, '../public/data/layer-manifest/species.manifest.json');
 const DEFAULT_VERSION = '0.1.0';
@@ -185,13 +185,7 @@ function speciesManifestArchivePathname(archivePrefix, timestampIso) {
 }
 
 async function publishSpeciesManifestToVercelBlob(options) {
-  const {
-    token,
-    sourcePath,
-    targetPathname,
-    archivePrefix,
-    skipArchive,
-  } = options;
+  const { token, sourcePath, targetPathname, archivePrefix, skipArchive } = options;
 
   await fs.access(sourcePath);
 
@@ -201,7 +195,9 @@ async function publishSpeciesManifestToVercelBlob(options) {
   if (currentRemote && !skipArchive) {
     const archivePathname = speciesManifestArchivePathname(archivePrefix, new Date().toISOString());
     const archivedUrl = await copyBlobForUpload(token, currentRemote.url, archivePathname);
-    console.log(`[generate:species-manifest] archived previous species manifest to ${archivePathname}`);
+    console.log(
+      `[generate:species-manifest] archived previous species manifest to ${archivePathname}`,
+    );
     if (archivedUrl) {
       console.log(`[generate:species-manifest] species manifest archive URL: ${archivedUrl}`);
     }
@@ -210,7 +206,9 @@ async function publishSpeciesManifestToVercelBlob(options) {
   }
 
   const uploadedUrl = await putBlobForUpload(token, sourcePath, targetPathname);
-  console.log(`[generate:species-manifest] published species manifest to blob pathname ${targetPathname}`);
+  console.log(
+    `[generate:species-manifest] published species manifest to blob pathname ${targetPathname}`,
+  );
   if (uploadedUrl) {
     console.log(`[generate:species-manifest] species manifest URL: ${uploadedUrl}`);
   }
@@ -400,7 +398,10 @@ function stripSpeciesFilenameSuffix(fileStem) {
 function normalizeScientificName(pathname) {
   const fileName = path.posix.basename(pathname).replace(/\.[^.]+$/, '');
   const stem = stripSpeciesFilenameSuffix(fileName);
-  const tokens = stem.split('_').map((token) => token.trim()).filter(Boolean);
+  const tokens = stem
+    .split('_')
+    .map((token) => token.trim())
+    .filter(Boolean);
   if (tokens.length === 0) {
     return 'Unknown species';
   }
@@ -478,7 +479,9 @@ async function loadSpeciesTaxonomyLookup(csvPath, csvUrl) {
   let csvText = '';
   try {
     csvText = await fs.readFile(csvPath, 'utf-8');
-    console.log(`[generate:species-manifest] loaded taxonomy CSV from ${path.relative(repoRoot, csvPath)}`);
+    console.log(
+      `[generate:species-manifest] loaded taxonomy CSV from ${path.relative(repoRoot, csvPath)}`,
+    );
   } catch (localCsvError) {
     const response = await fetch(csvUrl, { method: 'GET' });
     if (!response.ok) {
@@ -790,17 +793,17 @@ async function main() {
 
   const { layers, failures, csvTaxonCount, pathnameTaxonCount, missingTaxonCount } =
     await processWithConcurrency(
-    targetBlobs,
-    sampleGridSize,
-    concurrency,
-    retryAttempts,
-    speciesTaxonomyLookup,
-    {
-      baseRequestDelayMs,
-      requestJitterMs,
-      retryJitterMs,
-    },
-  );
+      targetBlobs,
+      sampleGridSize,
+      concurrency,
+      retryAttempts,
+      speciesTaxonomyLookup,
+      {
+        baseRequestDelayMs,
+        requestJitterMs,
+        retryJitterMs,
+      },
+    );
   const manifest = {
     version: DEFAULT_VERSION,
     generatedAt: new Date().toISOString(),
@@ -829,7 +832,9 @@ async function main() {
   } else if (!skipBlobUpload) {
     const token = process.env[BLOB_TOKEN_ENV_VAR];
     if (!token) {
-      console.warn(`[generate:species-manifest] skipping blob upload (${BLOB_TOKEN_ENV_VAR} missing after local write)`);
+      console.warn(
+        `[generate:species-manifest] skipping blob upload (${BLOB_TOKEN_ENV_VAR} missing after local write)`,
+      );
     } else {
       const targetPathname = readOptionalStringEnv(
         'SPECIES_MANIFEST_BLOB_PATHNAME',
@@ -857,6 +862,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`[generate:species-manifest] ${(error instanceof Error && error.message) || String(error)}`);
+  console.error(
+    `[generate:species-manifest] ${(error instanceof Error && error.message) || String(error)}`,
+  );
   process.exit(1);
 });

@@ -4,6 +4,12 @@ import type {
   RuntimeSolutionManifestEntry,
 } from '@core/models/layer-manifest.model';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
+import {
+  getSolutionCostLabel,
+  getSolutionIncludeFlags,
+  inferSolutionTargetPercent,
+  isConflictCostSolution,
+} from '@core/models/solution-matching.utils';
 import { LayerManifestService } from './layer-manifest.service';
 
 /**
@@ -28,7 +34,7 @@ export class SolutionCatalogService {
         this.layersState.set(manifest.layers ?? []);
         this.solutionsState.set(
           (manifest.solutions ?? [])
-            .filter((solution) => !this.isConflictCostSolution(solution))
+            .filter((solution) => !isConflictCostSolution(solution))
             .map((solution) => this.toSolution(solution)),
         );
         this.hasLoadedState.set(true);
@@ -64,9 +70,10 @@ export class SolutionCatalogService {
   }
 
   private toSolution(solution: RuntimeSolutionManifestEntry): CatalogSolution {
-    const targetPercent = solution.finderInputs.targetPercent ?? this.inferTargetPercent(solution);
+    const targetPercent =
+      solution.finderInputs.targetPercent ?? inferSolutionTargetPercent(solution);
     const constraints = this.getConstraintLabels(solution);
-    const costLayer = this.getCostLayerLabel(solution);
+    const costLayer = getSolutionCostLabel(solution);
     const targetFeatureSet = solution.finderInputs.targetFeatureSet?.replace(/_/g, '-');
     const targetLabel = targetFeatureSet?.includes('strategic')
       ? 'strategic ecosystems'
@@ -99,50 +106,18 @@ export class SolutionCatalogService {
   }
 
   private getConstraintLabels(solution: RuntimeSolutionManifestEntry): string[] {
-    const includeIds = new Set(solution.finderInputs.includeLayerIds);
-    const inputIncludeIds = new Set(solution.inputLayerIds.includes);
-    const hasInclude = (idPart: string): boolean =>
-      [...includeIds, ...inputIncludeIds].some((id) => id.toLowerCase().includes(idPart));
-
+    const includes = getSolutionIncludeFlags(solution);
     const constraints = ['RUNAP'];
-    if (hasInclude('omec')) {
+    if (includes.omecs) {
       constraints.push('OMECs');
     }
-    if (hasInclude('comunidades')) {
+    if (includes.comunidades) {
       constraints.push('Com');
     }
-    if (hasInclude('resguardos')) {
+    if (includes.resguardos) {
       constraints.push('Res');
     }
 
     return constraints;
-  }
-
-  private inferTargetPercent(solution: RuntimeSolutionManifestEntry): number {
-    const source = `${solution.id} ${solution.name}`.toLowerCase();
-    const match = source.match(/(?:ecos|estr)(17|30)(?!\d)/);
-    return match ? Number(match[1]) : 0;
-  }
-
-  private isConflictCostSolution(solution: RuntimeSolutionManifestEntry): boolean {
-    const costLayerId = solution.finderInputs.costLayerId ?? solution.inputLayerIds.cost ?? '';
-    const source = `${costLayerId} ${solution.id} ${solution.name}`.toLowerCase();
-    return source.includes('conflict') || source.includes('conflicto');
-  }
-
-  private getCostLayerLabel(solution: RuntimeSolutionManifestEntry): string {
-    const costLayerId = solution.finderInputs.costLayerId ?? solution.inputLayerIds.cost ?? '';
-    const normalizedCostId = costLayerId.toLowerCase();
-
-    if (
-      normalizedCostId.includes('carbon') ||
-      normalizedCostId.includes('renta') ||
-      normalizedCostId.includes('agropecuaria') ||
-      normalizedCostId === 'co' ||
-      normalizedCostId.endsWith('_co')
-    ) {
-      return 'Net Benefit (Renta agropecuaria)';
-    }
-    return 'Human Footprint';
   }
 }

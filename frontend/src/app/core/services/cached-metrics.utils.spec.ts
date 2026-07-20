@@ -1,9 +1,13 @@
 import {
   buildCachedMetricsBlobPath,
   buildCachedMetricsUrl,
+  buildGoalsUrl,
+  buildStagingCompactMetricsUrl,
   expandCompactMetricsDocument,
+  getPrecomputedMetricUrl,
   metricsForScope,
   nationalMetrics,
+  PRECOMPUTED_METRIC_URL_KEYS,
   toSafeSolutionId,
   wrapFlatMetricsResponse,
 } from './cached-metrics.utils';
@@ -22,6 +26,44 @@ describe('cached-metrics.utils', () => {
     ).toBe(
       'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/cache/ecos17_estr30_runap_hf.metrics.json',
     );
+    expect(
+      buildGoalsUrl(
+        'https://aagibolq28slyfof.public.blob.vercel-storage.com/',
+        'ecos17_estr30_runap_hf',
+      ),
+    ).toBe(
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/goals/ecos17_estr30_runap_hf.goals.json',
+    );
+  });
+
+  it('prefers manifest metric URLs in the declared order', () => {
+    expect(
+      getPrecomputedMetricUrl(
+        {
+          cache: 'cache-url',
+          compact: 'compact-url',
+        },
+        PRECOMPUTED_METRIC_URL_KEYS.cache,
+      ),
+    ).toBe('compact-url');
+    expect(getPrecomputedMetricUrl(undefined, PRECOMPUTED_METRIC_URL_KEYS.goals)).toBeNull();
+  });
+
+  it('builds an explicit compact metrics fallback for staging runs', () => {
+    expect(
+      buildStagingCompactMetricsUrl(
+        'https://example.com/solutions/nick-runs/2026-05-27/example.tif',
+        'example',
+      ),
+    ).toBe(
+      'https://example.com/metrics/nick-runs/2026-05-27/compact-cache/example.metrics.compact.json',
+    );
+    expect(
+      buildStagingCompactMetricsUrl(
+        'https://example.com/solutions/nacional/example.tif',
+        'example',
+      ),
+    ).toBeNull();
   });
 
   it('reads national metrics from a cached document', () => {

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { loadLocalEnv } from './load-local-env.mjs';
+import { RUNTIME_MANIFEST_BLOB_PATHNAME } from '../shared/runtime-manifest.constants.mjs';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -10,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const DEFAULT_ARCHIVE_PREFIX = 'manifest/archive/';
 const DEFAULT_LIMIT = 50;
-const DEFAULT_TARGET_PATH = 'manifest/manifest.json';
+const DEFAULT_TARGET_PATH = RUNTIME_MANIFEST_BLOB_PATHNAME;
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
 
 function parseBlobListOutput(output) {

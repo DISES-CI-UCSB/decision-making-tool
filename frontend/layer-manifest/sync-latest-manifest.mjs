@@ -2,19 +2,23 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadLocalEnv } from './load-local-env.mjs';
+import {
+  LOCAL_RUNTIME_MANIFEST_PUBLIC_PATH,
+  LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
+  RUNTIME_MANIFEST_BLOB_URL,
+} from '../shared/runtime-manifest.constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../..');
 
 const generatedManifestPath = path.resolve(
-  __dirname,
-  '../public/data/layer-manifest/manifest.json',
+  repoRoot,
+  'frontend',
+  LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
 );
 const devLatestManifestPath = path.resolve(__dirname, './latest/manifest.latest.json');
 const MANIFEST_BLOB_URL_ENV_VAR = 'MANIFEST_BLOB_URL';
-const PUBLISHED_LAYER_MANIFEST_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
 
 async function readJson(filePath) {
   const raw = await fs.readFile(filePath, 'utf-8');
@@ -32,7 +36,7 @@ async function fetchJson(url) {
 
 async function resolveManifestSource() {
   const configuredBlobUrl =
-    process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || PUBLISHED_LAYER_MANIFEST_URL;
+    process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || RUNTIME_MANIFEST_BLOB_URL;
 
   if (configuredBlobUrl) {
     try {
@@ -71,7 +75,7 @@ async function main() {
       sourceType,
       sourceUrl,
       manifestBlobUrlEnvVar: MANIFEST_BLOB_URL_ENV_VAR,
-      runtimeManifestPublicPath: '/data/layer-manifest/manifest.json',
+      runtimeManifestPublicPath: LOCAL_RUNTIME_MANIFEST_PUBLIC_PATH,
       generatedManifestPath: path.relative(repoRoot, generatedManifestPath),
     },
     manifest,

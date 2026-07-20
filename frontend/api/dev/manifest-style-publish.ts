@@ -1,3 +1,5 @@
+import { RUNTIME_MANIFEST_BLOB_PATHNAME } from '../../shared/runtime-manifest.constants.mjs';
+
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
 const WRITE_GUARD_ENV_VAR = 'ENABLE_MANIFEST_EDITOR_WRITES';
 const PRODUCTION_WRITE_GUARD_ENV_VAR = 'ALLOW_PRODUCTION_MANIFEST_EDITOR_WRITES';
@@ -7,7 +9,7 @@ const FIREBASE_CLIENT_EMAIL_ENV_VAR = 'FIREBASE_CLIENT_EMAIL';
 const FIREBASE_PRIVATE_KEY_ENV_VAR = 'FIREBASE_PRIVATE_KEY';
 const DEFAULT_FIREBASE_PROJECT_ID = 'dises-decision-making-tool';
 const FIRESTORE_COLLECTION = 'manifestStyleRequests';
-const TARGET_PATH = 'manifest/manifest.json';
+const TARGET_PATH = RUNTIME_MANIFEST_BLOB_PATHNAME;
 const ARCHIVE_PREFIX = 'manifest/archive/';
 const STYLE_DEFAULT_FIELDS = ['selectedColor', 'startColor', 'endColor'];
 const CATEGORY_PATH_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$/;
