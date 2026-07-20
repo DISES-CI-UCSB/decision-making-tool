@@ -108,6 +108,15 @@
   transform: translateY(1px);
 }
 
+.finder-saved-scenario-label-optical {
+  line-height: 0.95;
+  transform: translateY(1px);
+}
+
+.finder-saved-scenario-search-input-optical {
+  line-height: 0.95;
+}
+
 .finder-selected-card-border {
   border-color: #38bdf8;
 }
@@ -138,6 +147,19 @@
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     transform: none;
+  }
+
+  .finder-saved-scenario-label-optical {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    line-height: 1;
+    transform: none;
+  }
+
+  .finder-saved-scenario-search-input-optical {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    line-height: 1;
   }
 }
 

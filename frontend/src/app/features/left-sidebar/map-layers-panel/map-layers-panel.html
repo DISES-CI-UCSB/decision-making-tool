@@ -72,44 +72,164 @@
                   >
                 </button>
               </div>
-            </div>
 
-            <button
-              id="map-layers-active-solution-breakdown-button"
-              type="button"
-              class="flex w-full items-center justify-between gap-2 border-t border-slate-100 px-3 py-1.5 text-left text-[11px] font-bold text-slate-700 transition group-hover:bg-slate-50 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
-              [attr.aria-expanded]="activeSolutionBreakdownOpen()"
-              aria-controls="map-layers-active-solution-breakdown-flyout"
-              (click)="toggleActiveSolutionBreakdown()"
-            >
-              <span
-                id="map-layers-active-solution-breakdown-button-copy"
-                class="min-w-0 leading-tight"
-              >
-                <span id="map-layers-active-solution-breakdown-button-label" class="block">
-                  {{ 'mapLayersPanel.viewBreakdown' | translate }}
-                </span>
-              </span>
-              <span
-                id="map-layers-active-solution-breakdown-button-chevron"
-                class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
-                [class.map-layers-chevron-collapsed]="!activeSolutionBreakdownOpen()"
-                aria-hidden="true"
-              >
-                <svg
-                  id="map-layers-active-solution-breakdown-button-chevron-icon"
-                  class="map-layers-chevron-icon h-3 w-3"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M3 4.5L6 7.5L9 4.5" />
-                </svg>
-              </span>
-            </button>
+              <div id="map-layers-active-solution-label-region" class="mt-2">
+                @if (activeSolutionLabelEditorOpen()) {
+                  <form
+                    id="map-layers-active-solution-label-form"
+                    class="rounded-md border border-slate-200 bg-slate-50 p-2"
+                    (submit)="commitActiveSolutionLabel($event)"
+                  >
+                    <label
+                      id="map-layers-active-solution-label-field-label"
+                      for="map-layers-active-solution-label-input"
+                      class="map-layers-text-box-trim-cap text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500"
+                    >
+                      {{ 'mapLayersPanel.sessionLabelLabel' | translate }}
+                    </label>
+                    <input
+                      id="map-layers-active-solution-label-input"
+                      type="text"
+                      maxlength="80"
+                      class="mt-1 w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-sm font-semibold text-slate-900 shadow-inner transition placeholder:text-slate-400 hover:border-slate-400 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                      [attr.aria-label]="'mapLayersPanel.sessionLabelLabel' | translate"
+                      aria-describedby="map-layers-active-solution-label-help"
+                      [placeholder]="'mapLayersPanel.sessionLabelPlaceholder' | translate"
+                      [value]="activeSolutionLabelDraft()"
+                      (input)="updateActiveSolutionLabelDraft($any($event.target).value)"
+                      (keydown.enter)="commitActiveSolutionLabel($event)"
+                      (keydown.escape)="cancelActiveSolutionLabelEdit($event)"
+                    />
+                    <p
+                      id="map-layers-active-solution-label-help"
+                      class="mt-1 text-[11px] leading-4 text-slate-500"
+                    >
+                      {{ 'mapLayersPanel.sessionLabelHelp' | translate }}
+                    </p>
+                    <div
+                      id="map-layers-active-solution-label-actions"
+                      class="mt-2 flex flex-wrap items-center gap-2"
+                    >
+                      <button
+                        id="map-layers-active-solution-label-save-button"
+                        type="submit"
+                        class="rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                      >
+                        {{ 'mapLayersPanel.saveLabel' | translate }}
+                      </button>
+                      <button
+                        id="map-layers-active-solution-label-cancel-button"
+                        type="button"
+                        class="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                        (click)="cancelActiveSolutionLabelEdit($event)"
+                      >
+                        {{ 'mapLayersPanel.cancelLabel' | translate }}
+                      </button>
+                    </div>
+                  </form>
+                } @else if (activeSolutionLabel(); as label) {
+                  <div
+                    id="map-layers-active-solution-compact-row"
+                    class="flex items-center justify-between gap-3"
+                  >
+                    <button
+                      id="map-layers-active-solution-label-edit-button"
+                      type="button"
+                      class="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-900 transition hover:border-slate-300 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                      (click)="openActiveSolutionLabelEditor()"
+                    >
+                      <span id="map-layers-active-solution-label-display-value" class="truncate">
+                        {{ label }}
+                      </span>
+                      <span
+                        id="map-layers-active-solution-label-display-edit-text"
+                        class="map-layers-active-solution-label-edit-text shrink-0 text-[11px] font-semibold text-slate-500"
+                      >
+                        {{ 'mapLayersPanel.editLabel' | translate }}
+                      </span>
+                    </button>
+
+                    <button
+                      id="map-layers-active-solution-breakdown-button"
+                      type="button"
+                      class="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-slate-700 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                      [attr.aria-expanded]="activeSolutionBreakdownOpen()"
+                      aria-controls="map-layers-active-solution-breakdown-flyout"
+                      (click)="toggleActiveSolutionBreakdown()"
+                    >
+                      <span id="map-layers-active-solution-breakdown-button-label">
+                        {{ 'mapLayersPanel.viewBreakdown' | translate }}
+                      </span>
+                      <span
+                        id="map-layers-active-solution-breakdown-button-chevron"
+                        class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
+                        [class.map-layers-chevron-collapsed]="!activeSolutionBreakdownOpen()"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          id="map-layers-active-solution-breakdown-button-chevron-icon"
+                          class="map-layers-chevron-icon h-3 w-3"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M3 4.5L6 7.5L9 4.5" />
+                        </svg>
+                      </span>
+                    </button>
+                  </div>
+                } @else {
+                  <div
+                    id="map-layers-active-solution-compact-row"
+                    class="flex items-center justify-between gap-3"
+                  >
+                    <button
+                      id="map-layers-active-solution-label-add-button"
+                      type="button"
+                      class="inline-flex items-center rounded-md border border-dashed border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                      (click)="openActiveSolutionLabelEditor()"
+                    >
+                      {{ 'mapLayersPanel.addLabel' | translate }}
+                    </button>
+
+                    <button
+                      id="map-layers-active-solution-breakdown-button"
+                      type="button"
+                      class="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-slate-700 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                      [attr.aria-expanded]="activeSolutionBreakdownOpen()"
+                      aria-controls="map-layers-active-solution-breakdown-flyout"
+                      (click)="toggleActiveSolutionBreakdown()"
+                    >
+                      <span id="map-layers-active-solution-breakdown-button-label">
+                        {{ 'mapLayersPanel.viewBreakdown' | translate }}
+                      </span>
+                      <span
+                        id="map-layers-active-solution-breakdown-button-chevron"
+                        class="map-layers-chevron inline-flex w-3 shrink-0 items-center justify-center"
+                        [class.map-layers-chevron-collapsed]="!activeSolutionBreakdownOpen()"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          id="map-layers-active-solution-breakdown-button-chevron-icon"
+                          class="map-layers-chevron-icon h-3 w-3"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M3 4.5L6 7.5L9 4.5" />
+                        </svg>
+                      </span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
 
             @if (activeSolutionBreakdownOpen()) {
               <aside
@@ -548,7 +668,7 @@
                             />
                             <span
                               [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
-                              class="w-8 shrink-0 text-left text-[10px] font-semibold text-slate-600"
+                              class="w-7 shrink-0 text-left text-[10px] font-semibold text-slate-600"
                             >
                               {{ selectedLayerOpacity(selected.id) }}%
                             </span>
@@ -733,6 +853,32 @@
                               {{ 'mapLayersPanel.appearanceBorderLabel' | translate }}
                             </span>
                           </button>
+                        } @else if (isEcosystemClassificationRow(selected.id)) {
+                          <button
+                            [id]="
+                              'map-layers-selected-layer-row-ecosystem-classification-info-' +
+                              selected.id
+                            "
+                            type="button"
+                            class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                            [attr.aria-label]="
+                              'mapLayersPanel.ecosystemClassificationInfoAriaLabel' | translate
+                            "
+                            aria-haspopup="dialog"
+                            [attr.aria-expanded]="ecosystemInfoModalOpen()"
+                            aria-controls="map-layers-ecosystem-info-modal"
+                            (click)="openEcosystemInfoModal($event)"
+                          >
+                            <span
+                              [id]="
+                                'map-layers-selected-layer-row-ecosystem-classification-info-icon-' +
+                                selected.id
+                              "
+                              class="map-layers-info-icon-glyph"
+                              aria-hidden="true"
+                              >?</span
+                            >
+                          </button>
                         } @else {
                           <span
                             [id]="
@@ -749,6 +895,70 @@
                 }
               </article>
             }
+          }
+        </div>
+      </section>
+
+      <section
+        id="map-layers-area-focus-section"
+        class="rounded-md border border-sky-100 bg-sky-50 px-3 py-3 shadow-sm shadow-sky-900/5"
+        [attr.aria-label]="'mapLayersPanel.areaFocusTitle' | translate"
+      >
+        <div id="map-layers-area-focus-row" class="flex items-center justify-between gap-3">
+          <div id="map-layers-area-focus-copy" class="min-w-0">
+            <p id="map-layers-area-focus-title" class="text-xs font-bold text-slate-800">
+              {{ 'mapLayersPanel.areaFocusTitle' | translate }}
+            </p>
+            <p id="map-layers-area-focus-description" class="mt-1 text-xs leading-4 text-slate-700">
+              @if (customAoiDrawStatus() === 'drawing') {
+                {{ 'mapLayersPanel.areaFocusDrawingDescription' | translate }}
+              } @else if (selectedAoi()?.type === 'custom') {
+                {{ 'mapLayersPanel.areaFocusSelectedDescription' | translate }}
+              } @else if (customAoiDrawStatus() === 'invalid') {
+                {{ 'mapLayersPanel.areaFocusInvalidDescription' | translate }}
+              } @else {
+                {{ 'mapLayersPanel.areaFocusDescription' | translate }}
+              }
+            </p>
+            @if (customAoiDrawStatus() === 'idle' && selectedAoi()?.type !== 'custom') {
+              <p
+                id="map-layers-area-focus-layer-hint"
+                class="mt-1 text-xs leading-4 text-slate-700"
+              >
+                {{ 'mapLayersPanel.areaFocusLayerHint' | translate }}
+              </p>
+            }
+          </div>
+          @if (customAoiDrawStatus() === 'drawing') {
+            <button
+              id="map-layers-area-focus-cancel-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+              [attr.aria-label]="'mapLayersPanel.areaFocusCancelAriaLabel' | translate"
+              (click)="requestCustomAoiDrawCancel()"
+            >
+              {{ 'mapLayersPanel.areaFocusCancelButton' | translate }}
+            </button>
+          } @else if (selectedAoi()?.type === 'custom') {
+            <button
+              id="map-layers-area-focus-clear-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md border border-sky-200 bg-white px-2.5 text-[11px] font-semibold text-sky-700 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              [attr.aria-label]="'mapLayersPanel.areaFocusClearAriaLabel' | translate"
+              (click)="requestCustomAoiDrawClear()"
+            >
+              {{ 'mapLayersPanel.areaFocusClearButton' | translate }}
+            </button>
+          } @else {
+            <button
+              id="map-layers-area-focus-draw-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-2.5 text-[11px] font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              [attr.aria-label]="'mapLayersPanel.areaFocusDrawAriaLabel' | translate"
+              (click)="requestCustomAoiDraw()"
+            >
+              {{ 'mapLayersPanel.areaFocusDrawButton' | translate }}
+            </button>
           }
         </div>
       </section>
@@ -1377,11 +1587,24 @@
                                     type="button"
                                     class="map-layers-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                                     [attr.aria-label]="'Layer information: ' + row.name"
-                                    [attr.aria-expanded]="isLayerInfoPopoverOpen(group.id, row.id)"
-                                    [attr.aria-controls]="
-                                      'map-layers-layer-row-info-popover-' + group.id + '-' + row.id
+                                    [attr.aria-expanded]="
+                                      isEcosystemClassificationRow(row.id)
+                                        ? ecosystemInfoModalOpen()
+                                        : isLayerInfoPopoverOpen(group.id, row.id)
                                     "
-                                    (click)="toggleLayerInfoPopover($event, group.id, row.id)"
+                                    [attr.aria-controls]="
+                                      isEcosystemClassificationRow(row.id)
+                                        ? 'map-layers-ecosystem-info-modal'
+                                        : 'map-layers-layer-row-info-popover-' +
+                                          group.id +
+                                          '-' +
+                                          row.id
+                                    "
+                                    (click)="
+                                      isEcosystemClassificationRow(row.id)
+                                        ? openEcosystemInfoModal($event)
+                                        : toggleLayerInfoPopover($event, group.id, row.id)
+                                    "
                                     (keydown.escape)="closeLayerInfoPopover()"
                                   >
                                     <span
@@ -1393,7 +1616,10 @@
                                       >i</span
                                     >
                                   </button>
-                                  @if (isLayerInfoPopoverOpen(group.id, row.id)) {
+                                  @if (
+                                    !isEcosystemClassificationRow(row.id) &&
+                                    isLayerInfoPopoverOpen(group.id, row.id)
+                                  ) {
                                     <div
                                       [id]="
                                         'map-layers-layer-row-info-popover-' +
@@ -2773,3 +2999,445 @@
     }
   </div>
 </section>
+
+@if (ecosystemInfoModalOpen()) {
+  <div
+    id="map-layers-ecosystem-info-modal-layer"
+    class="fixed inset-x-0 bottom-0 top-14 z-2100 flex items-center justify-center px-3 py-[clamp(0.75rem,4vh,1.5rem)] sm:px-4 sm:py-[clamp(2rem,5vh,5rem)]"
+  >
+    <button
+      id="map-layers-ecosystem-info-modal-backdrop"
+      type="button"
+      class="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+      [attr.aria-label]="'mapLayersPanel.ecosystemInfoModal.close' | translate"
+      (click)="closeEcosystemInfoModal()"
+    >
+      <span id="map-layers-ecosystem-info-modal-backdrop-label" class="sr-only">
+        {{ 'mapLayersPanel.ecosystemInfoModal.close' | translate }}
+      </span>
+    </button>
+    <section
+      id="map-layers-ecosystem-info-modal"
+      class="map-layers-ecosystem-info-modal-shell relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-2xl shadow-slate-950/25"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="map-layers-ecosystem-info-modal-title"
+      aria-describedby="map-layers-ecosystem-info-modal-description"
+    >
+      <header
+        id="map-layers-ecosystem-info-modal-header"
+        class="flex shrink-0 items-start gap-4 border-b border-slate-200 px-5 py-4"
+      >
+        <div id="map-layers-ecosystem-info-modal-header-copy" class="min-w-0 flex-1">
+          <p
+            id="map-layers-ecosystem-info-modal-kicker"
+            class="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.kicker' | translate }}
+          </p>
+          <h2
+            id="map-layers-ecosystem-info-modal-title"
+            class="mt-1 text-lg font-semibold text-slate-950"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.title' | translate }}
+          </h2>
+        </div>
+        <button
+          id="map-layers-ecosystem-info-modal-close-button"
+          type="button"
+          class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          [attr.aria-label]="'mapLayersPanel.ecosystemInfoModal.close' | translate"
+          (click)="closeEcosystemInfoModal()"
+        >
+          <span id="map-layers-ecosystem-info-modal-close-icon" aria-hidden="true">×</span>
+        </button>
+      </header>
+
+      <div
+        id="map-layers-ecosystem-info-modal-body"
+        class="map-layers-modal-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4"
+      >
+        <section id="map-layers-ecosystem-info-modal-source-section" class="space-y-2">
+          <p
+            id="map-layers-ecosystem-info-modal-description"
+            class="text-sm leading-6 text-slate-700"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.intro' | translate }}
+          </p>
+          <p
+            id="map-layers-ecosystem-info-modal-source-summary"
+            class="text-xs leading-5 text-slate-600"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.sourcesCopy' | translate }}
+          </p>
+          <div
+            id="map-layers-ecosystem-info-modal-source-links"
+            class="flex flex-wrap gap-x-3 gap-y-1"
+          >
+            <a
+              id="map-layers-ecosystem-info-modal-source-ideam-org"
+              class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              href="https://ideam.gov.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ 'mapLayersPanel.ecosystemInfoModal.ideamOrgSourceLabel' | translate }}
+            </a>
+            <a
+              id="map-layers-ecosystem-info-modal-source-humboldt-org"
+              class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              href="https://humboldt.org.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ 'mapLayersPanel.ecosystemInfoModal.humboldtOrgSourceLabel' | translate }}
+            </a>
+            <a
+              id="map-layers-ecosystem-info-modal-source-mec-overview"
+              class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              href="https://www.ideam.gov.co/ecosistemas"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ 'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel' | translate }}
+            </a>
+            <a
+              id="map-layers-ecosystem-info-modal-source-mec-map"
+              class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              href="https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ 'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel' | translate }}
+            </a>
+          </div>
+        </section>
+
+        <section
+          id="map-layers-ecosystem-info-modal-model-section"
+          class="rounded-xl border border-sky-100 bg-sky-50/70 p-4"
+        >
+          <h3
+            id="map-layers-ecosystem-info-modal-model-title"
+            class="text-sm font-semibold text-slate-950"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.modelTitle' | translate }}
+          </h3>
+          <p
+            id="map-layers-ecosystem-info-modal-model-copy"
+            class="mt-2 text-sm leading-6 text-slate-700"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.modelCopy' | translate }}
+          </p>
+        </section>
+
+        <section id="map-layers-ecosystem-info-modal-classification-section" class="space-y-3">
+          <h3
+            id="map-layers-ecosystem-info-modal-classification-title"
+            class="text-sm font-semibold text-slate-950"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.classificationTitle' | translate }}
+          </h3>
+          <p
+            id="map-layers-ecosystem-info-modal-classification-intro"
+            class="text-xs leading-5 text-slate-600"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.valuesIntro' | translate }}
+          </p>
+          <p
+            id="map-layers-ecosystem-info-modal-map-support-copy"
+            class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+          >
+            {{ 'mapLayersPanel.ecosystemInfoModal.mapSupportCopy' | translate }}
+          </p>
+          @if (ecosystemClassificationSummaryLoading()) {
+            <p
+              id="map-layers-ecosystem-info-modal-classification-loading"
+              class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600"
+            >
+              {{ 'mapLayersPanel.ecosystemInfoModal.valuesLoading' | translate }}
+            </p>
+          } @else if (ecosystemClassificationSummaryError()) {
+            <p
+              id="map-layers-ecosystem-info-modal-classification-error"
+              class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+            >
+              {{ 'mapLayersPanel.ecosystemInfoModal.valuesError' | translate }}
+            </p>
+          } @else {
+            <div id="map-layers-ecosystem-info-modal-classification-list" class="space-y-2">
+              @for (section of ecosystemClassificationSummarySections(); track section.view) {
+                <article
+                  [id]="'map-layers-ecosystem-info-modal-classification-' + section.view"
+                  class="overflow-hidden rounded-lg border border-slate-200"
+                >
+                  <button
+                    [id]="'map-layers-ecosystem-info-modal-classification-toggle-' + section.view"
+                    type="button"
+                    class="flex w-full items-center gap-3 bg-white px-3 py-2.5 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    [attr.aria-expanded]="
+                      isEcosystemClassificationSummarySectionExpanded(section.view)
+                    "
+                    [attr.aria-controls]="
+                      'map-layers-ecosystem-info-modal-classification-values-' + section.view
+                    "
+                    (click)="toggleEcosystemClassificationSummarySection(section.view)"
+                  >
+                    <span
+                      [id]="
+                        'map-layers-ecosystem-info-modal-classification-toggle-icon-' + section.view
+                      "
+                      class="map-layers-ecosystem-classification-toggle-icon text-xs font-semibold text-slate-500"
+                      [class.map-layers-ecosystem-classification-toggle-icon-expanded]="
+                        isEcosystemClassificationSummarySectionExpanded(section.view)
+                      "
+                      aria-hidden="true"
+                    >
+                      ▸
+                    </span>
+                    <span
+                      [id]="
+                        'map-layers-ecosystem-info-modal-classification-toggle-label-' +
+                        section.view
+                      "
+                      class="min-w-0 flex-1 text-xs font-semibold text-slate-900"
+                    >
+                      <span
+                        [id]="
+                          'map-layers-ecosystem-info-modal-classification-toggle-label-text-' +
+                          section.view
+                        "
+                      >
+                        {{ section.label }} ({{ section.valueCount }})
+                      </span>
+                      @if (section.view === 'biomeFamily') {
+                        <span
+                          [id]="
+                            'map-layers-ecosystem-info-modal-classification-visualized-badge-' +
+                            section.view
+                          "
+                          class="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.08em] text-sky-700 [text-box-edge:cap_alphabetic] [text-box-trim:trim-both]"
+                        >
+                          {{ 'mapLayersPanel.ecosystemInfoModal.visualizedOnMap' | translate }}
+                        </span>
+                      }
+                      @if (section.view === 'biomeRegion') {
+                        @if (isEcosystemConsideredInRun()) {
+                          <span
+                            [id]="
+                              'map-layers-ecosystem-info-modal-classification-considered-badge-' +
+                              section.view
+                            "
+                            class="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.08em] text-emerald-700 [text-box-edge:cap_alphabetic] [text-box-trim:trim-both]"
+                          >
+                            {{ 'mapLayersPanel.consideredInRun' | translate }}
+                          </span>
+                        }
+                        <span
+                          [id]="
+                            'map-layers-ecosystem-info-modal-classification-not-visualized-badge-' +
+                            section.view
+                          "
+                          class="ml-1.5 inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.08em] text-slate-500 [text-box-edge:cap_alphabetic] [text-box-trim:trim-both]"
+                        >
+                          {{ 'mapLayersPanel.ecosystemInfoModal.notVisualized' | translate }}
+                        </span>
+                      }
+                    </span>
+                    <span
+                      [id]="
+                        'map-layers-ecosystem-info-modal-classification-toggle-metrics-' +
+                        section.view
+                      "
+                      class="shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500"
+                    >
+                      {{ 'mapLayersPanel.ecosystemInfoModal.areaAndPolygonsLabel' | translate }}
+                    </span>
+                  </button>
+                  <div
+                    [id]="'map-layers-ecosystem-info-modal-classification-values-' + section.view"
+                    class="map-layers-ecosystem-classification-panel grid border-t border-slate-200 bg-slate-50/70"
+                    [class.map-layers-ecosystem-classification-panel-expanded]="
+                      isEcosystemClassificationSummarySectionExpanded(section.view)
+                    "
+                    [attr.aria-hidden]="
+                      !isEcosystemClassificationSummarySectionExpanded(section.view)
+                    "
+                    [attr.inert]="
+                      isEcosystemClassificationSummarySectionExpanded(section.view) ? null : ''
+                    "
+                  >
+                    <div
+                      [id]="
+                        'map-layers-ecosystem-info-modal-classification-panel-content-' +
+                        section.view
+                      "
+                      class="min-h-0 overflow-hidden"
+                    >
+                      <div
+                        [id]="
+                          'map-layers-ecosystem-info-modal-classification-panel-inner-' +
+                          section.view
+                        "
+                        class="p-3"
+                      >
+                        <label
+                          [id]="
+                            'map-layers-ecosystem-info-modal-classification-filter-label-' +
+                            section.view
+                          "
+                          [for]="
+                            'map-layers-ecosystem-info-modal-classification-filter-' + section.view
+                          "
+                          class="sr-only"
+                        >
+                          {{ 'mapLayersPanel.ecosystemInfoModal.filterValuesLabel' | translate }}
+                        </label>
+                        <input
+                          [id]="
+                            'map-layers-ecosystem-info-modal-classification-filter-' + section.view
+                          "
+                          type="search"
+                          class="mb-2 h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                          [placeholder]="
+                            'mapLayersPanel.ecosystemInfoModal.filterValuesPlaceholder' | translate
+                          "
+                          [value]="ecosystemClassificationSummaryFilter(section.view)"
+                          (input)="
+                            updateEcosystemClassificationSummaryFilter(
+                              section.view,
+                              $any($event.target).value
+                            )
+                          "
+                        />
+                        <div
+                          [id]="
+                            'map-layers-ecosystem-info-modal-classification-header-' + section.view
+                          "
+                          class="grid grid-cols-[minmax(0,1fr)_5rem_5.5rem] gap-2 border-b border-slate-200 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+                        >
+                          <span
+                            [id]="
+                              'map-layers-ecosystem-info-modal-classification-header-value-' +
+                              section.view
+                            "
+                          >
+                            {{ 'mapLayersPanel.ecosystemInfoModal.valueColumn' | translate }}
+                          </span>
+                          <span
+                            [id]="
+                              'map-layers-ecosystem-info-modal-classification-header-area-' +
+                              section.view
+                            "
+                            class="text-right"
+                          >
+                            {{ 'mapLayersPanel.ecosystemInfoModal.areaColumn' | translate }}
+                          </span>
+                          <span
+                            [id]="
+                              'map-layers-ecosystem-info-modal-classification-header-polygons-' +
+                              section.view
+                            "
+                            class="text-right"
+                          >
+                            {{ 'mapLayersPanel.ecosystemInfoModal.polygonsColumn' | translate }}
+                          </span>
+                        </div>
+                        <div
+                          [id]="
+                            'map-layers-ecosystem-info-modal-classification-rows-' + section.view
+                          "
+                          class="divide-y divide-slate-200"
+                        >
+                          @for (
+                            value of visibleEcosystemClassificationValues(section);
+                            track value.label
+                          ) {
+                            <div
+                              [id]="
+                                'map-layers-ecosystem-info-modal-classification-row-' +
+                                section.view +
+                                '-' +
+                                $index
+                              "
+                              class="grid grid-cols-[minmax(0,1fr)_5rem_5.5rem] gap-2 py-1.5 text-xs leading-5"
+                            >
+                              <span
+                                [id]="
+                                  'map-layers-ecosystem-info-modal-classification-row-label-' +
+                                  section.view +
+                                  '-' +
+                                  $index
+                                "
+                                class="min-w-0 text-slate-700"
+                              >
+                                {{ value.label }}
+                              </span>
+                              <span
+                                [id]="
+                                  'map-layers-ecosystem-info-modal-classification-row-area-' +
+                                  section.view +
+                                  '-' +
+                                  $index
+                                "
+                                class="text-right font-medium text-slate-700"
+                              >
+                                {{
+                                  formatEcosystemAreaSquareKilometers(value.areaSquareKilometers)
+                                }}
+                              </span>
+                              <span
+                                [id]="
+                                  'map-layers-ecosystem-info-modal-classification-row-polygons-' +
+                                  section.view +
+                                  '-' +
+                                  $index
+                                "
+                                class="text-right font-medium text-slate-700"
+                              >
+                                {{ formatEcosystemPolygonCount(value.polygonCount) }}
+                              </span>
+                            </div>
+                          }
+                        </div>
+                        @if (ecosystemClassificationHiddenValueCount(section) > 0) {
+                          <button
+                            [id]="
+                              'map-layers-ecosystem-info-modal-classification-load-more-' +
+                              section.view
+                            "
+                            type="button"
+                            class="mt-2 inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                            (click)="loadMoreEcosystemClassificationValues(section.view)"
+                          >
+                            {{
+                              'mapLayersPanel.ecosystemInfoModal.loadMoreValues'
+                                | translate
+                                  : {
+                                      count: ecosystemClassificationHiddenValueCount(section),
+                                    }
+                            }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+            @if (formattedEcosystemClassificationSummaryGeneratedAt(); as generatedAt) {
+              <p
+                id="map-layers-ecosystem-info-modal-classification-generated-at"
+                class="text-[11px] leading-5 text-slate-500"
+              >
+                {{
+                  'mapLayersPanel.ecosystemInfoModal.generatedAt' | translate: { date: generatedAt }
+                }}
+              </p>
+            }
+          }
+        </section>
+      </div>
+    </section>
+  </div>
+}

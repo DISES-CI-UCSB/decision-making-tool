@@ -13,6 +13,7 @@ describe('FinderModalComponent', () => {
   let catalog: { getAll: ReturnType<typeof vi.fn>; getById: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    localStorage.clear();
     catalog = {
       getAll: vi.fn(() => []),
       getById: vi.fn(() => null),
@@ -162,6 +163,142 @@ describe('FinderModalComponent', () => {
     expect(appState.finderSelectionMemory$()).toBeNull();
     expect(component.selectedTargetTypeIds).toEqual([]);
     expect(component.selectedCostLayerId).toBeNull();
+  });
+
+  it('toggles the selected Step 2 cost layer off when clicked again', () => {
+    catalog.getAll.mockReturnValue([
+      buildSolution({
+        id: 'ecos30_runap_hf',
+        name: 'Ecos30+RUNAP_HF',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: 30,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap'],
+      }),
+    ]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      selectedCostLayerId: string | null;
+      selectCostLayer: (id: 'human-footprint') => void;
+    };
+
+    component.selectedTargetTypeIds = ['ecosystems'];
+    component.targetLevelByType = { ecosystems: 30 };
+
+    component.selectCostLayer('human-footprint');
+    expect(component.selectedCostLayerId).toBe('human-footprint');
+
+    component.selectCostLayer('human-footprint');
+    expect(component.selectedCostLayerId).toBeNull();
+  });
+
+  it('renders and searches saved custom-labeled scenarios', () => {
+    const appState = TestBed.inject(AppStateService);
+    const savedSolution = buildSolution({
+      id: 'ecos30_runap_hf',
+      name: 'Ecos30+RUNAP_HF',
+      targetFeatureSet: 'ecosystems',
+      targetFeatureIds: ['ecosistemas'],
+      targetPercent: 30,
+      costLayerId: 'human_footprint_2022',
+      includeLayerIds: ['runap'],
+    });
+    catalog.getById.mockReturnValue(savedSolution);
+    appState.loadSolution({
+      id: savedSolution.id,
+      name: savedSolution.name,
+      matchPercentage: savedSolution.pctTargetsMet,
+      geometryUrl: savedSolution.displayUrl,
+      metrics: [],
+      metadata: { solutionId: savedSolution.id },
+    });
+    appState.labelActiveSolution('Coastal priority run');
+
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#solution-finder-modal-saved-scenarios-panel')).not.toBeNull();
+    expect(compiled.textContent).toContain('Coastal priority run');
+    expect(compiled.textContent).not.toContain('Ecos30+RUNAP_HF');
+
+    const input = compiled.querySelector(
+      '#solution-finder-modal-saved-scenarios-search-input',
+    ) as HTMLInputElement;
+    input.value = 'missing';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('solutionControls.finder.savedScenarios.noResults');
+
+    input.value = 'coastal';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('Coastal priority run');
+  });
+
+  it('restores finder selections from the selected saved custom-labeled scenario', () => {
+    const appState = TestBed.inject(AppStateService);
+    const savedSolution = buildSolution({
+      id: 'ecos30_runap_hf',
+      name: 'Ecos30+RUNAP_HF',
+      targetFeatureSet: 'ecosystems',
+      targetFeatureIds: ['ecosistemas'],
+      targetPercent: 30,
+      costLayerId: 'human_footprint_2022',
+      includeLayerIds: ['runap'],
+    });
+    catalog.getById.mockReturnValue(savedSolution);
+    appState.loadSolution({
+      id: savedSolution.id,
+      name: savedSolution.name,
+      matchPercentage: savedSolution.pctTargetsMet,
+      geometryUrl: savedSolution.displayUrl,
+      metrics: [],
+      metadata: { solutionId: savedSolution.id },
+    });
+    appState.labelActiveSolution('Coastal priority run');
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      selectedCostLayerId: string | null;
+      selectedMatch: { solutionId: string; customLabel?: string } | null;
+      matchState: string;
+      applySelectedSolution: () => void;
+    };
+    const solutionAppliedSpy = vi.spyOn(fixture.componentInstance.solutionApplied, 'emit');
+
+    const savedScenarioButton = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-saved-scenario-saved-scenario-ecos30_runap_hf',
+    ) as HTMLButtonElement;
+    savedScenarioButton.click();
+
+    expect(solutionAppliedSpy).not.toHaveBeenCalled();
+    expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
+    expect(component.targetLevelByType).toEqual({ ecosystems: 30 });
+    expect(component.selectedCostLayerId).toBe('human-footprint');
+    expect(component.matchState).toBe('ready');
+    expect(component.selectedMatch).toEqual(
+      expect.objectContaining({
+        solutionId: savedSolution.id,
+        customLabel: 'Coastal priority run',
+      }),
+    );
+
+    component.applySelectedSolution();
+
+    expect(solutionAppliedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        solutionId: savedSolution.id,
+        customLabel: 'Coastal priority run',
+      }),
+    );
   });
 
   it('renders source links for cost and included-area choices', () => {

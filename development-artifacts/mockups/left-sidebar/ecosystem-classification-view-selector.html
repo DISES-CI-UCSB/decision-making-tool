@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html id="ecosystem-classification-mockup-document" lang="en">
+<head id="ecosystem-classification-mockup-head">
+  <meta id="ecosystem-classification-mockup-charset" charset="UTF-8">
+  <meta id="ecosystem-classification-mockup-viewport" name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="ecosystem-classification-mockup-title">Ecosystem Classification Row</title>
+  <link id="ecosystem-classification-mockup-font" rel="preconnect" href="https://fonts.googleapis.com">
+  <link id="ecosystem-classification-mockup-font-static" rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link id="ecosystem-classification-mockup-font-css" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style id="ecosystem-classification-mockup-styles">
+    :root {
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      min-height: 100vh;
+      background: var(--slate-200);
+      color: var(--slate-900);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 32px;
+    }
+
+    .panel {
+      display: flex;
+      width: 420px;
+      max-height: 92vh;
+      flex-direction: column;
+      overflow: hidden;
+      border-radius: 10px;
+      background: var(--white);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .panel-header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-bottom: 1px solid var(--slate-200);
+      padding: 20px 20px 16px;
+    }
+
+    .panel-title {
+      margin: 0;
+      color: var(--slate-900);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .active-solution-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid var(--slate-900);
+      border-radius: 8px;
+      background: var(--white);
+      padding: 10px 12px;
+    }
+
+    .active-solution-copy {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--slate-500);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    .active-solution-name {
+      overflow: hidden;
+      margin: 3px 0 0;
+      color: var(--slate-900);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .change-button,
+    .icon-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--slate-700);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background 120ms ease, border-color 120ms ease;
+      white-space: nowrap;
+    }
+
+    .change-button {
+      padding: 6px 10px;
+    }
+
+    .icon-button {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 auto;
+      color: var(--slate-500);
+    }
+
+    .change-button:hover,
+    .icon-button:hover {
+      border-color: var(--slate-300);
+      background: var(--slate-50);
+    }
+
+    .panel-body {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      padding: 16px 20px 20px;
+    }
+
+    .section-label {
+      margin: 0;
+      color: var(--slate-500);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .layer-card {
+      overflow: hidden;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      background: var(--white);
+    }
+
+    .layer-row-main {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 12px;
+    }
+
+    .drag-handle {
+      width: 14px;
+      color: var(--slate-300);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .layer-name {
+      min-width: 0;
+      flex: 1;
+      margin: 0;
+      overflow: hidden;
+      color: var(--slate-800);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .classification-select {
+      max-width: 190px;
+      min-height: 28px;
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--slate-700);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 8px;
+    }
+
+    .classification-select:focus {
+      border-color: var(--slate-400);
+      outline: 2px solid var(--slate-200);
+    }
+  </style>
+</head>
+<body id="ecosystem-classification-mockup-body">
+  <main id="ecosystem-classification-panel" class="panel">
+    <header id="ecosystem-classification-panel-header" class="panel-header">
+      <h1 id="ecosystem-classification-panel-title" class="panel-title">Map Layers</h1>
+      <article id="ecosystem-classification-active-solution-card" class="active-solution-card">
+        <div id="ecosystem-classification-active-solution-copy" class="active-solution-copy">
+          <p id="ecosystem-classification-active-solution-eyebrow" class="eyebrow">Active solution</p>
+          <p id="ecosystem-classification-active-solution-name" class="active-solution-name">Ecos30 + RUNAP + OMEC - Human Footprint</p>
+        </div>
+        <button id="ecosystem-classification-change-solution-button" class="change-button" type="button">Change</button>
+      </article>
+    </header>
+
+    <section id="ecosystem-classification-panel-body" class="panel-body">
+      <p id="ecosystem-classification-section-label" class="section-label">Visible Layers</p>
+
+      <article id="ecosystem-classification-layer-card" class="layer-card">
+        <section id="ecosystem-classification-ecosystems-row" class="layer-row">
+          <div id="ecosystem-classification-ecosystems-row-main" class="layer-row-main">
+            <span id="ecosystem-classification-ecosystems-drag-handle" class="drag-handle" aria-hidden="true">⋮⋮</span>
+            <p id="ecosystem-classification-ecosystems-layer-name" class="layer-name">Ecosystems</p>
+            <select id="ecosystem-classification-select" class="classification-select" aria-label="Choose ecosystem classification view">
+              <option id="ecosystem-classification-option-biome-family" value="biomeFamily">Biome Family (8)</option>
+              <option id="ecosystem-classification-option-broad-biome-context" value="broadBiomeContext">Broad Biome Context (7)</option>
+              <option id="ecosystem-classification-option-biome-region" value="biomeRegion">IAvH Biome-Region Class (430)</option>
+              <option id="ecosystem-classification-option-broad-ecosystem" value="broadEcosystem">Broad Ecosystem Type (28)</option>
+              <option id="ecosystem-classification-option-detailed-ecosystem" value="detailedEcosystem">Detailed Ecosystem Type (87)</option>
+            </select>
+            <button id="ecosystem-classification-ecosystems-info-button" class="icon-button" type="button" aria-label="Open ecosystem classification explanation" title="Open explanation modal">?</button>
+            <button id="ecosystem-classification-ecosystems-visibility-button" class="icon-button" type="button" aria-label="Toggle ecosystems visibility">●</button>
+          </div>
+        </section>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

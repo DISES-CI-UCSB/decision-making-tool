@@ -16,6 +16,7 @@ const optionalLocalEnvPath = path.resolve(repoRoot, '.env.production.local');
 await loadLocalEnvIfPresent(optionalLocalEnvPath);
 
 const existingFirebaseConfig = await readExistingFirebaseConfig(productionEnvironmentPath);
+const defaultLanguage = resolveDefaultLanguage();
 
 const firebaseConfig = {
   apiKey: readRequiredEnv('FIREBASE_API_KEY', existingFirebaseConfig.apiKey),
@@ -30,8 +31,13 @@ const firebaseConfig = {
   measurementId: readOptionalEnv('FIREBASE_MEASUREMENT_ID') || existingFirebaseConfig.measurementId,
 };
 
-const environmentFile = `export const environment = {
+const environmentFile = `import type { LayerLocale } from '../app/core/models';
+
+const defaultLanguage: LayerLocale = ${toTsString(defaultLanguage)};
+
+export const environment = {
   production: true,
+  defaultLanguage,
   firebase: {
     enabled: true,
     config: ${toTsObjectLiteral(firebaseConfig, 4)},
@@ -115,6 +121,17 @@ function readBooleanEnv(key, fallback) {
     return fallback;
   }
   return ['1', 'true', 'yes'].includes(value);
+}
+
+function resolveDefaultLanguage() {
+  const vercelEnv = readOptionalEnv('VERCEL_ENV');
+  const vercelGitRef = readOptionalEnv('VERCEL_GIT_COMMIT_REF');
+
+  if (vercelEnv || vercelGitRef) {
+    return vercelEnv === 'production' || vercelGitRef === 'main' ? 'es' : 'en';
+  }
+
+  return 'es';
 }
 
 function unquoteEnvValue(value) {

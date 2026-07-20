@@ -15,6 +15,7 @@
     "generate:species-manifest": "node ./layer-manifest/generate-species-manifest.mjs",
     "upload:species-tifs": "node ./scripts/data-deploy/upload-species-tifs-to-blob.mjs",
     "upload:species-tifs:manifest": "npm run upload:species-tifs && npm run generate:species-manifest",
+    "publish:ecosystem-classification-summary": "node ./scripts/data-deploy/ecosystems/publish-classification-summary.mjs",
     "upload:solutions-cogs": "node ./scripts/data-deploy/upload-solutions-cogs-to-blob.mjs",
     "publish:solution-cog-manifest": "node ./scripts/data-deploy/publish-solution-cog-manifest.mjs",
     "generate:layer-manifest": "node ./layer-manifest/generate-manifest.mjs && node ./layer-manifest/sync-latest-manifest.mjs",

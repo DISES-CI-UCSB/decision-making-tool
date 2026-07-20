@@ -75,6 +75,7 @@ describe('AppStateService', () => {
   let service: AppStateService;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({});
     service = TestBed.inject(AppStateService);
   });
@@ -115,6 +116,77 @@ describe('AppStateService', () => {
     expect(service.rightSidebarMode$()).toBe('welcome');
   });
 
+  it('labels the active solution without changing catalog solution data', () => {
+    const solution: Solution = {
+      id: 'solution-1',
+      name: 'Demo Solution',
+      matchPercentage: 72,
+      geometryUrl: '/geometry/solution-1.json',
+      metrics: [],
+    };
+
+    service.loadSolution(solution);
+    service.labelActiveSolution('Regional workshop draft');
+
+    expect(service.activeSolution$()).toEqual(solution);
+    expect(service.activeSolutionLabel$()).toBe('Regional workshop draft');
+    expect(service.savedSolutionScenarios$()[0]).toEqual(
+      expect.objectContaining({
+        solutionId: 'solution-1',
+        label: 'Regional workshop draft',
+        solutionName: 'Demo Solution',
+      }),
+    );
+  });
+
+  it('clears the active solution label when changing or clearing solutions', () => {
+    const solution: Solution = {
+      id: 'solution-1',
+      name: 'Demo Solution',
+      matchPercentage: 72,
+      geometryUrl: '/geometry/solution-1.json',
+      metrics: [],
+    };
+
+    service.loadSolution(solution);
+    service.labelActiveSolution('Regional workshop draft');
+    service.loadSolution({ ...solution, id: 'solution-2', name: 'Second Solution' });
+
+    expect(service.activeSolutionLabel$()).toBeNull();
+
+    service.labelActiveSolution('Second workshop draft');
+    service.clearSolution();
+
+    expect(service.activeSolutionLabel$()).toBeNull();
+  });
+
+  it('restores a saved scenario label for an active solution', () => {
+    const solution: Solution = {
+      id: 'solution-1',
+      name: 'Demo Solution',
+      matchPercentage: 72,
+      geometryUrl: '/geometry/solution-1.json',
+      metrics: [],
+    };
+
+    service.loadSolution(solution);
+    service.applySavedSolutionScenarioLabel({
+      id: 'saved-scenario-solution-1',
+      solutionId: 'solution-1',
+      label: 'Regional workshop draft',
+      solutionName: 'Demo Solution',
+      updatedAt: '2026-06-25T00:00:00.000Z',
+    });
+
+    expect(service.activeSolutionLabel$()).toBe('Regional workshop draft');
+    expect(service.savedSolutionScenarios$()[0]).toEqual(
+      expect.objectContaining({
+        solutionId: 'solution-1',
+        label: 'Regional workshop draft',
+      }),
+    );
+  });
+
   it('tracks custom AOI geometry separately from fixed boundary selections', () => {
     const geometry: CustomPolygonMetricsGeometry = {
       type: 'Polygon',
@@ -150,6 +222,24 @@ describe('AppStateService', () => {
 
     expect(service.customAOIGeometry$()).toBeNull();
     expect(service.selectedAOI$()).toEqual(fixedAoi);
+  });
+
+  it('tracks custom AOI drawing requests and status for map listeners', () => {
+    expect(service.customAoiDrawRequest$()).toBe(0);
+    expect(service.customAoiDrawCancelRequest$()).toBe(0);
+    expect(service.customAoiDrawClearRequest$()).toBe(0);
+    expect(service.customAoiDrawStatus$()).toBe('idle');
+
+    service.requestCustomAoiDraw();
+    service.requestCustomAoiDraw();
+    service.requestCustomAoiDrawCancel();
+    service.requestCustomAoiDrawClear();
+    service.setCustomAoiDrawStatus('drawing');
+
+    expect(service.customAoiDrawRequest$()).toBe(2);
+    expect(service.customAoiDrawCancelRequest$()).toBe(1);
+    expect(service.customAoiDrawClearRequest$()).toBe(1);
+    expect(service.customAoiDrawStatus$()).toBe('drawing');
   });
 
   it('toggles layer visibility and updates sidebar mode', () => {
