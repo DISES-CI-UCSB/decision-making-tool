@@ -1,15 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import type { LoadedSolution } from '@core/models/solution-catalog.model';
 import { AppStateService } from '@core/services/app-state.service';
-import { solutionClassColors, spatialReferenceForRaster } from '../utils/solution-rendering.utils';
-import { GeoTiffLoaderService } from './geotiff-loader.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
   DEFAULT_SINGLE_SOLUTION_HEX,
-  SolutionLayerService,
-} from './solution-layer.service';
+  solutionClassColors,
+  spatialReferenceForRaster,
+} from '../utils/solution-rendering.utils';
+import { GeoTiffLoaderService } from './geotiff-loader.service';
+import { SolutionLayerService } from './solution-layer.service';
 
 function createLoadedSolution(
   id: string,

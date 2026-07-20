@@ -50,15 +50,7 @@ import {
   VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID,
   VECTOR_OVERLAY_LAYER_IDS,
 } from '@features/map/services/manifest-raster-layer.service';
-import {
-  DEFAULT_COMPARISON_BASELINE_HEX,
-  DEFAULT_COMPARISON_CANDIDATE_HEX,
-  DEFAULT_COMPARISON_OVERLAP_HEX,
-  DEFAULT_EXISTING_PROTECTED_HEX,
-  DEFAULT_SOLUTION_LAYER_OPACITY,
-  DEFAULT_SINGLE_SOLUTION_HEX,
-  SolutionLayerService,
-} from '@features/map/services/solution-layer.service';
+import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
 import { FEATURE_FLAGS } from '@feature-flags';
@@ -78,6 +70,71 @@ import {
   type SelectedLayerDropPosition,
   type SupportedLanguage,
 } from './map-layers-panel.utils';
+import {
+  ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT,
+  ECOSYSTEM_CLASSIFICATION_VIEW_OPTIONS,
+  ECOSYSTEMS_COPY,
+  IAVH_BIOME_FAMILY_COLOR_RULES,
+  IAVH_BIOME_REGION_CLASS_COUNT,
+  IAVH_BIOME_REGION_LOOKUP_URL,
+  IAVH_BIOME_REGION_SAMPLE_COLORS,
+  IAVH_ECOSYSTEM_BIOME_GROUPS,
+  IAVH_ECOSYSTEM_LAYER_ID,
+  IAVH_ECOSYSTEM_NO_DATA_VALUE,
+  STRATEGIC_ECOSYSTEM_LAYER_IDS,
+  type EcosystemClassificationView,
+} from './map-layers-panel-ecosystem.config';
+import {
+  APPEARANCE_POPOVER_ARROW_RIGHT_PX,
+  APPEARANCE_POPOVER_LEFT_OFFSET_PX,
+  APPEARANCE_POPOVER_MAX_WIDTH_PX,
+  APPEARANCE_POPOVER_TOP_OFFSET_PX,
+  BASELINE_SOLUTION_OVERLAY_ID,
+  CANDIDATE_SOLUTION_OVERLAY_ID,
+  COLOR_PICKER_FORMAT_CONTAINER_CLASSES,
+  COLOR_PICKER_FORMAT_OPTIONS,
+  COLOR_PICKER_HEX_FORMAT,
+  COMPARISON_BASELINE_COLOR,
+  COMPARISON_CANDIDATE_COLOR,
+  COMPARISON_OVERLAP_COLOR,
+  COMPARISON_PRIORITY_OVERLAY_IDS,
+  DEFAULT_DATA_LAYER_OPACITY,
+  DEFAULT_SELECTED_LAYER_BORDER_COLOR,
+  DEFAULT_SELECTED_LAYER_BORDER_STYLE,
+  DEFAULT_SELECTED_LAYER_BORDER_WIDTH,
+  DEFAULT_SELECTED_LAYER_FILL_DENSITY,
+  DEFAULT_SELECTED_LAYER_FILL_STYLE,
+  DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT,
+  DEFAULT_SPECIES_MANIFEST_URL,
+  EXCLUDED_SPECIES_TAXON_IDS,
+  EXISTING_PROTECTED_COLOR,
+  FISH_TAXON_ROW_ID,
+  KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID,
+  LEGEND_BOUNDARY_STYLES,
+  MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
+  MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC,
+  MANIFEST_CATEGORY_TITLE_OVERRIDES,
+  MANIFEST_GROUP_COLOR_PALETTES,
+  MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID,
+  MANIFEST_LIVE_RENDER_POLICY,
+  MANIFEST_OVERLAY_ROW_BY_LAYER_ID,
+  OVERLAP_SOLUTION_OVERLAY_ID,
+  SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID,
+  SINGLE_SOLUTION_COLOR,
+  SPECIES_CLASS_TO_TAXON,
+  SPECIES_COLLECTION_ROW_ID,
+  SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID,
+  SPECIES_RICHNESS_LAYER_IDS,
+  SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS,
+  SPECIES_RICHNESS_TOTAL_ROW_ID,
+  SPECIES_TAXON_SORT_ORDER,
+  SPECIES_VISIBLE_LIMIT,
+  STRATEGIC_ECOSYSTEM_GROUP_ROW_ID,
+  STRATEGIC_ECOSYSTEM_ROW_IDS,
+  type SelectedLayerBorderStyle,
+  type SelectedLayerFillStyle,
+  type SpeciesRichnessTaxonLayerDefinition,
+} from './map-layers-panel.config';
 
 interface LayerControlRow {
   id: string;
@@ -163,12 +220,6 @@ interface SelectedLayerRow {
   mapUnavailable: boolean;
 }
 
-const SPECIES_VISIBLE_LIMIT = 6;
-const DEFAULT_SELECTED_LAYER_FILL_STYLE: SelectedLayerFillStyle = 'solid';
-const DEFAULT_SELECTED_LAYER_FILL_DENSITY = 3;
-const DEFAULT_SELECTED_LAYER_BORDER_COLOR = '#0f172a';
-const DEFAULT_SELECTED_LAYER_BORDER_STYLE: SelectedLayerBorderStyle = 'solid';
-const DEFAULT_SELECTED_LAYER_BORDER_WIDTH = 1;
 /**
  * ngx-color-picker remembers whichever input format (Hex / R G B / H S L) the
  * user last selected and does not reset it across reopens. The directive's
@@ -177,14 +228,6 @@ const DEFAULT_SELECTED_LAYER_BORDER_WIDTH = 1;
  * is the numeric input mode (0 = HEX). We reset to 0 on every open below so
  * the popup always greets the user with the hex input.
  */
-/** Mirrors `top-[5.25rem]` on the in-row appearance popover anchor. */
-const APPEARANCE_POPOVER_TOP_OFFSET_PX = 84;
-/** Mirrors `left-25` horizontal offset from the selected-layer row's left edge. */
-const APPEARANCE_POPOVER_LEFT_OFFSET_PX = 100;
-/** Mirrors `right-16` on the popover arrow element. */
-const APPEARANCE_POPOVER_ARROW_RIGHT_PX = 158;
-const APPEARANCE_POPOVER_MAX_WIDTH_PX = 336;
-
 interface AppearancePopoverPosition {
   top: number;
   left: number;
@@ -197,15 +240,6 @@ interface LayerInfoPopoverPosition {
   left: number;
 }
 
-const COLOR_PICKER_HEX_FORMAT = 0;
-/** Formats exposed in the inlined dropdown; values match ngx-color-picker's `format` field. */
-const COLOR_PICKER_FORMAT_OPTIONS = [
-  { format: 0, label: 'Hex' },
-  { format: 1, label: 'RGB' },
-  { format: 2, label: 'HSL' },
-] as const;
-/** Class names of the per-format input containers ngx-color-picker renders into the dialog. */
-const COLOR_PICKER_FORMAT_CONTAINER_CLASSES = ['hex-text', 'rgba-text', 'hsla-text'] as const;
 interface ColorPickerDirectiveWithPrivateDialog {
   dialog: ColorPickerComponent | null;
 }
@@ -229,41 +263,6 @@ interface ColorPickerComponentWithPrivateSliderDims {
   sliderDimMax?: { h: number; s: number; v: number; a: number } | null;
   updateColorPicker: (emit?: boolean, update?: boolean, cmykInput?: boolean) => void;
 }
-type SelectedLayerFillStyle = 'solid' | 'hatch' | 'mesh' | 'dots';
-type SelectedLayerBorderStyle = 'none' | 'solid' | 'dashed' | 'dotted';
-interface SpeciesRichnessTaxonLayerDefinition {
-  rowId: string;
-  taxonId: string;
-  englishLabel: string;
-  displayUrl: string;
-  rendering: RuntimeLayerManifestRenderingConfig;
-}
-
-const BASELINE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution';
-const CANDIDATE_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-candidate';
-const OVERLAP_SOLUTION_OVERLAY_ID = 'overlay-conservation-solution-overlap';
-const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manifest.json';
-const SPECIES_COLLECTION_ROW_ID = 'layer-species';
-const SPECIES_RICHNESS_TOTAL_ROW_ID = 'layer-species_richness';
-const STRATEGIC_ECOSYSTEM_GROUP_ROW_ID = 'layer-strategic-ecosystems';
-const STRATEGIC_ECOSYSTEM_ROW_IDS = new Set([
-  'layer-paramos',
-  'layer-wetlands',
-  'layer-bosque_seco',
-  'layer-mangroves',
-  'layer-eco-paramos',
-  'layer-eco-wetlands',
-  'layer-eco-dry-forest',
-  'layer-eco-mangroves',
-]);
-const SPECIES_RICHNESS_LAYER_IDS = new Set([
-  SPECIES_RICHNESS_TOTAL_ROW_ID,
-  'layer-species_richness_mammals',
-  'layer-species_richness_birds',
-  'layer-species_richness_amphibians',
-  'layer-species_richness_reptiles',
-  'layer-species_richness_plants',
-]);
 const SPECIES_TAXONOMY_CSV_URL =
   'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv';
 
@@ -273,97 +272,6 @@ export function resolveSpeciesTaxonomyLookupUrl(
   return manifest?.referenceData?.speciesLookup?.url?.trim() || SPECIES_TAXONOMY_CSV_URL;
 }
 
-const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<LayerGroup['id'], string>> = {
-  'group-ecosystems': 'ecosystems',
-  'group-socio-economic': 'socioeconomic',
-  'group-cultural-ethnic': 'cultural_and_ethnic_territories',
-  'group-species-biodiversity': 'species_and_biodiversity',
-};
-const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<Record<string, { en: string; es: string }>> = {
-  socioeconomic: { en: 'Costs', es: 'Costos' },
-};
-const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabel: string }> = {
-  Mammalia: { taxonId: 'mammals', taxonLabel: 'Mammals' },
-  Aves: { taxonId: 'birds', taxonLabel: 'Birds' },
-  Amphibia: { taxonId: 'amphibians', taxonLabel: 'Amphibians' },
-  Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
-  Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
-  Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
-  Actinopteri: { taxonId: 'fish', taxonLabel: 'Fish' },
-};
-const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
-  ['taxon-mammals', 0],
-  ['taxon-birds', 1],
-  ['taxon-amphibians', 2],
-  ['taxon-reptiles', 3],
-  ['taxon-plants', 4],
-  ['taxon-fish', 5],
-]);
-const EXCLUDED_SPECIES_TAXON_IDS = new Set(['taxon-fish']);
-const FISH_TAXON_ROW_ID = 'taxon-fish';
-const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
-  runap: RUNAP_OVERLAY_LAYER_ID,
-  runap_national_parks: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
-  omecs: OMEC_OVERLAY_LAYER_ID,
-};
-const MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID = Object.fromEntries(
-  Object.entries(MANIFEST_OVERLAY_ROW_BY_LAYER_ID).map(([layerId, rowId]) => [rowId, layerId]),
-) as Record<string, string>;
-const MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE: Partial<
-  Record<
-    string,
-    Partial<
-      Pick<LayerControlRow, 'color' | 'fillStyle' | 'fillDensity' | 'borderColor' | 'borderWidth'>
-    >
-  >
-> = {
-  [RUNAP_OVERLAY_LAYER_ID]: {
-    color: '#f97316',
-    fillStyle: 'solid',
-    borderColor: '#c2410c',
-    borderWidth: 1,
-  },
-  [RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID]: {
-    color: '#dc2626',
-    fillStyle: 'solid',
-    borderColor: '#991b1b',
-    borderWidth: 1,
-  },
-  [OMEC_OVERLAY_LAYER_ID]: {
-    color: '#c026d3',
-    fillStyle: 'hatch',
-    fillDensity: 4,
-    borderColor: '#86198f',
-    borderWidth: 1,
-  },
-};
-const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
-  string,
-  { boundaryType: AoiType; boundaryLayerKey: AdminBoundaryLayerKey }
-> = {
-  siraps: { boundaryType: 'sirap', boundaryLayerKey: 'siraps' },
-  siraps_territorial: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_territorial' },
-  siraps_thematic: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_thematic' },
-  admin_country_outline: {
-    boundaryType: 'department',
-    boundaryLayerKey: 'admin_country_outline',
-  },
-  admin_departments: { boundaryType: 'department', boundaryLayerKey: 'admin_departments' },
-  admin_municipalities: { boundaryType: 'municipality', boundaryLayerKey: 'admin_municipalities' },
-};
-const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
-  'group-ecosystems': ['#0d9488', '#6d8e7e', '#0284c7', '#a16207', '#15803d'],
-  'group-socio-economic': ['#d97706', '#ea580c', '#78716c'],
-  'group-cultural-ethnic': ['#6366f1', '#a855f7'],
-};
-const IAVH_ECOSYSTEM_LAYER_ID = 'ecosistemas';
-const STRATEGIC_ECOSYSTEM_LAYER_IDS = new Set(['paramos', 'wetlands', 'bosque_seco', 'mangroves']);
-type EcosystemClassificationView =
-  | 'biomeFamily'
-  | 'broadBiomeContext'
-  | 'biomeRegion'
-  | 'broadEcosystem'
-  | 'detailedEcosystem';
 interface EcosystemClassificationSummaryValue {
   label: string;
   areaHectares: number;
@@ -391,275 +299,6 @@ interface IavhBiomeRegionClass {
   value: number;
   label: string;
 }
-const ECOSYSTEM_CLASSIFICATION_VIEW_OPTIONS: readonly {
-  value: EcosystemClassificationView;
-  labelKey: string;
-}[] = [
-  { value: 'biomeFamily', labelKey: 'mapLayersPanel.ecosystemClassification.biomeFamily' },
-  {
-    value: 'broadBiomeContext',
-    labelKey: 'mapLayersPanel.ecosystemClassification.broadBiomeContext',
-  },
-  { value: 'biomeRegion', labelKey: 'mapLayersPanel.ecosystemClassification.biomeRegion' },
-  { value: 'broadEcosystem', labelKey: 'mapLayersPanel.ecosystemClassification.broadEcosystem' },
-  {
-    value: 'detailedEcosystem',
-    labelKey: 'mapLayersPanel.ecosystemClassification.detailedEcosystem',
-  },
-] as const;
-const ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT = 12;
-const IAVH_BIOME_REGION_CLASS_COUNT = 430;
-const IAVH_BIOME_REGION_LOOKUP_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv';
-const ECOSYSTEMS_COPY = {
-  en: {
-    groupTitle: 'Ecosystems',
-    groupNote: '',
-    iavhRowName: 'Ecosystems (Biome Family)',
-    strategicGroupName: 'Strategic Ecosystems',
-    otherBiomeFamily: 'Other / N.A.',
-  },
-  es: {
-    groupTitle: 'Ecosistemas',
-    groupNote: '',
-    iavhRowName: 'Ecosistemas (Familia de bioma)',
-    strategicGroupName: 'Ecosistemas estratégicos',
-    otherBiomeFamily: 'Otro / N.A.',
-  },
-} as const;
-const IAVH_ECOSYSTEM_NO_DATA_VALUE = 4294967295;
-const IAVH_ECOSYSTEM_BIOME_GROUPS = [
-  {
-    label: { en: 'Orobioma', es: 'Orobioma' },
-    color: '#4d7c0f',
-    values: [
-      14, 29, 33, 37, 38, 39, 41, 42, 43, 45, 46, 48, 49, 52, 53, 54, 55, 63, 64, 68, 74, 76, 77,
-      80, 82, 84, 86, 87, 89, 90, 92, 93, 96, 97, 98, 99, 100, 101, 111, 112, 114, 116, 118, 122,
-      124, 125, 126, 129, 132, 133, 134, 135, 136, 168, 176, 181, 182, 183, 184, 185, 187, 188, 189,
-      197, 217, 218, 220, 221, 223, 224, 226, 227, 228, 231, 239, 241, 246, 248, 249, 250, 261, 264,
-      265, 271, 278, 279, 280, 283, 292, 293, 312, 313, 314, 317, 318, 319, 320, 321, 322, 325, 327,
-      328, 335, 336, 353, 355, 356, 357, 360, 361, 362, 363, 364, 365, 371, 373, 406, 409, 410, 411,
-      413, 415, 416, 417, 419, 420, 421, 422, 423, 425, 426, 427, 428,
-    ],
-  },
-  {
-    label: { en: 'Zonobioma', es: 'Zonobioma' },
-    color: '#15803d',
-    values: [
-      4, 5, 9, 15, 17, 21, 27, 34, 35, 47, 60, 78, 81, 83, 85, 91, 95, 102, 105, 106, 108, 110, 115,
-      117, 120, 121, 123, 127, 139, 143, 147, 152, 154, 162, 165, 170, 177, 193, 196, 199, 206, 212,
-      219, 230, 234, 240, 243, 245, 251, 252, 254, 263, 266, 272, 275, 277, 286, 288, 296, 297, 301,
-      302, 305, 309, 323, 326, 332, 333, 334, 340, 342, 347, 350, 352, 359, 367, 368, 372, 379, 384,
-      385, 386, 388, 389, 392, 393, 394, 398, 399, 404,
-    ],
-  },
-  {
-    label: { en: 'Hidrobioma', es: 'Hidrobioma' },
-    color: '#0369a1',
-    values: [
-      1, 11, 13, 19, 23, 25, 26, 31, 40, 44, 57, 59, 62, 66, 73, 75, 88, 104, 107, 113, 131, 142,
-      146, 150, 151, 160, 172, 174, 180, 194, 201, 204, 209, 211, 215, 216, 225, 233, 244, 247, 256,
-      257, 258, 262, 274, 276, 285, 295, 298, 310, 316, 324, 331, 345, 351, 358, 374, 377, 382, 383,
-      387, 396, 401, 405,
-    ],
-  },
-  {
-    label: { en: 'Helobioma', es: 'Helobioma' },
-    color: '#0f766e',
-    values: [
-      2, 7, 8, 12, 16, 20, 24, 30, 32, 36, 50, 51, 56, 61, 65, 79, 94, 103, 109, 128, 130, 138, 141,
-      145, 148, 149, 161, 164, 169, 179, 191, 198, 203, 210, 214, 232, 237, 238, 242, 253, 259, 260,
-      267, 268, 282, 287, 294, 299, 311, 315, 330, 341, 344, 346, 349, 354, 376, 381, 390, 395, 402,
-      407, 408,
-    ],
-  },
-  {
-    label: { en: 'Peinobioma', es: 'Peinobioma' },
-    color: '#a16207',
-    values: [
-      3, 6, 10, 18, 28, 67, 69, 71, 119, 140, 144, 156, 157, 158, 163, 166, 171, 178, 186, 192, 202,
-      207, 213, 229, 236, 269, 270, 281, 284, 289, 290, 303, 306, 308, 338, 339, 343, 369, 370, 380,
-      391, 412, 430,
-    ],
-  },
-  {
-    label: { en: 'Litobioma', es: 'Litobioma' },
-    color: '#78716c',
-    values: [
-      137, 153, 155, 159, 167, 173, 175, 190, 195, 200, 205, 208, 222, 235, 307, 329, 337, 348, 366,
-      375, 378, 418, 424, 429,
-    ],
-  },
-  {
-    label: { en: 'Halobioma', es: 'Halobioma' },
-    color: '#0e7490',
-    values: [22, 58, 72, 255, 273, 291, 300, 304, 397, 400, 403, 414],
-  },
-  {
-    label: { en: ECOSYSTEMS_COPY.en.otherBiomeFamily, es: ECOSYSTEMS_COPY.es.otherBiomeFamily },
-    color: '#64748b',
-    values: [70],
-  },
-] as const;
-const IAVH_BIOME_FAMILY_COLOR_RULES = [
-  { prefix: 'Orobioma', hue: 92, saturation: 62 },
-  { prefix: 'Zonobioma', hue: 138, saturation: 58 },
-  { prefix: 'Hidrobioma', hue: 202, saturation: 70 },
-  { prefix: 'Helobioma', hue: 174, saturation: 60 },
-  { prefix: 'Peinobioma', hue: 38, saturation: 70 },
-  { prefix: 'Litobioma', hue: 32, saturation: 18 },
-  { prefix: 'Halobioma', hue: 190, saturation: 68 },
-  { prefix: 'N.A.', hue: 215, saturation: 12 },
-] as const;
-const IAVH_BIOME_REGION_SAMPLE_COLORS = [
-  '#4d7c0f',
-  '#15803d',
-  '#0369a1',
-  '#0f766e',
-  '#a16207',
-  '#78716c',
-] as const;
-const MANIFEST_LIVE_RENDER_POLICY = {
-  enabledCategoryIds: new Set<string>([
-    'ecosystems',
-    'socioeconomic',
-    'cultural_and_ethnic_territories',
-    'species_and_biodiversity',
-  ]),
-  blockedCategoryReasons: {
-    // Conservation areas are rendered via the dedicated overlays card
-    // (see reconcileOverlaysWithManifest) rather than the generic group rows path.
-    administrative_boundaries:
-      'Administrative boundary rows use boundary feature services, not raster display assets.',
-  } as Record<string, string>,
-} as const;
-const COMPARISON_PRIORITY_OVERLAY_IDS = [
-  OVERLAP_SOLUTION_OVERLAY_ID,
-  BASELINE_SOLUTION_OVERLAY_ID,
-  CANDIDATE_SOLUTION_OVERLAY_ID,
-] as const;
-const SPECIES_RICHNESS_RENDER_RANGE = {
-  minValue: 815,
-  maxValue: 3562,
-} as const;
-const SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS: SpeciesRichnessTaxonLayerDefinition[] = [
-  {
-    rowId: 'layer-species_richness_mammals',
-    taxonId: 'mammals',
-    englishLabel: 'Mammals',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_mammals.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 142,
-      startColor: '#f3e8ff',
-      endColor: '#7e22ce',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_birds',
-    taxonId: 'birds',
-    englishLabel: 'Birds',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_birds.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 823,
-      startColor: '#dbeafe',
-      endColor: '#1d4ed8',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_amphibians',
-    taxonId: 'amphibians',
-    englishLabel: 'Amphibians',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_amphibians.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 56,
-      startColor: '#dcfce7',
-      endColor: '#15803d',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_reptiles',
-    taxonId: 'reptiles',
-    englishLabel: 'Reptiles',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_reptiles.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 68,
-      startColor: '#ffedd5',
-      endColor: '#c2410c',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_plants',
-    taxonId: 'plants',
-    englishLabel: 'Plants',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_plants.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 2884,
-      startColor: '#ccfbf1',
-      endColor: '#0f766e',
-    },
-  },
-];
-const SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID = new Map(
-  SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS.map((definition) => [
-    `taxon-${definition.taxonId}`,
-    definition.rowId,
-  ]),
-);
-const HUMAN_FOOTPRINT_RENDER_RANGE = {
-  minValue: 0,
-  maxValue: 100,
-} as const;
-const DEFAULT_DATA_LAYER_OPACITY = 80;
-const DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT = Math.round(DEFAULT_SOLUTION_LAYER_OPACITY * 100);
-const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
-  string,
-  { minValue: number; maxValue: number }
-> = {
-  species_richness: SPECIES_RICHNESS_RENDER_RANGE,
-  human_footprint_2022: HUMAN_FOOTPRINT_RENDER_RANGE,
-};
-// Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
-const SINGLE_SOLUTION_COLOR = DEFAULT_SINGLE_SOLUTION_HEX;
-const EXISTING_PROTECTED_COLOR = DEFAULT_EXISTING_PROTECTED_HEX;
-const COMPARISON_BASELINE_COLOR = DEFAULT_COMPARISON_BASELINE_HEX;
-const COMPARISON_CANDIDATE_COLOR = DEFAULT_COMPARISON_CANDIDATE_HEX;
-const COMPARISON_OVERLAP_COLOR = DEFAULT_COMPARISON_OVERLAP_HEX;
-const LEGEND_BOUNDARY_STYLES: Record<
-  AdminBoundaryLayerKey,
-  { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
-> = {
-  siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
-  siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
-  siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#475569' },
-  admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
-  admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
-  admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
-};
 
 @Component({
   selector: 'app-map-layers-panel',
