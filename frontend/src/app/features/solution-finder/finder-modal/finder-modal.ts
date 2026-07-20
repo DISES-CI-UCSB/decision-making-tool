@@ -16,6 +16,7 @@ import {
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import type {
   FinderSelectionMemory,
+  SavedSolutionScenario,
   SolutionFinderContext,
 } from '@core/services/app-state.service';
 import { AppStateService } from '@core/services/app-state.service';
@@ -71,6 +72,7 @@ interface SolutionMatch {
   ecosystemTargets: number;
   selectedUnits: number;
   matchPercentage: number;
+  customLabel?: string;
 }
 
 type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
@@ -148,7 +150,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   protected readonly showScopeBar = this.appState.showFinderScopeBar$;
   protected readonly activeSolution = this.appState.activeSolution$;
+  protected readonly savedSolutionScenarios = this.appState.savedSolutionScenarios$;
   protected readonly finderSelectionMemory = this.appState.finderSelectionMemory$;
+  protected savedScenarioSearchQuery = '';
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
 
@@ -305,7 +309,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     if (!this.isCostLayerAvailable(id)) {
       return;
     }
-    this.selectedCostLayerId = id;
+    this.selectedCostLayerId = this.selectedCostLayerId === id ? null : id;
     this.clearResultsIfNeeded();
     this.rememberCurrentSelections();
   }
@@ -369,6 +373,51 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     const value = (event.target as HTMLSelectElement).value;
     this.selectedSirapRegion = (value || null) as SirapRegionId | null;
     this.clearSelections({ remember: true });
+  }
+
+  protected updateSavedScenarioSearchQuery(query: string): void {
+    this.savedScenarioSearchQuery = query;
+  }
+
+  protected clearSavedScenarioSearchQuery(): void {
+    this.savedScenarioSearchQuery = '';
+  }
+
+  protected hasSavedSolutionScenarios(): boolean {
+    return this.savedSolutionScenarios().length > 0;
+  }
+
+  protected filteredSavedSolutionScenarios(): SavedSolutionScenario[] {
+    const query = this.savedScenarioSearchQuery.trim().toLowerCase();
+    if (!query) {
+      return this.savedSolutionScenarios();
+    }
+
+    return this.savedSolutionScenarios().filter((scenario) =>
+      [scenario.label, scenario.solutionName, scenario.solutionId]
+        .join(' ')
+        .toLowerCase()
+        .includes(query),
+    );
+  }
+
+  protected applySavedSolutionScenario(scenario: SavedSolutionScenario): void {
+    const solution = this.solutionCatalog.getById(scenario.solutionId);
+    if (!solution) {
+      return;
+    }
+
+    this.clearLoadingTimer();
+    this.restoreSelectionsFromSolution(solution);
+    const match = {
+      ...this.toSolutionMatch(solution),
+      customLabel: scenario.label,
+    };
+    this.matchResults = [match];
+    this.selectedMatchId = match.id;
+    this.selectedMatch = match;
+    this.matchState = 'ready';
+    this.rememberCurrentSelections();
   }
 
   protected resetSelections(): void {
@@ -513,12 +562,55 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     });
   }
 
+  private restoreSelectionsFromSolution(solution: CatalogSolution): void {
+    const normalizedScope = this.normalizeManifestToken(
+      solution.finderInputs.scope || solution.scope,
+    );
+    this.selectedScope = normalizedScope === 'sirap' ? 'sirap' : 'nacional';
+    this.selectedSirapRegion =
+      this.selectedScope === 'sirap' && this.isSirapRegionId(solution.sirapId)
+        ? solution.sirapId
+        : null;
+
+    this.selectedTargetTypeIds = this.targetTypeOptions
+      .map((option) => option.id)
+      .filter((type) => this.getSolutionTargetTypes(solution).has(type));
+
+    this.targetLevelByType = this.selectedTargetTypeIds.reduce<TargetLevelsByType>(
+      (levels, type) => {
+        const level = this.getSolutionTargetLevel(solution, type);
+        if (level) {
+          levels[type] = level;
+        }
+        return levels;
+      },
+      {},
+    );
+
+    const includeIds = this.getSolutionIncludeIds(solution);
+    this.includeOmecs = includeIds.some((id) => id.includes('omec'));
+    this.includeComunidades = includeIds.some((id) => id.includes('comunidades'));
+    this.includeResguardos = includeIds.some((id) => id.includes('resguardos'));
+
+    if (this.solutionCostMatchesChoice(solution, 'human-footprint')) {
+      this.selectedCostLayerId = 'human-footprint';
+    } else if (this.solutionCostMatchesChoice(solution, 'carbon-opportunity')) {
+      this.selectedCostLayerId = 'carbon-opportunity';
+    } else {
+      this.selectedCostLayerId = null;
+    }
+  }
+
   private isFinderTargetType(value: string): value is FinderTargetType {
     return this.targetTypeOptions.some((option) => option.id === value);
   }
 
   private isCostLayerChoice(value: string | null): value is CostLayerChoice {
     return value === 'human-footprint' || value === 'carbon-opportunity';
+  }
+
+  private isSirapRegionId(value: string | null): value is SirapRegionId {
+    return this.sirapRegions.some((region) => region.id === value);
   }
 
   private toTargetLevelsByType(

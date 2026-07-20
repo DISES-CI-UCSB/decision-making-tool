@@ -97,7 +97,7 @@ export class App implements OnInit {
     this.perspectiveModalOpen = false;
   }
 
-  protected onSolutionApplied(match: { solutionId: string }): void {
+  protected onSolutionApplied(match: { solutionId: string; customLabel?: string }): void {
     const selectedSolution =
       this.buildManifestSolution(match) ?? this.mockData.getSolutionById(match.solutionId);
     if (!selectedSolution) {
@@ -110,7 +110,7 @@ export class App implements OnInit {
       );
       this.appState.setRightSidebarMode('comparison');
     } else {
-      this.applySolution(selectedSolution, match.solutionId);
+      this.applySolution(selectedSolution, match.solutionId, match.customLabel);
     }
 
     this.closeSolutionFinderModal();
@@ -120,9 +120,12 @@ export class App implements OnInit {
     this.coordinateToolEnabled = isEnabled;
   }
 
-  private applySolution(solution: Solution, solutionId: string): void {
+  private applySolution(solution: Solution, solutionId: string, customLabel?: string): void {
     this.appState.setComparisonSolution(null);
     this.appState.loadSolution(solution);
+    if (customLabel) {
+      this.appState.labelActiveSolution(customLabel);
+    }
     this.appState.setRightSidebarMode('overview');
     void this.solutionLayer.showSolution(solutionId);
   }

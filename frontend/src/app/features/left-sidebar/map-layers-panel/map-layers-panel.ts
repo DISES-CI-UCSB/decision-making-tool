@@ -736,6 +736,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   ];
 
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
+  protected readonly activeSolutionLabel = this.appState.activeSolutionLabel$;
+  protected readonly selectedAoi = this.appState.selectedAOI$;
+  protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
+  protected readonly activeSolutionLabelDraft = signal('');
+  protected readonly activeSolutionLabelEditorOpen = signal(false);
   protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
     const activeSolution = this.appState.activeSolution$();
     const catalogSolution = this.findActiveCatalogSolution(activeSolution);
@@ -902,8 +907,13 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       const solution = this.appState.activeSolution$();
+      const solutionLabel = this.appState.activeSolutionLabel$();
       const speciesManifestUrl = this.speciesCollectionManifestUrl();
       untracked(() => {
+        this.activeSolutionLabelDraft.set(solutionLabel ?? '');
+        if (!solution) {
+          this.activeSolutionLabelEditorOpen.set(false);
+        }
         if (solution && speciesManifestUrl) {
           this.layerManifestService.preloadSpeciesManifest(speciesManifestUrl);
         }
@@ -1083,6 +1093,53 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
+  }
+
+  protected requestCustomAoiDraw(): void {
+    this.appState.requestCustomAoiDraw();
+  }
+
+  protected requestCustomAoiDrawCancel(): void {
+    this.appState.requestCustomAoiDrawCancel();
+  }
+
+  protected requestCustomAoiDrawClear(): void {
+    this.appState.requestCustomAoiDrawClear();
+  }
+
+  protected openActiveSolutionLabelEditor(): void {
+    this.activeSolutionLabelDraft.set(this.activeSolutionLabel() ?? '');
+    this.activeSolutionLabelEditorOpen.set(true);
+  }
+
+  protected updateActiveSolutionLabelDraft(label: string): void {
+    this.activeSolutionLabelDraft.set(label);
+  }
+
+  protected commitActiveSolutionLabel(event?: Event): void {
+    event?.preventDefault();
+
+    const nextLabel = this.activeSolutionLabelDraft().trim();
+    this.appState.labelActiveSolution(nextLabel.length > 0 ? nextLabel : null);
+    this.activeSolutionLabelDraft.set(nextLabel);
+    this.activeSolutionLabelEditorOpen.set(false);
+
+    if (event instanceof KeyboardEvent) {
+      (event.target as HTMLElement | null)?.blur();
+    }
+  }
+
+  protected cancelActiveSolutionLabelEdit(event?: Event): void {
+    event?.preventDefault();
+    this.activeSolutionLabelDraft.set(this.activeSolutionLabel() ?? '');
+    this.activeSolutionLabelEditorOpen.set(false);
+  }
+
+  protected clearActiveSolutionLabel(event?: Event): void {
+    event?.preventDefault();
+    this.appState.labelActiveSolution(null);
+    this.activeSolutionLabelDraft.set('');
+    this.activeSolutionLabelEditorOpen.set(false);
   }
 
   protected toggleActiveSolutionBreakdown(): void {

@@ -113,6 +113,12 @@
   transform: translateY(-1px);
 }
 
+.map-layers-active-solution-label-edit-text {
+  display: inline-block;
+  line-height: 0.95;
+  transform: translateY(1px);
+}
+
 .map-layers-scenario-status-label {
   display: inline-block;
   line-height: 1;
@@ -209,6 +215,13 @@
   .map-layers-text-box-trim-cap {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
+  }
+
+  .map-layers-active-solution-label-edit-text {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    line-height: 1;
+    transform: none;
   }
 }
 
