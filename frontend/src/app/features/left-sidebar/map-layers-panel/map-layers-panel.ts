@@ -58,7 +58,6 @@ import {
   buildLegendCategories,
   buildLegendLayerEntry,
   computeSelectedLayerOrder,
-  groupParentChildRows,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
@@ -113,54 +112,28 @@ import {
   KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID,
   LEGEND_BOUNDARY_STYLES,
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
-  MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC,
   MANIFEST_CATEGORY_TITLE_OVERRIDES,
   MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID,
-  MANIFEST_OVERLAY_ROW_BY_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
   SINGLE_SOLUTION_COLOR,
   sidebarCategoryBindingForGroup,
-  sidebarCategoryBindingForManifest,
   SPECIES_CLASS_TO_TAXON,
   SPECIES_COLLECTION_ROW_ID,
   SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID,
-  SPECIES_RICHNESS_LAYER_IDS,
-  SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS,
-  SPECIES_RICHNESS_TOTAL_ROW_ID,
   SPECIES_TAXON_SORT_ORDER,
   SPECIES_VISIBLE_LIMIT,
   STRATEGIC_ECOSYSTEM_GROUP_ROW_ID,
   STRATEGIC_ECOSYSTEM_ROW_IDS,
   type SelectedLayerBorderStyle,
   type SelectedLayerFillStyle,
-  type SpeciesRichnessTaxonLayerDefinition,
 } from './map-layers-panel.config';
-import { MapLayersPanelMapSync, type MapSyncDescriptor } from './map-layers-panel-map-sync';
-
-interface LayerControlRow {
-  id: string;
-  name: string;
-  countLabel?: string;
-  parentId?: string;
-  selected: boolean;
-  visible: boolean;
-  expanded: boolean;
-  opacity: number;
-  color: string;
-  fillStyle?: SelectedLayerFillStyle;
-  fillDensity?: number;
-  borderColor?: string;
-  borderStyle?: SelectedLayerBorderStyle;
-  borderWidth?: number;
-  canReorder: boolean;
-  hasStyleControls: boolean;
-  hasColorControl: boolean;
-  disabled?: boolean;
-  mapUnavailable?: boolean;
-  hideAddButton?: boolean;
-  metadataUrl?: string | null;
-  mapSync?: MapSyncDescriptor;
-}
+import {
+  isManifestRenderingSupported,
+  reconcileMapLayersManifest,
+  type LayerControlRow,
+  type LayerGroup,
+} from './map-layers-panel-manifest-reconcile';
+import { MapLayersPanelMapSync } from './map-layers-panel-map-sync';
 
 interface SpeciesSample {
   common: string;
@@ -179,17 +152,6 @@ interface TaxonRow extends LayerControlRow {
   searchQuery: string;
   showAll: boolean;
   species: SpeciesRow[];
-}
-
-interface LayerGroup {
-  id: string;
-  title: string;
-  countLabel?: string;
-  collapsed: boolean;
-  disabled?: boolean;
-  comingSoon?: boolean;
-  note?: string;
-  rows: LayerControlRow[];
 }
 
 interface LayerSearchGroupMatch {
@@ -943,9 +905,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       this.loadedSpeciesManifestUrl = speciesManifestUrl;
       this.loadSpeciesManifestRows(speciesManifestUrl);
     }
-    this.reconcileGroupsWithManifest(groups);
-    this.reconcileOverlaysWithManifest(groups);
-    this.reconcileAdminBoundariesWithManifest(groups);
+    this.reconcileManifestRows(groups);
     this.syncAllRowsToMap();
   }
 
@@ -1015,432 +975,37 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
-  private reconcileGroupsWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
-    const groupsByManifestCategoryId = new Map(
-      manifestGroups.map((group) => [group.sidebarCategoryId, group]),
-    );
+  private reconcileManifestRows(manifestGroups: ManifestSidebarLayerGroup[]): void {
+    const result = reconcileMapLayersManifest({
+      manifestGroups,
+      groups: this.groups(),
+      overlays: this.overlays(),
+      ports: {
+        manifestRowName: (row) => this.manifestSidebarLayerName(row),
+        manifestGroupTitle: (group) => this.manifestSidebarGroupTitle(group),
+        manifestCategoryTitle: (categoryId) => this.manifestCategoryTitle(categoryId),
+        normalizeManifestRendering: (row) => this.normalizeManifestRendering(row),
+        layerCountLabel: (count) => this.toLayerCountLabel(count),
+        individualSpeciesName: () =>
+          this.localizedTextOrFallback('mapLayersPanel.individualSpecies', 'Individual species'),
+        speciesRichnessTaxonName: (definition) =>
+          this.localizedTextOrFallback(
+            `mapLayersPanel.taxaNames.${definition.taxonId}`,
+            definition.englishLabel,
+          ),
+        strategicEcosystemGroupName: () => this.ecosystemsCopy().strategicGroupName,
+        ecosystemGroupNote: () => this.ecosystemsCopy().groupNote,
+        managementFiguresTitle: () =>
+          this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
+      },
+    });
 
-    this.groups.update((groups) =>
-      groups.map((group) => {
-        const categoryBinding = sidebarCategoryBindingForGroup(group.id);
-        if (!categoryBinding || categoryBinding.rowSource !== 'generic-manifest') {
-          return group;
-        }
-
-        const { manifestCategoryId } = categoryBinding;
-        const manifestGroup = groupsByManifestCategoryId.get(manifestCategoryId);
-        if (!manifestGroup) {
-          return group;
-        }
-
-        const manifestRows = manifestGroup.rows.map((row, index) =>
-          this.manifestSidebarLayerRow(group.id, row, index, group.rows),
-        );
-        const rows =
-          group.id === 'group-species-biodiversity'
-            ? this.withSpeciesRichnessGroupRows(manifestRows, group.rows)
-            : group.id === 'group-ecosystems'
-              ? this.withStrategicEcosystemGroupRows(manifestRows, group.rows)
-              : manifestRows;
-
-        return {
-          ...group,
-          title:
-            this.manifestCategoryTitle(manifestCategoryId) ??
-            this.manifestSidebarGroupTitle(manifestGroup),
-          countLabel: this.toLayerCountLabel(this.layerRowCount(rows)),
-          note: group.id === 'group-ecosystems' ? this.ecosystemsCopy().groupNote : group.note,
-          rows,
-        };
-      }),
-    );
+    this.groups.set(result.groups);
+    if (result.managementFiguresTitle) {
+      this.overlays.set(result.overlays);
+      this.managementFiguresTitle.set(result.managementFiguresTitle);
+    }
     this.selectedLayerOrder.update((order) => this.normalizeSelectedLayerOrder(order));
-  }
-
-  private reconcileOverlaysWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
-    const managementGroup = manifestGroups.find(
-      (group) => group.sidebarCategoryId === 'management_figures',
-    );
-    if (!managementGroup) {
-      return;
-    }
-    this.managementFiguresTitle.set(
-      this.localizedText('mapLayersPanel.groupTitles.managementFigures'),
-    );
-
-    this.overlays.update((rows) => {
-      const rowById = new Map(rows.map((row) => [row.id, row]));
-      const baselineRow = rowById.get(BASELINE_SOLUTION_OVERLAY_ID);
-      const candidateRow = rowById.get(CANDIDATE_SOLUTION_OVERLAY_ID);
-      const overlapRow = rowById.get(OVERLAP_SOLUTION_OVERLAY_ID);
-      const nationalParksRow = rowById.get(RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID);
-      const manifestHasNationalParksRow = managementGroup.rows.some(
-        (row) => MANIFEST_OVERLAY_ROW_BY_LAYER_ID[row.id] === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
-      );
-      const reconciledManagementRows: LayerControlRow[] = [];
-
-      for (const manifestRow of managementGroup.rows) {
-        const overlayId = MANIFEST_OVERLAY_ROW_BY_LAYER_ID[manifestRow.id];
-        if (!overlayId) {
-          continue;
-        }
-        const existingOverlay = rowById.get(overlayId);
-        if (!existingOverlay) {
-          continue;
-        }
-        reconciledManagementRows.push(
-          this.applyManifestToManagementOverlay(existingOverlay, manifestRow),
-        );
-        if (
-          overlayId === RUNAP_OVERLAY_LAYER_ID &&
-          nationalParksRow &&
-          !manifestHasNationalParksRow
-        ) {
-          reconciledManagementRows.push(nationalParksRow);
-        }
-      }
-
-      if (
-        nationalParksRow &&
-        !reconciledManagementRows.some((row) => row.id === RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID)
-      ) {
-        reconciledManagementRows.push(nationalParksRow);
-      }
-
-      // Preserve non-manifest overlays that are still part of active comparison flows.
-      return [
-        ...(baselineRow ? [baselineRow] : []),
-        ...(candidateRow ? [candidateRow] : []),
-        ...(overlapRow ? [overlapRow] : []),
-        ...reconciledManagementRows,
-      ];
-    });
-  }
-
-  private reconcileAdminBoundariesWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
-    const categoryBinding = sidebarCategoryBindingForGroup('group-admin-boundaries');
-    if (!categoryBinding) {
-      return;
-    }
-    const adminGroup = manifestGroups.find(
-      (group) => group.sidebarCategoryId === categoryBinding.manifestCategoryId,
-    );
-    if (!adminGroup) {
-      return;
-    }
-
-    this.groups.update((groups) =>
-      groups.map((group) => {
-        if (group.id !== 'group-admin-boundaries') {
-          return group;
-        }
-
-        const existingRowsByBoundaryKey = new Map(
-          group.rows
-            .map((row) =>
-              row.mapSync?.type === 'admin-boundary'
-                ? ([row.mapSync.boundaryLayerKey, row] as const)
-                : null,
-            )
-            .filter(
-              (entry): entry is readonly [AdminBoundaryLayerKey, LayerControlRow] => entry !== null,
-            ),
-        );
-
-        const rows = adminGroup.rows
-          .map((manifestRow) => {
-            const boundarySync = MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC[manifestRow.id];
-            if (!boundarySync) {
-              return null;
-            }
-            const existingRow = existingRowsByBoundaryKey.get(boundarySync.boundaryLayerKey);
-            if (!existingRow) {
-              return null;
-            }
-            return {
-              ...existingRow,
-              name: this.manifestSidebarLayerName(manifestRow),
-              color: this.colorFromRendering(manifestRow.rendering) ?? existingRow.color,
-            };
-          })
-          .filter((row): row is LayerControlRow => row !== null);
-
-        const manifestBoundaryKeys = new Set(
-          rows
-            .map((row) =>
-              row.mapSync?.type === 'admin-boundary' ? row.mapSync.boundaryLayerKey : null,
-            )
-            .filter((key): key is AdminBoundaryLayerKey => key !== null),
-        );
-        const preservedRows = group.rows.filter(
-          (row) =>
-            row.mapSync?.type === 'admin-boundary' &&
-            row.mapSync.boundaryLayerKey === 'admin_country_outline' &&
-            !manifestBoundaryKeys.has(row.mapSync.boundaryLayerKey),
-        );
-        const reconciledRows = [...preservedRows, ...rows];
-
-        if (reconciledRows.length === 0) {
-          return group;
-        }
-
-        return {
-          ...group,
-          title: adminGroup.title,
-          countLabel: this.toLayerCountLabel(reconciledRows.length),
-          rows: reconciledRows,
-        };
-      }),
-    );
-  }
-
-  /**
-   * Conservation areas (RUNAP, OMECs) live in the dedicated overlays card but render
-   * via the same `manifest-raster` plumbing as ecosystems/socioeconomic rows.
-   *
-   * If the manifest exposes a renderable display asset, we wire up `mapSync` and clear
-   * `mapUnavailable`. Otherwise we keep the row but flag it unavailable so the UI can
-   * disable visibility/opacity controls (graceful fallback).
-   */
-  private applyManifestToManagementOverlay(
-    existingOverlay: LayerControlRow,
-    manifestRow: ManifestSidebarLayerRow,
-  ): LayerControlRow {
-    const isRenderable =
-      this.isManifestRenderingSupported(manifestRow.rendering) &&
-      typeof manifestRow.displayUrl === 'string' &&
-      manifestRow.displayUrl.length > 0;
-
-    if (!isRenderable || !manifestRow.displayUrl) {
-      return {
-        ...existingOverlay,
-        name: manifestRow.name,
-        mapUnavailable: true,
-        mapSync: undefined,
-      };
-    }
-
-    const rendering = this.normalizeManagementFigureRendering(
-      manifestRow.id,
-      manifestRow.rendering,
-    );
-
-    // Conservation areas need distinct default styles even when the manifest's
-    // category defaults are close together.
-    const defaultAppearance = MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[existingOverlay.id];
-    const manifestSelectedColor = this.colorFromRendering(rendering);
-    const nextColor =
-      defaultAppearance?.color ??
-      (typeof manifestSelectedColor === 'string' && manifestSelectedColor.length > 0
-        ? manifestSelectedColor
-        : existingOverlay.color);
-
-    // OMECs render as smooth vector polygons (see MapView), so strip the
-    // misleading "(raster)" suffix that the published manifest still carries.
-    const displayName =
-      existingOverlay.id === OMEC_OVERLAY_LAYER_ID
-        ? manifestRow.name.replace(/\s*\(raster\)\s*/i, '').trim() || 'OMECs'
-        : manifestRow.name;
-
-    return {
-      ...existingOverlay,
-      name: displayName,
-      color: nextColor,
-      fillStyle: defaultAppearance?.fillStyle ?? existingOverlay.fillStyle,
-      fillDensity: defaultAppearance?.fillDensity ?? existingOverlay.fillDensity,
-      borderColor: defaultAppearance?.borderColor ?? existingOverlay.borderColor ?? nextColor,
-      borderWidth: defaultAppearance?.borderWidth ?? existingOverlay.borderWidth,
-      expanded: false,
-      hasStyleControls: true,
-      mapUnavailable: false,
-      metadataUrl: manifestRow.metadataUrl,
-      mapSync: {
-        type: 'manifest-raster',
-        layerId: existingOverlay.id,
-        displayUrl: manifestRow.displayUrl,
-        rendering,
-      },
-    };
-  }
-
-  /**
-   * Conservation area rasters (RUNAP, OMECs) are mode-code grids rather than strict
-   * binary 0/1 masks, so `selectedValue: 1` drops valid coverage. We intentionally
-   * treat these as presence masks (any non-zero value) so they render as a single
-   * category/color in the map and legend.
-   */
-  private normalizeManagementFigureRendering(
-    manifestLayerId: string,
-    rendering: RuntimeLayerManifestRenderingConfig,
-  ): RuntimeLayerManifestRenderingConfig {
-    if (rendering.renderMode !== 'mask') {
-      return rendering;
-    }
-
-    return {
-      ...rendering,
-      selectedValue: null,
-    };
-  }
-
-  private manifestSidebarLayerRow(
-    sidebarGroupId: LayerGroup['id'],
-    manifestRow: ManifestSidebarLayerRow,
-    index: number,
-    existingRows: LayerControlRow[],
-  ): LayerControlRow {
-    if (sidebarGroupId === 'group-species-biodiversity' && manifestRow.isSpeciesCollection) {
-      const layerId = `layer-${manifestRow.id}`;
-      const existingRow = existingRows.find((row) => row.id === layerId);
-      return {
-        id: layerId,
-        name: this.localizedTextOrFallback(
-          'mapLayersPanel.individualSpecies',
-          'Individual species',
-        ),
-        selected: false,
-        visible: false,
-        expanded: existingRow?.expanded ?? false,
-        opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: '#854d0e',
-        canReorder: false,
-        hasStyleControls: false,
-        hasColorControl: false,
-        mapUnavailable: true,
-        hideAddButton: true,
-      };
-    }
-
-    const layerId = `layer-${manifestRow.id}`;
-    const existingRow = existingRows.find((row) => row.id === layerId);
-    const isLiveRenderable = this.isManifestRowLiveRenderable(manifestRow);
-    const rendering = this.normalizeManifestRendering(manifestRow);
-    const existingSelected = existingRow?.selected ?? false;
-    const manifestColor = this.colorFromRendering(rendering);
-
-    return {
-      id: layerId,
-      name: this.manifestSidebarLayerName(manifestRow),
-      parentId: this.parentLayerGroupId(layerId),
-      selected: existingSelected,
-      visible: existingSelected && !isLiveRenderable ? false : (existingRow?.visible ?? false),
-      expanded: existingRow?.expanded ?? false,
-      opacity: existingRow?.opacity ?? this.manifestRowOpacity(),
-      color: manifestColor ?? existingRow?.color ?? this.manifestRowColor(sidebarGroupId, index),
-      canReorder: true,
-      hasStyleControls: true,
-      hasColorControl: rendering.renderMode !== 'categorical',
-      mapUnavailable: !isLiveRenderable,
-      metadataUrl: manifestRow.metadataUrl,
-      mapSync:
-        isLiveRenderable && manifestRow.displayUrl
-          ? {
-              type: 'manifest-raster',
-              layerId,
-              displayUrl: manifestRow.displayUrl,
-              rendering,
-            }
-          : undefined,
-    };
-  }
-
-  private withSpeciesRichnessGroupRows(
-    rows: LayerControlRow[],
-    existingRows: LayerControlRow[],
-  ): LayerControlRow[] {
-    const richnessRows = rows.filter((row) => this.isSpeciesRichnessLayerId(row.id));
-    const totalRichnessRow = richnessRows.find((row) => row.id === SPECIES_RICHNESS_TOTAL_ROW_ID);
-    if (!totalRichnessRow) {
-      return rows;
-    }
-
-    const taxonRows = this.speciesRichnessTaxonRows(rows, existingRows);
-    if (taxonRows.length === 0) {
-      return rows;
-    }
-
-    const existingParent = existingRows.find((row) => row.id === SPECIES_RICHNESS_TOTAL_ROW_ID);
-    const parentRow = {
-      ...totalRichnessRow,
-      parentId: undefined,
-      expanded: existingParent?.expanded ?? true,
-    };
-
-    return groupParentChildRows(rows, parentRow, taxonRows);
-  }
-
-  private speciesRichnessTaxonRows(
-    rows: LayerControlRow[],
-    existingRows: LayerControlRow[],
-  ): LayerControlRow[] {
-    const rowsById = new Map(rows.map((row) => [row.id, row]));
-    return SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS.map((definition) => {
-      const manifestRow = rowsById.get(definition.rowId);
-      if (manifestRow) {
-        return manifestRow;
-      }
-      return this.createSpeciesRichnessTaxonRow(definition, existingRows);
-    });
-  }
-
-  private createSpeciesRichnessTaxonRow(
-    definition: SpeciesRichnessTaxonLayerDefinition,
-    existingRows: LayerControlRow[],
-  ): LayerControlRow {
-    const existingRow = existingRows.find((row) => row.id === definition.rowId);
-    const color = this.colorFromRendering(definition.rendering) ?? '#854d0e';
-    const selected = existingRow?.selected ?? false;
-    return {
-      id: definition.rowId,
-      name: this.localizedTextOrFallback(
-        `mapLayersPanel.taxaNames.${definition.taxonId}`,
-        definition.englishLabel,
-      ),
-      selected,
-      visible: selected ? true : (existingRow?.visible ?? false),
-      expanded: existingRow?.expanded ?? false,
-      opacity: existingRow?.opacity ?? this.manifestRowOpacity(),
-      color: existingRow?.color ?? color,
-      canReorder: true,
-      hasStyleControls: true,
-      hasColorControl: true,
-      mapUnavailable: false,
-      mapSync: {
-        type: 'manifest-raster',
-        layerId: definition.rowId,
-        displayUrl: definition.displayUrl,
-        rendering: definition.rendering,
-      },
-    };
-  }
-
-  private withStrategicEcosystemGroupRows(
-    rows: LayerControlRow[],
-    existingRows: LayerControlRow[],
-  ): LayerControlRow[] {
-    const strategicRows = rows.filter((row) => STRATEGIC_ECOSYSTEM_ROW_IDS.has(row.id));
-    if (strategicRows.length <= 1) {
-      return rows;
-    }
-
-    const existingParent = existingRows.find((row) => row.id === STRATEGIC_ECOSYSTEM_GROUP_ROW_ID);
-    const parentRow: LayerControlRow = {
-      id: STRATEGIC_ECOSYSTEM_GROUP_ROW_ID,
-      name: this.ecosystemsCopy().strategicGroupName,
-      countLabel: this.toLayerCountLabel(strategicRows.length),
-      selected: false,
-      visible: false,
-      expanded: existingParent?.expanded ?? true,
-      opacity: DEFAULT_DATA_LAYER_OPACITY,
-      color: '#15803d',
-      canReorder: false,
-      hasStyleControls: false,
-      hasColorControl: false,
-      mapUnavailable: true,
-      hideAddButton: true,
-    };
-
-    return groupParentChildRows(rows, parentRow, strategicRows);
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
@@ -1543,54 +1108,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           this.refreshIavhEcosystemRendering();
         }
       });
-  }
-
-  private manifestRowOpacity(): number {
-    return DEFAULT_DATA_LAYER_OPACITY;
-  }
-
-  private manifestRowColor(sidebarGroupId: LayerGroup['id'], index: number): string {
-    const palette = sidebarCategoryBindingForGroup(sidebarGroupId)?.palette;
-    if (!palette || palette.colors.length === 0) {
-      return palette?.fallbackColor ?? '#475569';
-    }
-    return palette.colors[index % palette.colors.length] ?? palette.fallbackColor;
-  }
-
-  private colorFromRendering(rendering: RuntimeLayerManifestRenderingConfig): string | null {
-    if (rendering.renderMode === 'mask') {
-      return rendering.selectedColor ?? null;
-    }
-    if (rendering.renderMode === 'gradient') {
-      return rendering.endColor ?? rendering.startColor ?? null;
-    }
-    return rendering.classColors?.[0]?.color ?? null;
-  }
-
-  private isManifestRowLiveRenderable(manifestRow: ManifestSidebarLayerRow): boolean {
-    if (manifestRow.isSpeciesCollection) {
-      return false;
-    }
-    const categoryBinding = sidebarCategoryBindingForManifest(manifestRow.sidebarCategoryId);
-    if (!categoryBinding?.supportsLiveRendering) {
-      return false;
-    }
-    if (!this.isManifestRenderingSupported(manifestRow.rendering)) {
-      return false;
-    }
-    return typeof manifestRow.displayUrl === 'string' && manifestRow.displayUrl.length > 0;
-  }
-
-  private isManifestRenderingSupported(
-    rendering: RuntimeLayerManifestRenderingConfig | null | undefined,
-  ): boolean {
-    if (!rendering) {
-      return false;
-    }
-    if (rendering.renderMode === 'categorical') {
-      return Array.isArray(rendering.classColors) && rendering.classColors.length > 0;
-    }
-    return rendering.renderMode === 'mask' || rendering.renderMode === 'gradient';
   }
 
   private toLayerCountLabel(layerCount: number): string {
@@ -4285,7 +3802,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const rendering = layer.rendering;
     const displayUrl = layer.displayUrl?.trim() ?? '';
     const isRenderable =
-      !!rendering && this.isManifestRenderingSupported(rendering) && displayUrl.length > 0;
+      !!rendering && isManifestRenderingSupported(rendering) && displayUrl.length > 0;
     const commonName = layer.commonName?.trim() || layer.scientificName;
     const scientificName = layer.scientificName?.trim() || commonName;
 
@@ -4333,17 +3850,6 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private isSpeciesCollectionRow(row: LayerControlRow): boolean {
     return row.id === SPECIES_COLLECTION_ROW_ID;
-  }
-
-  private isSpeciesRichnessLayerId(rowId: string): boolean {
-    return SPECIES_RICHNESS_LAYER_IDS.has(rowId);
-  }
-
-  private parentLayerGroupId(rowId: string): string | undefined {
-    if (STRATEGIC_ECOSYSTEM_ROW_IDS.has(rowId)) {
-      return STRATEGIC_ECOSYSTEM_GROUP_ROW_ID;
-    }
-    return undefined;
   }
 
   private parseSpeciesTaxonomyLookup(
