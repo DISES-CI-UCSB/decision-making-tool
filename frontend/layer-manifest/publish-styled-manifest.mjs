@@ -18,14 +18,13 @@ import {
   applyStyleRequestToManifest,
   findLatestPendingStyleRequest,
 } from './manifest-style-request.mjs';
+import { RUNTIME_MANIFEST_BLOB_URL } from '../shared/runtime-manifest.constants.mjs';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../..');
 const MANIFEST_BLOB_URL_ENV_VAR = 'MANIFEST_BLOB_URL';
-const PUBLISHED_LAYER_MANIFEST_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json';
 const FIRESTORE_COLLECTION = 'manifestStyleRequests';
 const publishWorkDir = path.resolve(__dirname, '../development-artifacts/layer-manifest/publish');
 
@@ -76,7 +75,7 @@ async function readJson(filePath) {
 
 async function loadLatestPublishedManifest() {
   const configuredBlobUrl =
-    process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || PUBLISHED_LAYER_MANIFEST_URL;
+    process.env[MANIFEST_BLOB_URL_ENV_VAR]?.trim() || RUNTIME_MANIFEST_BLOB_URL;
   return {
     manifest: await fetchJson(configuredBlobUrl),
     url: configuredBlobUrl,

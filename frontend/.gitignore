@@ -34,6 +34,7 @@ yarn-error.log
 .sass-cache/
 /connect.lock
 /coverage
+/.vitest-attachments/
 /development-artifacts/layer-manifest/manual-edits/
 /libpeerconnection.log
 testem.log

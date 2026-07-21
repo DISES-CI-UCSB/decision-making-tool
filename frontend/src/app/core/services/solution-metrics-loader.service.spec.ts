@@ -61,6 +61,18 @@ describe('SolutionMetricsLoaderService', () => {
     );
   });
 
+  it('falls back to the nick-runs compact cache without a precomputed URL', () => {
+    catalogSolution = {
+      id: 'ecos17_estr30_runap_hf',
+      displayUrl:
+        'https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR30%2BRUNAP_HF.tif',
+    } as unknown as CatalogSolution;
+
+    expect(service.buildCacheUrl('ecos17_estr30_runap_hf')).toBe(
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/nick-runs/2026-05-27/compact-cache/ecos17_estr30_runap_hf.metrics.compact.json',
+    );
+  });
+
   it('returns null when the solution is unknown', () => {
     catalogSolution = null;
     expect(service.buildCacheUrl('missing')).toBeNull();

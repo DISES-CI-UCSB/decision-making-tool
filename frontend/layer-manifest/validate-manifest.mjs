@@ -1,12 +1,13 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH } from '../shared/runtime-manifest.constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const examplePath = path.resolve(__dirname, './manifest.example.json');
-const generatedManifestPath = path.resolve(__dirname, '../public/data/layer-manifest/manifest.json');
+const generatedManifestPath = path.resolve(__dirname, '..', LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH);
 const APPROVED_LOCAL_PUBLIC_PATH_PREFIXES = ['/assets/', '/data/'];
 
 async function exists(filePath) {
@@ -163,10 +164,7 @@ function assertColorDefaults(value, label) {
   if (value === undefined) {
     return;
   }
-  assert(
-    value && typeof value === 'object' && !Array.isArray(value),
-    `${label} must be an object`,
-  );
+  assert(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
   for (const key of Object.keys(value)) {
     assert(
       COLOR_DEFAULT_FIELDS.includes(key),
@@ -197,8 +195,7 @@ async function assertReachable(url, label) {
 
 function shouldCheckRemoteDisplayUrls(args) {
   return (
-    args.includes('--check-remote-display-urls') ||
-    process.env.CHECK_REMOTE_DISPLAY_URLS === 'true'
+    args.includes('--check-remote-display-urls') || process.env.CHECK_REMOTE_DISPLAY_URLS === 'true'
   );
 }
 
@@ -206,7 +203,7 @@ function shouldCheckReachability(url) {
   return url.startsWith('https://') && !url.endsWith('/');
 }
 
-async function validateManifest(manifest, manifestPath, options = {}) {
+export async function validateManifest(manifest, manifestPath, options = {}) {
   assert(
     manifest && typeof manifest === 'object' && !Array.isArray(manifest),
     'Manifest root must be an object',
@@ -217,7 +214,9 @@ async function validateManifest(manifest, manifestPath, options = {}) {
   assertString(manifest.sourceCsv, 'sourceCsv');
   if ('manualEdit' in manifest && manifest.manualEdit !== undefined) {
     assert(
-      manifest.manualEdit && typeof manifest.manualEdit === 'object' && !Array.isArray(manifest.manualEdit),
+      manifest.manualEdit &&
+        typeof manifest.manualEdit === 'object' &&
+        !Array.isArray(manifest.manualEdit),
       'manualEdit must be an object when provided',
     );
     assertString(manifest.manualEdit.editorName, 'manualEdit.editorName');
@@ -259,7 +258,10 @@ async function validateManifest(manifest, manifestPath, options = {}) {
           CATEGORY_ID_PATTERN.test(subcategory.id),
           `${subLabel}.id must match ${CATEGORY_ID_PATTERN}`,
         );
-        assert(!subcategoryIds.has(subcategory.id), `${subLabel}.id is duplicated: ${subcategory.id}`);
+        assert(
+          !subcategoryIds.has(subcategory.id),
+          `${subLabel}.id is duplicated: ${subcategory.id}`,
+        );
         subcategoryIds.add(subcategory.id);
         assertString(subcategory.spanishLabel, `${subLabel}.spanishLabel`);
         if ('englishLabel' in subcategory) {
@@ -337,11 +339,16 @@ async function validateManifest(manifest, manifestPath, options = {}) {
     );
     assertUrlMap(layer.precomputedMetricUrls, `layers[${index}].precomputedMetricUrls`);
     assert(layer.rendering && typeof layer.rendering === 'object', `layers[${index}].rendering`);
-    assertOneOf(layer.rendering.valueType, RENDER_VALUE_TYPES, `layers[${index}].rendering.valueType`);
+    assertOneOf(
+      layer.rendering.valueType,
+      RENDER_VALUE_TYPES,
+      `layers[${index}].rendering.valueType`,
+    );
     assertOneOf(layer.rendering.renderMode, RENDER_MODES, `layers[${index}].rendering.renderMode`);
     if ('noDataValue' in layer.rendering && layer.rendering.noDataValue !== null) {
       assert(
-        typeof layer.rendering.noDataValue === 'number' && Number.isFinite(layer.rendering.noDataValue),
+        typeof layer.rendering.noDataValue === 'number' &&
+          Number.isFinite(layer.rendering.noDataValue),
         `layers[${index}].rendering.noDataValue must be a finite number or null`,
       );
     }
@@ -353,7 +360,10 @@ async function validateManifest(manifest, manifestPath, options = {}) {
       );
     }
     if ('selectedColor' in layer.rendering) {
-      assertHexColorOrNull(layer.rendering.selectedColor, `layers[${index}].rendering.selectedColor`);
+      assertHexColorOrNull(
+        layer.rendering.selectedColor,
+        `layers[${index}].rendering.selectedColor`,
+      );
     }
     if ('minValue' in layer.rendering && layer.rendering.minValue !== null) {
       assert(
@@ -434,10 +444,7 @@ async function validateManifest(manifest, manifestPath, options = {}) {
     if (Array.isArray(category.subcategories)) {
       for (const [subIndex, subcategory] of category.subcategories.entries()) {
         for (const layerId of subcategory.layerIds) {
-          assertString(
-            layerId,
-            `categories[${index}].subcategories[${subIndex}].layerIds item`,
-          );
+          assertString(layerId, `categories[${index}].subcategories[${subIndex}].layerIds item`);
           assert(
             knownLayerIds.has(layerId),
             `categories[${index}].subcategories[${subIndex}].layerIds references unknown layer: ${layerId}`,
@@ -490,11 +497,17 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
   validateSolutionSummaryMetrics(solution.summaryMetrics, `solutions[${index}].summaryMetrics`);
   validateSolutionCoverage(solution.coverage, `solutions[${index}].coverage`);
   validateRendering(solution.rendering, `solutions[${index}].rendering`);
+  if ('precomputedMetricUrls' in solution && solution.precomputedMetricUrls !== undefined) {
+    assertUrlMap(solution.precomputedMetricUrls, `solutions[${index}].precomputedMetricUrls`);
+  }
 
   if (options.checkRemoteDisplayUrls) {
     remoteDisplayUrls.push({ url: solution.displayUrl, label: `solutions[${index}].displayUrl` });
     if (solution.displayCogUrl) {
-      remoteDisplayUrls.push({ url: solution.displayCogUrl, label: `solutions[${index}].displayCogUrl` });
+      remoteDisplayUrls.push({
+        url: solution.displayCogUrl,
+        label: `solutions[${index}].displayCogUrl`,
+      });
     }
     remoteDisplayUrls.push({ url: solution.metadataUrl, label: `solutions[${index}].metadataUrl` });
   }
@@ -610,7 +623,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`[validate:layer-manifest] ${error.message}`);
-  process.exit(1);
-});
+const isCalledDirectly =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
+if (isCalledDirectly) {
+  main().catch((error) => {
+    console.error(`[validate:layer-manifest] ${error.message}`);
+    process.exit(1);
+  });
+}

@@ -59,14 +59,14 @@ describe('AdminBoundaryService', () => {
     });
   });
 
-  it('keeps feature-layer boundary outlines aligned with the manifest/sidebar black style', () => {
+  it('keeps feature-layer boundary outlines aligned with the manifest/sidebar gray style', () => {
     const service = TestBed.inject(AdminBoundaryService);
 
     expect(boundaryRenderer(service, 'department')).toEqual(
       expect.objectContaining({
         symbol: expect.objectContaining({
           outline: expect.objectContaining({
-            color: [17, 24, 39, 235],
+            color: [107, 114, 128, 235],
           }),
         }),
       }),
@@ -75,7 +75,7 @@ describe('AdminBoundaryService', () => {
       expect.objectContaining({
         symbol: expect.objectContaining({
           outline: expect.objectContaining({
-            color: [17, 24, 39, 235],
+            color: [107, 114, 128, 235],
           }),
         }),
       }),
@@ -84,7 +84,7 @@ describe('AdminBoundaryService', () => {
       expect.objectContaining({
         symbol: expect.objectContaining({
           outline: expect.objectContaining({
-            color: [17, 24, 39, 235],
+            color: [107, 114, 128, 235],
             style: 'long-dash',
             width: 1.25,
           }),
@@ -102,7 +102,7 @@ describe('AdminBoundaryService', () => {
           type: 'simple-fill',
           color: [0, 0, 0, 0],
           outline: expect.objectContaining({
-            color: [17, 24, 39, 235],
+            color: [107, 114, 128, 235],
             width: 1.6,
           }),
         }),

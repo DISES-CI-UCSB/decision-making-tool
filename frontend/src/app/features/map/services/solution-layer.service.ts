@@ -10,14 +10,33 @@ import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 
 import type ArcGISMap from '@arcgis/core/Map';
 import type { Solution } from '@core/models';
-import { getSolutionIncludedAreasLegendLabel } from '@core/models/solution-included-areas.utils';
-import type { RuntimeLayerManifestClassColor } from '@core/models/layer-manifest.model';
 import {
   AppStateService,
   type ComparisonVisualizationMode,
 } from '@core/services/app-state.service';
-import { MockDataService } from '@core/services/mock-data.service';
 import type { LoadedSolution } from '@core/models/solution-catalog.model';
+import {
+  buildOverlapRasterData,
+  calculateLiveComparisonMetrics,
+  calculateLiveSolutionMetrics,
+  type LiveComparisonMetrics,
+  type LiveSolutionMetrics,
+} from '../utils/solution-raster.utils';
+import {
+  defaultExistingProtectedColor,
+  defaultSolutionClassColors,
+  DEFAULT_COMPARISON_BASELINE_HEX,
+  DEFAULT_COMPARISON_CANDIDATE_HEX,
+  DEFAULT_COMPARISON_OVERLAP_HEX,
+  DEFAULT_EXISTING_PROTECTED_HEX,
+  DEFAULT_SINGLE_SOLUTION_HEX,
+  DEFAULT_SOLUTION_LAYER_OPACITY,
+  hexToRgb,
+  normalizeHexColor,
+  solutionClassColors,
+  type SolutionRenderOptions,
+  spatialReferenceForRaster,
+} from '../utils/solution-rendering.utils';
 import { GeoTiffLoaderService } from './geotiff-loader.service';
 
 const SOLUTION_LAYER_ID = 'solution-raster-layer';
@@ -25,64 +44,14 @@ const BASELINE_LAYER_ID = 'solution-raster-layer-baseline';
 const CANDIDATE_LAYER_ID = 'solution-raster-layer-candidate';
 const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
 
-/** Canonical default colors. Any module that needs a default must import from here. */
-export const DEFAULT_SINGLE_SOLUTION_HEX = '#16a34a';
-export const DEFAULT_EXISTING_PROTECTED_HEX = '#2563eb';
-export const DEFAULT_COMPARISON_BASELINE_HEX = DEFAULT_SINGLE_SOLUTION_HEX;
-export const DEFAULT_COMPARISON_CANDIDATE_HEX = '#7c3aed';
-export const DEFAULT_COMPARISON_OVERLAP_HEX = '#ec4899';
-export const DEFAULT_SOLUTION_LAYER_OPACITY = 0.8;
-
 const SOLUTION_ALPHA = 255;
-const NEW_COVERAGE_VALUE = 1;
-const EXISTING_PROTECTED_VALUE = 2;
-const EARTH_RADIUS_KM = 6371.0088;
-const COLOMBIA_REFERENCE_AREA_KM2 = 1_141_748;
-const GRID_ABSOLUTE_TOLERANCE = 1e-7;
-const DEFAULT_RASTER_WKID = 4326;
-const TEMPORARY_METRICS_FIXTURE_SOLUTION_ID = 'sol-001';
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
 type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
-interface SolutionRenderOptions {
-  collapseExistingProtectedCoverage?: boolean;
-  existingProtectedColorHex?: string;
-}
-
-export interface LiveComparisonMetrics {
-  agreementAreaKm2: number | null;
-  uniqueToBaselineKm2: number | null;
-  uniqueToCandidateKm2: number | null;
-  baselineSelectedAreaKm2: number | null;
-  candidateSelectedAreaKm2: number | null;
-  newAgreementAreaKm2: number | null;
-  newUniqueToBaselineKm2: number | null;
-  newUniqueToCandidateKm2: number | null;
-  baselineTotalSelectedAreaKm2: number | null;
-  candidateTotalSelectedAreaKm2: number | null;
-  baselinePreExistingAreaKm2: number | null;
-  candidatePreExistingAreaKm2: number | null;
-  baselineNewAreaKm2: number | null;
-  candidateNewAreaKm2: number | null;
-  baselineNationalContributionPct: number | null;
-  candidateNationalContributionPct: number | null;
-  status: 'ready' | 'unavailable';
-  notes: string | null;
-}
-
-export interface LiveSolutionMetrics {
-  selectedAreaKm2: number | null;
-  validAreaKm2: number | null;
-  nationalContributionPct: number | null;
-  priorityZoneCount: number | null;
-  status: 'ready' | 'unavailable';
-  notes: string | null;
-}
 
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
   private readonly loader = inject(GeoTiffLoaderService);
   private readonly appState = inject(AppStateService);
-  private readonly mockData = inject(MockDataService);
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private currentLayer: SolutionDisplayLayer | null = null;
   private baselineComparisonLayer: SolutionDisplayLayer | null = null;
@@ -159,7 +128,7 @@ export class SolutionLayerService {
         this.userSingleColorBySolutionId.get(loaded.solution.id) ?? DEFAULT_SINGLE_SOLUTION_HEX;
       const restoredExistingProtectedColor =
         this.userExistingProtectedColorBySolutionId.get(loaded.solution.id) ??
-        this.defaultExistingProtectedColor(loaded);
+        defaultExistingProtectedColor(loaded);
       this.solutionColor$.set(restoredColor);
       this.existingProtectedColor$.set(restoredExistingProtectedColor);
       this.lastSingleSolutionId = loaded.solution.id;
@@ -172,7 +141,7 @@ export class SolutionLayerService {
       this.comparisonMode = false;
       this.baselineComparisonLoaded = null;
       this.candidateComparisonLoaded = null;
-      this.liveSolutionMetrics$.set(this.calculateLiveSolutionMetrics(loaded));
+      this.liveSolutionMetrics$.set(calculateLiveSolutionMetrics(loaded));
       this.liveComparisonMetrics$.set(null);
 
       this.map.add(this.currentLayer);
@@ -261,9 +230,9 @@ export class SolutionLayerService {
       this.baselineComparisonLoaded = baselineLoaded;
       this.candidateComparisonLoaded = candidateLoaded;
       this.liveComparisonMetrics$.set(
-        this.calculateLiveComparisonMetrics(baselineLoaded, candidateLoaded),
+        calculateLiveComparisonMetrics(baselineLoaded, candidateLoaded),
       );
-      this.liveSolutionMetrics$.set(this.calculateLiveSolutionMetrics(baselineLoaded));
+      this.liveSolutionMetrics$.set(calculateLiveSolutionMetrics(baselineLoaded));
       this.comparisonMode = true;
       this.map.addMany([this.baselineComparisonLayer, this.candidateComparisonLayer]);
       this.loadedSolution$.set(baselineLoaded);
@@ -427,7 +396,7 @@ export class SolutionLayerService {
   }
 
   setColor(color: string): void {
-    const normalized = this.normalizeHexColor(color);
+    const normalized = normalizeHexColor(color);
     if (!normalized || normalized === this.solutionColor$()) {
       return;
     }
@@ -444,7 +413,7 @@ export class SolutionLayerService {
   }
 
   setExistingProtectedColor(color: string): void {
-    const normalized = this.normalizeHexColor(color);
+    const normalized = normalizeHexColor(color);
     if (!normalized || normalized === this.existingProtectedColor$()) {
       return;
     }
@@ -461,7 +430,7 @@ export class SolutionLayerService {
   }
 
   setBaselineColor(color: string): void {
-    const normalized = this.normalizeHexColor(color);
+    const normalized = normalizeHexColor(color);
     if (!normalized || normalized === this.baselineColor$()) {
       return;
     }
@@ -493,7 +462,7 @@ export class SolutionLayerService {
   }
 
   setCandidateColor(color: string): void {
-    const normalized = this.normalizeHexColor(color);
+    const normalized = normalizeHexColor(color);
     if (!normalized || normalized === this.candidateColor$()) {
       return;
     }
@@ -512,7 +481,7 @@ export class SolutionLayerService {
   }
 
   setOverlapColor(color: string): void {
-    const normalized = this.normalizeHexColor(color);
+    const normalized = normalizeHexColor(color);
     if (!normalized || normalized === this.overlapColor$()) {
       return;
     }
@@ -525,7 +494,7 @@ export class SolutionLayerService {
       return;
     }
 
-    const overlapRasterData = this.buildOverlapRasterData(
+    const overlapRasterData = buildOverlapRasterData(
       this.baselineComparisonLoaded,
       this.candidateComparisonLoaded,
     );
@@ -654,8 +623,6 @@ export class SolutionLayerService {
   }
 
   private toSidebarSolution(loaded: LoadedSolution): Solution {
-    const metricsFixture = this.mockData.getSolutionById(TEMPORARY_METRICS_FIXTURE_SOLUTION_ID);
-
     return {
       id: loaded.solution.id,
       name: loaded.solution.name,
@@ -669,7 +636,7 @@ export class SolutionLayerService {
         displayCogUrl: loaded.solution.displayCogUrl ?? null,
         metadataUrl: loaded.solution.metadataUrl,
       },
-      metrics: metricsFixture?.metrics ?? [],
+      metrics: [],
     };
   }
 
@@ -694,7 +661,7 @@ export class SolutionLayerService {
           ymin,
           xmax,
           ymax,
-          spatialReference: this.spatialReferenceForRaster(loaded.rasterMeta),
+          spatialReference: spatialReferenceForRaster(loaded.rasterMeta),
         }),
       }),
     });
@@ -728,9 +695,9 @@ export class SolutionLayerService {
         color: [0, 0, 0, 0],
         outline: null,
       }),
-      classBreakInfos: this.solutionClassColors(loaded, newCoverageColorHex, renderOptions).map(
+      classBreakInfos: this.getSolutionClassColors(loaded, newCoverageColorHex, renderOptions).map(
         (entry) => {
-          const [r, g, b] = this.hexToRgb(entry.color) ?? [22, 163, 74];
+          const [r, g, b] = hexToRgb(entry.color) ?? [22, 163, 74];
           return {
             minValue: entry.value - 0.5,
             maxValue: entry.value + 0.5,
@@ -790,7 +757,7 @@ export class SolutionLayerService {
           ymin,
           xmax,
           ymax,
-          spatialReference: this.spatialReferenceForRaster(loaded.rasterMeta),
+          spatialReference: spatialReferenceForRaster(loaded.rasterMeta),
         }),
       }),
     });
@@ -808,7 +775,7 @@ export class SolutionLayerService {
       return;
     }
 
-    const overlapRasterData = this.buildOverlapRasterData(
+    const overlapRasterData = buildOverlapRasterData(
       this.baselineComparisonLoaded,
       this.candidateComparisonLoaded,
     );
@@ -856,52 +823,6 @@ export class SolutionLayerService {
     }
   }
 
-  private buildOverlapRasterData(
-    baseline: LoadedSolution,
-    candidate: LoadedSolution,
-  ): Float64Array {
-    const length = Math.min(baseline.rasterData.length, candidate.rasterData.length);
-    const overlapRaster = new Float64Array(length);
-    for (let index = 0; index < length; index++) {
-      overlapRaster[index] =
-        this.isSelectedSolutionCell(baseline.rasterData[index], baseline.rasterMeta.noDataValue) &&
-        this.isSelectedSolutionCell(candidate.rasterData[index], candidate.rasterMeta.noDataValue)
-          ? NEW_COVERAGE_VALUE
-          : 0;
-    }
-    return overlapRaster;
-  }
-
-  private isSelectedSolutionCell(value: number, noDataValue: number | null): boolean {
-    if (!Number.isFinite(value)) {
-      return false;
-    }
-    if (typeof noDataValue === 'number' && value === noDataValue) {
-      return false;
-    }
-    return value === NEW_COVERAGE_VALUE || value === EXISTING_PROTECTED_VALUE;
-  }
-
-  private isNewSolutionCell(value: number, noDataValue: number | null): boolean {
-    if (!Number.isFinite(value)) {
-      return false;
-    }
-    if (typeof noDataValue === 'number' && value === noDataValue) {
-      return false;
-    }
-    return value === NEW_COVERAGE_VALUE;
-  }
-
-  private isPreExistingSolutionCell(value: number, noDataValue: number | null): boolean {
-    if (!Number.isFinite(value)) {
-      return false;
-    }
-    if (typeof noDataValue === 'number' && value === noDataValue) {
-      return false;
-    }
-    return value === EXISTING_PROTECTED_VALUE;
-  }
-
   private createImageElementWithRaster(
     loaded: LoadedSolution,
     rasterData: LoadedSolution['rasterData'],
@@ -920,7 +841,7 @@ export class SolutionLayerService {
           ymin,
           xmax,
           ymax,
-          spatialReference: this.spatialReferenceForRaster(loaded.rasterMeta),
+          spatialReference: spatialReferenceForRaster(loaded.rasterMeta),
         }),
       }),
     });
@@ -935,8 +856,8 @@ export class SolutionLayerService {
   ): HTMLCanvasElement {
     const classColorByValue = new Map(
       (loaded
-        ? this.solutionClassColors(loaded, colorHex, renderOptions)
-        : this.defaultSolutionClassColors(colorHex)
+        ? this.getSolutionClassColors(loaded, colorHex, renderOptions)
+        : defaultSolutionClassColors(colorHex)
       ).map((entry) => [entry.value, entry.color]),
     );
     const canvas = document.createElement('canvas');
@@ -957,7 +878,7 @@ export class SolutionLayerService {
         (typeof rasterMeta.noDataValue === 'number' && value === rasterMeta.noDataValue);
       const color = isNoData ? undefined : classColorByValue.get(value);
       if (color) {
-        const [r, g, b] = this.hexToRgb(color) ?? [22, 163, 74];
+        const [r, g, b] = hexToRgb(color) ?? [22, 163, 74];
         pixels[pixelOffset] = r;
         pixels[pixelOffset + 1] = g;
         pixels[pixelOffset + 2] = b;
@@ -973,99 +894,17 @@ export class SolutionLayerService {
     return canvas;
   }
 
-  private solutionClassColors(
+  private getSolutionClassColors(
     loaded: LoadedSolution,
     newCoverageColorHex: string,
     renderOptions: SolutionRenderOptions = {},
-  ): RuntimeLayerManifestClassColor[] {
-    const classColors =
-      loaded.solution.rendering.renderMode === 'categorical'
-        ? (loaded.solution.rendering.classColors ?? [])
-        : [];
-    const existingProtectedClass = classColors.find(
-      (entry) => entry.value === EXISTING_PROTECTED_VALUE,
-    );
-    const newCoverageClass = classColors.find((entry) => entry.value === NEW_COVERAGE_VALUE);
-    const selectedSolutionColor =
-      newCoverageColorHex || newCoverageClass?.color || DEFAULT_SINGLE_SOLUTION_HEX;
-
-    if (
-      renderOptions.collapseExistingProtectedCoverage ||
-      !this.appState.showExistingProtectedCoverage$()
-    ) {
-      return [
-        {
-          value: EXISTING_PROTECTED_VALUE,
-          color: selectedSolutionColor,
-          label: 'Selected solution',
-        },
-        {
-          value: NEW_COVERAGE_VALUE,
-          color: selectedSolutionColor,
-          label: 'Selected solution',
-        },
-      ];
-    }
-
-    return [
-      {
-        value: EXISTING_PROTECTED_VALUE,
-        color:
-          renderOptions.existingProtectedColorHex ??
-          this.existingProtectedColor$() ??
-          existingProtectedClass?.color ??
-          DEFAULT_EXISTING_PROTECTED_HEX,
-        label: getSolutionIncludedAreasLegendLabel(loaded.solution),
-      },
-      {
-        value: NEW_COVERAGE_VALUE,
-        color: selectedSolutionColor,
-        label: newCoverageClass?.label ?? 'New coverage',
-      },
-    ];
-  }
-
-  private defaultExistingProtectedColor(loaded: LoadedSolution): string {
-    const classColors =
-      loaded.solution.rendering.renderMode === 'categorical'
-        ? (loaded.solution.rendering.classColors ?? [])
-        : [];
-    return (
-      classColors.find((entry) => entry.value === EXISTING_PROTECTED_VALUE)?.color ??
-      DEFAULT_EXISTING_PROTECTED_HEX
-    );
-  }
-
-  private defaultSolutionClassColors(
-    newCoverageColorHex: string,
-  ): RuntimeLayerManifestClassColor[] {
-    return [
-      {
-        value: NEW_COVERAGE_VALUE,
-        color: newCoverageColorHex || DEFAULT_SINGLE_SOLUTION_HEX,
-        label: 'New coverage',
-      },
-    ];
-  }
-
-  private normalizeHexColor(color: string): string | null {
-    const trimmed = color.trim();
-    if (!/^#([0-9a-fA-F]{6})$/.test(trimmed)) {
-      return null;
-    }
-    return trimmed.toLowerCase();
-  }
-
-  private hexToRgb(hexColor: string): [number, number, number] | null {
-    const normalized = this.normalizeHexColor(hexColor);
-    if (!normalized) {
-      return null;
-    }
-    return [
-      Number.parseInt(normalized.slice(1, 3), 16),
-      Number.parseInt(normalized.slice(3, 5), 16),
-      Number.parseInt(normalized.slice(5, 7), 16),
-    ];
+  ) {
+    return solutionClassColors(loaded, newCoverageColorHex, {
+      ...renderOptions,
+      existingProtectedColorHex:
+        renderOptions.existingProtectedColorHex ?? this.existingProtectedColor$(),
+      showExistingProtectedCoverage: this.appState.showExistingProtectedCoverage$(),
+    });
   }
 
   resolveLayerForSidebarType(layerType: SidebarSolutionLayerType): SolutionDisplayLayer | null {
@@ -1096,384 +935,5 @@ export class SolutionLayerService {
         this.map.reorder(layer, this.map.layers.length - 1);
       }
     }
-  }
-
-  private calculateLiveComparisonMetrics(
-    baseline: LoadedSolution,
-    candidate: LoadedSolution,
-  ): LiveComparisonMetrics {
-    if (!this.hasSameRasterGrid(baseline, candidate)) {
-      return {
-        agreementAreaKm2: null,
-        uniqueToBaselineKm2: null,
-        uniqueToCandidateKm2: null,
-        baselineSelectedAreaKm2: null,
-        candidateSelectedAreaKm2: null,
-        newAgreementAreaKm2: null,
-        newUniqueToBaselineKm2: null,
-        newUniqueToCandidateKm2: null,
-        baselineTotalSelectedAreaKm2: null,
-        candidateTotalSelectedAreaKm2: null,
-        baselinePreExistingAreaKm2: null,
-        candidatePreExistingAreaKm2: null,
-        baselineNewAreaKm2: null,
-        candidateNewAreaKm2: null,
-        baselineNationalContributionPct: null,
-        candidateNationalContributionPct: null,
-        status: 'unavailable',
-        notes: 'Comparison rasters must share the same grid, CRS, and transform.',
-      };
-    }
-
-    const expectedLength = baseline.rasterMeta.width * baseline.rasterMeta.height;
-    if (
-      baseline.rasterData.length < expectedLength ||
-      candidate.rasterData.length < expectedLength
-    ) {
-      return {
-        agreementAreaKm2: null,
-        uniqueToBaselineKm2: null,
-        uniqueToCandidateKm2: null,
-        baselineSelectedAreaKm2: null,
-        candidateSelectedAreaKm2: null,
-        newAgreementAreaKm2: null,
-        newUniqueToBaselineKm2: null,
-        newUniqueToCandidateKm2: null,
-        baselineTotalSelectedAreaKm2: null,
-        candidateTotalSelectedAreaKm2: null,
-        baselinePreExistingAreaKm2: null,
-        candidatePreExistingAreaKm2: null,
-        baselineNewAreaKm2: null,
-        candidateNewAreaKm2: null,
-        baselineNationalContributionPct: null,
-        candidateNationalContributionPct: null,
-        status: 'unavailable',
-        notes: 'Comparison rasters do not contain the expected number of cells.',
-      };
-    }
-
-    const pixelAreaByRow = this.getPixelAreaKm2PerRow(baseline.rasterMeta);
-    if (!pixelAreaByRow) {
-      return {
-        agreementAreaKm2: null,
-        uniqueToBaselineKm2: null,
-        uniqueToCandidateKm2: null,
-        baselineSelectedAreaKm2: null,
-        candidateSelectedAreaKm2: null,
-        newAgreementAreaKm2: null,
-        newUniqueToBaselineKm2: null,
-        newUniqueToCandidateKm2: null,
-        baselineTotalSelectedAreaKm2: null,
-        candidateTotalSelectedAreaKm2: null,
-        baselinePreExistingAreaKm2: null,
-        candidatePreExistingAreaKm2: null,
-        baselineNewAreaKm2: null,
-        candidateNewAreaKm2: null,
-        baselineNationalContributionPct: null,
-        candidateNationalContributionPct: null,
-        status: 'unavailable',
-        notes: 'Unable to derive pixel area from solution raster metadata.',
-      };
-    }
-
-    let agreementAreaKm2 = 0;
-    let uniqueToBaselineKm2 = 0;
-    let uniqueToCandidateKm2 = 0;
-    let newAgreementAreaKm2 = 0;
-    let newUniqueToBaselineKm2 = 0;
-    let newUniqueToCandidateKm2 = 0;
-    let baselinePreExistingAreaKm2 = 0;
-    let candidatePreExistingAreaKm2 = 0;
-    let baselineNewAreaKm2 = 0;
-    let candidateNewAreaKm2 = 0;
-    const width = baseline.rasterMeta.width;
-
-    for (let index = 0; index < expectedLength; index++) {
-      const row = Math.floor(index / width);
-      const cellAreaKm2 = pixelAreaByRow[row] ?? 0;
-      const baselineValue = baseline.rasterData[index];
-      const candidateValue = candidate.rasterData[index];
-      const selectedBaseline = this.isSelectedSolutionCell(
-        baselineValue,
-        baseline.rasterMeta.noDataValue,
-      );
-      const selectedCandidate = this.isSelectedSolutionCell(
-        candidateValue,
-        candidate.rasterMeta.noDataValue,
-      );
-      const newBaseline = this.isNewSolutionCell(baselineValue, baseline.rasterMeta.noDataValue);
-      const newCandidate = this.isNewSolutionCell(candidateValue, candidate.rasterMeta.noDataValue);
-
-      if (this.isPreExistingSolutionCell(baselineValue, baseline.rasterMeta.noDataValue)) {
-        baselinePreExistingAreaKm2 += cellAreaKm2;
-      }
-      if (this.isPreExistingSolutionCell(candidateValue, candidate.rasterMeta.noDataValue)) {
-        candidatePreExistingAreaKm2 += cellAreaKm2;
-      }
-      if (newBaseline) {
-        baselineNewAreaKm2 += cellAreaKm2;
-      }
-      if (newCandidate) {
-        candidateNewAreaKm2 += cellAreaKm2;
-      }
-
-      if (selectedBaseline && selectedCandidate) {
-        agreementAreaKm2 += cellAreaKm2;
-      } else if (selectedBaseline) {
-        uniqueToBaselineKm2 += cellAreaKm2;
-      } else if (selectedCandidate) {
-        uniqueToCandidateKm2 += cellAreaKm2;
-      }
-
-      if (newBaseline && newCandidate) {
-        newAgreementAreaKm2 += cellAreaKm2;
-      } else if (newBaseline) {
-        newUniqueToBaselineKm2 += cellAreaKm2;
-      } else if (newCandidate) {
-        newUniqueToCandidateKm2 += cellAreaKm2;
-      }
-    }
-
-    const baselineSelectedAreaKm2 = agreementAreaKm2 + uniqueToBaselineKm2;
-    const candidateSelectedAreaKm2 = agreementAreaKm2 + uniqueToCandidateKm2;
-
-    return {
-      agreementAreaKm2,
-      uniqueToBaselineKm2,
-      uniqueToCandidateKm2,
-      baselineSelectedAreaKm2,
-      candidateSelectedAreaKm2,
-      newAgreementAreaKm2,
-      newUniqueToBaselineKm2,
-      newUniqueToCandidateKm2,
-      baselineTotalSelectedAreaKm2: baselineSelectedAreaKm2,
-      candidateTotalSelectedAreaKm2: candidateSelectedAreaKm2,
-      baselinePreExistingAreaKm2,
-      candidatePreExistingAreaKm2,
-      baselineNewAreaKm2,
-      candidateNewAreaKm2,
-      baselineNationalContributionPct:
-        COLOMBIA_REFERENCE_AREA_KM2 > 0
-          ? (baselineSelectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100
-          : null,
-      candidateNationalContributionPct:
-        COLOMBIA_REFERENCE_AREA_KM2 > 0
-          ? (candidateSelectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100
-          : null,
-      status: 'ready',
-      notes: null,
-    };
-  }
-
-  private calculateLiveSolutionMetrics(loaded: LoadedSolution): LiveSolutionMetrics {
-    const expectedLength = loaded.rasterMeta.width * loaded.rasterMeta.height;
-    if (loaded.rasterData.length < expectedLength) {
-      return {
-        selectedAreaKm2: null,
-        validAreaKm2: null,
-        nationalContributionPct: null,
-        priorityZoneCount: null,
-        status: 'unavailable',
-        notes: 'Solution raster does not contain the expected number of cells.',
-      };
-    }
-
-    const pixelAreaByRow = this.getPixelAreaKm2PerRow(loaded.rasterMeta);
-    if (!pixelAreaByRow) {
-      return {
-        selectedAreaKm2: null,
-        validAreaKm2: null,
-        nationalContributionPct: null,
-        priorityZoneCount: null,
-        status: 'unavailable',
-        notes: 'Unable to derive pixel area from solution raster metadata.',
-      };
-    }
-
-    let selectedAreaKm2 = 0;
-    let validAreaKm2 = 0;
-    let selectedCellCount = 0;
-    let validCellCount = 0;
-    const width = loaded.rasterMeta.width;
-
-    for (let index = 0; index < expectedLength; index++) {
-      const row = Math.floor(index / width);
-      const cellAreaKm2 = pixelAreaByRow[row] ?? 0;
-      const value = loaded.rasterData[index];
-
-      if (this.isValidSolutionCell(value, loaded.rasterMeta.noDataValue)) {
-        validAreaKm2 += cellAreaKm2;
-        validCellCount++;
-      }
-      if (this.isSelectedSolutionCell(value, loaded.rasterMeta.noDataValue)) {
-        selectedAreaKm2 += cellAreaKm2;
-        selectedCellCount++;
-      }
-    }
-
-    const countryValidCellCount = loaded.rasterMeta.countryValidCells;
-    const nationalContributionPct =
-      countryValidCellCount > validCellCount && countryValidCellCount > 0
-        ? (selectedCellCount / countryValidCellCount) * 100
-        : validAreaKm2 > 0
-          ? (selectedAreaKm2 / validAreaKm2) * 100
-          : null;
-
-    return {
-      selectedAreaKm2,
-      validAreaKm2,
-      nationalContributionPct,
-      priorityZoneCount: this.countSelectedPriorityZones(loaded, expectedLength),
-      status: 'ready',
-      notes: null,
-    };
-  }
-
-  private countSelectedPriorityZones(loaded: LoadedSolution, expectedLength: number): number {
-    const width = loaded.rasterMeta.width;
-    const height = loaded.rasterMeta.height;
-    const noDataValue = loaded.rasterMeta.noDataValue;
-    const visited = new Uint8Array(expectedLength);
-    const queue = new Int32Array(expectedLength);
-    let zoneCount = 0;
-
-    for (let index = 0; index < expectedLength; index++) {
-      if (visited[index] || !this.isSelectedSolutionCell(loaded.rasterData[index], noDataValue)) {
-        continue;
-      }
-
-      zoneCount++;
-      visited[index] = 1;
-      let queueStart = 0;
-      let queueEnd = 1;
-      queue[0] = index;
-
-      while (queueStart < queueEnd) {
-        const current = queue[queueStart++] ?? 0;
-        const row = Math.floor(current / width);
-        const col = current % width;
-
-        for (let rowDelta = -1; rowDelta <= 1; rowDelta++) {
-          for (let colDelta = -1; colDelta <= 1; colDelta++) {
-            if (rowDelta === 0 && colDelta === 0) {
-              continue;
-            }
-
-            const neighborRow = row + rowDelta;
-            const neighborCol = col + colDelta;
-            if (
-              neighborRow < 0 ||
-              neighborRow >= height ||
-              neighborCol < 0 ||
-              neighborCol >= width
-            ) {
-              continue;
-            }
-
-            const neighborIndex = neighborRow * width + neighborCol;
-            if (
-              visited[neighborIndex] ||
-              !this.isSelectedSolutionCell(loaded.rasterData[neighborIndex], noDataValue)
-            ) {
-              continue;
-            }
-
-            visited[neighborIndex] = 1;
-            queue[queueEnd++] = neighborIndex;
-          }
-        }
-      }
-    }
-
-    return zoneCount;
-  }
-
-  private isValidSolutionCell(value: number, noDataValue: number | null): boolean {
-    if (!Number.isFinite(value)) {
-      return false;
-    }
-    return !(typeof noDataValue === 'number' && value === noDataValue);
-  }
-
-  private hasSameRasterGrid(baseline: LoadedSolution, candidate: LoadedSolution): boolean {
-    const a = baseline.rasterMeta;
-    const b = candidate.rasterMeta;
-    return (
-      a.width === b.width &&
-      a.height === b.height &&
-      a.crs === b.crs &&
-      this.numberArraysClose(a.bbox, b.bbox) &&
-      this.numberArraysClose(a.resolution, b.resolution)
-    );
-  }
-
-  private numberArraysClose(a: readonly number[], b: readonly number[]): boolean {
-    return (
-      a.length === b.length &&
-      a.every(
-        (value, index) =>
-          Math.abs(value - (b[index] ?? Number.POSITIVE_INFINITY)) <= GRID_ABSOLUTE_TOLERANCE,
-      )
-    );
-  }
-
-  private getPixelAreaKm2PerRow(rasterMeta: LoadedSolution['rasterMeta']): Float64Array | null {
-    const [pixelWidth, pixelHeight] = rasterMeta.resolution.map((value) => Math.abs(value));
-    if (!Number.isFinite(pixelWidth) || !Number.isFinite(pixelHeight)) {
-      return null;
-    }
-
-    if (this.isGeographicRaster(rasterMeta)) {
-      const kmPerDegreeLatitude = (Math.PI / 180) * EARTH_RADIUS_KM;
-      const areaByRow = new Float64Array(rasterMeta.height);
-      const [, , , ymax] = rasterMeta.bbox;
-      const yResolution = rasterMeta.resolution[1];
-
-      for (let row = 0; row < rasterMeta.height; row++) {
-        const latitudeCenterDegrees = ymax + yResolution * (row + 0.5);
-        const latitudeRadians = (latitudeCenterDegrees * Math.PI) / 180;
-        const kmPerDegreeLongitude = kmPerDegreeLatitude * Math.cos(latitudeRadians);
-        areaByRow[row] = pixelWidth * kmPerDegreeLongitude * pixelHeight * kmPerDegreeLatitude;
-      }
-
-      return areaByRow;
-    }
-
-    const projectedAreaKm2 = (pixelWidth * pixelHeight) / 1_000_000;
-    return new Float64Array(rasterMeta.height).fill(projectedAreaKm2);
-  }
-
-  private isGeographicRaster(rasterMeta: LoadedSolution['rasterMeta']): boolean {
-    const normalizedCrs = rasterMeta.crs.toUpperCase();
-    if (normalizedCrs.includes('EPSG:4326')) {
-      return true;
-    }
-
-    const [xmin, ymin, xmax, ymax] = rasterMeta.bbox;
-    const [xResolution, yResolution] = rasterMeta.resolution.map((value) => Math.abs(value));
-    return (
-      xmin >= -180 &&
-      xmax <= 180 &&
-      ymin >= -90 &&
-      ymax <= 90 &&
-      xResolution <= 1 &&
-      yResolution <= 1
-    );
-  }
-
-  private spatialReferenceForRaster(rasterMeta: LoadedSolution['rasterMeta']): { wkid: number } {
-    return { wkid: this.wkidFromRasterCrs(rasterMeta.crs) ?? DEFAULT_RASTER_WKID };
-  }
-
-  private wkidFromRasterCrs(crs: string): number | null {
-    const match = crs
-      .trim()
-      .toUpperCase()
-      .match(/^EPSG:(\d+)$/);
-    if (!match) {
-      return null;
-    }
-    const wkid = Number(match[1]);
-    return Number.isInteger(wkid) && wkid > 0 ? wkid : null;
   }
 }

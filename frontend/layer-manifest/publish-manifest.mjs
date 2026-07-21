@@ -4,47 +4,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { loadLocalEnv } from './load-local-env.mjs';
+import { extractBlobCliUrl, parseBlobListOutput } from './lib/blob-cli-output.mjs';
+import { LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH, RUNTIME_MANIFEST_BLOB_PATHNAME } from '../shared/runtime-manifest.constants.mjs';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
-const DEFAULT_SOURCE_MANIFEST_PATH = path.resolve(__dirname, '../public/data/layer-manifest/manifest.json');
-const DEFAULT_TARGET_PATHNAME = 'manifest/manifest.json';
+const DEFAULT_SOURCE_MANIFEST_PATH = path.resolve(__dirname, '..', LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH);
+const DEFAULT_TARGET_PATHNAME = RUNTIME_MANIFEST_BLOB_PATHNAME;
 const DEFAULT_ARCHIVE_PREFIX = 'manifest/archive/';
-
-function parseBlobListOutput(output) {
-  const blobs = [];
-
-  for (const line of output.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('Vercel CLI') || trimmed.startsWith('Fetching blobs')) {
-      continue;
-    }
-    if (trimmed.startsWith('Uploaded At') || trimmed.startsWith('> To display')) {
-      continue;
-    }
-
-    const match = trimmed.match(/^\S+\s+(\d+)\s+(\S+)\s+(https:\/\/\S+)$/);
-    if (!match) {
-      continue;
-    }
-
-    blobs.push({
-      bytes: Number(match[1]),
-      pathname: match[2],
-      url: match[3],
-    });
-  }
-
-  return blobs;
-}
-
-function extractFirstUrl(output) {
-  const match = output.match(/https:\/\/\S+/);
-  return match ? match[0] : null;
-}
 
 function parseArgs(rawArgs) {
   const args = {
@@ -121,7 +91,7 @@ async function copyBlob(token, fromUrlOrPathname, toPathname) {
   const output = `${stdout}\n${stderr}`;
   return {
     output,
-    copiedUrl: extractFirstUrl(output),
+    copiedUrl: extractBlobCliUrl(output),
   };
 }
 
@@ -140,7 +110,7 @@ async function putBlob(token, sourcePath, pathnameToUpload) {
   const output = `${stdout}\n${stderr}`;
   return {
     output,
-    uploadedUrl: extractFirstUrl(output),
+    uploadedUrl: extractBlobCliUrl(output),
   };
 }
 

@@ -21,6 +21,11 @@ from typing import Any
 from blob_manifest import DEFAULT_MANIFEST_URL, fetch_manifest
 from cli_utils import find_repo_root, resolve_output_dir
 from local_io import DEFAULT_CACHE_DIR, cached_download
+from path_contracts import (
+    solution_artifact_path,
+    solution_blob_path,
+    solution_public_url,
+)
 
 GOALS_FORMAT = "conservation-goals-v1"
 GOALS_SUFFIX = ".goals.json"
@@ -244,7 +249,7 @@ def write_goals_document(output_dir: Path, solution_id: str, doc: dict[str, Any]
 
 
 def goals_output_path(output_dir: Path, solution_id: str) -> Path:
-    return output_dir / "cache" / f"{_safe_solution_id(solution_id)}{GOALS_SUFFIX}"
+    return solution_artifact_path(output_dir, solution_id, suffix=GOALS_SUFFIX)
 
 
 def expected_goals_blob_path(
@@ -252,8 +257,11 @@ def expected_goals_blob_path(
     *,
     goals_blob_directory: str = DEFAULT_GOALS_BLOB_DIRECTORY,
 ) -> str:
-    normalized_directory = goals_blob_directory.strip("/")
-    return f"{normalized_directory}/{_safe_solution_id(solution_id)}{GOALS_SUFFIX}"
+    return solution_blob_path(
+        solution_id,
+        blob_directory=goals_blob_directory,
+        suffix=GOALS_SUFFIX,
+    )
 
 
 def expected_goals_public_url(
@@ -262,9 +270,11 @@ def expected_goals_public_url(
     *,
     goals_blob_directory: str = DEFAULT_GOALS_BLOB_DIRECTORY,
 ) -> str:
-    return (
-        f"{public_blob_host.rstrip('/')}/"
-        f"{expected_goals_blob_path(solution_id, goals_blob_directory=goals_blob_directory)}"
+    return solution_public_url(
+        public_blob_host,
+        solution_id,
+        blob_directory=goals_blob_directory,
+        suffix=GOALS_SUFFIX,
     )
 
 
@@ -419,10 +429,6 @@ def _clean_text(value: Any) -> str:
 
 def _unique_sorted_numbers(values: list[float]) -> list[float]:
     return sorted({round(value, 10) for value in values})
-
-
-def _safe_solution_id(solution_id: str) -> str:
-    return solution_id.replace("/", "_").replace(" ", "_")
 
 
 def _utc_now_iso() -> str:

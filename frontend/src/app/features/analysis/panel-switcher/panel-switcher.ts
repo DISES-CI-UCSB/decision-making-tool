@@ -8,7 +8,6 @@ import {
   type CustomPolygonMetricId,
   type CustomPolygonMetricsGeometry,
   type CustomPolygonMetricsResponse,
-  type GeographyLevel,
   type LayerLocale,
   type MetricComparisonValue,
   type MetricReadinessStatus,
@@ -18,9 +17,16 @@ import {
   type SolutionGoalsDocument,
   type CatalogSolution,
 } from '@core/models';
+import {
+  getSolutionIncludeFlags,
+  getSolutionTargetLevel,
+  getSolutionTargetTypes,
+  normalizeSolutionToken,
+  solutionCostMatchesChoice,
+} from '@core/models/solution-matching.utils';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
-import { metricsForScope, nationalMetrics } from '@core/services/cached-metrics.utils';
+import { nationalMetrics } from '@core/services/cached-metrics.utils';
 import {
   AppStateService,
   type AreaDisplayUnit,
@@ -43,11 +49,49 @@ import {
   CHART_PALETTES,
   type ChartPaletteId,
 } from '@core/models/chart-palette.model';
+import { resolveCachedAoiMetrics } from '../utils/aoi-cached-metrics.utils';
+import {
+  classifyCustomAoiBiodiversityEstimate,
+  getCustomAoiSpeciesLoadingKey as resolveCustomAoiSpeciesLoadingKey,
+  type CustomAoiBiodiversityEstimateBand,
+  type CustomAoiSpeciesLoadingStage,
+} from '../utils/custom-aoi-species.utils';
+import {
+  buildMetricComparisons as buildMetricComparisonValues,
+  buildMetricSections,
+} from '../utils/metric-display-builders.utils';
+import {
+  AOI_ALIGNED_METRIC_BLUEPRINTS,
+  COMPARISON_METRIC_BLUEPRINTS,
+  COMPARISON_SECTION_META,
+  COMPARISON_SECTION_ORDER,
+  CUSTOM_AOI_FAST_METRIC_IDS,
+  CUSTOM_AOI_METRIC_DEFINITIONS,
+  CUSTOM_AOI_SPECIES_METRIC_IDS,
+  OVERVIEW_METRIC_BLUEPRINTS,
+  OVERVIEW_SECTION_LOOKUP,
+  OVERVIEW_SECTION_ORDER,
+  type AoiAlignedMetricBlueprint,
+  type ComparisonDeltaTone,
+  type ComparisonMetricBlueprint,
+  type ComparisonSectionId,
+  type CustomAoiMetricDefinition,
+  type OverviewMetricBlueprint,
+  type OverviewMetricSection,
+} from './panel-switcher.config';
+import {
+  appendUnit as appendMetricUnit,
+  areaUnitLabel,
+  formatAreaValue as formatAreaMetricValue,
+  formatMetricDelta,
+  formatMetricValue as formatPresentedMetricValue,
+  formatNumber as formatPresentedNumber,
+  formatPanelMetric,
+  getMetricDisplayUnit,
+  type MetricFormatOptions,
+} from '../utils/metric-presentation.utils';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
-type OverviewMetricSection = 'gains' | 'costs';
-type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'protection';
-type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
 type AoiSectionId = 'general' | 'bio' | 'eco' | 'land' | 'cultural' | 'marine';
 type MetricsCsvRow = string[];
 type CsvMetadataRow = [string, string];
@@ -57,22 +101,6 @@ type MetricsCsvExportScope = 'overview' | 'aoi' | 'comparison';
 interface MetricsCsvPreamble {
   exportDetails: CsvMetadataRow[];
   scenarioInputs: CsvScenarioInputRow[];
-}
-
-interface OverviewMetricBlueprint {
-  id: string;
-  section: OverviewMetricSection;
-  labelKey: string;
-  descriptionKey: string;
-  methodologyKey?: string;
-  sourceLabelKey?: string;
-  sourceUrlKey?: string;
-  iconClass?: string;
-  realMetricId?: string;
-  dummyValue: string;
-  dummyAreaKm2?: number;
-  dummyUnitKey?: string;
-  conditional?: boolean;
 }
 
 interface OverviewMetricDisplayEntry {
@@ -107,17 +135,6 @@ interface OverviewGoalsTaxaEntry {
   pctMet: number | null;
 }
 
-interface AoiAlignedMetricBlueprint {
-  id: string;
-  metricIds: string[];
-  labelKey: string;
-  customAoiLabelKey?: string;
-  descriptionKey: string;
-  iconClass?: string;
-  dummyValue: string;
-  dummyUnitKey?: string;
-}
-
 interface AoiAlignedMetricDisplayEntry {
   id: string;
   metricId: string;
@@ -127,22 +144,6 @@ interface AoiAlignedMetricDisplayEntry {
   value: string;
   fullValue: string | null;
   unit: string;
-}
-
-interface ComparisonMetricBlueprint {
-  id: string;
-  section: ComparisonSectionId;
-  labelKey: string;
-  descriptionKey: string;
-  metricId?: string;
-  dummyBaseline: string;
-  dummyCandidate: string;
-  dummyDelta: string;
-  dummyBaselineAreaKm2?: number;
-  dummyCandidateAreaKm2?: number;
-  dummyDeltaAreaKm2?: number;
-  conditional?: boolean;
-  deltaTone?: ComparisonDeltaTone;
 }
 
 interface ComparisonMetricDisplayEntry {
@@ -195,271 +196,12 @@ interface ComparisonVisualizationOption {
   descriptionKey: string;
 }
 
-const CUSTOM_AOI_FAST_METRIC_IDS: CustomPolygonMetricId[] = [
-  'priority_area_in_region',
-  'national_contribution',
-  'ecosystem_coverage',
-  'carbon_storage_biomass',
-  'water_regulation_area',
-  'agricultural_area',
-  'priority_area_pct_of_region',
-  'ecosystem_coverage_paramo',
-  'ecosystem_coverage_dry_forest',
-  'ecosystem_coverage_wetlands',
-  'mangrove_coverage',
-  'carbon_biomass_total',
-  'soil_organic_carbon',
-  'carbon_pct_of_national',
-  'water_regulation_pct',
-  'land_use_forest_pct',
-  'land_use_agriculture_pct',
-  'land_use_other_pct',
-  'indigenous_reservations_area',
-  'community_councils_area',
-  'protected_area_runap_km2',
-  'national_parks_pct',
-  'indigenous_territory_pct',
-];
-
-const CUSTOM_AOI_SPECIES_METRIC_IDS: CustomPolygonMetricId[] = [
-  'species_richness_mammals',
-  'species_richness_birds',
-  'species_richness_amphibians',
-  'species_richness_reptiles',
-  'species_richness_plants',
-  'threatened_species_count',
-  'species_pct_of_national',
-];
-
 type CustomAoiMetricRequestMode = 'fast' | 'species';
-type CustomAoiSpeciesLoadingStage = 'initial' | 'delayed' | 'extended';
-type CustomAoiBiodiversityEstimateBand = 'small' | 'medium' | 'large' | 'veryLarge' | 'unknown';
-
-type CustomAoiMetricDefinition = Pick<MetricValue, 'metricId' | 'unit' | 'labelKey' | 'formatHint'>;
 
 const AREA_UNIT_OPTIONS: AreaDisplayUnit[] = ['km2', 'hectares'];
-const KM2_TO_HECTARES = 100;
-const AREA_METRIC_IDS = new Set<string>([
-  'area',
-  'priority_area_in_region',
-  'ecosystem_coverage',
-  'ecosystem_coverage_paramo',
-  'ecosystem_coverage_dry_forest',
-  'ecosystem_coverage_wetlands',
-  'mangrove_coverage',
-  'indigenous_reservations_area',
-  'community_councils_area',
-  'protected_area_runap_km2',
-  'agricultural_area',
-]);
 
 const CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS = 10_000;
 const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
-// Heuristic proxy for species benchmark matched-cell bands. The API does not
-// currently expose matched cells before the species request, so browser area
-// keeps the estimate honest without implying exact progress.
-const CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2 = {
-  smallMax: 1_000,
-  mediumMax: 15_000,
-  largeMax: 75_000,
-} as const;
-
-const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
-  Record<CustomPolygonMetricId, CustomAoiMetricDefinition>
-> = {
-  area: {
-    metricId: 'area',
-    unit: 'km²',
-    labelKey: 'metrics.custom_polygon_area',
-    formatHint: 'number',
-  },
-  priority_area_in_region: {
-    metricId: 'priority_area_in_region',
-    unit: 'km²',
-    labelKey: 'metrics.priority_area_total',
-    formatHint: 'number',
-  },
-  national_contribution: {
-    metricId: 'national_contribution',
-    unit: '%',
-    labelKey: 'metrics.national_contribution',
-    formatHint: 'percent',
-  },
-  ecosystem_coverage: {
-    metricId: 'ecosystem_coverage',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.ecosystem_coverage',
-    formatHint: 'number',
-  },
-  threatened_species_secured: {
-    metricId: 'threatened_species_secured',
-    unit: 'count',
-    labelKey: 'metrics.tier1.threatened_species_secured',
-    formatHint: 'number',
-  },
-  carbon_storage_biomass: {
-    metricId: 'carbon_storage_biomass',
-    unit: 'Mg·km²',
-    labelKey: 'metrics.tier1.carbon_storage_biomass',
-    formatHint: 'number',
-  },
-  water_regulation_area: {
-    metricId: 'water_regulation_area',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.water_regulation_area',
-    formatHint: 'number',
-  },
-  agricultural_area: {
-    metricId: 'agricultural_area',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.agricultural_area',
-    formatHint: 'number',
-  },
-  priority_area_pct_of_region: {
-    metricId: 'priority_area_pct_of_region',
-    unit: '%',
-    labelKey: 'metrics.tier1.priority_area_pct_of_region',
-    formatHint: 'percent',
-  },
-  ecosystem_coverage_paramo: {
-    metricId: 'ecosystem_coverage_paramo',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.ecosystem_paramo',
-    formatHint: 'number',
-  },
-  ecosystem_coverage_dry_forest: {
-    metricId: 'ecosystem_coverage_dry_forest',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.ecosystem_dry_forest',
-    formatHint: 'number',
-  },
-  ecosystem_coverage_wetlands: {
-    metricId: 'ecosystem_coverage_wetlands',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.ecosystem_wetlands',
-    formatHint: 'number',
-  },
-  mangrove_coverage: {
-    metricId: 'mangrove_coverage',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.ecosystem_mangroves',
-    formatHint: 'number',
-  },
-  species_richness_mammals: {
-    metricId: 'species_richness_mammals',
-    unit: 'count',
-    labelKey: 'metrics.tier1.species_richness_mammals',
-    formatHint: 'number',
-  },
-  species_richness_birds: {
-    metricId: 'species_richness_birds',
-    unit: 'count',
-    labelKey: 'metrics.tier1.species_richness_birds',
-    formatHint: 'number',
-  },
-  species_richness_amphibians: {
-    metricId: 'species_richness_amphibians',
-    unit: 'count',
-    labelKey: 'metrics.tier1.species_richness_amphibians',
-    formatHint: 'number',
-  },
-  species_richness_reptiles: {
-    metricId: 'species_richness_reptiles',
-    unit: 'count',
-    labelKey: 'metrics.tier1.species_richness_reptiles',
-    formatHint: 'number',
-  },
-  species_richness_plants: {
-    metricId: 'species_richness_plants',
-    unit: 'count',
-    labelKey: 'metrics.tier1.species_richness_plants',
-    formatHint: 'number',
-  },
-  threatened_species_count: {
-    metricId: 'threatened_species_count',
-    unit: 'count',
-    labelKey: 'metrics.tier1.threatened_species_count',
-    formatHint: 'number',
-  },
-  species_pct_of_national: {
-    metricId: 'species_pct_of_national',
-    unit: '%',
-    labelKey: 'metrics.tier1.species_pct_of_national',
-    formatHint: 'percent',
-  },
-  carbon_biomass_total: {
-    metricId: 'carbon_biomass_total',
-    unit: 'Mg·km²',
-    labelKey: 'metrics.tier1.carbon_biomass_total',
-    formatHint: 'number',
-  },
-  soil_organic_carbon: {
-    metricId: 'soil_organic_carbon',
-    unit: 'Mg·km²',
-    labelKey: 'metrics.tier1.soil_organic_carbon',
-    formatHint: 'number',
-  },
-  carbon_pct_of_national: {
-    metricId: 'carbon_pct_of_national',
-    unit: '%',
-    labelKey: 'metrics.tier1.carbon_pct_of_national',
-    formatHint: 'percent',
-  },
-  water_regulation_pct: {
-    metricId: 'water_regulation_pct',
-    unit: '%',
-    labelKey: 'metrics.tier1.water_regulation_pct',
-    formatHint: 'percent',
-  },
-  land_use_forest_pct: {
-    metricId: 'land_use_forest_pct',
-    unit: '%',
-    labelKey: 'metrics.tier1.land_use_forest_pct',
-    formatHint: 'percent',
-  },
-  land_use_agriculture_pct: {
-    metricId: 'land_use_agriculture_pct',
-    unit: '%',
-    labelKey: 'metrics.tier1.land_use_agriculture_pct',
-    formatHint: 'percent',
-  },
-  land_use_other_pct: {
-    metricId: 'land_use_other_pct',
-    unit: '%',
-    labelKey: 'metrics.tier1.land_use_other_pct',
-    formatHint: 'percent',
-  },
-  indigenous_reservations_area: {
-    metricId: 'indigenous_reservations_area',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.indigenous_reservations_area',
-    formatHint: 'number',
-  },
-  community_councils_area: {
-    metricId: 'community_councils_area',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.community_councils_area',
-    formatHint: 'number',
-  },
-  protected_area_runap_km2: {
-    metricId: 'protected_area_runap_km2',
-    unit: 'km²',
-    labelKey: 'metrics.tier1.protected_area_runap_km2',
-    formatHint: 'number',
-  },
-  national_parks_pct: {
-    metricId: 'national_parks_pct',
-    unit: '%',
-    labelKey: 'metrics.tier1.national_parks_pct',
-    formatHint: 'percent',
-  },
-  indigenous_territory_pct: {
-    metricId: 'indigenous_territory_pct',
-    unit: '%',
-    labelKey: 'metrics.tier1.indigenous_territory_pct',
-    formatHint: 'percent',
-  },
-};
 
 @Component({
   selector: 'app-panel-switcher',
@@ -542,449 +284,6 @@ export class PanelSwitcherComponent {
   protected readonly comparisonBaselineColor = this.solutionLayer.baselineColor$;
   protected readonly comparisonCandidateColor = this.solutionLayer.candidateColor$;
   protected readonly comparisonOverlapColor = this.solutionLayer.overlapColor$;
-
-  private readonly overviewSectionLookup: Record<string, { id: string; labelKey: string }> = {
-    'm-biodiversity': { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    'm-carbon': { id: 'climate', labelKey: 'analysis.sections.climate' },
-    'm-cost': { id: 'finance', labelKey: 'analysis.sections.finance' },
-    // Cached metric ids for the solution overview. Section assignment is
-    // provisional — the blueprints control where each metric actually renders.
-    conservation_goals_met: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    species_groups_protected: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    ecosystem_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    national_contribution: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    priority_area_in_region: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    ecosystem_coverage_paramo: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    ecosystem_coverage_dry_forest: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    ecosystem_coverage_wetlands: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    mangrove_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    indigenous_reservations_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    community_councils_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    // T10 additions
-    threatened_species_secured: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-    // T6 additions
-    carbon_storage_biomass: { id: 'climate', labelKey: 'analysis.sections.climate' },
-    water_regulation_area: { id: 'climate', labelKey: 'analysis.sections.climate' },
-    agricultural_area: { id: 'finance', labelKey: 'analysis.sections.finance' },
-  };
-  private readonly overviewSectionOrder = ['ecology', 'climate', 'finance'];
-  private readonly overviewMetricBlueprints: OverviewMetricBlueprint[] = [
-    {
-      id: 'metric-01-conservation-goals-met',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.conservationGoalsMet',
-      descriptionKey: 'analysis.overview.metrics.conservationGoalsMetDesc',
-      iconClass: 'fas fa-bullseye',
-      realMetricId: 'conservation_goals_met',
-      dummyValue: '92%',
-      dummyUnitKey: 'analysis.overview.metricUnits.ofFeatures',
-    },
-    {
-      id: 'metric-02-species-groups-protected',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.speciesGroupsProtected',
-      descriptionKey: 'analysis.overview.metrics.speciesGroupsProtectedDesc',
-      iconClass: 'fas fa-paw',
-      realMetricId: 'species_groups_protected',
-      dummyValue: '45 / 50',
-      dummyUnitKey: 'analysis.overview.metricUnits.ninetyPercentOfTotal',
-    },
-    {
-      id: 'metric-03-threatened-species-secured',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.threatenedSpeciesSecured',
-      descriptionKey: 'analysis.overview.metrics.threatenedSpeciesSecuredDesc',
-      iconClass: 'fas fa-triangle-exclamation',
-      realMetricId: 'threatened_species_secured',
-      dummyValue: '28 / 32',
-      dummyUnitKey: 'analysis.overview.metricUnits.eightyEightPercentSecured',
-    },
-    {
-      id: 'metric-17-national-contribution',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.nationalContribution',
-      descriptionKey: 'analysis.overview.metrics.nationalContributionDesc',
-      iconClass: 'fas fa-flag',
-      realMetricId: 'national_contribution',
-      dummyValue: '17%',
-      dummyUnitKey: 'analysis.overview.metricUnits.ofColombia',
-    },
-    {
-      id: 'metric-18-priority-area-total',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.priorityAreaTotal',
-      descriptionKey: 'analysis.overview.metrics.priorityAreaTotalDesc',
-      iconClass: 'fas fa-square-check',
-      realMetricId: 'priority_area_in_region',
-      dummyValue: '199k km²',
-      dummyAreaKm2: 199_000,
-      dummyUnitKey: 'analysis.overview.metricUnits.selected',
-    },
-    {
-      id: 'metric-30-paramo-coverage',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.paramoCoverage',
-      descriptionKey: 'analysis.overview.metrics.paramoCoverageDesc',
-      iconClass: 'fas fa-mountain',
-      realMetricId: 'ecosystem_coverage_paramo',
-      dummyValue: '14k km²',
-      dummyAreaKm2: 14_000,
-      dummyUnitKey: 'analysis.overview.metricUnits.paramo',
-    },
-    {
-      id: 'metric-31-dry-forest-coverage',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.dryForestCoverage',
-      descriptionKey: 'analysis.overview.metrics.dryForestCoverageDesc',
-      iconClass: 'fas fa-tree',
-      realMetricId: 'ecosystem_coverage_dry_forest',
-      dummyValue: '1.7k km²',
-      dummyAreaKm2: 1_700,
-      dummyUnitKey: 'analysis.overview.metricUnits.dryForest',
-    },
-    {
-      id: 'metric-32-wetlands-coverage',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.wetlandsCoverage',
-      descriptionKey: 'analysis.overview.metrics.wetlandsCoverageDesc',
-      iconClass: 'fas fa-water',
-      realMetricId: 'ecosystem_coverage_wetlands',
-      dummyValue: '30k km²',
-      dummyAreaKm2: 30_000,
-      dummyUnitKey: 'analysis.overview.metricUnits.wetlands',
-    },
-    {
-      id: 'metric-36-mangrove-coverage',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.mangroveCoverage',
-      descriptionKey: 'analysis.overview.metrics.mangroveCoverageDesc',
-      iconClass: 'fas fa-spa',
-      realMetricId: 'mangrove_coverage',
-      dummyValue: '866 km²',
-      dummyAreaKm2: 866,
-      dummyUnitKey: 'analysis.overview.metricUnits.mangrove',
-    },
-    {
-      id: 'metric-59-indigenous-reservations',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.indigenousReservationsArea',
-      descriptionKey: 'analysis.overview.metrics.indigenousReservationsAreaDesc',
-      iconClass: 'fas fa-people-group',
-      realMetricId: 'indigenous_reservations_area',
-      dummyValue: '47k km²',
-      dummyAreaKm2: 47_000,
-      dummyUnitKey: 'analysis.overview.metricUnits.resguardos',
-    },
-    {
-      id: 'metric-60-community-councils',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.communityCouncilsArea',
-      descriptionKey: 'analysis.overview.metrics.communityCouncilsAreaDesc',
-      iconClass: 'fas fa-handshake',
-      realMetricId: 'community_councils_area',
-      dummyValue: '2.8k km²',
-      dummyAreaKm2: 2_800,
-      dummyUnitKey: 'analysis.overview.metricUnits.communities',
-    },
-    {
-      id: 'metric-05-carbon-storage-capacity',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
-      descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
-      methodologyKey: 'analysis.overview.metrics.carbonStorageCapacityMethodology',
-      sourceLabelKey: 'analysis.overview.metrics.carbonStorageCapacitySourceLabel',
-      sourceUrlKey: 'analysis.overview.metrics.carbonStorageCapacitySourceUrl',
-      iconClass: 'fas fa-leaf',
-      realMetricId: 'carbon_storage_biomass',
-      dummyValue: '2,300,000',
-      dummyUnitKey: 'analysis.overview.metricUnits.megagrams',
-    },
-    {
-      id: 'metric-06-water-regulation-services',
-      section: 'gains',
-      labelKey: 'analysis.overview.metrics.waterRegulationServices',
-      descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
-      methodologyKey: 'analysis.overview.metrics.waterRegulationServicesMethodology',
-      sourceLabelKey: 'analysis.overview.metrics.waterRegulationServicesSourceLabel',
-      sourceUrlKey: 'analysis.overview.metrics.waterRegulationServicesSourceUrl',
-      iconClass: 'fas fa-droplet',
-      realMetricId: 'water_regulation_area',
-      dummyValue: '45k km²',
-      dummyAreaKm2: 45_000,
-      dummyUnitKey: 'analysis.overview.metricUnits.selected',
-    },
-    {
-      id: 'metric-09-affected-agricultural-area',
-      section: 'costs',
-      labelKey: 'analysis.overview.metrics.affectedAgriculturalArea',
-      descriptionKey: 'analysis.overview.metrics.affectedAgriculturalAreaDesc',
-      iconClass: 'fas fa-wheat-awn',
-      realMetricId: 'agricultural_area',
-      dummyValue: '8,500 km²',
-      dummyAreaKm2: 8_500,
-      dummyUnitKey: 'analysis.overview.metricUnits.fifteenPercentOverlap',
-    },
-    {
-      id: 'metric-08-agricultural-opportunity-cost',
-      section: 'costs',
-      labelKey: 'analysis.overview.metrics.agriculturalOpportunityCost',
-      descriptionKey: 'analysis.overview.metrics.agriculturalOpportunityCostDesc',
-      iconClass: 'fas fa-coins',
-      realMetricId: 'm-cost',
-      dummyValue: '$350M',
-      dummyUnitKey: 'analysis.overview.metricUnits.usd',
-      conditional: true,
-    },
-  ];
-  private readonly aoiAlignedMetricBlueprints: AoiAlignedMetricBlueprint[] = [
-    {
-      id: 'aoi-summary-priority-area',
-      metricIds: ['priority_area_in_region'],
-      labelKey: 'analysis.overview.metrics.priorityAreaTotal',
-      customAoiLabelKey: 'analysis.aoi.alignedMetrics.priorityAreaDrawn',
-      descriptionKey: 'analysis.overview.metrics.priorityAreaTotalDesc',
-      iconClass: 'fas fa-square-check',
-      dummyValue: '230 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.selected',
-    },
-    {
-      id: 'aoi-summary-national-contribution',
-      metricIds: ['national_contribution'],
-      labelKey: 'analysis.overview.metrics.nationalContribution',
-      descriptionKey: 'analysis.overview.metrics.nationalContributionDesc',
-      iconClass: 'fas fa-flag',
-      dummyValue: '1.9%',
-      dummyUnitKey: 'analysis.overview.metricUnits.ofColombia',
-    },
-    {
-      id: 'aoi-summary-threatened-species',
-      metricIds: ['threatened_species_secured', 'threatened_species_count'],
-      labelKey: 'analysis.overview.metrics.threatenedSpeciesSecured',
-      descriptionKey: 'analysis.overview.metrics.threatenedSpeciesSecuredDesc',
-      iconClass: 'fas fa-triangle-exclamation',
-      dummyValue: '5',
-      dummyUnitKey: 'analysis.aoi.stats.iucnLabel',
-    },
-    {
-      id: 'aoi-summary-paramo',
-      metricIds: ['ecosystem_coverage_paramo'],
-      labelKey: 'analysis.overview.metrics.paramoCoverage',
-      descriptionKey: 'analysis.overview.metrics.paramoCoverageDesc',
-      iconClass: 'fas fa-mountain',
-      dummyValue: '34 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.paramo',
-    },
-    {
-      id: 'aoi-summary-dry-forest',
-      metricIds: ['ecosystem_coverage_dry_forest'],
-      labelKey: 'analysis.overview.metrics.dryForestCoverage',
-      descriptionKey: 'analysis.overview.metrics.dryForestCoverageDesc',
-      iconClass: 'fas fa-tree',
-      dummyValue: '18 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.dryForest',
-    },
-    {
-      id: 'aoi-summary-wetlands',
-      metricIds: ['ecosystem_coverage_wetlands'],
-      labelKey: 'analysis.overview.metrics.wetlandsCoverage',
-      descriptionKey: 'analysis.overview.metrics.wetlandsCoverageDesc',
-      iconClass: 'fas fa-water',
-      dummyValue: '42 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.wetlands',
-    },
-    {
-      id: 'aoi-summary-carbon',
-      metricIds: ['carbon_storage_biomass'],
-      labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
-      descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
-      iconClass: 'fas fa-leaf',
-      dummyValue: '52M',
-      dummyUnitKey: 'analysis.overview.metricUnits.megagrams',
-    },
-    {
-      id: 'aoi-summary-water',
-      metricIds: ['water_regulation_area'],
-      labelKey: 'analysis.overview.metrics.waterRegulationServices',
-      descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
-      iconClass: 'fas fa-droplet',
-      dummyValue: '78',
-      dummyUnitKey: 'analysis.aoi.stats.waterRegulationDesc',
-    },
-    {
-      id: 'aoi-summary-agriculture',
-      metricIds: ['agricultural_area'],
-      labelKey: 'analysis.overview.metrics.affectedAgriculturalArea',
-      descriptionKey: 'analysis.overview.metrics.affectedAgriculturalAreaDesc',
-      iconClass: 'fas fa-wheat-awn',
-      dummyValue: '125 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.areaAffected',
-    },
-    {
-      id: 'aoi-summary-indigenous-reservations',
-      metricIds: ['indigenous_reservations_area'],
-      labelKey: 'analysis.overview.metrics.indigenousReservationsArea',
-      descriptionKey: 'analysis.overview.metrics.indigenousReservationsAreaDesc',
-      iconClass: 'fas fa-people-group',
-      dummyValue: '41 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.resguardos',
-    },
-    {
-      id: 'aoi-summary-community-councils',
-      metricIds: ['community_councils_area'],
-      labelKey: 'analysis.overview.metrics.communityCouncilsArea',
-      descriptionKey: 'analysis.overview.metrics.communityCouncilsAreaDesc',
-      iconClass: 'fas fa-handshake',
-      dummyValue: '27 km²',
-      dummyUnitKey: 'analysis.overview.metricUnits.communities',
-    },
-  ];
-  private readonly comparisonSectionMeta: Record<
-    ComparisonSectionId,
-    Pick<ComparisonMetricSection, 'titleKey' | 'toneClass'>
-  > = {
-    general: {
-      titleKey: 'analysis.comparison.sections.general',
-      toneClass: 'general',
-    },
-    biodiversity: {
-      titleKey: 'analysis.comparison.sections.biodiversity',
-      toneClass: 'bio',
-    },
-    ecosystems: {
-      titleKey: 'analysis.comparison.sections.ecosystems',
-      toneClass: 'eco',
-    },
-    protection: {
-      titleKey: 'analysis.comparison.sections.protection',
-      toneClass: 'protect',
-    },
-  };
-  private readonly comparisonSectionOrder: ComparisonSectionId[] = [
-    'general',
-    'biodiversity',
-    'ecosystems',
-    'protection',
-  ];
-  private readonly comparisonMetricBlueprints: ComparisonMetricBlueprint[] = [
-    {
-      id: 'comp-priority-area',
-      section: 'general',
-      labelKey: 'analysis.comparison.metrics.priorityArea',
-      descriptionKey: 'analysis.comparison.metrics.priorityAreaDesc',
-      metricId: 'priority_area_in_region',
-      dummyBaseline: '210 km²',
-      dummyCandidate: '230 km²',
-      dummyDelta: '+20 km²',
-      dummyBaselineAreaKm2: 210,
-      dummyCandidateAreaKm2: 230,
-      dummyDeltaAreaKm2: 20,
-      deltaTone: 'positive',
-    },
-    {
-      id: 'comp-pre-existing-area',
-      section: 'general',
-      labelKey: 'analysis.comparison.metrics.preExistingArea',
-      descriptionKey: 'analysis.comparison.metrics.preExistingAreaDesc',
-      metricId: 'pre_existing_selected_area',
-      dummyBaseline: '150 km²',
-      dummyCandidate: '155 km²',
-      dummyDelta: '+5 km²',
-      dummyBaselineAreaKm2: 150,
-      dummyCandidateAreaKm2: 155,
-      dummyDeltaAreaKm2: 5,
-      deltaTone: 'neutral',
-    },
-    {
-      id: 'comp-new-selected-area',
-      section: 'general',
-      labelKey: 'analysis.comparison.metrics.newSelectedArea',
-      descriptionKey: 'analysis.comparison.metrics.newSelectedAreaDesc',
-      metricId: 'new_selected_area',
-      dummyBaseline: '60 km²',
-      dummyCandidate: '75 km²',
-      dummyDelta: '+15 km²',
-      dummyBaselineAreaKm2: 60,
-      dummyCandidateAreaKm2: 75,
-      dummyDeltaAreaKm2: 15,
-      deltaTone: 'positive',
-    },
-    {
-      id: 'comp-national-target',
-      section: 'general',
-      labelKey: 'analysis.comparison.metrics.nationalTarget',
-      descriptionKey: 'analysis.comparison.metrics.nationalTargetDesc',
-      metricId: 'national_contribution',
-      dummyBaseline: '1.3%',
-      dummyCandidate: '1.9%',
-      dummyDelta: '+0.6%',
-      deltaTone: 'positive',
-    },
-    {
-      id: 'comp-threatened-species',
-      section: 'biodiversity',
-      labelKey: 'analysis.comparison.metrics.threatenedSpecies',
-      descriptionKey: 'analysis.comparison.metrics.threatenedSpeciesDesc',
-      metricId: 'threatened_species_secured',
-      dummyBaseline: '4 species',
-      dummyCandidate: '5 species',
-      dummyDelta: '+1',
-      deltaTone: 'positive',
-    },
-    {
-      id: 'comp-endemic-species',
-      section: 'biodiversity',
-      labelKey: 'analysis.comparison.metrics.endemicSpecies',
-      descriptionKey: 'analysis.comparison.metrics.endemicSpeciesDesc',
-      dummyBaseline: '10 species',
-      dummyCandidate: '12 species',
-      dummyDelta: '+2',
-      deltaTone: 'positive',
-    },
-    {
-      id: 'comp-carbon',
-      section: 'ecosystems',
-      labelKey: 'analysis.comparison.metrics.carbonStorage',
-      descriptionKey: 'analysis.comparison.metrics.carbonStorageDesc',
-      metricId: 'carbon_storage_biomass',
-      dummyBaseline: '69,000 Mg',
-      dummyCandidate: '74,000 Mg',
-      dummyDelta: '+5,000 Mg',
-    },
-    {
-      id: 'comp-water-regulation',
-      section: 'ecosystems',
-      labelKey: 'analysis.comparison.metrics.waterRegulation',
-      descriptionKey: 'analysis.comparison.metrics.waterRegulationDesc',
-      metricId: 'water_regulation_area',
-      dummyBaseline: '72 / 100',
-      dummyCandidate: '78 / 100',
-      dummyDelta: '+6',
-      deltaTone: 'positive',
-    },
-    {
-      id: 'comp-protected-overlap',
-      section: 'protection',
-      labelKey: 'analysis.comparison.metrics.protectedOverlap',
-      descriptionKey: 'analysis.comparison.metrics.protectedOverlapDesc',
-      metricId: 'national_parks_pct',
-      dummyBaseline: '14%',
-      dummyCandidate: '18%',
-      dummyDelta: '+4%',
-      deltaTone: 'positive',
-    },
-    {
-      id: 'comp-indigenous-overlap',
-      section: 'protection',
-      labelKey: 'analysis.comparison.metrics.indigenousOverlap',
-      descriptionKey: 'analysis.comparison.metrics.indigenousOverlapDesc',
-      metricId: 'indigenous_territory_pct',
-      dummyBaseline: '10%',
-      dummyCandidate: '12%',
-      dummyDelta: '+2%',
-      conditional: true,
-      deltaTone: 'neutral',
-    },
-  ];
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
@@ -1363,49 +662,22 @@ export class PanelSwitcherComponent {
     metric: MetricValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    if (metric.value === null) {
-      return this.translate.instant('analysis.common.valueUnavailable');
-    }
-
-    const displayValue = this.convertMetricValueForDisplay(metric, metric.value);
-    const displayUnit = this.getMetricDisplayUnit(metric);
-
-    switch (metric.formatHint) {
-      case 'percent':
-        return `${this.formatNumber(displayValue, mode, 0, 1)}%`;
-      case 'currency':
-        return this.appendUnit(this.formatNumber(displayValue, mode, 1, 1), displayUnit);
-      default:
-        return this.appendUnit(this.formatNumber(displayValue, mode, 0, 2), displayUnit);
-    }
+    return formatPresentedMetricValue(
+      metric,
+      this.metricFormatOptions(mode),
+      this.translate.instant('analysis.common.valueUnavailable'),
+    );
   }
 
   protected formatDelta(
     metric: MetricComparisonValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    if (metric.delta === null) {
-      return this.translate.instant('analysis.common.deltaUnavailable');
-    }
-
-    const sign = metric.delta > 0 ? '+' : '';
-    const displayValue = this.convertMetricValueForDisplay(metric.candidate, metric.delta);
-    const displayUnit = this.getMetricDisplayUnit(metric.candidate);
-
-    switch (metric.formatHint) {
-      case 'percent':
-        return `${sign}${this.formatNumber(displayValue, mode, 0, 1)}%`;
-      case 'currency':
-        return this.appendUnit(
-          `${sign}${this.formatNumber(displayValue, mode, 1, 1)}`,
-          displayUnit,
-        );
-      default:
-        return this.appendUnit(
-          `${sign}${this.formatNumber(displayValue, mode, 0, 2)}`,
-          displayUnit,
-        );
-    }
+    return formatMetricDelta(
+      metric,
+      this.metricFormatOptions(mode),
+      this.translate.instant('analysis.common.deltaUnavailable'),
+    );
   }
 
   protected getModeLabelKey(mode: RightSidebarMode): string {
@@ -1909,135 +1181,42 @@ export class PanelSwitcherComponent {
     minimumFractionDigits: number,
     maximumFractionDigits: number,
   ): string {
-    if (mode === 'compact') {
-      return this.formatCompactNumber(value, minimumFractionDigits, maximumFractionDigits);
-    }
-
-    return new Intl.NumberFormat(this.resolveLocale(), {
+    return formatPresentedNumber(
+      value,
+      this.metricFormatOptions(mode),
       minimumFractionDigits,
       maximumFractionDigits,
-    }).format(value);
-  }
-
-  private formatCompactNumber(
-    value: number,
-    minimumFractionDigits: number,
-    maximumFractionDigits: number,
-  ): string {
-    const absoluteValue = Math.abs(value);
-    const appLocale = this.appLocale.locale();
-    const locale = this.resolveNumberLocale(appLocale);
-    const compactScale =
-      absoluteValue >= 1_000_000 ? 1_000_000 : absoluteValue >= 1_000 ? 1_000 : 1;
-    const scaledValue = value / compactScale;
-    const formattedValue = new Intl.NumberFormat(locale, {
-      minimumFractionDigits,
-      maximumFractionDigits: compactScale === 1 ? maximumFractionDigits : 1,
-    }).format(scaledValue);
-
-    if (compactScale === 1_000_000) {
-      return `${formattedValue}M`;
-    }
-
-    if (compactScale === 1_000) {
-      return appLocale === 'es' ? `${formattedValue} mil` : `${formattedValue}K`;
-    }
-
-    return formattedValue;
+    );
   }
 
   private appendUnit(value: string, unit: string | null): string {
-    if (unit === '%') {
-      return `${value}%`;
-    }
-    if (unit === 'count') {
-      return value;
-    }
-    return unit ? `${value} ${unit}` : value;
+    return appendMetricUnit(value, unit);
   }
 
   private formatAreaValue(
     valueKm2: number,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    const displayUnit = this.areaDisplayUnit();
-    return this.appendUnit(
-      this.formatNumber(this.convertAreaValueForDisplay(valueKm2, displayUnit), mode, 0, 2),
-      this.areaUnitLabel(displayUnit),
-    );
-  }
-
-  private convertMetricValueForDisplay(metric: MetricValue, value: number): number {
-    if (!this.isAreaMetric(metric)) {
-      return value;
-    }
-
-    return this.convertAreaValueForDisplay(value, this.areaDisplayUnit());
-  }
-
-  private convertAreaValueForDisplay(valueKm2: number, unit: AreaDisplayUnit): number {
-    return unit === 'hectares' ? valueKm2 * KM2_TO_HECTARES : valueKm2;
+    return formatAreaMetricValue(valueKm2, this.metricFormatOptions(mode));
   }
 
   private areaUnitLabel(unit: AreaDisplayUnit): string {
-    return unit === 'hectares' ? 'ha' : 'km²';
-  }
-
-  private isAreaMetric(metric: MetricValue | Pick<MetricValue, 'metricId'>): boolean {
-    return AREA_METRIC_IDS.has(metric.metricId);
-  }
-
-  private formatMetricUnit(unit: string | null): string | null {
-    if (!unit) {
-      return null;
-    }
-    if (unit === 'count') {
-      return null;
-    }
-
-    return unit.replace(/Mg\s*[-·x*/]\s*km\^?2\b/g, 'Mg/km²').replace(/km\^?2\b/g, 'km²');
+    return areaUnitLabel(unit);
   }
 
   private formatMetricForPanel(
     metric: MetricValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
-    const formattedUnit = this.getMetricDisplayUnit(metric);
-    const displayValue = this.convertMetricValueForDisplay(metric, metric.value ?? 0);
-    const number = this.formatNumber(
-      displayValue,
+    return formatPanelMetric(metric, this.metricFormatOptions(mode));
+  }
+
+  private metricFormatOptions(mode: MetricNumberFormatMode): MetricFormatOptions {
+    return {
+      areaUnit: this.areaDisplayUnit(),
+      locale: this.appLocale.locale(),
       mode,
-      0,
-      metric.formatHint === 'percent' ? 1 : 2,
-    );
-    if (metric.formatHint === 'percent' || formattedUnit === '%') {
-      return `${number}%`;
-    }
-    return formattedUnit ? `${number} ${formattedUnit}` : number;
-  }
-
-  private getMetricDisplayUnit(metric: MetricValue): string | null {
-    if (this.isAreaMetric(metric)) {
-      return this.areaUnitLabel(this.areaDisplayUnit());
-    }
-
-    if (metric.metricId === 'carbon_biomass_total' || metric.metricId === 'soil_organic_carbon') {
-      return 'Mg';
-    }
-
-    if (metric.metricId === 'carbon_storage_biomass') {
-      return 'Mg';
-    }
-
-    return this.formatMetricUnit(metric.unit);
-  }
-
-  private resolveLocale(): string {
-    return this.resolveNumberLocale(this.appLocale.locale());
-  }
-
-  private resolveNumberLocale(locale: string): string {
-    return locale === 'es' ? 'es-CO' : 'en-US';
+    };
   }
 
   private getAoiBiodiversityScale(aoiId: string): number {
@@ -2231,7 +1410,7 @@ export class PanelSwitcherComponent {
       metricId: metric.metricId,
       metric: this.localizedText(metric.labelKey, metric.metricId),
       value,
-      unit: this.getMetricDisplayUnit(metric) ?? '',
+      unit: getMetricDisplayUnit(metric, this.areaDisplayUnit()) ?? '',
       status: this.localizedText(this.getStatusKey(metric.status), metric.status),
       source: metric.source,
       notes: metric.notes ?? '',
@@ -2399,46 +1578,32 @@ export class PanelSwitcherComponent {
     scenario: CatalogSolution,
   ): { label: string; coveragePercent: number }[] {
     const targets = new Map<string, { label: string; coveragePercent: number }>();
-    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
     const targetFeatureSet = this.normalizeManifestToken(
       scenario.finderInputs.targetFeatureSet ?? '',
     );
-    const targetFeatureIds = scenario.finderInputs.targetFeatureIds.map((id) =>
-      this.normalizeManifestToken(id),
-    );
+    const targetTypes = getSolutionTargetTypes(scenario, { inferFromName: true });
 
-    if (
-      targetFeatureSet === 'ecosystems' ||
-      targetFeatureIds.includes('ecosistemas') ||
-      source.includes('ecos')
-    ) {
+    if (targetTypes.has('ecosystems')) {
       targets.set('ecosystems', {
         label: this.localizedText('solutionControls.finder.step1.ecosystemsLabel'),
-        coveragePercent: this.getScenarioTargetPercent(scenario, 'ecos'),
+        coveragePercent:
+          getSolutionTargetLevel(scenario, 'ecosystems') ?? scenario.ecosystemTargets,
       });
     }
 
-    if (
-      targetFeatureSet.includes('strategic') ||
-      targetFeatureIds.some((id) =>
-        ['paramos', 'bosque-seco', 'wetlands', 'mangroves'].includes(id),
-      ) ||
-      source.includes('estr')
-    ) {
+    if (targetTypes.has('strategic-ecosystems')) {
       targets.set('strategic-ecosystems', {
         label: this.localizedText('solutionControls.finder.step1.strategicEcosystemsLabel'),
-        coveragePercent: this.getScenarioTargetPercent(scenario, 'estr'),
+        coveragePercent:
+          getSolutionTargetLevel(scenario, 'strategic-ecosystems') ?? scenario.ecosystemTargets,
       });
     }
 
-    if (
-      targetFeatureSet.includes('species') ||
-      targetFeatureIds.includes('species-richness') ||
-      source.includes('esp')
-    ) {
+    if (targetTypes.has('species-richness')) {
       targets.set('species-richness', {
         label: this.localizedText('solutionControls.finder.step1.speciesRichnessLabel'),
-        coveragePercent: this.getScenarioTargetPercent(scenario, 'esp'),
+        coveragePercent:
+          getSolutionTargetLevel(scenario, 'species-richness') ?? scenario.ecosystemTargets,
       });
     }
 
@@ -2472,7 +1637,7 @@ export class PanelSwitcherComponent {
   private buildScenarioIncludedAreaSelections(
     scenario: CatalogSolution,
   ): { label: string; selection: string }[] {
-    const tokens = this.getScenarioIncludeTokens(scenario);
+    const includes = getSolutionIncludeFlags(scenario, scenario.constraints);
     const selections = [
       {
         key: 'runap',
@@ -2483,19 +1648,19 @@ export class PanelSwitcherComponent {
       {
         key: 'omec',
         label: this.localizedText('analysis.exports.metadata.omecs'),
-        selected: tokens.some((token) => token.includes('omec')),
+        selected: includes.omecs,
         selection: this.localizedText('analysis.exports.metadata.selected'),
       },
       {
         key: 'comunidades',
         label: this.localizedText('analysis.exports.metadata.afroColombianTerritories'),
-        selected: tokens.some((token) => token.includes('comunidades') || token === 'com'),
+        selected: includes.comunidades,
         selection: this.localizedText('analysis.exports.metadata.selected'),
       },
       {
         key: 'resguardos',
         label: this.localizedText('analysis.exports.metadata.indigenousReserves'),
-        selected: tokens.some((token) => token.includes('resguardos') || token === 'res'),
+        selected: includes.resguardos,
         selection: this.localizedText('analysis.exports.metadata.selected'),
       },
     ];
@@ -2503,20 +1668,6 @@ export class PanelSwitcherComponent {
     return selections
       .filter((selection) => selection.selected)
       .map(({ label, selection }) => ({ label, selection }));
-  }
-
-  private getScenarioIncludeTokens(scenario: CatalogSolution): string[] {
-    return [
-      ...scenario.finderInputs.includeLayerIds,
-      ...scenario.inputLayerIds.includes,
-      ...scenario.constraints,
-    ].map((id) => this.normalizeManifestToken(id));
-  }
-
-  private getScenarioTargetPercent(scenario: CatalogSolution, prefix: string): number {
-    const source = `${scenario.id} ${scenario.name}`.toLowerCase();
-    const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
-    return match ? Number(match[1]) : scenario.ecosystemTargets;
   }
 
   private getScenarioSelectionLabel(id: string): string {
@@ -2549,14 +1700,7 @@ export class PanelSwitcherComponent {
       return layerLabel;
     }
 
-    const costSource = `${costLayerId ?? ''} ${scenario.costLayer}`.toLowerCase();
-    if (
-      costSource.includes('carbon') ||
-      costSource.includes('net-benefit') ||
-      costSource.includes('renta') ||
-      costSource.includes('agropecuaria') ||
-      costSource.includes('_co')
-    ) {
+    if (solutionCostMatchesChoice(scenario, 'carbon-opportunity')) {
       return this.localizedText('solutionControls.finder.step2b.carbonOpportunityLabel');
     }
 
@@ -2577,11 +1721,7 @@ export class PanelSwitcherComponent {
   }
 
   private normalizeManifestToken(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/_/g, '-')
-      .toLowerCase();
+    return normalizeSolutionToken(value, { stripDiacritics: true });
   }
 
   private humanizeManifestToken(value: string): string {
@@ -2783,43 +1923,14 @@ export class PanelSwitcherComponent {
   }
 
   protected getCustomAoiSpeciesLoadingKey(): string {
-    const stage = this.customAoiSpeciesLoadingStage();
-    const estimateBand = this.customAoiBiodiversityEstimateBand();
-
-    if (stage === 'initial') {
-      return `analysis.aoi.customMetrics.speciesLoading.initial.${estimateBand}`;
-    }
-
-    if (stage === 'delayed') {
-      const delayedBand =
-        estimateBand === 'large' || estimateBand === 'veryLarge'
-          ? 'largeAoi'
-          : 'longerThanExpected';
-      return `analysis.aoi.customMetrics.speciesLoading.delayed.${delayedBand}`;
-    }
-
-    return 'analysis.aoi.customMetrics.speciesLoading.extended';
+    return resolveCustomAoiSpeciesLoadingKey(
+      this.customAoiSpeciesLoadingStage(),
+      this.customAoiBiodiversityEstimateBand(),
+    );
   }
 
   private classifyCustomAoiBiodiversityEstimate(): CustomAoiBiodiversityEstimateBand {
-    const areaKm2 = this.resolveSelectedAoiAreaKm2();
-    if (areaKm2 === null) {
-      return 'unknown';
-    }
-
-    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.smallMax) {
-      return 'small';
-    }
-
-    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.mediumMax) {
-      return 'medium';
-    }
-
-    if (areaKm2 <= CUSTOM_AOI_BIODIVERSITY_AREA_BANDS_KM2.largeMax) {
-      return 'large';
-    }
-
-    return 'veryLarge';
+    return classifyCustomAoiBiodiversityEstimate(this.resolveSelectedAoiAreaKm2());
   }
 
   private startCustomAoiSpeciesLoadingStages(): void {
@@ -2995,101 +2106,14 @@ export class PanelSwitcherComponent {
   }
 
   private buildOverviewSections(metrics: MetricValue[]): AnalysisMetricSectionFixture[] {
-    const grouped = new Map<string, AnalysisMetricSectionFixture>();
-
-    for (const metric of metrics) {
-      const sectionDefinition = this.overviewSectionLookup[metric.metricId];
-      if (!sectionDefinition) {
-        continue;
-      }
-
-      const section =
-        grouped.get(sectionDefinition.id) ??
-        ({
-          sectionId: sectionDefinition.id,
-          sectionLabelKey: sectionDefinition.labelKey,
-          metrics: [],
-        } satisfies AnalysisMetricSectionFixture);
-
-      section.metrics.push(metric);
-      grouped.set(sectionDefinition.id, section);
-    }
-
-    return this.overviewSectionOrder
-      .map((sectionId) => grouped.get(sectionId))
-      .filter((section): section is AnalysisMetricSectionFixture => section !== undefined);
+    return buildMetricSections(metrics, OVERVIEW_SECTION_LOOKUP, OVERVIEW_SECTION_ORDER);
   }
 
   private resolveAoiMetrics(
     document: CachedSolutionMetricsDocument | null,
     aoi: AOI,
   ): MetricValue[] {
-    if (!document) {
-      return [];
-    }
-
-    const level = this.aoiTypeToGeographyLevel(aoi.type);
-    if (!level) {
-      return [];
-    }
-
-    const geographies = document.geographies[level] ?? {};
-    const rawId = this.extractRawAoiScopeId(aoi.id);
-    const directCandidates = [rawId, aoi.name].filter((candidate): candidate is string =>
-      Boolean(candidate?.trim()),
-    );
-
-    for (const scopeId of directCandidates) {
-      const metrics = metricsForScope(document, level, scopeId);
-      if (metrics.length > 0) {
-        return metrics;
-      }
-    }
-
-    const normalizedAoiName = this.normalizeScopeLabel(aoi.name);
-    for (const [scopeId, scope] of Object.entries(geographies)) {
-      if (this.normalizeScopeLabel(scopeId) === normalizedAoiName) {
-        return scope.metrics ?? [];
-      }
-      if (this.normalizeScopeLabel(scope.name ?? '') === normalizedAoiName) {
-        return scope.metrics ?? [];
-      }
-    }
-
-    return [];
-  }
-
-  private aoiTypeToGeographyLevel(type: AOI['type']): GeographyLevel | null {
-    switch (type) {
-      case 'department':
-        return 'departments';
-      case 'municipality':
-        return 'municipalities';
-      case 'sirap':
-        return 'siraps';
-      case 'runap':
-        return 'runaps';
-      case 'omec':
-        return 'omecs';
-      default:
-        return null;
-    }
-  }
-
-  private extractRawAoiScopeId(prefixedAoiId: string): string {
-    const separatorIndex = prefixedAoiId.indexOf(':');
-    if (separatorIndex === -1) {
-      return prefixedAoiId.trim();
-    }
-    return prefixedAoiId.slice(separatorIndex + 1).trim();
-  }
-
-  private normalizeScopeLabel(label: string): string {
-    return label
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/gi, '')
-      .toLowerCase();
+    return resolveCachedAoiMetrics(document, aoi);
   }
 
   private buildOverviewMetricDisplayEntries(
@@ -3102,9 +2126,8 @@ export class PanelSwitcherComponent {
     );
     const shouldFillDummy = this.fillDummyOverviewMetrics();
 
-    return this.overviewMetricBlueprints
-      .filter((metric) => metric.section === section)
-      .map((metric) => {
+    return OVERVIEW_METRIC_BLUEPRINTS.filter((metric) => metric.section === section).map(
+      (metric) => {
         if (metric.conditional) {
           return {
             id: metric.id,
@@ -3195,7 +2218,8 @@ export class PanelSwitcherComponent {
           conditional: Boolean(metric.conditional),
           unavailable: true,
         };
-      });
+      },
+    );
   }
 
   private findOverviewMetric(metricId: string): MetricValue | null {
@@ -3224,13 +2248,13 @@ export class PanelSwitcherComponent {
     );
     const shouldFillDummy = this.fillDummyComparisonMetrics();
 
-    return this.comparisonSectionOrder.map((sectionId) => {
-      const sectionMeta = this.comparisonSectionMeta[sectionId];
-      const metrics = this.comparisonMetricBlueprints
-        .filter((metric) => metric.section === sectionId)
-        .map((metric) =>
-          this.buildComparisonMetricDisplayEntry(metric, metricsById, shouldFillDummy),
-        );
+    return COMPARISON_SECTION_ORDER.map((sectionId) => {
+      const sectionMeta = COMPARISON_SECTION_META[sectionId];
+      const metrics = COMPARISON_METRIC_BLUEPRINTS.filter(
+        (metric) => metric.section === sectionId,
+      ).map((metric) =>
+        this.buildComparisonMetricDisplayEntry(metric, metricsById, shouldFillDummy),
+      );
 
       return {
         id: sectionId,
@@ -3245,7 +2269,7 @@ export class PanelSwitcherComponent {
     const metricsById = this.aoiMetricsById();
     const shouldFillDummy = this.fillDummyAoiMetrics();
 
-    return this.aoiAlignedMetricBlueprints.flatMap<AoiAlignedMetricDisplayEntry>((blueprint) => {
+    return AOI_ALIGNED_METRIC_BLUEPRINTS.flatMap<AoiAlignedMetricDisplayEntry>((blueprint) => {
       const realMetric = blueprint.metricIds
         .map((metricId) => metricsById.get(metricId))
         .find((metric): metric is MetricValue => Boolean(metric && this.isMetricReady(metric)));
@@ -3299,32 +2323,7 @@ export class PanelSwitcherComponent {
     baselineMetrics: MetricValue[],
     candidateMetrics: MetricValue[],
   ): MetricComparisonValue[] {
-    const candidateById = new Map(candidateMetrics.map((metric) => [metric.metricId, metric]));
-    return baselineMetrics
-      .map((baseline): MetricComparisonValue | null => {
-        const candidate = candidateById.get(baseline.metricId);
-        if (!candidate) {
-          return null;
-        }
-
-        const delta =
-          baseline.status === 'ready' &&
-          candidate.status === 'ready' &&
-          baseline.value !== null &&
-          candidate.value !== null
-            ? Number((candidate.value - baseline.value).toFixed(2))
-            : null;
-
-        return {
-          metricId: baseline.metricId,
-          labelKey: baseline.labelKey,
-          formatHint: baseline.formatHint,
-          baseline,
-          candidate,
-          delta,
-        };
-      })
-      .filter((metric): metric is MetricComparisonValue => metric !== null);
+    return buildMetricComparisonValues(baselineMetrics, candidateMetrics);
   }
 
   private buildComparisonMetricDisplayEntry(

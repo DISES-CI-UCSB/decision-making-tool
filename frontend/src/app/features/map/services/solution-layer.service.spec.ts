@@ -1,15 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import type { LoadedSolution } from '@core/models/solution-catalog.model';
 import { AppStateService } from '@core/services/app-state.service';
-import { MockDataService } from '@core/services/mock-data.service';
-import { GeoTiffLoaderService } from './geotiff-loader.service';
 import {
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
   DEFAULT_SINGLE_SOLUTION_HEX,
-  SolutionLayerService,
-} from './solution-layer.service';
+  solutionClassColors,
+  spatialReferenceForRaster,
+} from '../utils/solution-rendering.utils';
+import { GeoTiffLoaderService } from './geotiff-loader.service';
+import { SolutionLayerService } from './solution-layer.service';
 
 function createLoadedSolution(
   id: string,
@@ -88,17 +89,6 @@ describe('SolutionLayerService', () => {
     clearSolution: vi.fn(),
     showExistingProtectedCoverage$: vi.fn(() => true),
   };
-  const mockDataMock = {
-    getSolutionById: vi.fn().mockReturnValue({
-      id: 'sol-001',
-      name: 'Mock Solution',
-      description: 'Mock description',
-      matchPercentage: 75,
-      geometryUrl: '/mock.geojson',
-      metrics: [],
-    }),
-  };
-
   const mapMock = {
     add: vi.fn(),
     addMany: vi.fn(),
@@ -116,7 +106,6 @@ describe('SolutionLayerService', () => {
         SolutionLayerService,
         { provide: GeoTiffLoaderService, useValue: loaderMock },
         { provide: AppStateService, useValue: appStateMock },
-        { provide: MockDataService, useValue: mockDataMock },
       ],
     });
     service = TestBed.inject(SolutionLayerService);
@@ -219,11 +208,7 @@ describe('SolutionLayerService', () => {
   });
 
   it('uses the raster EPSG code when georeferencing canvas-rendered solutions', () => {
-    const spatialReference = (
-      service as unknown as {
-        spatialReferenceForRaster: (rasterMeta: LoadedSolution['rasterMeta']) => { wkid: number };
-      }
-    ).spatialReferenceForRaster({
+    const spatialReference = spatialReferenceForRaster({
       ...createLoadedSolution('baseline').rasterMeta,
       crs: 'EPSG:9377',
     });
@@ -232,11 +217,7 @@ describe('SolutionLayerService', () => {
   });
 
   it('falls back to WGS84 when raster CRS metadata is unavailable', () => {
-    const spatialReference = (
-      service as unknown as {
-        spatialReferenceForRaster: (rasterMeta: LoadedSolution['rasterMeta']) => { wkid: number };
-      }
-    ).spatialReferenceForRaster({
+    const spatialReference = spatialReferenceForRaster({
       ...createLoadedSolution('baseline').rasterMeta,
       crs: 'Unknown',
     });
@@ -246,14 +227,7 @@ describe('SolutionLayerService', () => {
 
   it('splits included area coverage into its own color by default', () => {
     const loaded = createLoadedSolution('baseline');
-    const classColors = (
-      service as unknown as {
-        solutionClassColors: (
-          loaded: LoadedSolution,
-          newCoverageColorHex: string,
-        ) => { value: number; color: string; label: string }[];
-      }
-    ).solutionClassColors(loaded, '#ff0000');
+    const classColors = solutionClassColors(loaded, '#ff0000');
 
     expect(classColors).toEqual([
       { value: 2, color: '#2563eb', label: 'Included areas in solution (RUNAP)' },
@@ -263,15 +237,9 @@ describe('SolutionLayerService', () => {
 
   it('uses the user-selected included coverage color for single-solution rendering', () => {
     const loaded = createLoadedSolution('baseline');
-    service.setExistingProtectedColor('#f97316');
-    const classColors = (
-      service as unknown as {
-        solutionClassColors: (
-          loaded: LoadedSolution,
-          newCoverageColorHex: string,
-        ) => { value: number; color: string; label: string }[];
-      }
-    ).solutionClassColors(loaded, '#ff0000');
+    const classColors = solutionClassColors(loaded, '#ff0000', {
+      existingProtectedColorHex: '#f97316',
+    });
 
     expect(classColors).toEqual([
       { value: 2, color: '#f97316', label: 'Included areas in solution (RUNAP)' },
@@ -280,16 +248,10 @@ describe('SolutionLayerService', () => {
   });
 
   it('can collapse existing include coverage into the selected solution color for dev review', () => {
-    appStateMock.showExistingProtectedCoverage$.mockReturnValue(false);
     const loaded = createLoadedSolution('baseline');
-    const classColors = (
-      service as unknown as {
-        solutionClassColors: (
-          loaded: LoadedSolution,
-          newCoverageColorHex: string,
-        ) => { value: number; color: string; label: string }[];
-      }
-    ).solutionClassColors(loaded, '#ff0000');
+    const classColors = solutionClassColors(loaded, '#ff0000', {
+      showExistingProtectedCoverage: false,
+    });
 
     expect(classColors).toEqual([
       { value: 2, color: '#ff0000', label: 'Selected solution' },
@@ -299,15 +261,9 @@ describe('SolutionLayerService', () => {
 
   it('collapses existing include coverage into the selected color for comparison layers', () => {
     const loaded = createLoadedSolution('baseline');
-    const classColors = (
-      service as unknown as {
-        solutionClassColors: (
-          loaded: LoadedSolution,
-          newCoverageColorHex: string,
-          options?: { collapseExistingProtectedCoverage?: boolean },
-        ) => { value: number; color: string; label: string }[];
-      }
-    ).solutionClassColors(loaded, '#7c3aed', { collapseExistingProtectedCoverage: true });
+    const classColors = solutionClassColors(loaded, '#7c3aed', {
+      collapseExistingProtectedCoverage: true,
+    });
 
     expect(classColors).toEqual([
       { value: 2, color: '#7c3aed', label: 'Selected solution' },

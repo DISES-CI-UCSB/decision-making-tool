@@ -13,6 +13,7 @@ import type ArcGISMap from '@arcgis/core/Map';
 import type ArcGISMapView from '@arcgis/core/views/MapView';
 import type { ViewHit } from '@arcgis/core/views/types';
 
+import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
 import { type AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { FEATURE_FLAGS } from '@feature-flags';
@@ -57,7 +58,6 @@ interface BoundaryStyle {
   style: AdminBoundaryLineStyle;
 }
 
-const PUBLIC_BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
 const DEFAULT_ADMIN_BOUNDARY_HEX = '#6b7280';
 const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [107, 114, 128, 235];
 const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, BoundaryStyle> = {

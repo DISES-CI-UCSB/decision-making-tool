@@ -2,7 +2,6 @@ import { Component, OnInit, ViewContainerRef, inject } from '@angular/core';
 import type { LayerLocale, Solution, CatalogSolution } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService } from '@core/services/app-state.service';
-import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslateService } from '@ngx-translate/core';
 import { RouterOutlet } from '@angular/router';
@@ -41,7 +40,6 @@ export class App implements OnInit {
   public readonly viewContainerRef = inject(ViewContainerRef);
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly appState = inject(AppStateService);
-  private readonly mockData = inject(MockDataService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
@@ -98,8 +96,7 @@ export class App implements OnInit {
   }
 
   protected onSolutionApplied(match: { solutionId: string; customLabel?: string }): void {
-    const selectedSolution =
-      this.buildManifestSolution(match) ?? this.mockData.getSolutionById(match.solutionId);
+    const selectedSolution = this.buildManifestSolution(match);
     if (!selectedSolution) {
       return;
     }

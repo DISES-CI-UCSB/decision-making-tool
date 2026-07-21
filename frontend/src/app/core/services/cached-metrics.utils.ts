@@ -9,7 +9,13 @@ import type {
 
 export const CACHED_METRICS_BLOB_PREFIX = 'metrics/cache';
 export const CACHED_METRICS_SUFFIX = '.metrics.json';
+export const GOALS_BLOB_PREFIX = 'metrics/goals';
+export const GOALS_SUFFIX = '.goals.json';
 export const COMPACT_METRICS_FORMAT = 'metrics-compact-v1';
+export const PRECOMPUTED_METRIC_URL_KEYS = {
+  cache: ['compactCache', 'compact', 'cache'],
+  goals: ['goals'],
+} as const;
 
 export function toSafeSolutionId(solutionId: string): string {
   return solutionId.replace(/\//g, '_').replace(/ /g, '_');
@@ -24,9 +30,42 @@ export function buildCachedMetricsUrl(blobHost: string, solutionId: string): str
   return `${host}/${buildCachedMetricsBlobPath(solutionId)}`;
 }
 
+export function buildGoalsUrl(blobHost: string, solutionId: string): string {
+  const host = blobHost.replace(/\/+$/, '');
+  return `${host}/${GOALS_BLOB_PREFIX}/${toSafeSolutionId(solutionId)}${GOALS_SUFFIX}`;
+}
+
+export function getPrecomputedMetricUrl(
+  urls: Record<string, string> | undefined,
+  keys: readonly string[],
+): string | null {
+  for (const key of keys) {
+    const url = urls?.[key];
+    if (url) {
+      return url;
+    }
+  }
+  return null;
+}
+
 export function deriveBlobHostFromUrl(url: string): string | null {
   try {
     return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+export function buildStagingCompactMetricsUrl(
+  displayUrl: string,
+  solutionId: string,
+): string | null {
+  try {
+    const url = new URL(displayUrl);
+    const run = url.pathname.match(/^\/solutions\/nick-runs\/([^/]+)\//)?.[1];
+    return run
+      ? `${url.origin}/metrics/nick-runs/${run}/compact-cache/${solutionId}.metrics.compact.json`
+      : null;
   } catch {
     return null;
   }

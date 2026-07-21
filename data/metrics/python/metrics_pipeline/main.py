@@ -61,6 +61,12 @@ from blob_manifest import (
 from boundaries.boundary_id_grid import BoundaryIdGrid, build_grids_for_levels
 from boundaries.boundary_loader import BoundaryFeature, load_all_boundaries
 from boundaries.boundary_mask import BoundaryMaskCache
+from calculator_registry import (
+    overlap_area_calculator,
+    overlap_percent_calculator,
+    weighted_percent_calculator,
+    weighted_sum_calculator,
+)
 from local_io import (
     CACHE_BLOB_DIRECTORY,
     DEFAULT_CACHE_DIR,
@@ -83,6 +89,13 @@ from metric_definitions import (
     required_layer_ids,
     species_metric_ids,
 )
+from metric_output import (
+    blocked_no_data as _blocked_no_data,
+    empty_boundary as _empty_boundary,
+    metric_value as _metric_value,
+    not_applicable as _not_applicable,
+    status_counts as _status_counts,
+)
 from raster_metrics import (
     RasterError,
     SolutionRaster,
@@ -103,61 +116,11 @@ from species_data import (
 )
 from summary_species_coverage import compute_species_group_coverage_details
 from calculators import area as calc_area
-from calculators import carbon as calc_carbon
-from calculators import ecosystem_coverage as calc_ecosystem
-from calculators import land_cover as calc_land_cover
-from calculators import protected_areas as calc_protected
-from calculators import social_governance as calc_social
-from calculators import water as calc_water
 from calculators.species import (
     SpeciesAccumulator,
     SpeciesScopeCounts,
     SpeciesScopeMetrics,
 )
-
-_OVERLAP_CALCULATORS = {
-    "ecosistemas": calc_ecosystem.ecosystem_total_km2,
-    "paramos":     calc_ecosystem.paramo_km2,
-    "bosque_seco": calc_ecosystem.dry_forest_km2,
-    "wetlands":    calc_ecosystem.wetlands_km2,
-    "mangroves":   calc_ecosystem.mangroves_km2,
-    "resguardos":  calc_social.indigenous_reservations_km2,
-    "comunidades": calc_social.community_councils_km2,
-    # T6 additions
-    "runap":           calc_protected.runap_overlap_km2,
-    "runap_protegidas": calc_protected.runap_overlap_km2,
-    "recarga_agua":    calc_water.water_recharge_overlap_km2,
-    "coberturas_agriculture": calc_land_cover.agricultural_area_km2,
-}
-
-# binary_overlap_percent_of_selected: same layer lookup as above, different calc fn.
-_OVERLAP_PERCENT_CALCULATORS = {
-    "runap_parques": calc_protected.national_parks_percent_of_selected,
-    "resguardos":   calc_protected.indigenous_territory_percent_of_selected,
-    "recarga_agua": calc_water.water_recharge_percent_of_selected,
-    "coberturas_forest":      calc_land_cover.forest_pct,
-    "coberturas_agriculture": calc_land_cover.agriculture_pct,
-    "coberturas_other":       calc_land_cover.other_land_use_pct,
-}
-
-# weighted_sum: layer_id → fn(raster, float_values_array) → float
-_WEIGHTED_SUM_CALCULATORS = {
-    "biomasa":          calc_carbon.carbon_storage_biomass,
-    "carbono_organico": calc_carbon.soil_organic_carbon,
-}
-
-# Special mapping for metrics that share a layer but use a different calc fn.
-# Keyed by metric_id because two metrics (#5/#39) share the same layer_id.
-_WEIGHTED_SUM_BY_METRIC_ID = {
-    "carbon_storage_biomass": calc_carbon.carbon_storage_biomass,
-    "carbon_biomass_total":   calc_carbon.carbon_biomass_total,
-    "soil_organic_carbon":    calc_carbon.soil_organic_carbon,
-}
-
-# weighted_percent_of_national: layer_id → fn(raster, float_values_array) → float|None
-_WEIGHTED_PERCENT_CALCULATORS = {
-    "biomasa": calc_carbon.national_carbon_percent,
-}
 
 # Metric kinds that are only meaningful at national scope (sourced from manifest metadata).
 _NATIONAL_ONLY_KINDS = frozenset({"metadata_summary", "metadata_coverage"})
@@ -456,65 +419,6 @@ def _validate_required_layers(manifest: ResolvedManifest) -> list[str]:
     return missing
 
 
-# ---------------------------------------------------------------------------
-# Metric value builders
-# ---------------------------------------------------------------------------
-
-def _metric_value(
-    definition: MetricDefinition,
-    *,
-    value: float | int | None,
-    status: str,
-    notes: str | None,
-    source: str,
-    details: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    metric = {
-        "metricId": definition.metric_id,
-        "value": value,
-        "unit": definition.unit,
-        "status": status,
-        "source": source,
-        "notes": notes,
-        "labelKey": definition.label_key,
-        "formatHint": definition.format_hint,
-    }
-    if details is not None:
-        metric["details"] = details
-    return metric
-
-
-def _not_applicable(definition: MetricDefinition) -> dict[str, Any]:
-    return _metric_value(
-        definition,
-        value=None,
-        status="not_applicable",
-        notes="Metric is only available at national scope.",
-        source="n/a",
-    )
-
-
-def _empty_boundary(definition: MetricDefinition) -> dict[str, Any]:
-    """Used when the boundary mask has zero valid pixels (no raster overlap)."""
-    return _metric_value(
-        definition,
-        value=0.0 if definition.unit in ("km2", "%") else None,
-        status="empty",
-        notes="Boundary does not intersect the solution raster extent.",
-        source="raster:boundary_mask",
-    )
-
-
-def _blocked_no_data(definition: MetricDefinition) -> dict[str, Any]:
-    return _metric_value(
-        definition,
-        value=None,
-        status="blocked",
-        notes=definition.source_note,
-        source="n/a",
-    )
-
-
 def _compute_aoi_percent(
     definition: MetricDefinition, raster: SolutionRaster, subnational: bool
 ) -> dict[str, Any]:
@@ -698,7 +602,7 @@ def _compute_overlap_from_mask(
     rendering: dict,
 ) -> dict[str, Any]:
     if definition.kind == "binary_overlap_percent_of_selected":
-        calc_fn = _OVERLAP_PERCENT_CALCULATORS.get(layer_id)
+        calc_fn = overlap_percent_calculator(layer_id)
         if calc_fn is None:
             return _metric_value(
                 definition, value=None, status="pending",
@@ -719,7 +623,7 @@ def _compute_overlap_from_mask(
         )
 
     # binary_overlap_area
-    calc_fn = _OVERLAP_CALCULATORS.get(layer_id)
+    calc_fn = overlap_area_calculator(layer_id)
     if calc_fn is None:
         return _metric_value(
             definition, value=None, status="pending",
@@ -801,7 +705,7 @@ def _compute_weighted_download(
         ), None
 
     if definition.kind == "weighted_percent_of_national":
-        calc_fn = _WEIGHTED_PERCENT_CALCULATORS.get(layer_id)
+        calc_fn = weighted_percent_calculator(layer_id)
         if calc_fn is None:
             return _metric_value(
                 definition, value=None, status="pending",
@@ -822,9 +726,7 @@ def _compute_weighted_download(
         ), values
 
     # weighted_sum
-    calc_fn = _WEIGHTED_SUM_BY_METRIC_ID.get(definition.metric_id)
-    if calc_fn is None:
-        calc_fn = _WEIGHTED_SUM_CALCULATORS.get(layer_id)
+    calc_fn = weighted_sum_calculator(definition)
     if calc_fn is None:
         return _metric_value(
             definition, value=None, status="pending",
@@ -1157,7 +1059,7 @@ def _build_metrics(
             if preloaded_layer_values and layer_id in preloaded_layer_values:
                 values = preloaded_layer_values[layer_id]
                 if defn.kind == "weighted_percent_of_national":
-                    calc_fn = _WEIGHTED_PERCENT_CALCULATORS.get(layer_id)
+                    calc_fn = weighted_percent_calculator(layer_id)
                     if calc_fn is None:
                         results.append(_metric_value(
                             defn, value=None, status="pending",
@@ -1179,7 +1081,7 @@ def _build_metrics(
                             source=f"raster:{layer_id}",
                         ))
                 else:
-                    calc_fn = _WEIGHTED_SUM_BY_METRIC_ID.get(defn.metric_id) or _WEIGHTED_SUM_CALCULATORS.get(layer_id)
+                    calc_fn = weighted_sum_calculator(defn)
                     if calc_fn is None:
                         results.append(_metric_value(
                             defn, value=None, status="pending",
@@ -1204,13 +1106,6 @@ def _build_metrics(
             )
 
     return results
-
-
-def _status_counts(metric_values: list[dict[str, Any]]) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for mv in metric_values:
-        counts[mv["status"]] = counts.get(mv["status"], 0) + 1
-    return counts
 
 
 # ---------------------------------------------------------------------------
