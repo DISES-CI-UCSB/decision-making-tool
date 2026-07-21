@@ -27,6 +27,11 @@ interface SearchableTaxonDto {
   species: SearchableSpeciesDto[];
 }
 
+interface ParentChildRow {
+  id: string;
+  parentId?: string;
+}
+
 export interface LegendLayerEntry {
   id: string;
   name: string;
@@ -127,6 +132,25 @@ export function reorderRowsByDropTarget(
   const insertionIndex = dropPosition === 'before' ? nextTargetIndex : nextTargetIndex + 1;
   nextRows.splice(insertionIndex, 0, movedRowId);
   return nextRows;
+}
+
+export function groupParentChildRows<T extends ParentChildRow>(
+  rows: readonly T[],
+  parentRow: T,
+  childRows: readonly T[],
+): T[] {
+  const groupedIds = new Set([parentRow.id, ...childRows.map((row) => row.id)]);
+  const firstGroupedIndex = rows.findIndex((row) => groupedIds.has(row.id));
+  if (firstGroupedIndex < 0 || childRows.length === 0) {
+    return [...rows];
+  }
+
+  return [
+    ...rows.slice(0, firstGroupedIndex).filter((row) => !groupedIds.has(row.id)),
+    { ...parentRow, parentId: undefined },
+    ...childRows.map((row) => ({ ...row, parentId: parentRow.id })),
+    ...rows.slice(firstGroupedIndex + 1).filter((row) => !groupedIds.has(row.id)),
+  ];
 }
 
 export function nameMatchesSearch(name: string, normalizedQuery: string): boolean {

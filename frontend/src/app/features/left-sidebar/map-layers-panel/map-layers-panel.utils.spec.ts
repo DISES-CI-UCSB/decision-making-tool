@@ -2,6 +2,7 @@ import {
   buildConsideredLayerIdSet,
   buildLegendLayerEntry,
   computeSelectedLayerOrder,
+  groupParentChildRows,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
@@ -54,6 +55,36 @@ describe('selected layer ordering', () => {
         true,
       ),
     ).toEqual(['baseline', 'candidate', 'overlap', 'data']);
+  });
+});
+
+describe('parent-child row grouping', () => {
+  it('replaces scattered children at their first position and assigns parent relationships', () => {
+    const rows = [
+      { id: 'before', label: 'Before' },
+      { id: 'child-b', label: 'Child B' },
+      { id: 'middle', label: 'Middle' },
+      { id: 'child-a', label: 'Child A' },
+      { id: 'after', label: 'After' },
+    ];
+    const parent = { id: 'parent', label: 'Parent', parentId: 'stale-parent' };
+    const children = [rows[3]!, rows[1]!];
+
+    expect(groupParentChildRows(rows, parent, children)).toEqual([
+      { id: 'before', label: 'Before' },
+      { id: 'parent', label: 'Parent', parentId: undefined },
+      { id: 'child-a', label: 'Child A', parentId: 'parent' },
+      { id: 'child-b', label: 'Child B', parentId: 'parent' },
+      { id: 'middle', label: 'Middle' },
+      { id: 'after', label: 'After' },
+    ]);
+    expect(rows[1]).toEqual({ id: 'child-b', label: 'Child B' });
+  });
+
+  it('returns an equivalent ungrouped list when no child is present', () => {
+    const rows = [{ id: 'unrelated' }];
+
+    expect(groupParentChildRows(rows, { id: 'parent' }, [{ id: 'missing-child' }])).toEqual(rows);
   });
 });
 

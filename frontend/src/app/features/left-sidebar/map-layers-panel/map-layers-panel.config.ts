@@ -25,6 +25,19 @@ export interface SpeciesRichnessTaxonLayerDefinition {
   rendering: RuntimeLayerManifestRenderingConfig;
 }
 
+export interface SidebarManifestCategoryBinding {
+  sidebarGroupId: string;
+  manifestCategoryId: string;
+  rowSource: 'generic-manifest' | 'dedicated-service';
+  supportsLiveRendering: boolean;
+  defaultCollapsed: boolean;
+  defaultComingSoon: boolean;
+  palette: {
+    colors: readonly string[];
+    fallbackColor: string;
+  };
+}
+
 interface ManagementOverlayAppearance {
   color?: string;
   fillStyle?: SelectedLayerFillStyle;
@@ -88,12 +101,76 @@ export const SPECIES_RICHNESS_LAYER_IDS = new Set([
   'layer-species_richness_plants',
 ]);
 
-export const SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID: Partial<Record<string, string>> = {
-  'group-ecosystems': 'ecosystems',
-  'group-socio-economic': 'socioeconomic',
-  'group-cultural-ethnic': 'cultural_and_ethnic_territories',
-  'group-species-biodiversity': 'species_and_biodiversity',
-};
+export const SIDEBAR_MANIFEST_CATEGORY_BINDINGS = [
+  {
+    sidebarGroupId: 'group-admin-boundaries',
+    manifestCategoryId: 'administrative_boundaries',
+    rowSource: 'dedicated-service',
+    supportsLiveRendering: false,
+    defaultCollapsed: false,
+    defaultComingSoon: false,
+    palette: { colors: [], fallbackColor: '#475569' },
+  },
+  {
+    sidebarGroupId: 'group-species-biodiversity',
+    manifestCategoryId: 'species_and_biodiversity',
+    rowSource: 'generic-manifest',
+    supportsLiveRendering: true,
+    defaultCollapsed: true,
+    defaultComingSoon: false,
+    palette: { colors: [], fallbackColor: '#475569' },
+  },
+  {
+    sidebarGroupId: 'group-ecosystems',
+    manifestCategoryId: 'ecosystems',
+    rowSource: 'generic-manifest',
+    supportsLiveRendering: true,
+    defaultCollapsed: true,
+    defaultComingSoon: false,
+    palette: {
+      colors: ['#0d9488', '#6d8e7e', '#0284c7', '#a16207', '#15803d'],
+      fallbackColor: '#475569',
+    },
+  },
+  {
+    sidebarGroupId: 'group-cultural-ethnic',
+    manifestCategoryId: 'cultural_and_ethnic_territories',
+    rowSource: 'generic-manifest',
+    supportsLiveRendering: true,
+    defaultCollapsed: true,
+    defaultComingSoon: false,
+    palette: { colors: ['#6366f1', '#a855f7'], fallbackColor: '#475569' },
+  },
+  {
+    sidebarGroupId: 'group-socio-economic',
+    manifestCategoryId: 'socioeconomic',
+    rowSource: 'generic-manifest',
+    supportsLiveRendering: true,
+    defaultCollapsed: true,
+    defaultComingSoon: false,
+    palette: { colors: ['#d97706', '#ea580c', '#78716c'], fallbackColor: '#475569' },
+  },
+] as const satisfies readonly SidebarManifestCategoryBinding[];
+
+const SIDEBAR_CATEGORY_BY_GROUP_ID = new Map<string, SidebarManifestCategoryBinding>(
+  SIDEBAR_MANIFEST_CATEGORY_BINDINGS.map((binding) => [binding.sidebarGroupId, binding]),
+);
+const SIDEBAR_CATEGORY_BY_MANIFEST_ID = new Map<string, SidebarManifestCategoryBinding>(
+  SIDEBAR_MANIFEST_CATEGORY_BINDINGS.map((binding) => [binding.manifestCategoryId, binding]),
+);
+
+export function sidebarCategoryBindingForGroup(
+  sidebarGroupId: string,
+): SidebarManifestCategoryBinding | undefined {
+  return SIDEBAR_CATEGORY_BY_GROUP_ID.get(sidebarGroupId);
+}
+
+export function sidebarCategoryBindingForManifest(
+  manifestCategoryId: string,
+): SidebarManifestCategoryBinding | undefined {
+  return SIDEBAR_CATEGORY_BY_MANIFEST_ID.get(manifestCategoryId);
+}
+
 export const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<
   Record<string, { en: string; es: string }>
 > = {
@@ -165,25 +242,6 @@ export const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
   admin_departments: { boundaryType: 'department', boundaryLayerKey: 'admin_departments' },
   admin_municipalities: { boundaryType: 'municipality', boundaryLayerKey: 'admin_municipalities' },
 };
-export const MANIFEST_GROUP_COLOR_PALETTES: Record<string, string[]> = {
-  'group-ecosystems': ['#0d9488', '#6d8e7e', '#0284c7', '#a16207', '#15803d'],
-  'group-socio-economic': ['#d97706', '#ea580c', '#78716c'],
-  'group-cultural-ethnic': ['#6366f1', '#a855f7'],
-};
-export const MANIFEST_LIVE_RENDER_POLICY = {
-  enabledCategoryIds: new Set<string>([
-    'ecosystems',
-    'socioeconomic',
-    'cultural_and_ethnic_territories',
-    'species_and_biodiversity',
-  ]),
-  blockedCategoryReasons: {
-    // Conservation areas are rendered via the dedicated overlays card
-    // (see reconcileOverlaysWithManifest) rather than the generic group rows path.
-    administrative_boundaries:
-      'Administrative boundary rows use boundary feature services, not raster display assets.',
-  } as Record<string, string>,
-} as const;
 export const COMPARISON_PRIORITY_OVERLAY_IDS = [
   OVERLAP_SOLUTION_OVERLAY_ID,
   BASELINE_SOLUTION_OVERLAY_ID,

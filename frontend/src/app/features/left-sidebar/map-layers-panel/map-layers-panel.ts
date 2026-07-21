@@ -58,6 +58,7 @@ import {
   buildLegendCategories,
   buildLegendLayerEntry,
   computeSelectedLayerOrder,
+  groupParentChildRows,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
@@ -114,13 +115,12 @@ import {
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
   MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC,
   MANIFEST_CATEGORY_TITLE_OVERRIDES,
-  MANIFEST_GROUP_COLOR_PALETTES,
   MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID,
-  MANIFEST_LIVE_RENDER_POLICY,
   MANIFEST_OVERLAY_ROW_BY_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
-  SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID,
   SINGLE_SOLUTION_COLOR,
+  sidebarCategoryBindingForGroup,
+  sidebarCategoryBindingForManifest,
   SPECIES_CLASS_TO_TAXON,
   SPECIES_COLLECTION_ROW_ID,
   SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID,
@@ -1022,11 +1022,12 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     this.groups.update((groups) =>
       groups.map((group) => {
-        const manifestCategoryId = SIDEBAR_GROUP_TO_MANIFEST_CATEGORY_ID[group.id];
-        if (!manifestCategoryId) {
+        const categoryBinding = sidebarCategoryBindingForGroup(group.id);
+        if (!categoryBinding || categoryBinding.rowSource !== 'generic-manifest') {
           return group;
         }
 
+        const { manifestCategoryId } = categoryBinding;
         const manifestGroup = groupsByManifestCategoryId.get(manifestCategoryId);
         if (!manifestGroup) {
           return group;
@@ -1117,8 +1118,12 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private reconcileAdminBoundariesWithManifest(manifestGroups: ManifestSidebarLayerGroup[]): void {
+    const categoryBinding = sidebarCategoryBindingForGroup('group-admin-boundaries');
+    if (!categoryBinding) {
+      return;
+    }
     const adminGroup = manifestGroups.find(
-      (group) => group.sidebarCategoryId === 'administrative_boundaries',
+      (group) => group.sidebarCategoryId === categoryBinding.manifestCategoryId,
     );
     if (!adminGroup) {
       return;
@@ -1354,25 +1359,14 @@ export class MapLayersPanelComponent implements OnDestroy {
       return rows;
     }
 
-    const richnessIds = new Set([
-      ...richnessRows.map((row) => row.id),
-      ...taxonRows.map((row) => row.id),
-    ]);
-    const firstRichnessIndex = rows.findIndex((row) => richnessIds.has(row.id));
     const existingParent = existingRows.find((row) => row.id === SPECIES_RICHNESS_TOTAL_ROW_ID);
     const parentRow = {
       ...totalRichnessRow,
       parentId: undefined,
       expanded: existingParent?.expanded ?? true,
     };
-    const groupedRows = [
-      ...rows.slice(0, firstRichnessIndex).filter((row) => !richnessIds.has(row.id)),
-      parentRow,
-      ...taxonRows.map((row) => ({ ...row, parentId: SPECIES_RICHNESS_TOTAL_ROW_ID })),
-      ...rows.slice(firstRichnessIndex + 1).filter((row) => !richnessIds.has(row.id)),
-    ];
 
-    return groupedRows;
+    return groupParentChildRows(rows, parentRow, taxonRows);
   }
 
   private speciesRichnessTaxonRows(
@@ -1429,8 +1423,6 @@ export class MapLayersPanelComponent implements OnDestroy {
       return rows;
     }
 
-    const strategicIds = new Set(strategicRows.map((row) => row.id));
-    const firstStrategicIndex = rows.findIndex((row) => strategicIds.has(row.id));
     const existingParent = existingRows.find((row) => row.id === STRATEGIC_ECOSYSTEM_GROUP_ROW_ID);
     const parentRow: LayerControlRow = {
       id: STRATEGIC_ECOSYSTEM_GROUP_ROW_ID,
@@ -1448,12 +1440,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       hideAddButton: true,
     };
 
-    return [
-      ...rows.slice(0, firstStrategicIndex).filter((row) => !strategicIds.has(row.id)),
-      parentRow,
-      ...strategicRows.map((row) => ({ ...row, parentId: STRATEGIC_ECOSYSTEM_GROUP_ROW_ID })),
-      ...rows.slice(firstStrategicIndex + 1).filter((row) => !strategicIds.has(row.id)),
-    ];
+    return groupParentChildRows(rows, parentRow, strategicRows);
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
@@ -1563,11 +1550,11 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private manifestRowColor(sidebarGroupId: LayerGroup['id'], index: number): string {
-    const palette = MANIFEST_GROUP_COLOR_PALETTES[sidebarGroupId];
-    if (!palette || palette.length === 0) {
-      return '#475569';
+    const palette = sidebarCategoryBindingForGroup(sidebarGroupId)?.palette;
+    if (!palette || palette.colors.length === 0) {
+      return palette?.fallbackColor ?? '#475569';
     }
-    return palette[index % palette.length];
+    return palette.colors[index % palette.colors.length] ?? palette.fallbackColor;
   }
 
   private colorFromRendering(rendering: RuntimeLayerManifestRenderingConfig): string | null {
@@ -1584,7 +1571,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (manifestRow.isSpeciesCollection) {
       return false;
     }
-    if (!MANIFEST_LIVE_RENDER_POLICY.enabledCategoryIds.has(manifestRow.sidebarCategoryId)) {
+    const categoryBinding = sidebarCategoryBindingForManifest(manifestRow.sidebarCategoryId);
+    if (!categoryBinding?.supportsLiveRendering) {
       return false;
     }
     if (!this.isManifestRenderingSupported(manifestRow.rendering)) {
@@ -4499,21 +4487,21 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: 'group-admin-boundaries',
         title: this.localizedText('mapLayersPanel.groupTitles.administrativeBoundaries'),
         countLabel: this.toLayerCountLabel(adminBoundaryRows.length),
-        collapsed: false,
+        ...this.defaultSidebarCategoryState('group-admin-boundaries'),
         rows: adminBoundaryRows,
       },
       {
         id: 'group-species-biodiversity',
         title: this.localizedText('mapLayersPanel.groupTitles.speciesBiodiversity'),
         countLabel: this.toLayerCountLabel(0),
-        collapsed: true,
+        ...this.defaultSidebarCategoryState('group-species-biodiversity'),
         rows: [],
       },
       {
         id: 'group-ecosystems',
         title: this.ecosystemsCopy().groupTitle,
         countLabel: this.toLayerCountLabel(5),
-        collapsed: true,
+        ...this.defaultSidebarCategoryState('group-ecosystems'),
         note: this.ecosystemsCopy().groupNote,
         rows: [
           this.layerRow(
@@ -4566,7 +4554,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: 'group-cultural-ethnic',
         title: this.localizedText('mapLayersPanel.groupTitles.culturalEthnicTerritories'),
         countLabel: this.toLayerCountLabel(2),
-        collapsed: true,
+        ...this.defaultSidebarCategoryState('group-cultural-ethnic'),
         rows: [
           this.layerRow(
             'cult-indigenous',
@@ -4586,7 +4574,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: 'group-socio-economic',
         title: this.localizedText('mapLayersPanel.groupTitles.costs'),
         countLabel: this.toLayerCountLabel(3),
-        collapsed: true,
+        ...this.defaultSidebarCategoryState('group-socio-economic'),
         rows: [
           this.layerRow(
             'soc-human-footprint',
@@ -4604,6 +4592,16 @@ export class MapLayersPanelComponent implements OnDestroy {
         ],
       },
     ];
+  }
+
+  private defaultSidebarCategoryState(
+    sidebarGroupId: string,
+  ): Pick<LayerGroup, 'collapsed' | 'comingSoon'> {
+    const binding = sidebarCategoryBindingForGroup(sidebarGroupId);
+    return {
+      collapsed: binding?.defaultCollapsed ?? true,
+      comingSoon: binding?.defaultComingSoon ?? false,
+    };
   }
 
   private layerRow(id: string, name: string, color: string, opacity: number): LayerControlRow {
