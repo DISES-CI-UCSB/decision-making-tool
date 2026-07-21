@@ -9,6 +9,7 @@ import * as geometryEngine from '@arcgis/core/geometry/geometryEngine';
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
+import type Layer from '@arcgis/core/layers/Layer';
 import type ArcGISMap from '@arcgis/core/Map';
 import type ArcGISMapView from '@arcgis/core/views/MapView';
 import type { ViewHit } from '@arcgis/core/views/types';
@@ -60,6 +61,8 @@ interface BoundaryStyle {
 
 const DEFAULT_ADMIN_BOUNDARY_HEX = '#6b7280';
 const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [107, 114, 128, 235];
+const AOI_HOVER_COLOR: BoundaryStyle['color'] = [37, 99, 235, 255];
+const AOI_SELECTION_COLOR: BoundaryStyle['color'] = [250, 204, 21, 255];
 const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, BoundaryStyle> = {
   siraps: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   siraps_territorial: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'solid' },
@@ -212,8 +215,13 @@ export class AdminBoundaryService {
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private view: InstanceType<typeof ArcGISMapView> | null = null;
   private boundaryLayers: (FeatureLayer | GeoJSONLayer)[] = [];
+  private supplementalHoverLayers: Layer[] = [];
+  private aoiHoverLayer: GraphicsLayer | null = null;
   private aoiHighlightLayer: GraphicsLayer | null = null;
   private viewClickHandle: { remove: () => void } | null = null;
+  private viewPointerMoveHandle: { remove: () => void } | null = null;
+  private viewPointerLeaveHandle: { remove: () => void } | null = null;
+  private hoverRequestId = 0;
   private lastSelectionCandidate: HitTestCandidate | null = null;
   private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByLayerKey: Record<AdminBoundaryLayerKey, boolean> = {
@@ -273,12 +281,17 @@ export class AdminBoundaryService {
     if (this.boundaryLayers.length > 0) {
       map.addMany(this.boundaryLayers);
     }
+    this.aoiHoverLayer = new GraphicsLayer({
+      id: 'aoi-hover-highlight-layer',
+      title: 'AOI Hover Highlight',
+      listMode: 'hide',
+    });
     this.aoiHighlightLayer = new GraphicsLayer({
       id: 'aoi-selection-highlight-layer',
       title: 'AOI Selection Highlight',
       listMode: 'hide',
     });
-    map.add(this.aoiHighlightLayer);
+    map.addMany([this.aoiHoverLayer, this.aoiHighlightLayer]);
     for (const layer of this.boundaryLayers) {
       void view.whenLayerView(layer).catch((error: unknown) => {
         console.error(`[AdminBoundaryService] failed to create layerview for "${layer.id}"`, error);
@@ -287,14 +300,28 @@ export class AdminBoundaryService {
     this.viewClickHandle = view.on('click', (event) => {
       void this.handleMapClick(view, event.mapPoint, event.x, event.y);
     });
+    this.viewPointerMoveHandle = view.on('pointer-move', (event) => {
+      void this.handlePointerMove(view, event.x, event.y);
+    });
+    this.viewPointerLeaveHandle = view.on('pointer-leave', () => {
+      this.clearHoverState();
+    });
   }
 
   destroy(map: InstanceType<typeof ArcGISMap> | null): void {
     this.viewClickHandle?.remove();
     this.viewClickHandle = null;
+    this.viewPointerMoveHandle?.remove();
+    this.viewPointerMoveHandle = null;
+    this.viewPointerLeaveHandle?.remove();
+    this.viewPointerLeaveHandle = null;
+    this.hoverRequestId += 1;
 
     if (map && this.boundaryLayers.length > 0) {
       map.removeMany(this.boundaryLayers);
+    }
+    if (map && this.aoiHoverLayer) {
+      map.remove(this.aoiHoverLayer);
     }
     if (map && this.aoiHighlightLayer) {
       map.remove(this.aoiHighlightLayer);
@@ -303,7 +330,17 @@ export class AdminBoundaryService {
     this.map = null;
     this.view = null;
     this.boundaryLayers = [];
+    this.supplementalHoverLayers = [];
+    this.aoiHoverLayer = null;
     this.aoiHighlightLayer = null;
+  }
+
+  /**
+   * Adds selectable layers managed elsewhere (such as RUNAP and OMEC) to the
+   * shared AOI hover affordance without transferring layer ownership.
+   */
+  setSupplementalHoverLayers(layers: Layer[]): void {
+    this.supplementalHoverLayers = [...layers];
   }
 
   /** Returns ArcGIS layer IDs currently loaded for the given boundary layer key. */
@@ -530,6 +567,44 @@ export class AdminBoundaryService {
     this.appState.setRightSidebarMode('aoi');
   }
 
+  private async handlePointerMove(
+    view: InstanceType<typeof ArcGISMapView>,
+    screenX: number,
+    screenY: number,
+  ): Promise<void> {
+    const requestId = ++this.hoverRequestId;
+    const interactiveLayers = [
+      ...this.boundaryLayers.filter((layer) => {
+        const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
+        return layer.visible && config?.selectable !== false;
+      }),
+      ...this.supplementalHoverLayers.filter((layer) => layer.visible),
+    ];
+
+    if (interactiveLayers.length === 0) {
+      this.clearHoverState();
+      return;
+    }
+
+    try {
+      const hit = await view.hitTest({ x: screenX, y: screenY }, { include: interactiveLayers });
+      if (requestId !== this.hoverRequestId) {
+        return;
+      }
+
+      const graphicHit = hit.results.find((result) => result.type === 'graphic');
+      const geometry = graphicHit?.type === 'graphic' ? graphicHit.graphic.geometry : null;
+      this.setHoverHighlight(geometry ?? null);
+      this.setMapCursor(geometry ? 'pointer' : '');
+    } catch (error: unknown) {
+      if (requestId !== this.hoverRequestId) {
+        return;
+      }
+      this.clearHoverState();
+      console.warn('[AdminBoundaryService] AOI hover hit test failed:', error);
+    }
+  }
+
   private resolveCandidate(results: ViewHit[]): HitTestCandidate | null {
     let bestCandidate: HitTestCandidate | null = null;
     let bestLayerIndex = -1;
@@ -722,6 +797,50 @@ export class AdminBoundaryService {
     this.setSelectionHighlight(geometry);
   }
 
+  private setHoverHighlight(geometry: Geometry | null): void {
+    if (!this.aoiHoverLayer) {
+      return;
+    }
+
+    this.aoiHoverLayer.removeAll();
+    if (!geometry) {
+      return;
+    }
+
+    this.keepInteractionHighlightsOnTop();
+    this.aoiHoverLayer.add(
+      new Graphic({
+        geometry,
+        symbol: this.getInteractionSymbol(geometry, AOI_HOVER_COLOR, 2.5) as never,
+      }),
+    );
+  }
+
+  private clearHoverState(): void {
+    this.hoverRequestId += 1;
+    this.aoiHoverLayer?.removeAll();
+    this.setMapCursor('');
+  }
+
+  private setMapCursor(cursor: '' | 'pointer'): void {
+    if (this.view?.container instanceof HTMLElement) {
+      this.view.container.style.cursor = cursor;
+    }
+  }
+
+  private keepInteractionHighlightsOnTop(): void {
+    if (!this.map) {
+      return;
+    }
+
+    if (this.aoiHoverLayer) {
+      this.map.reorder(this.aoiHoverLayer, this.map.layers.length - 1);
+    }
+    if (this.aoiHighlightLayer) {
+      this.map.reorder(this.aoiHighlightLayer, this.map.layers.length - 1);
+    }
+  }
+
   private setSelectionHighlight(selectionGeometry: Geometry | null): void {
     if (!this.aoiHighlightLayer || !selectionGeometry) {
       return;
@@ -729,15 +848,13 @@ export class AdminBoundaryService {
 
     // Keep the selection highlight on top of all map layers so it remains visible
     // even when AOI base layers use strong outlines.
-    if (this.map) {
-      this.map.reorder(this.aoiHighlightLayer, this.map.layers.length - 1);
-    }
+    this.keepInteractionHighlightsOnTop();
 
     this.aoiHighlightLayer.removeAll();
     this.aoiHighlightLayer.add(
       new Graphic({
         geometry: selectionGeometry,
-        symbol: this.getHighlightSymbol(selectionGeometry) as never,
+        symbol: this.getInteractionSymbol(selectionGeometry, AOI_SELECTION_COLOR, 3) as never,
       }),
     );
   }
@@ -756,12 +873,16 @@ export class AdminBoundaryService {
     return this.map?.layers.findIndex((layer) => layer.id === layerId) ?? -1;
   }
 
-  private getHighlightSymbol(geometry: Geometry): Record<string, unknown> {
+  private getInteractionSymbol(
+    geometry: Geometry,
+    color: BoundaryStyle['color'],
+    width: number,
+  ): Record<string, unknown> {
     if (geometry.type === 'polyline') {
       return {
         type: 'simple-line',
-        color: [37, 99, 235, 255],
-        width: 3,
+        color,
+        width,
         style: 'solid',
       };
     }
@@ -769,7 +890,7 @@ export class AdminBoundaryService {
     if (geometry.type === 'point' || geometry.type === 'multipoint') {
       return {
         type: 'simple-marker',
-        color: [37, 99, 235, 255],
+        color,
         size: 12,
         outline: {
           color: [255, 255, 255, 255],
@@ -780,10 +901,10 @@ export class AdminBoundaryService {
 
     return {
       type: 'simple-fill',
-      color: [59, 130, 246, 0],
+      color: [...color.slice(0, 3), 0],
       outline: {
-        color: [37, 99, 235, 255],
-        width: 2,
+        color,
+        width,
         style: 'solid',
       },
     };

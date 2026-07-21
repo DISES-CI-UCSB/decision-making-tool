@@ -732,6 +732,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.addMapWidgets();
       this.setupCustomAoiDrawing();
       this.adminBoundaries.initialize(this.map, this.view);
+      this.adminBoundaries.setSupplementalHoverLayers([...this.vectorOverlayLayers.values()]);
       this.registerMapClickHandler();
       void this.syncComparisonMode();
 

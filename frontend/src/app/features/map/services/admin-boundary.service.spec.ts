@@ -26,6 +26,23 @@ describe('AdminBoundaryService', () => {
     ).getBoundaryRenderer(type);
   }
 
+  function interactionSymbol(
+    service: AdminBoundaryService,
+    geometryType: string,
+    color: [number, number, number, number],
+    width: number,
+  ): Record<string, unknown> {
+    return (
+      service as unknown as {
+        getInteractionSymbol(
+          geometry: { type: string },
+          symbolColor: [number, number, number, number],
+          symbolWidth: number,
+        ): Record<string, unknown>;
+      }
+    ).getInteractionSymbol({ type: geometryType }, color, width);
+  }
+
   beforeEach(() => {
     selectedAOI = signal<AOI | null>(null);
     appState = {
@@ -121,6 +138,29 @@ describe('AdminBoundaryService', () => {
           outline: expect.objectContaining({
             color: [255, 0, 0, 235],
           }),
+        }),
+      }),
+    );
+  });
+
+  it('uses distinct blue hover and yellow selection polygon outlines', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+
+    expect(interactionSymbol(service, 'polygon', [37, 99, 235, 255], 2.5)).toEqual(
+      expect.objectContaining({
+        color: [37, 99, 235, 0],
+        outline: expect.objectContaining({
+          color: [37, 99, 235, 255],
+          width: 2.5,
+        }),
+      }),
+    );
+    expect(interactionSymbol(service, 'polygon', [250, 204, 21, 255], 3)).toEqual(
+      expect.objectContaining({
+        color: [250, 204, 21, 0],
+        outline: expect.objectContaining({
+          color: [250, 204, 21, 255],
+          width: 3,
         }),
       }),
     );
