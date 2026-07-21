@@ -7,6 +7,7 @@ import {
   ElementRef,
   EventEmitter,
   HostListener,
+  NgZone,
   OnDestroy,
   Output,
   ViewChild,
@@ -27,7 +28,6 @@ import {
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayerRow,
   type RuntimeLayerManifest,
-  type RuntimeLayerManifestClassColor,
   type RuntimeLayerManifestRenderingConfig,
   type RuntimeSpeciesManifest,
   type RuntimeSpeciesManifestLayer,
@@ -47,7 +47,6 @@ import {
   OMEC_OVERLAY_LAYER_ID,
   RUNAP_OVERLAY_LAYER_ID,
   RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
-  VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID,
   VECTOR_OVERLAY_LAYER_IDS,
 } from '@features/map/services/manifest-raster-layer.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
@@ -74,16 +73,17 @@ import {
   ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT,
   ECOSYSTEM_CLASSIFICATION_VIEW_OPTIONS,
   ECOSYSTEMS_COPY,
-  IAVH_BIOME_FAMILY_COLOR_RULES,
-  IAVH_BIOME_REGION_CLASS_COUNT,
   IAVH_BIOME_REGION_LOOKUP_URL,
   IAVH_BIOME_REGION_SAMPLE_COLORS,
-  IAVH_ECOSYSTEM_BIOME_GROUPS,
   IAVH_ECOSYSTEM_LAYER_ID,
-  IAVH_ECOSYSTEM_NO_DATA_VALUE,
   STRATEGIC_ECOSYSTEM_LAYER_IDS,
   type EcosystemClassificationView,
 } from './map-layers-panel-ecosystem.config';
+import {
+  buildIavhEcosystemRendering,
+  parseIavhBiomeRegionCsv,
+  type IavhBiomeRegionClass,
+} from './map-layers-panel-iavh-ecosystem.utils';
 import {
   APPEARANCE_POPOVER_ARROW_RIGHT_PX,
   APPEARANCE_POPOVER_LEFT_OFFSET_PX,
@@ -135,6 +135,7 @@ import {
   type SelectedLayerFillStyle,
   type SpeciesRichnessTaxonLayerDefinition,
 } from './map-layers-panel.config';
+import { MapLayersPanelMapSync, type MapSyncDescriptor } from './map-layers-panel-map-sync';
 
 interface LayerControlRow {
   id: string;
@@ -158,22 +159,7 @@ interface LayerControlRow {
   mapUnavailable?: boolean;
   hideAddButton?: boolean;
   metadataUrl?: string | null;
-  mapSync?:
-    | { type: 'solution-baseline' }
-    | { type: 'solution-candidate' }
-    | { type: 'solution-overlap' }
-    | { type: 'app-state-layer'; layerId: string }
-    | {
-        type: 'manifest-raster';
-        layerId: string;
-        displayUrl: string;
-        rendering: RuntimeLayerManifestRenderingConfig;
-      }
-    | {
-        type: 'admin-boundary';
-        boundaryType: AoiType;
-        boundaryLayerKey: AdminBoundaryLayerKey;
-      };
+  mapSync?: MapSyncDescriptor;
 }
 
 interface SpeciesSample {
@@ -295,10 +281,6 @@ interface EcosystemLayerMetadata {
     classificationSummaryUrl?: string | null;
   };
 }
-interface IavhBiomeRegionClass {
-  value: number;
-  label: string;
-}
 
 @Component({
   selector: 'app-map-layers-panel',
@@ -330,14 +312,21 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionLayerService = inject(SolutionLayerService);
+  private readonly ngZone = inject(NgZone);
   private readonly translate = inject(TranslateService);
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly document = inject(DOCUMENT);
+  private readonly mapSync = new MapLayersPanelMapSync({
+    solutionLayers: this.solutionLayerService,
+    adminBoundaries: this.adminBoundaryService,
+    manifestRasters: this.manifestRasterLayerService,
+    appStateLayers: {
+      get: () => this.appState.visibleLayers$(),
+      set: (layers) => this.appState.visibleLayers$.set(layers),
+    },
+  });
   protected readonly sidebarOverlayScrollbar = useOverlayScrollbar();
   protected sidebarScrollbarInteracting = false;
-  private readonly opacitySyncFrames = new Map<string, number>();
-  private readonly colorSyncFrames = new Map<string, number>();
-  private selectedLayerStackingSyncFrame: number | null = null;
   private formatSelectIdSequence = 0;
   private loadedSpeciesManifestUrl: string | null = null;
 
@@ -613,7 +602,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       const taxa = this.taxa();
       this.manifestRasterLayerService.renderedLayerRevision$();
       untracked(() => {
-        this.scheduleSelectedLayerStackingSync(order, overlays, groups, taxa);
+        const prioritizedOrder = this.shouldPrioritizeComparisonLayers()
+          ? this.normalizeSelectedLayerOrder(order)
+          : undefined;
+        this.ngZone.runOutsideAngular(() => {
+          this.mapSync.scheduleStackingSync(order, overlays, groups, taxa, prioritizedOrder);
+        });
       });
     });
 
@@ -700,18 +694,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       cancelAnimationFrame(this.appearancePopoverRepositionFrame);
       this.appearancePopoverRepositionFrame = null;
     }
-    for (const frameId of this.opacitySyncFrames.values()) {
-      cancelAnimationFrame(frameId);
-    }
-    this.opacitySyncFrames.clear();
-    for (const frameId of this.colorSyncFrames.values()) {
-      cancelAnimationFrame(frameId);
-    }
-    this.colorSyncFrames.clear();
-    if (this.selectedLayerStackingSyncFrame !== null) {
-      cancelAnimationFrame(this.selectedLayerStackingSyncFrame);
-      this.selectedLayerStackingSyncFrame = null;
-    }
+    this.mapSync.dispose();
   }
 
   @HostListener('document:keydown.escape')
@@ -1543,53 +1526,12 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
-  private iavhEcosystemGroupedRendering(): RuntimeLayerManifestRenderingConfig {
-    return {
-      valueType: 'categorical',
-      renderMode: 'categorical',
-      noDataValue: IAVH_ECOSYSTEM_NO_DATA_VALUE,
-      classColors: IAVH_ECOSYSTEM_BIOME_GROUPS.flatMap((group) =>
-        group.values.map((value) => ({
-          value,
-          color: group.color,
-          label: group.label[this.activeLanguage()],
-        })),
-      ),
-    };
-  }
-
   private iavhEcosystemRenderingForSelectedView(): RuntimeLayerManifestRenderingConfig {
-    if (this.ecosystemClassificationView() === 'biomeRegion') {
-      return this.iavhBiomeRegionRendering();
-    }
-    return this.iavhEcosystemGroupedRendering();
-  }
-
-  private iavhBiomeRegionRendering(): RuntimeLayerManifestRenderingConfig {
-    return {
-      valueType: 'categorical',
-      renderMode: 'categorical',
-      noDataValue: IAVH_ECOSYSTEM_NO_DATA_VALUE,
-      classColors: this.iavhBiomeRegionClassColors(),
-    };
-  }
-
-  private iavhBiomeRegionClassColors(): RuntimeLayerManifestClassColor[] {
-    const classes = this.iavhBiomeRegionClasses ?? this.fallbackIavhBiomeRegionClasses();
-    return classes.map((item) => ({
-      value: item.value,
-      color: this.colorForIavhBiomeRegion(item.label, item.value),
-      label: item.label,
-      englishLabel: item.label,
-      spanishLabel: item.label,
-    }));
-  }
-
-  private fallbackIavhBiomeRegionClasses(): IavhBiomeRegionClass[] {
-    return Array.from({ length: IAVH_BIOME_REGION_CLASS_COUNT }, (_, index) => {
-      const value = index + 1;
-      return { value, label: `IAvH class ${value}` };
-    });
+    return buildIavhEcosystemRendering(
+      this.ecosystemClassificationView(),
+      this.activeLanguage(),
+      this.iavhBiomeRegionClasses,
+    );
   }
 
   private ensureIavhBiomeRegionLookupLoaded(): void {
@@ -1605,7 +1547,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       )
       .subscribe((csvText) => {
         this.iavhBiomeRegionLookupLoading = false;
-        const classes = this.parseIavhBiomeRegionCsv(csvText);
+        const classes = parseIavhBiomeRegionCsv(csvText);
         if (classes.length === 0) {
           return;
         }
@@ -1614,96 +1556,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           this.refreshIavhEcosystemRendering();
         }
       });
-  }
-
-  private parseIavhBiomeRegionCsv(csvText: string): IavhBiomeRegionClass[] {
-    const [headerLine, ...dataLines] = csvText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (!headerLine) {
-      return [];
-    }
-    const headers = this.parseCsvLine(headerLine).map((header) => header.trim());
-    const biomeIndex = headers.indexOf('biome');
-    const biomeIdIndex = headers.indexOf('biome_id');
-    if (biomeIndex < 0 || biomeIdIndex < 0) {
-      return [];
-    }
-    return dataLines
-      .map((line) => {
-        const columns = this.parseCsvLine(line);
-        const value = Number(columns[biomeIdIndex]);
-        const label = columns[biomeIndex]?.trim();
-        return Number.isInteger(value) && label ? { value, label } : null;
-      })
-      .filter((item): item is IavhBiomeRegionClass => Boolean(item))
-      .sort((a, b) => a.value - b.value);
-  }
-
-  private parseCsvLine(line: string): string[] {
-    const columns: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (let index = 0; index < line.length; index += 1) {
-      const char = line[index];
-      const nextChar = line[index + 1];
-      if (char === '"' && inQuotes && nextChar === '"') {
-        current += '"';
-        index += 1;
-        continue;
-      }
-      if (char === '"') {
-        inQuotes = !inQuotes;
-        continue;
-      }
-      if (char === ',' && !inQuotes) {
-        columns.push(current);
-        current = '';
-        continue;
-      }
-      current += char;
-    }
-    columns.push(current);
-    return columns;
-  }
-
-  private colorForIavhBiomeRegion(label: string, value: number): string {
-    const familyRule =
-      IAVH_BIOME_FAMILY_COLOR_RULES.find((rule) => label.startsWith(rule.prefix)) ??
-      IAVH_BIOME_FAMILY_COLOR_RULES[IAVH_BIOME_FAMILY_COLOR_RULES.length - 1];
-    const lightnessSteps = [34, 40, 46, 52, 58, 64, 70, 44, 50, 56, 62, 68];
-    const lightness = lightnessSteps[value % lightnessSteps.length];
-    const hue = (familyRule.hue + ((value * 7) % 18) - 9 + 360) % 360;
-    return this.hslToHex(hue, familyRule.saturation, lightness);
-  }
-
-  private hslToHex(hue: number, saturationPercent: number, lightnessPercent: number): string {
-    const saturation = saturationPercent / 100;
-    const lightness = lightnessPercent / 100;
-    const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
-    const huePrime = hue / 60;
-    const secondComponent = chroma * (1 - Math.abs((huePrime % 2) - 1));
-    const match = lightness - chroma / 2;
-    const [red, green, blue] =
-      huePrime < 1
-        ? [chroma, secondComponent, 0]
-        : huePrime < 2
-          ? [secondComponent, chroma, 0]
-          : huePrime < 3
-            ? [0, chroma, secondComponent]
-            : huePrime < 4
-              ? [0, secondComponent, chroma]
-              : huePrime < 5
-                ? [secondComponent, 0, chroma]
-                : [chroma, 0, secondComponent];
-    return `#${[red, green, blue]
-      .map((channel) =>
-        Math.round((channel + match) * 255)
-          .toString(16)
-          .padStart(2, '0'),
-      )
-      .join('')}`;
   }
 
   private manifestRowOpacity(): number {
@@ -1726,22 +1578,6 @@ export class MapLayersPanelComponent implements OnDestroy {
       return rendering.endColor ?? rendering.startColor ?? null;
     }
     return rendering.classColors?.[0]?.color ?? null;
-  }
-
-  private applyRowColorToRendering(
-    rendering: RuntimeLayerManifestRenderingConfig,
-    color: string,
-  ): RuntimeLayerManifestRenderingConfig {
-    if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
-      return rendering;
-    }
-    if (rendering.renderMode === 'mask') {
-      return { ...rendering, selectedColor: color };
-    }
-    if (rendering.renderMode === 'gradient') {
-      return { ...rendering, endColor: color };
-    }
-    return rendering;
   }
 
   private isManifestRowLiveRenderable(manifestRow: ManifestSidebarLayerRow): boolean {
@@ -1817,7 +1653,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       }),
     );
     this.updateSelectedLayerOrder(rowId, nextSelected);
-    this.syncOverlayById(rowId);
+    this.scheduleRowSyncAfterPaint(rowId);
   }
 
   protected toggleOverlaySelected(rowId: string): void {
@@ -1846,7 +1682,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       }),
     );
     this.updateSelectedLayerOrder(rowId, nextSelected);
-    this.syncOverlayById(rowId);
+    this.scheduleRowSyncAfterPaint(rowId);
   }
 
   protected toggleOverlaysCollapsed(): void {
@@ -1924,7 +1760,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
     this.updateSelectedLayerOrder(rowId, nextSelected);
-    this.syncGroupRowById(groupId, rowId);
+    this.scheduleRowSyncAfterPaint(`${groupId}:${rowId}`);
   }
 
   protected toggleLayerSelected(groupId: string, rowId: string): void {
@@ -1966,7 +1802,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
     this.updateSelectedLayerOrder(rowId, nextSelected);
-    this.syncGroupRowById(groupId, rowId);
+    this.scheduleRowSyncAfterPaint(`${groupId}:${rowId}`);
   }
 
   protected toggleLayerExpanded(groupId: string, rowId: string): void {
@@ -2126,7 +1962,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       }),
     );
     this.updateSelectedLayerOrder(speciesId, nextSelected);
-    this.syncSpeciesById(taxonId, speciesId);
+    this.scheduleRowSyncAfterPaint(`${taxonId}:${speciesId}`);
   }
 
   protected toggleSpeciesSelected(taxonId: string, speciesId: string): void {
@@ -2162,7 +1998,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       }),
     );
     this.updateSelectedLayerOrder(speciesId, nextSelected);
-    this.syncSpeciesById(taxonId, speciesId);
+    this.scheduleRowSyncAfterPaint(`${taxonId}:${speciesId}`);
   }
 
   protected toggleSpeciesExpanded(taxonId: string, speciesId: string): void {
@@ -3470,25 +3306,17 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private syncAllRowsToMap(): void {
-    for (const overlay of this.overlays()) {
-      this.syncRowToMap(overlay);
-    }
-    for (const group of this.groups()) {
-      for (const row of group.rows) {
-        this.syncRowToMap(row);
-      }
-    }
-    for (const taxon of this.taxa()) {
-      for (const species of taxon.species) {
-        this.syncRowToMap(species);
-      }
-    }
+    this.mapSync.syncRows([
+      ...this.overlays(),
+      ...this.groups().flatMap((group) => group.rows),
+      ...this.taxa().flatMap((taxon) => taxon.species),
+    ]);
   }
 
   private syncOverlayById(rowId: string): void {
     const row = this.overlays().find((overlay) => overlay.id === rowId);
     if (row) {
-      this.syncRowToMap(row);
+      this.mapSync.syncRow(row);
     }
   }
 
@@ -3496,227 +3324,45 @@ export class MapLayersPanelComponent implements OnDestroy {
     const group = this.groups().find((item) => item.id === groupId);
     const row = group?.rows.find((item) => item.id === rowId);
     if (row) {
-      this.syncRowToMap(row);
-    }
-  }
-
-  private syncSpeciesById(taxonId: string, speciesId: string): void {
-    const taxon = this.taxa().find((item) => item.id === taxonId);
-    const species = taxon?.species.find((item) => item.id === speciesId);
-    if (species) {
-      this.syncRowToMap(species);
+      this.mapSync.syncRow(row);
     }
   }
 
   private scheduleOpacitySync(rowKey: string): void {
-    const previousFrame = this.opacitySyncFrames.get(rowKey);
-    if (previousFrame) {
-      cancelAnimationFrame(previousFrame);
-    }
+    this.mapSync.scheduleOpacitySync(rowKey, () => this.findRowBySyncKey(rowKey));
+  }
 
-    const frameId = requestAnimationFrame(() => {
-      if (rowKey.includes(':')) {
-        const [scopeId, rowId] = rowKey.split(':');
-        if (scopeId.startsWith('taxon-')) {
-          this.syncSpeciesById(scopeId, rowId);
-        } else {
-          this.syncGroupRowById(scopeId, rowId);
-        }
-      } else {
-        this.syncOverlayById(rowKey);
-      }
-      this.opacitySyncFrames.delete(rowKey);
+  private scheduleRowSyncAfterPaint(rowKey: string): void {
+    this.ngZone.runOutsideAngular(() => {
+      this.mapSync.scheduleAfterPaintSync(rowKey, () => this.findRowBySyncKey(rowKey));
     });
-
-    this.opacitySyncFrames.set(rowKey, frameId);
   }
 
   private scheduleColorSync(rowKey: string): void {
-    const previous = this.colorSyncFrames.get(rowKey);
-    if (previous) {
-      cancelAnimationFrame(previous);
-    }
-
-    const frameId = requestAnimationFrame(() => {
-      if (rowKey.includes(':')) {
-        const [scopeId, rowId] = rowKey.split(':');
-        if (scopeId.startsWith('taxon-')) {
-          this.syncSpeciesById(scopeId, rowId);
-        } else {
-          this.syncGroupRowById(scopeId, rowId);
-        }
-      } else {
-        this.syncOverlayById(rowKey);
-      }
-      this.colorSyncFrames.delete(rowKey);
-    });
-
-    this.colorSyncFrames.set(rowKey, frameId);
-  }
-
-  private scheduleSelectedLayerStackingSync(
-    order: string[],
-    overlays: LayerControlRow[],
-    groups: LayerGroup[],
-    taxa: TaxonRow[],
-  ): void {
-    this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
-
-    if (this.selectedLayerStackingSyncFrame !== null) {
-      cancelAnimationFrame(this.selectedLayerStackingSyncFrame);
-    }
-
-    this.selectedLayerStackingSyncFrame = requestAnimationFrame(() => {
-      this.syncSelectedLayerStackingToMap(order, overlays, groups, taxa);
-      this.selectedLayerStackingSyncFrame = null;
-    });
-  }
-
-  private syncSelectedLayerStackingToMap(
-    order: string[],
-    overlays: LayerControlRow[],
-    groups: LayerGroup[],
-    taxa: TaxonRow[],
-  ): void {
-    const effectiveOrder = this.shouldPrioritizeComparisonLayers()
-      ? this.normalizeSelectedLayerOrder(order)
-      : order;
-
-    // Build a unified mapSync lookup covering all row sources.
-    const mapSyncById = new Map<string, LayerControlRow['mapSync']>();
-    for (const overlay of overlays) {
-      if (overlay.selected && overlay.mapSync) {
-        mapSyncById.set(overlay.id, overlay.mapSync);
-      }
-    }
-    for (const group of groups) {
-      for (const row of group.rows) {
-        if (row.selected && row.mapSync) {
-          mapSyncById.set(row.id, row.mapSync);
-        }
-      }
-    }
-    for (const taxon of taxa) {
-      if (taxon.selected && taxon.mapSync) {
-        mapSyncById.set(taxon.id, taxon.mapSync);
-      }
-      for (const species of taxon.species) {
-        if (species.selected && species.mapSync) {
-          mapSyncById.set(species.id, species.mapSync);
-        }
-      }
-    }
-
-    // Resolve each ordered row to the ArcGIS layer ID(s) it controls.
-    const idsTopToBottom: string[] = [];
-    for (const rowId of effectiveOrder) {
-      const mapSync = mapSyncById.get(rowId);
-      if (!mapSync) {
-        continue;
-      }
-      if (mapSync.type === 'manifest-raster' || mapSync.type === 'app-state-layer') {
-        idsTopToBottom.push(this.resolveArcGisLayerId(mapSync.layerId));
-      } else if (
-        mapSync.type === 'solution-baseline' ||
-        mapSync.type === 'solution-candidate' ||
-        mapSync.type === 'solution-overlap'
-      ) {
-        const layer = this.solutionLayerService.resolveLayerForSidebarType(mapSync.type);
-        if (layer) {
-          idsTopToBottom.push(layer.id);
-        }
-      } else if (mapSync.type === 'admin-boundary') {
-        idsTopToBottom.push(
-          ...this.adminBoundaryService.getLayerIdsByBoundaryKey(mapSync.boundaryLayerKey),
-        );
-      }
-    }
-
-    if (idsTopToBottom.length === 0) {
-      return;
-    }
-    this.solutionLayerService.reorderLayersByIds(idsTopToBottom);
-  }
-
-  private resolveArcGisLayerId(layerId: string): string {
-    return VECTOR_OVERLAY_ARCGIS_LAYER_ID_BY_OVERLAY_ID[layerId] ?? layerId;
+    this.mapSync.scheduleColorSync(rowKey, () => this.findRowBySyncKey(rowKey));
   }
 
   private syncRowToMap(row: LayerControlRow): void {
-    const mapSync = row.mapSync;
-    if (!mapSync) {
-      return;
-    }
+    this.mapSync.syncRow(row);
+  }
 
-    if (mapSync.type === 'solution-baseline') {
-      this.solutionLayerService.setBaselineVisibility(row.visible);
-      this.solutionLayerService.setBaselineOpacity(row.opacity / 100);
-      this.solutionLayerService.setBaselineColor(row.color);
-      return;
+  private findRowBySyncKey(rowKey: string): LayerControlRow | null {
+    if (!rowKey.includes(':')) {
+      return this.overlays().find((row) => row.id === rowKey) ?? null;
     }
-
-    if (mapSync.type === 'solution-candidate') {
-      this.solutionLayerService.setCandidateVisibility(row.visible);
-      this.solutionLayerService.setCandidateOpacity(row.opacity / 100);
-      this.solutionLayerService.setCandidateColor(row.color);
-      return;
-    }
-
-    if (mapSync.type === 'solution-overlap') {
-      this.solutionLayerService.setOverlapVisibility(row.visible);
-      this.solutionLayerService.setOverlapOpacity(row.opacity / 100);
-      this.solutionLayerService.setOverlapColor(row.color);
-      return;
-    }
-
-    if (mapSync.type === 'admin-boundary') {
-      this.adminBoundaryService.setLayerStyle(mapSync.boundaryLayerKey, {
-        color: row.borderColor ?? row.color,
-        style: this.toAdminBoundaryLineStyle(row.borderStyle),
-        width: row.borderWidth ?? DEFAULT_SELECTED_LAYER_BORDER_WIDTH,
-      });
-      this.adminBoundaryService.setLayerVisibility(mapSync.boundaryLayerKey, row.visible);
-      return;
-    }
-
-    if (mapSync.type === 'manifest-raster') {
-      this.manifestRasterLayerService.syncLayer(
-        mapSync.layerId,
-        {
-          displayUrl: mapSync.displayUrl,
-          visible: row.visible,
-          opacity: row.opacity / 100,
-          color: row.color,
-          fillStyle: row.fillStyle ?? DEFAULT_SELECTED_LAYER_FILL_STYLE,
-          fillDensity: row.fillDensity ?? DEFAULT_SELECTED_LAYER_FILL_DENSITY,
-          borderColor: row.borderColor ?? row.color,
-          borderStyle: row.borderStyle ?? DEFAULT_SELECTED_LAYER_BORDER_STYLE,
-          borderWidth: row.borderWidth ?? DEFAULT_SELECTED_LAYER_BORDER_WIDTH,
-          rendering: this.applyRowColorToRendering(mapSync.rendering, row.color),
-        },
-        { selected: row.selected },
+    const [scopeId, rowId] = rowKey.split(':');
+    if (scopeId.startsWith('taxon-')) {
+      return (
+        this.taxa()
+          .find((taxon) => taxon.id === scopeId)
+          ?.species.find((species) => species.id === rowId) ?? null
       );
-      return;
     }
-
-    if (mapSync.type !== 'app-state-layer') {
-      return;
-    }
-
-    const visibleLayers = this.appState.visibleLayers$();
-    const index = visibleLayers.findIndex((layer) => layer.id === mapSync.layerId);
-    if (index < 0) {
-      return;
-    }
-
-    const nextLayer = {
-      ...visibleLayers[index],
-      visible: row.visible,
-      opacity: row.opacity / 100,
-    };
-    const nextVisibleLayers = [...visibleLayers];
-    nextVisibleLayers.splice(index, 1, nextLayer);
-    this.appState.visibleLayers$.set(nextVisibleLayers);
+    return (
+      this.groups()
+        .find((group) => group.id === scopeId)
+        ?.rows.find((row) => row.id === rowId) ?? null
+    );
   }
 
   private reorderRows<T extends { id: string; canReorder: boolean }>(
@@ -3845,21 +3491,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (speciesMatch) {
       this.scheduleColorSync(`${speciesMatch.taxonId}:${rowId}`);
     }
-  }
-
-  private toAdminBoundaryLineStyle(
-    borderStyle: SelectedLayerBorderStyle | undefined,
-  ): 'none' | 'solid' | 'long-dash' | 'dot' {
-    if (borderStyle === 'none') {
-      return 'none';
-    }
-    if (borderStyle === 'dotted') {
-      return 'dot';
-    }
-    if (borderStyle === 'dashed') {
-      return 'long-dash';
-    }
-    return 'solid';
   }
 
   private syncInitialBoundaryState(): void {
