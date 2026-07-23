@@ -42,14 +42,17 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   @Output() readonly requestClose = new EventEmitter<ModalCloseSource>();
 
   @ViewChild('panelElement') private readonly panelElement?: ElementRef<HTMLElement>;
+  @ViewChild('dialogElement') private readonly dialogElement?: ElementRef<HTMLDialogElement>;
 
   protected isRendered = false;
   protected isActive = false;
+  protected isDialogOpen = false;
 
   private openTimer: ReturnType<typeof setTimeout> | null = null;
   private closeTimer: ReturnType<typeof setTimeout> | null = null;
   private bodyOverflowBeforeLock = '';
   private bodyScrollLocked = false;
+  private previouslyFocusedElement: HTMLElement | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']) {
@@ -60,7 +63,17 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   ngOnDestroy(): void {
     this.clearOpenTimer();
     this.clearCloseTimer();
+    const dialog = this.dialogElement?.nativeElement;
+    if (dialog?.open) {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      } else {
+        dialog.removeAttribute('open');
+      }
+    }
+    this.isDialogOpen = false;
     this.unlockBodyScroll();
+    this.restorePreviousFocus();
   }
 
   protected onBackdropClick(event: MouseEvent): void {
@@ -82,6 +95,13 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
 
   protected onCloseButtonClick(): void {
     this.requestClose.emit('button');
+  }
+
+  protected onNativeCancel(event: Event): void {
+    event.preventDefault();
+    if (this.closeOnEscape) {
+      this.requestClose.emit('escape');
+    }
   }
 
   protected onPanelKeydown(event: KeyboardEvent): void {
@@ -110,10 +130,23 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
     this.clearCloseTimer();
 
     if (!this.isRendered) {
+      this.previouslyFocusedElement =
+        typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
       this.isRendered = true;
     }
 
     this.openTimer = setTimeout(() => {
+      const dialog = this.dialogElement?.nativeElement;
+      if (dialog && !dialog.open) {
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+        this.isDialogOpen = true;
+      }
       this.isActive = true;
       this.lockBodyScroll();
       this.focusInitialElement();
@@ -127,8 +160,18 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
     this.clearCloseTimer();
 
     this.closeTimer = setTimeout(() => {
+      const dialog = this.dialogElement?.nativeElement;
+      if (dialog?.open) {
+        if (typeof dialog.close === 'function') {
+          dialog.close();
+        } else {
+          dialog.removeAttribute('open');
+        }
+      }
+      this.isDialogOpen = false;
       this.isRendered = false;
       this.unlockBodyScroll();
+      this.restorePreviousFocus();
     }, MODAL_TRANSITION_MS);
   }
 
@@ -217,5 +260,13 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
 
     document.body.style.overflow = this.bodyOverflowBeforeLock;
     this.bodyScrollLocked = false;
+  }
+
+  private restorePreviousFocus(): void {
+    const element = this.previouslyFocusedElement;
+    this.previouslyFocusedElement = null;
+    if (element?.isConnected) {
+      element.focus();
+    }
   }
 }

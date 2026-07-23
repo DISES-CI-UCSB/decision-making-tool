@@ -1,0 +1,1662 @@
+<!doctype html>
+<html id="aoi-ecosystems-mockup-root" lang="en">
+  <head id="aoi-ecosystems-mockup-head">
+    <meta id="aoi-ecosystems-mockup-charset" charset="UTF-8" />
+    <meta
+      id="aoi-ecosystems-mockup-viewport"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title id="aoi-ecosystems-mockup-title">
+      AOI Ecosystems, Strategic Ecosystems, and Carbon
+    </title>
+    <script
+      id="aoi-ecosystems-tailwind-browser"
+      src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+    ></script>
+    <style id="aoi-live-sidebar-style-alignment">
+      :root {
+        --color-small-label: #64748b;
+        --color-subtext: #64748b;
+      }
+
+      #aoi-ecosystems-mockup-body {
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      #aoi-analysis-sidebar {
+        border-radius: 0;
+        background: #fff;
+      }
+
+      #aoi-analysis-header {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 12px 20px 14px;
+      }
+
+      #aoi-analysis-kicker {
+        margin-bottom: 2px;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      #aoi-analysis-title {
+        margin-top: 0;
+        color: #0f172a;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 23px;
+      }
+
+      #aoi-analysis-scope {
+        margin-top: 10px;
+        border-radius: 6px;
+      }
+
+      #aoi-analysis-content {
+        gap: 20px;
+        padding: 8px 20px;
+        background: #fff;
+      }
+
+      #aoi-analysis-content > details {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      #aoi-analysis-content > details > summary {
+        min-height: 0;
+        gap: 8px;
+        padding: 6px 0;
+        background: transparent;
+      }
+
+      #aoi-analysis-content > details > summary [id$="-dot"] {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: #000;
+      }
+
+      #aoi-analysis-content > details > summary [id$="-heading"] {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      #aoi-analysis-content > details > summary [id$="-source"] {
+        display: none;
+      }
+
+      #aoi-analysis-content > details > [id$="-body"] {
+        border: 0;
+        padding: 0;
+      }
+
+      #aoi-mec-breakdown-select {
+        height: 34px;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+
+      #aoi-mec-chart-row {
+        margin-top: 10px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+      }
+
+      #aoi-mec-chart-content {
+        gap: 16px;
+        padding: 12px;
+      }
+
+      #aoi-mec-donut {
+        width: 96px;
+        height: 96px;
+      }
+
+      #aoi-mec-savanna-callout {
+        display: none;
+      }
+
+      #aoi-mec-savanna-evidence,
+      #aoi-mec-classifications-modal-source-note {
+        display: none;
+      }
+
+      #aoi-mec-open-modal-button {
+        min-height: 52px;
+      }
+
+      #aoi-strategic-ecosystems-body {
+        gap: 6px;
+      }
+
+      #aoi-strategic-ecosystems-body > [id$="-row"] {
+        grid-template-columns: 80px 1fr 40px;
+        gap: 8px;
+        font-size: 11px;
+      }
+
+      #aoi-carbon-stat-grid {
+        gap: 10px;
+      }
+
+      #aoi-carbon-stat-grid > article {
+        border-radius: 6px;
+        padding: 12px;
+        background: #fff;
+      }
+
+      #aoi-carbon-stat-grid [id$="-label"] {
+        color: #64748b;
+        font-size: 11px;
+        line-height: 14px;
+      }
+
+      #aoi-carbon-stat-grid [id$="-value"] {
+        color: #0f172a;
+        font-size: 20px;
+        line-height: 22px;
+      }
+
+      .aoi-classification-bars {
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .aoi-classification-bar-row {
+        display: grid;
+        grid-template-columns: minmax(0, 108px) 1fr 38px;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .aoi-classification-bar-label {
+        overflow: hidden;
+        color: #64748b;
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .aoi-classification-bar-track {
+        height: 10px;
+        background: #f1f5f9;
+      }
+
+      .aoi-classification-bar-fill {
+        display: block;
+        height: 100%;
+        border-radius: 2px;
+        background: #475569;
+      }
+
+      .aoi-classification-bar-value {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 600;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body
+    id="aoi-ecosystems-mockup-body"
+    class="min-h-screen bg-slate-200 p-6 font-sans text-slate-900 antialiased"
+  >
+    <main
+      id="aoi-ecosystems-mockup-stage"
+      class="mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-start justify-end rounded-2xl border border-slate-300 bg-slate-100 shadow-xl"
+    >
+      <aside
+        id="aoi-analysis-sidebar"
+        aria-label="Area of interest analysis"
+        class="flex h-[calc(100vh-3rem)] w-[360px] max-w-full flex-col overflow-hidden rounded-r-2xl border-l border-slate-300 bg-white shadow-[-8px_0_24px_rgba(15,23,42,0.08)]"
+      >
+        <header
+          id="aoi-analysis-header"
+          class="border-b border-slate-200 bg-white px-4 py-3.5"
+        >
+          <p
+            id="aoi-analysis-kicker"
+            class="m-0 text-[10px] font-extrabold tracking-[0.1em] text-emerald-700 uppercase"
+          >
+            AOI detail
+          </p>
+          <h1
+            id="aoi-analysis-title"
+            class="mt-1 text-base leading-5 font-extrabold text-slate-950"
+          >
+            Area of interest detail
+          </h1>
+          <div
+            id="aoi-analysis-scope"
+            class="mt-3 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+          >
+            <div id="aoi-analysis-scope-copy" class="min-w-0">
+              <p
+                id="aoi-analysis-scope-label"
+                class="m-0 text-[9px] font-bold tracking-wide text-slate-500 uppercase"
+              >
+                Selected AOI
+              </p>
+              <p
+                id="aoi-analysis-scope-value"
+                class="mt-0.5 truncate text-xs font-bold text-slate-900"
+              >
+                Municipality of Puerto López
+              </p>
+            </div>
+            <span
+              id="aoi-analysis-scope-type"
+              class="ml-3 shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold text-slate-600"
+            >
+              Municipality
+            </span>
+          </div>
+        </header>
+
+        <div
+          id="aoi-analysis-content"
+          class="flex-1 space-y-2.5 overflow-y-auto bg-slate-50 p-3"
+        >
+          <details
+            id="aoi-mec-ecosystems-section"
+            class="group overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm"
+            open
+          >
+            <summary
+              id="aoi-mec-ecosystems-summary"
+              class="flex min-h-12 cursor-pointer list-none items-center gap-2.5 bg-linear-to-b from-emerald-50 to-white px-3.5 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset"
+            >
+              <span
+                id="aoi-mec-ecosystems-dot"
+                class="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600"
+              ></span>
+              <span
+                id="aoi-mec-ecosystems-heading-group"
+                class="min-w-0 flex-1"
+              >
+                <span
+                  id="aoi-mec-ecosystems-heading"
+                  class="block text-xs font-extrabold text-slate-950"
+                >
+                  Ecosystems
+                </span>
+                <span
+                  id="aoi-mec-ecosystems-source"
+                  class="block text-[9px] text-slate-500"
+                >
+                  MEC 2024 · IDEAM + Humboldt/IAvH classifications
+                </span>
+              </span>
+              <span
+                id="aoi-mec-ecosystems-chevron"
+                aria-hidden="true"
+                class="text-sm text-slate-400 transition-transform group-open:rotate-180"
+              >
+                ⌄
+              </span>
+            </summary>
+
+            <div
+              id="aoi-mec-ecosystems-body"
+              class="border-t border-emerald-100 px-3.5 py-3"
+            >
+              <label
+                id="aoi-mec-breakdown-label"
+                for="aoi-mec-breakdown-select"
+                class="text-[9px] font-bold tracking-wide text-slate-500 uppercase"
+              >
+                Break down candidate coverage by
+              </label>
+              <select
+                id="aoi-mec-breakdown-select"
+                class="mt-1.5 h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option id="aoi-mec-option-family" value="family">
+                  Biome family (8)
+                </option>
+                <option id="aoi-mec-option-context" value="context">
+                  Broad biome context (7)
+                </option>
+                <option id="aoi-mec-option-broad" value="broad">
+                  Broad ecosystem type (28)
+                </option>
+                <option id="aoi-mec-option-detailed" value="detailed">
+                  Detailed ecosystem type (87)
+                </option>
+                <option id="aoi-mec-option-iavh" value="iavh">
+                  IAvH biome-region class (430)
+                </option>
+              </select>
+
+              <div id="aoi-mec-chart-row" class="mt-3">
+                <div id="aoi-mec-chart-content" class="flex items-center gap-3">
+                  <div
+                    id="aoi-mec-donut"
+                    role="img"
+                    aria-label="Broad ecosystem type distribution in this AOI candidate area"
+                    class="relative h-24 w-24 shrink-0 rounded-full bg-[conic-gradient(#0f766e_0_34%,#0ea5e9_34%_57%,#84cc16_57%_74%,#f59e0b_74%_88%,#94a3b8_88%_100%)]"
+                  >
+                    <span
+                      id="aoi-mec-donut-hole"
+                      class="absolute inset-[17px] flex flex-col items-center justify-center rounded-full bg-white text-center"
+                    >
+                      <strong
+                        id="aoi-mec-donut-value"
+                        class="text-sm leading-4 font-extrabold"
+                        >230 km²</strong
+                      >
+                      <span
+                        id="aoi-mec-donut-label"
+                        class="text-[8px] text-slate-500"
+                        >candidate area</span
+                      >
+                    </span>
+                  </div>
+                  <div
+                    id="aoi-mec-legend"
+                    class="min-w-0 flex-1 space-y-1.5"
+                  ></div>
+                </div>
+                <div
+                  id="aoi-mec-preview-count-row"
+                  class="flex items-center justify-between gap-3 px-3 py-1.5 text-[9px] font-semibold tracking-wide text-slate-500"
+                >
+                  <span id="aoi-mec-preview-count-label">
+                    Showing 5 of 28 types
+                  </span>
+                  <span id="aoi-mec-preview-remaining-label">23 more</span>
+                </div>
+                <button
+                  id="aoi-mec-open-modal-button"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-controls="aoi-mec-classifications-modal"
+                  aria-expanded="false"
+                  class="flex w-full items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset"
+                >
+                  <span
+                    id="aoi-mec-open-modal-button-copy"
+                    class="min-w-0 flex-1"
+                  >
+                    <span
+                      id="aoi-mec-open-modal-button-label"
+                      class="block text-xs font-semibold text-slate-800"
+                    >
+                      Explore all 28 broad ecosystem types
+                    </span>
+                    <span
+                      id="aoi-mec-open-modal-button-description"
+                      class="mt-0.5 block text-[10px] font-normal text-slate-500"
+                    >
+                      Search and compare coverage details
+                    </span>
+                  </span>
+                  <span
+                    id="aoi-mec-open-modal-button-icon-shell"
+                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200/70 text-sm text-slate-600"
+                  >
+                    <span id="aoi-mec-open-modal-button-icon" aria-hidden="true"
+                      >→</span
+                    >
+                  </span>
+                </button>
+              </div>
+
+              <div
+                id="aoi-mec-savanna-callout"
+                class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2"
+              >
+                <div
+                  id="aoi-mec-savanna-callout-row"
+                  class="flex items-baseline justify-between gap-3"
+                >
+                  <span
+                    id="aoi-mec-savanna-callout-label"
+                    class="text-[11px] font-extrabold text-amber-950"
+                  >
+                    Savanna
+                  </span>
+                  <strong
+                    id="aoi-mec-savanna-callout-value"
+                    class="text-xs tabular-nums text-amber-950"
+                  >
+                    34%
+                  </strong>
+                </div>
+                <p
+                  id="aoi-mec-savanna-callout-note"
+                  class="mt-0.5 mb-0 text-[9px] text-amber-800"
+                >
+                  MEC source label: Sabana · feedback called this “natural
+                  savannas”
+                </p>
+              </div>
+            </div>
+          </details>
+
+          <details
+            id="aoi-strategic-ecosystems-section"
+            class="group overflow-hidden rounded-xl border border-sky-200 bg-white shadow-sm"
+            open
+          >
+            <summary
+              id="aoi-strategic-ecosystems-summary"
+              class="flex min-h-12 cursor-pointer list-none items-center gap-2.5 bg-linear-to-b from-sky-50 to-white px-3.5 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-inset"
+            >
+              <span
+                id="aoi-strategic-ecosystems-dot"
+                class="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-600"
+              ></span>
+              <span
+                id="aoi-strategic-ecosystems-heading-group"
+                class="min-w-0 flex-1"
+              >
+                <span
+                  id="aoi-strategic-ecosystems-heading"
+                  class="block text-xs font-extrabold text-slate-950"
+                >
+                  Strategic ecosystems
+                </span>
+                <span
+                  id="aoi-strategic-ecosystems-source"
+                  class="block text-[9px] text-slate-500"
+                >
+                  Minambiente/SIAC + INVEMAR input layers
+                </span>
+              </span>
+              <span
+                id="aoi-strategic-ecosystems-chevron"
+                aria-hidden="true"
+                class="text-sm text-slate-400 transition-transform group-open:rotate-180"
+              >
+                ⌄
+              </span>
+            </summary>
+
+            <div
+              id="aoi-strategic-ecosystems-body"
+              class="space-y-2 border-t border-sky-100 px-3.5 py-3"
+            >
+              <p
+                id="aoi-strategic-ecosystems-description"
+                class="m-0 text-[10px] leading-4 text-slate-600"
+              >
+                Share of this AOI's candidate area overlapping each strategic
+                ecosystem layer.
+              </p>
+              <div
+                id="aoi-strategic-paramos-row"
+                class="grid grid-cols-[92px_1fr_36px] items-center gap-2 text-[10px]"
+              >
+                <span
+                  id="aoi-strategic-paramos-label"
+                  class="font-semibold text-slate-700"
+                  >Páramos</span
+                >
+                <span
+                  id="aoi-strategic-paramos-track"
+                  class="h-2 overflow-hidden rounded-full bg-slate-100"
+                >
+                  <span
+                    id="aoi-strategic-paramos-fill"
+                    class="block h-full w-[14%] rounded-full bg-sky-700"
+                  ></span>
+                </span>
+                <strong
+                  id="aoi-strategic-paramos-value"
+                  class="text-right tabular-nums"
+                  >14%</strong
+                >
+              </div>
+              <div
+                id="aoi-strategic-wetlands-row"
+                class="grid grid-cols-[92px_1fr_36px] items-center gap-2 text-[10px]"
+              >
+                <span
+                  id="aoi-strategic-wetlands-label"
+                  class="font-semibold text-slate-700"
+                  >Wetlands</span
+                >
+                <span
+                  id="aoi-strategic-wetlands-track"
+                  class="h-2 overflow-hidden rounded-full bg-slate-100"
+                >
+                  <span
+                    id="aoi-strategic-wetlands-fill"
+                    class="block h-full w-[31%] rounded-full bg-sky-500"
+                  ></span>
+                </span>
+                <strong
+                  id="aoi-strategic-wetlands-value"
+                  class="text-right tabular-nums"
+                  >31%</strong
+                >
+              </div>
+              <div
+                id="aoi-strategic-dry-forest-row"
+                class="grid grid-cols-[92px_1fr_36px] items-center gap-2 text-[10px]"
+              >
+                <span
+                  id="aoi-strategic-dry-forest-label"
+                  class="font-semibold text-slate-700"
+                  >Dry forest</span
+                >
+                <span
+                  id="aoi-strategic-dry-forest-track"
+                  class="h-2 overflow-hidden rounded-full bg-slate-100"
+                >
+                  <span
+                    id="aoi-strategic-dry-forest-fill"
+                    class="block h-full w-[8%] rounded-full bg-amber-500"
+                  ></span>
+                </span>
+                <strong
+                  id="aoi-strategic-dry-forest-value"
+                  class="text-right tabular-nums"
+                  >8%</strong
+                >
+              </div>
+              <div
+                id="aoi-strategic-mangroves-row"
+                class="grid grid-cols-[92px_1fr_36px] items-center gap-2 text-[10px]"
+              >
+                <span
+                  id="aoi-strategic-mangroves-label"
+                  class="font-semibold text-slate-700"
+                  >Mangroves</span
+                >
+                <span
+                  id="aoi-strategic-mangroves-track"
+                  class="h-2 overflow-hidden rounded-full bg-slate-100"
+                >
+                  <span
+                    id="aoi-strategic-mangroves-fill"
+                    class="block h-full w-[3%] rounded-full bg-teal-600"
+                  ></span>
+                </span>
+                <strong
+                  id="aoi-strategic-mangroves-value"
+                  class="text-right tabular-nums"
+                  >3%</strong
+                >
+              </div>
+            </div>
+          </details>
+
+          <details
+            id="aoi-carbon-section"
+            class="group overflow-hidden rounded-xl border border-violet-200 bg-white shadow-sm"
+            open
+          >
+            <summary
+              id="aoi-carbon-summary"
+              class="flex min-h-12 cursor-pointer list-none items-center gap-2.5 bg-linear-to-b from-violet-50 to-white px-3.5 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-inset"
+            >
+              <span
+                id="aoi-carbon-dot"
+                class="h-2.5 w-2.5 shrink-0 rounded-full bg-violet-600"
+              ></span>
+              <span id="aoi-carbon-heading-group" class="min-w-0 flex-1">
+                <span
+                  id="aoi-carbon-heading"
+                  class="block text-xs font-extrabold text-slate-950"
+                >
+                  Carbon
+                </span>
+                <span
+                  id="aoi-carbon-source"
+                  class="block text-[9px] text-slate-500"
+                >
+                  Biomass and soil carbon layers
+                </span>
+              </span>
+              <span
+                id="aoi-carbon-chevron"
+                aria-hidden="true"
+                class="text-sm text-slate-400 transition-transform group-open:rotate-180"
+              >
+                ⌄
+              </span>
+            </summary>
+
+            <div
+              id="aoi-carbon-body"
+              class="border-t border-violet-100 px-3.5 py-3"
+            >
+              <div id="aoi-carbon-stat-grid" class="grid grid-cols-2 gap-2">
+                <article
+                  id="aoi-carbon-total-card"
+                  class="rounded-lg border border-slate-200 bg-slate-50 p-2.5"
+                >
+                  <p
+                    id="aoi-carbon-total-label"
+                    class="m-0 text-[9px] font-semibold text-slate-600"
+                  >
+                    Total carbon biomass
+                  </p>
+                  <p
+                    id="aoi-carbon-total-value"
+                    class="mt-1 mb-0 text-base font-extrabold tabular-nums"
+                  >
+                    85M Mg
+                  </p>
+                </article>
+                <article
+                  id="aoi-carbon-national-card"
+                  class="rounded-lg border border-slate-200 bg-slate-50 p-2.5"
+                >
+                  <p
+                    id="aoi-carbon-national-label"
+                    class="m-0 text-[9px] font-semibold text-slate-600"
+                  >
+                    Share of national carbon
+                  </p>
+                  <p
+                    id="aoi-carbon-national-value"
+                    class="mt-1 mb-0 text-base font-extrabold tabular-nums"
+                  >
+                    7%
+                  </p>
+                </article>
+                <article
+                  id="aoi-carbon-biomass-card"
+                  class="rounded-lg border border-slate-200 bg-white p-2.5"
+                >
+                  <p
+                    id="aoi-carbon-biomass-label"
+                    class="m-0 text-[9px] font-semibold text-slate-600"
+                  >
+                    Above + belowground
+                  </p>
+                  <p
+                    id="aoi-carbon-biomass-value"
+                    class="mt-1 mb-0 text-sm font-extrabold tabular-nums"
+                  >
+                    52M Mg
+                  </p>
+                </article>
+                <article
+                  id="aoi-carbon-soil-card"
+                  class="rounded-lg border border-slate-200 bg-white p-2.5"
+                >
+                  <p
+                    id="aoi-carbon-soil-label"
+                    class="m-0 text-[9px] font-semibold text-slate-600"
+                  >
+                    Soil organic carbon
+                  </p>
+                  <p
+                    id="aoi-carbon-soil-value"
+                    class="mt-1 mb-0 text-sm font-extrabold tabular-nums"
+                  >
+                    33M Mg
+                  </p>
+                </article>
+              </div>
+            </div>
+          </details>
+
+          <p
+            id="aoi-mock-data-note"
+            class="m-0 px-1 pb-1 text-[9px] leading-3.5 text-slate-500"
+          >
+            Values are illustrative. Dataset names and classification
+            relationships reflect the current repository metadata.
+          </p>
+        </div>
+      </aside>
+    </main>
+
+    <div
+      id="aoi-mec-classifications-modal-layer"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+    >
+      <button
+        id="aoi-mec-classifications-modal-backdrop"
+        type="button"
+        aria-label="Close MEC classifications"
+        class="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px]"
+      ></button>
+      <section
+        id="aoi-mec-classifications-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="aoi-mec-classifications-modal-title"
+        class="relative flex max-h-[760px] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <header
+          id="aoi-mec-classifications-modal-header"
+          class="flex items-start gap-4 border-b border-slate-200 px-5 py-4"
+        >
+          <div
+            id="aoi-mec-classifications-modal-heading-group"
+            class="min-w-0 flex-1"
+          >
+            <p
+              id="aoi-mec-classifications-modal-kicker"
+              class="m-0 text-[10px] font-bold tracking-[0.12em] text-emerald-700 uppercase"
+            >
+              MEC 2024 ecosystem map
+            </p>
+            <h2
+              id="aoi-mec-classifications-modal-title"
+              class="mt-1 mb-0 text-lg font-extrabold text-slate-950"
+            >
+              Explore ecosystem coverage
+            </h2>
+            <p
+              id="aoi-mec-classifications-modal-description"
+              class="mt-1 mb-0 text-xs leading-5 text-slate-600"
+            >
+              One mapped polygon can carry several classification labels. These
+              views describe the same MEC map; they are not separate strategic
+              ecosystem layers.
+            </p>
+          </div>
+          <button
+            id="aoi-mec-classifications-modal-close-button"
+            type="button"
+            aria-label="Close MEC classifications"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          >
+            <span
+              id="aoi-mec-classifications-modal-close-icon"
+              aria-hidden="true"
+              >×</span
+            >
+          </button>
+        </header>
+
+        <div
+          id="aoi-mec-classifications-modal-body"
+          class="min-h-0 flex-1 overflow-y-auto p-5"
+        >
+          <section
+            id="aoi-mec-coverage-context"
+            aria-labelledby="aoi-mec-coverage-context-title"
+            class="mb-4"
+          >
+            <h3 id="aoi-mec-coverage-context-title" class="sr-only">
+              Area coverage context
+            </h3>
+            <div
+              id="aoi-mec-coverage-context-grid"
+              class="grid grid-cols-2 gap-2"
+            >
+              <article
+                id="aoi-mec-aoi-area-card"
+                class="rounded-md border border-slate-200 bg-white p-3"
+              >
+                <p
+                  id="aoi-mec-aoi-area-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                >
+                  Total AOI land area
+                </p>
+                <p
+                  id="aoi-mec-aoi-area-value"
+                  class="mt-1 mb-0 text-xl font-extrabold text-slate-950"
+                >
+                  512 km²
+                </p>
+                <p
+                  id="aoi-mec-aoi-area-note"
+                  class="mt-1 mb-0 text-[10px] text-slate-500"
+                >
+                  Entire selected polygon
+                </p>
+              </article>
+              <article
+                id="aoi-mec-candidate-area-card"
+                class="rounded-md border border-emerald-200 bg-emerald-50 p-3"
+              >
+                <p
+                  id="aoi-mec-candidate-area-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-emerald-800 uppercase"
+                >
+                  Solution candidate area
+                </p>
+                <p
+                  id="aoi-mec-candidate-area-value"
+                  class="mt-1 mb-0 text-xl font-extrabold text-emerald-800"
+                >
+                  230 km²
+                </p>
+                <p
+                  id="aoi-mec-candidate-area-note"
+                  class="mt-1 mb-0 text-[10px] text-emerald-700"
+                >
+                  45% of AOI · 14% pre-existing + 31% additional
+                </p>
+              </article>
+            </div>
+            <p
+              id="aoi-mec-coverage-context-explanation"
+              class="mt-2 mb-0 text-[11px] leading-4 text-slate-600"
+            >
+              For each category below, coverage means the category area
+              intersecting the solution candidate area divided by all category
+              area present in this AOI.
+            </p>
+            <p
+              id="aoi-mec-coverage-split-explanation"
+              class="mt-1 mb-0 text-[10px] leading-4 text-slate-500"
+            >
+              Pre-existing coverage and additional candidate coverage are
+              mutually exclusive; additional coverage excludes pre-existing
+              areas.
+            </p>
+          </section>
+
+          <div
+            id="aoi-mec-classifications-model"
+            class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+          >
+            <button
+              id="aoi-mec-level-family"
+              type="button"
+              data-breakdown="family"
+              aria-pressed="true"
+              class="aoi-mec-level-card rounded-md border border-slate-900 bg-slate-100 p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              <p
+                id="aoi-mec-level-family-count"
+                class="m-0 text-lg font-extrabold"
+              >
+                8
+              </p>
+              <p
+                id="aoi-mec-level-family-label"
+                class="m-0 text-[10px] font-semibold text-slate-600"
+              >
+                Biome families
+              </p>
+            </button>
+            <button
+              id="aoi-mec-level-context"
+              type="button"
+              data-breakdown="context"
+              aria-pressed="false"
+              class="aoi-mec-level-card rounded-md border border-slate-200 bg-slate-50 p-3 text-left outline-none hover:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              <p
+                id="aoi-mec-level-context-count"
+                class="m-0 text-lg font-extrabold"
+              >
+                7
+              </p>
+              <p
+                id="aoi-mec-level-context-label"
+                class="m-0 text-[10px] font-semibold text-slate-600"
+              >
+                Broad biome contexts
+              </p>
+            </button>
+            <button
+              id="aoi-mec-level-iavh"
+              type="button"
+              data-breakdown="iavh"
+              aria-pressed="false"
+              class="aoi-mec-level-card rounded-md border border-slate-200 bg-slate-50 p-3 text-left outline-none hover:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              <p
+                id="aoi-mec-level-iavh-count"
+                class="m-0 text-lg font-extrabold"
+              >
+                430
+              </p>
+              <p
+                id="aoi-mec-level-iavh-label"
+                class="m-0 text-[10px] font-semibold text-slate-600"
+              >
+                IAvH biome-region classes
+              </p>
+              <span
+                id="aoi-mec-level-iavh-run-badge"
+                class="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[8px] font-bold tracking-wide text-emerald-800 uppercase"
+              >
+                Considered in run
+              </span>
+            </button>
+            <button
+              id="aoi-mec-level-broad"
+              type="button"
+              data-breakdown="broad"
+              aria-pressed="false"
+              class="aoi-mec-level-card rounded-md border border-slate-200 bg-slate-50 p-3 text-left outline-none hover:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              <p
+                id="aoi-mec-level-broad-count"
+                class="m-0 text-lg font-extrabold"
+              >
+                28
+              </p>
+              <p
+                id="aoi-mec-level-broad-label"
+                class="m-0 text-[10px] font-semibold text-slate-600"
+              >
+                Broad ecosystem types
+              </p>
+            </button>
+            <button
+              id="aoi-mec-level-detailed"
+              type="button"
+              data-breakdown="detailed"
+              aria-pressed="false"
+              class="aoi-mec-level-card rounded-md border border-slate-200 bg-slate-50 p-3 text-left outline-none hover:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              <p
+                id="aoi-mec-level-detailed-count"
+                class="m-0 text-lg font-extrabold"
+              >
+                87
+              </p>
+              <p
+                id="aoi-mec-level-detailed-label"
+                class="m-0 text-[10px] font-semibold text-slate-600"
+              >
+                Detailed ecosystem types
+              </p>
+            </button>
+          </div>
+
+          <section
+            id="aoi-mec-category-browser"
+            aria-labelledby="aoi-mec-category-browser-title"
+            class="mt-4 overflow-hidden rounded-xl border border-slate-200"
+          >
+            <header
+              id="aoi-mec-category-browser-header"
+              class="border-b border-slate-200 bg-slate-50 px-4 py-3"
+            >
+              <div
+                id="aoi-mec-category-browser-heading-row"
+                class="flex items-baseline justify-between gap-3"
+              >
+                <h3
+                  id="aoi-mec-category-browser-title"
+                  class="m-0 text-sm font-extrabold text-slate-950"
+                >
+                  Biome family
+                </h3>
+                <span
+                  id="aoi-mec-category-browser-count"
+                  class="text-[10px] font-semibold text-slate-500"
+                >
+                  8 categories
+                </span>
+              </div>
+              <p
+                id="aoi-mec-category-browser-description"
+                class="mt-1 mb-0 text-[11px] leading-4 text-slate-600"
+              >
+                Available area and solution coverage within this AOI. These are
+                reporting categories, not additional optimization targets.
+              </p>
+              <div
+                id="aoi-mec-category-coverage-legend"
+                aria-label="Coverage legend"
+                class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-slate-600"
+              >
+                <span
+                  id="aoi-mec-category-coverage-legend-existing"
+                  class="inline-flex items-center gap-1.5"
+                >
+                  <span
+                    id="aoi-mec-category-coverage-legend-existing-swatch"
+                    class="h-2.5 w-2.5 rounded-sm bg-[#2563eb]"
+                  ></span>
+                  <span id="aoi-mec-category-coverage-legend-existing-label">
+                    Pre-existing coverage
+                  </span>
+                </span>
+                <span
+                  id="aoi-mec-category-coverage-legend-additional"
+                  class="inline-flex items-center gap-1.5"
+                >
+                  <span
+                    id="aoi-mec-category-coverage-legend-additional-swatch"
+                    class="h-2.5 w-2.5 rounded-sm bg-[#16a34a]"
+                  ></span>
+                  <span id="aoi-mec-category-coverage-legend-additional-label">
+                    Additional candidate area
+                  </span>
+                </span>
+                <span
+                  id="aoi-mec-category-coverage-legend-uncovered"
+                  class="inline-flex items-center gap-1.5"
+                >
+                  <span
+                    id="aoi-mec-category-coverage-legend-uncovered-swatch"
+                    class="h-2.5 w-2.5 rounded-sm bg-slate-200"
+                  ></span>
+                  <span id="aoi-mec-category-coverage-legend-uncovered-label">
+                    Not covered
+                  </span>
+                </span>
+              </div>
+              <div
+                id="aoi-mec-category-browser-controls"
+                class="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]"
+              >
+                <label
+                  id="aoi-mec-category-search-label"
+                  for="aoi-mec-category-search-input"
+                  class="grid gap-1 text-[9px] font-semibold tracking-wide text-slate-500 uppercase"
+                >
+                  <span id="aoi-mec-category-search-label-text">
+                    Search categories
+                  </span>
+                  <input
+                    id="aoi-mec-category-search-input"
+                    type="search"
+                    placeholder="Search categories..."
+                    class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+                </label>
+                <label
+                  id="aoi-mec-category-sort-label"
+                  for="aoi-mec-category-sort-select"
+                  class="grid gap-1 text-[9px] font-semibold tracking-wide text-slate-500 uppercase"
+                >
+                  <span id="aoi-mec-category-sort-label-text">Sort by</span>
+                  <select
+                    id="aoi-mec-category-sort-select"
+                    class="h-9 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  >
+                    <option
+                      id="aoi-mec-category-sort-coverage"
+                      value="coverage"
+                    >
+                      Total coverage: high–low
+                    </option>
+                    <option
+                      id="aoi-mec-category-sort-additional"
+                      value="additional"
+                    >
+                      Additional candidate: high–low
+                    </option>
+                    <option
+                      id="aoi-mec-category-sort-existing"
+                      value="existing"
+                    >
+                      Pre-existing coverage: high–low
+                    </option>
+                    <option id="aoi-mec-category-sort-name" value="name">
+                      Name A–Z
+                    </option>
+                  </select>
+                </label>
+              </div>
+            </header>
+            <div
+              id="aoi-mec-category-browser-list"
+              class="max-h-[340px] overflow-y-auto"
+            ></div>
+          </section>
+
+          <section
+            id="aoi-mec-savanna-evidence"
+            aria-labelledby="aoi-mec-savanna-evidence-title"
+            class="mt-4 overflow-hidden rounded-xl border border-amber-200"
+          >
+            <header
+              id="aoi-mec-savanna-evidence-header"
+              class="bg-amber-50 px-4 py-3"
+            >
+              <h3
+                id="aoi-mec-savanna-evidence-title"
+                class="m-0 text-sm font-extrabold text-amber-950"
+              >
+                Where savannas appear
+              </h3>
+              <p
+                id="aoi-mec-savanna-evidence-description"
+                class="mt-1 mb-0 text-[11px] text-amber-900"
+              >
+                The repository's MEC summary uses the Spanish source labels
+                below.
+              </p>
+            </header>
+            <div
+              id="aoi-mec-savanna-evidence-table-wrapper"
+              class="overflow-x-auto"
+            >
+              <table
+                id="aoi-mec-savanna-evidence-table"
+                class="w-full border-collapse text-left text-xs"
+              >
+                <thead
+                  id="aoi-mec-savanna-evidence-table-head"
+                  class="bg-slate-50 text-[9px] tracking-wide text-slate-500 uppercase"
+                >
+                  <tr id="aoi-mec-savanna-evidence-heading-row">
+                    <th
+                      id="aoi-mec-savanna-evidence-heading-level"
+                      class="border-b border-slate-200 px-4 py-2"
+                    >
+                      MEC view
+                    </th>
+                    <th
+                      id="aoi-mec-savanna-evidence-heading-label"
+                      class="border-b border-slate-200 px-4 py-2"
+                    >
+                      Source label
+                    </th>
+                    <th
+                      id="aoi-mec-savanna-evidence-heading-area"
+                      class="border-b border-slate-200 px-4 py-2 text-right"
+                    >
+                      National mapped area
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="aoi-mec-savanna-evidence-table-body"
+                  class="divide-y divide-slate-100"
+                >
+                  <tr id="aoi-mec-savanna-broad-row">
+                    <td
+                      id="aoi-mec-savanna-broad-level"
+                      class="px-4 py-2.5 text-slate-600"
+                    >
+                      Broad ecosystem type
+                    </td>
+                    <td
+                      id="aoi-mec-savanna-broad-label"
+                      class="px-4 py-2.5 font-bold"
+                    >
+                      Sabana
+                    </td>
+                    <td
+                      id="aoi-mec-savanna-broad-area"
+                      class="px-4 py-2.5 text-right tabular-nums"
+                    >
+                      105,094.784 km²
+                    </td>
+                  </tr>
+                  <tr id="aoi-mec-savanna-seasonal-row">
+                    <td
+                      id="aoi-mec-savanna-seasonal-level"
+                      class="px-4 py-2.5 text-slate-600"
+                    >
+                      Detailed ecosystem type
+                    </td>
+                    <td
+                      id="aoi-mec-savanna-seasonal-label"
+                      class="px-4 py-2.5 font-bold"
+                    >
+                      Sabana Estacional
+                    </td>
+                    <td
+                      id="aoi-mec-savanna-seasonal-area"
+                      class="px-4 py-2.5 text-right tabular-nums"
+                    >
+                      61,362.298 km²
+                    </td>
+                  </tr>
+                  <tr id="aoi-mec-savanna-flooded-row">
+                    <td
+                      id="aoi-mec-savanna-flooded-level"
+                      class="px-4 py-2.5 text-slate-600"
+                    >
+                      Detailed ecosystem type
+                    </td>
+                    <td
+                      id="aoi-mec-savanna-flooded-label"
+                      class="px-4 py-2.5 font-bold"
+                    >
+                      Sabana Inundable
+                    </td>
+                    <td
+                      id="aoi-mec-savanna-flooded-area"
+                      class="px-4 py-2.5 text-right tabular-nums"
+                    >
+                      43,732.485 km²
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <p
+            id="aoi-mec-classifications-modal-source-note"
+            class="mt-4 mb-0 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2.5 text-[11px] leading-4 text-sky-950"
+          >
+            Savanna is visible through MEC ecosystem-type attributes. It is not
+            a fifth strategic ecosystem input beside páramos, wetlands, dry
+            forest, and mangroves, and it is not the name of a single IAvH
+            biome-region class.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <script id="aoi-ecosystems-mockup-script">
+      const classificationSummaryUrl =
+        "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosystem-classification-summary.json";
+      const aoiAreaSquareKilometers = 512;
+      const candidateAreaSquareKilometers = 230;
+      const preExistingCoverageSquareKilometers =
+        aoiAreaSquareKilometers * 0.14;
+      const mecBreakdowns = {
+        family: {
+          title: "Biome family",
+          view: "biomeFamily",
+          count: 8,
+          presentCount: 7,
+          shownCount: 4,
+          itemNoun: "biome families",
+          mode: "donut",
+          ariaLabel: "Biome family distribution in this AOI candidate area",
+          gradient:
+            "conic-gradient(#334155 0 29%, #475569 29% 53%, #64748b 53% 70%, #94a3b8 70% 82%, #cbd5e1 82% 100%)",
+          items: [
+            ["Zonobioma", 29, "#334155"],
+            ["Orobioma", 24, "#475569"],
+            ["Helobioma", 17, "#64748b"],
+            ["Peinobioma", 12, "#94a3b8"],
+            ["Other families", 18, "#cbd5e1"],
+          ],
+        },
+        context: {
+          title: "Broad biome context",
+          view: "broadBiomeContext",
+          count: 7,
+          presentCount: 6,
+          shownCount: 4,
+          itemNoun: "broad biome contexts",
+          mode: "donut",
+          ariaLabel:
+            "Broad biome context distribution in this AOI candidate area",
+          gradient:
+            "conic-gradient(#334155 0 31%, #475569 31% 55%, #64748b 55% 72%, #94a3b8 72% 84%, #cbd5e1 84% 100%)",
+          items: [
+            ["Humid tropical zonobiome", 31, "#334155"],
+            ["Humid tropical pedobiome", 24, "#475569"],
+            ["Humid tropical orobiome", 17, "#64748b"],
+            ["Alternohygic zonobiome", 12, "#94a3b8"],
+            ["Other contexts", 16, "#cbd5e1"],
+          ],
+        },
+        broad: {
+          title: "Broad ecosystem type",
+          view: "broadEcosystem",
+          count: 28,
+          presentCount: 14,
+          shownCount: 5,
+          itemNoun: "broad ecosystem types",
+          mode: "bars",
+          ariaLabel: "Top broad ecosystem types in this AOI candidate area",
+          items: [
+            ["Bosque", 32],
+            ["Agroecosistema", 24],
+            ["Sabana", 18],
+            ["Transicional Transformado", 11],
+            ["Vegetación Secundaria", 8],
+          ],
+        },
+        detailed: {
+          title: "Detailed ecosystem type",
+          view: "detailedEcosystem",
+          count: 87,
+          presentCount: 26,
+          shownCount: 5,
+          itemNoun: "detailed ecosystem types",
+          mode: "bars",
+          ariaLabel: "Top detailed ecosystem types in this AOI candidate area",
+          items: [
+            ["Bosque Basal Humedo", 21],
+            ["Agroecosistema Ganadero", 17],
+            ["Bosque Inundable Basal", 14],
+            ["Sabana Estacional", 11],
+            ["Vegetación Secundaria", 8],
+          ],
+        },
+        iavh: {
+          title: "IAvH biome-region class",
+          view: "biomeRegion",
+          count: 430,
+          presentCount: 38,
+          shownCount: 5,
+          itemNoun: "IAvH classes",
+          mode: "bars",
+          ariaLabel: "Top IAvH biome-region classes in this AOI candidate area",
+          items: [
+            ["Peinobioma Altillanura", 13],
+            ["Helobioma Casanare", 10],
+            ["Helobioma Altillanura", 8],
+            ["Zonobioma Humedo Tropical Altillanura", 7],
+            ["Zonobioma Humedo Tropical Guaviare - Guayabero", 5],
+          ],
+        },
+      };
+
+      const mecBreakdownSelect = document.getElementById(
+        "aoi-mec-breakdown-select",
+      );
+      const mecDonut = document.getElementById("aoi-mec-donut");
+      const mecLegend = document.getElementById("aoi-mec-legend");
+      const modalLayer = document.getElementById(
+        "aoi-mec-classifications-modal-layer",
+      );
+      const modalOpenButton = document.getElementById(
+        "aoi-mec-open-modal-button",
+      );
+      const modalCloseButton = document.getElementById(
+        "aoi-mec-classifications-modal-close-button",
+      );
+      const modalBackdrop = document.getElementById(
+        "aoi-mec-classifications-modal-backdrop",
+      );
+      const modalBrowserTitle = document.getElementById(
+        "aoi-mec-category-browser-title",
+      );
+      const modalBrowserCount = document.getElementById(
+        "aoi-mec-category-browser-count",
+      );
+      const modalBrowserDescription = document.getElementById(
+        "aoi-mec-category-browser-description",
+      );
+      const modalBrowserList = document.getElementById(
+        "aoi-mec-category-browser-list",
+      );
+      const modalSearchInput = document.getElementById(
+        "aoi-mec-category-search-input",
+      );
+      const modalSortSelect = document.getElementById(
+        "aoi-mec-category-sort-select",
+      );
+      const modalLevelButtons = [
+        ...document.querySelectorAll(".aoi-mec-level-card"),
+      ];
+      let classificationSummary = null;
+
+      function renderMecBreakdown() {
+        const breakdown = mecBreakdowns[mecBreakdownSelect.value];
+        const isDonut = breakdown.mode === "donut";
+        mecDonut.classList.toggle("hidden", !isDonut);
+        mecDonut.setAttribute("aria-label", breakdown.ariaLabel);
+        mecLegend.className = isDonut
+          ? "aoi-legend min-w-0 flex-1 space-y-1"
+          : "aoi-classification-bars";
+
+        if (isDonut) {
+          mecDonut.style.background = breakdown.gradient;
+          mecLegend.innerHTML = breakdown.items
+            .map(
+              ([label, value, color], index) => `
+                <div id="aoi-mec-legend-item-${index}" class="flex items-center gap-1.5 text-[11px] text-slate-600">
+                  <span id="aoi-mec-legend-swatch-${index}" class="h-2.5 w-2.5 shrink-0 rounded-sm" style="background: ${color}"></span>
+                  <span id="aoi-mec-legend-label-${index}" class="min-w-0 flex-1 truncate">${label}</span>
+                  <strong id="aoi-mec-legend-value-${index}" class="tabular-nums text-slate-700">${value}%</strong>
+                </div>
+              `,
+            )
+            .join("");
+        } else {
+          const maximum = Math.max(...breakdown.items.map((item) => item[1]));
+          mecLegend.innerHTML = breakdown.items
+            .map(
+              ([label, value], index) => `
+                <div id="aoi-mec-bar-row-${index}" class="aoi-classification-bar-row">
+                  <span id="aoi-mec-bar-label-${index}" class="aoi-classification-bar-label" title="${label}">${label}</span>
+                  <span id="aoi-mec-bar-track-${index}" class="aoi-classification-bar-track">
+                    <span id="aoi-mec-bar-fill-${index}" class="aoi-classification-bar-fill" style="width: ${(value / maximum) * 100}%"></span>
+                  </span>
+                  <strong id="aoi-mec-bar-value-${index}" class="aoi-classification-bar-value">${value}%</strong>
+                </div>
+              `,
+            )
+            .join("");
+        }
+
+        const supportsDrilldown = ["broad", "detailed", "iavh"].includes(
+          mecBreakdownSelect.value,
+        );
+        const previewCountRow = document.getElementById(
+          "aoi-mec-preview-count-row",
+        );
+        const previewNoun =
+          mecBreakdownSelect.value === "iavh" ? "classes" : "types";
+        const hiddenCount = breakdown.count - breakdown.shownCount;
+        const modalButtonLabel = `Explore all ${breakdown.count} ${breakdown.itemNoun}`;
+        previewCountRow.classList.toggle("hidden", !supportsDrilldown);
+        document.getElementById("aoi-mec-preview-count-label").textContent =
+          `Showing ${breakdown.shownCount} of ${breakdown.count} ${previewNoun}`;
+        document.getElementById("aoi-mec-preview-remaining-label").textContent =
+          `${hiddenCount} more`;
+        modalOpenButton.classList.toggle("hidden", !supportsDrilldown);
+        modalOpenButton.querySelector(
+          "#aoi-mec-open-modal-button-label",
+        ).textContent = modalButtonLabel;
+        modalOpenButton.setAttribute(
+          "aria-label",
+          `${modalButtonLabel}. Search and compare coverage details.`,
+        );
+      }
+
+      function getSelectedClassificationValues() {
+        const breakdown = mecBreakdowns[mecBreakdownSelect.value];
+        const section = classificationSummary?.classifications?.find(
+          (candidate) => candidate.view === breakdown.view,
+        );
+        return (
+          section?.values?.map((value) => value.label) ??
+          breakdown.items.map((item) => item[0])
+        );
+      }
+
+      function buildCoverageRows(labels, breakdown) {
+        const presentCount = Math.min(breakdown.presentCount, labels.length);
+        const weights = labels.map((_, index) =>
+          index < presentCount
+            ? Math.exp(-index / Math.max(4, presentCount / 4))
+            : 0,
+        );
+        const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+        const availableAreas = weights.map(
+          (weight) => (weight / weightTotal) * aoiAreaSquareKilometers,
+        );
+        const preliminarySelectedAreas = availableAreas.map((area, index) => {
+          const coverageRate = 0.2 + ((index * 29 + 17) % 61) / 100;
+          return area * coverageRate;
+        });
+        const preliminarySelectedTotal = preliminarySelectedAreas.reduce(
+          (sum, area) => sum + area,
+          0,
+        );
+        const selectedScale =
+          candidateAreaSquareKilometers / preliminarySelectedTotal;
+
+        const selectedAreas = labels.map((_, index) =>
+          Math.min(
+            availableAreas[index],
+            preliminarySelectedAreas[index] * selectedScale,
+          ),
+        );
+        const preliminaryExistingAreas = selectedAreas.map(
+          (selectedArea, index) =>
+            selectedArea * (0.2 + ((index * 17 + 11) % 31) / 100),
+        );
+        const preliminaryExistingTotal = preliminaryExistingAreas.reduce(
+          (sum, area) => sum + area,
+          0,
+        );
+        const existingScale =
+          preExistingCoverageSquareKilometers / preliminaryExistingTotal;
+
+        return labels.map((label, index) => {
+          const availableArea = availableAreas[index];
+          const selectedArea = selectedAreas[index];
+          const existingArea = Math.min(
+            selectedArea,
+            preliminaryExistingAreas[index] * existingScale,
+          );
+          const additionalArea = selectedArea - existingArea;
+          return {
+            label,
+            availableArea,
+            selectedArea,
+            existingArea,
+            additionalArea,
+            existingPercent:
+              availableArea > 0 ? (existingArea / availableArea) * 100 : 0,
+            additionalPercent:
+              availableArea > 0 ? (additionalArea / availableArea) * 100 : 0,
+            coveragePercent:
+              availableArea > 0 ? (selectedArea / availableArea) * 100 : 0,
+          };
+        });
+      }
+
+      function updateModalLevelButtons() {
+        modalLevelButtons.forEach((button) => {
+          const selected =
+            button.dataset.breakdown === mecBreakdownSelect.value;
+          button.setAttribute("aria-pressed", String(selected));
+          button.classList.toggle("border-slate-900", selected);
+          button.classList.toggle("bg-slate-100", selected);
+          button.classList.toggle("border-slate-200", !selected);
+          button.classList.toggle("bg-slate-50", !selected);
+        });
+      }
+
+      function renderModalCategories() {
+        const breakdown = mecBreakdowns[mecBreakdownSelect.value];
+        const query = modalSearchInput.value.trim().toLocaleLowerCase();
+        const coverageRows = buildCoverageRows(
+          getSelectedClassificationValues(),
+          breakdown,
+        );
+        const visibleRows = coverageRows
+          .filter((row) => row.label.toLocaleLowerCase().includes(query))
+          .sort((left, right) => {
+            if (modalSortSelect.value === "name") {
+              return left.label.localeCompare(right.label);
+            }
+            if (modalSortSelect.value === "additional") {
+              return right.additionalPercent - left.additionalPercent;
+            }
+            if (modalSortSelect.value === "existing") {
+              return right.existingPercent - left.existingPercent;
+            }
+            return right.coveragePercent - left.coveragePercent;
+          });
+        modalBrowserTitle.textContent = breakdown.title;
+        modalBrowserDescription.textContent =
+          mecBreakdownSelect.value === "iavh"
+            ? "Available area and solution coverage within this AOI. These IAvH biome-region classes were considered in the run."
+            : "Available area and solution coverage within this AOI. These are reporting categories, not additional optimization targets.";
+        modalBrowserCount.textContent = `${visibleRows.length} shown · ${Math.min(
+          breakdown.presentCount,
+          coverageRows.length,
+        )} present of ${breakdown.count}`;
+        modalBrowserList.innerHTML = visibleRows
+          .map(
+            (row, index) => `
+              <article id="aoi-mec-category-row-${index}" class="grid gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 lg:grid-cols-[minmax(180px,1fr)_128px_minmax(300px,1.35fr)] lg:items-center">
+                <div id="aoi-mec-category-copy-${index}" class="min-w-0">
+                  <p id="aoi-mec-category-label-${index}" class="m-0 text-xs font-semibold text-slate-800">${row.label}</p>
+                  <p id="aoi-mec-category-status-${index}" class="mt-0.5 mb-0 text-[10px] text-slate-500">${row.availableArea > 0 ? "Present in this AOI" : "Not present in this AOI"} · ${mecBreakdownSelect.value === "iavh" ? "considered in run" : "reporting category, not a separate target"}</p>
+                </div>
+                <div id="aoi-mec-category-available-${index}">
+                  <p id="aoi-mec-category-available-label-${index}" class="m-0 text-[9px] font-semibold tracking-wide text-slate-500 uppercase">Available in AOI</p>
+                  <p id="aoi-mec-category-available-value-${index}" class="mt-0.5 mb-0 text-xs font-bold tabular-nums text-slate-800">${row.availableArea.toFixed(1)} km²</p>
+                </div>
+                <div id="aoi-mec-category-coverage-${index}">
+                  <div id="aoi-mec-category-coverage-heading-${index}" class="flex items-baseline justify-between gap-2">
+                    <p id="aoi-mec-category-coverage-label-${index}" class="m-0 text-[9px] font-semibold tracking-wide text-slate-500 uppercase">Total coverage</p>
+                    <strong id="aoi-mec-category-coverage-value-${index}" class="text-xs tabular-nums text-slate-900">${row.coveragePercent.toFixed(0)}%</strong>
+                  </div>
+                  <p id="aoi-mec-category-coverage-detail-${index}" class="mt-0.5 mb-0 text-[9px] leading-4 text-slate-600">
+                    <span id="aoi-mec-category-existing-value-${index}" class="font-semibold text-[#2563eb]">Pre-existing ${row.existingArea.toFixed(1)} km² (${row.existingPercent.toFixed(0)}%)</span>
+                    <span id="aoi-mec-category-coverage-separator-${index}" aria-hidden="true"> · </span>
+                    <span id="aoi-mec-category-additional-value-${index}" class="font-semibold text-[#16a34a]">Additional ${row.additionalArea.toFixed(1)} km² (${row.additionalPercent.toFixed(0)}%)</span>
+                  </p>
+                  <div id="aoi-mec-category-coverage-track-${index}" role="img" aria-label="${row.coveragePercent.toFixed(0)}% total coverage: ${row.existingPercent.toFixed(0)}% pre-existing coverage and ${row.additionalPercent.toFixed(0)}% additional candidate coverage" class="mt-1 flex h-2 overflow-hidden rounded-sm bg-slate-200">
+                    <span id="aoi-mec-category-existing-fill-${index}" class="block h-full bg-[#2563eb]" style="width: ${row.existingPercent}%"></span>
+                    <span id="aoi-mec-category-additional-fill-${index}" class="block h-full border-l border-white bg-[#16a34a]" style="width: ${row.additionalPercent}%"></span>
+                  </div>
+                </div>
+              </article>
+            `,
+          )
+          .join("");
+        updateModalLevelButtons();
+      }
+
+      async function openMecModal() {
+        modalLayer.classList.remove("hidden");
+        modalLayer.classList.add("flex");
+        modalOpenButton.setAttribute("aria-expanded", "true");
+        document.body.classList.add("overflow-hidden");
+        modalSearchInput.value = "";
+        renderModalCategories();
+        if (!classificationSummary) {
+          try {
+            const response = await fetch(classificationSummaryUrl);
+            classificationSummary = await response.json();
+            renderModalCategories();
+          } catch {
+            modalBrowserCount.textContent += " · full source list unavailable";
+          }
+        }
+        window.setTimeout(() => modalCloseButton.focus(), 0);
+      }
+
+      function closeMecModal() {
+        modalLayer.classList.remove("flex");
+        modalLayer.classList.add("hidden");
+        modalOpenButton.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("overflow-hidden");
+        modalOpenButton.focus();
+      }
+
+      mecBreakdownSelect.addEventListener("change", renderMecBreakdown);
+      modalSearchInput.addEventListener("input", renderModalCategories);
+      modalSortSelect.addEventListener("change", renderModalCategories);
+      modalLevelButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          mecBreakdownSelect.value = button.dataset.breakdown;
+          modalSearchInput.value = "";
+          renderMecBreakdown();
+          renderModalCategories();
+        });
+      });
+      modalOpenButton.addEventListener("click", openMecModal);
+      modalCloseButton.addEventListener("click", closeMecModal);
+      modalBackdrop.addEventListener("click", closeMecModal);
+      document.addEventListener("keydown", (event) => {
+        if (
+          event.key === "Escape" &&
+          !modalLayer.classList.contains("hidden")
+        ) {
+          closeMecModal();
+        }
+      });
+      renderMecBreakdown();
+    </script>
+  </body>
+</html>

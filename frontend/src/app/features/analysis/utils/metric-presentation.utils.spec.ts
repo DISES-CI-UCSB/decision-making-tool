@@ -14,9 +14,9 @@ describe('metric presentation utilities', () => {
     const carbon = buildMetric('carbon_storage_biomass', 40, 'Mg·km²');
 
     expect(formatMetricValue(area, options, '--')).toBe('9 km²');
-    expect(formatMetricValue(carbon, options, '--')).toBe('40 Mg');
+    expect(formatMetricValue(carbon, options, '--')).toBe('40 Mg·km²');
     expect(formatMetricValue(area, { ...options, areaUnit: 'hectares' }, '--')).toBe('900 ha');
-    expect(formatMetricValue(carbon, { ...options, areaUnit: 'hectares' }, '--')).toBe('40 Mg');
+    expect(formatMetricValue(carbon, { ...options, areaUnit: 'hectares' }, '--')).toBe('40 Mg·km²');
   });
 
   it('formats percentages, unavailable values, and signed area deltas', () => {

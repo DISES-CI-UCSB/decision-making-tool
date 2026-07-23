@@ -871,6 +871,7 @@
                     aria-hidden="true"
                   >
                     <svg
+                      id="aoi-chevron-icon-ecosystems"
                       class="aoi-section-chevron-icon"
                       viewBox="0 0 12 12"
                       fill="none"
@@ -879,7 +880,7 @@
                       stroke-linejoin="round"
                       aria-hidden="true"
                     >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
+                      <path id="aoi-chevron-path-ecosystems" d="M3 4.5L6 7.5L9 4.5" />
                     </svg>
                   </span>
                 </button>
@@ -1195,23 +1196,25 @@
                 </div>
               </section>
 
-              <!-- ─── SECTION C: Ecosystems & Carbon ─── -->
-              <section id="aoi-section-eco">
+              <!-- ─── SECTION C: MEC Ecosystems ─── -->
+              <section id="aoi-section-ecosystems">
                 <button
-                  id="aoi-head-eco"
+                  id="aoi-head-ecosystems"
                   type="button"
-                  class="aoi-section-head"
-                  [attr.aria-expanded]="isAoiSectionExpanded('eco')"
-                  (click)="toggleAoiSection('eco')"
+                  class="aoi-section-head max-md:min-h-11"
+                  [attr.aria-expanded]="isAoiSectionExpanded('ecosystems')"
+                  (click)="toggleAoiSection('ecosystems')"
                 >
-                  <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge">{{
-                    'analysis.aoi.sections.ecosystems' | translate
-                  }}</span>
+                  <span id="aoi-dot-ecosystems" class="aoi-section-dot aoi-dot-ecosystems"></span>
                   <span
-                    id="aoi-chevron-eco"
+                    id="aoi-label-ecosystems"
+                    class="aoi-section-label rs-header-optical-nudge"
+                    >{{ 'analysis.aoi.sections.ecosystems' | translate }}</span
+                  >
+                  <span
+                    id="aoi-chevron-ecosystems"
                     class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('eco')"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('ecosystems')"
                     aria-hidden="true"
                   >
                     <svg
@@ -1228,38 +1231,311 @@
                   </span>
                 </button>
                 <div
-                  id="aoi-body-eco"
+                  id="aoi-body-ecosystems"
                   class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('eco')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('eco')"
+                  [class.is-collapsed]="!isAoiSectionExpanded('ecosystems')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('ecosystems')"
                 >
-                  <div id="aoi-body-eco-inner" class="collapse-motion-inner aoi-section-body">
-                    <div id="aoi-donut-row" class="aoi-donut-row">
+                  <div
+                    id="aoi-body-ecosystems-inner"
+                    class="collapse-motion-inner aoi-section-body"
+                  >
+                    <p id="aoi-mec-source" class="aoi-ecosystem-source">
+                      {{ 'analysis.aoi.mec.source' | translate }}
+                    </p>
+                    <label id="aoi-mec-breakdown-label" class="aoi-mec-select-label">
+                      <span id="aoi-mec-breakdown-label-text">{{
+                        'analysis.aoi.mec.breakdownLabel' | translate
+                      }}</span>
+                      <select
+                        id="aoi-mec-breakdown-select"
+                        class="aoi-mec-select max-md:min-h-11"
+                        [value]="selectedMecBreakdownId()"
+                        (change)="selectMecBreakdown($event)"
+                      >
+                        @for (breakdown of mecBreakdowns; track breakdown.id) {
+                          <option [id]="'aoi-mec-option-' + breakdown.id" [value]="breakdown.id">
+                            {{ breakdown.labelKey | translate }} ({{ breakdown.count }})
+                          </option>
+                        }
+                      </select>
+                    </label>
+
+                    @if (!fillDummyAoiMetrics()) {
+                      <div id="aoi-mec-unavailable-state" class="aoi-mec-unavailable" role="status">
+                        <strong id="aoi-mec-unavailable-title">{{
+                          'analysis.aoi.mec.unavailableTitle' | translate
+                        }}</strong>
+                        <span id="aoi-mec-unavailable-description">{{
+                          'analysis.aoi.mec.unavailableDescription' | translate
+                        }}</span>
+                      </div>
+                    }
+
+                    @if (
+                      !fillDummyAoiMetrics() &&
+                      (ecosystemClassificationSummaryLoading() ||
+                        ecosystemClassificationSummaryError())
+                    ) {
+                      <div id="aoi-mec-summary-status" class="aoi-mec-unavailable" role="status">
+                        <strong id="aoi-mec-summary-status-title">{{
+                          (ecosystemClassificationSummaryLoading()
+                            ? 'analysis.aoi.mec.summaryLoading'
+                            : 'analysis.aoi.mec.summaryError'
+                          ) | translate
+                        }}</strong>
+                      </div>
+                    }
+
+                    @if (fillDummyAoiMetrics() || !ecosystemClassificationSummaryError()) {
                       <div
-                        id="aoi-donut"
-                        class="aoi-donut"
-                        [style.background]="aoiDonutGradient()"
-                        [attr.aria-label]="
-                          'analysis.aoi.stats.ecosystemDistributionAriaLabel' | translate
-                        "
-                      ></div>
-                      <div id="aoi-legend" class="aoi-legend">
-                        @for (segment of aoiEcosystemLegend(); track segment.id) {
-                          <div [id]="'aoi-legend-item-' + segment.id" class="aoi-legend-item">
-                            <span
-                              [id]="'aoi-legend-swatch-' + segment.id"
-                              class="aoi-legend-swatch"
-                              [style.background]="segment.color"
-                            ></span>
-                            <span [id]="'aoi-legend-label-' + segment.id">{{ segment.label }}</span>
-                            <span [id]="'aoi-legend-pct-' + segment.id" class="aoi-legend-pct">
-                              {{ getAoiEcosystemLegendValue(segment.id, segment.percent + '%') }}
-                            </span>
+                        id="aoi-mec-preview-shell"
+                        class="mt-3 overflow-hidden rounded-[7px] border border-slate-200 bg-white"
+                      >
+                        <div id="aoi-mec-chart-row" class="aoi-mec-chart-row">
+                          @if (selectedMecBreakdown().mode === 'donut') {
+                            <div
+                              id="aoi-mec-donut"
+                              class="aoi-mec-donut"
+                              [style.background]="mecDonutGradient()"
+                              role="img"
+                              [attr.aria-label]="'analysis.aoi.mec.previewAria' | translate"
+                            >
+                              <span id="aoi-mec-donut-hole" class="aoi-mec-donut-hole">
+                                <strong id="aoi-mec-donut-value">{{
+                                  fillDummyAoiMetrics() ? getMecCandidateAreaValue() : '--'
+                                }}</strong>
+                                <span id="aoi-mec-donut-label">{{
+                                  'analysis.aoi.mec.candidateArea' | translate
+                                }}</span>
+                              </span>
+                            </div>
+                            <div id="aoi-mec-donut-legend" class="aoi-mec-donut-legend">
+                              @for (
+                                item of mecPreviewItems();
+                                track item.label;
+                                let index = $index
+                              ) {
+                                <div
+                                  [id]="'aoi-mec-legend-item-' + index"
+                                  class="aoi-mec-legend-item"
+                                >
+                                  <span
+                                    [id]="'aoi-mec-legend-swatch-' + index"
+                                    class="aoi-mec-legend-swatch"
+                                    [style.background-color]="item.color || '#cbd5e1'"
+                                  ></span>
+                                  <span [id]="'aoi-mec-legend-label-' + index">{{
+                                    item.label
+                                  }}</span>
+                                  <strong [id]="'aoi-mec-legend-value-' + index">{{
+                                    fillDummyAoiMetrics() ? item.percent + '%' : '--'
+                                  }}</strong>
+                                </div>
+                              }
+                            </div>
+                          } @else {
+                            <div id="aoi-mec-preview-bars" class="aoi-mec-preview-bars">
+                              @for (
+                                item of mecPreviewItems();
+                                track item.label;
+                                let index = $index
+                              ) {
+                                <div [id]="'aoi-mec-bar-row-' + index" class="aoi-mec-bar-row">
+                                  <span
+                                    [id]="'aoi-mec-bar-label-' + index"
+                                    class="aoi-mec-bar-label"
+                                    [title]="item.label"
+                                    >{{ item.label }}</span
+                                  >
+                                  <span
+                                    [id]="'aoi-mec-bar-track-' + index"
+                                    class="aoi-mec-bar-track"
+                                  >
+                                    <span
+                                      [id]="'aoi-mec-bar-fill-' + index"
+                                      class="aoi-mec-bar-fill"
+                                      [style.width.%]="
+                                        fillDummyAoiMetrics()
+                                          ? (item.percent / getMecPreviewMaximum()) * 100
+                                          : 0
+                                      "
+                                    ></span>
+                                  </span>
+                                  <strong [id]="'aoi-mec-bar-value-' + index">{{
+                                    fillDummyAoiMetrics() ? item.percent + '%' : '--'
+                                  }}</strong>
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+
+                        @if (supportsMecDrilldown()) {
+                          <div id="aoi-mec-preview-count-row" class="aoi-mec-preview-count-row">
+                            <span id="aoi-mec-preview-count-label">{{
+                              'analysis.aoi.mec.showing'
+                                | translate
+                                  : {
+                                      shown: mecPreviewItems().length,
+                                      total: getMecCategoryCount(selectedMecBreakdown()),
+                                      type: (selectedMecBreakdown().pluralLabelKey | translate),
+                                    }
+                            }}</span>
+                            <span id="aoi-mec-preview-remaining-label">{{
+                              'analysis.aoi.mec.more'
+                                | translate
+                                  : {
+                                      count:
+                                        getMecCategoryCount(selectedMecBreakdown()) -
+                                        mecPreviewItems().length,
+                                    }
+                            }}</span>
                           </div>
+                          <button
+                            id="aoi-mec-open-modal-button"
+                            type="button"
+                            class="aoi-mec-open-modal"
+                            aria-haspopup="dialog"
+                            [attr.aria-expanded]="mecModalOpen()"
+                            (click)="openMecModal()"
+                          >
+                            <span id="aoi-mec-open-modal-copy">
+                              <strong id="aoi-mec-open-modal-label">{{
+                                'analysis.aoi.mec.exploreAll'
+                                  | translate
+                                    : {
+                                        count: getMecCategoryCount(selectedMecBreakdown()),
+                                        type: (selectedMecBreakdown().pluralLabelKey | translate),
+                                      }
+                              }}</strong>
+                              <span id="aoi-mec-open-modal-description">{{
+                                'analysis.aoi.mec.searchCompare' | translate
+                              }}</span>
+                            </span>
+                            <span id="aoi-mec-open-modal-icon" aria-hidden="true">→</span>
+                          </button>
                         }
                       </div>
-                    </div>
+                    }
+                  </div>
+                </div>
+              </section>
 
+              <!-- ─── SECTION D: Strategic Ecosystems ─── -->
+              <section id="aoi-section-strategic">
+                <button
+                  id="aoi-head-strategic"
+                  type="button"
+                  class="aoi-section-head max-md:min-h-11"
+                  [attr.aria-expanded]="isAoiSectionExpanded('strategic')"
+                  (click)="toggleAoiSection('strategic')"
+                >
+                  <span id="aoi-dot-strategic" class="aoi-section-dot aoi-dot-strategic"></span>
+                  <span
+                    id="aoi-label-strategic"
+                    class="aoi-section-label rs-header-optical-nudge"
+                    >{{ 'analysis.aoi.sections.strategicEcosystems' | translate }}</span
+                  >
+                  <span
+                    id="aoi-chevron-strategic"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('strategic')"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      id="aoi-chevron-icon-strategic"
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path id="aoi-chevron-path-strategic" d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
+                </button>
+                <div
+                  id="aoi-body-strategic"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('strategic')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('strategic')"
+                >
+                  <div id="aoi-body-strategic-inner" class="collapse-motion-inner aoi-section-body">
+                    <p id="aoi-strategic-description" class="aoi-ecosystem-source">
+                      {{ getStrategicEcosystemDescriptionKey() | translate }}
+                    </p>
+                    <div id="aoi-strategic-bars" class="aoi-strategic-bars">
+                      @for (bar of strategicEcosystemBars; track bar.id) {
+                        <div [id]="'aoi-strategic-row-' + bar.id" class="aoi-strategic-row">
+                          <span [id]="'aoi-strategic-label-' + bar.id">{{
+                            bar.labelKey | translate
+                          }}</span>
+                          <span [id]="'aoi-strategic-track-' + bar.id" class="aoi-strategic-track">
+                            <span
+                              [id]="'aoi-strategic-fill-' + bar.id"
+                              class="aoi-strategic-fill"
+                              [style.width.%]="
+                                getStrategicEcosystemPercent(bar.metricId, bar.dummyPercent)
+                              "
+                              [style.background-color]="bar.color"
+                            ></span>
+                          </span>
+                          <strong [id]="'aoi-strategic-value-' + bar.id">{{
+                            getStrategicEcosystemPercentLabel(bar.metricId, bar.dummyPercent)
+                          }}</strong>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- ─── SECTION E: Carbon ─── -->
+              <section id="aoi-section-carbon">
+                <button
+                  id="aoi-head-carbon"
+                  type="button"
+                  class="aoi-section-head max-md:min-h-11"
+                  [attr.aria-expanded]="isAoiSectionExpanded('carbon')"
+                  (click)="toggleAoiSection('carbon')"
+                >
+                  <span id="aoi-dot-carbon" class="aoi-section-dot aoi-dot-carbon"></span>
+                  <span id="aoi-label-carbon" class="aoi-section-label rs-header-optical-nudge">{{
+                    'analysis.aoi.sections.carbon' | translate
+                  }}</span>
+                  <span
+                    id="aoi-chevron-carbon"
+                    class="aoi-section-chevron"
+                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('carbon')"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      id="aoi-chevron-icon-carbon"
+                      class="aoi-section-chevron-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path id="aoi-chevron-path-carbon" d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
+                  </span>
+                </button>
+                <div
+                  id="aoi-body-carbon"
+                  class="collapse-motion-shell"
+                  [class.is-collapsed]="!isAoiSectionExpanded('carbon')"
+                  [attr.aria-hidden]="!isAoiSectionExpanded('carbon')"
+                >
+                  <div id="aoi-body-carbon-inner" class="collapse-motion-inner aoi-section-body">
+                    <p id="aoi-carbon-source" class="aoi-ecosystem-source">
+                      {{ 'analysis.aoi.carbon.source' | translate }}
+                    </p>
                     <div id="aoi-carbon-stats" class="aoi-stat-grid">
                       <div id="aoi-stat-total-carbon" class="aoi-stat-card">
                         <p class="aoi-stat-label">
@@ -1273,7 +1549,7 @@
                           {{
                             getAoiMetricValue(
                               'carbon_biomass_total',
-                              getAoiUnitFallback(85000000, 'Mg')
+                              getAoiUnitFallback(85000000, 'Mg·km²')
                             )
                           }}
                         </p>
@@ -1342,7 +1618,7 @@
                           {{
                             getAoiMetricValue(
                               'carbon_storage_biomass',
-                              getAoiUnitFallback(52000000, 'Mg')
+                              getAoiUnitFallback(52000000, 'Mg·km²')
                             )
                           }}
                         </p>
@@ -1392,7 +1668,7 @@
                           {{
                             getAoiMetricValue(
                               'soil_organic_carbon',
-                              getAoiUnitFallback(33000000, 'Mg')
+                              getAoiUnitFallback(33000000, 'Mg·km²')
                             )
                           }}
                         </p>
@@ -2384,3 +2660,214 @@
     }
   </div>
 </section>
+
+<app-modal-shell
+  id="aoi-mec-classifications-modal-shell"
+  rootId="aoi-mec-classifications-modal"
+  mode="wide"
+  headerAlign="start"
+  titleKey="analysis.aoi.mec.modal.title"
+  [isOpen]="mecModalOpen()"
+  (requestClose)="closeMecModal()"
+>
+  <p
+    id="aoi-mec-classifications-modal-kicker"
+    modal-shell-header-content
+    class="mb-1 text-[10px] font-bold tracking-[0.12em] text-emerald-700 uppercase"
+  >
+    {{ 'analysis.aoi.mec.modal.kicker' | translate }}
+  </p>
+
+  <div id="aoi-mec-classifications-modal-body" class="aoi-mec-modal-body">
+    <p id="aoi-mec-classifications-modal-description" class="aoi-mec-modal-description">
+      {{ 'analysis.aoi.mec.modal.description' | translate }}
+    </p>
+
+    <section id="aoi-mec-modal-area-context" class="aoi-mec-modal-area-grid">
+      <article id="aoi-mec-modal-aoi-area-card" class="aoi-mec-modal-area-card">
+        <span id="aoi-mec-modal-aoi-area-label">{{
+          'analysis.aoi.mec.modal.aoiArea' | translate
+        }}</span>
+        <strong id="aoi-mec-modal-aoi-area-value">{{ getMecAoiAreaValue() }}</strong>
+      </article>
+      <article
+        id="aoi-mec-modal-candidate-area-card"
+        class="aoi-mec-modal-area-card aoi-mec-modal-candidate-card"
+      >
+        <span id="aoi-mec-modal-candidate-area-label">{{
+          'analysis.aoi.mec.modal.candidateArea' | translate
+        }}</span>
+        <strong id="aoi-mec-modal-candidate-area-value">{{ getMecCandidateAreaValue() }}</strong>
+      </article>
+    </section>
+
+    <div id="aoi-mec-modal-level-cards" class="aoi-mec-modal-level-cards">
+      @for (breakdown of mecBreakdowns; track breakdown.id) {
+        <button
+          [id]="'aoi-mec-modal-level-' + breakdown.id"
+          type="button"
+          class="aoi-mec-modal-level-card"
+          [class.aoi-mec-modal-level-card-active]="mecModalBreakdownId() === breakdown.id"
+          [attr.aria-pressed]="mecModalBreakdownId() === breakdown.id"
+          (click)="selectMecModalBreakdown(breakdown.id)"
+        >
+          <strong [id]="'aoi-mec-modal-level-count-' + breakdown.id">{{ breakdown.count }}</strong>
+          <span [id]="'aoi-mec-modal-level-label-' + breakdown.id">{{
+            breakdown.pluralLabelKey | translate
+          }}</span>
+          @if (breakdown.id === 'iavh' && iavhConsideredInRun()) {
+            <em [id]="'aoi-mec-modal-level-badge-' + breakdown.id">{{
+              'analysis.aoi.mec.consideredInRun' | translate
+            }}</em>
+          }
+        </button>
+      }
+    </div>
+
+    <section id="aoi-mec-modal-browser" class="aoi-mec-modal-browser">
+      <header id="aoi-mec-modal-browser-header" class="aoi-mec-modal-browser-header">
+        <div id="aoi-mec-modal-browser-heading-row" class="aoi-mec-modal-browser-heading-row">
+          <h3 id="aoi-mec-modal-browser-title">
+            {{ mecModalBreakdown().labelKey | translate }}
+          </h3>
+          <span id="aoi-mec-modal-browser-count">{{
+            'analysis.aoi.mec.modal.categoryCount'
+              | translate: { count: getMecCategoryCount(mecModalBreakdown()) }
+          }}</span>
+        </div>
+        @if (!fillDummyAoiMetrics()) {
+          <div id="aoi-mec-modal-unavailable-state" class="aoi-mec-unavailable" role="status">
+            <strong id="aoi-mec-modal-unavailable-title">{{
+              'analysis.aoi.mec.unavailableTitle' | translate
+            }}</strong>
+            <span id="aoi-mec-modal-unavailable-description">{{
+              'analysis.aoi.mec.modal.unavailableDescription' | translate
+            }}</span>
+          </div>
+        }
+        <div
+          id="aoi-mec-modal-coverage-legend"
+          class="aoi-mec-modal-legend"
+          [attr.aria-label]="'analysis.aoi.mec.modal.legend' | translate"
+        >
+          <span id="aoi-mec-modal-legend-existing">
+            <i
+              id="aoi-mec-modal-legend-existing-swatch"
+              [style.background-color]="mecExistingColor()"
+            ></i>
+            {{ 'analysis.aoi.mec.modal.preExisting' | translate }}
+          </span>
+          <span id="aoi-mec-modal-legend-additional">
+            <i
+              id="aoi-mec-modal-legend-additional-swatch"
+              [style.background-color]="mecAdditionalColor()"
+            ></i>
+            {{ 'analysis.aoi.mec.modal.additional' | translate }}
+          </span>
+          <span id="aoi-mec-modal-legend-uncovered">
+            <i id="aoi-mec-modal-legend-uncovered-swatch"></i>
+            {{ 'analysis.aoi.mec.modal.notCovered' | translate }}
+          </span>
+        </div>
+        <div id="aoi-mec-modal-controls" class="aoi-mec-modal-controls">
+          <label id="aoi-mec-modal-search-label">
+            <span id="aoi-mec-modal-search-label-text">{{
+              'analysis.aoi.mec.modal.search' | translate
+            }}</span>
+            <input
+              id="aoi-mec-modal-search-input"
+              type="search"
+              class="max-md:min-h-11"
+              [value]="mecSearchQuery()"
+              [placeholder]="'analysis.aoi.mec.modal.searchPlaceholder' | translate"
+              (input)="updateMecSearch($event)"
+            />
+          </label>
+          <label id="aoi-mec-modal-sort-label">
+            <span id="aoi-mec-modal-sort-label-text">{{
+              'analysis.aoi.mec.modal.sort' | translate
+            }}</span>
+            <select
+              id="aoi-mec-modal-sort-select"
+              class="max-md:min-h-11"
+              [value]="mecSortId()"
+              (change)="updateMecSort($event)"
+            >
+              <option id="aoi-mec-modal-sort-coverage" value="coverage">
+                {{ 'analysis.aoi.mec.modal.sortCoverage' | translate }}
+              </option>
+              <option id="aoi-mec-modal-sort-additional" value="additional">
+                {{ 'analysis.aoi.mec.modal.sortAdditional' | translate }}
+              </option>
+              <option id="aoi-mec-modal-sort-existing" value="existing">
+                {{ 'analysis.aoi.mec.modal.sortExisting' | translate }}
+              </option>
+              <option id="aoi-mec-modal-sort-name" value="name">
+                {{ 'analysis.aoi.mec.modal.sortName' | translate }}
+              </option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <div id="aoi-mec-modal-table-wrapper" class="aoi-mec-modal-table-wrapper">
+        <table id="aoi-mec-modal-table">
+          <thead id="aoi-mec-modal-table-head">
+            <tr id="aoi-mec-modal-table-heading-row">
+              <th id="aoi-mec-modal-heading-category">
+                {{ 'analysis.aoi.mec.modal.category' | translate }}
+              </th>
+              <th id="aoi-mec-modal-heading-available">
+                {{ 'analysis.aoi.mec.modal.availableArea' | translate }}
+              </th>
+              <th id="aoi-mec-modal-heading-coverage">
+                {{ 'analysis.aoi.mec.modal.solutionCoverage' | translate }}
+              </th>
+            </tr>
+          </thead>
+          <tbody id="aoi-mec-modal-table-body">
+            @for (row of mecCoverageRows(); track row.id) {
+              <tr [id]="'aoi-mec-modal-row-' + row.id">
+                <td [id]="'aoi-mec-modal-category-' + row.id">
+                  <strong [id]="'aoi-mec-modal-category-label-' + row.id">{{ row.label }}</strong>
+                  @if (mecModalBreakdownId() === 'iavh' && iavhConsideredInRun()) {
+                    <span [id]="'aoi-mec-modal-category-badge-' + row.id">{{
+                      'analysis.aoi.mec.consideredInRun' | translate
+                    }}</span>
+                  }
+                </td>
+                <td [id]="'aoi-mec-modal-available-' + row.id">
+                  {{ formatMecAvailableArea(row.availableKm2) }}
+                </td>
+                <td [id]="'aoi-mec-modal-coverage-' + row.id">
+                  <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
+                    <span
+                      [id]="'aoi-mec-modal-existing-fill-' + row.id"
+                      [style.width.%]="row.existingPercent || 0"
+                      [style.background-color]="mecExistingColor()"
+                    ></span>
+                    <span
+                      [id]="'aoi-mec-modal-additional-fill-' + row.id"
+                      [style.width.%]="row.additionalPercent || 0"
+                      [style.background-color]="mecAdditionalColor()"
+                    ></span>
+                  </div>
+                  <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
+                    {{ formatMecCoveragePercent(row.existingPercent) }} +
+                    {{ formatMecCoveragePercent(row.additionalPercent) }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr id="aoi-mec-modal-empty-row">
+                <td id="aoi-mec-modal-empty-cell" colspan="3">
+                  {{ 'analysis.aoi.mec.modal.noRows' | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</app-modal-shell>

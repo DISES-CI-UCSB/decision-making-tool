@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
@@ -41,6 +42,8 @@ import {
   type SirapSelectionScope,
 } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
+import type { EcosystemClassificationView } from '@features/left-sidebar/map-layers-panel/map-layers-panel-ecosystem.config';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, concat, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
 import type { Observable } from 'rxjs';
@@ -90,9 +93,29 @@ import {
   getMetricDisplayUnit,
   type MetricFormatOptions,
 } from '../utils/metric-presentation.utils';
+import {
+  buildDummyCoverageRows,
+  calculateOverlapPercent,
+  ECOSYSTEM_CLASSIFICATION_SUMMARY_URL,
+  MEC_BREAKDOWNS,
+  type MecBreakdownConfig,
+  type MecBreakdownId,
+  type MecCoverageRow,
+  type MecPreviewItem,
+  type MecSortId,
+  STRATEGIC_ECOSYSTEM_BARS,
+} from './aoi-ecosystems.utils';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
-type AoiSectionId = 'general' | 'bio' | 'eco' | 'land' | 'cultural' | 'marine';
+type AoiSectionId =
+  | 'general'
+  | 'bio'
+  | 'ecosystems'
+  | 'strategic'
+  | 'carbon'
+  | 'land'
+  | 'cultural'
+  | 'marine';
 type MetricsCsvRow = string[];
 type CsvMetadataRow = [string, string];
 type CsvScenarioInputRow = [string, string, string];
@@ -190,6 +213,19 @@ interface AoiLandUseBar {
   color: string;
 }
 
+interface EcosystemClassificationSummaryValue {
+  label: string;
+}
+
+interface EcosystemClassificationSummarySection {
+  view: EcosystemClassificationView;
+  values: EcosystemClassificationSummaryValue[];
+}
+
+interface EcosystemClassificationSummary {
+  classifications: EcosystemClassificationSummarySection[];
+}
+
 interface ComparisonVisualizationOption {
   id: ComparisonVisualizationMode;
   labelKey: string;
@@ -206,7 +242,7 @@ const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ModalShellComponent],
   templateUrl: './panel-switcher.html',
   styleUrl: './panel-switcher.scss',
 })
@@ -271,6 +307,7 @@ export class PanelSwitcherComponent {
   private readonly appState = inject(AppStateService);
   private readonly appLocale = inject(AppLocaleService);
   private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient, { optional: true });
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionGoals = inject(SolutionGoalsLoaderService);
   private readonly adminBoundaries = inject(AdminBoundaryService);
@@ -284,6 +321,8 @@ export class PanelSwitcherComponent {
   protected readonly comparisonBaselineColor = this.solutionLayer.baselineColor$;
   protected readonly comparisonCandidateColor = this.solutionLayer.candidateColor$;
   protected readonly comparisonOverlapColor = this.solutionLayer.overlapColor$;
+  protected readonly solutionColor = this.solutionLayer.solutionColor$;
+  protected readonly existingProtectedColor = this.solutionLayer.existingProtectedColor$;
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
@@ -379,14 +418,81 @@ export class PanelSwitcherComponent {
   protected readonly aoiSectionExpanded = signal<Record<AoiSectionId, boolean>>({
     general: true,
     bio: true,
-    eco: true,
+    ecosystems: true,
+    strategic: false,
+    carbon: false,
     land: false,
     cultural: false,
     marine: false,
   });
-  protected readonly aoiDonutGradient = computed(() => {
-    if (!this.fillDummyAoiMetrics()) return '#e2e8f0';
-    return this.buildDonutGradient();
+  protected readonly strategicEcosystemBars = STRATEGIC_ECOSYSTEM_BARS;
+  protected readonly mecBreakdowns = MEC_BREAKDOWNS;
+  protected readonly selectedMecBreakdownId = signal<MecBreakdownId>('broad');
+  protected readonly selectedMecBreakdown = computed<MecBreakdownConfig>(
+    () =>
+      this.mecBreakdowns.find((item) => item.id === this.selectedMecBreakdownId()) ??
+      this.mecBreakdowns[0],
+  );
+  protected readonly mecModalOpen = signal(false);
+  protected readonly mecModalBreakdownId = signal<MecBreakdownId>('broad');
+  protected readonly mecSearchQuery = signal('');
+  protected readonly mecSortId = signal<MecSortId>('coverage');
+  protected readonly ecosystemClassificationSummary = signal<EcosystemClassificationSummary | null>(
+    null,
+  );
+  protected readonly ecosystemClassificationSummaryLoading = signal(false);
+  protected readonly ecosystemClassificationSummaryError = signal(false);
+  protected readonly mecPreviewItems = computed<MecPreviewItem[]>(() => {
+    const config = this.selectedMecBreakdown();
+    if (this.fillDummyAoiMetrics()) {
+      return [...config.dummyItems];
+    }
+    return this.getClassificationLabels(config)
+      .slice(0, 5)
+      .map((label) => ({ label, percent: 0 }));
+  });
+  protected readonly mecDonutGradient = computed(() => {
+    if (!this.fillDummyAoiMetrics()) {
+      return '#e2e8f0';
+    }
+    const items = this.mecPreviewItems();
+    let start = 0;
+    const slices = items.map((item) => {
+      const end = start + item.percent;
+      const slice = `${item.color ?? '#94a3b8'} ${start}% ${end}%`;
+      start = end;
+      return slice;
+    });
+    return `conic-gradient(${slices.join(', ')})`;
+  });
+  protected readonly mecModalBreakdown = computed<MecBreakdownConfig>(
+    () =>
+      this.mecBreakdowns.find((item) => item.id === this.mecModalBreakdownId()) ??
+      this.mecBreakdowns[0],
+  );
+  protected readonly iavhConsideredInRun = computed(() => {
+    const scenario = this.findActiveCatalogSolution(this.activeSolution());
+    return scenario
+      ? getSolutionTargetTypes(scenario, { inferFromName: true }).has('ecosystems')
+      : false;
+  });
+  protected readonly mecCoverageRows = computed<MecCoverageRow[]>(() => {
+    const config = this.mecModalBreakdown();
+    const labels = this.getClassificationLabels(config);
+    const rows = this.fillDummyAoiMetrics()
+      ? buildDummyCoverageRows(labels, this.resolveMecCandidateAreaKm2() ?? 230)
+      : labels.map((label, index) => ({
+          id: `${index}-unavailable`,
+          label,
+          availableKm2: null,
+          existingPercent: null,
+          additionalPercent: null,
+        }));
+    const query = this.mecSearchQuery().trim().toLocaleLowerCase(this.appLocale.locale());
+    const filtered = query
+      ? rows.filter((row) => row.label.toLocaleLowerCase(this.appLocale.locale()).includes(query))
+      : rows;
+    return [...filtered].sort((a, b) => this.compareMecCoverageRows(a, b));
   });
   private readonly aoiBiodiversityMetricIds: Record<string, string> = {
     mammals: 'species_richness_mammals',
@@ -643,6 +749,8 @@ export class PanelSwitcherComponent {
       .subscribe((document) => {
         this.comparisonCandidateMetricsDocument.set(document);
       });
+
+    this.loadEcosystemClassificationSummary();
   }
 
   /**
@@ -1031,6 +1139,113 @@ export class PanelSwitcherComponent {
     return this.aoiSectionExpanded()[sectionId];
   }
 
+  protected selectMecBreakdown(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as MecBreakdownId;
+    if (this.mecBreakdowns.some((item) => item.id === value)) {
+      this.selectedMecBreakdownId.set(value);
+    }
+  }
+
+  protected selectMecModalBreakdown(breakdownId: MecBreakdownId): void {
+    this.mecModalBreakdownId.set(breakdownId);
+    this.mecSearchQuery.set('');
+  }
+
+  protected openMecModal(): void {
+    this.mecModalBreakdownId.set(this.selectedMecBreakdownId());
+    this.mecSearchQuery.set('');
+    this.mecModalOpen.set(true);
+  }
+
+  protected closeMecModal(): void {
+    this.mecModalOpen.set(false);
+  }
+
+  protected updateMecSearch(event: Event): void {
+    this.mecSearchQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateMecSort(event: Event): void {
+    this.mecSortId.set((event.target as HTMLSelectElement).value as MecSortId);
+  }
+
+  protected supportsMecDrilldown(config = this.selectedMecBreakdown()): boolean {
+    return config.id === 'broad' || config.id === 'detailed' || config.id === 'iavh';
+  }
+
+  protected getMecPreviewMaximum(): number {
+    return Math.max(...this.mecPreviewItems().map((item) => item.percent), 1);
+  }
+
+  protected getStrategicEcosystemPercent(metricId: string, dummyPercent: number): number {
+    const overlap = this.aoiMetricsById().get(metricId);
+    const candidateArea = this.aoiMetricsById().get('priority_area_in_region');
+    const percent = calculateOverlapPercent(
+      overlap?.status === 'ready' ? overlap.value : null,
+      candidateArea?.status === 'ready' ? candidateArea.value : null,
+    );
+    return percent ?? (this.fillDummyAoiMetrics() ? dummyPercent : 0);
+  }
+
+  protected getStrategicEcosystemPercentLabel(metricId: string, dummyPercent: number): string {
+    const overlap = this.aoiMetricsById().get(metricId);
+    const candidateArea = this.aoiMetricsById().get('priority_area_in_region');
+    const percent = calculateOverlapPercent(
+      overlap?.status === 'ready' ? overlap.value : null,
+      candidateArea?.status === 'ready' ? candidateArea.value : null,
+    );
+    if (percent !== null) {
+      return this.appendUnit(this.formatNumber(percent, this.metricNumberFormatMode(), 0, 1), '%');
+    }
+    return this.fillDummyAoiMetrics() ? `${dummyPercent}%` : '--';
+  }
+
+  protected getStrategicEcosystemDescriptionKey(): string {
+    return this.isCustomAoiSelected()
+      ? 'analysis.aoi.strategic.customDescription'
+      : 'analysis.aoi.strategic.description';
+  }
+
+  protected getMecAoiAreaValue(): string {
+    const area = this.resolveSelectedAoiAreaKm2();
+    if (area !== null) {
+      return this.formatAreaValue(area);
+    }
+    return this.fillDummyAoiMetrics() ? this.formatAreaValue(512) : '--';
+  }
+
+  protected getMecCandidateAreaValue(): string {
+    const area = this.resolveMecCandidateAreaKm2();
+    if (area !== null) {
+      return this.formatAreaValue(area);
+    }
+    return this.fillDummyAoiMetrics() ? this.formatAreaValue(230) : '--';
+  }
+
+  protected formatMecAvailableArea(value: number | null): string {
+    return value === null ? '--' : this.formatAreaValue(value);
+  }
+
+  protected formatMecCoveragePercent(value: number | null): string {
+    if (value === null) {
+      return '--';
+    }
+    return this.appendUnit(this.formatNumber(value, this.metricNumberFormatMode(), 0, 1), '%');
+  }
+
+  protected getMecCoverageTotal(row: MecCoverageRow): number {
+    return (row.existingPercent ?? 0) + (row.additionalPercent ?? 0);
+  }
+
+  protected getMecCategoryCount(config: MecBreakdownConfig): number {
+    return this.fillDummyAoiMetrics() || this.ecosystemClassificationSummaryLoading()
+      ? config.count
+      : this.getClassificationLabels(config).length;
+  }
+
+  protected readonly mecExistingColor = computed(() => this.existingProtectedColor() || '#2563eb');
+  protected readonly mecAdditionalColor = computed(() => this.solutionColor() || '#16a34a');
+
   protected aoiVal(dummyValue: string): string {
     return this.fillDummyAoiMetrics() ? dummyValue : '--';
   }
@@ -1255,6 +1470,59 @@ export class PanelSwitcherComponent {
     }
 
     return null;
+  }
+
+  private resolveMecCandidateAreaKm2(): number | null {
+    if (this.isCustomAoiSelected()) {
+      return null;
+    }
+
+    const metric = this.aoiMetricsById().get('priority_area_in_region');
+    return metric?.status === 'ready' && metric.value !== null && metric.value >= 0
+      ? metric.value
+      : null;
+  }
+
+  private getClassificationLabels(config: MecBreakdownConfig): string[] {
+    const summarySection = this.ecosystemClassificationSummary()?.classifications.find(
+      (section) => section.view === config.view,
+    );
+    if (summarySection) {
+      return summarySection.values.map((value) => value.label);
+    }
+    return this.fillDummyAoiMetrics() ? config.dummyItems.map((item) => item.label) : [];
+  }
+
+  private compareMecCoverageRows(a: MecCoverageRow, b: MecCoverageRow): number {
+    switch (this.mecSortId()) {
+      case 'name':
+        return a.label.localeCompare(b.label, this.appLocale.locale());
+      case 'existing':
+        return (b.existingPercent ?? -1) - (a.existingPercent ?? -1);
+      case 'additional':
+        return (b.additionalPercent ?? -1) - (a.additionalPercent ?? -1);
+      default:
+        return this.getMecCoverageTotal(b) - this.getMecCoverageTotal(a);
+    }
+  }
+
+  private loadEcosystemClassificationSummary(): void {
+    if (!this.http) {
+      this.ecosystemClassificationSummaryError.set(true);
+      return;
+    }
+    this.ecosystemClassificationSummaryLoading.set(true);
+    this.http
+      .get<EcosystemClassificationSummary>(ECOSYSTEM_CLASSIFICATION_SUMMARY_URL)
+      .pipe(
+        catchError(() => {
+          this.ecosystemClassificationSummaryError.set(true);
+          return of(null);
+        }),
+        finalize(() => this.ecosystemClassificationSummaryLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((summary) => this.ecosystemClassificationSummary.set(summary));
   }
 
   private buildDonutGradient(): string {

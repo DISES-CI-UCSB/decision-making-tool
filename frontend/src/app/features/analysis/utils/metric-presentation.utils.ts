@@ -150,7 +150,7 @@ export function getMetricDisplayUnit(
     metric.metricId === 'soil_organic_carbon' ||
     metric.metricId === 'carbon_storage_biomass'
   ) {
-    return 'Mg';
+    return 'Mg·km²';
   }
   if (!metric.unit || metric.unit === 'count') {
     return null;
