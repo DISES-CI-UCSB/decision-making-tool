@@ -3224,9 +3224,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private toMasterLegendLayerEntry(row: LayerControlRow): MapLegendLayerEntry {
     const rendering = row.mapSync?.type === 'manifest-raster' ? row.mapSync.rendering : undefined;
-    const categoryCount = rendering
-      ? buildLegendCategories(row.id, rendering, this.activeLanguage()).length
-      : 0;
+    const categories = rendering
+      ? buildLegendCategories(row.id, rendering, this.activeLanguage())
+      : [];
 
     return buildLegendLayerEntry({
       id: row.id,
@@ -3241,25 +3241,32 @@ export class MapLayersPanelComponent implements OnDestroy {
           : undefined,
       rendering,
       language: this.activeLanguage(),
-      denseCategorySummary: this.denseLegendSummaryForRow(row, categoryCount),
+      denseCategorySummary: this.denseLegendSummaryForRow(row, categories),
     });
   }
 
   private denseLegendSummaryForRow(
     row: LayerControlRow,
-    categoryCount: number,
+    categories: NonNullable<MapLegendLayerEntry['categories']>,
   ): MapLegendLayerEntry['denseCategorySummary'] {
-    if (
-      !this.isEcosystemClassificationRow(row.id) ||
-      this.ecosystemClassificationView() !== 'biomeRegion' ||
-      categoryCount < 25
-    ) {
+    if (categories.length < 25) {
       return undefined;
     }
+    if (
+      this.isEcosystemClassificationRow(row.id) &&
+      this.ecosystemClassificationView() === 'biomeRegion'
+    ) {
+      return {
+        count: categories.length,
+        messageKey: 'mapLegend.iavhDenseCategories',
+        sampleColors: [...IAVH_BIOME_REGION_SAMPLE_COLORS],
+      };
+    }
+
     return {
-      count: categoryCount,
-      messageKey: 'mapLegend.iavhDenseCategories',
-      sampleColors: [...IAVH_BIOME_REGION_SAMPLE_COLORS],
+      count: categories.length,
+      messageKey: 'mapLegend.denseCategories',
+      sampleColors: [...new Set(categories.map((category) => category.color))].slice(0, 6),
     };
   }
 

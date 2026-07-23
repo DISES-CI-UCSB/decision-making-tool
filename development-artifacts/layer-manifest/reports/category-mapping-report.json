@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T17:04:23.641Z",
+  "generatedAt": "2026-07-22T21:43:34.116Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -17,18 +17,48 @@
   "currentFrontendCategories": [
     {
       "id": "management-figures",
-      "title": "Management Figures",
+      "title": "Conservation Areas",
       "source": "createDefaultOverlays",
       "notes": "Overlay card above category groups; currently contains solution, RUNAP, and OMEC rows."
     }
   ],
   "manifestCategoryMappings": [
     {
+      "manifestCategoryId": "management_figures",
+      "manifestSpanishLabel": "Áreas de conservación",
+      "layerIds": [
+        "runap",
+        "omecs"
+      ],
+      "frontendCategoryIds": [
+        "management-figures"
+      ],
+      "frontendCategoryTitles": [
+        "Conservation Areas"
+      ],
+      "status": "maps_cleanly",
+      "notes": "RUNAP and OMEC layers map to the existing Conservation Areas overlay group.",
+      "layerMappings": [
+        {
+          "layerId": "runap",
+          "spanishLabel": "Áreas protegidas (RUNAP 2023)",
+          "dataRole": "include_layer",
+          "frontendCategoryId": "management-figures",
+          "frontendCategoryTitle": "Conservation Areas"
+        },
+        {
+          "layerId": "omecs",
+          "spanishLabel": "OMECs (raster)",
+          "dataRole": "include_layer",
+          "frontendCategoryId": "management-figures",
+          "frontendCategoryTitle": "Conservation Areas"
+        }
+      ]
+    },
+    {
       "manifestCategoryId": "conflict_and_security",
       "manifestSpanishLabel": "Conflicto y seguridad",
-      "layerIds": [
-        "conflict"
-      ],
+      "layerIds": [],
       "frontendCategoryIds": [
         "group-conflict-security"
       ],
@@ -37,15 +67,7 @@
       ],
       "status": "maps_cleanly",
       "notes": "Conflict and security layers map to the existing Conflict & Security sidebar group.",
-      "layerMappings": [
-        {
-          "layerId": "conflict",
-          "spanishLabel": "Conflictos (coca muertes)",
-          "dataRole": "cost_layer",
-          "frontendCategoryId": "group-conflict-security",
-          "frontendCategoryTitle": null
-        }
-      ]
+      "layerMappings": []
     },
     {
       "manifestCategoryId": "ecosystems",
@@ -55,7 +77,8 @@
         "wetlands",
         "bosque_seco",
         "mangroves",
-        "ecosistemas"
+        "ecosistemas",
+        "marine_ecosystems"
       ],
       "frontendCategoryIds": [
         "group-ecosystems"
@@ -100,6 +123,13 @@
           "dataRole": "feature_layer",
           "frontendCategoryId": "group-ecosystems",
           "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "marine_ecosystems",
+          "spanishLabel": "Ecosistemas marinos",
+          "dataRole": "feature_layer",
+          "frontendCategoryId": "group-ecosystems",
+          "frontendCategoryTitle": null
         }
       ]
     },
@@ -132,38 +162,6 @@
           "dataRole": "manifest_for_species_layers",
           "frontendCategoryId": "group-species-biodiversity",
           "frontendCategoryTitle": null
-        }
-      ]
-    },
-    {
-      "manifestCategoryId": "management_figures",
-      "manifestSpanishLabel": "Figuras de manejo",
-      "layerIds": [
-        "runap",
-        "omecs"
-      ],
-      "frontendCategoryIds": [
-        "management-figures"
-      ],
-      "frontendCategoryTitles": [
-        "Management Figures"
-      ],
-      "status": "maps_cleanly",
-      "notes": "RUNAP and OMEC layers map to the existing Management Figures overlay group.",
-      "layerMappings": [
-        {
-          "layerId": "runap",
-          "spanishLabel": "Áreas protegidas (RUNAP 2023)",
-          "dataRole": "include_layer",
-          "frontendCategoryId": "management-figures",
-          "frontendCategoryTitle": "Management Figures"
-        },
-        {
-          "layerId": "omecs",
-          "spanishLabel": "OMECs (raster)",
-          "dataRole": "include_layer",
-          "frontendCategoryId": "management-figures",
-          "frontendCategoryTitle": "Management Figures"
         }
       ]
     },
@@ -226,9 +224,7 @@
     {
       "manifestCategoryId": "environmental_services",
       "manifestSpanishLabel": "Servicios ecosistémicos",
-      "layerIds": [
-        "recarga_agua_subterranea_moderado_alto"
-      ],
+      "layerIds": [],
       "frontendCategoryIds": [
         "group-environmental-services"
       ],
@@ -237,15 +233,7 @@
       ],
       "status": "maps_cleanly",
       "notes": "Environmental service layers map to the existing Environmental Services sidebar group.",
-      "layerMappings": [
-        {
-          "layerId": "recarga_agua_subterranea_moderado_alto",
-          "spanishLabel": "Recarga de aguas subterraneas",
-          "dataRole": "feature_layer",
-          "frontendCategoryId": "group-environmental-services",
-          "frontendCategoryTitle": null
-        }
-      ]
+      "layerMappings": []
     },
     {
       "manifestCategoryId": "socioeconomic",

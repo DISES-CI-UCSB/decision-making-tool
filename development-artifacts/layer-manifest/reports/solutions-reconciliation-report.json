@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T17:04:23.641Z",
+  "generatedAt": "2026-07-22T21:43:34.116Z",
   "whyThisReportExists": {
     "purpose": "Shows how Vercel Blob solution rasters and metadata files were converted into manifest.solutions.",
     "intendedAudience": "Developers and reviewers validating Solution Finder data readiness.",
@@ -9,144 +9,148 @@
     "solutions/"
   ],
   "counts": {
-    "blobInventoryEntries": 374,
-    "metadataFiles": 18,
-    "rasterFiles": 244,
-    "includedSolutions": 18,
-    "skippedMetadataFiles": 0,
-    "unmatchedRasters": 226,
-    "publishedManifestSolutionsUsed": 104
+    "blobInventoryEntries": 391,
+    "metadataFiles": 22,
+    "rasterFiles": 248,
+    "includedSolutions": 0,
+    "skippedMetadataFiles": 22,
+    "unmatchedRasters": 248,
+    "preservedExistingSolutions": 108
   },
-  "included": [
+  "included": [],
+  "skipped": [
     {
-      "id": "estr17_runap_comunidades_hf",
-      "name": "ESTR17+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.json"
+      "pathname": "solutions/marine/marine_ecos30_mang30_runap_hhm.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "estr17_runap_omec_hf",
-      "name": "ESTR17+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.json"
+      "pathname": "solutions/marine/marine_ecos30_mang30_runap_omec_hhm.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "estr17_runap_hf",
-      "name": "ESTR17+RUNAP_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.json"
+      "pathname": "solutions/marine/marine_ecos50_mang50_runap_hhm.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "estr30_runap_comunidades_hf",
-      "name": "ESTR30+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.json"
+      "pathname": "solutions/marine/marine_ecos50_mang50_runap_omec_hhm.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "estr30_runap_omec_hf",
-      "name": "ESTR30+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.json"
+      "pathname": "solutions/nacional/ESTR17+RUNAP+Comunidades_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "estr30_runap_hf",
-      "name": "ESTR30+RUNAP_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.json"
+      "pathname": "solutions/nacional/ESTR17+RUNAP+OMEC_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos17_estr30_runap_comunidades_hf",
-      "name": "Ecos17+ESTR30+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BComunidades_HF.json"
+      "pathname": "solutions/nacional/ESTR17+RUNAP_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos17_estr30_runap_omec_hf",
-      "name": "Ecos17+ESTR30+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BOMEC_HF.json"
+      "pathname": "solutions/nacional/ESTR30+RUNAP+Comunidades_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos17_estr30_runap_hf",
-      "name": "Ecos17+ESTR30+RUNAP_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.json"
+      "pathname": "solutions/nacional/ESTR30+RUNAP+OMEC_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos17_runap_comunidades_hf",
-      "name": "Ecos17+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BComunidades_HF.json"
+      "pathname": "solutions/nacional/ESTR30+RUNAP_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos17_runap_omec_hf",
-      "name": "Ecos17+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC_HF.json"
+      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+Comunidades_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos17_runap_hf",
-      "name": "Ecos17+RUNAP_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.json"
+      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+OMEC_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos30_estr30_runap_comunidades_hf",
-      "name": "Ecos30+ESTR30+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BComunidades_HF.json"
+      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos30_estr30_runap_omec_hf",
-      "name": "Ecos30+ESTR30+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC_HF.json"
+      "pathname": "solutions/nacional/Ecos17+RUNAP+Comunidades_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos30_estr30_runap_hf",
-      "name": "Ecos30+ESTR30+RUNAP_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.json"
+      "pathname": "solutions/nacional/Ecos17+RUNAP+OMEC_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos30_runap_comunidades_hf",
-      "name": "Ecos30+RUNAP+Comunidades_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BComunidades_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BComunidades_HF.json"
+      "pathname": "solutions/nacional/Ecos17+RUNAP_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos30_runap_omec_hf",
-      "name": "Ecos30+RUNAP+OMEC_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC_HF.json"
+      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+Comunidades_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     },
     {
-      "id": "ecos30_runap_hf",
-      "name": "Ecos30+RUNAP_HF",
-      "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.json"
+      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+OMEC_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
+    },
+    {
+      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
+    },
+    {
+      "pathname": "solutions/nacional/Ecos30+RUNAP+Comunidades_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
+    },
+    {
+      "pathname": "solutions/nacional/Ecos30+RUNAP+OMEC_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
+    },
+    {
+      "pathname": "solutions/nacional/Ecos30+RUNAP_HF.json",
+      "reason": "malformed_or_unreadable_metadata",
+      "detail": "fetch failed"
     }
   ],
-  "skipped": [],
   "unmatchedRasters": [
+    {
+      "pathname": "solutions/marine/Ecos30+Mang30+RUNAP+OMEC_HHM.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos30%2BMang30%2BRUNAP%2BOMEC_HHM.tif",
+      "bytes": 634732
+    },
+    {
+      "pathname": "solutions/marine/Ecos30+Mang30+RUNAP_HHM.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos30%2BMang30%2BRUNAP_HHM.tif",
+      "bytes": 639030
+    },
+    {
+      "pathname": "solutions/marine/Ecos50+Mang50+RUNAP+OMEC_HHM.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos50%2BMang50%2BRUNAP%2BOMEC_HHM.tif",
+      "bytes": 662918
+    },
+    {
+      "pathname": "solutions/marine/Ecos50+Mang50+RUNAP_HHM.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos50%2BMang50%2BRUNAP_HHM.tif",
+      "bytes": 665914
+    },
     {
       "pathname": "solutions/nacional/ESTR17+Esp17+RUNAP+Com+Res_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BEsp17%2BRUNAP%2BCom%2BRes_IHEH.epsg9377.cog.tif",
@@ -203,6 +207,11 @@
       "bytes": 233928
     },
     {
+      "pathname": "solutions/nacional/ESTR17+RUNAP+Comunidades_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BComunidades_HF.tif",
+      "bytes": 725806
+    },
+    {
       "pathname": "solutions/nacional/ESTR17+RUNAP+OMEC+Com+Res_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.epsg9377.cog.tif",
       "bytes": 210467
@@ -223,6 +232,11 @@
       "bytes": 225235
     },
     {
+      "pathname": "solutions/nacional/ESTR17+RUNAP+OMEC_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_HF.tif",
+      "bytes": 699248
+    },
+    {
       "pathname": "solutions/nacional/ESTR17+RUNAP+OMEC_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP%2BOMEC_IHEH.epsg9377.cog.tif",
       "bytes": 182020
@@ -236,6 +250,11 @@
       "pathname": "solutions/nacional/ESTR17+RUNAP_HF.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.cog.tif",
       "bytes": 199552
+    },
+    {
+      "pathname": "solutions/nacional/ESTR17+RUNAP_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR17%2BRUNAP_HF.tif",
+      "bytes": 667622
     },
     {
       "pathname": "solutions/nacional/ESTR17+RUNAP_IHEH.epsg9377.cog.tif",
@@ -288,6 +307,11 @@
       "bytes": 235971
     },
     {
+      "pathname": "solutions/nacional/ESTR30+RUNAP+Comunidades_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BComunidades_HF.tif",
+      "bytes": 727550
+    },
+    {
       "pathname": "solutions/nacional/ESTR30+RUNAP+OMEC+Com+Res_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.epsg9377.cog.tif",
       "bytes": 212041
@@ -308,6 +332,11 @@
       "bytes": 226898
     },
     {
+      "pathname": "solutions/nacional/ESTR30+RUNAP+OMEC_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_HF.tif",
+      "bytes": 704492
+    },
+    {
       "pathname": "solutions/nacional/ESTR30+RUNAP+OMEC_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP%2BOMEC_IHEH.epsg9377.cog.tif",
       "bytes": 211061
@@ -321,6 +350,11 @@
       "pathname": "solutions/nacional/ESTR30+RUNAP_HF.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.cog.tif",
       "bytes": 228501
+    },
+    {
+      "pathname": "solutions/nacional/ESTR30+RUNAP_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/ESTR30%2BRUNAP_HF.tif",
+      "bytes": 700660
     },
     {
       "pathname": "solutions/nacional/ESTR30+RUNAP_IHEH.epsg9377.cog.tif",
@@ -413,14 +447,29 @@
       "bytes": 235971
     },
     {
+      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+Comunidades_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BComunidades_HF.tif",
+      "bytes": 727550
+    },
+    {
       "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+OMEC_HF.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BOMEC_HF.cog.tif",
       "bytes": 227218
     },
     {
+      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP+OMEC_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP%2BOMEC_HF.tif",
+      "bytes": 703774
+    },
+    {
       "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP_HF.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.cog.tif",
       "bytes": 223035
+    },
+    {
+      "pathname": "solutions/nacional/Ecos17+ESTR30+RUNAP_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BESTR30%2BRUNAP_HF.tif",
+      "bytes": 695334
     },
     {
       "pathname": "solutions/nacional/Ecos17+Esp17+RUNAP+Com+Res_IHEH.epsg9377.cog.tif",
@@ -478,6 +527,11 @@
       "bytes": 233928
     },
     {
+      "pathname": "solutions/nacional/Ecos17+RUNAP+Comunidades_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BComunidades_HF.tif",
+      "bytes": 725806
+    },
+    {
       "pathname": "solutions/nacional/Ecos17+RUNAP+OMEC+Com+Res_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.epsg9377.cog.tif",
       "bytes": 234459
@@ -498,6 +552,11 @@
       "bytes": 225235
     },
     {
+      "pathname": "solutions/nacional/Ecos17+RUNAP+OMEC_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC_HF.tif",
+      "bytes": 699248
+    },
+    {
       "pathname": "solutions/nacional/Ecos17+RUNAP+OMEC_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP%2BOMEC_IHEH.epsg9377.cog.tif",
       "bytes": 235989
@@ -511,6 +570,11 @@
       "pathname": "solutions/nacional/Ecos17+RUNAP_HF.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.cog.tif",
       "bytes": 199552
+    },
+    {
+      "pathname": "solutions/nacional/Ecos17+RUNAP_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos17%2BRUNAP_HF.tif",
+      "bytes": 667622
     },
     {
       "pathname": "solutions/nacional/Ecos17+RUNAP_IHEH.epsg9377.cog.tif",
@@ -563,6 +627,11 @@
       "bytes": 235971
     },
     {
+      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+Comunidades_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BComunidades_HF.tif",
+      "bytes": 727550
+    },
+    {
       "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+OMEC+Com+Res_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.epsg9377.cog.tif",
       "bytes": 257371
@@ -583,6 +652,11 @@
       "bytes": 226898
     },
     {
+      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+OMEC_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC_HF.tif",
+      "bytes": 704492
+    },
+    {
       "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP+OMEC_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP%2BOMEC_IHEH.epsg9377.cog.tif",
       "bytes": 277724
@@ -596,6 +670,11 @@
       "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP_HF.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.cog.tif",
       "bytes": 228487
+    },
+    {
+      "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BESTR30%2BRUNAP_HF.tif",
+      "bytes": 700554
     },
     {
       "pathname": "solutions/nacional/Ecos30+ESTR30+RUNAP_IHEH.epsg9377.cog.tif",
@@ -648,6 +727,11 @@
       "bytes": 235971
     },
     {
+      "pathname": "solutions/nacional/Ecos30+RUNAP+Comunidades_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BComunidades_HF.tif",
+      "bytes": 727550
+    },
+    {
       "pathname": "solutions/nacional/Ecos30+RUNAP+OMEC+Com+Res_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.epsg9377.cog.tif",
       "bytes": 258464
@@ -668,6 +752,11 @@
       "bytes": 226898
     },
     {
+      "pathname": "solutions/nacional/Ecos30+RUNAP+OMEC_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC_HF.tif",
+      "bytes": 704492
+    },
+    {
       "pathname": "solutions/nacional/Ecos30+RUNAP+OMEC_IHEH.epsg9377.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP%2BOMEC_IHEH.epsg9377.cog.tif",
       "bytes": 277725
@@ -681,6 +770,11 @@
       "pathname": "solutions/nacional/Ecos30+RUNAP_HF.cog.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.cog.tif",
       "bytes": 228487
+    },
+    {
+      "pathname": "solutions/nacional/Ecos30+RUNAP_HF.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nacional/Ecos30%2BRUNAP_HF.tif",
+      "bytes": 700554
     },
     {
       "pathname": "solutions/nacional/Ecos30+RUNAP_IHEH.epsg9377.cog.tif",
@@ -1278,12 +1372,7 @@
       "bytes": 805542
     }
   ],
-  "solutionSource": {
-    "strategy": "published_manifest",
-    "source": "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json",
-    "reason": "Preserved the solution catalog currently published in Vercel so generated layer updates do not replace the active solution set."
-  },
-  "publishedManifestSolutions": [
+  "preservedExistingSolutions": [
     {
       "id": "estr17_esp17_runap_com_res_iheh",
       "name": "ESTR17+Esp17+RUNAP+Com+Res_IHEH",
@@ -2011,6 +2100,34 @@
       "scope": "nacional",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BRes_IHEH.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BRes_IHEH_summary.csv"
+    },
+    {
+      "id": "marine_ecos30_mang30_runap_hhm",
+      "name": "Marine 30% · RUNAP · HHM",
+      "scope": "marine",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos30%2BMang30%2BRUNAP_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos30_mang30_runap_hhm.json"
+    },
+    {
+      "id": "marine_ecos30_mang30_runap_omec_hhm",
+      "name": "Marine 30% · RUNAP · OMEC · HHM",
+      "scope": "marine",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos30%2BMang30%2BRUNAP%2BOMEC_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos30_mang30_runap_omec_hhm.json"
+    },
+    {
+      "id": "marine_ecos50_mang50_runap_hhm",
+      "name": "Marine 50% · RUNAP · HHM",
+      "scope": "marine",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos50%2BMang50%2BRUNAP_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos50_mang50_runap_hhm.json"
+    },
+    {
+      "id": "marine_ecos50_mang50_runap_omec_hhm",
+      "name": "Marine 50% · RUNAP · OMEC · HHM",
+      "scope": "marine",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos50%2BMang50%2BRUNAP%2BOMEC_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos50_mang50_runap_omec_hhm.json"
     }
   ]
 }

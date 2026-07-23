@@ -139,6 +139,7 @@ export interface RuntimeSolutionManifestInputLayerIds {
 }
 
 export interface RuntimeSolutionManifestFinderInputs {
+  domain?: 'land' | 'marine';
   scope: string;
   targetFeatureSet: string | null;
   targetFeatureIds: string[];
@@ -167,6 +168,7 @@ export interface RuntimeSolutionManifestEntry {
   id: string;
   name: string;
   description: string;
+  domain?: 'land' | 'marine';
   scope: string;
   sirapId: string | null;
   displayUrl: string;

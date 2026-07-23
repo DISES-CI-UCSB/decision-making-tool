@@ -1,6 +1,42 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { getCategoryPalette, pickRenderingForLayer } from './generate-manifest.mjs';
+import {
+  getCategoryPalette,
+  pickRenderingForLayer,
+  preserveExistingDisplayReference,
+} from './generate-manifest.mjs';
+
+describe('preserveExistingDisplayReference', () => {
+  it('keeps a published display URL when the legacy CSV path cannot be reconciled', () => {
+    const result = preserveExistingDisplayReference(
+      { status: 'pending', type: 'file' },
+      { displayUrl: 'https://example.com/existing.tif' },
+    );
+
+    assert.deepStrictEqual(result, {
+      status: 'matched',
+      type: 'file',
+      url: 'https://example.com/existing.tif',
+      blobPath: undefined,
+    });
+  });
+
+  it('prefers a newly discovered Blob reference over the published URL', () => {
+    const discovered = {
+      status: 'matched',
+      type: 'file',
+      url: 'https://example.com/new.tif',
+      blobPath: 'inputs/new.tif',
+    };
+
+    assert.strictEqual(
+      preserveExistingDisplayReference(discovered, {
+        displayUrl: 'https://example.com/existing.tif',
+      }),
+      discovered,
+    );
+  });
+});
 
 describe('pickRenderingForLayer', () => {
   it('preserves existing style while refreshing metadata when the inferred mode matches', () => {

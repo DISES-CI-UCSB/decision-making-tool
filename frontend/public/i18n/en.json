@@ -76,6 +76,7 @@
     "leftSide": "Left side: {{name}}",
     "rightSide": "Right side: {{name}}",
     "otherSelectedLayersLabel": "Other selected layers",
+    "denseCategories": "{{count}} mapped classes",
     "iavhDenseCategories": "{{count}} IAvH classes. Search labels in the Ecosystems info modal."
   },
   "mapView": {

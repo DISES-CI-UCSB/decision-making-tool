@@ -1,0 +1,44 @@
+{
+  "id": "marine_ecos50_mang50_runap_omec_hhm",
+  "run_name": "Marine 50% · RUNAP · OMEC · HHM",
+  "description": "Marine ecosystems and mangroves at a 50% target, with RUNAP and OMEC locked in and HHM used as the cost layer.",
+  "domain": "marine",
+  "scope": "marine",
+  "target_feature_set": "marine_ecosystems_and_mangroves",
+  "target_percent": 50,
+  "raster_file": "Ecos50+Mang50+RUNAP+OMEC_HHM.tif",
+  "input_layer_ids": {
+    "features": [
+      "FEAT_MARINE_ECOSYSTEMS",
+      "FEAT_MANGROVES"
+    ],
+    "cost": "COST_HHM",
+    "includes": [
+      "INCL_RUNAP",
+      "INCL_OMEC"
+    ],
+    "excludes": []
+  },
+  "evaluation": {
+    "n_selected": 538760,
+    "n_new_protection": 186336,
+    "n_locked_in": 352424,
+    "cost": 580738.788548449,
+    "pct_targets_met": 100
+  },
+  "coverage": [],
+  "coverage_summary": {
+    "row_count": 146,
+    "met_count": 146,
+    "evaluation_counts": {
+      "prioritizr_model": 75,
+      "post-hoc": 71
+    },
+    "summary_file": "Ecos50+Mang50+RUNAP+OMEC_HHM_summary.csv"
+  },
+  "source_files": [
+    "Ecos50+Mang50+RUNAP+OMEC_HHM.tif",
+    "Ecos50+Mang50+RUNAP+OMEC_HHM_summary.csv"
+  ],
+  "model_package_status": "outputs_only_source_inputs_pending"
+}

@@ -43,6 +43,9 @@ feature",nacional,a todos,INVEMAR,TRUE,Servidor INVEMAR: https://acceso-datos-am
 ecosistemas,"Ecosistemas
 Ecosystems",Ecosistemas,Descripción de biomas y ecosistemas a escala 1:100.000,"característica
 feature",nacional,a todos,Humboldt (IAvH),TRUE,Servidor:https://experience.arcgis.com/experience/568ddab184334f6b81a04d2fe9aac262/page/Datos-Abiertos-Geogr%C3%A1ficos-/-,unknown,unknown,unknown,unknown,ecosistemas.tif,in Google Drive,inputs/features/ecosystems/ecosistemas.tif,GeoTIFF or Feature Service,,partial,2026-04-22,DISES Team
+marine_ecosystems,"Ecosistemas marinos
+Marine Ecosystems",Ecosistemas,Capa clasificada de 145 ecosistemas marinos utilizada en las soluciones de conservación marina.,"característica
+feature",marine,a todos,unknown,TRUE,unknown,unknown,unknown,unknown,unknown,marine_ecosystems.tif,Vercel Blob,data/inputs/features/marine/marine_ecosystems.tif,GeoTIFF,"Reconstructed from the model's sparse ecosystem matrix and masked to cells with valid Marine Human Footprint cost values; category lookup is stored alongside the raster.",partial,2026-07-22,DISES Team
 biomasa_areara+subterranea_1km,"Biomasa aérea y subterránea
 Above and belowground biomass",Servicios ecosistémicos,Above and belowground biomass,"característica
 feature",nacional,a todos,Spawn et al. 2020,FALSE,unknown,unknown,unknown,unknown,unknown,unknown,in Google Drive,inputs/features/biomass/biomasa_areara+subterranea_1km.tif,GeoTIFF,,partial,2026-04-22,

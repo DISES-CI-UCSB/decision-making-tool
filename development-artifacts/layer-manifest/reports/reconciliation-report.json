@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T17:04:23.641Z",
+  "generatedAt": "2026-07-22T21:43:34.116Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -16,64 +16,22 @@
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
-    "csvRows": 24,
-    "includedRows": 21,
-    "generatedLayers": 21,
-    "blobInventoryEntries": 105,
-    "missingRequired": 16,
-    "extraAvailable": 92,
-    "includedRowMetadataGaps": 20,
+    "csvRows": 25,
+    "includedRows": 22,
+    "generatedLayers": 22,
+    "blobInventoryEntries": 108,
+    "missingRequired": 2,
+    "extraAvailable": 94,
+    "includedRowMetadataGaps": 21,
     "excludedRows": 3,
-    "generatedSolutions": 18,
-    "skippedSolutionMetadataFiles": 0,
-    "unmatchedSolutionRasters": 226,
+    "generatedSolutions": 0,
+    "skippedSolutionMetadataFiles": 22,
+    "unmatchedSolutionRasters": 248,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 0,
     "renderingInferenceLowConfidence": 17
   },
   "missingRequired": [
-    {
-      "layerId": "species_richness",
-      "displayName": "Riqueza de especies",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/features/species_richness/riqueza_especies.tif"
-    },
-    {
-      "layerId": "species",
-      "displayName": "Distribuciones de especies individuales (~8751)",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/features/species/"
-    },
-    {
-      "layerId": "paramos",
-      "displayName": "Páramos",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/features/strategic/paramos.tif"
-    },
-    {
-      "layerId": "wetlands",
-      "displayName": "Humedales",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/features/strategic/humedales.tif"
-    },
-    {
-      "layerId": "bosque_seco",
-      "displayName": "Bosque seco",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/features/strategic/bosque_seco.tif"
-    },
-    {
-      "layerId": "mangroves",
-      "displayName": "Manglares",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/features/strategic/mangroves.tif"
-    },
-    {
-      "layerId": "ecosistemas",
-      "displayName": "Ecosistemas",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/features/ecosystems/ecosistemas.tif"
-    },
     {
       "layerId": "recarga_agua_subterranea_moderado_alto",
       "displayName": "Recarga de aguas subterraneas",
@@ -81,52 +39,10 @@
       "storageLocation": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif"
     },
     {
-      "layerId": "human_footprint_2022",
-      "displayName": "Índice de Huella Espacial Humana 2022",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/costs/human_footprint_2022.tif"
-    },
-    {
-      "layerId": "net_benefit",
-      "displayName": "Beneficio neto (renta agropecuaria)",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/costs/net_benefit.tif"
-    },
-    {
       "layerId": "conflict",
       "displayName": "Conflictos (coca muertes)",
       "expectedBlobPath": null,
       "storageLocation": "inputs/costs/conflict.tif"
-    },
-    {
-      "layerId": "runap",
-      "displayName": "Áreas protegidas (RUNAP 2023)",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/includes/runap_protected_areas.tif"
-    },
-    {
-      "layerId": "omecs",
-      "displayName": "OMECs (raster)",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/includes/omecs.tif"
-    },
-    {
-      "layerId": "comunidades",
-      "displayName": "Comunidades Negras",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/includes/comunidades.tif"
-    },
-    {
-      "layerId": "resguardos",
-      "displayName": "Resguardos Indígenas",
-      "expectedBlobPath": null,
-      "storageLocation": "inputs/includes/resguardos.tif"
-    },
-    {
-      "layerId": "coberturas",
-      "displayName": "Cobertura de la tierra",
-      "expectedBlobPath": null,
-      "storageLocation": "boundaries/coberturas.tif"
     }
   ],
   "extraAvailable": [
@@ -461,6 +377,11 @@
       "bytes": 17077
     },
     {
+      "pathname": "inputs/features/ecosystems/ecosystem-classification-summary.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosystem-classification-summary.json",
+      "bytes": 105690
+    },
+    {
       "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
       "bytes": 110336
@@ -469,6 +390,11 @@
       "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
       "bytes": 166170
+    },
+    {
+      "pathname": "inputs/features/marine/marine_ecosystem_categories.csv",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/marine/marine_ecosystem_categories.csv",
+      "bytes": 6396
     },
     {
       "pathname": "inputs/features/species_richness/riqueza_especies.tif",
@@ -652,6 +578,17 @@
       ]
     },
     {
+      "layerId": "marine_ecosystems",
+      "displayName": "Ecosistemas marinos",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
       "layerId": "recarga_agua_subterranea_moderado_alto",
       "displayName": "Recarga de aguas subterraneas",
       "missingFields": [
@@ -772,14 +709,15 @@
   },
   "solutionCatalogSummary": {
     "reportPath": "development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json",
-    "generatedSolutions": 18,
-    "skippedSolutionMetadataFiles": 0,
-    "unmatchedSolutionRasters": 226
+    "generatedSolutions": 0,
+    "skippedSolutionMetadataFiles": 22,
+    "unmatchedSolutionRasters": 248
   },
   "renderingInferenceSummary": {
     "byStrategy": {
-      "manual_override": 4,
-      "legacy_non_raster": 17
+      "manual_override": 5,
+      "legacy_non_raster": 8,
+      "fallback_after_uncertain_sampling": 9
     },
     "lowConfidence": 17
   },

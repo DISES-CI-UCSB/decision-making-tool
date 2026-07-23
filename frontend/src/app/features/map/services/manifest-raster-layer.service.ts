@@ -52,6 +52,7 @@ interface LoadedManifestRaster {
   width: number;
   height: number;
   bbox: [number, number, number, number];
+  spatialReferenceWkid: number;
   values: Float64Array;
   noDataValue: number | null;
 }
@@ -252,11 +253,13 @@ export class ManifestRasterLayerService {
         bboxArray.length === 4
           ? [bboxArray[0], bboxArray[1], bboxArray[2], bboxArray[3]]
           : DEFAULT_BBOX;
+      const geoKeys = image.getGeoKeys() as Record<string, unknown>;
 
       return {
         width: image.getWidth(),
         height: image.getHeight(),
         bbox,
+        spatialReferenceWkid: this.resolveSpatialReferenceWkid(geoKeys, bbox),
         values,
         noDataValue: image.getGDALNoData(),
       };
@@ -280,10 +283,32 @@ export class ManifestRasterLayerService {
           ymin,
           xmax,
           ymax,
-          spatialReference: { wkid: 4326 },
+          spatialReference: { wkid: raster.spatialReferenceWkid },
         }),
       }),
     });
+  }
+
+  private resolveSpatialReferenceWkid(
+    geoKeys: Record<string, unknown>,
+    bbox: [number, number, number, number],
+  ): number {
+    const configuredWkid =
+      this.toPositiveInteger(geoKeys['ProjectedCSTypeGeoKey']) ??
+      this.toPositiveInteger(geoKeys['GeographicTypeGeoKey']);
+    if (configuredWkid) {
+      return configuredWkid;
+    }
+
+    const [xmin, ymin, xmax, ymax] = bbox;
+    const looksGeographic =
+      xmin >= -180 && xmax <= 180 && ymin >= -90 && ymax <= 90 && xmin < xmax && ymin < ymax;
+    return looksGeographic ? 4326 : 9377;
+  }
+
+  private toPositiveInteger(value: unknown): number | null {
+    const numericValue = Number(value);
+    return Number.isInteger(numericValue) && numericValue > 0 ? numericValue : null;
   }
 
   private rasterToCanvas(

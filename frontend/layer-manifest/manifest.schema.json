@@ -284,6 +284,10 @@
         "description": {
           "type": "string"
         },
+        "domain": {
+          "type": "string",
+          "enum": ["land", "marine"]
+        },
         "scope": {
           "type": "string"
         },
@@ -354,6 +358,10 @@
         "excludeLayerIds"
       ],
       "properties": {
+        "domain": {
+          "type": "string",
+          "enum": ["land", "marine"]
+        },
         "scope": {
           "type": "string"
         },

@@ -76,6 +76,7 @@
     "leftSide": "Lado izquierdo: {{name}}",
     "rightSide": "Lado derecho: {{name}}",
     "otherSelectedLayersLabel": "Otras capas seleccionadas",
+    "denseCategories": "{{count}} clases cartografiadas",
     "iavhDenseCategories": "{{count}} clases IAvH. Busca etiquetas en el modal de información de Ecosistemas."
   },
   "mapView": {

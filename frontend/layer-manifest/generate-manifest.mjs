@@ -27,6 +27,10 @@ const REQUIRED_LAYERS_CSV = path.resolve(
   repoRoot,
   'data/Capas de entrada _ Input Layers - Capas de entrada requeridas (2).csv',
 );
+const MARINE_ECOSYSTEM_CATEGORIES_CSV = path.resolve(
+  repoRoot,
+  'data/inputs/features/marine/marine_ecosystem_categories.csv',
+);
 const GENERATED_MANIFEST_PATH = path.resolve(
   repoRoot,
   'frontend',
@@ -59,6 +63,7 @@ const BLOB_PREFIXES = [
   'inputs/features/carbon/',
   'inputs/features/ecosystems/',
   'inputs/features/ground_water_recharge/',
+  'inputs/features/marine/',
   'inputs/features/species_richness/',
   'inputs/features/strategic/',
   'inputs/includes/',
@@ -73,6 +78,17 @@ const DEFAULT_CONTINUOUS_END_COLOR = '#166534';
 const MANIFEST_SCHEMA_VERSION = '0.2.0';
 const SPECIES_AND_BIODIVERSITY_CATEGORY_ID = 'species_and_biodiversity';
 const SPECIES_MANIFEST_URL = `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json`;
+
+function getRegisteredSolutionBlobPrefixes(args) {
+  const prefixes = [];
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === '--register-solution-prefix' && args[index + 1]) {
+      prefixes.push(args[index + 1]);
+      index += 1;
+    }
+  }
+  return prefixes;
+}
 
 /**
  * Curated per-category palette used to seed brand-new layers and categories.
@@ -168,6 +184,7 @@ const englishLabelOverrideByLayerId = {
   siraps_territorial: 'Territorial SIRAPs',
   siraps_thematic: 'Thematic SIRAP Additions',
   omecs: 'OMECs (raster)',
+  marine_ecosystems: 'Marine Ecosystems',
   admin_departments: 'Departments',
   admin_municipalities: 'Municipalities',
 };
@@ -186,6 +203,7 @@ const renderingOverrideByLayerId = {
     startColor: DEFAULT_CONTINUOUS_START_COLOR,
     endColor: DEFAULT_CONTINUOUS_END_COLOR,
   },
+  marine_ecosystems: null,
   species_richness: {
     valueType: 'continuous',
     renderMode: 'gradient',
@@ -362,6 +380,7 @@ const proposedManifestCategories = {
 };
 
 const proposedLayerCategoryOverrides = {
+  marine_ecosystems: 'ecosystems',
   runap: 'management_figures',
   omecs: 'management_figures',
   comunidades: 'cultural_and_ethnic_territories',
@@ -522,6 +541,34 @@ function splitLayerLabels(value) {
   return {
     spanishLabel: labels[0] ?? value,
     englishLabel: labels[1] ?? '',
+  };
+}
+
+async function loadMarineEcosystemRendering() {
+  const raw = await fs.readFile(MARINE_ECOSYSTEM_CATEGORIES_CSV, 'utf-8');
+  const [header, ...rows] = parseCsv(raw);
+  const labelIndex = header.indexOf('biome');
+  const valueIndex = header.indexOf('biome_id');
+  if (labelIndex < 0 || valueIndex < 0) {
+    throw new Error('Marine ecosystem categories must include biome and biome_id columns');
+  }
+
+  return {
+    valueType: 'categorical',
+    renderMode: 'categorical',
+    noDataValue: 0,
+    classColors: rows.map((row) => {
+      const label = row[labelIndex];
+      const value = Number(row[valueIndex]);
+      const ecosystemGroup = label.split(/\s+en\s+/iu)[0] || label;
+      const hue = hashStringToPositiveInt(ecosystemGroup) % 360;
+      const lightness = 40 + (hashStringToPositiveInt(label) % 21);
+      return {
+        value,
+        color: hslToHex(hue, 58, lightness),
+        label,
+      };
+    }),
   };
 }
 
@@ -712,10 +759,11 @@ async function createSolutionCatalog(solutionBlobInventory) {
   };
 }
 
-function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob }) {
+export function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob }) {
   const inputLayerIds = normalizeSolutionInputLayerIds(metadata.input_layer_ids);
   const coverage = normalizeSolutionCoverage(metadata.coverage);
   const scope = normalizeSolutionScope(metadata.scope, metadataBlob.pathname);
+  const domain = normalizeSolutionDomain(metadata.domain, scope);
   const id = toLayerId(
     metadata.id ||
       metadata.run_name ||
@@ -723,10 +771,11 @@ function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob }) {
   );
   const name = metadata.run_name || id;
   const finderInputs = {
+    domain,
     scope,
     targetFeatureSet: inferSolutionTargetFeatureSet({ metadata, inputLayerIds, coverage }),
     targetFeatureIds: inputLayerIds.features,
-    targetPercent: inferTargetPercent(coverage),
+    targetPercent: inferTargetPercent(metadata.target_percent, coverage),
     costLayerId: inputLayerIds.cost,
     includeLayerIds: inputLayerIds.includes,
     excludeLayerIds: inputLayerIds.excludes,
@@ -735,11 +784,14 @@ function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob }) {
   return {
     id,
     name,
-    description: createSolutionDescription({
-      name,
-      finderInputs,
-      inputLayerIds,
-    }),
+    description:
+      metadata.description ||
+      createSolutionDescription({
+        name,
+        finderInputs,
+        inputLayerIds,
+      }),
+    domain,
     scope,
     sirapId: inferSirapIdFromPath(metadataBlob.pathname),
     displayUrl: rasterBlob.url,
@@ -835,6 +887,15 @@ function normalizeSolutionScope(scope, pathname) {
   return maybeScope ? toLayerId(maybeScope) : 'unknown';
 }
 
+export function normalizeSolutionDomain(domain, scope) {
+  const normalizedDomain =
+    typeof domain === 'string' && domain.trim().length > 0 ? toLayerId(domain) : null;
+  if (normalizedDomain === 'land' || normalizedDomain === 'marine') {
+    return normalizedDomain;
+  }
+  return scope === 'marine' ? 'marine' : 'land';
+}
+
 function inferSirapIdFromPath(pathname) {
   const parts = pathname.split('/').filter(Boolean);
   const sirapIndex = parts.indexOf('sirap');
@@ -844,7 +905,11 @@ function inferSirapIdFromPath(pathname) {
   return toLayerId(parts[sirapIndex + 1]);
 }
 
-function inferTargetPercent(coverage) {
+function inferTargetPercent(configuredTargetPercent, coverage) {
+  const configured = parseFiniteNumberOrNull(configuredTargetPercent);
+  if (configured !== null) {
+    return configured;
+  }
   const firstTarget = coverage.find(
     (row) => typeof row.relativeTarget === 'number',
   )?.relativeTarget;
@@ -852,6 +917,9 @@ function inferTargetPercent(coverage) {
 }
 
 function inferSolutionTargetFeatureSet({ metadata, inputLayerIds, coverage }) {
+  if (typeof metadata.target_feature_set === 'string' && metadata.target_feature_set.trim()) {
+    return toLayerId(metadata.target_feature_set);
+  }
   const name = `${metadata.id ?? ''} ${metadata.run_name ?? ''}`.toLowerCase();
   if (name.includes('estr') || inputLayerIds.features.length > 1 || coverage.length > 1) {
     return 'strategic_ecosystems';
@@ -1015,22 +1083,26 @@ async function fetchSpeciesTaxa() {
 
 async function createLayerEntry(row, blobByPath, existingManifestIndex) {
   const labels = splitMultilineLabel(row.layer_name);
+  const id = toLayerId(row.layer_id);
+  const existingLayer = existingManifestIndex?.layersById?.get(id) ?? null;
   const blobPath = toBlobPath(row.storage_location, row.filename);
   const isCollection = blobPath?.endsWith('/');
   const matchedBlob = blobPath ? blobByPath.get(blobPath) : null;
   const remoteUrl = /^https?:\/\//i.test(row.storage_location) ? row.storage_location : '';
-  const displayReference = createDisplayReference({
+  const discoveredDisplayReference = createDisplayReference({
     row,
     blobPath,
     isCollection,
     matchedBlob,
     remoteUrl,
   });
-  const id = toLayerId(row.layer_id);
+  const displayReference = preserveExistingDisplayReference(
+    discoveredDisplayReference,
+    existingLayer,
+  );
   const dataRole = inferDataRole(row);
   const roleInMetricCalculation = inferRoleInMetricCalculation(dataRole);
   const categoryId = inferProposedCategoryId(row);
-  const existingLayer = existingManifestIndex?.layersById?.get(id) ?? null;
   const { rendering, renderingInference } = await inferRenderingConfig({
     row,
     id,
@@ -1071,6 +1143,33 @@ async function createLayerEntry(row, blobByPath, existingManifestIndex) {
       renderingInference,
     },
   };
+}
+
+export function preserveExistingDisplayReference(discoveredReference, existingLayer) {
+  if (discoveredReference.status === 'matched' || !existingLayer) {
+    return discoveredReference;
+  }
+  if (typeof existingLayer.displayUrl === 'string' && existingLayer.displayUrl) {
+    return {
+      status: 'matched',
+      type: 'file',
+      url: existingLayer.displayUrl,
+      blobPath: discoveredReference.blobPath,
+    };
+  }
+  if (
+    typeof existingLayer.displayCollectionUrl === 'string' &&
+    existingLayer.displayCollectionUrl
+  ) {
+    return {
+      status: 'matched',
+      type: 'collection',
+      url: existingLayer.displayCollectionUrl,
+      blobPath: discoveredReference.blobPath,
+      collectionPattern: discoveredReference.collectionPattern,
+    };
+  }
+  return discoveredReference;
 }
 
 async function inferRenderingConfig({
@@ -2187,6 +2286,10 @@ async function pruneManifestArchive() {
 
 async function main() {
   await loadLocalEnv(path.resolve(__dirname, '..'));
+  renderingOverrideByLayerId.marine_ecosystems = await loadMarineEcosystemRendering();
+  const registeredSolutionBlobPrefixes = getRegisteredSolutionBlobPrefixes(
+    process.argv.slice(2),
+  );
 
   const csvRaw = await fs.readFile(REQUIRED_LAYERS_CSV, 'utf-8');
   const rows = rowsToObjects(parseCsv(csvRaw), columnAliases);
@@ -2201,19 +2304,23 @@ async function main() {
   const layerEntries = await Promise.all(
     includedRows.map((row) => createLayerEntry(row, blobByPath, existingManifestIndex)),
   );
+  const resolvedLayerEntries = layerEntries.filter(
+    (entry) => entry.reconciliation.displayReference.status === 'matched',
+  );
   const solutionCatalog = await createSolutionCatalog(solutionBlobInventory);
   const categories = createCategories(
     includedRows,
-    layerEntries,
+    resolvedLayerEntries,
     existingManifestIndex,
     speciesTaxa,
   );
-  const layers = layerEntries.map((entry) => entry.manifestLayer);
+  const layers = resolvedLayerEntries.map((entry) => entry.manifestLayer);
   const { solutions, preservedPublishedSolutions, preservedExistingSolutions } =
     selectManifestSolutions({
       publishedManifestIndex,
       generatedSolutions: solutionCatalog.solutions,
       existingManifestIndex,
+      registeredSolutionBlobPrefixes,
     });
   const solutionCatalogReport =
     preservedPublishedSolutions.length > 0

@@ -87,6 +87,7 @@ export class SolutionCatalogService {
       description:
         solution.description ||
         `${targetPercent}% target for ${targetLabel}, includes ${constraintLabel}, ${costLayer} cost`,
+      domain: solution.domain ?? solution.finderInputs.domain ?? 'land',
       scope: solution.scope,
       sirapId: solution.sirapId,
       displayUrl: solution.displayUrl,

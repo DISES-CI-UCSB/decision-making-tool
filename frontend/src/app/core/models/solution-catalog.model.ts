@@ -9,6 +9,7 @@ export interface CatalogSolution {
   filename: string;
   name: string;
   description: string;
+  domain?: 'land' | 'marine';
   scope: string;
   sirapId: string | null;
   displayUrl: string;

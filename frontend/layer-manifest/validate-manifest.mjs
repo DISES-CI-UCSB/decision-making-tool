@@ -156,6 +156,7 @@ const LIVE_METRIC_CALCULATION_ROLES = [
 ];
 const RENDER_VALUE_TYPES = ['binary', 'categorical', 'continuous'];
 const RENDER_MODES = ['mask', 'gradient', 'categorical'];
+const SOLUTION_DOMAINS = ['land', 'marine'];
 const CATEGORY_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const CATEGORY_PATH_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$/;
 const COLOR_DEFAULT_FIELDS = ['selectedColor', 'startColor', 'endColor'];
@@ -479,6 +480,9 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
   assertString(solution.id, `solutions[${index}].id`);
   assertString(solution.name, `solutions[${index}].name`);
   assertString(solution.description, `solutions[${index}].description`);
+  if ('domain' in solution) {
+    assertOneOf(solution.domain, SOLUTION_DOMAINS, `solutions[${index}].domain`);
+  }
   assertString(solution.scope, `solutions[${index}].scope`);
   assertNullableString(solution.sirapId, `solutions[${index}].sirapId`);
   assertString(solution.displayUrl, `solutions[${index}].displayUrl`);
@@ -515,6 +519,9 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
 
 function validateSolutionFinderInputs(finderInputs, label) {
   assert(finderInputs && typeof finderInputs === 'object', `${label} must be an object`);
+  if ('domain' in finderInputs) {
+    assertOneOf(finderInputs.domain, SOLUTION_DOMAINS, `${label}.domain`);
+  }
   assertString(finderInputs.scope, `${label}.scope`);
   assertNullableString(finderInputs.targetFeatureSet, `${label}.targetFeatureSet`);
   assertStringArray(finderInputs.targetFeatureIds, `${label}.targetFeatureIds`);

@@ -4,11 +4,18 @@ export function selectManifestSolutions({
   publishedManifestIndex,
   generatedSolutions,
   existingManifestIndex,
+  registeredSolutionBlobPrefixes = [],
 }) {
   const preservedPublishedSolutions = publishedSolutions(publishedManifestIndex);
+  const registeredGeneratedSolutions = generatedSolutions.filter((solution) =>
+    registeredSolutionBlobPrefixes.some((prefix) => solution.blobPath?.startsWith(prefix)),
+  );
   const rawSolutions =
     preservedPublishedSolutions.length > 0
-      ? preservedPublishedSolutions
+      ? mergeSolutions(
+          preservedPublishedSolutions,
+          preserveSolutionUrls(registeredGeneratedSolutions, publishedManifestIndex),
+        )
       : generatedSolutions.length > 0
         ? preserveSolutionUrls(generatedSolutions, existingManifestIndex)
         : (existingManifestIndex?.manifest?.solutions ?? []);
@@ -21,6 +28,14 @@ export function selectManifestSolutions({
       : [];
 
   return { solutions, preservedPublishedSolutions, preservedExistingSolutions };
+}
+
+function mergeSolutions(published, registered) {
+  const mergedById = new Map(published.map((solution) => [solution.id, solution]));
+  for (const solution of registered) {
+    mergedById.set(solution.id, solution);
+  }
+  return [...mergedById.values()];
 }
 
 function preserveSolutionUrls(solutions, existingManifestIndex) {

@@ -34,6 +34,33 @@ describe('solution preservation policy', () => {
     assert.match(result.solutions[0].precomputedMetricUrls.goals, /published\.goals\.json$/);
   });
 
+  it('merges only generated solutions from explicitly registered Blob prefixes', () => {
+    const marine = {
+      id: 'marine-30',
+      blobPath: 'solutions/marine/marine-30.tif',
+      displayUrl: 'https://example.com/marine-30.tif',
+      precomputedMetricUrls: {},
+    };
+    const unrelated = {
+      id: 'unrelated',
+      blobPath: 'solutions/staging/unrelated.tif',
+      displayUrl: 'https://example.com/unrelated.tif',
+      precomputedMetricUrls: {},
+    };
+
+    const result = selectManifestSolutions({
+      publishedManifestIndex: { manifest: { solutions: [published] } },
+      generatedSolutions: [marine, unrelated],
+      existingManifestIndex: null,
+      registeredSolutionBlobPrefixes: ['solutions/marine/'],
+    });
+
+    assert.deepStrictEqual(
+      result.solutions.map(({ id }) => id),
+      ['published', 'marine-30'],
+    );
+  });
+
   it('uses generated solutions and preserves matching verified URLs', () => {
     const result = selectManifestSolutions({
       publishedManifestIndex: null,

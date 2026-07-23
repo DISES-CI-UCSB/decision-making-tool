@@ -1,0 +1,504 @@
+<!doctype html>
+<html id="marine-option-b-html" lang="en">
+  <head id="marine-option-b-head">
+    <meta id="marine-option-b-charset" charset="UTF-8" />
+    <meta
+      id="marine-option-b-viewport"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title id="marine-option-b-title">
+      M3 — Domain-first Land / Marine workflow
+    </title>
+    <script
+      id="marine-option-b-tailwind"
+      src="https://cdn.tailwindcss.com"
+    ></script>
+    <style id="marine-option-b-styles">
+      body {
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      .workflow-view[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body
+    id="marine-option-b-body"
+    class="min-h-screen bg-slate-200 p-4 text-slate-900 md:p-8"
+  >
+    <main id="marine-option-b-main" class="mx-auto max-w-[1260px] space-y-4">
+      <header id="marine-option-b-page-header" class="space-y-1">
+        <p
+          id="marine-option-b-page-kicker"
+          class="text-xs font-bold uppercase tracking-[0.16em] text-sky-700"
+        >
+          M3 HTML mockup · Alternative
+        </p>
+        <h1 id="marine-option-b-page-heading" class="text-2xl font-bold">
+          Option B — Domain-first gateway
+        </h1>
+        <p
+          id="marine-option-b-page-description"
+          class="max-w-3xl text-sm text-slate-600"
+        >
+          Users select Land or Marine before configuration. This creates the
+          strongest separation, but adds a screen and an extra action every time
+          the search opens.
+        </p>
+      </header>
+
+      <section
+        id="marine-option-b-modal"
+        class="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl"
+        aria-labelledby="marine-option-b-modal-heading"
+      >
+        <header
+          id="marine-option-b-modal-header"
+          class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4"
+        >
+          <div id="marine-option-b-modal-copy" class="space-y-1">
+            <h2
+              id="marine-option-b-modal-heading"
+              class="text-xl font-semibold uppercase tracking-[0.08em] text-sky-700"
+            >
+              Conservation Solution Search
+            </h2>
+            <p
+              id="marine-option-b-modal-description"
+              class="text-sm text-black"
+            >
+              Start by choosing where you are planning.
+            </p>
+          </div>
+          <button
+            id="marine-option-b-close-button"
+            type="button"
+            class="rounded-full px-2 py-1 text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </header>
+
+        <section
+          id="marine-option-b-domain-view"
+          class="workflow-view bg-slate-50 px-6 py-10 md:py-14"
+          aria-labelledby="marine-option-b-domain-heading"
+        >
+          <header
+            id="marine-option-b-domain-header"
+            class="mx-auto mb-8 max-w-xl text-center"
+          >
+            <h3 id="marine-option-b-domain-heading" class="text-xl font-bold">
+              Which planning domain do you want to explore?
+            </h3>
+            <p
+              id="marine-option-b-domain-help"
+              class="mt-2 text-sm text-slate-600"
+            >
+              Each domain has its own supported targets, included areas, and
+              cost layers.
+            </p>
+          </header>
+          <div
+            id="marine-option-b-domain-cards"
+            class="mx-auto grid max-w-3xl gap-5 md:grid-cols-2"
+          >
+            <button
+              id="marine-option-b-land-card"
+              type="button"
+              class="group rounded-xl border-2 border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-emerald-300 hover:shadow-md"
+              data-domain-choice="land"
+            >
+              <span
+                id="marine-option-b-land-title"
+                class="block text-lg font-bold"
+                >Land</span
+              >
+              <span
+                id="marine-option-b-land-description"
+                class="mt-2 block text-sm leading-relaxed text-slate-600"
+              >
+                Search terrestrial solutions using national or SIRAP scope, land
+                targets, optional included areas, and supported land cost
+                surfaces.
+              </span>
+              <span
+                id="marine-option-b-land-action"
+                class="mt-5 block text-sm font-bold text-emerald-700"
+              >
+                Configure a Land solution →
+              </span>
+            </button>
+
+            <button
+              id="marine-option-b-marine-card"
+              type="button"
+              class="group rounded-xl border-2 border-sky-300 bg-sky-50 p-6 text-left shadow-sm transition hover:border-sky-500 hover:shadow-md"
+              data-domain-choice="marine"
+            >
+              <span
+                id="marine-option-b-marine-title"
+                class="block text-lg font-bold"
+                >Marine</span
+              >
+              <span
+                id="marine-option-b-marine-description"
+                class="mt-2 block text-sm leading-relaxed text-slate-600"
+              >
+                Configure marine ecosystem and mangrove targets, optional OMEC,
+                RUNAP, and HHM.
+              </span>
+              <span
+                id="marine-option-b-marine-action"
+                class="mt-3 block text-sm font-bold text-sky-700"
+              >
+                Configure a Marine solution →
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section
+          id="marine-option-b-marine-view"
+          class="workflow-view bg-slate-50"
+          aria-labelledby="marine-option-b-workflow-heading"
+          hidden
+        >
+          <nav
+            id="marine-option-b-breadcrumb"
+            class="flex items-center gap-2 border-b border-slate-200 bg-white px-6 py-3 text-sm"
+            aria-label="Workflow breadcrumb"
+          >
+            <button
+              id="marine-option-b-back-button"
+              type="button"
+              class="font-semibold text-sky-700 hover:underline"
+            >
+              ← Change domain
+            </button>
+            <span
+              id="marine-option-b-breadcrumb-divider"
+              class="text-slate-300"
+              aria-hidden="true"
+            >
+              /
+            </span>
+            <span
+              id="marine-option-b-breadcrumb-domain"
+              class="rounded-md bg-cyan-100 px-2 py-1 text-xs font-bold text-cyan-800"
+            >
+              Marine
+            </span>
+          </nav>
+
+          <div
+            id="marine-option-b-workflow-grid"
+            class="grid gap-4 p-4 md:p-6 lg:grid-cols-3"
+          >
+            <section
+              id="marine-option-b-target-section"
+              class="order-1 space-y-3"
+              aria-labelledby="marine-option-b-workflow-heading"
+            >
+              <header id="marine-option-b-target-header" class="space-y-1">
+                <h3 id="marine-option-b-workflow-heading" class="font-bold">
+                  Step 1 · Marine target
+                </h3>
+                <p
+                  id="marine-option-b-target-help"
+                  class="text-xs text-slate-600"
+                >
+                  Ecosystems and mangroves share one level.
+                </p>
+              </header>
+              <article
+                id="marine-option-b-target-card"
+                class="space-y-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div
+                  id="marine-option-b-target-bundle"
+                  class="rounded-md border border-cyan-300 bg-cyan-50 p-3"
+                >
+                  <h4
+                    id="marine-option-b-target-bundle-title"
+                    class="text-sm font-semibold"
+                  >
+                    Marine ecosystems + mangroves
+                  </h4>
+                  <p
+                    id="marine-option-b-target-bundle-copy"
+                    class="mt-1 text-xs text-slate-600"
+                  >
+                    Fixed feature bundle
+                  </p>
+                </div>
+                <div
+                  id="marine-option-b-level-group"
+                  class="grid grid-cols-2 gap-2"
+                  role="radiogroup"
+                  aria-label="Target level"
+                >
+                  <button
+                    id="marine-option-b-level-30"
+                    type="button"
+                    class="rounded-md border border-sky-600 bg-sky-600 px-3 py-3 font-bold text-white"
+                    role="radio"
+                    aria-checked="true"
+                    data-level="30"
+                  >
+                    30%
+                  </button>
+                  <button
+                    id="marine-option-b-level-50"
+                    type="button"
+                    class="rounded-md border border-slate-200 bg-white px-3 py-3 font-bold text-slate-700"
+                    role="radio"
+                    aria-checked="false"
+                    data-level="50"
+                  >
+                    50%
+                  </button>
+                </div>
+              </article>
+            </section>
+
+            <section
+              id="marine-option-b-includes-section"
+              class="order-3 space-y-3"
+              aria-labelledby="marine-option-b-includes-heading"
+            >
+              <header id="marine-option-b-includes-header" class="space-y-1">
+                <h3 id="marine-option-b-includes-heading" class="font-bold">
+                  Step 3 · Included areas
+                </h3>
+                <p
+                  id="marine-option-b-includes-help"
+                  class="text-xs text-slate-600"
+                >
+                  OMEC is optional; RUNAP is fixed.
+                </p>
+              </header>
+              <article
+                id="marine-option-b-includes-card"
+                class="space-y-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <button
+                  id="marine-option-b-omec-button"
+                  type="button"
+                  class="flex w-full items-center justify-between rounded-md border border-slate-200 p-3 text-left"
+                  role="switch"
+                  aria-checked="false"
+                >
+                  <span
+                    id="marine-option-b-omec-label"
+                    class="text-sm font-semibold"
+                  >
+                    Include marine OMECs
+                  </span>
+                  <span
+                    id="marine-option-b-omec-state"
+                    class="rounded-md bg-slate-300 px-2 py-1 text-[11px] font-bold"
+                  >
+                    OFF
+                  </span>
+                </button>
+                <div
+                  id="marine-option-b-runap-row"
+                  class="flex items-center justify-between rounded-md border border-cyan-300 bg-cyan-50 p-3"
+                >
+                  <span
+                    id="marine-option-b-runap-label"
+                    class="text-sm font-semibold"
+                  >
+                    RUNAP protected areas
+                  </span>
+                  <span
+                    id="marine-option-b-runap-state"
+                    class="rounded-md bg-cyan-700 px-2 py-1 text-[11px] font-bold text-white"
+                  >
+                    Always on
+                  </span>
+                </div>
+              </article>
+            </section>
+
+            <section
+              id="marine-option-b-cost-section"
+              class="order-2 space-y-3"
+              aria-labelledby="marine-option-b-cost-heading"
+            >
+              <header id="marine-option-b-cost-header" class="space-y-1">
+                <h3 id="marine-option-b-cost-heading" class="font-bold">
+                  Step 2 · Trade-off basis
+                </h3>
+                <p
+                  id="marine-option-b-cost-help"
+                  class="text-xs text-slate-600"
+                >
+                  HHM is the only supported marine cost.
+                </p>
+              </header>
+              <article
+                id="marine-option-b-cost-card"
+                class="rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div
+                  id="marine-option-b-hhm-row"
+                  class="flex items-start justify-between gap-3 rounded-md border border-cyan-300 bg-cyan-50 p-3"
+                >
+                  <div id="marine-option-b-hhm-copy">
+                    <h4
+                      id="marine-option-b-hhm-title"
+                      class="text-sm font-semibold"
+                    >
+                      Human modification (HHM)
+                    </h4>
+                    <p
+                      id="marine-option-b-hhm-description"
+                      class="mt-1 text-xs text-slate-600"
+                    >
+                      Used by every delivered marine run.
+                    </p>
+                  </div>
+                  <span
+                    id="marine-option-b-hhm-state"
+                    class="rounded-md bg-cyan-700 px-2 py-1 text-[11px] font-bold text-white"
+                  >
+                    Fixed
+                  </span>
+                </div>
+              </article>
+            </section>
+          </div>
+        </section>
+
+        <footer
+          id="marine-option-b-footer"
+          class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-4"
+        >
+          <p
+            id="marine-option-b-footer-summary"
+            class="text-sm font-semibold text-slate-600"
+          >
+            Choose a planning domain to continue.
+          </p>
+          <div
+            id="marine-option-b-footer-actions"
+            class="flex items-center gap-2"
+          >
+            <button
+              id="marine-option-b-cancel-button"
+              type="button"
+              class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              id="marine-option-b-apply-button"
+              type="button"
+              class="cursor-not-allowed rounded-md bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-500"
+              disabled
+            >
+              Apply marine solution
+            </button>
+          </div>
+        </footer>
+      </section>
+
+      <aside
+        id="marine-option-b-tradeoff"
+        class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
+      >
+        <p id="marine-option-b-tradeoff-copy">
+          <strong id="marine-option-b-tradeoff-label">Trade-off:</strong>
+          the explicit gateway strongly prevents mixed-domain choices, but
+          creates a mandatory decision before users can see or resume their last
+          configuration.
+        </p>
+      </aside>
+    </main>
+
+    <script id="marine-option-b-interactions">
+      const domainView = document.getElementById("marine-option-b-domain-view");
+      const marineView = document.getElementById("marine-option-b-marine-view");
+      const backButton = document.getElementById("marine-option-b-back-button");
+      const marineCard = document.getElementById("marine-option-b-marine-card");
+      const landCard = document.getElementById("marine-option-b-land-card");
+      const footerSummary = document.getElementById(
+        "marine-option-b-footer-summary",
+      );
+      const applyButton = document.getElementById(
+        "marine-option-b-apply-button",
+      );
+      const omecButton = document.getElementById("marine-option-b-omec-button");
+      const omecState = document.getElementById("marine-option-b-omec-state");
+      const levelButtons = document.querySelectorAll("[data-level]");
+      let target = "30";
+      let includeOmec = false;
+
+      function updateSummary() {
+        footerSummary.textContent = `Marine · Ecosystems + mangroves ${target}% · RUNAP${includeOmec ? " · OMEC" : ""} · HHM`;
+      }
+
+      marineCard.addEventListener("click", () => {
+        domainView.hidden = true;
+        marineView.hidden = false;
+        applyButton.disabled = false;
+        applyButton.className =
+          "rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700";
+        updateSummary();
+      });
+
+      landCard.addEventListener("click", () => {
+        footerSummary.textContent =
+          "Land · Continue to the existing terrestrial workflow";
+      });
+
+      backButton.addEventListener("click", () => {
+        domainView.hidden = false;
+        marineView.hidden = true;
+        applyButton.disabled = true;
+        applyButton.className =
+          "cursor-not-allowed rounded-md bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-500";
+        footerSummary.textContent = "Choose a planning domain to continue.";
+      });
+
+      levelButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          target = button.dataset.level;
+          levelButtons.forEach((candidate) => {
+            const isActive = candidate === button;
+            candidate.setAttribute("aria-checked", String(isActive));
+            candidate.className = isActive
+              ? "rounded-md border border-sky-600 bg-sky-600 px-3 py-3 font-bold text-white"
+              : "rounded-md border border-slate-200 bg-white px-3 py-3 font-bold text-slate-700";
+          });
+          updateSummary();
+        });
+      });
+
+      omecButton.addEventListener("click", () => {
+        includeOmec = !includeOmec;
+        omecButton.setAttribute("aria-checked", String(includeOmec));
+        omecButton.className = includeOmec
+          ? "flex w-full items-center justify-between rounded-md border border-sky-300 bg-sky-100 p-3 text-left"
+          : "flex w-full items-center justify-between rounded-md border border-slate-200 p-3 text-left";
+        omecState.textContent = includeOmec ? "ON" : "OFF";
+        omecState.className = includeOmec
+          ? "rounded-md bg-sky-600 px-2 py-1 text-[11px] font-bold text-white"
+          : "rounded-md bg-slate-300 px-2 py-1 text-[11px] font-bold";
+        updateSummary();
+      });
+    </script>
+  </body>
+</html>
