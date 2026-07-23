@@ -131,141 +131,427 @@
                     {{ 'analysis.overview.goalsWidget.unavailable' | translate }}
                   </p>
                 } @else {
-                  <div id="right-sidebar-v3-overview-goals-widget-domains" class="grid gap-2.5">
-                    @for (domain of overviewGoalsDomains(); track domain.id) {
-                      <article
-                        [id]="'right-sidebar-v3-overview-goals-domain-' + domain.id"
-                        class="grid gap-1"
-                      >
-                        <div
-                          [id]="'right-sidebar-v3-overview-goals-domain-header-' + domain.id"
-                          class="flex items-baseline justify-between gap-2.5 text-xs text-slate-800"
-                        >
-                          <span [id]="'right-sidebar-v3-overview-goals-domain-label-' + domain.id">
-                            {{ domain.labelKey | translate }}
-                          </span>
-                          <span
-                            [id]="'right-sidebar-v3-overview-goals-domain-target-' + domain.id"
-                            class="text-[11px] whitespace-nowrap text-slate-700"
+                  <div id="right-sidebar-v3-overview-goals-widget-domains" class="grid gap-3.5">
+                    @if (targetProgressGoalsDomains().length > 0) {
+                      <div id="right-sidebar-v3-overview-goals-target-section" class="grid gap-2.5">
+                        @for (domain of targetProgressGoalsDomains(); track domain.id) {
+                          <article
+                            [id]="'right-sidebar-v3-overview-goals-domain-' + domain.id"
+                            class="grid gap-1"
                           >
-                            {{ domain.targetLabel }}
-                          </span>
-                          <strong
-                            [id]="'right-sidebar-v3-overview-goals-domain-count-' + domain.id"
-                            class="text-xs font-extrabold whitespace-nowrap text-slate-900"
-                          >
-                            {{ formatGoalsCount(domain.metCount, domain.totalCount) }}
-                          </strong>
-                        </div>
-                        <div
-                          [id]="'right-sidebar-v3-overview-goals-domain-bar-' + domain.id"
-                          class="h-1.5 overflow-hidden rounded-full bg-slate-200"
-                          [attr.aria-label]="getGoalsPercentLabel(domain.pctMet)"
-                        >
-                          <span
-                            [id]="'right-sidebar-v3-overview-goals-domain-fill-' + domain.id"
-                            class="block h-full rounded-full bg-emerald-500"
-                            [style.width.%]="getGoalsProgressBarWidth(domain.pctMet)"
-                          ></span>
-                        </div>
-                        @if (domain.id === 'species' && overviewGoalsTaxa().length > 0) {
-                          <div
-                            id="right-sidebar-v3-overview-goals-widget-taxa"
-                            class="mt-2 ml-3 grid gap-2 border-l-2 border-emerald-100 pl-3"
-                          >
-                            <p
-                              id="right-sidebar-v3-overview-goals-widget-taxa-label"
-                              class="mb-0 text-[10px] font-extrabold tracking-[0.08em] text-slate-600 uppercase"
+                            <div
+                              [id]="'right-sidebar-v3-overview-goals-domain-header-' + domain.id"
+                              class="flex items-baseline justify-between gap-2.5 text-xs text-slate-800"
                             >
-                              {{ 'analysis.overview.goalsWidget.taxaBreakdown' | translate }}
-                            </p>
-                            @for (taxa of overviewGoalsTaxa(); track taxa.id) {
-                              <div
-                                [id]="'right-sidebar-v3-overview-goals-taxa-' + taxa.id"
-                                class="grid gap-1"
+                              <span
+                                [id]="'right-sidebar-v3-overview-goals-domain-label-' + domain.id"
                               >
+                                {{ domain.labelKey | translate }}
+                              </span>
+                              <span
+                                [id]="'right-sidebar-v3-overview-goals-domain-target-' + domain.id"
+                                class="text-[11px] whitespace-nowrap text-slate-700"
+                              >
+                                {{ domain.targetLabel }}
+                              </span>
+                              <strong
+                                [id]="'right-sidebar-v3-overview-goals-domain-count-' + domain.id"
+                                class="text-xs font-extrabold whitespace-nowrap text-slate-900"
+                              >
+                                {{ formatGoalsCount(domain.metCount, domain.totalCount) }}
+                              </strong>
+                            </div>
+                            <div
+                              [id]="'right-sidebar-v3-overview-goals-domain-bar-' + domain.id"
+                              class="h-1.5 overflow-hidden rounded-full bg-slate-200"
+                              [attr.aria-label]="getGoalsPercentLabel(domain.pctMet)"
+                            >
+                              <span
+                                [id]="'right-sidebar-v3-overview-goals-domain-fill-' + domain.id"
+                                class="block h-full rounded-full bg-emerald-500"
+                                [style.width.%]="getGoalsProgressBarWidth(domain.pctMet)"
+                              ></span>
+                            </div>
+                            @if (domain.id === 'species' && overviewGoalsTaxa().length > 0) {
+                              <div
+                                id="right-sidebar-v3-overview-goals-widget-taxa"
+                                class="mt-2 ml-3 grid gap-2 border-l-2 border-emerald-100 pl-3"
+                              >
+                                <p
+                                  id="right-sidebar-v3-overview-goals-widget-taxa-label"
+                                  class="mb-0 text-[10px] font-extrabold tracking-[0.08em] text-slate-600 uppercase"
+                                >
+                                  {{ 'analysis.overview.goalsWidget.taxaBreakdown' | translate }}
+                                </p>
+                                @for (taxa of overviewGoalsTaxa(); track taxa.id) {
+                                  <div
+                                    [id]="'right-sidebar-v3-overview-goals-taxa-' + taxa.id"
+                                    class="grid gap-1"
+                                  >
+                                    <div
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-taxa-header-' + taxa.id
+                                      "
+                                      class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-taxa-label-' + taxa.id
+                                        "
+                                      >
+                                        {{ taxa.label }}
+                                      </span>
+                                      <strong
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-taxa-count-' + taxa.id
+                                        "
+                                        class="font-extrabold whitespace-nowrap text-slate-900"
+                                      >
+                                        {{ formatGoalsFullCount(taxa.metCount, taxa.totalCount) }}
+                                      </strong>
+                                    </div>
+                                    <div
+                                      [id]="'right-sidebar-v3-overview-goals-taxa-bar-' + taxa.id"
+                                      class="h-1 overflow-hidden rounded-full bg-slate-200"
+                                      [attr.aria-label]="getGoalsPercentLabel(taxa.pctMet)"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-taxa-fill-' + taxa.id
+                                        "
+                                        class="block h-full rounded-full bg-emerald-400"
+                                        [style.width.%]="getGoalsProgressBarWidth(taxa.pctMet)"
+                                      ></span>
+                                    </div>
+                                  </div>
+                                }
                                 <div
-                                  [id]="'right-sidebar-v3-overview-goals-taxa-header-' + taxa.id"
+                                  id="right-sidebar-v3-overview-goals-taxa-fish"
                                   class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
                                 >
                                   <span
-                                    [id]="'right-sidebar-v3-overview-goals-taxa-label-' + taxa.id"
+                                    id="right-sidebar-v3-overview-goals-taxa-fish-label"
+                                    class="inline-flex items-center gap-1.5"
                                   >
-                                    {{ taxa.label }}
+                                    <span id="right-sidebar-v3-overview-goals-taxa-fish-label-text">
+                                      {{ 'analysis.overview.goalsWidget.fish' | translate }}
+                                    </span>
+                                    <span
+                                      id="right-sidebar-v3-overview-goals-fish-info-help"
+                                      class="v3-fish-info-help"
+                                    >
+                                      <button
+                                        id="right-sidebar-v3-overview-goals-fish-info-trigger"
+                                        type="button"
+                                        class="v3-fish-info-trigger"
+                                        [attr.aria-label]="
+                                          'analysis.overview.goalsWidget.fishInfoAriaLabel'
+                                            | translate
+                                        "
+                                        aria-describedby="right-sidebar-v3-overview-goals-fish-info-tooltip"
+                                      >
+                                        <span
+                                          id="right-sidebar-v3-overview-goals-fish-info-indicator"
+                                          class="v3-fish-info-indicator"
+                                          aria-hidden="true"
+                                          >i</span
+                                        >
+                                      </button>
+                                      <span
+                                        id="right-sidebar-v3-overview-goals-fish-info-tooltip"
+                                        role="tooltip"
+                                        class="v3-fish-info-tooltip"
+                                      >
+                                        {{
+                                          'analysis.overview.goalsWidget.freshwaterClarification'
+                                            | translate
+                                        }}
+                                      </span>
+                                    </span>
                                   </span>
                                   <strong
-                                    [id]="'right-sidebar-v3-overview-goals-taxa-count-' + taxa.id"
-                                    class="font-extrabold whitespace-nowrap text-slate-900"
+                                    id="right-sidebar-v3-overview-goals-taxa-fish-value"
+                                    class="font-extrabold whitespace-nowrap text-slate-700"
                                   >
-                                    {{ formatGoalsFullCount(taxa.metCount, taxa.totalCount) }}
+                                    {{ 'analysis.overview.goalsWidget.notApplicable' | translate }}
                                   </strong>
-                                </div>
-                                <div
-                                  [id]="'right-sidebar-v3-overview-goals-taxa-bar-' + taxa.id"
-                                  class="h-1 overflow-hidden rounded-full bg-slate-200"
-                                  [attr.aria-label]="getGoalsPercentLabel(taxa.pctMet)"
-                                >
-                                  <span
-                                    [id]="'right-sidebar-v3-overview-goals-taxa-fill-' + taxa.id"
-                                    class="block h-full rounded-full bg-emerald-400"
-                                    [style.width.%]="getGoalsProgressBarWidth(taxa.pctMet)"
-                                  ></span>
                                 </div>
                               </div>
                             }
-                            <div
-                              id="right-sidebar-v3-overview-goals-taxa-fish"
-                              class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
+                            <button
+                              [id]="'right-sidebar-v3-overview-goals-domain-view-' + domain.id"
+                              type="button"
+                              class="mt-0.5 flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                              (click)="openGoalsModal(domain.id)"
                             >
                               <span
-                                id="right-sidebar-v3-overview-goals-taxa-fish-label"
-                                class="inline-flex items-center gap-1.5"
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-domain-view-label-' + domain.id
+                                "
                               >
-                                <span id="right-sidebar-v3-overview-goals-taxa-fish-label-text">
-                                  {{ 'analysis.overview.goalsWidget.fish' | translate }}
-                                </span>
+                                {{ 'analysis.overview.goalsWidget.viewBreakdown' | translate }}
+                              </span>
+                              <svg
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-domain-view-icon-' + domain.id
+                                "
+                                aria-hidden="true"
+                                viewBox="0 0 16 16"
+                                class="h-3.5 w-3.5 shrink-0 fill-none stroke-current"
+                              >
+                                <rect
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-domain-view-icon-frame-' +
+                                    domain.id
+                                  "
+                                  x="2"
+                                  y="2.5"
+                                  width="12"
+                                  height="11"
+                                  rx="1.5"
+                                  stroke-width="1.3"
+                                />
+                                <line
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-domain-view-icon-header-' +
+                                    domain.id
+                                  "
+                                  x1="2"
+                                  y1="6"
+                                  x2="14"
+                                  y2="6"
+                                  stroke-width="1.3"
+                                />
+                              </svg>
+                            </button>
+                          </article>
+                        }
+                      </div>
+                    } @else {
+                      <p
+                        id="right-sidebar-v3-overview-goals-no-targets"
+                        class="m-0 rounded-md bg-white/75 p-2.5 text-xs text-slate-600"
+                      >
+                        {{ 'analysis.overview.goalsWidget.noTargetsSet' | translate }}
+                      </p>
+                    }
+
+                    @if (additionalOutcomeGoalsDomains().length > 0) {
+                      <div
+                        id="right-sidebar-v3-overview-goals-additional-section"
+                        class="grid gap-2.5 rounded-md border border-slate-200 bg-slate-50/60 p-2.5"
+                      >
+                        <div
+                          id="right-sidebar-v3-overview-goals-additional-heading"
+                          class="grid gap-1"
+                        >
+                          <p
+                            id="right-sidebar-v3-overview-goals-additional-title"
+                            class="m-0 text-[11px] font-extrabold tracking-[0.04em] text-slate-700 uppercase"
+                          >
+                            {{
+                              'analysis.overview.goalsWidget.additionalOutcomesHeading' | translate
+                            }}
+                          </p>
+                          <p
+                            id="right-sidebar-v3-overview-goals-additional-description"
+                            class="m-0 text-[11px] leading-4 text-slate-600"
+                          >
+                            {{
+                              'analysis.overview.goalsWidget.additionalOutcomesDescription'
+                                | translate
+                            }}
+                          </p>
+                          <div
+                            id="right-sidebar-v3-overview-goals-additional-legend"
+                            class="mt-0.5 flex items-center gap-3 text-[9px] font-bold tracking-wide text-slate-500 uppercase"
+                          >
+                            <span
+                              id="right-sidebar-v3-overview-goals-additional-legend-17"
+                              class="inline-flex items-center gap-1"
+                            >
+                              <span
+                                id="right-sidebar-v3-overview-goals-additional-legend-17-swatch"
+                                aria-hidden="true"
+                                class="h-1.5 w-1.5 rounded-full bg-green-300"
+                              ></span>
+                              {{ 'analysis.overview.goalsWidget.legend17' | translate }}
+                            </span>
+                            <span
+                              id="right-sidebar-v3-overview-goals-additional-legend-30"
+                              class="inline-flex items-center gap-1"
+                            >
+                              <span
+                                id="right-sidebar-v3-overview-goals-additional-legend-30-swatch"
+                                aria-hidden="true"
+                                class="h-1.5 w-1.5 rounded-full bg-green-700"
+                              ></span>
+                              {{ 'analysis.overview.goalsWidget.legend30' | translate }}
+                            </span>
+                          </div>
+                        </div>
+
+                        @for (domain of additionalOutcomeGoalsDomains(); track domain.id) {
+                          <article
+                            [id]="'right-sidebar-v3-overview-goals-additional-domain-' + domain.id"
+                            class="grid gap-1"
+                          >
+                            <div
+                              [id]="
+                                'right-sidebar-v3-overview-goals-additional-domain-header-' +
+                                domain.id
+                              "
+                              class="flex items-baseline justify-between gap-2.5 text-xs"
+                            >
+                              <span
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-additional-domain-label-' +
+                                  domain.id
+                                "
+                                class="min-w-0 flex-1 text-slate-800"
+                              >
+                                {{ domain.labelKey | translate }}
+                              </span>
+                              <span
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-additional-domain-value-' +
+                                  domain.id
+                                "
+                                class="flex items-baseline gap-1 text-xs font-extrabold whitespace-nowrap tabular-nums text-slate-950"
+                              >
                                 <span
-                                  id="right-sidebar-v3-overview-goals-fish-info-help"
-                                  class="v3-fish-info-help"
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-additional-domain-count-17-' +
+                                    domain.id
+                                  "
+                                  class="text-green-700"
+                                  >{{ domain.reached17Count }}</span
+                                ><span
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-additional-domain-count-divider-' +
+                                    domain.id
+                                  "
+                                  aria-hidden="true"
+                                  class="font-semibold text-slate-400"
+                                  >|</span
+                                ><span
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-additional-domain-count-30-' +
+                                    domain.id
+                                  "
+                                  class="text-green-900"
+                                  >{{ domain.reached30Count }}</span
                                 >
-                                  <button
-                                    id="right-sidebar-v3-overview-goals-fish-info-trigger"
-                                    type="button"
-                                    class="v3-fish-info-trigger"
-                                    [attr.aria-label]="
-                                      'analysis.overview.goalsWidget.fishInfoAriaLabel' | translate
-                                    "
-                                    aria-describedby="right-sidebar-v3-overview-goals-fish-info-tooltip"
-                                  >
-                                    <span
-                                      id="right-sidebar-v3-overview-goals-fish-info-indicator"
-                                      class="v3-fish-info-indicator"
-                                      aria-hidden="true"
-                                      >i</span
-                                    >
-                                  </button>
-                                  <span
-                                    id="right-sidebar-v3-overview-goals-fish-info-tooltip"
-                                    role="tooltip"
-                                    class="v3-fish-info-tooltip"
-                                  >
-                                    {{
-                                      'analysis.overview.goalsWidget.freshwaterClarification'
-                                        | translate
-                                    }}
-                                  </span>
+                                <span
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-additional-domain-total-' +
+                                    domain.id
+                                  "
+                                  class="text-[10px] font-semibold text-slate-500"
+                                  >{{
+                                    'analysis.overview.goalsWidget.ofTotal'
+                                      | translate: { total: domain.totalCount }
+                                  }}
                                 </span>
                               </span>
-                              <strong
-                                id="right-sidebar-v3-overview-goals-taxa-fish-value"
-                                class="font-extrabold whitespace-nowrap text-slate-700"
-                              >
-                                {{ 'analysis.overview.goalsWidget.notApplicable' | translate }}
-                              </strong>
                             </div>
-                          </div>
+                            <div
+                              [id]="
+                                'right-sidebar-v3-overview-goals-additional-domain-bar-' + domain.id
+                              "
+                              role="img"
+                              class="relative h-1.5 overflow-hidden rounded-full bg-slate-200"
+                              [attr.aria-label]="
+                                'analysis.overview.goalsWidget.rangeCoverageAriaLabel'
+                                  | translate
+                                    : {
+                                        reached17: domain.reached17Count,
+                                        reached30: domain.reached30Count,
+                                        total: domain.totalCount,
+                                      }
+                              "
+                            >
+                              <span
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-additional-domain-fill-17-' +
+                                  domain.id
+                                "
+                                class="absolute inset-y-0 left-0 block rounded-full bg-green-300"
+                                [style.width.%]="
+                                  getRangeCoverageSharePercent(
+                                    domain.reached17Count,
+                                    domain.totalCount
+                                  )
+                                "
+                              ></span>
+                              <span
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-additional-domain-fill-30-' +
+                                  domain.id
+                                "
+                                class="absolute inset-y-0 left-0 block rounded-full bg-green-700"
+                                [style.width.%]="
+                                  getRangeCoverageSharePercent(
+                                    domain.reached30Count,
+                                    domain.totalCount
+                                  )
+                                "
+                              ></span>
+                            </div>
+                            <button
+                              [id]="
+                                'right-sidebar-v3-overview-goals-additional-domain-view-' +
+                                domain.id
+                              "
+                              type="button"
+                              class="mt-0.5 flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                              (click)="openGoalsModal(domain.id)"
+                            >
+                              <span
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-additional-domain-view-label-' +
+                                  domain.id
+                                "
+                              >
+                                {{ 'analysis.overview.goalsWidget.viewBreakdown' | translate }}
+                              </span>
+                              <svg
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-additional-domain-view-icon-' +
+                                  domain.id
+                                "
+                                aria-hidden="true"
+                                viewBox="0 0 16 16"
+                                class="h-3.5 w-3.5 shrink-0 fill-none stroke-current"
+                              >
+                                <rect
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-additional-domain-view-icon-frame-' +
+                                    domain.id
+                                  "
+                                  x="2"
+                                  y="2.5"
+                                  width="12"
+                                  height="11"
+                                  rx="1.5"
+                                  stroke-width="1.3"
+                                />
+                                <line
+                                  [id]="
+                                    'right-sidebar-v3-overview-goals-additional-domain-view-icon-header-' +
+                                    domain.id
+                                  "
+                                  x1="2"
+                                  y1="6"
+                                  x2="14"
+                                  y2="6"
+                                  stroke-width="1.3"
+                                />
+                              </svg>
+                            </button>
+                          </article>
                         }
-                      </article>
+                      </div>
                     }
                   </div>
                 }
@@ -2660,6 +2946,476 @@
     }
   </div>
 </section>
+
+<app-modal-shell
+  id="conservation-goals-modal-shell"
+  rootId="conservation-goals-modal"
+  mode="wide"
+  headerAlign="start"
+  titleKey="analysis.overview.goalsWidget.modal.title"
+  [isOpen]="goalsModalOpen()"
+  (requestClose)="closeGoalsModal()"
+>
+  <p
+    id="conservation-goals-modal-kicker"
+    modal-shell-header-content
+    class="mb-1 text-[10px] font-bold tracking-[0.12em] text-emerald-700 uppercase"
+  >
+    {{
+      (goalsModalDomain()?.targeted
+        ? 'analysis.overview.goalsWidget.modal.targetedKicker'
+        : 'analysis.overview.goalsWidget.modal.additionalKicker'
+      ) | translate
+    }}
+  </p>
+
+  @if (goalsModalDomain(); as domain) {
+    <div id="conservation-goals-modal-body" class="grid gap-4 p-4 md:p-6">
+      <section id="conservation-goals-modal-intro" class="grid gap-2">
+        <h3 id="conservation-goals-modal-domain-title" class="m-0 text-lg font-bold text-slate-900">
+          {{ domain.labelKey | translate }}
+        </h3>
+        <p
+          id="conservation-goals-modal-description"
+          class="m-0 max-w-4xl text-xs leading-5 text-slate-600"
+        >
+          {{
+            (domain.targeted
+              ? 'analysis.overview.goalsWidget.modal.targetedDescription'
+              : 'analysis.overview.goalsWidget.modal.additionalDescription'
+            ) | translate
+          }}
+        </p>
+      </section>
+
+      @if (domain.targeted) {
+        <section
+          id="conservation-goals-modal-target-summary"
+          class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+        >
+          <article
+            id="conservation-goals-modal-target-card"
+            class="rounded-md border border-emerald-200 bg-emerald-50 p-3"
+          >
+            <span
+              id="conservation-goals-modal-target-label"
+              class="text-[10px] font-bold text-slate-600 uppercase"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.configuredTarget' | translate }}
+            </span>
+            <strong
+              id="conservation-goals-modal-target-value"
+              class="mt-1 block text-lg text-emerald-800"
+            >
+              {{ domain.targetLabel }}
+            </strong>
+          </article>
+          <article
+            id="conservation-goals-modal-met-card"
+            class="rounded-md border border-slate-200 bg-white p-3"
+          >
+            <span
+              id="conservation-goals-modal-met-label"
+              class="text-[10px] font-bold text-slate-600 uppercase"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.featuresMeetingTarget' | translate }}
+            </span>
+            <strong
+              id="conservation-goals-modal-met-value"
+              class="mt-1 block text-lg text-slate-950"
+            >
+              {{ formatGoalsFullCount(domain.metCount, domain.totalCount) }}
+            </strong>
+          </article>
+          <article
+            id="conservation-goals-modal-progress-card"
+            class="rounded-md border border-slate-200 bg-white p-3"
+          >
+            <span
+              id="conservation-goals-modal-progress-label"
+              class="text-[10px] font-bold text-slate-600 uppercase"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.targetProgress' | translate }}
+            </span>
+            <strong
+              id="conservation-goals-modal-progress-value"
+              class="mt-1 block text-lg text-slate-950"
+            >
+              {{ getGoalsPercentLabel(domain.pctMet) }}
+            </strong>
+            <div
+              id="conservation-goals-modal-progress-bar"
+              class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200"
+            >
+              <span
+                id="conservation-goals-modal-progress-fill"
+                class="block h-full rounded-full bg-emerald-500"
+                [style.width.%]="getGoalsProgressBarWidth(domain.pctMet)"
+              ></span>
+            </div>
+          </article>
+        </section>
+      } @else {
+        <section
+          id="conservation-goals-modal-checkpoint-summary"
+          class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+        >
+          <article
+            id="conservation-goals-modal-checkpoint-17-card"
+            class="rounded-md border border-green-200 bg-green-50 p-3"
+          >
+            <span
+              id="conservation-goals-modal-checkpoint-17-label"
+              class="text-[10px] font-bold text-slate-600 uppercase"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.reached17' | translate }}
+            </span>
+            <strong
+              id="conservation-goals-modal-checkpoint-17-value"
+              class="mt-1 block text-lg text-green-700"
+            >
+              {{ formatGoalsFullCount(domain.reached17Count, domain.totalCount) }}
+            </strong>
+          </article>
+          <article
+            id="conservation-goals-modal-checkpoint-30-card"
+            class="rounded-md border border-green-300 bg-green-50 p-3"
+          >
+            <span
+              id="conservation-goals-modal-checkpoint-30-label"
+              class="text-[10px] font-bold text-slate-600 uppercase"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.reached30' | translate }}
+            </span>
+            <strong
+              id="conservation-goals-modal-checkpoint-30-value"
+              class="mt-1 block text-lg text-green-900"
+            >
+              {{ formatGoalsFullCount(domain.reached30Count, domain.totalCount) }}
+            </strong>
+          </article>
+          <article
+            id="conservation-goals-modal-measured-card"
+            class="rounded-md border border-slate-200 bg-white p-3"
+          >
+            <span
+              id="conservation-goals-modal-measured-label"
+              class="text-[10px] font-bold text-slate-600 uppercase"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.featuresMeasured' | translate }}
+            </span>
+            <strong
+              id="conservation-goals-modal-measured-value"
+              class="mt-1 block text-lg text-slate-950"
+            >
+              {{ domain.totalCount }}
+            </strong>
+          </article>
+        </section>
+      }
+
+      <section
+        id="conservation-goals-modal-browser"
+        class="overflow-hidden rounded-md border border-slate-200 bg-white"
+      >
+        <header
+          id="conservation-goals-modal-browser-header"
+          class="grid gap-3 border-b border-slate-200 bg-slate-50 p-3"
+        >
+          <div
+            id="conservation-goals-modal-browser-heading"
+            class="flex items-center justify-between gap-3"
+          >
+            <h4
+              id="conservation-goals-modal-browser-title"
+              class="m-0 text-sm font-bold text-slate-900"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.featureDetails' | translate }}
+            </h4>
+            <span
+              id="conservation-goals-modal-browser-count"
+              class="text-[11px] font-semibold text-slate-500"
+            >
+              {{
+                'analysis.overview.goalsWidget.modal.resultsCount'
+                  | translate: { count: goalsModalRows().length }
+              }}
+            </span>
+          </div>
+          <div
+            id="conservation-goals-modal-controls"
+            class="grid grid-cols-1 gap-2 md:grid-cols-3"
+            [class.lg:grid-cols-4]="domain.featureType === 'species'"
+          >
+            <label id="conservation-goals-modal-search-label" class="grid gap-1">
+              <span
+                id="conservation-goals-modal-search-label-text"
+                class="text-[10px] font-bold text-slate-600 uppercase"
+              >
+                {{ 'analysis.overview.goalsWidget.modal.search' | translate }}
+              </span>
+              <input
+                id="conservation-goals-modal-search-input"
+                type="search"
+                class="min-h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-800"
+                [value]="goalsModalSearchQuery()"
+                [placeholder]="'analysis.overview.goalsWidget.modal.searchPlaceholder' | translate"
+                (input)="setGoalsModalSearchQuery($any($event.target).value)"
+              />
+            </label>
+            @if (domain.featureType === 'species') {
+              <label id="conservation-goals-modal-taxa-label" class="grid gap-1">
+                <span
+                  id="conservation-goals-modal-taxa-label-text"
+                  class="text-[10px] font-bold text-slate-600 uppercase"
+                >
+                  {{ 'analysis.overview.goalsWidget.modal.taxaGroup' | translate }}
+                </span>
+                <select
+                  id="conservation-goals-modal-taxa-select"
+                  class="min-h-9 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800"
+                  [value]="goalsModalTaxonGroup()"
+                  (change)="setGoalsModalTaxonGroup($any($event.target).value)"
+                >
+                  <option id="conservation-goals-modal-taxa-all" value="all">
+                    {{ 'analysis.overview.goalsWidget.modal.allGroups' | translate }}
+                  </option>
+                  @for (group of goalsModalTaxonGroups(); track group) {
+                    <option [id]="'conservation-goals-modal-taxa-' + $index" [value]="group">
+                      {{ group }}
+                    </option>
+                  }
+                </select>
+              </label>
+            }
+            <label id="conservation-goals-modal-filter-label" class="grid gap-1">
+              <span
+                id="conservation-goals-modal-filter-label-text"
+                class="text-[10px] font-bold text-slate-600 uppercase"
+              >
+                {{ 'analysis.overview.goalsWidget.modal.filter' | translate }}
+              </span>
+              <select
+                id="conservation-goals-modal-filter-select"
+                class="min-h-9 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800"
+                [value]="goalsModalFilterId()"
+                (change)="setGoalsModalFilterId($any($event.target).value)"
+              >
+                <option id="conservation-goals-modal-filter-all" value="all">
+                  {{ 'analysis.overview.goalsWidget.modal.filterAll' | translate }}
+                </option>
+                @if (domain.targeted) {
+                  <option id="conservation-goals-modal-filter-met" value="met">
+                    {{ 'analysis.overview.goalsWidget.modal.filterMet' | translate }}
+                  </option>
+                  <option id="conservation-goals-modal-filter-not-met" value="not-met">
+                    {{ 'analysis.overview.goalsWidget.modal.filterNotMet' | translate }}
+                  </option>
+                } @else {
+                  <option id="conservation-goals-modal-filter-reached-17" value="reached17">
+                    {{ 'analysis.overview.goalsWidget.modal.filterReached17' | translate }}
+                  </option>
+                  <option id="conservation-goals-modal-filter-below-17" value="below17">
+                    {{ 'analysis.overview.goalsWidget.modal.filterBelow17' | translate }}
+                  </option>
+                  <option id="conservation-goals-modal-filter-reached-30" value="reached30">
+                    {{ 'analysis.overview.goalsWidget.modal.filterReached30' | translate }}
+                  </option>
+                  <option id="conservation-goals-modal-filter-below-30" value="below30">
+                    {{ 'analysis.overview.goalsWidget.modal.filterBelow30' | translate }}
+                  </option>
+                }
+              </select>
+            </label>
+            <label id="conservation-goals-modal-sort-label" class="grid gap-1">
+              <span
+                id="conservation-goals-modal-sort-label-text"
+                class="text-[10px] font-bold text-slate-600 uppercase"
+              >
+                {{ 'analysis.overview.goalsWidget.modal.sort' | translate }}
+              </span>
+              <select
+                id="conservation-goals-modal-sort-select"
+                class="min-h-9 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800"
+                [value]="goalsModalSortId()"
+                (change)="setGoalsModalSortId($any($event.target).value)"
+              >
+                <option id="conservation-goals-modal-sort-coverage-desc" value="coverage-desc">
+                  {{ 'analysis.overview.goalsWidget.modal.sortCoverageDesc' | translate }}
+                </option>
+                <option id="conservation-goals-modal-sort-coverage-asc" value="coverage-asc">
+                  {{ 'analysis.overview.goalsWidget.modal.sortCoverageAsc' | translate }}
+                </option>
+                <option id="conservation-goals-modal-sort-name" value="name">
+                  {{ 'analysis.overview.goalsWidget.modal.sortName' | translate }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </header>
+
+        <div id="conservation-goals-modal-table-wrapper" class="max-h-[48vh] overflow-auto">
+          <table
+            id="conservation-goals-modal-table"
+            class="w-full min-w-180 border-collapse text-left text-xs"
+          >
+            <thead
+              id="conservation-goals-modal-table-head"
+              class="sticky top-0 z-1 bg-white shadow-sm"
+            >
+              <tr id="conservation-goals-modal-table-heading-row">
+                <th
+                  id="conservation-goals-modal-heading-feature"
+                  class="px-3 py-2.5 font-bold text-slate-600"
+                >
+                  {{ 'analysis.overview.goalsWidget.modal.feature' | translate }}
+                </th>
+                <th
+                  id="conservation-goals-modal-heading-coverage"
+                  class="px-3 py-2.5 font-bold text-slate-600"
+                >
+                  {{ 'analysis.overview.goalsWidget.modal.rangeCoverage' | translate }}
+                </th>
+                @if (domain.targeted) {
+                  <th
+                    id="conservation-goals-modal-heading-target"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.target' | translate }}
+                  </th>
+                  <th
+                    id="conservation-goals-modal-heading-status"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.status' | translate }}
+                  </th>
+                } @else {
+                  <th
+                    id="conservation-goals-modal-heading-checkpoints"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.checkpoints' | translate }}
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody id="conservation-goals-modal-table-body">
+              @for (row of goalsModalRows(); track row.id) {
+                <tr
+                  [id]="'conservation-goals-modal-row-' + $index"
+                  class="border-t border-slate-100"
+                >
+                  <td [id]="'conservation-goals-modal-feature-' + $index" class="px-3 py-2.5">
+                    <strong
+                      [id]="'conservation-goals-modal-feature-name-' + $index"
+                      class="block font-semibold text-slate-900"
+                    >
+                      {{ row.name }}
+                    </strong>
+                    @if (row.secondaryLabel) {
+                      <span
+                        [id]="'conservation-goals-modal-feature-secondary-' + $index"
+                        class="mt-0.5 block text-[10px] text-slate-500"
+                      >
+                        {{ row.secondaryLabel }}
+                      </span>
+                    }
+                  </td>
+                  <td [id]="'conservation-goals-modal-coverage-' + $index" class="w-60 px-3 py-2.5">
+                    <div
+                      [id]="'conservation-goals-modal-coverage-layout-' + $index"
+                      class="flex items-center gap-2"
+                    >
+                      <div
+                        [id]="'conservation-goals-modal-coverage-bar-' + $index"
+                        class="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200"
+                      >
+                        <span
+                          [id]="'conservation-goals-modal-coverage-fill-' + $index"
+                          class="block h-full rounded-full bg-emerald-500"
+                          [style.width.%]="getGoalsProgressBarWidth((row.relativeHeld ?? 0) * 100)"
+                        ></span>
+                      </div>
+                      <span
+                        [id]="'conservation-goals-modal-coverage-value-' + $index"
+                        class="w-11 text-right font-semibold tabular-nums text-slate-700"
+                      >
+                        {{ formatGoalsModalPercent(row.relativeHeld) }}
+                      </span>
+                    </div>
+                  </td>
+                  @if (domain.targeted) {
+                    <td
+                      [id]="'conservation-goals-modal-target-value-' + $index"
+                      class="px-3 py-2.5 text-slate-700"
+                    >
+                      {{ formatGoalsModalPercent(row.relativeTarget) }}
+                    </td>
+                    <td [id]="'conservation-goals-modal-status-' + $index" class="px-3 py-2.5">
+                      <span
+                        [id]="'conservation-goals-modal-status-badge-' + $index"
+                        class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        [class.bg-emerald-100]="row.met === true"
+                        [class.text-emerald-800]="row.met === true"
+                        [class.bg-amber-100]="row.met !== true"
+                        [class.text-amber-800]="row.met !== true"
+                      >
+                        {{
+                          (row.met
+                            ? 'analysis.overview.goalsWidget.modal.met'
+                            : 'analysis.overview.goalsWidget.modal.notMet'
+                          ) | translate
+                        }}
+                      </span>
+                    </td>
+                  } @else {
+                    <td [id]="'conservation-goals-modal-checkpoints-' + $index" class="px-3 py-2.5">
+                      <div
+                        [id]="'conservation-goals-modal-checkpoint-badges-' + $index"
+                        class="flex gap-1.5"
+                      >
+                        <span
+                          [id]="'conservation-goals-modal-checkpoint-17-badge-' + $index"
+                          class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          [class.bg-green-100]="row.reached17"
+                          [class.text-green-800]="row.reached17"
+                          [class.bg-slate-100]="!row.reached17"
+                          [class.text-slate-500]="!row.reached17"
+                        >
+                          17%
+                        </span>
+                        <span
+                          [id]="'conservation-goals-modal-checkpoint-30-badge-' + $index"
+                          class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          [class.bg-green-700]="row.reached30"
+                          [class.text-white]="row.reached30"
+                          [class.bg-slate-100]="!row.reached30"
+                          [class.text-slate-500]="!row.reached30"
+                        >
+                          30%
+                        </span>
+                      </div>
+                    </td>
+                  }
+                </tr>
+              } @empty {
+                <tr id="conservation-goals-modal-empty-row">
+                  <td
+                    id="conservation-goals-modal-empty-cell"
+                    class="px-3 py-8 text-center text-sm text-slate-500"
+                    [attr.colspan]="domain.targeted ? 4 : 3"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.noRows' | translate }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  }
+</app-modal-shell>
 
 <app-modal-shell
   id="aoi-mec-classifications-modal-shell"

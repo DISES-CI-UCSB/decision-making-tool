@@ -18,10 +18,12 @@ import type {
   MetricComparisonValue,
   MetricValue,
   Solution,
+  SolutionGoalsDocument,
 } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
 import { PanelSwitcherComponent } from './panel-switcher';
 
 describe('PanelSwitcherComponent', () => {
@@ -29,11 +31,13 @@ describe('PanelSwitcherComponent', () => {
   let appLocale: AppLocaleService;
   let mockData: MockDataService;
   let apiServiceSpy: Pick<ApiService, 'getSolutionMetrics' | 'getCustomPolygonMetrics'>;
+  let goalsDocument: SolutionGoalsDocument | null;
 
   beforeEach(async () => {
     vi.spyOn(console, 'info').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockData = new MockDataService();
+    goalsDocument = null;
     apiServiceSpy = {
       getSolutionMetrics: vi.fn((solutionId: string) => {
         const flat = mockData.getSolutionMetrics(solutionId);
@@ -54,6 +58,10 @@ describe('PanelSwitcherComponent', () => {
       imports: [PanelSwitcherComponent],
       providers: [
         { provide: ApiService, useValue: apiServiceSpy },
+        {
+          provide: SolutionGoalsLoaderService,
+          useValue: { loadGoals: vi.fn(() => of(goalsDocument)) },
+        },
         {
           provide: HttpClient,
           useValue: {
@@ -704,6 +712,69 @@ describe('PanelSwitcherComponent', () => {
     expect(component.formatDelta(areaComparison)).toBe('+200 ha');
   });
 
+  it('separates configured targets from measured additional outcomes', () => {
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-count-17-species')
+        ?.textContent,
+    ).toContain('2');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-count-30-species')
+        ?.textContent,
+    ).toContain('1');
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+  });
+
+  it('opens and filters the additional outcomes feature modal', async () => {
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect((compiled.querySelector('#conservation-goals-modal') as HTMLDialogElement).open).toBe(
+      true,
+    );
+    expect(compiled.querySelectorAll('[id^="conservation-goals-modal-row-"]')).toHaveLength(3);
+    expect(compiled.querySelector('#conservation-goals-modal-heading-checkpoints')).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-heading-target')).toBeNull();
+
+    const filter = compiled.querySelector(
+      '#conservation-goals-modal-filter-select',
+    ) as HTMLSelectElement;
+    filter.value = 'reached30';
+    filter.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(compiled.querySelectorAll('[id^="conservation-goals-modal-row-"]')).toHaveLength(1);
+    expect(
+      compiled.querySelector('#conservation-goals-modal-feature-name-0')?.textContent,
+    ).toContain('Andean bear');
+  });
+
   it('falls back when custom AOI backend loading fails', async () => {
     const solution = buildTestSolution();
     const geometry = buildTestGeometry();
@@ -747,6 +818,105 @@ function buildTestSolution(): Solution {
     matchPercentage: 80,
     geometryUrl: '/geometry/test-solution.geojson',
     metrics: [],
+  };
+}
+
+function buildGoalsDocument(): SolutionGoalsDocument {
+  const species = [
+    buildGoalFeature('species-1', 'Andean bear', 'species', 0.35, false, 'Mammals', 'VU'),
+    buildGoalFeature('species-2', 'Bogota rail', 'species', 0.2, false, 'Birds', 'EN'),
+    buildGoalFeature('species-3', 'Tree frog', 'species', 0.1, false, 'Amphibians', 'LC'),
+  ];
+  const ecosystems = [
+    buildGoalFeature('ecosystem-1', 'Andean forest', 'ecosystems', 0.35, true),
+    buildGoalFeature('ecosystem-2', 'Dry forest', 'ecosystems', 0.2, false),
+  ];
+  const strategicEcosystems = [
+    buildGoalFeature('strategic-1', 'Páramos', 'strategicEcosystems', 0.4, false),
+  ];
+
+  return {
+    format: 'conservation-goals-v1',
+    solutionId: 'test-solution',
+    solutionName: 'Test Solution',
+    generatedAt: '2026-07-23T00:00:00.000Z',
+    source: {
+      summaryCsvUrl: null,
+      summaryCsvRows: 6,
+      speciesLookupUrl: '/species.csv',
+    },
+    targetContext: {
+      finderTargetPercent: 30,
+      targetFeatureSet: 'ecosystems',
+      targetFeatureIds: ['ecosistemas'],
+      relativeTargetsByType: {
+        species: [0.3],
+        strategicEcosystems: [0.3],
+        ecosystems: [0.3],
+      },
+    },
+    summary: {
+      metCount: 1,
+      totalCount: 6,
+      pctMet: 50,
+      byType: {
+        species: { metSpeciesCount: 0, totalSpeciesCount: 3, pctMet: 0 },
+        strategicEcosystems: { metCount: 0, totalCount: 1, pctMet: 0 },
+        ecosystems: { metCount: 1, totalCount: 2, pctMet: 50 },
+        other: { metCount: 0, totalCount: 0, pctMet: null },
+      },
+    },
+    rollups: {
+      species: {
+        metSpeciesCount: 0,
+        totalSpeciesCount: 3,
+        pctMet: 0,
+        byTaxa: {
+          Mammals: { label: 'Mammals', metSpeciesCount: 0, totalSpeciesCount: 1, pctMet: 0 },
+          Birds: { label: 'Birds', metSpeciesCount: 0, totalSpeciesCount: 1, pctMet: 0 },
+          Amphibians: {
+            label: 'Amphibians',
+            metSpeciesCount: 0,
+            totalSpeciesCount: 1,
+            pctMet: 0,
+          },
+        },
+        byIucnStatus: {},
+        unmatchedSpeciesCount: 0,
+        ignoredSpeciesRowCount: 0,
+      },
+      strategicEcosystems: { metCount: 0, totalCount: 1, pctMet: 0 },
+      ecosystems: { metCount: 1, totalCount: 2, pctMet: 50 },
+    },
+    features: { species, strategicEcosystems, ecosystems, other: [] },
+    diagnostics: { rawTypeCounts: {}, rowCounts: {} },
+  };
+}
+
+function buildGoalFeature(
+  featureId: string,
+  featureName: string,
+  featureType: 'species' | 'strategicEcosystems' | 'ecosystems',
+  relativeHeld: number,
+  met: boolean,
+  taxonGroup: string | null = null,
+  iucnStatus: string | null = null,
+) {
+  return {
+    featureId,
+    featureName,
+    featureType,
+    met,
+    totalAmount: 100,
+    absoluteTarget: 30,
+    absoluteHeld: relativeHeld * 100,
+    absoluteShortfall: Math.max(0, 30 - relativeHeld * 100),
+    relativeTarget: 0.3,
+    relativeHeld,
+    relativeShortfall: Math.max(0, 0.3 - relativeHeld),
+    scenario: 'test',
+    taxonGroup,
+    iucnStatus,
   };
 }
 

@@ -1,0 +1,3008 @@
+<!doctype html>
+<html id="conservation-outcomes-mockup-root" lang="en">
+  <head id="conservation-outcomes-mockup-head">
+    <meta id="conservation-outcomes-mockup-charset" charset="UTF-8" />
+    <meta
+      id="conservation-outcomes-mockup-viewport"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title id="conservation-outcomes-mockup-title">
+      Conservation Outcomes — Target Progress and Additional Outcomes
+    </title>
+    <script
+      id="conservation-outcomes-tailwind-browser"
+      src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+    ></script>
+  </head>
+  <body
+    id="conservation-outcomes-mockup-body"
+    class="min-h-screen bg-slate-200 p-6 font-sans text-slate-900 antialiased"
+  >
+    <main
+      id="conservation-outcomes-mockup-stage"
+      class="mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-start justify-end rounded-2xl border border-slate-300 bg-slate-100 shadow-xl"
+    >
+      <aside
+        id="solution-overview-sidebar"
+        aria-label="Solution overview"
+        class="flex h-[calc(100vh-3rem)] w-[390px] max-w-full flex-col overflow-hidden rounded-r-2xl border-l border-slate-300 bg-white shadow-[-8px_0_24px_rgba(15,23,42,0.08)]"
+      >
+        <header
+          id="solution-overview-header"
+          class="border-b border-slate-200 bg-white px-4 py-3.5"
+        >
+          <div
+            id="solution-overview-header-row"
+            class="flex items-start justify-between gap-3"
+          >
+            <div id="solution-overview-heading-group" class="min-w-0">
+              <p
+                id="solution-overview-kicker"
+                class="m-0 text-[10px] font-extrabold tracking-[0.1em] text-slate-500 uppercase"
+              >
+                Solution overview
+              </p>
+              <h1
+                id="solution-overview-name"
+                class="mt-1 truncate text-base leading-5 font-extrabold text-slate-950"
+              >
+                Biodiversity balance
+              </h1>
+            </div>
+            <span
+              id="solution-overview-match-badge"
+              class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-extrabold text-emerald-800"
+            >
+              92% match
+            </span>
+          </div>
+          <nav
+            id="solution-overview-tabs"
+            aria-label="Analysis views"
+            class="mt-3 grid grid-cols-3 rounded-lg bg-slate-100 p-1 text-xs"
+          >
+            <button
+              id="solution-overview-tab-overview"
+              type="button"
+              aria-current="page"
+              class="rounded-md bg-white px-2 py-1.5 font-bold text-slate-900 shadow-sm"
+            >
+              Overview
+            </button>
+            <button
+              id="solution-overview-tab-aoi"
+              type="button"
+              class="rounded-md px-2 py-1.5 font-semibold text-slate-500"
+            >
+              Area
+            </button>
+            <button
+              id="solution-overview-tab-compare"
+              type="button"
+              class="rounded-md px-2 py-1.5 font-semibold text-slate-500"
+            >
+              Compare
+            </button>
+          </nav>
+        </header>
+
+        <div
+          id="solution-overview-content"
+          class="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-3"
+        >
+          <section
+            id="conservation-outcomes-card"
+            aria-labelledby="conservation-outcomes-card-title"
+            class="overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm"
+          >
+            <header
+              id="conservation-outcomes-card-header"
+              class="bg-linear-to-b from-emerald-50 to-white px-3.5 pt-3 pb-2"
+            >
+              <h2
+                id="conservation-outcomes-card-title"
+                class="m-0 text-sm leading-5 font-extrabold text-slate-950"
+              >
+                Target progress
+              </h2>
+            </header>
+
+            <section
+              id="target-progress-section"
+              aria-labelledby="conservation-outcomes-card-title"
+              class="px-3.5 pb-2.5"
+            >
+              <div id="target-progress-rows" class="grid gap-2.5">
+                <article id="target-progress-ecosystems" class="grid gap-1">
+                  <div
+                    id="target-progress-ecosystems-heading"
+                    class="flex items-baseline justify-between gap-2.5 text-xs"
+                  >
+                    <span
+                      id="target-progress-ecosystems-label"
+                      class="min-w-0 flex-1 text-slate-800"
+                    >
+                      Ecosystems
+                    </span>
+                    <span
+                      id="target-progress-ecosystems-target"
+                      class="text-[10px] whitespace-nowrap text-slate-600"
+                    >
+                      17% target
+                    </span>
+                    <strong
+                      id="target-progress-ecosystems-value"
+                      class="text-xs font-extrabold whitespace-nowrap tabular-nums text-slate-950"
+                    >
+                      261 / 430
+                    </strong>
+                  </div>
+                  <div
+                    id="target-progress-ecosystems-track"
+                    role="progressbar"
+                    aria-label="261 of 430 IAvH biome-region class targets met"
+                    aria-valuemin="0"
+                    aria-valuemax="430"
+                    aria-valuenow="261"
+                    class="h-1.5 overflow-hidden rounded-full bg-slate-200"
+                  >
+                    <span
+                      id="target-progress-ecosystems-fill"
+                      class="block h-full w-[61%] rounded-full bg-emerald-500"
+                    ></span>
+                  </div>
+                  <button
+                    id="target-progress-view-ecosystems-button"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-controls="ecosystem-coverage-modal"
+                    aria-expanded="false"
+                    class="mt-1 flex min-h-8 w-full items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
+                  >
+                    <span id="target-progress-view-ecosystems-button-label">
+                      View ecosystem breakdown
+                    </span>
+                    <svg
+                      id="target-progress-view-ecosystems-button-icon"
+                      aria-hidden="true"
+                      class="h-3.5 w-3.5 text-slate-500"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                    >
+                      <rect
+                        id="target-progress-view-ecosystems-button-icon-window"
+                        x="2.25"
+                        y="3.25"
+                        width="11.5"
+                        height="9.5"
+                        rx="1.75"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      ></rect>
+                      <path
+                        id="target-progress-view-ecosystems-button-icon-header"
+                        d="M2.75 6h10.5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      ></path>
+                    </svg>
+                  </button>
+                </article>
+
+                <article
+                  id="target-progress-strategic-ecosystems"
+                  class="grid gap-1"
+                >
+                  <div
+                    id="target-progress-strategic-ecosystems-heading"
+                    class="flex items-baseline justify-between gap-2.5 text-xs"
+                  >
+                    <span
+                      id="target-progress-strategic-ecosystems-label"
+                      class="min-w-0 flex-1 text-slate-800"
+                    >
+                      Strategic ecosystems
+                    </span>
+                    <span
+                      id="target-progress-strategic-ecosystems-target"
+                      class="text-[10px] whitespace-nowrap text-slate-600"
+                    >
+                      17% target
+                    </span>
+                    <strong
+                      id="target-progress-strategic-ecosystems-value"
+                      class="text-xs font-extrabold whitespace-nowrap tabular-nums text-slate-950"
+                    >
+                      4 / 4
+                    </strong>
+                  </div>
+                  <div
+                    id="target-progress-strategic-ecosystems-track"
+                    role="progressbar"
+                    aria-label="4 of 4 strategic ecosystem targets met"
+                    aria-valuemin="0"
+                    aria-valuemax="4"
+                    aria-valuenow="4"
+                    class="h-1.5 overflow-hidden rounded-full bg-slate-200"
+                  >
+                    <span
+                      id="target-progress-strategic-ecosystems-fill"
+                      class="block h-full w-full rounded-full bg-emerald-500"
+                    ></span>
+                  </div>
+                  <button
+                    id="target-progress-view-strategic-ecosystems-button"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-controls="strategic-ecosystem-coverage-modal"
+                    aria-expanded="false"
+                    class="mt-1 flex min-h-8 w-full items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
+                  >
+                    <span
+                      id="target-progress-view-strategic-ecosystems-button-label"
+                    >
+                      View strategic ecosystem breakdown
+                    </span>
+                    <svg
+                      id="target-progress-view-strategic-ecosystems-button-icon"
+                      aria-hidden="true"
+                      class="h-3.5 w-3.5 text-slate-500"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                    >
+                      <rect
+                        id="target-progress-view-strategic-ecosystems-button-icon-window"
+                        x="2.25"
+                        y="3.25"
+                        width="11.5"
+                        height="9.5"
+                        rx="1.75"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      ></rect>
+                      <path
+                        id="target-progress-view-strategic-ecosystems-button-icon-header"
+                        d="M2.75 6h10.5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      ></path>
+                    </svg>
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <section
+              id="additional-outcomes-section"
+              aria-labelledby="additional-outcomes-heading"
+              class="border-t border-emerald-100 bg-white/70 px-3.5 py-2.5"
+            >
+              <div
+                id="additional-outcomes-section-heading-row"
+                class="mb-2 flex items-center justify-between gap-3"
+              >
+                <h3
+                  id="additional-outcomes-heading"
+                  class="m-0 text-[10px] font-extrabold tracking-[0.08em] text-slate-600 uppercase"
+                >
+                  Additional outcomes
+                </h3>
+                <span
+                  id="additional-outcomes-not-targeted-badge"
+                  class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-bold tracking-wide text-slate-600 uppercase"
+                >
+                  Not targeted
+                </span>
+              </div>
+
+              <div
+                id="additional-outcomes-legend"
+                class="mb-1.5 flex items-center gap-3 text-[9px] font-bold tracking-wide text-slate-500 uppercase"
+              >
+                <span
+                  id="additional-outcomes-legend-seventeen"
+                  class="inline-flex items-center gap-1"
+                >
+                  <span
+                    id="additional-outcomes-legend-seventeen-swatch"
+                    aria-hidden="true"
+                    class="h-1.5 w-1.5 rounded-full bg-green-300"
+                  ></span>
+                  17% range covered
+                </span>
+                <span
+                  id="additional-outcomes-legend-thirty"
+                  class="inline-flex items-center gap-1"
+                >
+                  <span
+                    id="additional-outcomes-legend-thirty-swatch"
+                    aria-hidden="true"
+                    class="h-1.5 w-1.5 rounded-full bg-green-700"
+                  ></span>
+                  30% range covered
+                </span>
+              </div>
+
+              <article id="additional-outcomes-species" class="grid gap-1">
+                <div
+                  id="additional-outcomes-species-heading"
+                  class="flex items-baseline justify-between gap-2.5 text-xs"
+                >
+                  <span
+                    id="additional-outcomes-species-label"
+                    class="min-w-0 flex-1 text-slate-800"
+                  >
+                    Species
+                  </span>
+                  <span
+                    id="additional-outcomes-species-value"
+                    class="flex items-baseline gap-1 text-xs font-extrabold whitespace-nowrap tabular-nums text-slate-950"
+                  >
+                    <span
+                      id="additional-outcomes-species-value-seventeen"
+                      class="text-green-700"
+                      title="162 of 182 species (89%) reached 17% range coverage"
+                      >162</span
+                    >
+                    <span
+                      id="additional-outcomes-species-value-separator"
+                      aria-hidden="true"
+                      class="font-semibold text-slate-400"
+                      >|</span
+                    >
+                    <span
+                      id="additional-outcomes-species-value-thirty"
+                      class="text-green-900"
+                      title="114 of 182 species (63%) reached 30% range coverage"
+                      >114</span
+                    >
+                    <span
+                      id="additional-outcomes-species-value-total"
+                      class="text-[10px] font-semibold text-slate-500"
+                      >of 182</span
+                    >
+                  </span>
+                </div>
+                <div
+                  id="additional-outcomes-species-track"
+                  role="img"
+                  aria-label="162 of 182 species (89%) reached 17% range coverage; 114 of 182 (63%) reached 30% range coverage"
+                  class="relative h-1.5 overflow-hidden rounded-full bg-slate-200"
+                >
+                  <span
+                    id="additional-outcomes-species-fill-seventeen"
+                    class="absolute inset-y-0 left-0 block rounded-full bg-green-300"
+                    style="width: 89%"
+                  ></span>
+                  <span
+                    id="additional-outcomes-species-fill-thirty"
+                    class="absolute inset-y-0 left-0 block rounded-full bg-green-700"
+                    style="width: 63%"
+                  ></span>
+                </div>
+
+                <div
+                  id="additional-outcomes-species-taxa"
+                  class="mt-1.5 border-l-2 border-slate-200 pl-2.5"
+                >
+                  <p
+                    id="additional-outcomes-species-taxa-label"
+                    class="mb-1 text-[9px] font-bold tracking-[0.08em] text-slate-500 uppercase"
+                  >
+                    By taxa
+                  </p>
+                  <div
+                    id="additional-outcomes-species-taxa-grid"
+                    class="grid gap-1.5"
+                  >
+                    <div
+                      id="additional-outcomes-species-birds"
+                      class="grid gap-0.5"
+                    >
+                      <div
+                        id="additional-outcomes-species-birds-heading"
+                        class="flex justify-between gap-1.5 text-[10px] text-slate-700"
+                      >
+                        <span id="additional-outcomes-species-birds-label"
+                          >Birds</span
+                        >
+                        <span
+                          id="additional-outcomes-species-birds-value"
+                          class="flex items-baseline gap-1 tabular-nums"
+                        >
+                          <span
+                            id="additional-outcomes-species-birds-value-seventeen"
+                            class="font-semibold text-green-700"
+                            title="62 of 68 bird species (91%) reached 17% range coverage"
+                            >62</span
+                          >
+                          <span aria-hidden="true" class="text-slate-400"
+                            >|</span
+                          >
+                          <span
+                            id="additional-outcomes-species-birds-value-thirty"
+                            class="font-semibold text-green-900"
+                            title="45 of 68 bird species (66%) reached 30% range coverage"
+                            >45</span
+                          >
+                          <span class="text-slate-500">of 68</span>
+                        </span>
+                      </div>
+                      <div
+                        id="additional-outcomes-species-birds-track"
+                        role="img"
+                        aria-label="62 of 68 bird species (91%) reached 17% range coverage; 45 of 68 (66%) reached 30% range coverage"
+                        class="relative h-1 overflow-hidden rounded-full bg-slate-200"
+                      >
+                        <span
+                          id="additional-outcomes-species-birds-fill-seventeen"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-300"
+                          style="width: 91%"
+                        ></span>
+                        <span
+                          id="additional-outcomes-species-birds-fill-thirty"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-700"
+                          style="width: 66%"
+                        ></span>
+                      </div>
+                    </div>
+                    <div
+                      id="additional-outcomes-species-mammals"
+                      class="grid gap-0.5"
+                    >
+                      <div
+                        id="additional-outcomes-species-mammals-heading"
+                        class="flex justify-between gap-1.5 text-[10px] text-slate-700"
+                      >
+                        <span id="additional-outcomes-species-mammals-label"
+                          >Mammals</span
+                        >
+                        <span
+                          id="additional-outcomes-species-mammals-value"
+                          class="flex items-baseline gap-1 tabular-nums"
+                        >
+                          <span
+                            id="additional-outcomes-species-mammals-value-seventeen"
+                            class="font-semibold text-green-700"
+                            title="37 of 41 mammal species (90%) reached 17% range coverage"
+                            >37</span
+                          >
+                          <span aria-hidden="true" class="text-slate-400"
+                            >|</span
+                          >
+                          <span
+                            id="additional-outcomes-species-mammals-value-thirty"
+                            class="font-semibold text-green-900"
+                            title="27 of 41 mammal species (66%) reached 30% range coverage"
+                            >27</span
+                          >
+                          <span class="text-slate-500">of 41</span>
+                        </span>
+                      </div>
+                      <div
+                        id="additional-outcomes-species-mammals-track"
+                        role="img"
+                        aria-label="37 of 41 mammal species (90%) reached 17% range coverage; 27 of 41 (66%) reached 30% range coverage"
+                        class="relative h-1 overflow-hidden rounded-full bg-slate-200"
+                      >
+                        <span
+                          id="additional-outcomes-species-mammals-fill-seventeen"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-300"
+                          style="width: 90%"
+                        ></span>
+                        <span
+                          id="additional-outcomes-species-mammals-fill-thirty"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-700"
+                          style="width: 66%"
+                        ></span>
+                      </div>
+                    </div>
+                    <div
+                      id="additional-outcomes-species-amphibians"
+                      class="grid gap-0.5"
+                    >
+                      <div
+                        id="additional-outcomes-species-amphibians-heading"
+                        class="flex justify-between gap-1.5 text-[10px] text-slate-700"
+                      >
+                        <span id="additional-outcomes-species-amphibians-label"
+                          >Amphibians</span
+                        >
+                        <span
+                          id="additional-outcomes-species-amphibians-value"
+                          class="flex items-baseline gap-1 tabular-nums"
+                        >
+                          <span
+                            id="additional-outcomes-species-amphibians-value-seventeen"
+                            class="font-semibold text-green-700"
+                            title="33 of 38 amphibian species (87%) reached 17% range coverage"
+                            >33</span
+                          >
+                          <span aria-hidden="true" class="text-slate-400"
+                            >|</span
+                          >
+                          <span
+                            id="additional-outcomes-species-amphibians-value-thirty"
+                            class="font-semibold text-green-900"
+                            title="22 of 38 amphibian species (58%) reached 30% range coverage"
+                            >22</span
+                          >
+                          <span class="text-slate-500">of 38</span>
+                        </span>
+                      </div>
+                      <div
+                        id="additional-outcomes-species-amphibians-track"
+                        role="img"
+                        aria-label="33 of 38 amphibian species (87%) reached 17% range coverage; 22 of 38 (58%) reached 30% range coverage"
+                        class="relative h-1 overflow-hidden rounded-full bg-slate-200"
+                      >
+                        <span
+                          id="additional-outcomes-species-amphibians-fill-seventeen"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-300"
+                          style="width: 87%"
+                        ></span>
+                        <span
+                          id="additional-outcomes-species-amphibians-fill-thirty"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-700"
+                          style="width: 58%"
+                        ></span>
+                      </div>
+                    </div>
+                    <div
+                      id="additional-outcomes-species-reptiles"
+                      class="grid gap-0.5"
+                    >
+                      <div
+                        id="additional-outcomes-species-reptiles-heading"
+                        class="flex justify-between gap-1.5 text-[10px] text-slate-700"
+                      >
+                        <span id="additional-outcomes-species-reptiles-label"
+                          >Reptiles</span
+                        >
+                        <span
+                          id="additional-outcomes-species-reptiles-value"
+                          class="flex items-baseline gap-1 tabular-nums"
+                        >
+                          <span
+                            id="additional-outcomes-species-reptiles-value-seventeen"
+                            class="font-semibold text-green-700"
+                            title="30 of 35 reptile species (86%) reached 17% range coverage"
+                            >30</span
+                          >
+                          <span aria-hidden="true" class="text-slate-400"
+                            >|</span
+                          >
+                          <span
+                            id="additional-outcomes-species-reptiles-value-thirty"
+                            class="font-semibold text-green-900"
+                            title="20 of 35 reptile species (57%) reached 30% range coverage"
+                            >20</span
+                          >
+                          <span class="text-slate-500">of 35</span>
+                        </span>
+                      </div>
+                      <div
+                        id="additional-outcomes-species-reptiles-track"
+                        role="img"
+                        aria-label="30 of 35 reptile species (86%) reached 17% range coverage; 20 of 35 (57%) reached 30% range coverage"
+                        class="relative h-1 overflow-hidden rounded-full bg-slate-200"
+                      >
+                        <span
+                          id="additional-outcomes-species-reptiles-fill-seventeen"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-300"
+                          style="width: 86%"
+                        ></span>
+                        <span
+                          id="additional-outcomes-species-reptiles-fill-thirty"
+                          class="absolute inset-y-0 left-0 block rounded-full bg-green-700"
+                          style="width: 57%"
+                        ></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <button
+                id="additional-outcomes-view-species-button"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="species-coverage-modal"
+                aria-expanded="false"
+                class="mt-2 flex min-h-8 w-full items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
+              >
+                <span id="additional-outcomes-view-species-button-label">
+                  View species breakdown
+                </span>
+                <svg
+                  id="additional-outcomes-view-species-button-icon"
+                  aria-hidden="true"
+                  class="h-3.5 w-3.5 text-slate-500"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                >
+                  <rect
+                    id="additional-outcomes-view-species-button-icon-window"
+                    x="2.25"
+                    y="3.25"
+                    width="11.5"
+                    height="9.5"
+                    rx="1.75"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  ></rect>
+                  <path
+                    id="additional-outcomes-view-species-button-icon-header"
+                    d="M2.75 6h10.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  ></path>
+                </svg>
+              </button>
+            </section>
+          </section>
+
+          <section
+            id="conservation-summary-placeholder"
+            aria-labelledby="conservation-summary-placeholder-title"
+            class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm"
+          >
+            <h2
+              id="conservation-summary-placeholder-title"
+              class="m-0 text-xs font-extrabold tracking-wide text-slate-600 uppercase"
+            >
+              Conservation summary
+            </h2>
+            <div
+              id="conservation-summary-placeholder-content"
+              class="mt-3 grid grid-cols-2 gap-2"
+            >
+              <div
+                id="conservation-summary-priority-area"
+                class="rounded-lg bg-slate-50 p-2.5"
+              >
+                <p
+                  id="conservation-summary-priority-area-label"
+                  class="m-0 text-[10px] text-slate-500"
+                >
+                  Priority area
+                </p>
+                <p
+                  id="conservation-summary-priority-area-value"
+                  class="mt-1 mb-0 text-sm font-extrabold text-slate-900"
+                >
+                  48,320 km²
+                </p>
+              </div>
+              <div
+                id="conservation-summary-zones"
+                class="rounded-lg bg-slate-50 p-2.5"
+              >
+                <p
+                  id="conservation-summary-zones-label"
+                  class="m-0 text-[10px] text-slate-500"
+                >
+                  Priority zones
+                </p>
+                <p
+                  id="conservation-summary-zones-value"
+                  class="mt-1 mb-0 text-sm font-extrabold text-slate-900"
+                >
+                  128
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <div
+      id="strategic-ecosystem-coverage-modal-layer"
+      class="fixed inset-x-0 bottom-0 top-14 z-2100 hidden items-center justify-center px-3 py-[clamp(0.75rem,4vh,1.5rem)] sm:px-4 sm:py-[clamp(2rem,5vh,5rem)]"
+    >
+      <button
+        id="strategic-ecosystem-coverage-modal-backdrop"
+        type="button"
+        aria-label="Close strategic ecosystem coverage"
+        class="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+      >
+        <span
+          id="strategic-ecosystem-coverage-modal-backdrop-label"
+          class="sr-only"
+        >
+          Close strategic ecosystem coverage
+        </span>
+      </button>
+
+      <section
+        id="strategic-ecosystem-coverage-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="strategic-ecosystem-coverage-modal-title"
+        aria-describedby="strategic-ecosystem-coverage-modal-description"
+        class="relative flex max-h-[680px] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-2xl shadow-slate-950/25"
+      >
+        <header
+          id="strategic-ecosystem-coverage-modal-header"
+          class="flex shrink-0 items-start gap-4 border-b border-slate-200 px-5 py-4"
+        >
+          <div
+            id="strategic-ecosystem-coverage-modal-header-copy"
+            class="min-w-0 flex-1"
+          >
+            <p
+              id="strategic-ecosystem-coverage-modal-kicker"
+              class="m-0 text-[11px] font-semibold tracking-[0.18em] text-sky-700 uppercase"
+            >
+              Target progress
+            </p>
+            <div
+              id="strategic-ecosystem-coverage-modal-title-row"
+              class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1"
+            >
+              <h2
+                id="strategic-ecosystem-coverage-modal-title"
+                class="m-0 text-lg font-semibold text-slate-950"
+              >
+                Strategic ecosystem progress
+              </h2>
+              <span
+                id="strategic-ecosystem-coverage-modal-total-count"
+                class="text-xs font-semibold text-slate-500"
+              >
+                4 layers
+              </span>
+            </div>
+            <p
+              id="strategic-ecosystem-coverage-modal-description"
+              class="mt-1 mb-0 text-xs leading-5 text-slate-600"
+            >
+              Coverage attained for the four strategic ecosystem input layers
+              used by this solution.
+            </p>
+          </div>
+
+          <div
+            id="strategic-ecosystem-coverage-modal-header-actions"
+            class="flex shrink-0 items-center gap-2"
+          >
+            <button
+              id="strategic-ecosystem-coverage-modal-export-button"
+              type="button"
+              class="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              Export CSV
+            </button>
+            <button
+              id="strategic-ecosystem-coverage-modal-close-button"
+              type="button"
+              aria-label="Close strategic ecosystem coverage"
+              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              <span
+                id="strategic-ecosystem-coverage-modal-close-icon"
+                aria-hidden="true"
+                >×</span
+              >
+            </button>
+          </div>
+        </header>
+
+        <div
+          id="strategic-ecosystem-coverage-modal-body"
+          class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4"
+        >
+          <p
+            id="strategic-ecosystem-coverage-modal-interpretation-note"
+            class="m-0 rounded-xl border border-sky-100 bg-sky-50/70 px-3.5 py-2.5 text-xs leading-5 text-sky-950"
+          >
+            These are separate decision-facing map layers, not groupings of the
+            430 IAvH ecosystem classes.
+          </p>
+
+          <section
+            id="strategic-ecosystem-coverage-modal-summary"
+            aria-labelledby="strategic-ecosystem-coverage-modal-summary-title"
+            class="mt-3 grid grid-cols-3 gap-2"
+          >
+            <h3
+              id="strategic-ecosystem-coverage-modal-summary-title"
+              class="sr-only"
+            >
+              Strategic ecosystem coverage summary
+            </h3>
+            <article
+              id="strategic-ecosystem-coverage-summary-measured"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+            >
+              <p
+                id="strategic-ecosystem-coverage-summary-measured-label"
+                class="m-0 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                Measured
+              </p>
+              <p
+                id="strategic-ecosystem-coverage-summary-measured-value"
+                class="mt-1 mb-0 text-base font-extrabold tabular-nums text-slate-950"
+              >
+                4
+              </p>
+            </article>
+            <article
+              id="strategic-ecosystem-coverage-summary-reached"
+              class="rounded-lg border border-sky-200 bg-sky-50/60 px-3 py-2.5"
+            >
+              <p
+                id="strategic-ecosystem-coverage-summary-reached-label"
+                class="m-0 text-[10px] font-semibold tracking-wide text-sky-700 uppercase"
+              >
+                Target met
+              </p>
+              <p
+                id="strategic-ecosystem-coverage-summary-reached-value"
+                class="mt-1 mb-0 text-base font-extrabold tabular-nums text-sky-900"
+              >
+                4
+              </p>
+            </article>
+            <article
+              id="strategic-ecosystem-coverage-summary-below"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+            >
+              <p
+                id="strategic-ecosystem-coverage-summary-below-label"
+                class="m-0 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                Below target
+              </p>
+              <p
+                id="strategic-ecosystem-coverage-summary-below-value"
+                class="mt-1 mb-0 text-base font-extrabold tabular-nums text-slate-950"
+              >
+                0
+              </p>
+            </article>
+          </section>
+
+          <section
+            id="strategic-ecosystem-coverage-modal-results"
+            aria-labelledby="strategic-ecosystem-coverage-modal-results-title"
+            class="mt-3 overflow-hidden rounded-xl border border-slate-200"
+          >
+            <h3
+              id="strategic-ecosystem-coverage-modal-results-title"
+              class="sr-only"
+            >
+              Strategic ecosystem layer results
+            </h3>
+            <div
+              id="strategic-ecosystem-coverage-modal-table-scroll"
+              class="overflow-x-auto"
+            >
+              <table
+                id="strategic-ecosystem-coverage-modal-table"
+                class="w-full min-w-[620px] border-collapse text-left"
+              >
+                <thead
+                  id="strategic-ecosystem-coverage-modal-table-head"
+                  class="bg-slate-50"
+                >
+                  <tr id="strategic-ecosystem-coverage-modal-table-head-row">
+                    <th
+                      id="strategic-ecosystem-coverage-modal-layer-heading"
+                      class="px-4 py-2.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                    >
+                      Strategic ecosystem layer
+                    </th>
+                    <th
+                      id="strategic-ecosystem-coverage-modal-coverage-heading"
+                      class="w-56 px-4 py-2.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                    >
+                      Coverage
+                    </th>
+                    <th
+                      id="strategic-ecosystem-coverage-modal-target-heading"
+                      class="w-20 px-4 py-2.5 text-right text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                    >
+                      Target
+                    </th>
+                    <th
+                      id="strategic-ecosystem-coverage-modal-result-heading"
+                      class="w-24 px-4 py-2.5 text-right text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                    >
+                      Result
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="strategic-ecosystem-coverage-modal-table-body"
+                  class="divide-y divide-slate-100 bg-white"
+                ></tbody>
+              </table>
+            </div>
+          </section>
+
+          <p
+            id="strategic-ecosystem-coverage-modal-data-note"
+            class="mt-3 mb-0 text-[10px] text-slate-500"
+          >
+            Illustrative values are used for this interaction mockup.
+          </p>
+        </div>
+
+        <footer
+          id="strategic-ecosystem-coverage-modal-footer"
+          class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3"
+        >
+          <p
+            id="strategic-ecosystem-coverage-modal-footer-copy"
+            class="m-0 text-[11px] text-slate-500"
+          >
+            Four strategic ecosystem layers are shown.
+          </p>
+          <button
+            id="strategic-ecosystem-coverage-modal-footer-close-button"
+            type="button"
+            class="inline-flex h-8 items-center justify-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          >
+            Done
+          </button>
+        </footer>
+      </section>
+    </div>
+
+    <div
+      id="ecosystem-coverage-modal-layer"
+      class="fixed inset-x-0 bottom-0 top-14 z-2100 hidden items-center justify-center px-3 py-[clamp(0.75rem,4vh,1.5rem)] sm:px-4 sm:py-[clamp(2rem,5vh,5rem)]"
+    >
+      <button
+        id="ecosystem-coverage-modal-backdrop"
+        type="button"
+        aria-label="Close ecosystem coverage"
+        class="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+      >
+        <span id="ecosystem-coverage-modal-backdrop-label" class="sr-only">
+          Close ecosystem coverage
+        </span>
+      </button>
+
+      <section
+        id="ecosystem-coverage-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ecosystem-coverage-modal-title"
+        aria-describedby="ecosystem-coverage-modal-description"
+        class="relative flex h-full max-h-[760px] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-2xl shadow-slate-950/25"
+      >
+        <header
+          id="ecosystem-coverage-modal-header"
+          class="flex shrink-0 items-start gap-4 border-b border-slate-200 px-5 py-4"
+        >
+          <div id="ecosystem-coverage-modal-header-copy" class="min-w-0 flex-1">
+            <p
+              id="ecosystem-coverage-modal-kicker"
+              class="m-0 text-[11px] font-semibold tracking-[0.18em] text-sky-700 uppercase"
+            >
+              Target progress
+            </p>
+            <div
+              id="ecosystem-coverage-modal-title-row"
+              class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1"
+            >
+              <h2
+                id="ecosystem-coverage-modal-title"
+                class="m-0 text-lg font-semibold text-slate-950"
+              >
+                IAvH ecosystem class progress
+              </h2>
+              <span
+                id="ecosystem-coverage-modal-total-count"
+                class="text-xs font-semibold text-slate-500"
+              >
+                430 classes
+              </span>
+            </div>
+            <p
+              id="ecosystem-coverage-modal-description"
+              class="mt-1 mb-0 text-xs leading-5 text-slate-600"
+            >
+              The 430 IAvH biome-region classes are the targeted classification.
+            </p>
+          </div>
+
+          <div
+            id="ecosystem-coverage-modal-header-actions"
+            class="flex shrink-0 items-center gap-2"
+          >
+            <button
+              id="ecosystem-coverage-modal-export-button"
+              type="button"
+              class="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              Export CSV
+            </button>
+            <button
+              id="ecosystem-coverage-modal-close-button"
+              type="button"
+              aria-label="Close ecosystem coverage"
+              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              <span id="ecosystem-coverage-modal-close-icon" aria-hidden="true"
+                >×</span
+              >
+            </button>
+          </div>
+        </header>
+
+        <div
+          id="ecosystem-coverage-modal-body"
+          class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        >
+          <div id="ecosystem-coverage-modal-intro" class="space-y-3 px-5 pt-4">
+            <p
+              id="ecosystem-coverage-modal-interpretation-note"
+              class="m-0 rounded-xl border border-sky-100 bg-sky-50/70 px-3.5 py-2.5 text-xs leading-5 text-sky-950"
+            >
+              Each IAvH biome-region class was assigned a 17% target. The map
+              groups these classes into eight biome families for legibility.
+            </p>
+            <p
+              id="ecosystem-coverage-modal-grouping-note"
+              class="m-0 hidden rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs leading-5 text-slate-700"
+            >
+              This view groups the targeted classes for context. Groups
+              summarize constituent class results and do not have separate
+              optimization targets.
+            </p>
+
+            <section
+              id="ecosystem-coverage-modal-summary"
+              aria-labelledby="ecosystem-coverage-modal-summary-title"
+              class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            >
+              <h3 id="ecosystem-coverage-modal-summary-title" class="sr-only">
+                Ecosystem coverage summary
+              </h3>
+              <article
+                id="ecosystem-coverage-summary-measured"
+                class="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+              >
+                <p
+                  id="ecosystem-coverage-summary-measured-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                >
+                  Measured
+                </p>
+                <p
+                  id="ecosystem-coverage-summary-measured-value"
+                  class="mt-1 mb-0 text-base font-extrabold tabular-nums text-slate-950"
+                >
+                  430
+                </p>
+              </article>
+              <article
+                id="ecosystem-coverage-summary-reached"
+                class="rounded-lg border border-sky-200 bg-sky-50/60 px-3 py-2.5"
+              >
+                <p
+                  id="ecosystem-coverage-summary-reached-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-sky-700 uppercase"
+                >
+                  Target met
+                </p>
+                <p
+                  id="ecosystem-coverage-summary-reached-value"
+                  class="mt-1 mb-0 text-base font-extrabold tabular-nums text-slate-950"
+                >
+                  261
+                </p>
+              </article>
+              <article
+                id="ecosystem-coverage-summary-below"
+                class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5"
+              >
+                <p
+                  id="ecosystem-coverage-summary-below-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                >
+                  Below target
+                </p>
+                <p
+                  id="ecosystem-coverage-summary-below-value"
+                  class="mt-1 mb-0 text-base font-extrabold tabular-nums text-slate-950"
+                >
+                  169
+                </p>
+              </article>
+            </section>
+          </div>
+
+          <section
+            id="ecosystem-coverage-modal-controls"
+            aria-labelledby="ecosystem-coverage-modal-controls-title"
+            class="sticky top-0 z-20 mt-3 border-y border-slate-200 bg-white/95 px-5 py-3 backdrop-blur-sm"
+          >
+            <div
+              id="ecosystem-coverage-modal-controls-heading-row"
+              class="mb-2 flex items-center justify-between gap-3"
+            >
+              <h3
+                id="ecosystem-coverage-modal-controls-title"
+                class="m-0 text-xs font-semibold text-slate-900"
+              >
+                Find ecosystems
+              </h3>
+              <button
+                id="ecosystem-coverage-modal-clear-filters"
+                type="button"
+                class="text-[11px] font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              >
+                Clear filters
+              </button>
+            </div>
+
+            <div
+              id="ecosystem-coverage-modal-filter-grid"
+              class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(220px,1.5fr)_repeat(3,minmax(130px,1fr))]"
+            >
+              <label
+                id="ecosystem-coverage-search-label"
+                for="ecosystem-coverage-search-input"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="ecosystem-coverage-search-label-text">Search</span>
+                <input
+                  id="ecosystem-coverage-search-input"
+                  type="search"
+                  placeholder="Class or group name"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-xs font-normal tracking-normal text-slate-900 normal-case outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                />
+              </label>
+
+              <label
+                id="ecosystem-coverage-display-label"
+                for="ecosystem-coverage-display-select"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="ecosystem-coverage-display-label-text"
+                  >Display as</span
+                >
+                <select
+                  id="ecosystem-coverage-display-select"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option
+                    id="ecosystem-coverage-display-individual"
+                    value="individual"
+                  >
+                    Individual IAvH classes (430)
+                  </option>
+                  <option
+                    id="ecosystem-coverage-display-biome-family"
+                    value="biomeFamily"
+                  >
+                    Map biome family (8)
+                  </option>
+                  <option
+                    id="ecosystem-coverage-display-biome-context"
+                    value="broadBiomeContext"
+                  >
+                    Broad biome context (7)
+                  </option>
+                  <option
+                    id="ecosystem-coverage-display-broad-ecosystem"
+                    value="broadEcosystem"
+                  >
+                    Broad ecosystem type (28)
+                  </option>
+                  <option
+                    id="ecosystem-coverage-display-detailed-ecosystem"
+                    value="detailedEcosystem"
+                  >
+                    Detailed ecosystem type (87)
+                  </option>
+                </select>
+              </label>
+
+              <label
+                id="ecosystem-coverage-result-label"
+                for="ecosystem-coverage-result-select"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="ecosystem-coverage-result-label-text"
+                  >Target result</span
+                >
+                <select
+                  id="ecosystem-coverage-result-select"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option id="ecosystem-coverage-result-all" value="all">
+                    All results
+                  </option>
+                  <option
+                    id="ecosystem-coverage-result-reached"
+                    value="reached"
+                  >
+                    Reached
+                  </option>
+                  <option id="ecosystem-coverage-result-below" value="below">
+                    Below
+                  </option>
+                </select>
+              </label>
+
+              <label
+                id="ecosystem-coverage-sort-label"
+                for="ecosystem-coverage-sort-select"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="ecosystem-coverage-sort-label-text">Sort by</span>
+                <select
+                  id="ecosystem-coverage-sort-select"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option id="ecosystem-coverage-sort-name" value="name">
+                    Name A–Z
+                  </option>
+                  <option
+                    id="ecosystem-coverage-sort-coverage-desc"
+                    value="coverage-desc"
+                  >
+                    Coverage: high–low
+                  </option>
+                  <option
+                    id="ecosystem-coverage-sort-coverage-asc"
+                    value="coverage-asc"
+                  >
+                    Coverage: low–high
+                  </option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section
+            id="ecosystem-coverage-modal-results"
+            aria-labelledby="ecosystem-coverage-modal-results-title"
+            class="px-5 py-4"
+          >
+            <div
+              id="ecosystem-coverage-modal-results-heading-row"
+              class="mb-2 flex items-center justify-between gap-3"
+            >
+              <h3
+                id="ecosystem-coverage-modal-results-title"
+                class="m-0 text-xs font-semibold text-slate-900"
+              >
+                Ecosystems
+              </h3>
+              <p
+                id="ecosystem-coverage-modal-filtered-count"
+                aria-live="polite"
+                class="m-0 text-[11px] font-semibold tabular-nums text-slate-500"
+              >
+                0 results
+              </p>
+            </div>
+
+            <div
+              id="ecosystem-coverage-table-shell"
+              class="max-h-[390px] overflow-auto rounded-xl border border-slate-200"
+            >
+              <table
+                id="ecosystem-coverage-table"
+                class="w-full min-w-[700px] border-collapse"
+              >
+                <thead
+                  id="ecosystem-coverage-table-head"
+                  class="sticky top-0 z-10 bg-slate-100 text-left"
+                >
+                  <tr id="ecosystem-coverage-table-head-row">
+                    <th
+                      id="ecosystem-coverage-table-heading-ecosystem"
+                      scope="col"
+                      class="min-w-[250px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Ecosystem
+                    </th>
+                    <th
+                      id="ecosystem-coverage-table-heading-coverage"
+                      scope="col"
+                      class="min-w-[150px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Coverage
+                    </th>
+                    <th
+                      id="ecosystem-coverage-table-heading-area"
+                      scope="col"
+                      class="min-w-[145px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Covered / total area
+                    </th>
+                    <th
+                      id="ecosystem-coverage-table-heading-benchmark"
+                      scope="col"
+                      class="min-w-[105px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Target
+                    </th>
+                    <th
+                      id="ecosystem-coverage-table-heading-result"
+                      scope="col"
+                      class="min-w-[145px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Result
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="ecosystem-coverage-table-body"
+                  class="divide-y divide-slate-100 bg-white"
+                ></tbody>
+              </table>
+            </div>
+
+            <p
+              id="ecosystem-coverage-modal-mock-data-note"
+              class="mt-2 mb-0 text-[10px] leading-4 text-slate-500"
+            >
+              Illustrative ecosystem names and values are generated for this
+              interaction mockup.
+            </p>
+          </section>
+        </div>
+
+        <footer
+          id="ecosystem-coverage-modal-footer"
+          class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3"
+        >
+          <p
+            id="ecosystem-coverage-modal-footer-copy"
+            class="m-0 text-[11px] text-slate-500"
+          >
+            Filters and sorting apply to the CSV export.
+          </p>
+          <button
+            id="ecosystem-coverage-modal-footer-close-button"
+            type="button"
+            class="inline-flex h-8 items-center justify-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          >
+            Done
+          </button>
+        </footer>
+      </section>
+    </div>
+
+    <div
+      id="species-coverage-modal-layer"
+      class="fixed inset-x-0 bottom-0 top-14 z-2100 hidden items-center justify-center px-3 py-[clamp(0.75rem,4vh,1.5rem)] sm:px-4 sm:py-[clamp(2rem,5vh,5rem)]"
+    >
+      <button
+        id="species-coverage-modal-backdrop"
+        type="button"
+        aria-label="Close species coverage"
+        class="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+      >
+        <span id="species-coverage-modal-backdrop-label" class="sr-only">
+          Close species coverage
+        </span>
+      </button>
+
+      <section
+        id="species-coverage-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="species-coverage-modal-title"
+        aria-describedby="species-coverage-modal-description"
+        class="relative flex h-full max-h-[760px] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-2xl shadow-slate-950/25"
+      >
+        <header
+          id="species-coverage-modal-header"
+          class="flex shrink-0 items-start gap-4 border-b border-slate-200 px-5 py-4"
+        >
+          <div id="species-coverage-modal-header-copy" class="min-w-0 flex-1">
+            <p
+              id="species-coverage-modal-kicker"
+              class="m-0 text-[11px] font-semibold tracking-[0.18em] text-slate-600 uppercase"
+            >
+              Additional outcome
+            </p>
+            <div
+              id="species-coverage-modal-title-row"
+              class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1"
+            >
+              <h2
+                id="species-coverage-modal-title"
+                class="m-0 text-lg font-semibold text-slate-950"
+              >
+                Species coverage
+              </h2>
+              <span
+                id="species-coverage-modal-total-count"
+                class="text-xs font-semibold text-slate-500"
+              >
+                182 species
+              </span>
+            </div>
+            <p
+              id="species-coverage-modal-description"
+              class="mt-1 mb-0 text-xs leading-5 text-slate-600"
+            >
+              Review coverage by species, taxa, and genus.
+            </p>
+          </div>
+
+          <div
+            id="species-coverage-modal-header-actions"
+            class="flex shrink-0 items-center gap-2"
+          >
+            <button
+              id="species-coverage-modal-export-button"
+              type="button"
+              class="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              Export CSV
+            </button>
+            <button
+              id="species-coverage-modal-close-button"
+              type="button"
+              aria-label="Close species coverage"
+              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              <span id="species-coverage-modal-close-icon" aria-hidden="true"
+                >×</span
+              >
+            </button>
+          </div>
+        </header>
+
+        <div
+          id="species-coverage-modal-body"
+          class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        >
+          <div id="species-coverage-modal-intro" class="space-y-3 px-5 pt-4">
+            <p
+              id="species-coverage-modal-interpretation-note"
+              class="m-0 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs leading-5 text-slate-700"
+            >
+              Species were not used to generate this solution, so no species
+              target was set. These values report how many species models
+              incidentally reached two illustrative range-coverage checkpoints.
+            </p>
+            <p
+              id="species-coverage-modal-grouping-note"
+              class="m-0 hidden rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs leading-5 text-slate-700"
+            >
+              This view groups individual species-model results for context.
+              Taxonomic groups do not have separate range-coverage checkpoints.
+            </p>
+
+            <section
+              id="species-coverage-modal-summary"
+              aria-labelledby="species-coverage-modal-summary-title"
+              class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            >
+              <h3 id="species-coverage-modal-summary-title" class="sr-only">
+                Species coverage summary
+              </h3>
+              <article
+                id="species-coverage-summary-measured"
+                class="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+              >
+                <p
+                  id="species-coverage-summary-measured-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                >
+                  Measured
+                </p>
+                <p
+                  id="species-coverage-summary-measured-value"
+                  class="mt-1 mb-0 text-base font-extrabold tabular-nums text-slate-950"
+                >
+                  182
+                </p>
+              </article>
+              <article
+                id="species-coverage-summary-reached"
+                class="rounded-lg border border-green-200 bg-green-50/60 px-3 py-2.5"
+              >
+                <p
+                  id="species-coverage-summary-reached-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-green-700 uppercase"
+                >
+                  Reached 17%
+                </p>
+                <p
+                  id="species-coverage-summary-reached-value"
+                  class="mt-1 mb-0 text-base font-extrabold tabular-nums text-green-900"
+                >
+                  162
+                </p>
+              </article>
+              <article
+                id="species-coverage-summary-below"
+                class="rounded-lg border border-green-300 bg-green-50 px-3 py-2.5"
+              >
+                <p
+                  id="species-coverage-summary-below-label"
+                  class="m-0 text-[10px] font-semibold tracking-wide text-green-800 uppercase"
+                >
+                  Reached 30%
+                </p>
+                <p
+                  id="species-coverage-summary-below-value"
+                  class="mt-1 mb-0 text-base font-extrabold tabular-nums text-green-950"
+                >
+                  114
+                </p>
+              </article>
+            </section>
+          </div>
+
+          <section
+            id="species-coverage-modal-controls"
+            aria-labelledby="species-coverage-modal-controls-title"
+            class="sticky top-0 z-20 mt-3 border-y border-slate-200 bg-white/95 px-5 py-3 backdrop-blur-sm"
+          >
+            <div
+              id="species-coverage-modal-controls-heading-row"
+              class="mb-2 flex items-center justify-between gap-3"
+            >
+              <h3
+                id="species-coverage-modal-controls-title"
+                class="m-0 text-xs font-semibold text-slate-900"
+              >
+                Find species
+              </h3>
+              <button
+                id="species-coverage-modal-clear-filters"
+                type="button"
+                class="text-[11px] font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              >
+                Clear filters
+              </button>
+            </div>
+
+            <div
+              id="species-coverage-modal-filter-grid"
+              class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(220px,1.5fr)_repeat(4,minmax(125px,1fr))]"
+            >
+              <label
+                id="species-coverage-search-label"
+                for="species-coverage-search-input"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="species-coverage-search-label-text">Search</span>
+                <input
+                  id="species-coverage-search-input"
+                  type="search"
+                  placeholder="Common or scientific name"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-xs font-normal tracking-normal text-slate-900 normal-case outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                />
+              </label>
+
+              <label
+                id="species-coverage-taxa-label"
+                for="species-coverage-taxa-select"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="species-coverage-taxa-label-text">Taxa</span>
+                <select
+                  id="species-coverage-taxa-select"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option id="species-coverage-taxa-all" value="all">
+                    All taxa
+                  </option>
+                  <option id="species-coverage-taxa-birds" value="Birds">
+                    Birds
+                  </option>
+                  <option id="species-coverage-taxa-mammals" value="Mammals">
+                    Mammals
+                  </option>
+                  <option
+                    id="species-coverage-taxa-amphibians"
+                    value="Amphibians"
+                  >
+                    Amphibians
+                  </option>
+                  <option id="species-coverage-taxa-reptiles" value="Reptiles">
+                    Reptiles
+                  </option>
+                </select>
+              </label>
+
+              <label
+                id="species-coverage-display-label"
+                for="species-coverage-display-select"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="species-coverage-display-label-text">Display as</span>
+                <select
+                  id="species-coverage-display-select"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option
+                    id="species-coverage-display-individual"
+                    value="individual"
+                  >
+                    Individual species
+                  </option>
+                  <option id="species-coverage-display-taxa" value="taxa">
+                    Taxonomic group
+                  </option>
+                  <option id="species-coverage-display-order" value="order">
+                    Order
+                  </option>
+                  <option id="species-coverage-display-family" value="family">
+                    Family
+                  </option>
+                  <option id="species-coverage-display-genus" value="genus">
+                    Genus
+                  </option>
+                </select>
+              </label>
+
+              <label
+                id="species-coverage-result-label"
+                for="species-coverage-result-select"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="species-coverage-result-label-text"
+                  >Range coverage</span
+                >
+                <select
+                  id="species-coverage-result-select"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option id="species-coverage-result-all" value="all">
+                    All species
+                  </option>
+                  <option
+                    id="species-coverage-result-reached17"
+                    value="reached17"
+                  >
+                    Reached 17%
+                  </option>
+                  <option id="species-coverage-result-below17" value="below17">
+                    Below 17%
+                  </option>
+                  <option
+                    id="species-coverage-result-reached30"
+                    value="reached30"
+                  >
+                    Reached 30%
+                  </option>
+                  <option id="species-coverage-result-below30" value="below30">
+                    Below 30%
+                  </option>
+                </select>
+              </label>
+
+              <label
+                id="species-coverage-sort-label"
+                for="species-coverage-sort-select"
+                class="grid gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+              >
+                <span id="species-coverage-sort-label-text">Sort by</span>
+                <select
+                  id="species-coverage-sort-select"
+                  class="h-9 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-normal tracking-normal text-slate-800 normal-case outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option id="species-coverage-sort-name" value="name">
+                    Name A–Z
+                  </option>
+                  <option
+                    id="species-coverage-sort-coverage-desc"
+                    value="coverage-desc"
+                  >
+                    Coverage: high–low
+                  </option>
+                  <option
+                    id="species-coverage-sort-coverage-asc"
+                    value="coverage-asc"
+                  >
+                    Coverage: low–high
+                  </option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section
+            id="species-coverage-modal-results"
+            aria-labelledby="species-coverage-modal-results-title"
+            class="px-5 py-4"
+          >
+            <div
+              id="species-coverage-modal-results-heading-row"
+              class="mb-2 flex items-center justify-between gap-3"
+            >
+              <h3
+                id="species-coverage-modal-results-title"
+                class="m-0 text-xs font-semibold text-slate-900"
+              >
+                Species models
+              </h3>
+              <p
+                id="species-coverage-modal-filtered-count"
+                aria-live="polite"
+                class="m-0 text-[11px] font-semibold tabular-nums text-slate-500"
+              >
+                0 results
+              </p>
+            </div>
+
+            <div
+              id="species-coverage-table-shell"
+              class="max-h-[390px] overflow-auto rounded-xl border border-slate-200"
+            >
+              <table
+                id="species-coverage-table"
+                class="w-full min-w-[850px] border-collapse"
+              >
+                <thead
+                  id="species-coverage-table-head"
+                  class="sticky top-0 z-10 bg-slate-100 text-left"
+                >
+                  <tr id="species-coverage-table-head-row">
+                    <th
+                      id="species-coverage-table-heading-species"
+                      scope="col"
+                      class="min-w-[240px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Species
+                    </th>
+                    <th
+                      id="species-coverage-table-heading-taxa"
+                      scope="col"
+                      class="min-w-[105px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Taxa
+                    </th>
+                    <th
+                      id="species-coverage-table-heading-genus"
+                      scope="col"
+                      class="min-w-[115px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Genus
+                    </th>
+                    <th
+                      id="species-coverage-table-heading-coverage"
+                      scope="col"
+                      class="min-w-[150px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      Coverage
+                    </th>
+                    <th
+                      id="species-coverage-table-heading-benchmark"
+                      scope="col"
+                      class="min-w-[105px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      17% coverage
+                    </th>
+                    <th
+                      id="species-coverage-table-heading-result"
+                      scope="col"
+                      class="min-w-[145px] border-b border-slate-200 px-3 py-2.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase"
+                    >
+                      30% coverage
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="species-coverage-table-body"
+                  class="divide-y divide-slate-100 bg-white"
+                ></tbody>
+              </table>
+            </div>
+
+            <p
+              id="species-coverage-modal-mock-data-note"
+              class="mt-2 mb-0 text-[10px] leading-4 text-slate-500"
+            >
+              Illustrative species names and values are generated for this
+              interaction mockup.
+            </p>
+          </section>
+        </div>
+
+        <footer
+          id="species-coverage-modal-footer"
+          class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3"
+        >
+          <p
+            id="species-coverage-modal-footer-copy"
+            class="m-0 text-[11px] text-slate-500"
+          >
+            Filters and sorting apply to the CSV export.
+          </p>
+          <button
+            id="species-coverage-modal-footer-close-button"
+            type="button"
+            class="inline-flex h-8 items-center justify-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          >
+            Done
+          </button>
+        </footer>
+      </section>
+    </div>
+
+    <script id="strategic-ecosystem-coverage-modal-script">
+      const strategicEcosystemModalLayer = document.getElementById(
+        "strategic-ecosystem-coverage-modal-layer",
+      );
+      const strategicEcosystemModalOpenButton = document.getElementById(
+        "target-progress-view-strategic-ecosystems-button",
+      );
+      const strategicEcosystemModalCloseButton = document.getElementById(
+        "strategic-ecosystem-coverage-modal-close-button",
+      );
+      const strategicEcosystemModalFooterCloseButton = document.getElementById(
+        "strategic-ecosystem-coverage-modal-footer-close-button",
+      );
+      const strategicEcosystemModalBackdrop = document.getElementById(
+        "strategic-ecosystem-coverage-modal-backdrop",
+      );
+      const strategicEcosystemExportButton = document.getElementById(
+        "strategic-ecosystem-coverage-modal-export-button",
+      );
+      const strategicEcosystemTableBody = document.getElementById(
+        "strategic-ecosystem-coverage-modal-table-body",
+      );
+
+      const strategicEcosystemRows = [
+        { id: "paramos", name: "Páramos", coverage: 42, target: 17 },
+        { id: "wetlands", name: "Wetlands", coverage: 36, target: 17 },
+        { id: "mangroves", name: "Mangroves", coverage: 27, target: 17 },
+        {
+          id: "dry-forest",
+          name: "Tropical dry forest",
+          coverage: 31,
+          target: 17,
+        },
+      ];
+
+      function renderStrategicEcosystemCoverageRows() {
+        strategicEcosystemTableBody.innerHTML = strategicEcosystemRows
+          .map(
+            ({ id, name, coverage, target }) => `
+              <tr id="strategic-ecosystem-coverage-${id}-row">
+                <th
+                  id="strategic-ecosystem-coverage-${id}-label"
+                  scope="row"
+                  class="px-4 py-3 text-xs font-semibold text-slate-800"
+                >
+                  ${name}
+                </th>
+                <td
+                  id="strategic-ecosystem-coverage-${id}-coverage"
+                  class="px-4 py-3"
+                >
+                  <div
+                    id="strategic-ecosystem-coverage-${id}-progress"
+                    class="flex items-center gap-2"
+                  >
+                    <span
+                      id="strategic-ecosystem-coverage-${id}-progress-track"
+                      class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"
+                    >
+                      <span
+                        id="strategic-ecosystem-coverage-${id}-progress-fill"
+                        class="block h-full rounded-full bg-sky-600"
+                        style="width: ${coverage}%"
+                      ></span>
+                    </span>
+                    <strong
+                      id="strategic-ecosystem-coverage-${id}-value"
+                      class="w-8 text-right text-xs tabular-nums text-slate-800"
+                    >
+                      ${coverage}%
+                    </strong>
+                  </div>
+                </td>
+                <td
+                  id="strategic-ecosystem-coverage-${id}-target"
+                  class="px-4 py-3 text-right text-xs tabular-nums text-slate-600"
+                >
+                  ${target}%
+                </td>
+                <td
+                  id="strategic-ecosystem-coverage-${id}-result"
+                  class="px-4 py-3 text-right"
+                >
+                  <span
+                    id="strategic-ecosystem-coverage-${id}-result-badge"
+                    class="inline-flex rounded-full bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-700"
+                  >
+                    Met
+                  </span>
+                </td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function openStrategicEcosystemCoverageModal() {
+        strategicEcosystemModalLayer.classList.remove("hidden");
+        strategicEcosystemModalLayer.classList.add("flex");
+        strategicEcosystemModalOpenButton.setAttribute("aria-expanded", "true");
+        document.body.classList.add("overflow-hidden");
+        renderStrategicEcosystemCoverageRows();
+        window.setTimeout(() => strategicEcosystemModalCloseButton.focus(), 0);
+      }
+
+      function closeStrategicEcosystemCoverageModal() {
+        strategicEcosystemModalLayer.classList.remove("flex");
+        strategicEcosystemModalLayer.classList.add("hidden");
+        strategicEcosystemModalOpenButton.setAttribute(
+          "aria-expanded",
+          "false",
+        );
+        document.body.classList.remove("overflow-hidden");
+        strategicEcosystemModalOpenButton.focus();
+      }
+
+      function exportStrategicEcosystemCoverageCsv() {
+        const csvRows = [
+          ["Strategic ecosystem layer", "Coverage (%)", "Target (%)", "Result"],
+          ...strategicEcosystemRows.map(({ name, coverage, target }) => [
+            name,
+            coverage,
+            target,
+            coverage >= target ? "Met" : "Below",
+          ]),
+        ];
+        const csv = csvRows
+          .map((row) =>
+            row
+              .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+              .join(","),
+          )
+          .join("\n");
+        const url = URL.createObjectURL(
+          new Blob([csv], { type: "text/csv;charset=utf-8" }),
+        );
+        const downloadLink = document.createElement("a");
+        downloadLink.id = "strategic-ecosystem-coverage-download-link";
+        downloadLink.href = url;
+        downloadLink.download = "strategic-ecosystem-target-progress.csv";
+        downloadLink.click();
+        URL.revokeObjectURL(url);
+      }
+
+      strategicEcosystemModalOpenButton.addEventListener(
+        "click",
+        openStrategicEcosystemCoverageModal,
+      );
+      strategicEcosystemModalCloseButton.addEventListener(
+        "click",
+        closeStrategicEcosystemCoverageModal,
+      );
+      strategicEcosystemModalFooterCloseButton.addEventListener(
+        "click",
+        closeStrategicEcosystemCoverageModal,
+      );
+      strategicEcosystemModalBackdrop.addEventListener(
+        "click",
+        closeStrategicEcosystemCoverageModal,
+      );
+      strategicEcosystemExportButton.addEventListener(
+        "click",
+        exportStrategicEcosystemCoverageCsv,
+      );
+      document.addEventListener("keydown", (event) => {
+        const modalIsOpen =
+          !strategicEcosystemModalLayer.classList.contains("hidden");
+        if (event.key === "Escape" && modalIsOpen) {
+          closeStrategicEcosystemCoverageModal();
+        }
+        if (event.key === "Tab" && modalIsOpen) {
+          const focusableElements = [
+            ...document
+              .getElementById("strategic-ecosystem-coverage-modal")
+              .querySelectorAll('button, [tabindex]:not([tabindex="-1"])'),
+          ];
+          const firstFocusableElement = focusableElements[0];
+          const lastFocusableElement =
+            focusableElements[focusableElements.length - 1];
+
+          if (
+            event.shiftKey &&
+            document.activeElement === firstFocusableElement
+          ) {
+            event.preventDefault();
+            lastFocusableElement.focus();
+          } else if (
+            !event.shiftKey &&
+            document.activeElement === lastFocusableElement
+          ) {
+            event.preventDefault();
+            firstFocusableElement.focus();
+          }
+        }
+      });
+
+      renderStrategicEcosystemCoverageRows();
+    </script>
+
+    <script id="ecosystem-coverage-modal-script">
+      const ecosystemModalLayer = document.getElementById(
+        "ecosystem-coverage-modal-layer",
+      );
+      const ecosystemModalOpenButton = document.getElementById(
+        "target-progress-view-ecosystems-button",
+      );
+      const ecosystemModalCloseButton = document.getElementById(
+        "ecosystem-coverage-modal-close-button",
+      );
+      const ecosystemModalFooterCloseButton = document.getElementById(
+        "ecosystem-coverage-modal-footer-close-button",
+      );
+      const ecosystemModalBackdrop = document.getElementById(
+        "ecosystem-coverage-modal-backdrop",
+      );
+      const ecosystemSearchInput = document.getElementById(
+        "ecosystem-coverage-search-input",
+      );
+      const ecosystemDisplaySelect = document.getElementById(
+        "ecosystem-coverage-display-select",
+      );
+      const ecosystemResultSelect = document.getElementById(
+        "ecosystem-coverage-result-select",
+      );
+      const ecosystemSortSelect = document.getElementById(
+        "ecosystem-coverage-sort-select",
+      );
+      const ecosystemClearFiltersButton = document.getElementById(
+        "ecosystem-coverage-modal-clear-filters",
+      );
+      const ecosystemExportButton = document.getElementById(
+        "ecosystem-coverage-modal-export-button",
+      );
+      const ecosystemTableBody = document.getElementById(
+        "ecosystem-coverage-table-body",
+      );
+      const ecosystemFilteredCount = document.getElementById(
+        "ecosystem-coverage-modal-filtered-count",
+      );
+      const ecosystemGroupingNote = document.getElementById(
+        "ecosystem-coverage-modal-grouping-note",
+      );
+      const ecosystemResultsTitle = document.getElementById(
+        "ecosystem-coverage-modal-results-title",
+      );
+      const ecosystemHeadingName = document.getElementById(
+        "ecosystem-coverage-table-heading-ecosystem",
+      );
+      const ecosystemHeadingCoverage = document.getElementById(
+        "ecosystem-coverage-table-heading-coverage",
+      );
+      const ecosystemHeadingArea = document.getElementById(
+        "ecosystem-coverage-table-heading-area",
+      );
+      const ecosystemHeadingTarget = document.getElementById(
+        "ecosystem-coverage-table-heading-benchmark",
+      );
+      const ecosystemHeadingResult = document.getElementById(
+        "ecosystem-coverage-table-heading-result",
+      );
+
+      const ecosystemTypes = [
+        "Andean montane forest",
+        "Tropical dry forest",
+        "Flooded savanna",
+        "High-Andean wetland",
+        "Páramo shrubland",
+        "Caribbean mangrove",
+        "Amazon floodplain forest",
+        "Orinoco gallery forest",
+        "Coastal lagoon",
+        "Sub-Andean cloud forest",
+        "Seasonally flooded grassland",
+        "Dry inter-Andean scrub",
+      ];
+      const ecosystemBiomeFamilies = [
+        "Orobioma",
+        "Zonobioma",
+        "Hidrobioma",
+        "Helobioma",
+        "Peinobioma",
+        "Litobioma",
+        "Halobioma",
+        "Other / N.A.",
+      ];
+      const ecosystemBiomeContexts = [
+        "Zonobioma Humedo Tropical",
+        "Pedobioma del Zonobioma Humedo Tropical",
+        "Orobioma del Zonobioma Humedo Tropical",
+        "Zonobioma Alternohigrico Tropical",
+        "Orobioma Azonal del Zonobioma Humedo Tropical",
+        "Mares y oceanos",
+        "Pedobioma Insular Caribe",
+      ];
+      const ecosystemTarget = 17;
+
+      const ecosystemCoverageRows = Array.from({ length: 430 }, (_, index) => {
+        const reached = index < 261;
+        const coverage = reached
+          ? Math.min(100, ecosystemTarget + ((index * 7) % 84))
+          : Math.max(1, ecosystemTarget - 1 - ((index * 5) % 16));
+        const totalArea = 280 + ((index * 173) % 14200);
+
+        return {
+          id: index + 1,
+          name: `IAvH class ${String(index + 1).padStart(3, "0")} — ${
+            ecosystemTypes[index % ecosystemTypes.length]
+          }`,
+          biomeFamily:
+            ecosystemBiomeFamilies[index % ecosystemBiomeFamilies.length],
+          broadBiomeContext:
+            ecosystemBiomeContexts[index % ecosystemBiomeContexts.length],
+          broadEcosystem: `Broad ecosystem type ${String(
+            (index % 28) + 1,
+          ).padStart(2, "0")}`,
+          detailedEcosystem: `Detailed ecosystem type ${String(
+            (index % 87) + 1,
+          ).padStart(2, "0")}`,
+          coverage,
+          coveredArea: Math.round((totalArea * coverage) / 100),
+          totalArea,
+          benchmark: ecosystemTarget,
+          result: reached ? "reached" : "below",
+        };
+      });
+
+      let filteredEcosystemCoverageRows = [...ecosystemCoverageRows];
+
+      function formatEcosystemArea(value) {
+        return new Intl.NumberFormat("en-US").format(value);
+      }
+
+      function groupEcosystemCoverageRows(rows, display) {
+        const groups = new Map();
+        rows.forEach((row) => {
+          const label = row[display];
+          const group = groups.get(label) ?? {
+            id: groups.size + 1,
+            name: label,
+            metCount: 0,
+            totalCount: 0,
+          };
+          group.totalCount += 1;
+          group.metCount += row.result === "reached" ? 1 : 0;
+          groups.set(label, group);
+        });
+
+        return [...groups.values()].map((group) => ({
+          ...group,
+          pctMet: Math.round((group.metCount / group.totalCount) * 100),
+        }));
+      }
+
+      function setEcosystemTableHeadings(grouped) {
+        ecosystemHeadingName.textContent = grouped
+          ? "Classification group"
+          : "IAvH biome-region class";
+        ecosystemHeadingCoverage.textContent = grouped
+          ? "Classes meeting target"
+          : "Coverage";
+        ecosystemHeadingArea.textContent = grouped
+          ? "Measured classes"
+          : "Covered / total area";
+        ecosystemHeadingTarget.textContent = grouped
+          ? "Share meeting target"
+          : "Target";
+        ecosystemHeadingResult.textContent = grouped ? "Context" : "Result";
+      }
+
+      function renderEcosystemCoverageRows() {
+        const query = ecosystemSearchInput.value.trim().toLowerCase();
+        const display = ecosystemDisplaySelect.value;
+        const grouped = display !== "individual";
+        const result = ecosystemResultSelect.value;
+
+        let rows = ecosystemCoverageRows.filter((row) => {
+          const matchesQuery =
+            grouped ||
+            !query ||
+            row.name.toLowerCase().includes(query) ||
+            row.biomeFamily.toLowerCase().includes(query);
+          const matchesResult = result === "all" || row.result === result;
+
+          return matchesQuery && matchesResult;
+        });
+
+        if (grouped) {
+          rows = groupEcosystemCoverageRows(
+            ecosystemCoverageRows,
+            display,
+          ).filter((row) => !query || row.name.toLowerCase().includes(query));
+          ecosystemResultSelect.value = "all";
+          ecosystemResultSelect.disabled = true;
+          ecosystemGroupingNote.classList.remove("hidden");
+          ecosystemResultsTitle.textContent =
+            "Contextual classification groups";
+        } else {
+          ecosystemResultSelect.disabled = false;
+          ecosystemGroupingNote.classList.add("hidden");
+          ecosystemResultsTitle.textContent = "Targeted IAvH classes";
+        }
+
+        filteredEcosystemCoverageRows = rows;
+        if (ecosystemSortSelect.value === "coverage-desc") {
+          filteredEcosystemCoverageRows.sort(
+            (a, b) =>
+              (grouped ? b.pctMet : b.coverage) -
+              (grouped ? a.pctMet : a.coverage),
+          );
+        } else if (ecosystemSortSelect.value === "coverage-asc") {
+          filteredEcosystemCoverageRows.sort(
+            (a, b) =>
+              (grouped ? a.pctMet : a.coverage) -
+              (grouped ? b.pctMet : b.coverage),
+          );
+        } else {
+          filteredEcosystemCoverageRows.sort((a, b) =>
+            a.name.localeCompare(b.name),
+          );
+        }
+
+        setEcosystemTableHeadings(grouped);
+        ecosystemFilteredCount.textContent = `${filteredEcosystemCoverageRows.length} results`;
+        ecosystemTableBody.innerHTML = filteredEcosystemCoverageRows
+          .map((row) => {
+            if (grouped) {
+              const contextLabel =
+                display === "biomeFamily"
+                  ? "Map legend grouping"
+                  : "Context summary";
+              return `
+                <tr id="ecosystem-group-row-${display}-${row.id}" class="hover:bg-slate-50">
+                  <th id="ecosystem-group-name-cell-${display}-${row.id}" scope="row" class="px-3 py-2.5 text-left">
+                    <span id="ecosystem-group-name-${display}-${row.id}" class="block text-xs font-semibold leading-4 text-slate-900">${row.name}</span>
+                  </th>
+                  <td id="ecosystem-group-met-cell-${display}-${row.id}" class="px-3 py-2.5 text-[11px] font-semibold tabular-nums text-slate-800">
+                    <span id="ecosystem-group-met-${display}-${row.id}">${row.metCount}</span>
+                  </td>
+                  <td id="ecosystem-group-total-cell-${display}-${row.id}" class="px-3 py-2.5 text-[11px] tabular-nums text-slate-700">
+                    <span id="ecosystem-group-total-${display}-${row.id}">${row.totalCount}</span>
+                  </td>
+                  <td id="ecosystem-group-share-cell-${display}-${row.id}" class="px-3 py-2.5">
+                    <div id="ecosystem-group-share-layout-${display}-${row.id}" class="flex items-center gap-2">
+                      <span id="ecosystem-group-share-${display}-${row.id}" class="w-9 text-right text-[11px] font-bold tabular-nums text-slate-800">${row.pctMet}%</span>
+                      <span id="ecosystem-group-share-track-${display}-${row.id}" class="block h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-slate-200">
+                        <span id="ecosystem-group-share-fill-${display}-${row.id}" class="block h-full rounded-full bg-slate-500" style="width: ${row.pctMet}%"></span>
+                      </span>
+                    </div>
+                  </td>
+                  <td id="ecosystem-group-context-cell-${display}-${row.id}" class="px-3 py-2.5">
+                    <span id="ecosystem-group-context-${display}-${row.id}" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-bold text-slate-600">${contextLabel}</span>
+                  </td>
+                </tr>
+              `;
+            }
+
+            const resultLabel =
+              row.result === "reached" ? "Target met" : "Below target";
+            const resultClasses =
+              row.result === "reached"
+                ? "border-sky-200 bg-sky-50 text-sky-800"
+                : "border-slate-200 bg-white text-slate-600";
+
+            return `
+              <tr id="ecosystem-coverage-row-${row.id}" class="hover:bg-slate-50">
+                <th id="ecosystem-coverage-name-cell-${row.id}" scope="row" class="px-3 py-2.5 text-left">
+                  <span id="ecosystem-coverage-name-${row.id}" class="block text-xs font-semibold leading-4 text-slate-900">${row.name}</span>
+                  <span id="ecosystem-coverage-category-${row.id}" class="mt-0.5 block text-[10px] text-slate-500">${row.biomeFamily}</span>
+                </th>
+                <td id="ecosystem-coverage-percent-cell-${row.id}" class="px-3 py-2.5">
+                  <div id="ecosystem-coverage-percent-layout-${row.id}" class="flex items-center gap-2">
+                    <span id="ecosystem-coverage-percent-${row.id}" class="w-9 text-right text-[11px] font-bold tabular-nums text-slate-800">${row.coverage}%</span>
+                    <span id="ecosystem-coverage-percent-track-${row.id}" class="block h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-slate-200">
+                      <span id="ecosystem-coverage-percent-fill-${row.id}" class="block h-full rounded-full bg-sky-500" style="width: ${row.coverage}%"></span>
+                    </span>
+                  </div>
+                </td>
+                <td id="ecosystem-coverage-area-cell-${row.id}" class="px-3 py-2.5 text-[11px] tabular-nums text-slate-700">
+                  <span id="ecosystem-coverage-area-${row.id}">${formatEcosystemArea(row.coveredArea)} / ${formatEcosystemArea(row.totalArea)} km²</span>
+                </td>
+                <td id="ecosystem-coverage-benchmark-cell-${row.id}" class="px-3 py-2.5 text-[11px] font-semibold tabular-nums text-slate-700">
+                  <span id="ecosystem-coverage-benchmark-${row.id}">${row.benchmark}%</span>
+                </td>
+                <td id="ecosystem-coverage-result-cell-${row.id}" class="px-3 py-2.5">
+                  <span id="ecosystem-coverage-result-${row.id}" class="inline-flex rounded-full border px-2 py-1 text-[9px] font-bold ${resultClasses}">${resultLabel}</span>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function openEcosystemCoverageModal() {
+        ecosystemModalLayer.classList.remove("hidden");
+        ecosystemModalLayer.classList.add("flex");
+        ecosystemModalOpenButton.setAttribute("aria-expanded", "true");
+        document.body.classList.add("overflow-hidden");
+        renderEcosystemCoverageRows();
+        window.setTimeout(() => ecosystemModalCloseButton.focus(), 0);
+      }
+
+      function closeEcosystemCoverageModal() {
+        ecosystemModalLayer.classList.remove("flex");
+        ecosystemModalLayer.classList.add("hidden");
+        ecosystemModalOpenButton.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("overflow-hidden");
+        ecosystemModalOpenButton.focus();
+      }
+
+      function clearEcosystemCoverageFilters() {
+        ecosystemSearchInput.value = "";
+        ecosystemDisplaySelect.value = "individual";
+        ecosystemResultSelect.value = "all";
+        ecosystemSortSelect.value = "name";
+        renderEcosystemCoverageRows();
+      }
+
+      function exportEcosystemCoverageCsv() {
+        const grouped = ecosystemDisplaySelect.value !== "individual";
+        const header = grouped
+          ? [
+              "Classification group",
+              "Classes meeting target",
+              "Measured classes",
+              "Share meeting target percent",
+              "Grouping",
+            ]
+          : [
+              "IAvH biome-region class",
+              "Biome family",
+              "Coverage percent",
+              "Covered area km2",
+              "Total area km2",
+              "Configured target percent",
+              "Target result",
+            ];
+        const rows = grouped
+          ? filteredEcosystemCoverageRows.map((row) => [
+              row.name,
+              row.metCount,
+              row.totalCount,
+              row.pctMet,
+              ecosystemDisplaySelect.value,
+            ])
+          : filteredEcosystemCoverageRows.map((row) => [
+              row.name,
+              row.biomeFamily,
+              row.coverage,
+              row.coveredArea,
+              row.totalArea,
+              row.benchmark,
+              row.result === "reached" ? "Target met" : "Below target",
+            ]);
+        const csv = [header, ...rows]
+          .map((row) =>
+            row
+              .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+              .join(","),
+          )
+          .join("\n");
+        const downloadUrl = URL.createObjectURL(
+          new Blob([csv], { type: "text/csv" }),
+        );
+        const downloadLink = document.createElement("a");
+        downloadLink.id = "ecosystem-coverage-csv-download-link";
+        downloadLink.href = downloadUrl;
+        downloadLink.download = "ecosystem-coverage.csv";
+        downloadLink.click();
+        URL.revokeObjectURL(downloadUrl);
+      }
+
+      ecosystemModalOpenButton.addEventListener(
+        "click",
+        openEcosystemCoverageModal,
+      );
+      ecosystemModalCloseButton.addEventListener(
+        "click",
+        closeEcosystemCoverageModal,
+      );
+      ecosystemModalFooterCloseButton.addEventListener(
+        "click",
+        closeEcosystemCoverageModal,
+      );
+      ecosystemModalBackdrop.addEventListener(
+        "click",
+        closeEcosystemCoverageModal,
+      );
+      ecosystemClearFiltersButton.addEventListener(
+        "click",
+        clearEcosystemCoverageFilters,
+      );
+      ecosystemExportButton.addEventListener(
+        "click",
+        exportEcosystemCoverageCsv,
+      );
+      ecosystemSearchInput.addEventListener(
+        "input",
+        renderEcosystemCoverageRows,
+      );
+      ecosystemDisplaySelect.addEventListener(
+        "change",
+        renderEcosystemCoverageRows,
+      );
+      ecosystemResultSelect.addEventListener(
+        "change",
+        renderEcosystemCoverageRows,
+      );
+      ecosystemSortSelect.addEventListener(
+        "change",
+        renderEcosystemCoverageRows,
+      );
+      document.addEventListener("keydown", (event) => {
+        const modalIsOpen = !ecosystemModalLayer.classList.contains("hidden");
+        if (event.key === "Escape" && modalIsOpen) {
+          closeEcosystemCoverageModal();
+        }
+        if (event.key === "Tab" && modalIsOpen) {
+          const focusableElements = [
+            ...document
+              .getElementById("ecosystem-coverage-modal")
+              .querySelectorAll(
+                'button, input, select, [tabindex]:not([tabindex="-1"])',
+              ),
+          ];
+          const firstFocusableElement = focusableElements[0];
+          const lastFocusableElement =
+            focusableElements[focusableElements.length - 1];
+
+          if (
+            event.shiftKey &&
+            document.activeElement === firstFocusableElement
+          ) {
+            event.preventDefault();
+            lastFocusableElement.focus();
+          } else if (
+            !event.shiftKey &&
+            document.activeElement === lastFocusableElement
+          ) {
+            event.preventDefault();
+            firstFocusableElement.focus();
+          }
+        }
+      });
+    </script>
+
+    <script id="species-coverage-modal-script">
+      const speciesModalLayer = document.getElementById(
+        "species-coverage-modal-layer",
+      );
+      const speciesModalOpenButton = document.getElementById(
+        "additional-outcomes-view-species-button",
+      );
+      const speciesModalCloseButton = document.getElementById(
+        "species-coverage-modal-close-button",
+      );
+      const speciesModalFooterCloseButton = document.getElementById(
+        "species-coverage-modal-footer-close-button",
+      );
+      const speciesModalBackdrop = document.getElementById(
+        "species-coverage-modal-backdrop",
+      );
+      const speciesSearchInput = document.getElementById(
+        "species-coverage-search-input",
+      );
+      const speciesTaxaSelect = document.getElementById(
+        "species-coverage-taxa-select",
+      );
+      const speciesDisplaySelect = document.getElementById(
+        "species-coverage-display-select",
+      );
+      const speciesResultSelect = document.getElementById(
+        "species-coverage-result-select",
+      );
+      const speciesSortSelect = document.getElementById(
+        "species-coverage-sort-select",
+      );
+      const speciesClearFiltersButton = document.getElementById(
+        "species-coverage-modal-clear-filters",
+      );
+      const speciesExportButton = document.getElementById(
+        "species-coverage-modal-export-button",
+      );
+      const speciesTableBody = document.getElementById(
+        "species-coverage-table-body",
+      );
+      const speciesFilteredCount = document.getElementById(
+        "species-coverage-modal-filtered-count",
+      );
+      const speciesGroupingNote = document.getElementById(
+        "species-coverage-modal-grouping-note",
+      );
+      const speciesResultsTitle = document.getElementById(
+        "species-coverage-modal-results-title",
+      );
+      const speciesHeadingName = document.getElementById(
+        "species-coverage-table-heading-species",
+      );
+      const speciesHeadingTaxa = document.getElementById(
+        "species-coverage-table-heading-taxa",
+      );
+      const speciesHeadingGenus = document.getElementById(
+        "species-coverage-table-heading-genus",
+      );
+      const speciesHeadingCoverage = document.getElementById(
+        "species-coverage-table-heading-coverage",
+      );
+      const speciesHeadingBenchmark = document.getElementById(
+        "species-coverage-table-heading-benchmark",
+      );
+      const speciesHeadingResult = document.getElementById(
+        "species-coverage-table-heading-result",
+      );
+
+      const speciesBaseModels = [
+        {
+          commonName: "Jaguar",
+          scientificName: "Panthera onca",
+          taxa: "Mammals",
+          order: "Carnivora",
+          family: "Felidae",
+        },
+        {
+          commonName: "Spectacled bear",
+          scientificName: "Tremarctos ornatus",
+          taxa: "Mammals",
+          order: "Carnivora",
+          family: "Ursidae",
+        },
+        {
+          commonName: "Andean condor",
+          scientificName: "Vultur gryphus",
+          taxa: "Birds",
+          order: "Accipitriformes",
+          family: "Cathartidae",
+        },
+        {
+          commonName: "Yellow-eared parrot",
+          scientificName: "Ognorhynchus icterotis",
+          taxa: "Birds",
+          order: "Psittaciformes",
+          family: "Psittacidae",
+        },
+        {
+          commonName: "Golden poison frog",
+          scientificName: "Phyllobates terribilis",
+          taxa: "Amphibians",
+          order: "Anura",
+          family: "Dendrobatidae",
+        },
+        {
+          commonName: "Harlequin frog",
+          scientificName: "Atelopus varius",
+          taxa: "Amphibians",
+          order: "Anura",
+          family: "Bufonidae",
+        },
+        {
+          commonName: "Green iguana",
+          scientificName: "Iguana iguana",
+          taxa: "Reptiles",
+          order: "Squamata",
+          family: "Iguanidae",
+        },
+        {
+          commonName: "Orinoco crocodile",
+          scientificName: "Crocodylus intermedius",
+          taxa: "Reptiles",
+          order: "Crocodylia",
+          family: "Crocodylidae",
+        },
+        {
+          commonName: "Cotton-top tamarin",
+          scientificName: "Saguinus oedipus",
+          taxa: "Mammals",
+          order: "Primates",
+          family: "Callitrichidae",
+        },
+        {
+          commonName: "Blue-billed curassow",
+          scientificName: "Crax alberti",
+          taxa: "Birds",
+          order: "Galliformes",
+          family: "Cracidae",
+        },
+        {
+          commonName: "Lehmann's poison frog",
+          scientificName: "Oophaga lehmanni",
+          taxa: "Amphibians",
+          order: "Anura",
+          family: "Dendrobatidae",
+        },
+        {
+          commonName: "Colombian lightbulb lizard",
+          scientificName: "Riama columbiana",
+          taxa: "Reptiles",
+          order: "Squamata",
+          family: "Gymnophthalmidae",
+        },
+      ];
+
+      const speciesTaxaCounts = [
+        { taxa: "Birds", totalCount: 68, met17Count: 62, met30Count: 45 },
+        { taxa: "Mammals", totalCount: 41, met17Count: 37, met30Count: 27 },
+        {
+          taxa: "Amphibians",
+          totalCount: 38,
+          met17Count: 33,
+          met30Count: 22,
+        },
+        { taxa: "Reptiles", totalCount: 35, met17Count: 30, met30Count: 20 },
+      ];
+      let speciesRowId = 0;
+      // Each species model has a single measured range-coverage percentage.
+      // Reaching 17%/30% is simply that raw value crossing the checkpoint -
+      // there is no separate "benchmark" field to keep in sync.
+      const speciesCoverageRows = speciesTaxaCounts.flatMap((taxaCount) => {
+        const taxaModels = speciesBaseModels.filter(
+          (model) => model.taxa === taxaCount.taxa,
+        );
+        return Array.from({ length: taxaCount.totalCount }, (_, index) => {
+          const baseModel = taxaModels[index % taxaModels.length];
+          const coverage =
+            index < taxaCount.met30Count
+              ? Math.min(100, 30 + ((index * 9) % 71))
+              : index < taxaCount.met17Count
+                ? 17 + ((index * 5) % 13)
+                : Math.max(1, 16 - ((index * 3) % 15));
+          speciesRowId += 1;
+
+          return {
+            id: speciesRowId,
+            commonName: `${baseModel.commonName} model ${String(
+              Math.floor(index / taxaModels.length) + 1,
+            ).padStart(2, "0")}`,
+            scientificName: baseModel.scientificName,
+            taxa: baseModel.taxa,
+            order: baseModel.order,
+            family: baseModel.family,
+            genus: baseModel.scientificName.split(" ")[0],
+            coverage,
+            reached17: coverage >= 17,
+            reached30: coverage >= 30,
+          };
+        });
+      });
+
+      let filteredSpeciesCoverageRows = [...speciesCoverageRows];
+
+      function groupSpeciesCoverageRows(rows, display) {
+        const groups = new Map();
+        rows.forEach((row) => {
+          const label = row[display];
+          const group = groups.get(label) ?? {
+            id: groups.size + 1,
+            name: label,
+            met17Count: 0,
+            met30Count: 0,
+            totalCount: 0,
+          };
+          group.totalCount += 1;
+          group.met17Count += row.reached17 ? 1 : 0;
+          group.met30Count += row.reached30 ? 1 : 0;
+          groups.set(label, group);
+        });
+
+        return [...groups.values()].map((group) => ({
+          ...group,
+          pct17: Math.round((group.met17Count / group.totalCount) * 100),
+          pct30: Math.round((group.met30Count / group.totalCount) * 100),
+        }));
+      }
+
+      function setSpeciesTableHeadings(grouped) {
+        speciesHeadingName.textContent = grouped
+          ? "Classification group"
+          : "Species";
+        speciesHeadingTaxa.textContent = grouped ? "Group type" : "Taxa";
+        speciesHeadingGenus.textContent = grouped ? "Total measured" : "Genus";
+        speciesHeadingCoverage.textContent = "Coverage";
+        speciesHeadingBenchmark.textContent = "17% coverage";
+        speciesHeadingResult.textContent = "30% coverage";
+      }
+
+      function renderSpeciesCoverageRows() {
+        const query = speciesSearchInput.value.trim().toLowerCase();
+        const taxa = speciesTaxaSelect.value;
+        const display = speciesDisplaySelect.value;
+        const grouped = display !== "individual";
+        const result = speciesResultSelect.value;
+
+        let rows = speciesCoverageRows.filter((row) => {
+          const matchesQuery =
+            grouped ||
+            !query ||
+            row.commonName.toLowerCase().includes(query) ||
+            row.scientificName.toLowerCase().includes(query);
+          const matchesTaxa = taxa === "all" || row.taxa === taxa;
+          const matchesResult =
+            result === "all" ||
+            (result === "reached17" && row.reached17) ||
+            (result === "below17" && !row.reached17) ||
+            (result === "reached30" && row.reached30) ||
+            (result === "below30" && !row.reached30);
+
+          return matchesQuery && matchesTaxa && matchesResult;
+        });
+
+        if (grouped) {
+          rows = groupSpeciesCoverageRows(
+            speciesCoverageRows.filter(
+              (row) => taxa === "all" || row.taxa === taxa,
+            ),
+            display,
+          ).filter((row) => !query || row.name.toLowerCase().includes(query));
+          speciesResultSelect.value = "all";
+          speciesResultSelect.disabled = true;
+          speciesGroupingNote.classList.remove("hidden");
+          speciesResultsTitle.textContent = "Contextual taxonomy groups";
+        } else {
+          speciesResultSelect.disabled = false;
+          speciesGroupingNote.classList.add("hidden");
+          speciesResultsTitle.textContent = "Individual species models";
+        }
+
+        filteredSpeciesCoverageRows = rows;
+        if (speciesSortSelect.value === "coverage-desc") {
+          filteredSpeciesCoverageRows.sort(
+            (a, b) =>
+              (grouped ? b.pct17 : b.coverage) -
+              (grouped ? a.pct17 : a.coverage),
+          );
+        } else if (speciesSortSelect.value === "coverage-asc") {
+          filteredSpeciesCoverageRows.sort(
+            (a, b) =>
+              (grouped ? a.pct17 : a.coverage) -
+              (grouped ? b.pct17 : b.coverage),
+          );
+        } else {
+          filteredSpeciesCoverageRows.sort((a, b) =>
+            (grouped ? a.name : a.commonName).localeCompare(
+              grouped ? b.name : b.commonName,
+            ),
+          );
+        }
+
+        setSpeciesTableHeadings(grouped);
+        speciesFilteredCount.textContent = `${filteredSpeciesCoverageRows.length} results`;
+        speciesTableBody.innerHTML = filteredSpeciesCoverageRows
+          .map((row) => {
+            if (grouped) {
+              const levelLabel =
+                display === "taxa"
+                  ? "Taxonomic group"
+                  : display[0].toUpperCase() + display.slice(1);
+              return `
+                <tr id="species-group-row-${display}-${row.id}" class="hover:bg-slate-50">
+                  <th id="species-group-name-cell-${display}-${row.id}" scope="row" class="px-3 py-2.5 text-left">
+                    <span id="species-group-name-${display}-${row.id}" class="block text-xs font-semibold leading-4 text-slate-900">${row.name}</span>
+                  </th>
+                  <td id="species-group-level-cell-${display}-${row.id}" class="px-3 py-2.5 text-[11px] text-slate-700">
+                    <span id="species-group-level-${display}-${row.id}">${levelLabel}</span>
+                  </td>
+                  <td id="species-group-total-cell-${display}-${row.id}" class="px-3 py-2.5 text-[11px] tabular-nums text-slate-700">
+                    <span id="species-group-total-${display}-${row.id}">${row.totalCount}</span>
+                  </td>
+                  <td id="species-group-share-cell-${display}-${row.id}" class="px-3 py-2.5">
+                    <div id="species-group-share-layout-${display}-${row.id}" class="flex items-center gap-2">
+                      <span id="species-group-share-${display}-${row.id}" class="whitespace-nowrap text-[11px] font-bold tabular-nums text-slate-800">
+                        <span class="text-green-700" title="${row.met17Count} of ${row.totalCount} (${row.pct17}%) reached 17% range coverage">${row.met17Count}</span
+                        ><span aria-hidden="true" class="text-slate-400">|</span
+                        ><span class="text-green-900" title="${row.met30Count} of ${row.totalCount} (${row.pct30}%) reached 30% range coverage">${row.met30Count}</span>
+                      </span>
+                      <span id="species-group-share-track-${display}-${row.id}" class="relative block h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-slate-200">
+                        <span id="species-group-share-fill-seventeen-${display}-${row.id}" class="absolute inset-y-0 left-0 block rounded-full bg-green-300" style="width: ${row.pct17}%"></span>
+                        <span id="species-group-share-fill-thirty-${display}-${row.id}" class="absolute inset-y-0 left-0 block rounded-full bg-green-700" style="width: ${row.pct30}%"></span>
+                      </span>
+                    </div>
+                  </td>
+                  <td id="species-group-met17-cell-${display}-${row.id}" class="px-3 py-2.5 text-[11px] font-semibold tabular-nums text-green-700">
+                    <span id="species-group-met17-${display}-${row.id}">${row.met17Count} (${row.pct17}%)</span>
+                  </td>
+                  <td id="species-group-met30-cell-${display}-${row.id}" class="px-3 py-2.5 text-[11px] font-semibold tabular-nums text-green-900">
+                    <span id="species-group-met30-${display}-${row.id}">${row.met30Count} (${row.pct30}%)</span>
+                  </td>
+                </tr>
+              `;
+            }
+
+            const seventeenClasses = row.reached17
+              ? "border-green-300 bg-green-50 text-green-700"
+              : "border-slate-200 bg-white text-slate-500";
+            const thirtyClasses = row.reached30
+              ? "border-green-400 bg-green-100 text-green-900"
+              : "border-slate-200 bg-white text-slate-500";
+
+            return `
+              <tr id="species-coverage-row-${row.id}" class="hover:bg-slate-50">
+                <th id="species-coverage-name-cell-${row.id}" scope="row" class="px-3 py-2.5 text-left">
+                  <span id="species-coverage-common-name-${row.id}" class="block text-xs font-semibold leading-4 text-slate-900">${row.commonName}</span>
+                  <span id="species-coverage-scientific-name-${row.id}" class="mt-0.5 block text-[10px] italic text-slate-500">${row.scientificName}</span>
+                </th>
+                <td id="species-coverage-taxa-cell-${row.id}" class="px-3 py-2.5 text-[11px] text-slate-700">
+                  <span id="species-coverage-taxa-${row.id}">${row.taxa}</span>
+                </td>
+                <td id="species-coverage-genus-cell-${row.id}" class="px-3 py-2.5 text-[11px] italic text-slate-700">
+                  <span id="species-coverage-genus-${row.id}">${row.genus}</span>
+                </td>
+                <td id="species-coverage-percent-cell-${row.id}" class="px-3 py-2.5">
+                  <div id="species-coverage-percent-layout-${row.id}" class="flex items-center gap-2">
+                    <span id="species-coverage-percent-${row.id}" class="w-9 text-right text-[11px] font-bold tabular-nums text-slate-800">${row.coverage}%</span>
+                    <span id="species-coverage-percent-track-${row.id}" class="block h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-slate-200">
+                      <span id="species-coverage-percent-fill-${row.id}" class="block h-full rounded-full bg-slate-500" style="width: ${row.coverage}%"></span>
+                    </span>
+                  </div>
+                </td>
+                <td id="species-coverage-benchmark-cell-${row.id}" class="px-3 py-2.5">
+                  <span id="species-coverage-benchmark-${row.id}" class="inline-flex rounded-full border px-2 py-1 text-[9px] font-bold ${seventeenClasses}">${row.reached17 ? "Reached" : "Below"}</span>
+                </td>
+                <td id="species-coverage-result-cell-${row.id}" class="px-3 py-2.5">
+                  <span id="species-coverage-result-${row.id}" class="inline-flex rounded-full border px-2 py-1 text-[9px] font-bold ${thirtyClasses}">${row.reached30 ? "Reached" : "Below"}</span>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function openSpeciesCoverageModal() {
+        speciesModalLayer.classList.remove("hidden");
+        speciesModalLayer.classList.add("flex");
+        speciesModalOpenButton.setAttribute("aria-expanded", "true");
+        document.body.classList.add("overflow-hidden");
+        renderSpeciesCoverageRows();
+        window.setTimeout(() => speciesModalCloseButton.focus(), 0);
+      }
+
+      function closeSpeciesCoverageModal() {
+        speciesModalLayer.classList.remove("flex");
+        speciesModalLayer.classList.add("hidden");
+        speciesModalOpenButton.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("overflow-hidden");
+        speciesModalOpenButton.focus();
+      }
+
+      function clearSpeciesCoverageFilters() {
+        speciesSearchInput.value = "";
+        speciesTaxaSelect.value = "all";
+        speciesDisplaySelect.value = "individual";
+        speciesResultSelect.value = "all";
+        speciesSortSelect.value = "name";
+        renderSpeciesCoverageRows();
+      }
+
+      function exportSpeciesCoverageCsv() {
+        const grouped = speciesDisplaySelect.value !== "individual";
+        const header = grouped
+          ? [
+              "Classification group",
+              "Taxonomic level",
+              "Total measured",
+              "Reached 17% count",
+              "Reached 17% percent",
+              "Reached 30% count",
+              "Reached 30% percent",
+            ]
+          : [
+              "Common name",
+              "Scientific name",
+              "Taxa",
+              "Order",
+              "Family",
+              "Genus",
+              "Coverage percent",
+              "Reached 17%",
+              "Reached 30%",
+            ];
+        const rows = grouped
+          ? filteredSpeciesCoverageRows.map((row) => [
+              row.name,
+              speciesDisplaySelect.value,
+              row.totalCount,
+              row.met17Count,
+              row.pct17,
+              row.met30Count,
+              row.pct30,
+            ])
+          : filteredSpeciesCoverageRows.map((row) => [
+              row.commonName,
+              row.scientificName,
+              row.taxa,
+              row.order,
+              row.family,
+              row.genus,
+              row.coverage,
+              row.reached17 ? "Yes" : "No",
+              row.reached30 ? "Yes" : "No",
+            ]);
+        const csv = [header, ...rows]
+          .map((row) =>
+            row
+              .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+              .join(","),
+          )
+          .join("\n");
+        const downloadUrl = URL.createObjectURL(
+          new Blob([csv], { type: "text/csv" }),
+        );
+        const downloadLink = document.createElement("a");
+        downloadLink.id = "species-coverage-csv-download-link";
+        downloadLink.href = downloadUrl;
+        downloadLink.download = "species-coverage.csv";
+        downloadLink.click();
+        URL.revokeObjectURL(downloadUrl);
+      }
+
+      speciesModalOpenButton.addEventListener(
+        "click",
+        openSpeciesCoverageModal,
+      );
+      speciesModalCloseButton.addEventListener(
+        "click",
+        closeSpeciesCoverageModal,
+      );
+      speciesModalFooterCloseButton.addEventListener(
+        "click",
+        closeSpeciesCoverageModal,
+      );
+      speciesModalBackdrop.addEventListener("click", closeSpeciesCoverageModal);
+      speciesClearFiltersButton.addEventListener(
+        "click",
+        clearSpeciesCoverageFilters,
+      );
+      speciesExportButton.addEventListener("click", exportSpeciesCoverageCsv);
+      speciesSearchInput.addEventListener("input", renderSpeciesCoverageRows);
+      speciesTaxaSelect.addEventListener("change", renderSpeciesCoverageRows);
+      speciesDisplaySelect.addEventListener(
+        "change",
+        renderSpeciesCoverageRows,
+      );
+      speciesResultSelect.addEventListener("change", renderSpeciesCoverageRows);
+      speciesSortSelect.addEventListener("change", renderSpeciesCoverageRows);
+      document.addEventListener("keydown", (event) => {
+        const modalIsOpen = !speciesModalLayer.classList.contains("hidden");
+        if (event.key === "Escape" && modalIsOpen) {
+          closeSpeciesCoverageModal();
+        }
+        if (event.key === "Tab" && modalIsOpen) {
+          const focusableElements = [
+            ...document
+              .getElementById("species-coverage-modal")
+              .querySelectorAll(
+                'button, input, select, [tabindex]:not([tabindex="-1"])',
+              ),
+          ];
+          const firstFocusableElement = focusableElements[0];
+          const lastFocusableElement =
+            focusableElements[focusableElements.length - 1];
+
+          if (
+            event.shiftKey &&
+            document.activeElement === firstFocusableElement
+          ) {
+            event.preventDefault();
+            lastFocusableElement.focus();
+          } else if (
+            !event.shiftKey &&
+            document.activeElement === lastFocusableElement
+          ) {
+            event.preventDefault();
+            firstFocusableElement.focus();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

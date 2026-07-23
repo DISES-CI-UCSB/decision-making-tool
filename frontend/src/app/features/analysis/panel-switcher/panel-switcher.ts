@@ -9,6 +9,8 @@ import {
   type CustomPolygonMetricId,
   type CustomPolygonMetricsGeometry,
   type CustomPolygonMetricsResponse,
+  type GoalFeatureRow,
+  type GoalFeatureType,
   type LayerLocale,
   type MetricComparisonValue,
   type MetricReadinessStatus,
@@ -143,11 +145,17 @@ interface OverviewMetricDisplayEntry {
 
 interface OverviewGoalsDomainEntry {
   id: string;
+  featureType: GoalFeatureType;
   labelKey: string;
+  /** True when this domain was part of the solution's target set (prioritizr optimized for it). */
+  targeted: boolean;
   targetLabel: string;
   metCount: number;
   totalCount: number;
   pctMet: number | null;
+  /** Untargeted domains only: how many features incidentally reached the 17%/30% range-coverage checkpoints. */
+  reached17Count: number;
+  reached30Count: number;
 }
 
 interface OverviewGoalsTaxaEntry {
@@ -156,6 +164,31 @@ interface OverviewGoalsTaxaEntry {
   metCount: number;
   totalCount: number;
   pctMet: number | null;
+  reached17Count: number;
+  reached30Count: number;
+}
+
+type GoalsModalSortId = 'coverage-desc' | 'coverage-asc' | 'name';
+type GoalsModalFilterId =
+  | 'all'
+  | 'met'
+  | 'not-met'
+  | 'reached17'
+  | 'below17'
+  | 'reached30'
+  | 'below30';
+
+interface GoalsModalRow {
+  id: string;
+  name: string;
+  secondaryLabel: string | null;
+  taxonGroup: string | null;
+  iucnStatus: string | null;
+  met: boolean | null;
+  relativeTarget: number | null;
+  relativeHeld: number | null;
+  reached17: boolean;
+  reached30: boolean;
 }
 
 interface AoiAlignedMetricDisplayEntry {
@@ -369,6 +402,71 @@ export class PanelSwitcherComponent {
   protected readonly overviewGoalsTaxa = computed<OverviewGoalsTaxaEntry[]>(() =>
     this.buildOverviewGoalsTaxa(),
   );
+  protected readonly goalsModalOpen = signal(false);
+  protected readonly goalsModalDomainId = signal<string | null>(null);
+  protected readonly goalsModalSearchQuery = signal('');
+  protected readonly goalsModalSortId = signal<GoalsModalSortId>('coverage-desc');
+  protected readonly goalsModalFilterId = signal<GoalsModalFilterId>('all');
+  protected readonly goalsModalTaxonGroup = signal('all');
+  protected readonly goalsModalDomain = computed<OverviewGoalsDomainEntry | null>(
+    () =>
+      this.overviewGoalsDomains().find((domain) => domain.id === this.goalsModalDomainId()) ?? null,
+  );
+  protected readonly goalsModalRows = computed<GoalsModalRow[]>(() => {
+    const domain = this.goalsModalDomain();
+    const document = this.solutionGoalsDocument();
+    if (!domain || !document) {
+      return [];
+    }
+
+    const query = this.goalsModalSearchQuery().trim().toLocaleLowerCase(this.appLocale.locale());
+    const filter = this.goalsModalFilterId();
+    const taxonGroup = this.goalsModalTaxonGroup();
+    const rows = document.features[domain.featureType]
+      .map((feature) => this.toGoalsModalRow(feature))
+      .filter(
+        (row) =>
+          !query ||
+          [row.name, row.secondaryLabel]
+            .filter(Boolean)
+            .some((value) => value!.toLocaleLowerCase(this.appLocale.locale()).includes(query)),
+      )
+      .filter((row) => taxonGroup === 'all' || row.taxonGroup === taxonGroup)
+      .filter((row) => {
+        switch (filter) {
+          case 'met':
+            return row.met === true;
+          case 'not-met':
+            return row.met === false;
+          case 'reached17':
+            return row.reached17;
+          case 'below17':
+            return !row.reached17;
+          case 'reached30':
+            return row.reached30;
+          case 'below30':
+            return !row.reached30;
+          default:
+            return true;
+        }
+      });
+
+    return this.sortGoalsModalRows(rows);
+  });
+  protected readonly goalsModalTaxonGroups = computed<string[]>(() => {
+    const document = this.solutionGoalsDocument();
+    if (this.goalsModalDomain()?.featureType !== 'species' || !document) {
+      return [];
+    }
+
+    return Array.from(
+      new Set(
+        document.features.species
+          .map((feature) => feature.taxonGroup)
+          .filter((group): group is string => Boolean(group)),
+      ),
+    ).sort((a, b) => a.localeCompare(b, this.appLocale.locale()));
+  });
   protected readonly overviewSectionExpanded = signal<Record<OverviewMetricSection, boolean>>({
     gains: true,
     costs: true,
@@ -950,6 +1048,13 @@ export class PanelSwitcherComponent {
     return `${met} / ${total}`;
   }
 
+  protected getRangeCoverageSharePercent(count: number, totalCount: number): number {
+    if (totalCount <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, (count / totalCount) * 100));
+  }
+
   protected getGoalsProgressBarWidth(pctMet: number | null): number {
     return Math.max(0, Math.min(100, pctMet ?? 0));
   }
@@ -968,8 +1073,13 @@ export class PanelSwitcherComponent {
     }
 
     const targetLabels = this.overviewGoalsDomains()
+      .filter((domain) => domain.targeted)
       .map((domain) => domain.targetLabel)
       .filter((label, index, labels) => label && labels.indexOf(label) === index);
+
+    if (targetLabels.length === 0) {
+      return this.localizedText('analysis.overview.goalsWidget.targetRuleNone');
+    }
 
     if (targetLabels.length === 1) {
       return this.translate.instant('analysis.overview.goalsWidget.targetRuleSingle', {
@@ -1013,6 +1123,12 @@ export class PanelSwitcherComponent {
     return fullValue !== compactValue ? fullValue : null;
   }
 
+  /** Illustrative range-coverage checkpoints (Aichi 17% / GBF 30%) used to summarize
+   * incidental coverage for domains that were *not* part of the solution's target set.
+   * These are not real targets - no target was set - so we never call them "met". */
+  private static readonly RANGE_COVERAGE_CHECKPOINT_17 = 0.17;
+  private static readonly RANGE_COVERAGE_CHECKPOINT_30 = 0.3;
+
   private buildOverviewGoalsDomains(): OverviewGoalsDomainEntry[] {
     const document = this.solutionGoalsDocument();
     if (!document) {
@@ -1024,49 +1140,81 @@ export class PanelSwitcherComponent {
     const targetFeatureIds = new Set(targetContext.targetFeatureIds.map((id) => id.toLowerCase()));
     const hasTarget = (...tokens: string[]) =>
       tokens.some((token) => targetFeatureSet.includes(token) || targetFeatureIds.has(token));
-    const entries: OverviewGoalsDomainEntry[] = [];
 
-    if (hasTarget('strategic_ecosystems', 'strategic', 'estr')) {
-      entries.push({
+    const entries: OverviewGoalsDomainEntry[] = [
+      {
         id: 'strategic-ecosystems',
+        featureType: 'strategicEcosystems',
         labelKey: 'analysis.overview.goalsWidget.strategicEcosystems',
+        targeted: hasTarget('strategic_ecosystems', 'strategic', 'estr'),
         targetLabel: this.formatGoalsRelativeTargetLabel(
           document.targetContext.relativeTargetsByType['strategicEcosystems'],
         ),
         metCount: document.summary.byType.strategicEcosystems.metCount,
         totalCount: document.summary.byType.strategicEcosystems.totalCount,
         pctMet: document.summary.byType.strategicEcosystems.pctMet,
-      });
-    }
-
-    if (hasTarget('ecosistemas', 'ecosystems', 'ecos')) {
-      entries.push({
+        ...this.countRangeCoverageCheckpoints(document.features.strategicEcosystems),
+      },
+      {
         id: 'ecosystems',
+        featureType: 'ecosystems',
         labelKey: 'analysis.overview.goalsWidget.ecosystems',
+        targeted: hasTarget('ecosistemas', 'ecosystems', 'ecos'),
         targetLabel: this.formatGoalsRelativeTargetLabel(
           document.targetContext.relativeTargetsByType['ecosystems'],
         ),
         metCount: document.summary.byType.ecosystems.metCount,
         totalCount: document.summary.byType.ecosystems.totalCount,
         pctMet: document.summary.byType.ecosystems.pctMet,
-      });
-    }
-
-    if (hasTarget('species_richness', 'species', 'esp')) {
-      entries.push({
+        ...this.countRangeCoverageCheckpoints(document.features.ecosystems),
+      },
+      {
         id: 'species',
+        featureType: 'species',
         labelKey: 'analysis.overview.goalsWidget.species',
+        targeted: hasTarget('species_richness', 'species', 'esp'),
         targetLabel: this.formatGoalsRelativeTargetLabel(
           document.targetContext.relativeTargetsByType['species'],
         ),
         metCount: document.summary.byType.species.metSpeciesCount,
         totalCount: document.summary.byType.species.totalSpeciesCount,
         pctMet: document.summary.byType.species.pctMet,
-      });
-    }
+        ...this.countRangeCoverageCheckpoints(document.features.species),
+      },
+    ];
 
     return entries.filter((entry) => entry.totalCount > 0);
   }
+
+  /** Counts, from real measured relativeHeld values, how many features reached each
+   * illustrative range-coverage checkpoint. Used only for untargeted ("Additional
+   * outcomes") domains - targeted domains use the real metCount/pctMet instead. */
+  private countRangeCoverageCheckpoints(
+    features: GoalFeatureRow[],
+  ): Pick<OverviewGoalsDomainEntry, 'reached17Count' | 'reached30Count'> {
+    let reached17Count = 0;
+    let reached30Count = 0;
+    for (const feature of features) {
+      if (feature.relativeHeld === null || feature.relativeHeld === undefined) {
+        continue;
+      }
+      if (feature.relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17) {
+        reached17Count += 1;
+      }
+      if (feature.relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_30) {
+        reached30Count += 1;
+      }
+    }
+    return { reached17Count, reached30Count };
+  }
+
+  protected readonly targetProgressGoalsDomains = computed<OverviewGoalsDomainEntry[]>(() =>
+    this.overviewGoalsDomains().filter((domain) => domain.targeted),
+  );
+
+  protected readonly additionalOutcomeGoalsDomains = computed<OverviewGoalsDomainEntry[]>(() =>
+    this.overviewGoalsDomains().filter((domain) => !domain.targeted),
+  );
 
   private formatGoalsRelativeTargetLabel(targets: number[] | undefined): string {
     const validTargets = (targets ?? []).filter((target) => Number.isFinite(target));
@@ -1095,7 +1243,80 @@ export class PanelSwitcherComponent {
       metCount: rollup.metSpeciesCount,
       totalCount: rollup.totalSpeciesCount,
       pctMet: rollup.pctMet,
+      ...this.countRangeCoverageCheckpoints(
+        document.features.species.filter((feature) => feature.taxonGroup === id),
+      ),
     }));
+  }
+
+  private toGoalsModalRow(feature: GoalFeatureRow): GoalsModalRow {
+    const secondaryLabel =
+      feature.featureType === 'species'
+        ? [feature.taxonGroup, feature.iucnStatus].filter(Boolean).join(' \u00b7 ') || null
+        : null;
+    return {
+      id: feature.featureId,
+      name: feature.label ?? feature.featureName,
+      secondaryLabel,
+      taxonGroup: feature.taxonGroup ?? null,
+      iucnStatus: feature.iucnStatus ?? null,
+      met: feature.met,
+      relativeTarget: feature.relativeTarget,
+      relativeHeld: feature.relativeHeld,
+      reached17:
+        (feature.relativeHeld ?? -1) >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17,
+      reached30:
+        (feature.relativeHeld ?? -1) >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_30,
+    };
+  }
+
+  private sortGoalsModalRows(rows: GoalsModalRow[]): GoalsModalRow[] {
+    const sorted = [...rows];
+    const sortId = this.goalsModalSortId();
+    if (sortId === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, this.appLocale.locale()));
+    } else if (sortId === 'coverage-asc') {
+      sorted.sort((a, b) => (a.relativeHeld ?? -1) - (b.relativeHeld ?? -1));
+    } else {
+      sorted.sort((a, b) => (b.relativeHeld ?? -1) - (a.relativeHeld ?? -1));
+    }
+    return sorted;
+  }
+
+  protected openGoalsModal(domainId: string): void {
+    this.goalsModalDomainId.set(domainId);
+    this.goalsModalSearchQuery.set('');
+    this.goalsModalSortId.set('coverage-desc');
+    this.goalsModalFilterId.set('all');
+    this.goalsModalTaxonGroup.set('all');
+    this.goalsModalOpen.set(true);
+  }
+
+  protected closeGoalsModal(): void {
+    this.goalsModalOpen.set(false);
+  }
+
+  protected setGoalsModalSearchQuery(value: string): void {
+    this.goalsModalSearchQuery.set(value);
+  }
+
+  protected setGoalsModalSortId(value: string): void {
+    this.goalsModalSortId.set(value as GoalsModalSortId);
+  }
+
+  protected setGoalsModalFilterId(value: string): void {
+    this.goalsModalFilterId.set(value as GoalsModalFilterId);
+  }
+
+  protected setGoalsModalTaxonGroup(value: string): void {
+    this.goalsModalTaxonGroup.set(value);
+  }
+
+  protected formatGoalsModalPercent(value: number | null): string {
+    if (value === null || value === undefined) {
+      return '--';
+    }
+    return this.getGoalsPercentLabel(Math.round(value * 1000) / 10);
   }
 
   protected getOverviewPriorityZoneCountValue(): string {
