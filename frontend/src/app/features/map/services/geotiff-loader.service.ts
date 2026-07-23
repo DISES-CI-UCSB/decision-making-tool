@@ -13,6 +13,23 @@ const EXISTING_PROTECTED_COLOR: [number, number, number, number] = [37, 99, 235,
 const NEW_COVERAGE_COLOR: [number, number, number, number] = [22, 163, 74, 180];
 const NO_DATA_COLOR: [number, number, number, number] = [0, 0, 0, 0];
 
+interface GeoTiffImageWithGeoKeys {
+  getGeoKeys(): Partial<Record<string, unknown>> | null;
+}
+
+export function getRasterCrs(image: GeoTiffImageWithGeoKeys): string {
+  const geoKeys = image.getGeoKeys() ?? {};
+  const epsg =
+    toPositiveInteger(geoKeys['ProjectedCSTypeGeoKey']) ??
+    toPositiveInteger(geoKeys['GeographicTypeGeoKey']);
+  return epsg ? `EPSG:${epsg}` : 'Unknown';
+}
+
+function toPositiveInteger(value: unknown): number | null {
+  const numericValue = Number(value);
+  return Number.isInteger(numericValue) && numericValue > 0 ? numericValue : null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GeoTiffLoaderService {
   private readonly catalog = inject(SolutionCatalogService);
@@ -72,6 +89,7 @@ export class GeoTiffLoaderService {
       getResolution(): number[];
       getSamplesPerPixel(): number;
       getGDALNoData(): number | null;
+      getGeoKeys(): Partial<Record<string, unknown>> | null;
     },
     data: Float64Array,
     solution: CatalogSolution,
@@ -83,9 +101,7 @@ export class GeoTiffLoaderService {
     const resolution: [number, number] = image.getResolution() as [number, number];
 
     const fileDir = image.fileDirectory as Record<string, unknown>;
-    const geoKeys = (fileDir['geoKeys'] as Record<string, number> | undefined) ?? {};
-    const epsg = geoKeys['GeographicTypeGeoKey'] ?? geoKeys['ProjectedCSTypeGeoKey'] ?? null;
-    const crs = epsg ? `EPSG:${epsg}` : 'Unknown';
+    const crs = getRasterCrs(image);
     const bandDesc = (fileDir['ImageDescription'] as string | undefined) ?? solution.costLayer;
 
     const noData = image.getGDALNoData();

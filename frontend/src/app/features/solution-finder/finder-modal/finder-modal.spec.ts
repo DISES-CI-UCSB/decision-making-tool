@@ -111,6 +111,7 @@ describe('FinderModalComponent', () => {
   it('restores remembered finder selections from app state', () => {
     const appState = TestBed.inject(AppStateService);
     appState.setFinderSelectionMemory({
+      planningDomain: 'land',
       selectedScope: 'nacional',
       selectedSirapRegion: null,
       selectedTargetTypeIds: ['ecosystems'],
@@ -119,6 +120,8 @@ describe('FinderModalComponent', () => {
       includeComunidades: false,
       includeResguardos: true,
       selectedCostLayerId: 'human-footprint',
+      marineTargetPercent: 30,
+      marineIncludeOmecs: false,
     });
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
@@ -142,6 +145,7 @@ describe('FinderModalComponent', () => {
   it('clears remembered selections when clear selections is used', () => {
     const appState = TestBed.inject(AppStateService);
     appState.setFinderSelectionMemory({
+      planningDomain: 'land',
       selectedScope: 'nacional',
       selectedSirapRegion: null,
       selectedTargetTypeIds: ['ecosystems'],
@@ -150,6 +154,8 @@ describe('FinderModalComponent', () => {
       includeComunidades: false,
       includeResguardos: false,
       selectedCostLayerId: 'human-footprint',
+      marineTargetPercent: 30,
+      marineIncludeOmecs: false,
     });
     const fixture = TestBed.createComponent(FinderModalComponent);
     const component = fixture.componentInstance as unknown as {
@@ -698,10 +704,222 @@ describe('FinderModalComponent', () => {
     expect(component.matchResults).toEqual([]);
     expect(component.selectedMatch).toBeNull();
   });
+
+  it('renders a persistent planning-domain control and marine-only fixed settings', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#solution-finder-modal-domain-bar')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-targets-column')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-marine-target-column')).toBeNull();
+
+    (
+      compiled.querySelector('#solution-finder-modal-domain-marine-button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      compiled.querySelector('#solution-finder-modal-targets-column')?.classList.contains('hidden'),
+    ).toBe(true);
+    const marineTargetBundle = compiled.querySelector(
+      '#solution-finder-modal-marine-target-bundle',
+    );
+    expect(marineTargetBundle?.classList.contains('finder-selected-card-border')).toBe(true);
+    expect(
+      compiled.querySelector('#solution-finder-modal-marine-target-bundle-help')?.textContent,
+    ).toContain('solutionControls.finder.marine.targetBundleHelp');
+    expect(
+      compiled
+        .querySelector('#solution-finder-modal-marine-target-level-panel')
+        ?.classList.contains('finder-target-level-panel'),
+    ).toBe(true);
+    expect(
+      compiled
+        .querySelector('#solution-finder-modal-marine-target-30-button')
+        ?.classList.contains('finder-target-level-choice-button'),
+    ).toBe(true);
+    expect(
+      compiled
+        .querySelector('#solution-finder-modal-marine-target-50-button')
+        ?.classList.contains('finder-target-level-choice-button'),
+    ).toBe(true);
+    expect(compiled.querySelector('#solution-finder-modal-marine-hhm-row')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-marine-hhm-help')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-marine-omec-row')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-marine-omec-toggle')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-marine-omec-source-link')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-marine-runap-row')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-marine-runap-help')).not.toBeNull();
+    expect(
+      compiled.querySelector('#solution-finder-modal-marine-runap-source-link'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#solution-finder-modal-step2a-column')?.classList.contains('hidden'),
+    ).toBe(true);
+    expect(
+      compiled.querySelector('#solution-finder-modal-marine-hhm-row')?.getAttribute('disabled'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#solution-finder-modal-marine-runap-row')?.getAttribute('disabled'),
+    ).toBeNull();
+  });
+
+  it.each([
+    { targetPercent: 30 as const, includeOmecs: false },
+    { targetPercent: 30 as const, includeOmecs: true },
+    { targetPercent: 50 as const, includeOmecs: false },
+    { targetPercent: 50 as const, includeOmecs: true },
+  ])(
+    'matches exactly one marine $targetPercent% solution when OMEC is $includeOmecs',
+    ({ targetPercent, includeOmecs }) => {
+      vi.useFakeTimers();
+      const marineSolutions = [
+        buildMarineSolution(30, false),
+        buildMarineSolution(30, true),
+        buildMarineSolution(50, false),
+        buildMarineSolution(50, true),
+      ];
+      catalog.getAll.mockReturnValue([
+        buildSolution({
+          id: 'ecos30_runap_hf',
+          name: 'Land solution',
+          targetFeatureSet: 'ecosystems',
+          targetFeatureIds: ['ecosistemas'],
+          targetPercent: 30,
+          costLayerId: 'human_footprint_2022',
+          includeLayerIds: ['runap'],
+        }),
+        ...marineSolutions,
+      ]);
+      const fixture = TestBed.createComponent(FinderModalComponent);
+      const component = fixture.componentInstance as unknown as {
+        selectedDomain: 'land' | 'marine';
+        marineTargetPercent: 30 | 50;
+        marineIncludeOmecs: boolean;
+        runMatching: () => void;
+        matchResults: { solutionId: string }[];
+      };
+
+      component.selectedDomain = 'marine';
+      component.marineTargetPercent = targetPercent;
+      component.marineIncludeOmecs = includeOmecs;
+      component.runMatching();
+      vi.advanceTimersByTime(350);
+
+      expect(component.matchResults.map((match) => match.solutionId)).toEqual([
+        `marine-${targetPercent}-${includeOmecs ? 'omec' : 'no-omec'}`,
+      ]);
+    },
+  );
+
+  it('uses explicit domain metadata to prevent mixed land and marine matches', () => {
+    vi.useFakeTimers();
+    const misleadingMarineInputs = buildMarineSolution(30, false, {
+      id: 'explicit-land-with-marine-inputs',
+      domain: 'land',
+    });
+    catalog.getAll.mockReturnValue([misleadingMarineInputs, buildMarineSolution(30, false)]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedDomain: 'marine';
+      runMatching: () => void;
+      matchResults: { solutionId: string }[];
+    };
+
+    component.selectedDomain = 'marine';
+    component.runMatching();
+    vi.advanceTimersByTime(350);
+
+    expect(component.matchResults.map((match) => match.solutionId)).toEqual(['marine-30-no-omec']);
+  });
+
+  it('restores the marine domain, controls, and custom label from a saved scenario', () => {
+    const appState = TestBed.inject(AppStateService);
+    const savedSolution = buildMarineSolution(50, true);
+    catalog.getById.mockReturnValue(savedSolution);
+    appState.loadSolution({
+      id: savedSolution.id,
+      name: savedSolution.name,
+      matchPercentage: savedSolution.pctTargetsMet,
+      geometryUrl: savedSolution.displayUrl,
+      metrics: [],
+      metadata: { solutionId: savedSolution.id },
+    });
+    appState.labelActiveSolution('Marine priority');
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      selectedDomain: 'land' | 'marine';
+      marineTargetPercent: 30 | 50;
+      marineIncludeOmecs: boolean;
+      selectedMatch: { customLabel?: string } | null;
+    };
+
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-saved-scenario-saved-scenario-marine-50-omec',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(component.selectedDomain).toBe('marine');
+    expect(component.marineTargetPercent).toBe(50);
+    expect(component.marineIncludeOmecs).toBe(true);
+    expect(component.selectedMatch?.customLabel).toBe('Marine priority');
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-marine-target-column'),
+    ).not.toBeNull();
+  });
+
+  it('preserves separate land and marine drafts and restores the active domain on reopen', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedDomain: 'land' | 'marine';
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      selectedCostLayerId: string | null;
+      marineTargetPercent: 30 | 50;
+      marineIncludeOmecs: boolean;
+      selectDomain: (domain: 'land' | 'marine') => void;
+      selectMarineTargetPercent: (percent: 30 | 50) => void;
+      toggleMarineIncludeOmecs: () => void;
+    };
+    component.selectedTargetTypeIds = ['ecosystems'];
+    component.targetLevelByType = { ecosystems: 30 };
+    component.selectedCostLayerId = 'human-footprint';
+
+    component.selectDomain('marine');
+    component.selectMarineTargetPercent(50);
+    component.toggleMarineIncludeOmecs();
+    component.selectDomain('land');
+
+    expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
+    expect(component.targetLevelByType).toEqual({ ecosystems: 30 });
+    expect(component.selectedCostLayerId).toBe('human-footprint');
+
+    component.selectDomain('marine');
+    expect(component.marineTargetPercent).toBe(50);
+    expect(component.marineIncludeOmecs).toBe(true);
+
+    fixture.destroy();
+    const reopenedFixture = TestBed.createComponent(FinderModalComponent);
+    reopenedFixture.detectChanges();
+    const reopened = reopenedFixture.componentInstance as unknown as {
+      selectedDomain: 'land' | 'marine';
+      marineTargetPercent: 30 | 50;
+      marineIncludeOmecs: boolean;
+    };
+    expect(reopened.selectedDomain).toBe('marine');
+    expect(reopened.marineTargetPercent).toBe(50);
+    expect(reopened.marineIncludeOmecs).toBe(true);
+  });
 });
 
 function buildSolution(
   overrides: Pick<CatalogSolution, 'id' | 'name'> & {
+    domain?: 'land' | 'marine';
+    scope?: string;
     targetFeatureSet: string;
     targetFeatureIds: string[];
     targetPercent: number | null;
@@ -714,7 +932,8 @@ function buildSolution(
     filename: `${overrides.name}.tif`,
     name: overrides.name,
     description: `${overrides.name} solution`,
-    scope: 'nacional',
+    domain: overrides.domain ?? 'land',
+    scope: overrides.scope ?? 'nacional',
     sirapId: null,
     displayUrl: `https://example.test/${overrides.name}.tif`,
     metadataUrl: `https://example.test/${overrides.name}.json`,
@@ -728,7 +947,8 @@ function buildSolution(
       ],
     },
     finderInputs: {
-      scope: 'nacional',
+      domain: overrides.domain ?? 'land',
+      scope: overrides.scope ?? 'nacional',
       targetFeatureSet: overrides.targetFeatureSet,
       targetFeatureIds: overrides.targetFeatureIds,
       targetPercent: overrides.targetPercent,
@@ -749,4 +969,22 @@ function buildSolution(
     totalCost: 0,
     pctTargetsMet: 100,
   };
+}
+
+function buildMarineSolution(
+  targetPercent: 30 | 50,
+  includeOmecs: boolean,
+  overrides: Partial<Pick<CatalogSolution, 'id' | 'domain'>> = {},
+): CatalogSolution {
+  return buildSolution({
+    id: overrides.id ?? `marine-${targetPercent}-${includeOmecs ? 'omec' : 'no-omec'}`,
+    name: `Marine ${targetPercent}%${includeOmecs ? ' + OMEC' : ''}`,
+    domain: overrides.domain ?? 'marine',
+    scope: 'marine',
+    targetFeatureSet: 'marine_ecosystems_and_mangroves',
+    targetFeatureIds: ['FEAT_MARINE_ECOSYSTEMS', 'FEAT_MANGROVES'],
+    targetPercent,
+    costLayerId: 'hhm',
+    includeLayerIds: includeOmecs ? ['INCL_RUNAP', 'INCL_OMEC'] : ['INCL_RUNAP'],
+  });
 }

@@ -13,6 +13,7 @@ import { environment } from '../../../environments/environment';
 
 export type RightSidebarMode = 'welcome' | 'overview' | 'aoi' | 'comparison';
 export type SolutionFinderContext = 'default' | 'comparison-candidate';
+export type PlanningDomain = 'land' | 'marine';
 export type ComparisonVisualizationMode = 'threeColorOverlay' | 'twoColorOpacity' | 'swipe';
 export type MetricNumberFormatMode = 'compact' | 'full';
 export type AreaDisplayUnit = 'km2' | 'hectares';
@@ -20,6 +21,7 @@ export type MapLegendLayerSwatchType = 'fill' | 'line' | 'gradient';
 export type CustomAoiDrawStatus = 'idle' | 'drawing' | 'selected' | 'invalid';
 
 export interface FinderSelectionMemory {
+  planningDomain: PlanningDomain;
   selectedScope: 'nacional' | 'sirap';
   selectedSirapRegion: string | null;
   selectedTargetTypeIds: string[];
@@ -28,6 +30,8 @@ export interface FinderSelectionMemory {
   includeComunidades: boolean;
   includeResguardos: boolean;
   selectedCostLayerId: string | null;
+  marineTargetPercent: 30 | 50;
+  marineIncludeOmecs: boolean;
 }
 
 export interface SavedSolutionScenario {

@@ -25,6 +25,7 @@ import {
 } from '@core/models/solution-matching.utils';
 import type {
   FinderSelectionMemory,
+  PlanningDomain,
   SavedSolutionScenario,
   SolutionFinderContext,
 } from '@core/services/app-state.service';
@@ -36,6 +37,7 @@ type FinderMatchState = 'empty' | 'loading' | 'ready';
 
 type FinderTargetType = SolutionTargetType;
 type CostLayerChoice = SolutionCostChoice;
+type MarineTargetPercent = 30 | 50;
 
 type SirapRegionId =
   | 'caribe'
@@ -157,6 +159,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   protected readonly savedSolutionScenarios = this.appState.savedSolutionScenarios$;
   protected readonly finderSelectionMemory = this.appState.finderSelectionMemory$;
   protected savedScenarioSearchQuery = '';
+  protected selectedDomain: PlanningDomain = 'land';
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
 
@@ -207,6 +210,10 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   /** Step 2B */
   protected selectedCostLayerId: CostLayerChoice | null = null;
 
+  /** Marine draft */
+  protected marineTargetPercent: MarineTargetPercent = 30;
+  protected marineIncludeOmecs = false;
+
   @ViewChildren('finderColumnHeader')
   private readonly columnHeaderRefs?: QueryList<ElementRef<HTMLElement>>;
 
@@ -253,6 +260,30 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     }
 
     this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
+  }
+
+  protected selectDomain(domain: PlanningDomain): void {
+    if (domain === this.selectedDomain) {
+      return;
+    }
+
+    this.selectedDomain = domain;
+    this.clearResults();
+    this.rememberCurrentSelections();
+    this.runMatching();
+    this.scheduleColumnHeaderHeightSync();
+  }
+
+  protected selectMarineTargetPercent(percent: MarineTargetPercent): void {
+    this.marineTargetPercent = percent;
+    this.runMatching();
+    this.rememberCurrentSelections();
+  }
+
+  protected toggleMarineIncludeOmecs(): void {
+    this.marineIncludeOmecs = !this.marineIncludeOmecs;
+    this.runMatching();
     this.rememberCurrentSelections();
   }
 
@@ -359,7 +390,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       const filtered = this.solutionCatalog
         .getAll()
         .filter((solution) => this.solutionMatchesSelection(solution));
-      this.matchResults = filtered.map((solution) => this.toSolutionMatch(solution));
+      const matchedSolutions = this.selectedDomain === 'marine' ? filtered.slice(0, 1) : filtered;
+      this.matchResults = matchedSolutions.map((solution) => this.toSolutionMatch(solution));
       this.selectedMatchId = this.matchResults[0]?.id ?? null;
       this.selectedMatch = this.matchResults[0] ?? null;
       this.matchState = 'ready';
@@ -426,6 +458,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   protected resetSelections(): void {
     this.clearSelections({ remember: false });
+    this.marineTargetPercent = 30;
+    this.marineIncludeOmecs = false;
     this.appState.clearFinderSelectionMemory();
   }
 
@@ -464,10 +498,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   protected getTargetSelectionCount(): number {
+    if (this.selectedDomain === 'marine') {
+      return 1;
+    }
     return this.selectedTargetTypeIds.length + this.getSelectedTargetLevelCount();
   }
 
   protected getVariableConstraintCount(): number {
+    if (this.selectedDomain === 'marine') {
+      return this.marineIncludeOmecs ? 1 : 0;
+    }
     let n = 0;
     if (this.includeOmecs) {
       n += 1;
@@ -482,10 +522,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   protected getTradeoffSelectionCount(): number {
+    if (this.selectedDomain === 'marine') {
+      return 1;
+    }
     return this.selectedCostLayerId !== null ? 1 : 0;
   }
 
   protected canRunMatching(): boolean {
+    if (this.selectedDomain === 'marine') {
+      return true;
+    }
     return (
       this.selectedTargetTypeIds.length > 0 &&
       this.areAllSelectedTargetsLeveled() &&
@@ -502,6 +548,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   protected isStep1Complete(): boolean {
+    if (this.selectedDomain === 'marine') {
+      return true;
+    }
     return this.selectedTargetTypeIds.length > 0 && this.areAllSelectedTargetsLeveled();
   }
 
@@ -538,6 +587,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       return;
     }
 
+    this.selectedDomain = rememberedSelection.planningDomain;
     this.selectedScope = rememberedSelection.selectedScope;
     this.selectedSirapRegion = rememberedSelection.selectedSirapRegion as SirapRegionId | null;
     this.selectedTargetTypeIds = rememberedSelection.selectedTargetTypeIds.filter((id) =>
@@ -550,11 +600,14 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     this.selectedCostLayerId = this.isCostLayerChoice(rememberedSelection.selectedCostLayerId)
       ? rememberedSelection.selectedCostLayerId
       : null;
+    this.marineTargetPercent = rememberedSelection.marineTargetPercent;
+    this.marineIncludeOmecs = rememberedSelection.marineIncludeOmecs;
     this.runMatching();
   }
 
   private rememberCurrentSelections(): void {
     this.appState.setFinderSelectionMemory({
+      planningDomain: this.selectedDomain,
       selectedScope: this.selectedScope,
       selectedSirapRegion: this.selectedSirapRegion,
       selectedTargetTypeIds: [...this.selectedTargetTypeIds],
@@ -563,10 +616,20 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       includeComunidades: this.includeComunidades,
       includeResguardos: this.includeResguardos,
       selectedCostLayerId: this.selectedCostLayerId,
+      marineTargetPercent: this.marineTargetPercent,
+      marineIncludeOmecs: this.marineIncludeOmecs,
     });
   }
 
   private restoreSelectionsFromSolution(solution: CatalogSolution): void {
+    this.selectedDomain = this.getSolutionDomain(solution);
+    if (this.selectedDomain === 'marine') {
+      const targetPercent = solution.finderInputs.targetPercent;
+      this.marineTargetPercent = targetPercent === 50 ? 50 : 30;
+      this.marineIncludeOmecs = getSolutionIncludeFlags(solution).omecs;
+      return;
+    }
+
     const normalizedScope = normalizeSolutionToken(solution.finderInputs.scope || solution.scope);
     this.selectedScope = normalizedScope === 'sirap' ? 'sirap' : 'nacional';
     this.selectedSirapRegion =
@@ -636,6 +699,14 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private solutionMatchesSelection(solution: CatalogSolution): boolean {
+    if (this.getSolutionDomain(solution) !== this.selectedDomain) {
+      return false;
+    }
+
+    if (this.selectedDomain === 'marine') {
+      return this.marineSolutionMatchesSelection(solution);
+    }
+
     if (!this.solutionScopeMatchesSelection(solution)) {
       return false;
     }
@@ -666,6 +737,30 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     }
 
     return true;
+  }
+
+  private marineSolutionMatchesSelection(solution: CatalogSolution): boolean {
+    const finderInputs = solution.finderInputs;
+    const includes = getSolutionIncludeFlags(solution);
+    const costLayerId = normalizeSolutionToken(
+      finderInputs.costLayerId ?? solution.inputLayerIds.cost ?? '',
+    );
+
+    return (
+      normalizeSolutionToken(finderInputs.scope || solution.scope) === 'marine' &&
+      normalizeSolutionToken(finderInputs.targetFeatureSet ?? '') ===
+        'marine-ecosystems-and-mangroves' &&
+      finderInputs.targetPercent === this.marineTargetPercent &&
+      (costLayerId === 'hhm' || costLayerId === 'cost-hhm') &&
+      includes.runap &&
+      includes.omecs === this.marineIncludeOmecs &&
+      !includes.comunidades &&
+      !includes.resguardos
+    );
+  }
+
+  private getSolutionDomain(solution: CatalogSolution): PlanningDomain {
+    return solution.domain ?? solution.finderInputs.domain ?? 'land';
   }
 
   protected isTargetTypeSelected(id: FinderTargetType): boolean {
