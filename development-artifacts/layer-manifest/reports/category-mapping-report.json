@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-22T21:43:34.116Z",
+  "generatedAt": "2026-07-23T18:03:08.631Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -240,6 +240,7 @@
       "manifestSpanishLabel": "Socioeconómico",
       "layerIds": [
         "human_footprint_2022",
+        "hhm",
         "net_benefit",
         "coberturas"
       ],
@@ -255,6 +256,13 @@
         {
           "layerId": "human_footprint_2022",
           "spanishLabel": "Índice de Huella Espacial Humana 2022",
+          "dataRole": "cost_layer",
+          "frontendCategoryId": "group-socio-economic",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "hhm",
+          "spanishLabel": "Huella humana marina",
           "dataRole": "cost_layer",
           "frontendCategoryId": "group-socio-economic",
           "frontendCategoryTitle": null

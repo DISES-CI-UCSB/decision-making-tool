@@ -2,7 +2,61 @@
   id="solution-finder-modal-root"
   class="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50"
 >
-  @if (showScopeBar()) {
+  <nav
+    id="solution-finder-modal-domain-bar"
+    class="flex items-center gap-4 border-b border-slate-200 bg-white px-6 py-3"
+    [attr.aria-label]="'solutionControls.finder.domain.label' | translate"
+  >
+    <span
+      id="solution-finder-modal-domain-label"
+      class="text-xs font-semibold uppercase tracking-widest text-slate-500"
+    >
+      {{ 'solutionControls.finder.domain.label' | translate }}
+    </span>
+    <div
+      id="solution-finder-modal-domain-segments"
+      class="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+      role="radiogroup"
+      [attr.aria-label]="'solutionControls.finder.domain.label' | translate"
+    >
+      <button
+        id="solution-finder-modal-domain-land-button"
+        type="button"
+        class="finder-scope-segment rounded-md px-4 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        [class.bg-sky-600]="selectedDomain === 'land'"
+        [class.text-white]="selectedDomain === 'land'"
+        [class.shadow-sm]="selectedDomain === 'land'"
+        [class.text-slate-600]="selectedDomain !== 'land'"
+        [class.hover:bg-slate-100]="selectedDomain !== 'land'"
+        role="radio"
+        [attr.aria-checked]="selectedDomain === 'land'"
+        (click)="selectDomain('land')"
+      >
+        <span id="solution-finder-modal-domain-land-label" class="finder-scope-segment-label">
+          {{ 'solutionControls.finder.domain.land' | translate }}
+        </span>
+      </button>
+      <button
+        id="solution-finder-modal-domain-marine-button"
+        type="button"
+        class="finder-scope-segment rounded-md px-4 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        [class.bg-sky-600]="selectedDomain === 'marine'"
+        [class.text-white]="selectedDomain === 'marine'"
+        [class.shadow-sm]="selectedDomain === 'marine'"
+        [class.text-slate-600]="selectedDomain !== 'marine'"
+        [class.hover:bg-slate-100]="selectedDomain !== 'marine'"
+        role="radio"
+        [attr.aria-checked]="selectedDomain === 'marine'"
+        (click)="selectDomain('marine')"
+      >
+        <span id="solution-finder-modal-domain-marine-label" class="finder-scope-segment-label">
+          {{ 'solutionControls.finder.domain.marine' | translate }}
+        </span>
+      </button>
+    </div>
+  </nav>
+
+  @if (selectedDomain === 'land' && showScopeBar()) {
     <div
       id="solution-finder-modal-scope-bar"
       class="flex items-center gap-4 border-b border-slate-200 bg-white/80 px-6 py-2.5"
@@ -204,6 +258,9 @@
     <section
       id="solution-finder-modal-targets-column"
       class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
+      [class.hidden]="selectedDomain !== 'land'"
+      [attr.inert]="selectedDomain !== 'land' ? '' : null"
+      [attr.aria-hidden]="selectedDomain !== 'land'"
       aria-labelledby="solution-finder-modal-targets-heading"
     >
       <div id="solution-finder-modal-step1-header-block" #finderColumnHeader class="space-y-3">
@@ -603,6 +660,9 @@
     <section
       id="solution-finder-modal-step2b-column"
       class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
+      [class.hidden]="selectedDomain !== 'land'"
+      [attr.inert]="selectedDomain !== 'land' ? '' : null"
+      [attr.aria-hidden]="selectedDomain !== 'land'"
       aria-labelledby="solution-finder-modal-step2b-heading"
     >
       <div id="solution-finder-modal-step2b-header-block" #finderColumnHeader class="space-y-3">
@@ -842,6 +902,9 @@
     <section
       id="solution-finder-modal-step2a-column"
       class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
+      [class.hidden]="selectedDomain !== 'land'"
+      [attr.inert]="selectedDomain !== 'land' ? '' : null"
+      [attr.aria-hidden]="selectedDomain !== 'land'"
       aria-labelledby="solution-finder-modal-step2a-heading"
     >
       <div id="solution-finder-modal-step2a-header-block" #finderColumnHeader class="space-y-3">
@@ -1171,6 +1234,353 @@
         </div>
       </div>
     </section>
+
+    @if (selectedDomain === 'marine') {
+      <section
+        id="solution-finder-modal-marine-target-column"
+        class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
+        aria-labelledby="solution-finder-modal-marine-target-heading"
+      >
+        <div id="solution-finder-modal-marine-target-header" #finderColumnHeader class="space-y-3">
+          <h4
+            id="solution-finder-modal-marine-target-heading"
+            class="finder-step-heading text-base text-slate-800"
+          >
+            <span
+              id="solution-finder-modal-marine-target-step-prefix"
+              class="finder-step-heading-prefix"
+            >
+              {{ 'solutionControls.finder.stepPrefixes.step1' | translate }}
+            </span>
+            <span
+              id="solution-finder-modal-marine-target-step-label"
+              class="finder-step-heading-label"
+            >
+              {{ 'solutionControls.finder.marine.targetHeading' | translate }}
+            </span>
+          </h4>
+          <p
+            id="solution-finder-modal-marine-target-intro"
+            class="finder-step-intro finder-subtext-dark text-xs leading-snug"
+          >
+            {{ 'solutionControls.finder.marine.targetIntro' | translate }}
+          </p>
+        </div>
+
+        <article
+          id="solution-finder-modal-marine-target-card"
+          class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <div
+            id="solution-finder-modal-marine-target-bundle"
+            class="finder-selected-card-border rounded-md border bg-sky-100 px-3 py-2"
+          >
+            <p
+              id="solution-finder-modal-marine-target-bundle-label"
+              class="text-sm font-semibold text-sky-900"
+            >
+              {{ 'solutionControls.finder.marine.targetBundleLabel' | translate }}
+            </p>
+            <p
+              id="solution-finder-modal-marine-target-bundle-help"
+              class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+            >
+              {{ 'solutionControls.finder.marine.targetBundleHelp' | translate }}
+            </p>
+            <div
+              id="solution-finder-modal-marine-target-level-panel"
+              class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
+            >
+              <div
+                id="solution-finder-modal-marine-target-level-row"
+                class="flex flex-wrap items-center justify-between gap-2"
+              >
+                <p
+                  id="solution-finder-modal-marine-target-level-label"
+                  class="finder-all-caps-optical finder-subtext-dark finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide"
+                >
+                  {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
+                </p>
+                <div
+                  id="solution-finder-modal-marine-target-level-buttons"
+                  class="flex items-center gap-1"
+                  role="radiogroup"
+                  [attr.aria-label]="'solutionControls.finder.step1.coverageLevelLabel' | translate"
+                >
+                  <button
+                    id="solution-finder-modal-marine-target-30-button"
+                    type="button"
+                    class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none"
+                    [class.border-sky-600]="marineTargetPercent === 30"
+                    [class.bg-sky-600]="marineTargetPercent === 30"
+                    [class.text-white]="marineTargetPercent === 30"
+                    [class.border-slate-200]="marineTargetPercent !== 30"
+                    [class.bg-white]="marineTargetPercent !== 30"
+                    [class.text-slate-700]="marineTargetPercent !== 30"
+                    [attr.aria-pressed]="marineTargetPercent === 30"
+                    (click)="selectMarineTargetPercent(30)"
+                  >
+                    <span
+                      id="solution-finder-modal-marine-target-30-label"
+                      class="finder-target-level-choice-label-optical"
+                    >
+                      30%
+                    </span>
+                  </button>
+                  <button
+                    id="solution-finder-modal-marine-target-50-button"
+                    type="button"
+                    class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none"
+                    [class.border-sky-600]="marineTargetPercent === 50"
+                    [class.bg-sky-600]="marineTargetPercent === 50"
+                    [class.text-white]="marineTargetPercent === 50"
+                    [class.border-slate-200]="marineTargetPercent !== 50"
+                    [class.bg-white]="marineTargetPercent !== 50"
+                    [class.text-slate-700]="marineTargetPercent !== 50"
+                    [attr.aria-pressed]="marineTargetPercent === 50"
+                    (click)="selectMarineTargetPercent(50)"
+                  >
+                    <span
+                      id="solution-finder-modal-marine-target-50-label"
+                      class="finder-target-level-choice-label-optical"
+                    >
+                      50%
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section
+        id="solution-finder-modal-marine-cost-column"
+        class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
+        aria-labelledby="solution-finder-modal-marine-cost-heading"
+      >
+        <div id="solution-finder-modal-marine-cost-header" #finderColumnHeader class="space-y-3">
+          <h4
+            id="solution-finder-modal-marine-cost-heading"
+            class="finder-step-heading text-base text-slate-800"
+          >
+            <span
+              id="solution-finder-modal-marine-cost-step-prefix"
+              class="finder-step-heading-prefix"
+            >
+              {{ 'solutionControls.finder.stepPrefixes.step2b' | translate }}
+            </span>
+            <span
+              id="solution-finder-modal-marine-cost-step-label"
+              class="finder-step-heading-label"
+            >
+              {{ 'solutionControls.finder.marine.costHeading' | translate }}
+            </span>
+          </h4>
+          <p
+            id="solution-finder-modal-marine-cost-intro"
+            class="finder-step-intro finder-subtext-dark text-xs leading-snug"
+          >
+            {{ 'solutionControls.finder.marine.costIntro' | translate }}
+          </p>
+        </div>
+
+        <article
+          id="solution-finder-modal-marine-cost-card"
+          class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <div
+            id="solution-finder-modal-marine-hhm-row"
+            class="finder-selected-card-border flex items-center justify-between gap-3 rounded-md border bg-sky-100 px-3 py-2"
+          >
+            <div id="solution-finder-modal-marine-hhm-copy" class="min-w-0 flex-1">
+              <p
+                id="solution-finder-modal-marine-hhm-label"
+                class="text-sm font-semibold text-slate-900"
+              >
+                {{ 'solutionControls.finder.marine.hhmLabel' | translate }}
+              </p>
+              <p
+                id="solution-finder-modal-marine-hhm-help"
+                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+              >
+                {{ 'solutionControls.finder.marine.hhmHelp' | translate }}
+              </p>
+            </div>
+            <span
+              id="solution-finder-modal-marine-hhm-chip"
+              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+            >
+              <span
+                id="solution-finder-modal-marine-hhm-chip-label"
+                class="finder-fixed-toggle-label"
+              >
+                {{ 'solutionControls.finder.marine.fixedChip' | translate }}
+              </span>
+            </span>
+          </div>
+        </article>
+      </section>
+
+      <section
+        id="solution-finder-modal-marine-includes-column"
+        class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
+        aria-labelledby="solution-finder-modal-marine-includes-heading"
+      >
+        <div
+          id="solution-finder-modal-marine-includes-header"
+          #finderColumnHeader
+          class="space-y-3"
+        >
+          <h4
+            id="solution-finder-modal-marine-includes-heading"
+            class="finder-step-heading text-base text-slate-800"
+          >
+            <span
+              id="solution-finder-modal-marine-includes-step-prefix"
+              class="finder-step-heading-prefix"
+            >
+              {{ 'solutionControls.finder.stepPrefixes.step2a' | translate }}
+            </span>
+            <span
+              id="solution-finder-modal-marine-includes-step-label"
+              class="finder-step-heading-label"
+            >
+              {{ 'solutionControls.finder.marine.includesHeading' | translate }}
+            </span>
+          </h4>
+          <p
+            id="solution-finder-modal-marine-includes-intro"
+            class="finder-step-intro finder-subtext-dark text-xs leading-snug"
+          >
+            {{ 'solutionControls.finder.marine.includesIntro' | translate }}
+          </p>
+        </div>
+
+        <article
+          id="solution-finder-modal-marine-includes-card"
+          class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <div
+            id="solution-finder-modal-marine-omec-row"
+            class="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
+            [class.finder-selected-card-border]="marineIncludeOmecs"
+            [class.bg-sky-100]="marineIncludeOmecs"
+            [class.border-slate-200]="!marineIncludeOmecs"
+            [class.bg-white]="!marineIncludeOmecs"
+            role="button"
+            tabindex="0"
+            [attr.aria-pressed]="marineIncludeOmecs"
+            (click)="toggleMarineIncludeOmecs()"
+            (keydown.enter)="toggleMarineIncludeOmecs()"
+            (keydown.space)="$event.preventDefault(); toggleMarineIncludeOmecs()"
+          >
+            <div id="solution-finder-modal-marine-omec-copy" class="min-w-0 flex-1">
+              <p
+                id="solution-finder-modal-marine-omec-label"
+                class="text-sm font-semibold text-slate-900"
+              >
+                {{ 'solutionControls.finder.marine.omecLabel' | translate }}
+              </p>
+              <p
+                id="solution-finder-modal-marine-omec-help"
+                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+              >
+                {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
+              </p>
+              <a
+                id="solution-finder-modal-marine-omec-source-link"
+                class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                [href]="'solutionControls.finder.step2a.includeOmecsSourceUrl' | translate"
+                target="_blank"
+                rel="noopener noreferrer"
+                (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()"
+                (keydown.space)="$event.stopPropagation()"
+              >
+                {{ 'solutionControls.finder.step2a.includeOmecsSourceLabel' | translate }}
+              </a>
+            </div>
+            <button
+              id="solution-finder-modal-marine-omec-toggle"
+              type="button"
+              role="switch"
+              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold"
+              [class.bg-sky-600]="marineIncludeOmecs"
+              [class.text-white]="marineIncludeOmecs"
+              [class.bg-slate-300]="!marineIncludeOmecs"
+              [class.text-slate-800]="!marineIncludeOmecs"
+              [attr.aria-checked]="marineIncludeOmecs"
+              [attr.aria-label]="'solutionControls.finder.marine.omecLabel' | translate"
+              (click)="$event.stopPropagation(); toggleMarineIncludeOmecs()"
+            >
+              <span
+                id="solution-finder-modal-marine-omec-state-label"
+                class="finder-fixed-toggle-label"
+              >
+                {{
+                  (marineIncludeOmecs
+                    ? 'solutionControls.finder.toggle.on'
+                    : 'solutionControls.finder.toggle.off'
+                  ) | translate
+                }}
+              </span>
+            </button>
+          </div>
+
+          <div
+            id="solution-finder-modal-marine-fixed-includes"
+            class="border-t border-slate-200 pt-3"
+          >
+            <p
+              id="solution-finder-modal-marine-fixed-includes-heading"
+              class="finder-all-caps-optical finder-subtext-dark text-[11px] font-semibold uppercase tracking-[0.12em]"
+            >
+              {{ 'solutionControls.finder.step2a.alwaysAppliedHeading' | translate }}
+            </p>
+            <div
+              id="solution-finder-modal-marine-runap-row"
+              class="mt-2 flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2"
+            >
+              <div id="solution-finder-modal-marine-runap-copy" class="min-w-0 flex-1">
+                <p
+                  id="solution-finder-modal-marine-runap-label"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  {{ 'solutionControls.finder.step2a.alwaysRunapLabel' | translate }}
+                </p>
+                <p
+                  id="solution-finder-modal-marine-runap-help"
+                  class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                >
+                  {{ 'solutionControls.finder.step2a.alwaysRunapHelp' | translate }}
+                </p>
+                <a
+                  id="solution-finder-modal-marine-runap-source-link"
+                  class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  [href]="'solutionControls.finder.step2a.alwaysRunapSourceUrl' | translate"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ 'solutionControls.finder.step2a.alwaysRunapSourceLabel' | translate }}
+                </a>
+              </div>
+              <span
+                id="solution-finder-modal-marine-runap-chip"
+                class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+              >
+                <span
+                  id="solution-finder-modal-marine-runap-chip-label"
+                  class="finder-fixed-toggle-label"
+                >
+                  {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </article>
+      </section>
+    }
   </section>
 
   <footer

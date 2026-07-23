@@ -670,6 +670,25 @@
         "clearSearch": "Clear saved solution search",
         "noResults": "No saved custom solutions match this search."
       },
+      "domain": {
+        "label": "Planning domain",
+        "land": "Land",
+        "marine": "Marine"
+      },
+      "marine": {
+        "targetHeading": "Marine conservation target",
+        "targetIntro": "Choose the shared coverage target for the supported marine features.",
+        "targetBundleLabel": "Marine ecosystems + mangroves",
+        "targetBundleHelp": "Uses the supported marine ecosystem and mangrove input layers as one target group. A 30% or 50% coverage level means the solution tries to represent that share of each input layer.",
+        "costHeading": "Trade-off basis",
+        "costIntro": "The supported marine solutions use a fixed cost surface.",
+        "hhmLabel": "Human modification (HHM)",
+        "hhmHelp": "Uses the marine human modification layer as the fixed cost surface for all supported marine solutions.",
+        "fixedChip": "Fixed",
+        "includesHeading": "Included areas",
+        "includesIntro": "OMEC is optional. RUNAP is included in every marine solution.",
+        "omecLabel": "Include marine OMECs"
+      },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} trade-off basis",
       "scopeBar": {
@@ -930,6 +949,11 @@
     "clearButton": "Clear",
     "styleControlsHint": "Visibility and style controls live in Selected Layers.",
     "showScenarioStatusToggle": "Show \"considered in run status\"",
+    "layerScopeLabel": "Available layer types",
+    "layerScopeLand": "Terrestrial",
+    "layerScopeMarine": "Marine",
+    "layerScopeBoth": "Both",
+    "layerScopeHelp": "Filters Available Layers only. Selected layers stay visible.",
     "scenarioStatusToggleOn": "On",
     "scenarioStatusToggleOff": "Off",
     "consideredInRun": "Considered in run",
@@ -1001,8 +1025,12 @@
       "administrativeBoundaries": "Jurisdictional Areas",
       "speciesBiodiversity": "Species & Biodiversity",
       "ecosystems": "Ecosystems",
+      "marineEcosystems": "Marine Ecosystems",
       "culturalEthnicTerritories": "Cultural & Ethnic Territories",
       "costs": "Costs"
+    },
+    "layerNames": {
+      "marineHumanModification": "Marine human modification (HHM)"
     },
     "boundaryNames": {
       "combinedSirapReviewLayer": "SIRAP",

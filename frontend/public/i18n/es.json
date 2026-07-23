@@ -670,6 +670,25 @@
         "clearSearch": "Limpiar búsqueda de soluciones guardadas",
         "noResults": "Ninguna solución personalizada guardada coincide con esta búsqueda."
       },
+      "domain": {
+        "label": "Dominio de planificación",
+        "land": "Terrestre",
+        "marine": "Marino"
+      },
+      "marine": {
+        "targetHeading": "Meta de conservación marina",
+        "targetIntro": "Elija la meta de cobertura compartida para las variables marinas disponibles.",
+        "targetBundleLabel": "Ecosistemas marinos + manglares",
+        "targetBundleHelp": "Usa las capas disponibles de ecosistemas marinos y manglares como un solo grupo objetivo. Un nivel de cobertura de 30% o 50% significa que la solución intenta representar esa proporción de cada capa.",
+        "costHeading": "Base del compromiso",
+        "costIntro": "Las soluciones marinas disponibles usan una superficie de costo fija.",
+        "hhmLabel": "Modificación humana (HHM)",
+        "hhmHelp": "Usa la capa de modificación humana marina como superficie de costo fija para todas las soluciones marinas disponibles.",
+        "fixedChip": "Fijo",
+        "includesHeading": "Áreas incluidas",
+        "includesIntro": "OMEC es opcional. RUNAP está incluido en cada solución marina.",
+        "omecLabel": "Incluir OMEC marinas"
+      },
       "selectionSummary": "Selecciones actuales",
       "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
       "scopeBar": {
@@ -930,6 +949,11 @@
     "clearButton": "Limpiar",
     "styleControlsHint": "Los controles de visibilidad y estilo están en Capas seleccionadas.",
     "showScenarioStatusToggle": "Mostrar \"estado considerado en la ejecución\"",
+    "layerScopeLabel": "Tipos de capas disponibles",
+    "layerScopeLand": "Terrestres",
+    "layerScopeMarine": "Marinas",
+    "layerScopeBoth": "Ambas",
+    "layerScopeHelp": "Solo filtra Capas disponibles. Las capas seleccionadas permanecen visibles.",
     "scenarioStatusToggleOn": "Sí",
     "scenarioStatusToggleOff": "No",
     "consideredInRun": "Considerada en la ejecución",
@@ -1001,8 +1025,12 @@
       "administrativeBoundaries": "Áreas jurisdiccionales",
       "speciesBiodiversity": "Especies y biodiversidad",
       "ecosystems": "Ecosistemas",
+      "marineEcosystems": "Ecosistemas marinos",
       "culturalEthnicTerritories": "Territorios culturales y étnicos",
       "costs": "Costos"
+    },
+    "layerNames": {
+      "marineHumanModification": "Modificación humana marina (HHM)"
     },
     "boundaryNames": {
       "combinedSirapReviewLayer": "SIRAP",

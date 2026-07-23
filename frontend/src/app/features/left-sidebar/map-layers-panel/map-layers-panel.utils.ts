@@ -3,6 +3,12 @@ import type { RuntimeLayerManifestRenderingConfig } from '@core/models';
 export type SelectedLayerDropPosition = 'before' | 'after';
 export type ScenarioLayerStatus = 'considered' | 'reference';
 export type SupportedLanguage = 'en' | 'es';
+export type PlanningDomain = 'land' | 'marine';
+export type LayerCatalogScope = PlanningDomain | 'both';
+export type LayerPlanningDomain = PlanningDomain | 'shared' | 'context';
+
+const MARINE_LAYER_ROW_IDS = new Set(['layer-hhm', 'layer-marine_ecosystems']);
+const SHARED_LAYER_ROW_IDS = new Set(['layer-mangroves']);
 
 interface SelectableRowDto {
   id: string;
@@ -180,9 +186,12 @@ export function normalizeLayerIdAliases(id: string | null | undefined): string[]
   const normalized = trimmed
     .replace(/^layer-/, '')
     .replace(/^overlay-/, '')
+    .replace(/^(?:feat|incl|cost)_/, '')
     .replace(/-/g, '_');
 
-  return normalized && normalized !== trimmed ? [normalized, trimmed] : [trimmed].filter(Boolean);
+  const singular = normalized === 'omecs' ? 'omec' : normalized;
+  const plural = normalized === 'omec' ? 'omecs' : normalized;
+  return Array.from(new Set([normalized, singular, plural, trimmed].filter(Boolean)));
 }
 
 export function buildConsideredLayerIdSet(ids: (string | null | undefined)[]): Set<string> {
@@ -204,6 +213,28 @@ export function scenarioLayerStatus(
     ...normalizeLayerIdAliases(manifestOverlayLayerId),
   ];
   return aliases.some((id) => consideredIds.has(id)) ? 'considered' : 'reference';
+}
+
+export function layerPlanningDomain(rowId: string, groupId: string): LayerPlanningDomain {
+  if (groupId === 'group-admin-boundaries') {
+    return 'context';
+  }
+  if (SHARED_LAYER_ROW_IDS.has(rowId)) {
+    return 'shared';
+  }
+  return MARINE_LAYER_ROW_IDS.has(rowId) ? 'marine' : 'land';
+}
+
+export function isLayerAvailableForScope(
+  rowId: string,
+  groupId: string,
+  scope: LayerCatalogScope,
+): boolean {
+  if (scope === 'both') {
+    return true;
+  }
+  const layerDomain = layerPlanningDomain(rowId, groupId);
+  return layerDomain === 'context' || layerDomain === 'shared' || layerDomain === scope;
 }
 
 export function buildLegendLayerEntry(input: LegendLayerInput): LegendLayerEntry {

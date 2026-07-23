@@ -10,6 +10,7 @@ marine_ecosystems,Ecosistemas marinos,Marine Ecosystems,Ecosistemas,TRUE,ecosyst
 biomasa_areara_subterranea_1km,Biomasa aérea y subterránea,Above and belowground biomass,Servicios ecosistémicos,FALSE,environmental_services,Servicios ecosistémicos,Environmental Services,Environmental Services,TRUE,,
 recarga_agua_subterranea_moderado_alto,Recarga de aguas subterraneas,Underground water recharge,Servicios ecosistémicos,FALSE,environmental_services,Servicios ecosistémicos,Environmental Services,Environmental Services,TRUE,,
 human_footprint_2022,Índice de Huella Espacial Humana 2022,Human Footprint 2022,Costo,TRUE,socioeconomic,Socioeconómico,Socio-economic,Socio-economic,TRUE,,
+hhm,Huella humana marina,Marine Human Modification (HHM),Costo,TRUE,socioeconomic,Socioeconómico,Socio-economic,Socio-economic,TRUE,,
 human_footprint_2030,Índice de Huella Espacial Humana 2030,Human Footprint 2030,Costo,FALSE,prospective_models,Modelos prospectivos,Prospective Models,Prospective Models,TRUE,,
 net_benefit,Beneficio neto (renta agropecuaria),Net Benefit (agricultural rent),Costo,TRUE,socioeconomic,Socioeconómico,Socio-economic,Socio-economic,TRUE,,
 conflict,Conflictos (coca muertes),Conflict (Coca deaths),Costo,FALSE,conflict_and_security,Conflicto y seguridad,Conflict & Security,Conflict & Security,TRUE,,

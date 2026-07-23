@@ -3,6 +3,8 @@ import {
   buildLegendLayerEntry,
   computeSelectedLayerOrder,
   groupParentChildRows,
+  isLayerAvailableForScope,
+  layerPlanningDomain,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
@@ -111,11 +113,18 @@ describe('layer search matching', () => {
 
 describe('scenario status aliases', () => {
   it('normalizes layer prefixes, separators, and manifest overlay aliases', () => {
-    const consideredIds = buildConsideredLayerIdSet(['RUNAP', 'layer-human-footprint']);
+    const consideredIds = buildConsideredLayerIdSet([
+      'INCL_RUNAP',
+      'INCL_OMEC',
+      'COST_HHM',
+      'layer-human-footprint',
+    ]);
 
     expect(scenarioLayerStatus('overlay-runap-protected-areas', 'runap', consideredIds, true)).toBe(
       'considered',
     );
+    expect(scenarioLayerStatus('overlay-omec', 'omecs', consideredIds, true)).toBe('considered');
+    expect(scenarioLayerStatus('layer-hhm', undefined, consideredIds, true)).toBe('considered');
     expect(scenarioLayerStatus('layer-human_footprint', undefined, consideredIds, true)).toBe(
       'considered',
     );
@@ -126,6 +135,44 @@ describe('scenario status aliases', () => {
 
     expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe('reference');
     expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, false)).toBeNull();
+  });
+});
+
+describe('planning-domain layer filtering', () => {
+  it('classifies contextual boundaries separately from land and marine analysis layers', () => {
+    expect(layerPlanningDomain('layer-admin-departments', 'group-admin-boundaries')).toBe(
+      'context',
+    );
+    expect(layerPlanningDomain('layer-marine_ecosystems', 'group-marine-ecosystems')).toBe(
+      'marine',
+    );
+    expect(layerPlanningDomain('layer-hhm', 'group-socio-economic')).toBe('marine');
+    expect(layerPlanningDomain('layer-mangroves', 'group-ecosystems')).toBe('shared');
+    expect(layerPlanningDomain('layer-species_richness', 'group-species-biodiversity')).toBe(
+      'land',
+    );
+  });
+
+  it('filters terrestrial, marine, and combined catalog scopes while retaining shared context', () => {
+    expect(
+      isLayerAvailableForScope('layer-admin-departments', 'group-admin-boundaries', 'marine'),
+    ).toBe(true);
+    expect(
+      isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'marine'),
+    ).toBe(true);
+    expect(
+      isLayerAvailableForScope('layer-species_richness', 'group-species-biodiversity', 'marine'),
+    ).toBe(false);
+    expect(isLayerAvailableForScope('layer-mangroves', 'group-ecosystems', 'marine')).toBe(true);
+    expect(
+      isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'land'),
+    ).toBe(false);
+    expect(
+      isLayerAvailableForScope('layer-species_richness', 'group-species-biodiversity', 'land'),
+    ).toBe(true);
+    expect(
+      isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'both'),
+    ).toBe(true);
   });
 });
 

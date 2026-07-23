@@ -82,6 +82,9 @@ export const DEFAULT_SPECIES_MANIFEST_URL = '/data/layer-manifest/species.manife
 export const SPECIES_COLLECTION_ROW_ID = 'layer-species';
 export const SPECIES_RICHNESS_TOTAL_ROW_ID = 'layer-species_richness';
 export const STRATEGIC_ECOSYSTEM_GROUP_ROW_ID = 'layer-strategic-ecosystems';
+export const MARINE_ECOSYSTEMS_GROUP_ID = 'group-marine-ecosystems';
+export const MARINE_ECOSYSTEMS_LAYER_ID = 'layer-marine_ecosystems';
+export const MARINE_HHM_LAYER_ID = 'layer-hhm';
 export const STRATEGIC_ECOSYSTEM_ROW_IDS = new Set([
   'layer-paramos',
   'layer-wetlands',

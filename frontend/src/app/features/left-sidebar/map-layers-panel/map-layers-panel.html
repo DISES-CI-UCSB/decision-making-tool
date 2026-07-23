@@ -1088,6 +1088,50 @@
             </div>
           </div>
         }
+        @if (activeSolutionDomain()) {
+          <fieldset
+            id="map-layers-domain-filter-selector"
+            class="rounded-md border border-slate-200 bg-white p-2"
+          >
+            <legend
+              id="map-layers-domain-filter-selector-legend"
+              class="px-0.5 text-[11px] font-bold leading-4 text-slate-800"
+            >
+              {{ 'mapLayersPanel.layerScopeLabel' | translate }}
+            </legend>
+            <div
+              id="map-layers-domain-filter-selector-options"
+              class="mt-1 grid grid-cols-3 gap-1 rounded-md bg-slate-100 p-1"
+              role="radiogroup"
+              [attr.aria-label]="'mapLayersPanel.layerScopeLabel' | translate"
+              aria-describedby="map-layers-domain-filter-selector-help"
+            >
+              @for (option of layerCatalogScopeOptions; track option.value) {
+                <button
+                  [id]="'map-layers-domain-filter-option-' + option.value"
+                  type="button"
+                  role="radio"
+                  class="inline-flex min-h-8 items-center justify-center rounded px-2 text-[10px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                  [class.bg-white]="layerCatalogScope() === option.value"
+                  [class.text-sky-800]="layerCatalogScope() === option.value"
+                  [class.shadow-sm]="layerCatalogScope() === option.value"
+                  [class.text-slate-600]="layerCatalogScope() !== option.value"
+                  [class.hover:bg-slate-200]="layerCatalogScope() !== option.value"
+                  [attr.aria-checked]="layerCatalogScope() === option.value"
+                  (click)="selectLayerCatalogScope(option.value)"
+                >
+                  {{ option.labelKey | translate }}
+                </button>
+              }
+            </div>
+            <p
+              id="map-layers-domain-filter-selector-help"
+              class="mt-1.5 px-0.5 text-[10px] leading-4 text-slate-500"
+            >
+              {{ 'mapLayersPanel.layerScopeHelp' | translate }}
+            </p>
+          </fieldset>
+        }
 
         <!-- ─── JURISDICTIONAL AREAS (above Conservation Areas) ─── -->
         @if (adminBoundaryGroup(); as abGroup) {

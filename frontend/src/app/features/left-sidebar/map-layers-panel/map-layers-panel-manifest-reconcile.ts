@@ -16,6 +16,9 @@ import {
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
   MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC,
   MANIFEST_OVERLAY_ROW_BY_LAYER_ID,
+  MARINE_ECOSYSTEMS_GROUP_ID,
+  MARINE_ECOSYSTEMS_LAYER_ID,
+  MARINE_HHM_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
   SIDEBAR_MANIFEST_CATEGORY_BINDINGS,
   SPECIES_RICHNESS_LAYER_IDS,
@@ -126,7 +129,10 @@ function reconcileGenericGroups(
   );
 
   return groups.map((group) => {
-    const binding = BINDING_BY_GROUP_ID.get(group.id);
+    const binding =
+      group.id === MARINE_ECOSYSTEMS_GROUP_ID
+        ? BINDING_BY_GROUP_ID.get('group-ecosystems')
+        : BINDING_BY_GROUP_ID.get(group.id);
     if (!binding || binding.rowSource !== 'generic-manifest') {
       return group;
     }
@@ -136,7 +142,8 @@ function reconcileGenericGroups(
       return group;
     }
 
-    const manifestRows = manifestGroup.rows.map((row, index) =>
+    const sourceRows = manifestRowsForGroup(group.id, manifestGroup.rows);
+    const manifestRows = sourceRows.map((row, index) =>
       buildManifestRow(group.id, row, index, group.rows, ports),
     );
     const rows =
@@ -144,18 +151,48 @@ function reconcileGenericGroups(
         ? groupSpeciesRichnessRows(manifestRows, group.rows, ports)
         : group.id === 'group-ecosystems'
           ? groupStrategicEcosystemRows(manifestRows, group.rows, ports)
-          : manifestRows;
+          : preserveSyntheticRows(group.id, manifestRows, group.rows);
 
     return {
       ...group,
       title:
-        ports.manifestCategoryTitle(binding.manifestCategoryId) ??
-        ports.manifestGroupTitle(manifestGroup),
+        group.id === MARINE_ECOSYSTEMS_GROUP_ID
+          ? group.title
+          : (ports.manifestCategoryTitle(binding.manifestCategoryId) ??
+            ports.manifestGroupTitle(manifestGroup)),
       countLabel: ports.layerCountLabel(rows.filter((row) => !row.hideAddButton).length),
       note: group.id === 'group-ecosystems' ? ports.ecosystemGroupNote() : group.note,
       rows,
     };
   });
+}
+
+function manifestRowsForGroup(
+  groupId: string,
+  rows: readonly ManifestSidebarLayerRow[],
+): ManifestSidebarLayerRow[] {
+  if (groupId === MARINE_ECOSYSTEMS_GROUP_ID) {
+    return rows.filter((row) => `layer-${row.id}` === MARINE_ECOSYSTEMS_LAYER_ID);
+  }
+  if (groupId === 'group-ecosystems') {
+    return rows.filter((row) => `layer-${row.id}` !== MARINE_ECOSYSTEMS_LAYER_ID);
+  }
+  return [...rows];
+}
+
+function preserveSyntheticRows(
+  groupId: string,
+  manifestRows: LayerControlRow[],
+  existingRows: readonly LayerControlRow[],
+): LayerControlRow[] {
+  if (groupId !== 'group-socio-economic') {
+    return manifestRows;
+  }
+  if (manifestRows.some((row) => row.id === MARINE_HHM_LAYER_ID)) {
+    return manifestRows;
+  }
+  const marineHhmRow = existingRows.find((row) => row.id === MARINE_HHM_LAYER_ID);
+  return marineHhmRow ? [...manifestRows, marineHhmRow] : manifestRows;
 }
 
 function buildManifestRow(

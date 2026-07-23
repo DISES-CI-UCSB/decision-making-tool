@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-22T21:43:34.116Z",
+  "generatedAt": "2026-07-23T18:03:08.631Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -16,13 +16,13 @@
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
-    "csvRows": 25,
-    "includedRows": 22,
-    "generatedLayers": 22,
-    "blobInventoryEntries": 108,
+    "csvRows": 26,
+    "includedRows": 23,
+    "generatedLayers": 23,
+    "blobInventoryEntries": 109,
     "missingRequired": 2,
-    "extraAvailable": 94,
-    "includedRowMetadataGaps": 21,
+    "extraAvailable": 95,
+    "includedRowMetadataGaps": 22,
     "excludedRows": 3,
     "generatedSolutions": 0,
     "skippedSolutionMetadataFiles": 22,
@@ -322,6 +322,11 @@
       "bytes": 12402324
     },
     {
+      "pathname": "inputs/costs/huella_humana_marina.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/huella_humana_marina.tif",
+      "bytes": 4730114
+    },
+    {
       "pathname": "inputs/costs/human_footprint_2022.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2022.tif",
       "bytes": 1816414
@@ -604,6 +609,17 @@
       ]
     },
     {
+      "layerId": "hhm",
+      "displayName": "Huella humana marina",
+      "missingFields": [
+        "source_url",
+        "source_created_date",
+        "source_updated_date",
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
       "layerId": "net_benefit",
       "displayName": "Beneficio neto (renta agropecuaria)",
       "missingFields": [
@@ -715,7 +731,7 @@
   },
   "renderingInferenceSummary": {
     "byStrategy": {
-      "manual_override": 5,
+      "manual_override": 6,
       "legacy_non_raster": 8,
       "fallback_after_uncertain_sampling": 9
     },

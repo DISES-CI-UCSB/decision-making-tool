@@ -9,7 +9,7 @@ import {
 } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
-import type { RuntimeLayerManifest, Solution } from '@core/models';
+import type { CatalogSolution, RuntimeLayerManifest, Solution } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
@@ -25,6 +25,7 @@ const describeInBrowser = navigator.userAgent.includes('jsdom') ? describe.skip 
 describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
   const adminBoundaryStyleSync = vi.fn();
   const adminBoundaryVisibilitySync = vi.fn();
+  const catalogSolutionLookup = vi.fn<() => CatalogSolution | null>(() => null);
   const solutionLayerReorder = vi.fn(() => blockMainThread(BLOCKING_REORDER_MS));
 
   beforeEach(async () => {
@@ -46,7 +47,7 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
             preloadSpeciesManifest: vi.fn(),
           },
         },
-        { provide: SolutionCatalogService, useValue: { getById: vi.fn(() => null) } },
+        { provide: SolutionCatalogService, useValue: { getById: catalogSolutionLookup } },
         {
           provide: AdminBoundaryService,
           useValue: {
@@ -119,6 +120,89 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
     expect(solutionLayerReorder).toHaveBeenCalled();
     expect(adminBoundaryVisibilitySync).toHaveBeenCalledWith('admin_departments', true);
   });
+
+  it('filters the available catalog for a marine solution without clearing hidden selections', () => {
+    TestBed.inject(TranslateService).setTranslation('en', {
+      mapLayersPanel: {
+        addButton: 'Add',
+        addedButton: 'Added',
+        layerScopeLabel: 'Available layer types',
+        layerScopeLand: 'Terrestrial',
+        layerScopeMarine: 'Marine',
+        layerScopeBoth: 'Both',
+        layerScopeHelp: 'Filters Available Layers only.',
+      },
+    });
+    const appState = TestBed.inject(AppStateService);
+    catalogSolutionLookup.mockReturnValue(catalogSolution('land'));
+    appState.activeSolution$.set({
+      id: 'land-solution',
+      name: 'Land solution',
+    } as Solution);
+    const fixture = TestBed.createComponent(MapLayersPanelComponent);
+    fixture.detectChanges();
+
+    const landLayerButton = fixture.nativeElement.querySelector(
+      '#map-layers-layer-row-selected-button-group-socio-economic-layer-soc-human-footprint',
+    ) as HTMLButtonElement;
+    landLayerButton.click();
+    fixture.detectChanges();
+
+    catalogSolutionLookup.mockReturnValue(catalogSolution('marine'));
+    appState.activeSolution$.set({
+      id: 'marine-solution',
+      name: 'Marine solution',
+    } as Solution);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#map-layers-admin-boundaries-card')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#map-layers-group-card-group-species-biodiversity'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#map-layers-layer-row-group-socio-economic-layer-hhm'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '#map-layers-selected-layer-row-layer-soc-human-footprint',
+      ),
+    ).not.toBeNull();
+
+    const marineOption = fixture.nativeElement.querySelector(
+      '#map-layers-domain-filter-option-marine',
+    ) as HTMLButtonElement;
+    expect(marineOption.getAttribute('aria-checked')).toBe('true');
+
+    const landOption = fixture.nativeElement.querySelector(
+      '#map-layers-domain-filter-option-land',
+    ) as HTMLButtonElement;
+    landOption.click();
+    fixture.detectChanges();
+
+    expect(landOption.getAttribute('aria-checked')).toBe('true');
+    expect(
+      fixture.nativeElement.querySelector('#map-layers-group-card-group-species-biodiversity'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#map-layers-layer-row-group-socio-economic-layer-hhm'),
+    ).toBeNull();
+
+    const bothOption = fixture.nativeElement.querySelector(
+      '#map-layers-domain-filter-option-both',
+    ) as HTMLButtonElement;
+    bothOption.click();
+    fixture.detectChanges();
+
+    expect(bothOption.getAttribute('aria-checked')).toBe('true');
+    expect(
+      fixture.nativeElement.querySelector(
+        '#map-layers-layer-row-group-socio-economic-layer-soc-human-footprint',
+      ),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#map-layers-layer-row-group-socio-economic-layer-hhm'),
+    ).not.toBeNull();
+  });
 });
 
 function observeAddedLabel(button: HTMLButtonElement): Promise<number> {
@@ -151,4 +235,44 @@ function blockMainThread(durationMs: number): void {
   while (performance.now() - startedAt < durationMs) {
     // Reproduce the synchronous cost of ArcGIS layer reordering.
   }
+}
+
+function catalogSolution(domain: 'land' | 'marine'): CatalogSolution {
+  const isMarine = domain === 'marine';
+  return {
+    id: `${domain}-solution`,
+    filename: `${domain}.tif`,
+    name: `${domain} solution`,
+    description: `${domain} test solution`,
+    domain,
+    scope: domain,
+    sirapId: null,
+    displayUrl: `/${domain}.tif`,
+    metadataUrl: `/${domain}.json`,
+    rendering: { valueType: 'binary', renderMode: 'mask' },
+    inputLayerIds: {
+      features: isMarine ? ['FEAT_MARINE_ECOSYSTEMS', 'FEAT_MANGROVES'] : ['FEAT_ECOSYSTEMS'],
+      cost: isMarine ? 'COST_HHM' : 'COST_HF_2030',
+      includes: ['INCL_RUNAP'],
+      excludes: [],
+    },
+    finderInputs: {
+      domain,
+      scope: domain,
+      targetFeatureIds: isMarine
+        ? ['FEAT_MARINE_ECOSYSTEMS', 'FEAT_MANGROVES']
+        : ['FEAT_ECOSYSTEMS'],
+      includeLayerIds: ['INCL_RUNAP'],
+      excludeLayerIds: [],
+      targetFeatureSet: isMarine ? 'marine_ecosystems_and_mangroves' : 'ecosystems',
+      targetPercent: 30,
+      costLayerId: isMarine ? 'COST_HHM' : 'COST_HF_2030',
+    },
+    ecosystemTargets: 30,
+    constraints: ['RUNAP'],
+    costLayer: isMarine ? 'HHM' : 'Human footprint',
+    nSelected: 1,
+    totalCost: 1,
+    pctTargetsMet: 100,
+  };
 }

@@ -58,6 +58,7 @@ import {
   buildLegendCategories,
   buildLegendLayerEntry,
   computeSelectedLayerOrder,
+  isLayerAvailableForScope,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
@@ -67,6 +68,8 @@ import {
   taxonMatchesSearch,
   type ScenarioLayerStatus,
   type SelectedLayerDropPosition,
+  type PlanningDomain,
+  type LayerCatalogScope,
   type SupportedLanguage,
 } from './map-layers-panel.utils';
 import {
@@ -114,6 +117,7 @@ import {
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
   MANIFEST_CATEGORY_TITLE_OVERRIDES,
   MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID,
+  MARINE_ECOSYSTEMS_GROUP_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
   SINGLE_SOLUTION_COLOR,
   sidebarCategoryBindingForGroup,
@@ -341,6 +345,22 @@ export class MapLayersPanelComponent implements OnDestroy {
   ];
 
   protected readonly hasActiveSolution = computed(() => this.appState.hasActiveSolution());
+  protected readonly activeSolutionDomain = computed<PlanningDomain | null>(() => {
+    const activeSolution = this.appState.activeSolution$();
+    if (!activeSolution) {
+      return null;
+    }
+    return this.findActiveCatalogSolution(activeSolution)?.domain ?? 'land';
+  });
+  protected readonly layerCatalogScope = signal<LayerCatalogScope>('land');
+  protected readonly layerCatalogScopeOptions: readonly {
+    value: LayerCatalogScope;
+    labelKey: string;
+  }[] = [
+    { value: 'land', labelKey: 'mapLayersPanel.layerScopeLand' },
+    { value: 'marine', labelKey: 'mapLayersPanel.layerScopeMarine' },
+    { value: 'both', labelKey: 'mapLayersPanel.layerScopeBoth' },
+  ];
   protected readonly activeSolutionLabel = this.appState.activeSolutionLabel$;
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
@@ -416,7 +436,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     return overlays.filter((row) => this.nameMatchesSearch(row.name, query));
   });
   protected readonly filteredTaxa = computed(() => {
-    const taxa = this.taxa();
+    const taxa = this.shouldShowLandAnalysisLayers() ? this.taxa() : [];
     const query = this.normalizedLayerSearchQuery();
     if (query.length === 0) {
       return taxa;
@@ -429,10 +449,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     const taxa = this.filteredTaxa();
     const matches = new Map<string, LayerSearchGroupMatch>();
     for (const group of groups) {
+      const availableRows = this.domainVisibleGroupRows(group);
       const rowMatches =
         query.length === 0
-          ? group.rows.length
-          : group.rows.filter((row) => this.nameMatchesSearch(row.name, query)).length;
+          ? availableRows.length
+          : availableRows.filter((row) => this.nameMatchesSearch(row.name, query)).length;
       const taxonMatches = group.id === 'group-species-biodiversity' ? taxa.length : 0;
       matches.set(group.id, { groupId: group.id, rowMatches, taxonMatches });
     }
@@ -527,6 +548,11 @@ export class MapLayersPanelComponent implements OnDestroy {
         }
         this.syncPrimarySolutionOverlay(solution?.name ?? null);
       });
+    });
+
+    effect(() => {
+      const domain = this.activeSolutionDomain();
+      untracked(() => this.layerCatalogScope.set(domain ?? 'land'));
     });
 
     effect(() => {
@@ -754,6 +780,10 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected toggleScenarioLayerStatusLabels(): void {
     this.showScenarioLayerStatusLabels.update((visible) => !visible);
+  }
+
+  protected selectLayerCatalogScope(scope: LayerCatalogScope): void {
+    this.layerCatalogScope.set(scope);
   }
 
   protected scenarioLayerStatus(row: LayerControlRow): ScenarioLayerStatus | null {
@@ -1569,6 +1599,14 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected shouldShowGroupInAvailableLayers(group: LayerGroup): boolean {
+    const hasVisibleRows = this.domainVisibleGroupRows(group).length > 0;
+    const hasVisibleTaxa =
+      group.id === 'group-species-biodiversity' &&
+      this.shouldShowLandAnalysisLayers() &&
+      this.taxa().length > 0;
+    if (!hasVisibleRows && !hasVisibleTaxa) {
+      return false;
+    }
     if (!this.hasLayerSearchQuery()) {
       return true;
     }
@@ -1580,14 +1618,29 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected visibleGroupRows(group: LayerGroup): LayerControlRow[] {
+    const availableRows = this.domainVisibleGroupRows(group);
     if (!this.hasLayerSearchQuery()) {
-      return group.rows;
+      return availableRows;
     }
     const query = this.normalizedLayerSearchQuery();
     if (group.id !== 'group-species-biodiversity') {
-      return group.rows.filter((row) => this.groupRowMatchesSearch(group, row, query));
+      return availableRows.filter((row) => this.groupRowMatchesSearch(group, row, query));
     }
-    return group.rows.filter((row) => this.speciesGroupRowMatchesSearch(group, row, query));
+    return availableRows.filter((row) => this.speciesGroupRowMatchesSearch(group, row, query));
+  }
+
+  private domainVisibleGroupRows(group: LayerGroup): LayerControlRow[] {
+    const allowedRows = group.rows.filter((row) =>
+      isLayerAvailableForScope(row.id, group.id, this.layerCatalogScope()),
+    );
+    const requiredParentIds = new Set(
+      allowedRows.flatMap((row) => (row.parentId ? [row.parentId] : [])),
+    );
+    return group.rows.filter((row) => allowedRows.includes(row) || requiredParentIds.has(row.id));
+  }
+
+  private shouldShowLandAnalysisLayers(): boolean {
+    return this.layerCatalogScope() !== 'marine';
   }
 
   protected isNestedLayerRowCollapsed(group: LayerGroup, row: LayerControlRow): boolean {
@@ -1700,7 +1753,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       return undefined;
     }
     if (!this.hasLayerSearchQuery()) {
-      return group.countLabel;
+      const visibleRows = this.domainVisibleGroupRows(group).filter((row) => !row.hideAddButton);
+      return this.toLayerCountLabel(visibleRows.length);
     }
     const match = this.searchMatchesByGroup().get(group.id);
     if (!match) {
@@ -1727,6 +1781,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected resetDefaults(): void {
     this.overlaysCollapsed.set(false);
     this.layerSearchQuery.set('');
+    this.layerCatalogScope.set(this.activeSolutionDomain() ?? 'land');
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
@@ -4082,6 +4137,13 @@ export class MapLayersPanelComponent implements OnDestroy {
         ),
       },
       {
+        id: MARINE_ECOSYSTEMS_GROUP_ID,
+        title: this.localizedText('mapLayersPanel.groupTitles.marineEcosystems'),
+        countLabel: this.toLayerCountLabel(0),
+        ...this.defaultSidebarCategoryState(MARINE_ECOSYSTEMS_GROUP_ID),
+        rows: [],
+      },
+      {
         id: 'group-cultural-ethnic',
         title: this.localizedText('mapLayersPanel.groupTitles.culturalEthnicTerritories'),
         countLabel: this.toLayerCountLabel(2),
@@ -4104,7 +4166,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       {
         id: 'group-socio-economic',
         title: this.localizedText('mapLayersPanel.groupTitles.costs'),
-        countLabel: this.toLayerCountLabel(3),
+        countLabel: this.toLayerCountLabel(4),
         ...this.defaultSidebarCategoryState('group-socio-economic'),
         rows: [
           this.layerRow(
@@ -4120,6 +4182,12 @@ export class MapLayersPanelComponent implements OnDestroy {
             DEFAULT_DATA_LAYER_OPACITY,
           ),
           this.layerRow('soc-land-use', 'Land Use', '#78716c', DEFAULT_DATA_LAYER_OPACITY),
+          this.layerRow(
+            'hhm',
+            this.localizedText('mapLayersPanel.layerNames.marineHumanModification'),
+            '#0e7490',
+            DEFAULT_DATA_LAYER_OPACITY,
+          ),
         ],
       },
     ];
@@ -4272,6 +4340,15 @@ export class MapLayersPanelComponent implements OnDestroy {
               name: this.ecosystemRowNameForId(row.id) ?? row.name,
             };
           }
+          if (row.id === 'layer-hhm') {
+            return {
+              ...row,
+              name: this.localizedTextOrFallback(
+                'mapLayersPanel.layerNames.marineHumanModification',
+                'Marine human modification (HHM)',
+              ),
+            };
+          }
           return row;
         });
         const nextCountLabel =
@@ -4302,6 +4379,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       'group-admin-boundaries': 'mapLayersPanel.groupTitles.administrativeBoundaries',
       'group-species-biodiversity': 'mapLayersPanel.groupTitles.speciesBiodiversity',
       'group-ecosystems': 'mapLayersPanel.groupTitles.ecosystems',
+      [MARINE_ECOSYSTEMS_GROUP_ID]: 'mapLayersPanel.groupTitles.marineEcosystems',
       'group-cultural-ethnic': 'mapLayersPanel.groupTitles.culturalEthnicTerritories',
       'group-socio-economic': 'mapLayersPanel.groupTitles.costs',
     };

@@ -11,6 +11,8 @@ import {
 import {
   BASELINE_SOLUTION_OVERLAY_ID,
   CANDIDATE_SOLUTION_OVERLAY_ID,
+  MARINE_ECOSYSTEMS_GROUP_ID,
+  MARINE_HHM_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
 } from './map-layers-panel.config';
 import {
@@ -244,6 +246,67 @@ describe('reconcileMapLayersManifest', () => {
       opacity: 42,
       mapUnavailable: true,
       mapSync: undefined,
+    });
+  });
+
+  it('places the classified marine ecosystem layer in its own collection', () => {
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('ecosystems', [
+          manifestRow('ecosistemas', 'ecosystems'),
+          manifestRow('marine_ecosystems', 'ecosystems'),
+        ]),
+      ],
+      groups: [group('group-ecosystems', []), group(MARINE_ECOSYSTEMS_GROUP_ID, [])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows.map(({ id }) => id)).toEqual(['layer-ecosistemas']);
+    expect(result.groups[1]).toMatchObject({
+      id: MARINE_ECOSYSTEMS_GROUP_ID,
+      title: MARINE_ECOSYSTEMS_GROUP_ID,
+      countLabel: '1 layers',
+    });
+    expect(result.groups[1].rows.map(({ id }) => id)).toEqual(['layer-marine_ecosystems']);
+  });
+
+  it('keeps the HHM reference row until a renderable manifest asset is available', () => {
+    const hhm = row({ id: MARINE_HHM_LAYER_ID, mapUnavailable: true });
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('socioeconomic', [manifestRow('human_footprint_2022', 'socioeconomic')]),
+      ],
+      groups: [group('group-socio-economic', [hhm])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows.map(({ id }) => id)).toEqual([
+      'layer-human_footprint_2022',
+      MARINE_HHM_LAYER_ID,
+    ]);
+    expect(result.groups[0].rows.at(-1)).toBe(hhm);
+  });
+
+  it('replaces the HHM reference row with the renderable manifest layer', () => {
+    const hhm = row({ id: MARINE_HHM_LAYER_ID, mapUnavailable: true });
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [manifestGroup('socioeconomic', [manifestRow('hhm', 'socioeconomic')])],
+      groups: [group('group-socio-economic', [hhm])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows).toHaveLength(1);
+    expect(result.groups[0].rows[0]).toMatchObject({
+      id: MARINE_HHM_LAYER_ID,
+      mapUnavailable: false,
+      mapSync: {
+        type: 'manifest-raster',
+        layerId: MARINE_HHM_LAYER_ID,
+        displayUrl: '/hhm.tif',
+      },
     });
   });
 });

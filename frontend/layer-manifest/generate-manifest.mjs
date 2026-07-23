@@ -267,6 +267,15 @@ const renderingOverrideByLayerId = {
     startColor: '#fee2e2',
     endColor: '#991b1b',
   },
+  hhm: {
+    valueType: 'continuous',
+    renderMode: 'gradient',
+    noDataValue: null,
+    minValue: 0,
+    maxValue: 100,
+    startColor: '#ecfeff',
+    endColor: '#155e75',
+  },
   coberturas: {
     valueType: 'categorical',
     renderMode: 'categorical',
