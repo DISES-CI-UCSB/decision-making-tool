@@ -12,7 +12,7 @@ describe('createSolutionPrecomputedMetricUrls', () => {
     );
   });
 
-  it('preserves existing keys while refreshing goals and deriving a nick-runs compact cache URL', () => {
+  it('preserves existing aliases while refreshing production sidecar URLs', () => {
     const result = createSolutionPrecomputedMetricUrls(
       'demo_solution',
       {
@@ -20,39 +20,23 @@ describe('createSolutionPrecomputedMetricUrls', () => {
         goals: 'https://example.com/stale-goals.json',
         compactCache: 'https://example.com/stale-compact.json',
       },
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/demo_solution.tif',
+      'land',
     );
 
-    assert.deepStrictEqual(result, {
-      custom: 'https://example.com/custom.json',
-      goals:
-        'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/goals/demo_solution.goals.json',
-      compactCache:
-        'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/nick-runs/2026-05-27/compact-cache/demo_solution.metrics.compact.json',
-    });
-  });
-
-  it('does not seed a generic compact cache URL without a nick-runs display URL', () => {
-    const result = createSolutionPrecomputedMetricUrls(
-      'demo_solution',
-      { custom: 'https://example.com/custom.json' },
-      'https://example.com/solutions/demo_solution.tif',
+    assert.strictEqual(result.custom, 'https://example.com/custom.json');
+    assert.strictEqual(
+      result.goals,
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/goals/demo_solution.goals.json',
     );
-
-    assert.deepStrictEqual(result, {
-      custom: 'https://example.com/custom.json',
-      goals:
-        'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/goals/demo_solution.goals.json',
-    });
-  });
-
-  it('preserves an existing compact cache URL when no run can be derived', () => {
-    const result = createSolutionPrecomputedMetricUrls(
-      'demo_solution',
-      { compactCache: 'https://example.com/verified-compact.json' },
-      'not a URL',
+    assert.strictEqual(
+      result.compactCache,
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/nick-runs/2026-05-27/compact-cache/demo_solution.metrics.compact.json',
     );
-
-    assert.strictEqual(result.compactCache, 'https://example.com/verified-compact.json');
+    assert.strictEqual(Object.keys(result.mecByGeography).length, 6);
+    assert.strictEqual(Object.keys(result.mecV2ByGeography).length, 6);
+    assert.match(
+      result.mecV2ByGeography.national,
+      /metrics\/mec-cache-v2\/demo_solution\/national\.mec\.compact\.json$/,
+    );
   });
 });

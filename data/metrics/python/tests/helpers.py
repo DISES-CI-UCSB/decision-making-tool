@@ -25,6 +25,40 @@ def load_fixture(name: str) -> dict:
     return json.loads((FIXTURES_DIR / name).read_text())
 
 
+def load_example_output() -> dict:
+    """Load the integration example or build a deterministic clean-checkout fixture."""
+    if EXAMPLE_FILE.exists():
+        return json.loads(EXAMPLE_FILE.read_text(encoding="utf-8"))
+
+    def metric(metric_id: str, value: float, unit: str) -> dict:
+        return {
+            "metricId": metric_id,
+            "value": value,
+            "unit": unit,
+            "status": "ready",
+            "source": "test:deterministic-clean-checkout-fixture",
+            "notes": None,
+            "labelKey": f"metrics.{metric_id}",
+            "formatHint": "number",
+        }
+
+    return {
+        "solutionId": "clean_checkout_example",
+        "generatedAt": "2026-07-27T00:00:00Z",
+        "geographies": {
+            "national": {
+                "colombia": {
+                    "metrics": [
+                        metric("national_contribution", 1.0, "%"),
+                        metric("priority_area_in_region", 100.0, "km2"),
+                        metric("ecosystem_coverage", 50.0, "km2"),
+                    ]
+                }
+            }
+        },
+    }
+
+
 def raster_from_fixture(fixture: dict) -> SolutionRaster:
     """Build a SolutionRaster from a tiny JSON fixture without rasterio.
 

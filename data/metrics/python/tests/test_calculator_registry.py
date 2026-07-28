@@ -1,4 +1,5 @@
 from calculator_registry import (
+    categorical_area_calculator,
     overlap_area_calculator,
     overlap_percent_calculator,
     weighted_percent_calculator,
@@ -15,6 +16,8 @@ def test_every_layer_metric_has_a_registered_calculator():
             calculator = overlap_area_calculator(definition.layer_id or "")
         elif definition.kind == "binary_overlap_percent_of_selected":
             calculator = overlap_percent_calculator(definition.layer_id or "")
+        elif definition.kind == "categorical_overlap_area":
+            calculator = categorical_area_calculator(definition.metric_id)
         elif definition.kind == "weighted_sum":
             calculator = weighted_sum_calculator(definition)
         elif definition.kind == "weighted_percent_of_national":

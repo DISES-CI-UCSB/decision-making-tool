@@ -11,11 +11,21 @@ describe('metric presentation utilities', () => {
 
   it('normalizes units and converts only area metrics', () => {
     const area = buildMetric('priority_area_in_region', 9, 'km2');
+    const marineAreas = [
+      buildMetric('coral_reef_coverage', 1.25, 'km2'),
+      buildMetric('marine_mangrove_coverage', 2.5, 'km²'),
+      buildMetric('seagrass_coverage', 3.75, 'km2'),
+    ];
     const carbon = buildMetric('carbon_storage_biomass', 40, 'Mg·km²');
 
     expect(formatMetricValue(area, options, '--')).toBe('9 km²');
     expect(formatMetricValue(carbon, options, '--')).toBe('40 Mg·km²');
     expect(formatMetricValue(area, { ...options, areaUnit: 'hectares' }, '--')).toBe('900 ha');
+    expect(
+      marineAreas.map((metric) =>
+        formatMetricValue(metric, { ...options, areaUnit: 'hectares' }, '--'),
+      ),
+    ).toEqual(['125 ha', '250 ha', '375 ha']);
     expect(formatMetricValue(carbon, { ...options, areaUnit: 'hectares' }, '--')).toBe('40 Mg·km²');
   });
 

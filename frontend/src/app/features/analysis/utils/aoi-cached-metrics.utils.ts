@@ -54,14 +54,14 @@ export function resolveCachedAoiMetrics(
   return [];
 }
 
-function extractRawAoiScopeId(prefixedAoiId: string): string {
+export function extractRawAoiScopeId(prefixedAoiId: string): string {
   const separatorIndex = prefixedAoiId.indexOf(':');
   return separatorIndex === -1
     ? prefixedAoiId.trim()
     : prefixedAoiId.slice(separatorIndex + 1).trim();
 }
 
-function normalizeScopeLabel(label: string): string {
+export function normalizeScopeLabel(label: string): string {
   return label
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

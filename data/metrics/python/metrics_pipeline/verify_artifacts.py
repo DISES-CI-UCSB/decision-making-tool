@@ -1,0 +1,99 @@
+"""Emit local/remote integrity reports for regular and MEC metric artifacts."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import urllib.request
+from pathlib import Path
+from typing import Any, Callable
+
+from cli_utils import find_repo_root
+
+
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def verify_entry(
+    entry: dict[str, Any],
+    *,
+    repo_root: Path,
+    fetch: Callable[[str], tuple[bytes, dict[str, str]]],
+) -> dict[str, Any]:
+    local_path = Path(str(entry["cachePath"]))
+    if not local_path.is_absolute():
+        local_path = repo_root / local_path
+    local_bytes = local_path.read_bytes()
+    document = json.loads(local_bytes)
+    remote_bytes, headers = fetch(str(entry["expectedPublicUrl"]))
+    content_type = headers.get("content-type", "").split(";", 1)[0].lower()
+    cache_control = headers.get("cache-control", "")
+    result = {
+        "solutionId": entry.get("solutionId"),
+        "geographyLevel": entry.get("geographyLevel"),
+        "url": entry["expectedPublicUrl"],
+        "format": document.get("format", "metrics-verbose-v1"),
+        "local": {"bytes": len(local_bytes), "sha256": _sha256(local_bytes)},
+        "remote": {
+            "bytes": len(remote_bytes),
+            "sha256": _sha256(remote_bytes),
+            "contentType": content_type,
+            "cacheControl": cache_control,
+        },
+    }
+    result["ok"] = (
+        result["local"] == {
+            "bytes": result["remote"]["bytes"],
+            "sha256": result["remote"]["sha256"],
+        }
+        and content_type in {"application/json", "application/geo+json"}
+        and "max-age=31536000" in cache_control
+    )
+    return result
+
+
+def _fetch(url: str) -> tuple[bytes, dict[str, str]]:
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "dises-artifact-verifier/1.0"}
+    )
+    with urllib.request.urlopen(request, timeout=120) as response:
+        return response.read(), {key.lower(): value for key, value in response.headers.items()}
+
+
+def verify_report(
+    report_path: Path,
+    *,
+    repo_root: Path,
+    fetch: Callable[[str], tuple[bytes, dict[str, str]]] = _fetch,
+) -> dict[str, Any]:
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    entries = [
+        verify_entry(entry, repo_root=repo_root, fetch=fetch)
+        for entry in report.get("entries") or []
+    ]
+    return {
+        "format": "metric-artifact-verification-v1",
+        "sourceReport": str(report_path),
+        "ok": bool(entries) and all(entry["ok"] for entry in entries),
+        "entries": entries,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("report", type=Path)
+    parser.add_argument("--output", type=Path, default=None)
+    args = parser.parse_args()
+    result = verify_report(args.report, repo_root=find_repo_root())
+    rendered = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+    if args.output:
+        args.output.write_text(rendered, encoding="utf-8")
+    else:
+        print(rendered, end="")
+    return 0 if result["ok"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

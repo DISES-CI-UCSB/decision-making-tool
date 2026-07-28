@@ -13,6 +13,7 @@ import {
   BASELINE_SOLUTION_OVERLAY_ID,
   CANDIDATE_SOLUTION_OVERLAY_ID,
   DEFAULT_DATA_LAYER_OPACITY,
+  isAdminBoundaryLayerEnabled,
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
   MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC,
   MANIFEST_OVERLAY_ROW_BY_LAYER_ID,
@@ -482,9 +483,10 @@ function reconcileAdminBoundaries(
 
     const rows = adminGroup.rows.flatMap((manifestRow) => {
       const boundarySync = MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC[manifestRow.id];
-      const existingRow = boundarySync
-        ? existingRowsByBoundaryKey.get(boundarySync.boundaryLayerKey)
-        : undefined;
+      if (!boundarySync || !isAdminBoundaryLayerEnabled(boundarySync.boundaryLayerKey)) {
+        return [];
+      }
+      const existingRow = existingRowsByBoundaryKey.get(boundarySync.boundaryLayerKey);
       return existingRow
         ? [
             {

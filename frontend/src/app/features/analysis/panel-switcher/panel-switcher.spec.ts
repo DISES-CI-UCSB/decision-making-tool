@@ -15,6 +15,8 @@ import type {
   CatalogSolution,
   CustomPolygonMetricsGeometry,
   CustomPolygonMetricsResponse,
+  MecCompactDocument,
+  MecCompactV2Document,
   MetricComparisonValue,
   MetricValue,
   Solution,
@@ -22,6 +24,10 @@ import type {
 } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
+import {
+  MecMetricsLoaderService,
+  type MecMetricsLoadResult,
+} from '@core/services/mec-metrics-loader.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
 import { PanelSwitcherComponent } from './panel-switcher';
@@ -31,6 +37,8 @@ describe('PanelSwitcherComponent', () => {
   let appLocale: AppLocaleService;
   let mockData: MockDataService;
   let apiServiceSpy: Pick<ApiService, 'getSolutionMetrics' | 'getCustomPolygonMetrics'>;
+  let mecMetricsLoaderSpy: Pick<MecMetricsLoaderService, 'loadMecMetrics'>;
+  let httpClientSpy: { get: ReturnType<typeof vi.fn> };
   let goalsDocument: SolutionGoalsDocument | null;
 
   beforeEach(async () => {
@@ -53,31 +61,36 @@ describe('PanelSwitcherComponent', () => {
       }),
       getCustomPolygonMetrics: vi.fn(),
     };
+    mecMetricsLoaderSpy = {
+      loadMecMetrics: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
+    };
+    httpClientSpy = {
+      get: vi.fn(() =>
+        of({
+          classifications: [
+            {
+              view: 'broadEcosystem',
+              values: Array.from({ length: 28 }, (_, index) => ({
+                label: `Ecosystem ${index + 1}`,
+              })),
+            },
+          ],
+        }),
+      ),
+    };
 
     await TestBed.configureTestingModule({
       imports: [PanelSwitcherComponent],
       providers: [
         { provide: ApiService, useValue: apiServiceSpy },
+        { provide: MecMetricsLoaderService, useValue: mecMetricsLoaderSpy },
         {
           provide: SolutionGoalsLoaderService,
           useValue: { loadGoals: vi.fn(() => of(goalsDocument)) },
         },
         {
           provide: HttpClient,
-          useValue: {
-            get: vi.fn(() =>
-              of({
-                classifications: [
-                  {
-                    view: 'broadEcosystem',
-                    values: Array.from({ length: 28 }, (_, index) => ({
-                      label: `Ecosystem ${index + 1}`,
-                    })),
-                  },
-                ],
-              }),
-            ),
-          },
+          useValue: httpClientSpy,
         },
         provideTranslateService({
           lang: 'en',
@@ -219,6 +232,7 @@ describe('PanelSwitcherComponent', () => {
     });
     expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
     expect(compiled.querySelector('#aoi-custom-metrics-summary-grid')).toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-sirap-whole-feature-context')).toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-scope-explanation')?.textContent).toContain(
       'analysis.aoi.scopeExplanation',
     );
@@ -504,6 +518,120 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('30%');
   });
 
+  it('renders fixed-AOI marine coverage from compact metrics and prioritized area', async () => {
+    const solution = buildTestSolution();
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
+    vi.spyOn(solutionCatalog, 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'marine',
+    } as CatalogSolution);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('priority_area_in_region', 20, 'km²', 'number'),
+          buildMetric('coral_reef_coverage', 5, 'km²', 'number'),
+          buildMetric('marine_mangrove_coverage', 0, 'km²', 'number'),
+          buildMetric('mangrove_coverage', 9, 'km²', 'number'),
+          buildMetric('seagrass_coverage', 2.5, 'km²', 'number'),
+        ]),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'municipality:11001',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/boundaries/municipalities.geojson',
+      areaKm2: 30,
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#aoi-section-marine')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-row-coral-value')?.textContent).toContain('5 km²');
+    expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent).toContain('25%');
+    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).toContain('0 km²');
+    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('9 km²');
+    expect(compiled.querySelector('#aoi-row-mangrove-unit')?.textContent).toContain('0%');
+    expect(compiled.querySelector('#aoi-row-seagrass-value')?.textContent).toContain('2,5 km²');
+    expect(compiled.querySelector('#aoi-row-seagrass-unit')?.textContent).toContain('12,5%');
+    expect(compiled.querySelector('#aoi-row-mpa-value')?.textContent).toContain('--');
+    expect(compiled.querySelector('#aoi-row-eez-value')?.textContent).toContain('--');
+    expect(compiled.querySelector('#aoi-row-mpa-conditional')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-row-eez-conditional')).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-row-mpa-unavailable-trigger')?.getAttribute('aria-describedby'),
+    ).toBe('aoi-row-mpa-unavailable-tooltip');
+    expect(
+      compiled.querySelector('#aoi-row-eez-unavailable-trigger')?.getAttribute('aria-describedby'),
+    ).toBe('aoi-row-eez-unavailable-tooltip');
+  });
+
+  it('omits marine Section F for land solutions', async () => {
+    const solution = buildTestSolution();
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
+    vi.spyOn(solutionCatalog, 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'land',
+    } as CatalogSolution);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('priority_area_in_region', 20, 'km²', 'number'),
+          buildMetric('coral_reef_coverage', 5, 'km²', 'number'),
+        ]),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'municipality:11001',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/boundaries/municipalities.geojson',
+      areaKm2: 30,
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('#aoi-section-marine')).toBeNull();
+  });
+
+  it('keeps custom marine AOI coverage unavailable without dummy or API values', async () => {
+    const solution = buildTestSolution();
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
+    vi.spyOn(solutionCatalog, 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'marine',
+    } as CatalogSolution);
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.activeSolution$.set(solution);
+    appState.setFillDummyAoiMetrics(true);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn marine AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#aoi-section-marine')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-row-coral-value')?.textContent.trim()).toBe('--');
+    expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent.trim()).toBe('--');
+    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent.trim()).toBe('--');
+    expect(compiled.querySelector('#aoi-row-mangrove-unit')?.textContent.trim()).toBe('--');
+    expect(compiled.querySelector('#aoi-row-seagrass-value')?.textContent.trim()).toBe('--');
+    expect(compiled.querySelector('#aoi-row-seagrass-unit')?.textContent.trim()).toBe('--');
+  });
+
   it('renders separate ecosystems, strategic ecosystems, and carbon sections', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
@@ -537,6 +665,423 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-strategic-value-paramos')?.textContent).toContain('20%');
     expect(compiled.querySelector('#aoi-strategic-value-wetlands')?.textContent).toContain('100%');
     expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
+  });
+
+  it('renders real MEC rows for a fixed AOI with candidate-share preview values', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('priority_area_in_region', 8, 'km²', 'number'),
+        ]),
+      ),
+    );
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildMecDocument(solution.id),
+        format: 'mec-compact-v1',
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'municipalities');
+    expect(compiled.querySelector('#aoi-mec-unavailable-state')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-bar-label-0')?.textContent).toContain('Forest');
+    expect(compiled.querySelector('#aoi-mec-bar-value-0')?.textContent).toContain('50%');
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(
+      compiled.querySelector('#aoi-mec-modal-available-broadecosystem-forest')?.textContent,
+    ).toContain('10');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-coverage-values-broadecosystem-forest')?.textContent,
+    ).toContain('0% + 40%');
+  });
+
+  it('renders v2 ecosystem share from scope area and exposes unclassified share', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('priority_area_in_region', 8, 'km²', 'number'),
+        ]),
+      ),
+    );
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildV2MecDocument(solution.id),
+        format: 'mec-compact-v2',
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#aoi-mec-bar-value-0')?.textContent).toContain('50%');
+    expect(compiled.querySelector('#aoi-mec-source')?.textContent).toContain(
+      'analysis.aoi.mec.source',
+    );
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('#aoi-mec-modal-unclassified-value')?.textContent).toContain(
+      '20%',
+    );
+    expect(
+      compiled.querySelector('#aoi-mec-modal-coverage-values-broadecosystem-forest')?.textContent,
+    ).toContain('0% + 40%');
+  });
+
+  it('renders real rows for all five MEC views even when dummy AOI metrics are enabled', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('priority_area_in_region', 8, 'km²', 'number'),
+        ]),
+      ),
+    );
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildFiveViewMecDocument(solution.id),
+        format: 'mec-compact-v1',
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setFillDummyAoiMetrics(true);
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const select = compiled.querySelector('#aoi-mec-breakdown-select') as HTMLSelectElement;
+    const views = [
+      ['family', '#aoi-mec-legend-label-0', '#aoi-mec-legend-value-0', 'Family real'],
+      ['context', '#aoi-mec-legend-label-0', '#aoi-mec-legend-value-0', 'Context real'],
+      ['broad', '#aoi-mec-bar-label-0', '#aoi-mec-bar-value-0', 'Broad real'],
+      ['detailed', '#aoi-mec-bar-label-0', '#aoi-mec-bar-value-0', 'Detailed real'],
+      ['iavh', '#aoi-mec-bar-label-0', '#aoi-mec-bar-value-0', 'IAvH real'],
+    ] as const;
+
+    for (const [breakdown, rowSelector, valueSelector, expectedLabel] of views) {
+      select.value = breakdown;
+      select.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      expect(compiled.querySelector(rowSelector)?.textContent).toContain(expectedLabel);
+      expect(compiled.querySelector(valueSelector)?.textContent).toContain('50%');
+      expect(compiled.querySelector('#aoi-mec-breakdown-select')?.textContent).toContain('(1)');
+    }
+  });
+
+  it('keeps loaded MEC rows when the classification-summary fallback fails', async () => {
+    const solution = buildTestSolution();
+    httpClientSpy.get.mockReturnValue(throwError(() => new Error('summary unavailable')));
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildMecDocument(solution.id),
+        format: 'mec-compact-v1',
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#aoi-mec-unavailable-state')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-bar-label-0')?.textContent).toContain('Forest');
+  });
+
+  it('does not request MEC shards for custom AOIs', () => {
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI(buildCustomAoiWithArea(20));
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
+        ?.textContent,
+    ).toContain('analysis.aoi.mec.states.customTitle');
+  });
+
+  it.each([
+    ['_6', 'SIRAP Caribe'],
+    ['_5', 'SIRAP Andes Occidentales'],
+    ['_10', 'SIRAP Pacifico'],
+    ['_9', 'SIRAP Caribe'],
+    ['_7', 'SIRAP Orinoquia'],
+  ])('loads MEC for complete merged SIRAP %s without a scope warning', async (scopeId, name) => {
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildV2MecDocument('test-solution', {
+          geographyLevel: 'siraps',
+          scopeId,
+          scopeName: name,
+          boundaryProvenanceRef: 'siraps',
+        }),
+        format: 'mec-compact-v2',
+      }),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI({
+      id: `sirap:${scopeId}`,
+      name,
+      type: 'sirap',
+      geometryUrl: 'https://example.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+      boundarySourceLayerKey: 'siraps',
+      boundarySourceId: 'aoi-siraps-combined-colombia',
+      boundaryGeometrySelection: 'whole-feature',
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith('test-solution', 'siraps');
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-mec-unavailable-state')).toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-scope-strip')).toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-scope-polygon-btn')).toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-scope-whole-btn')).toBeNull();
+    const wholeFeatureContext = compiled.querySelector(
+      '#aoi-dashboard-sirap-whole-feature-context',
+    );
+    expect(wholeFeatureContext?.textContent).toContain('analysis.aoi.sirapWholeFeatureContext');
+    expect(wholeFeatureContext?.getAttribute('role')).toBe('note');
+    expect(wholeFeatureContext?.getAttribute('aria-label')).toBe(
+      'analysis.aoi.sirapWholeFeatureContext',
+    );
+    const csvMetadata = (
+      fixture.componentInstance as unknown as {
+        buildAoiCsvMetadata(): { exportDetails: string[][] };
+      }
+    ).buildAoiCsvMetadata();
+    expect(csvMetadata.exportDetails).toContainEqual([
+      'analysis.exports.metadata.sirapScope',
+      'analysis.aoi.scopeFull',
+    ]);
+  });
+
+  it('blocks crafted component provenance but accepts whole-feature provenance', async () => {
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildV2MecDocument('test-solution', {
+          geographyLevel: 'siraps',
+          scopeId: 'caribe',
+          scopeName: 'SIRAP Caribe',
+          boundaryProvenanceRef: 'siraps',
+        }),
+        format: 'mec-compact-v2',
+      }),
+    );
+    const componentAoi: AOI = {
+      id: 'sirap:caribe',
+      name: 'SIRAP Caribe',
+      type: 'sirap',
+      geometryUrl: 'https://example.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+      boundarySourceLayerKey: 'siraps',
+      boundarySourceId: 'aoi-siraps-combined-colombia',
+      boundaryGeometrySelection: 'component',
+    };
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI(componentAoi);
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
+        ?.textContent,
+    ).toContain('analysis.aoi.mec.states.partialSirapTitle');
+
+    appState.selectAOI({ ...componentAoi, boundaryGeometrySelection: 'whole-feature' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith('test-solution', 'siraps');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-state'),
+    ).toBeNull();
+  });
+
+  it.each([
+    ['territorial', 'siraps_territorial', 'aoi-siraps-territorial-colombia'],
+    ['thematic', 'siraps_thematic', 'aoi-siraps-thematic-colombia'],
+  ])('blocks a whole-marked %s SIRAP source', (_, boundarySourceLayerKey, boundarySourceId) => {
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI({
+      id: 'sirap:_5',
+      name: 'Separate SIRAP source',
+      type: 'sirap',
+      geometryUrl: '/inputs/boundaries/sirap/separate.geojson',
+      boundarySourceLayerKey,
+      boundarySourceId,
+      boundaryGeometrySelection: 'whole-feature',
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
+        ?.textContent,
+    ).toContain('analysis.aoi.mec.states.partialSirapTitle');
+  });
+
+  it('blocks legacy SIRAP selections without provenance', () => {
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI({
+      id: 'sirap:_7',
+      name: 'SIRAP Orinoquia',
+      type: 'sirap',
+      geometryUrl: 'https://example.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
+        ?.textContent,
+    ).toContain('analysis.aoi.mec.states.partialSirapTitle');
+  });
+
+  it('does not request MEC shards for marine solutions', () => {
+    const solution = buildTestSolution();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'marine',
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
+        ?.textContent,
+    ).toContain('analysis.aoi.mec.states.marineTitle');
+  });
+
+  it('renders accessible loading and load-error states', () => {
+    const response = new Subject<MecMetricsLoadResult>();
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(response);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const status = compiled.querySelector('#aoi-mec-unavailable-state');
+
+    expect(status?.getAttribute('role')).toBe('status');
+    expect(status?.textContent).toContain('analysis.aoi.mec.states.loadingTitle');
+
+    response.next({ status: 'error', document: null, error: 'http' });
+    fixture.detectChanges();
+    expect(status?.getAttribute('role')).toBe('alert');
+    expect(status?.textContent).toContain('analysis.aoi.mec.states.errorTitle');
+  });
+
+  it('shows a distinct state when the loaded MEC shard has no matching scope', async () => {
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildMecDocument('sol-001', { scopeId: '05001', scopeName: 'Medellin' }),
+        format: 'mec-compact-v1',
+      }),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
+        ?.textContent,
+    ).toContain('analysis.aoi.mec.states.scopeMissingTitle');
+  });
+
+  it('ignores stale MEC responses after the active solution changes', async () => {
+    const firstResponse = new Subject<MecMetricsLoadResult>();
+    const secondResponse = new Subject<MecMetricsLoadResult>();
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics)
+      .mockReturnValueOnce(firstResponse)
+      .mockReturnValueOnce(secondResponse);
+    appState.activeSolution$.set({ ...buildTestSolution(), id: 'first-solution' });
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    appState.activeSolution$.set({ ...buildTestSolution(), id: 'second-solution' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    firstResponse.next({
+      status: 'loaded',
+      document: buildMecDocument('first-solution', { classLabel: 'Stale forest' }),
+      format: 'mec-compact-v1',
+    });
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Stale forest');
+
+    secondResponse.next({
+      status: 'loaded',
+      document: buildMecDocument('second-solution', { classLabel: 'Current forest' }),
+      format: 'mec-compact-v1',
+    });
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Current forest');
   });
 
   it('shows the integrated MEC count and CTA only for drilldown views', () => {
@@ -931,6 +1476,134 @@ function buildTestGeometry(): CustomPolygonMetricsGeometry {
         [-74.1, 4.6],
       ],
     ],
+  };
+}
+
+function buildFixedMunicipalityAoi(): AOI {
+  return {
+    id: 'municipality:11001',
+    name: 'Bogota',
+    type: 'municipality',
+    geometryUrl: '/boundaries/municipalities.geojson',
+    areaKm2: 20,
+  };
+}
+
+function buildMecDocument(
+  solutionId: string,
+  options: { scopeId?: string; scopeName?: string; classLabel?: string } = {},
+): MecCompactDocument {
+  return {
+    format: 'mec-compact-v1',
+    solutionId,
+    geographyLevel: 'municipalities',
+    generatedAt: '2026-07-24T00:00:00Z',
+    sourceMode: 'composite',
+    units: 'km2',
+    rowLayout: ['scopeIndex', 'classIndex', 'availableKm2', 'existingKm2', 'additionalKm2'],
+    viewCatalog: [['broadEcosystem', 'Broad ecosystem']],
+    classCatalog: [
+      [0, 'broadEcosystem:forest', options.classLabel ?? 'Forest'],
+      [0, 'broadEcosystem:savanna', 'Savanna'],
+    ],
+    scopeCatalog: [[options.scopeId ?? '11001', options.scopeName ?? 'Bogota']],
+    rows: [
+      [0, 0, 10, 0, 4],
+      [0, 1, 5, 1, 1],
+    ],
+    viewSupport: {
+      supported: [{ view: 'broadEcosystem', mapping: 'authoritative', rule: 'Exact label.' }],
+      unsupported: [],
+    },
+    semantics: {
+      availableKm2: 'Available.',
+      existingKm2: 'Existing.',
+      additionalKm2: 'Additional.',
+      percentages: 'Derived.',
+      invariants: 'Disjoint.',
+    },
+  };
+}
+
+function buildV2MecDocument(
+  solutionId: string,
+  options: {
+    geographyLevel?: MecCompactV2Document['geographyLevel'];
+    scopeId?: string;
+    scopeName?: string;
+    boundaryProvenanceRef?: string;
+  } = {},
+): MecCompactV2Document {
+  return {
+    format: 'mec-compact-v2',
+    solutionId,
+    geographyLevel: options.geographyLevel ?? 'municipalities',
+    generatedAt: '2026-07-24T00:00:00Z',
+    sourceMode: 'composite',
+    units: 'km2',
+    rowLayout: [
+      'scopeIndex',
+      'classIndex',
+      'ecosystemAreaKm2',
+      'preExistingCoverageKm2',
+      'newPrioritizrCoverageKm2',
+    ],
+    scopeStatsFields: ['scopeAreaKm2', 'classifiedKm2', 'unclassifiedKm2', 'boundaryProvenanceRef'],
+    viewCatalog: [['broadEcosystem', 'Broad ecosystem']],
+    classCatalog: [[0, 'broadEcosystem:forest', 'Forest']],
+    scopeCatalog: [[options.scopeId ?? '11001', options.scopeName ?? 'Bogota']],
+    scopeStats: {
+      0: {
+        scopeAreaKm2: 20,
+        classifiedKm2: 16,
+        unclassifiedKm2: 4,
+        boundaryProvenanceRef: options.boundaryProvenanceRef ?? 'municipalities',
+      },
+    },
+    rows: [[0, 0, 10, 0, 4]],
+    viewSupport: {
+      supported: [{ view: 'broadEcosystem', mapping: 'authoritative', rule: 'Exact label.' }],
+      unsupported: [],
+    },
+    semantics: {
+      ecosystemAreaKm2: 'Ecosystem area.',
+      preExistingCoverageKm2: 'Pre-existing coverage.',
+      newPrioritizrCoverageKm2: 'New Prioritizr coverage.',
+      derivedValues: 'Derived values.',
+      scopeStats: 'Scope stats.',
+      nationalBenchmark: 'National benchmark.',
+      invariants: 'Disjoint.',
+    },
+  };
+}
+
+function buildFiveViewMecDocument(solutionId: string): MecCompactDocument {
+  const viewCatalog: MecCompactDocument['viewCatalog'] = [
+    ['biomeFamily', 'Biome family'],
+    ['broadBiomeContext', 'Broad biome context'],
+    ['broadEcosystem', 'Broad ecosystem'],
+    ['detailedEcosystem', 'Detailed ecosystem'],
+    ['biomeRegion', 'Biome region'],
+  ];
+  const labels = ['Family real', 'Context real', 'Broad real', 'Detailed real', 'IAvH real'];
+
+  return {
+    ...buildMecDocument(solutionId),
+    viewCatalog,
+    classCatalog: labels.map((label, viewIndex) => [
+      viewIndex,
+      `${viewCatalog[viewIndex][0]}:real`,
+      label,
+    ]),
+    rows: labels.map((_, classIndex) => [0, classIndex, 10, 0, 4]),
+    viewSupport: {
+      supported: viewCatalog.map(([view]) => ({
+        view,
+        mapping: 'authoritative',
+        rule: 'Exact label.',
+      })),
+      unsupported: [],
+    },
   };
 }
 

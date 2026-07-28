@@ -9,8 +9,10 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
+
+from solution_domain import is_batch_solution, solution_domain
 
 DEFAULT_MANIFEST_URL = (
     "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json"
@@ -28,6 +30,13 @@ class ResolvedManifest:
     public_blob_host: str
     layers_by_id: dict[str, dict[str, Any]]
     national_solutions: list[dict[str, Any]]
+    batch_solutions: list[dict[str, Any]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # Compatibility for callers that still construct this class with only
+        # the historical national_solutions field.
+        if not self.batch_solutions:
+            object.__setattr__(self, "batch_solutions", self.national_solutions)
 
 
 def fetch_manifest(url: str | None = None, *, timeout: int = 30) -> ResolvedManifest:
@@ -70,20 +79,29 @@ def _validate_and_index(url: str, payload: Any) -> ResolvedManifest:
     if not isinstance(solutions, list):
         raise ManifestError("Manifest 'solutions' must be a list.")
 
+    batch: list[dict[str, Any]] = []
     national: list[dict[str, Any]] = []
     for sol in solutions:
         if not isinstance(sol, dict):
             continue
-        if str(sol.get("scope", "")).lower() == "nacional":
-            for key in ("id", "displayUrl", "blobPath"):
-                if not sol.get(key):
-                    raise ManifestError(
-                        f"National solution missing required field '{key}': {sol.get('id', '<unknown>')}"
-                    )
+        try:
+            if not is_batch_solution(sol):
+                continue
+            domain = solution_domain(sol)
+        except ValueError as exc:
+            raise ManifestError(str(exc)) from exc
+        for key in ("id", "displayUrl", "blobPath"):
+            if not sol.get(key):
+                raise ManifestError(
+                    f"Batch solution missing required field '{key}': "
+                    f"{sol.get('id', '<unknown>')}"
+                )
+        batch.append(sol)
+        if domain == "land":
             national.append(sol)
 
-    if not national:
-        raise ManifestError("Manifest contains no national-scope solutions.")
+    if not batch:
+        raise ManifestError("Manifest contains no land/nacional or marine solutions.")
 
     return ResolvedManifest(
         url=url,
@@ -91,6 +109,7 @@ def _validate_and_index(url: str, payload: Any) -> ResolvedManifest:
         public_blob_host=public_host,
         layers_by_id=layers_by_id,
         national_solutions=national,
+        batch_solutions=batch,
     )
 
 

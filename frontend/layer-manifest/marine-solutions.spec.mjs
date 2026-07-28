@@ -37,5 +37,11 @@ describe('marine solution manifest entries', () => {
     assert.strictEqual(entry.finderInputs.targetPercent, 30);
     assert.deepStrictEqual(entry.coverage, []);
     assert.strictEqual(entry.description, 'Marine ecosystem and mangrove targets at 30%.');
+    assert.match(
+      entry.precomputedMetricUrls.compactCache,
+      /compact-cache\/marine_ecos30_mang30_runap_hhm\.metrics\.compact\.json$/,
+    );
+    assert.strictEqual(entry.precomputedMetricUrls.mecByGeography, undefined);
+    assert.strictEqual(entry.precomputedMetricUrls.mecV2ByGeography, undefined);
   });
 });

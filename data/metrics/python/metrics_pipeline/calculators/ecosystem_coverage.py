@@ -1,13 +1,12 @@
 """Ecosystem-coverage overlap metrics.
 
 Each function answers: "how many km² of the selected planning units fall
-inside this ecosystem layer?"  All five share the same binary-overlap formula
-but are named and documented individually so reviewers can search by metric
-number or ecosystem type.
+inside this ecosystem layer?" Strategic ecosystem functions use binary masks.
+Total ecosystem coverage uses authoritative IAvH categorical biome IDs.
 
-The layer mask parameter is a boolean numpy array aligned to the solution
-raster (same shape, CRS, and transform).  Use raster_metrics.read_layer_mask
-to produce it from a downloaded layer TIF.
+Layer arrays are aligned to the solution raster (same shape, CRS, and
+transform). Use raster_metrics.read_layer_values for total categorical
+coverage and raster_metrics.read_layer_mask for strategic ecosystem masks.
 
 Metrics implemented here
 ------------------------
@@ -22,17 +21,23 @@ from __future__ import annotations
 
 import numpy as np
 
-from raster_metrics import SolutionRaster, overlap_km2
+from raster_metrics import SolutionRaster, categorical_overlap_km2, overlap_km2
+
+IAVH_ECOSYSTEM_CLASS_IDS = frozenset(range(1, 431))
 
 
-def ecosystem_total_km2(raster: SolutionRaster, layer_mask: np.ndarray) -> float:
-    """#4 — km² of selected area overlapping the native ecosystems layer (ecosistemas).
+def ecosystem_total_km2(raster: SolutionRaster, layer_values: np.ndarray) -> float:
+    """#4 — selected km² overlapping a valid IAvH 2024 ecosystem class.
 
-    The 'ecosistemas' layer covers Colombia's classified native ecosystem
-    polygons.  Overlap with the selected planning units represents how much of
-    the prioritised area contains native ecosystem.
+    biome_id values 1–430 are valid. Zero, nodata (converted to NaN by the
+    raster reader), and unknown values outside that range are excluded.
     """
-    return overlap_km2(raster.selected_mask, layer_mask, raster.pixel_area_km2_per_row)
+    return categorical_overlap_km2(
+        raster.selected_mask,
+        layer_values,
+        IAVH_ECOSYSTEM_CLASS_IDS,
+        raster.pixel_area_km2_per_row,
+    )
 
 
 def paramo_km2(raster: SolutionRaster, layer_mask: np.ndarray) -> float:

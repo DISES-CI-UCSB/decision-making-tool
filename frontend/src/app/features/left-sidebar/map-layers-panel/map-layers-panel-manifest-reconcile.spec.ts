@@ -11,6 +11,7 @@ import {
 import {
   BASELINE_SOLUTION_OVERLAY_ID,
   CANDIDATE_SOLUTION_OVERLAY_ID,
+  enabledSirapBoundaryLayerKeys,
   MARINE_ECOSYSTEMS_GROUP_ID,
   MARINE_HHM_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
@@ -219,6 +220,39 @@ describe('reconcileMapLayersManifest', () => {
         color: '#123456',
       }),
     ]);
+  });
+
+  it('keeps only merged SIRAP in development and cannot reconcile disabled rows back', () => {
+    const existingSirapRows = [
+      ['siraps', 'boundary-siraps'],
+      ['siraps_territorial', 'boundary-siraps_territorial'],
+      ['siraps_thematic', 'boundary-siraps_thematic'],
+    ].map(([boundaryLayerKey, id]) =>
+      row({
+        id,
+        mapSync: {
+          type: 'admin-boundary',
+          boundaryType: 'sirap',
+          boundaryLayerKey: boundaryLayerKey as 'siraps' | 'siraps_territorial' | 'siraps_thematic',
+        },
+      }),
+    );
+
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('administrative_boundaries', [
+          manifestRow('siraps', 'administrative_boundaries'),
+          manifestRow('siraps_territorial', 'administrative_boundaries'),
+          manifestRow('siraps_thematic', 'administrative_boundaries'),
+        ]),
+      ],
+      groups: [group('group-admin-boundaries', existingSirapRows)],
+      overlays: [],
+      ports,
+    });
+
+    expect(enabledSirapBoundaryLayerKeys()).toEqual(['siraps']);
+    expect(result.groups[0].rows.map((item) => item.id)).toEqual(['boundary-siraps']);
   });
 
   it('keeps selected state but hides a row when its manifest asset is unavailable', () => {

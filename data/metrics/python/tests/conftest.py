@@ -6,12 +6,10 @@ Helper logic lives in helpers.py so test modules can import it directly
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from helpers import (
-    EXAMPLE_FILE,
+    load_example_output,
     load_fixture,
     raster_from_fixture,
 )
@@ -39,7 +37,7 @@ def nodata_raster(nodata_fixture):
 
 @pytest.fixture(scope="session")
 def example_output():
-    return json.loads(EXAMPLE_FILE.read_text())
+    return load_example_output()
 
 
 @pytest.fixture(scope="session")

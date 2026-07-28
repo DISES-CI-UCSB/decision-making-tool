@@ -31,12 +31,16 @@ def metric_value(
     return metric
 
 
-def not_applicable(definition: MetricDefinition) -> dict[str, Any]:
+def not_applicable(
+    definition: MetricDefinition,
+    *,
+    notes: str = "Metric is only available at national scope.",
+) -> dict[str, Any]:
     return metric_value(
         definition,
         value=None,
         status="not_applicable",
-        notes="Metric is only available at national scope.",
+        notes=notes,
         source="n/a",
     )
 

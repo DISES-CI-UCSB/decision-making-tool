@@ -52,7 +52,6 @@ import {
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
-import { FEATURE_FLAGS } from '@feature-flags';
 import {
   buildConsideredLayerIdSet,
   buildLegendCategories,
@@ -109,6 +108,7 @@ import {
   DEFAULT_SELECTED_LAYER_FILL_STYLE,
   DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT,
   DEFAULT_SPECIES_MANIFEST_URL,
+  enabledSirapBoundaryLayerKeys,
   EXCLUDED_SPECIES_TAXON_IDS,
   EXISTING_PROTECTED_COLOR,
   FISH_TAXON_ROW_ID,
@@ -4008,41 +4008,20 @@ export class MapLayersPanelComponent implements OnDestroy {
    * Conservation Areas itself uses `overlaysCollapsed` (default expanded).
    */
   private createDefaultGroups(): LayerGroup[] {
-    const sirapRows = [
-      ...(FEATURE_FLAGS.sirapLayers.combined
-        ? [
-            this.boundaryRow(
-              'siraps',
-              'sirap',
-              this.localizedText('mapLayersPanel.boundaryNames.combinedSirapReviewLayer'),
-              false,
-              false,
-            ),
-          ]
-        : []),
-      ...(FEATURE_FLAGS.sirapLayers.territorial
-        ? [
-            this.boundaryRow(
-              'siraps_territorial',
-              'sirap',
-              this.localizedText('mapLayersPanel.boundaryNames.territorialSiraps'),
-              false,
-              false,
-            ),
-          ]
-        : []),
-      ...(FEATURE_FLAGS.sirapLayers.thematic
-        ? [
-            this.boundaryRow(
-              'siraps_thematic',
-              'sirap',
-              this.localizedText('mapLayersPanel.boundaryNames.thematicSirapAdditions'),
-              false,
-              false,
-            ),
-          ]
-        : []),
-    ];
+    const sirapNameKeys = {
+      siraps: 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
+      siraps_territorial: 'mapLayersPanel.boundaryNames.territorialSiraps',
+      siraps_thematic: 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
+    } as const;
+    const sirapRows = enabledSirapBoundaryLayerKeys().map((layerKey) =>
+      this.boundaryRow(
+        layerKey,
+        'sirap',
+        this.localizedText(sirapNameKeys[layerKey]),
+        false,
+        false,
+      ),
+    );
     const adminBoundaryRows = [
       ...sirapRows,
       this.boundaryRow(

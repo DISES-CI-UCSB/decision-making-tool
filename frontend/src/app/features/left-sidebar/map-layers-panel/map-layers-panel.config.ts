@@ -1,4 +1,5 @@
 import type { AoiType, RuntimeLayerManifestRenderingConfig } from '@core/models';
+import { FEATURE_FLAGS } from '@feature-flags';
 import type { AdminBoundaryLayerKey } from '@features/map/services/admin-boundary.service';
 import {
   OMEC_OVERLAY_LAYER_ID,
@@ -245,6 +246,28 @@ export const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
   admin_departments: { boundaryType: 'department', boundaryLayerKey: 'admin_departments' },
   admin_municipalities: { boundaryType: 'municipality', boundaryLayerKey: 'admin_municipalities' },
 };
+
+export function isAdminBoundaryLayerEnabled(layerKey: AdminBoundaryLayerKey): boolean {
+  switch (layerKey) {
+    case 'siraps':
+      return FEATURE_FLAGS.sirapLayers.combined;
+    case 'siraps_territorial':
+      return FEATURE_FLAGS.sirapLayers.territorial;
+    case 'siraps_thematic':
+      return FEATURE_FLAGS.sirapLayers.thematic;
+    default:
+      return true;
+  }
+}
+
+export type SirapBoundaryLayerKey = 'siraps' | 'siraps_territorial' | 'siraps_thematic';
+
+export function enabledSirapBoundaryLayerKeys(): SirapBoundaryLayerKey[] {
+  return (['siraps', 'siraps_territorial', 'siraps_thematic'] as const).filter(
+    isAdminBoundaryLayerEnabled,
+  );
+}
+
 export const COMPARISON_PRIORITY_OVERLAY_IDS = [
   OVERLAP_SOLUTION_OVERLAY_ID,
   BASELINE_SOLUTION_OVERLAY_ID,

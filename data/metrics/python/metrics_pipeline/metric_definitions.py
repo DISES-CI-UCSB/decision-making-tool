@@ -7,6 +7,9 @@ docs/design/DISES Metrics - Finalized Metrics.csv.
 T2 metrics (9 single-solution, computed in this MVP):
   4, 17, 18, 30, 31, 32, 36, 59, 60
 
+Marine ecosystem metrics:
+  35, 36, 37       (categorical classes from marine_ecosystems.tif)
+
 T6 metrics added (17 additional):
   Carbon:             5, 39, 41, 43
   Water:              6, 44
@@ -28,6 +31,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from solution_domain import SolutionDomain
+
 _PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 
 MetricFormatHint = Literal["number", "percent", "currency", "ratio", "index"]
@@ -41,6 +46,8 @@ MetricKind = Literal[
     "aoi_percent",
     "binary_overlap_area",
     "binary_overlap_percent_of_selected",
+    # Categorical layer: selected area whose class ID belongs to the metric's class set.
+    "categorical_overlap_area",
     # Continuous layer: sum(pixel_value × pixel_area_km²) for selected cells.
     "weighted_sum",
     # Continuous layer: (selected weighted_sum / valid weighted_sum) × 100.
@@ -83,6 +90,8 @@ class MetricDefinition:
     # For species_richness metrics (#21–#25): which class bucket this entry counts.
     # Ignored for all other kinds.
     species_bucket: SpeciesBucket | None = None
+    # Domains where this metric may be computed. Existing metrics default to land.
+    applicable_domains: frozenset[SolutionDomain] = frozenset({"land"})
 
 
 # Order here is the order written into the per-solution JSON output.
@@ -98,6 +107,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         format_hint="percent",
         source_note="Reads pctTargetsMet from solution summaryMetrics in the manifest.",
         kind="metadata_summary",
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
         metric_id="species_groups_protected",
@@ -122,9 +132,16 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         spanish_label="Cobertura de ecosistemas",
         unit="km2",
         format_hint="number",
-        source_note="Selected area intersected with the manifest 'ecosistemas' layer.",
-        kind="binary_overlap_area",
-        layer_id="ecosistemas",
+        source_note=(
+            "Selected area intersected with valid biome_id classes 1–430 in the "
+            "authoritative IAvH 2024 ecosystem raster."
+        ),
+        kind="categorical_overlap_area",
+        layer_id="ecosistemas_IAVH_2024",
+        off_manifest_url=(
+            f"{_PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+            "ecosistemas_IAVH_2024.tif"
+        ),
     ),
     # --- T10: species (#3 grouped with the other threatened-species metric) ---
     MetricDefinition(
@@ -218,6 +235,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         format_hint="percent",
         source_note="Selected km² divided by total valid km² in the solution raster.",
         kind="national_percent",
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
         metric_id="priority_area_in_region",
@@ -229,6 +247,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         format_hint="number",
         source_note="Total selected km² from the solution raster (national scope).",
         kind="selected_area",
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     # --- T6 (continued) ---
     MetricDefinition(
@@ -245,6 +264,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
             "marked not_applicable at national scope where #17 already provides this value."
         ),
         kind="aoi_percent",
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     # --- T2 (continued) ---
     MetricDefinition(
@@ -284,6 +304,25 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="wetlands",
     ),
     MetricDefinition(
+        metric_id="coral_reef_coverage",
+        metric_number=35,
+        label_key="metrics.tier1.coral_reef_coverage",
+        english_label="Coral Reef Coverage",
+        spanish_label="Cobertura de arrecifes coralinos",
+        unit="km2",
+        format_hint="number",
+        source_note=(
+            "Selected area classified as coral formations (class IDs "
+            "23, 32, 89, 108, 118, 140) in marine_ecosystems.tif."
+        ),
+        kind="categorical_overlap_area",
+        layer_id="marine_ecosystems",
+        off_manifest_url=(
+            f"{_PUBLIC_BLOB_HOST}/inputs/features/marine/marine_ecosystems.tif"
+        ),
+        applicable_domains=frozenset({"marine"}),
+    ),
+    MetricDefinition(
         metric_id="mangrove_coverage",
         metric_number=36,
         label_key="metrics.tier1.ecosystem_mangroves",
@@ -294,6 +333,45 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         source_note="Selected area intersected with the manifest 'mangroves' layer.",
         kind="binary_overlap_area",
         layer_id="mangroves",
+    ),
+    MetricDefinition(
+        metric_id="marine_mangrove_coverage",
+        metric_number=36,
+        label_key="metrics.tier1.marine_mangrove_coverage",
+        english_label="Marine Mangrove Coverage",
+        spanish_label="Cobertura de manglares marinos",
+        unit="km2",
+        format_hint="number",
+        source_note=(
+            "Selected area classified as mangroves (class IDs 55, 56, 72, 80) "
+            "in marine_ecosystems.tif. This is separate from the strategic "
+            "binary-layer mangrove_coverage metric."
+        ),
+        kind="categorical_overlap_area",
+        layer_id="marine_ecosystems",
+        off_manifest_url=(
+            f"{_PUBLIC_BLOB_HOST}/inputs/features/marine/marine_ecosystems.tif"
+        ),
+        applicable_domains=frozenset({"marine"}),
+    ),
+    MetricDefinition(
+        metric_id="seagrass_coverage",
+        metric_number=37,
+        label_key="metrics.tier1.seagrass_coverage",
+        english_label="Seagrass Bed Coverage",
+        spanish_label="Cobertura de pastos marinos",
+        unit="km2",
+        format_hint="number",
+        source_note=(
+            "Selected area classified as seagrass beds (class IDs 86, 88, 117) "
+            "in marine_ecosystems.tif."
+        ),
+        kind="categorical_overlap_area",
+        layer_id="marine_ecosystems",
+        off_manifest_url=(
+            f"{_PUBLIC_BLOB_HOST}/inputs/features/marine/marine_ecosystems.tif"
+        ),
+        applicable_domains=frozenset({"marine"}),
     ),
     # --- T10: species richness (#21–#25) ---
     # Each entry counts how many species of one taxonomic class have any range

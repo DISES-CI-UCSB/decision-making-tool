@@ -9,6 +9,7 @@ import { parseCsv, rowsToObjects, toCsv } from './lib/csv.mjs';
 import { toBlobPath, toLayerId } from './lib/layer-normalization.mjs';
 import {
   createPrecomputedMetricUrls,
+  createReleaseBoundaryUrls,
   createSolutionPrecomputedMetricUrls,
 } from './lib/metric-urls.mjs';
 import { selectManifestSolutions } from './lib/solution-preservation.mjs';
@@ -88,6 +89,16 @@ function getRegisteredSolutionBlobPrefixes(args) {
     }
   }
   return prefixes;
+}
+
+function getReleaseId(args) {
+  const index = args.indexOf('--release-id');
+  if (index < 0) return null;
+  const releaseId = args[index + 1];
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(releaseId ?? '')) {
+    throw new Error('--release-id requires a lowercase, hyphenated immutable release id');
+  }
+  return releaseId;
 }
 
 /**
@@ -813,7 +824,7 @@ export function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob
     inputLayerIds,
     summaryMetrics: normalizeSolutionSummaryMetrics(metadata.evaluation, coverage),
     coverage,
-    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(id, {}, rasterBlob.url),
+    precomputedMetricUrls: createSolutionPrecomputedMetricUrls(id, {}, domain),
     rendering: DEFAULT_SOLUTION_RENDERING,
   };
 }
@@ -1179,6 +1190,17 @@ export function preserveExistingDisplayReference(discoveredReference, existingLa
     };
   }
   return discoveredReference;
+}
+
+export function preserveReleaseLayerRendering(generatedLayer, publishedLayer, releaseId) {
+  if (!releaseId || !publishedLayer?.rendering) {
+    return generatedLayer;
+  }
+
+  return {
+    ...generatedLayer,
+    rendering: structuredClone(publishedLayer.rendering),
+  };
 }
 
 async function inferRenderingConfig({
@@ -2296,9 +2318,9 @@ async function pruneManifestArchive() {
 async function main() {
   await loadLocalEnv(path.resolve(__dirname, '..'));
   renderingOverrideByLayerId.marine_ecosystems = await loadMarineEcosystemRendering();
-  const registeredSolutionBlobPrefixes = getRegisteredSolutionBlobPrefixes(
-    process.argv.slice(2),
-  );
+  const cliArgs = process.argv.slice(2);
+  const registeredSolutionBlobPrefixes = getRegisteredSolutionBlobPrefixes(cliArgs);
+  const releaseId = getReleaseId(cliArgs);
 
   const csvRaw = await fs.readFile(REQUIRED_LAYERS_CSV, 'utf-8');
   const rows = rowsToObjects(parseCsv(csvRaw), columnAliases);
@@ -2323,13 +2345,30 @@ async function main() {
     existingManifestIndex,
     speciesTaxa,
   );
-  const layers = resolvedLayerEntries.map((entry) => entry.manifestLayer);
+  const releaseBoundaryUrls = createReleaseBoundaryUrls(releaseId);
+  const layers = resolvedLayerEntries.map((entry) => {
+    const generatedLayer =
+      entry.manifestLayer.id === 'siraps' && releaseBoundaryUrls
+        ? {
+            ...entry.manifestLayer,
+            displayUrl: releaseBoundaryUrls.sirapBoundaryUrl,
+            metadataUrl: releaseBoundaryUrls.sirapMetadataUrl,
+          }
+        : entry.manifestLayer;
+
+    return preserveReleaseLayerRendering(
+      generatedLayer,
+      existingManifestIndex?.layersById.get(generatedLayer.id),
+      releaseId,
+    );
+  });
   const { solutions, preservedPublishedSolutions, preservedExistingSolutions } =
     selectManifestSolutions({
       publishedManifestIndex,
       generatedSolutions: solutionCatalog.solutions,
       existingManifestIndex,
       registeredSolutionBlobPrefixes,
+      releaseId,
     });
   const solutionCatalogReport =
     preservedPublishedSolutions.length > 0
@@ -2383,6 +2422,7 @@ async function main() {
     version: MANIFEST_SCHEMA_VERSION,
     generatedAt: GENERATED_AT,
     publicBlobHost: PUBLIC_BLOB_HOST,
+    ...(releaseId ? { releaseId } : {}),
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     categories,
     layers,

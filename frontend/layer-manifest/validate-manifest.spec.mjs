@@ -37,7 +37,79 @@ describe('solution precomputedMetricUrls validation', () => {
       /solutions\[0\]\.precomputedMetricUrls\.goals must be a syntactically valid URL/,
     );
   });
+
+  it('accepts separate six-URL v1 and v2 MEC maps for land solutions', async () => {
+    const manifest = createManifest({
+      compactCache: 'https://example.com/metrics/demo.metrics.compact.json',
+      mecByGeography: createMecUrls(),
+      mecV2ByGeography: createMecUrls('mec-cache-v2'),
+    });
+
+    await assert.doesNotReject(validateManifest(manifest, 'manifest.json'));
+  });
+
+  it('rejects incomplete MEC geography URL maps', async () => {
+    const manifest = createManifest({
+      mecByGeography: {
+        national: 'https://example.com/metrics/mec/demo/national.mec.compact.json',
+      },
+    });
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /mecByGeography must contain exactly: national, departments, municipalities, siraps, runaps, omecs/,
+    );
+  });
+
+  it('rejects incomplete MEC v2 geography URL maps', async () => {
+    const manifest = createManifest({
+      mecV2ByGeography: {
+        national: 'https://example.com/metrics/mec-cache-v2/demo/national.mec.compact.json',
+      },
+    });
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /mecV2ByGeography must contain exactly: national, departments, municipalities, siraps, runaps, omecs/,
+    );
+  });
+
+  it('rejects land MEC geography URLs on marine solutions', async () => {
+    const manifest = createManifest({
+      mecByGeography: createMecUrls(),
+      mecV2ByGeography: createMecUrls('mec-cache-v2'),
+    });
+    manifest.solutions[0].domain = 'marine';
+    manifest.solutions[0].scope = 'marine';
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /mecByGeography is only valid for land solutions/,
+    );
+  });
+
+  it('rejects v2 MEC geography URLs on marine solutions', async () => {
+    const manifest = createManifest({
+      mecV2ByGeography: createMecUrls('mec-cache-v2'),
+    });
+    manifest.solutions[0].domain = 'marine';
+    manifest.solutions[0].scope = 'marine';
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /mecV2ByGeography is only valid for land solutions/,
+    );
+  });
 });
+
+function createMecUrls(directory = 'mec') {
+  return Object.fromEntries(
+    ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'].map((level) => [
+      level,
+      `https://example.com/metrics/${directory}/demo/${level}.mec.compact.json`,
+    ]),
+  );
+}
 
 function createManifest(precomputedMetricUrls) {
   const solution = {

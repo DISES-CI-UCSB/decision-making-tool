@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "source": {
+    "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged.geojson",
+    "sha256": "6900b9eba35871ef69ce0ed7222fc4f4b1388026ad5d5d40c3c2c9b8be9cb565",
+    "bytes": 3213695
+  },
+  "output": {
+    "pathname": "inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
+    "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
+    "sha256": "2a44a7a4726448959432924a11703250a444fe9e06be3324563e7b89d14912de",
+    "bytes": 3197262,
+    "content_type": "application/geo+json",
+    "cache_control": "public, max-age=31536000",
+    "crs": "EPSG:4326"
+  },
+  "validation": {
+    "feature_count": 10,
+    "expected_ids": [
+      "territorial_territorial_amazonia_3",
+      "territorial_territorial_andes_nororientales_4",
+      "territorial_territorial_andes_occidentales_5",
+      "territorial_territorial_caribe_6",
+      "territorial_territorial_caribe_9",
+      "territorial_territorial_orinoquia_7",
+      "territorial_territorial_pacifico_10",
+      "territorial_territorial_pacifico_8",
+      "thematic_eje_cafetero_1",
+      "thematic_macizo_2"
+    ],
+    "catalog_sha256": "ded62832b2d97b3d47ff20299bf9c9399abda79a45400927b0bf4062faf73864",
+    "geometry_collection_sha256": "83d2003347811cc2aa7599abb535d029c68e8f680d136ca01a8877a7df717e8f",
+    "area_tolerance": {
+      "relative": 1e-09,
+      "absolute_m2": 1.0
+    },
+    "areas": [
+      {
+        "sirap_id": "thematic_eje_cafetero_1",
+        "before_area_m2": 31878488769.353046,
+        "after_area_m2": 31878488769.353046,
+        "difference_m2": 0.0,
+        "tolerance_m2": 31.878488769353048,
+        "geometry_sha256": "5288a528a2b7dcc67151180376b902c3d993aebfbcbae15a7bc34eb75822899b"
+      },
+      {
+        "sirap_id": "thematic_macizo_2",
+        "before_area_m2": 44739868316.50857,
+        "after_area_m2": 44739868316.50857,
+        "difference_m2": 0.0,
+        "tolerance_m2": 44.73986831650857,
+        "geometry_sha256": "235fd8f6a33b8fe23aa4527ef46706aea91e1381c81e7b00eedf12c142936575"
+      },
+      {
+        "sirap_id": "territorial_territorial_amazonia_3",
+        "before_area_m2": 396280250854.1073,
+        "after_area_m2": 396280250854.1073,
+        "difference_m2": 0.0,
+        "tolerance_m2": 396.28025085410735,
+        "geometry_sha256": "b7927d0797463c7a35d02f38bf5c533cbd60a878b25389a607740cb7469ef2bb"
+      },
+      {
+        "sirap_id": "territorial_territorial_andes_nororientales_4",
+        "before_area_m2": 99521818992.4672,
+        "after_area_m2": 99521818992.4672,
+        "difference_m2": 0.0,
+        "tolerance_m2": 99.5218189924672,
+        "geometry_sha256": "17754872c7f03edac780f765d187f29bdb8e5bd74afc82c6dea47608812ea32e"
+      },
+      {
+        "sirap_id": "territorial_territorial_andes_occidentales_5",
+        "before_area_m2": 90978870664.92686,
+        "after_area_m2": 90978870701.27519,
+        "difference_m2": 36.34832763671875,
+        "tolerance_m2": 90.97887066492687,
+        "geometry_sha256": "f4da9566437570e917a60836b9e7661aba5056f3797fc856886f43aac8d09ded"
+      },
+      {
+        "sirap_id": "territorial_territorial_caribe_6",
+        "before_area_m2": 134913667321.89148,
+        "after_area_m2": 134913667321.89148,
+        "difference_m2": 0.0,
+        "tolerance_m2": 134.9136673218915,
+        "geometry_sha256": "71d011e05c041155de2ade58027de80d5563b6e1c0dcdf0d9bf18d41bf0fe10a"
+      },
+      {
+        "sirap_id": "territorial_territorial_orinoquia_7",
+        "before_area_m2": 252751713538.022,
+        "after_area_m2": 252751713538.022,
+        "difference_m2": 0.0,
+        "tolerance_m2": 252.75171353802202,
+        "geometry_sha256": "1dbf85ffab1aa24d274701210984a76bcf2dc3be588c46e3ef83ab581d64bb76"
+      },
+      {
+        "sirap_id": "territorial_territorial_pacifico_8",
+        "before_area_m2": 87012424666.9674,
+        "after_area_m2": 87012424666.9674,
+        "difference_m2": 0.0,
+        "tolerance_m2": 87.01242466696742,
+        "geometry_sha256": "0728ae0db613902506ef6661a47958e124519f7978c670ed1270dc9d0be1ad5e"
+      },
+      {
+        "sirap_id": "territorial_territorial_caribe_9",
+        "before_area_m2": 518718981949.52313,
+        "after_area_m2": 518718981949.52313,
+        "difference_m2": 0.0,
+        "tolerance_m2": 518.7189819495231,
+        "geometry_sha256": "54b47993a1d653bbec36574fbae8b4b1b7d0bb05cd1b2cf062cec9dd3d29bbb4"
+      },
+      {
+        "sirap_id": "territorial_territorial_pacifico_10",
+        "before_area_m2": 341436890268.4242,
+        "after_area_m2": 341436890268.4242,
+        "difference_m2": 0.0,
+        "tolerance_m2": 341.43689026842424,
+        "geometry_sha256": "d96ac831857292fed46a8cd396a560dff1ba7e5a7f3bdff451ff3a301a3bfca6"
+      }
+    ],
+    "amazonia": {
+      "before_geometry_type": "GeometryCollection",
+      "after_geometry_type": "MultiPolygon",
+      "arcgis_compatible": true,
+      "rasterized_comparison": {
+        "crs": "EPSG:6933",
+        "resolution_m": 1000,
+        "all_touched": false,
+        "before_pixels": 396225,
+        "after_pixels": 396217,
+        "removed_line_pixels": 8,
+        "added_pixels": 0,
+        "before_area_km2": 396225.0,
+        "after_area_km2": 396217.0,
+        "difference_km2": -8.0
+      }
+    }
+  }
+}

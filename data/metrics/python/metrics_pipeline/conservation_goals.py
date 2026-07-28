@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from blob_manifest import DEFAULT_MANIFEST_URL, fetch_manifest
 from cli_utils import find_repo_root, resolve_output_dir
@@ -26,6 +27,8 @@ from path_contracts import (
     solution_blob_path,
     solution_public_url,
 )
+from solution_domain import SolutionDomain, is_batch_solution, solution_domain
+from summary_metadata import resolve_summary_csv_url
 
 GOALS_FORMAT = "conservation-goals-v1"
 GOALS_SUFFIX = ".goals.json"
@@ -121,10 +124,15 @@ def build_goals_document(
     solution: dict[str, Any],
     summary_csv_path: Path,
     species_records: list[GoalSpeciesRecord],
+    summary_csv_url: str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Convert one solution summary CSV into a frontend-friendly goals document."""
 
+    domain = solution_domain(solution)
+    resolved_summary_url = summary_csv_url or resolve_summary_csv_url(
+        str(solution.get("metadataUrl") or "")
+    )
     species_lookup = {
         _normalize_species_name(record.scientific_name): record for record in species_records
     }
@@ -151,7 +159,7 @@ def build_goals_document(
     ignored_species_row_count = 0
 
     for row in summary_rows:
-        feature_type = _feature_type(row)
+        feature_type = _feature_type(row, domain)
         met = _parse_bool_or_none(row.get("met"))
         raw_type_counts[_clean_text(row.get("type")) or "NA"] += 1
         all_count.record(met)
@@ -199,11 +207,13 @@ def build_goals_document(
         "solutionName": str(solution.get("name") or solution.get("id") or ""),
         "generatedAt": generated,
         "source": {
-            "summaryCsvUrl": solution.get("metadataUrl"),
+            "metadataUrl": solution.get("metadataUrl"),
+            "summaryCsvUrl": resolved_summary_url,
             "summaryCsvRows": len(summary_rows),
+            "solutionDomain": domain,
             "speciesLookupUrl": SPECIES_CSV_URL,
         },
-        "targetContext": _target_context(solution, summary_rows),
+        "targetContext": _target_context(solution, summary_rows, domain),
         "summary": {
             **all_count.as_dict(),
             "byType": {
@@ -285,7 +295,7 @@ def _read_summary_rows(path: Path) -> list[dict[str, str]]:
 
 def _base_feature(row: dict[str, str], *, feature_type: str, met: bool | None) -> dict[str, Any]:
     feature_name = _clean_text(row.get("feature"))
-    return {
+    feature = {
         "featureId": _normalize_feature_id(feature_name),
         "featureName": feature_name,
         "featureType": feature_type,
@@ -299,11 +309,23 @@ def _base_feature(row: dict[str, str], *, feature_type: str, met: bool | None) -
         "relativeShortfall": _parse_relative_float(row.get("relative_shortfall")),
         "scenario": _clean_text(row.get("scenario") or row.get("solution") or row.get("run")) or None,
     }
+    evaluation_source = _clean_text(row.get("evaluated"))
+    if evaluation_source:
+        feature["evaluationSource"] = evaluation_source
+    return feature
 
 
-def _feature_type(row: dict[str, str]) -> str:
+def _feature_type(
+    row: dict[str, str],
+    domain: SolutionDomain = "land",
+) -> str:
     raw_type = _clean_text(row.get("type")).lower()
-    feature_id = _normalize_feature_id(row.get("feature") or "")
+    feature_name = _clean_text(row.get("feature"))
+    feature_id = _normalize_feature_id(feature_name)
+    if domain == "marine":
+        if re.match(r"^manglar", feature_name, flags=re.IGNORECASE):
+            return "strategicEcosystems"
+        return "ecosystems"
     if raw_type == "species":
         return "species"
     if feature_id in STRATEGIC_ECOSYSTEM_FEATURES:
@@ -313,7 +335,11 @@ def _feature_type(row: dict[str, str]) -> str:
     return "other"
 
 
-def _target_context(solution: dict[str, Any], rows: list[dict[str, str]]) -> dict[str, Any]:
+def _target_context(
+    solution: dict[str, Any],
+    rows: list[dict[str, str]],
+    domain: SolutionDomain = "land",
+) -> dict[str, Any]:
     finder_inputs = solution.get("finderInputs") if isinstance(solution.get("finderInputs"), dict) else {}
     targets_by_type: dict[str, list[float]] = {
         "species": [],
@@ -325,7 +351,7 @@ def _target_context(solution: dict[str, Any], rows: list[dict[str, str]]) -> dic
         target = _parse_relative_float(row.get("relative_target"))
         if target is None:
             continue
-        targets_by_type[_feature_type(row)].append(target)
+        targets_by_type[_feature_type(row, domain)].append(target)
 
     return {
         "finderTargetPercent": finder_inputs.get("targetPercent"),
@@ -480,10 +506,12 @@ def _load_manifest_payload(args: argparse.Namespace, repo_root: Path) -> tuple[d
         if not path.is_absolute():
             path = repo_root / path
         return _load_manifest_from_file(path), str(path)
+    if args.manifest_url:
+        return fetch_manifest(args.manifest_url).raw, args.manifest_url
     local_manifest = repo_root / DEFAULT_LOCAL_MANIFEST
     if local_manifest.exists():
         return _load_manifest_from_file(local_manifest), str(local_manifest)
-    return fetch_manifest(args.manifest_url).raw, args.manifest_url
+    return fetch_manifest(DEFAULT_MANIFEST_URL).raw, DEFAULT_MANIFEST_URL
 
 
 def _summary_csv_path(url: str, cache_dir: Path, *, force: bool) -> Path:
@@ -494,19 +522,22 @@ def _summary_csv_path(url: str, cache_dir: Path, *, force: bool) -> Path:
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    manifest_source = parser.add_mutually_exclusive_group()
+    manifest_source.add_argument(
         "--manifest-file",
         type=Path,
         default=None,
         help=(
-            "Local manifest JSON to read. Defaults to the Nick-runs staging manifest "
-            "when present, otherwise --manifest-url."
+            "Local manifest JSON to read. Cannot be combined with --manifest-url."
         ),
     )
-    parser.add_argument(
+    manifest_source.add_argument(
         "--manifest-url",
-        default=DEFAULT_MANIFEST_URL,
-        help=f"Manifest URL fallback (default: {DEFAULT_MANIFEST_URL}).",
+        default=None,
+        help=(
+            "Manifest URL to fetch. Without an explicit source, the local Nick-runs "
+            f"staging manifest is used when present, otherwise {DEFAULT_MANIFEST_URL}."
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -548,28 +579,43 @@ def main(argv: list[str] | None = None) -> int:
     public_blob_host = str(manifest.get("publicBlobHost") or "").rstrip("/")
     solution_ids = set(args.solution_id or [])
 
-    species_csv_path = cached_download(
-        SPECIES_CSV_URL,
-        cache_dir,
-        force=args.force_download,
-    ).path
-    species_records = load_goal_species_records(species_csv_path)
-
-    entries: list[dict[str, Any]] = []
-    failures: list[dict[str, str]] = []
+    solutions: list[dict[str, Any]] = []
     for solution in manifest.get("solutions") or []:
+        if not isinstance(solution, dict) or not is_batch_solution(solution):
+            continue
         solution_id = str(solution.get("id") or "")
         if solution_ids and solution_id not in solution_ids:
             continue
+        metadata_path = urlsplit(str(solution.get("metadataUrl") or "")).path.lower()
+        if metadata_path.endswith((".csv", ".json")):
+            solutions.append(solution)
+
+    species_records: list[GoalSpeciesRecord] = []
+    if any(solution_domain(solution) == "land" for solution in solutions):
+        species_csv_path = cached_download(
+            SPECIES_CSV_URL,
+            cache_dir,
+            force=args.force_download,
+        ).path
+        species_records = load_goal_species_records(species_csv_path)
+
+    entries: list[dict[str, Any]] = []
+    failures: list[dict[str, str]] = []
+    for solution in solutions:
+        solution_id = str(solution.get("id") or "")
         metadata_url = str(solution.get("metadataUrl") or "")
-        if not metadata_url.endswith(".csv"):
-            continue
         try:
-            csv_path = _summary_csv_path(metadata_url, cache_dir, force=args.force_download)
+            summary_csv_url = resolve_summary_csv_url(metadata_url)
+            csv_path = _summary_csv_path(
+                summary_csv_url,
+                cache_dir,
+                force=args.force_download,
+            )
             doc = build_goals_document(
                 solution=solution,
                 summary_csv_path=csv_path,
                 species_records=species_records,
+                summary_csv_url=summary_csv_url,
             )
             local_path = write_goals_document(output_dir, solution_id, doc)
             expected_blob_path = expected_goals_blob_path(
@@ -579,7 +625,7 @@ def main(argv: list[str] | None = None) -> int:
             entries.append({
                 "solutionId": solution_id,
                 "solutionName": solution.get("name"),
-                "sourceSummaryCsvUrl": metadata_url,
+                "sourceSummaryCsvUrl": summary_csv_url,
                 "goalsPath": str(local_path.relative_to(repo_root)),
                 "expectedBlobPath": expected_blob_path,
                 "expectedPublicUrl": (

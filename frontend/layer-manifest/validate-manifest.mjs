@@ -117,6 +117,39 @@ function assertUrlMap(value, label) {
   }
 }
 
+function assertSolutionPrecomputedMetricUrls(value, label, solution) {
+  assert(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
+
+  for (const [key, urlOrMap] of Object.entries(value)) {
+    assertString(key, `${label} key`);
+    if (key === 'mecByGeography' || key === 'mecV2ByGeography') {
+      assertMecGeographyUrls(urlOrMap, `${label}.${key}`);
+      const domain =
+        solution.domain === 'marine' ||
+        solution.finderInputs?.domain === 'marine' ||
+        solution.scope === 'marine' ||
+        solution.blobPath?.startsWith('solutions/marine/')
+          ? 'marine'
+          : 'land';
+      assert(domain === 'land', `${label}.${key} is only valid for land solutions`);
+      continue;
+    }
+    assertString(urlOrMap, `${label}.${key}`);
+    assertValidUrl(urlOrMap, `${label}.${key}`);
+  }
+}
+
+function assertMecGeographyUrls(value, label) {
+  assert(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
+  const keys = Object.keys(value);
+  assert(
+    keys.length === MEC_GEOGRAPHY_LEVELS.length &&
+      MEC_GEOGRAPHY_LEVELS.every((level) => keys.includes(level)),
+    `${label} must contain exactly: ${MEC_GEOGRAPHY_LEVELS.join(', ')}`,
+  );
+  assertUrlMap(value, label);
+}
+
 function assertStringArray(value, label) {
   assert(Array.isArray(value), `${label} must be an array`);
   for (const [index, item] of value.entries()) {
@@ -157,6 +190,14 @@ const LIVE_METRIC_CALCULATION_ROLES = [
 const RENDER_VALUE_TYPES = ['binary', 'categorical', 'continuous'];
 const RENDER_MODES = ['mask', 'gradient', 'categorical'];
 const SOLUTION_DOMAINS = ['land', 'marine'];
+const MEC_GEOGRAPHY_LEVELS = [
+  'national',
+  'departments',
+  'municipalities',
+  'siraps',
+  'runaps',
+  'omecs',
+];
 const CATEGORY_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const CATEGORY_PATH_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$/;
 const COLOR_DEFAULT_FIELDS = ['selectedColor', 'startColor', 'endColor'];
@@ -213,6 +254,13 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
   assertString(manifest.generatedAt, 'generatedAt');
   assertString(manifest.publicBlobHost, 'publicBlobHost');
   assertString(manifest.sourceCsv, 'sourceCsv');
+  if ('releaseId' in manifest) {
+    assertString(manifest.releaseId, 'releaseId');
+    assert(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manifest.releaseId),
+      'releaseId must be lowercase and hyphenated',
+    );
+  }
   if ('manualEdit' in manifest && manifest.manualEdit !== undefined) {
     assert(
       manifest.manualEdit &&
@@ -461,6 +509,47 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
   });
 
   assertUnique(solutionIds, 'solutions.id');
+  if (manifest.releaseId) {
+    const land = manifest.solutions.filter((solution) => {
+      const domain =
+        solution.domain ??
+        solution.finderInputs?.domain ??
+        (solution.scope === 'marine' ? 'marine' : 'land');
+      return domain !== 'marine';
+    });
+    const marine = manifest.solutions.filter((solution) => !land.includes(solution));
+    assert(
+      land.length === 104,
+      `release manifest must contain exactly 104 land solutions; got ${land.length}`,
+    );
+    assert(
+      marine.length === 4,
+      `release manifest must contain exactly 4 marine solutions; got ${marine.length}`,
+    );
+    for (const solution of land) {
+      const urls = solution.precomputedMetricUrls ?? {};
+      assert(!('mecByGeography' in urls), `${solution.id} must omit MEC v1 in release mode`);
+      assertMecGeographyUrls(urls.mecV2ByGeography, `${solution.id}.mecV2ByGeography`);
+      for (const url of Object.values(urls.mecV2ByGeography)) {
+        assert(
+          url.includes(`/releases/${manifest.releaseId}/`),
+          `${solution.id} MEC v2 URL must use release prefix`,
+        );
+      }
+      assert(
+        urls.cache?.includes(`/releases/${manifest.releaseId}/`) &&
+          urls.compactCache?.includes(`/releases/${manifest.releaseId}/`),
+        `${solution.id} regular metric URLs must use release prefix`,
+      );
+    }
+    for (const solution of marine) {
+      const urls = solution.precomputedMetricUrls ?? {};
+      assert(
+        !urls.mecByGeography && !urls.mecV2ByGeography,
+        `${solution.id} must not advertise terrestrial MEC URLs`,
+      );
+    }
+  }
 
   for (const { url, label } of remoteDisplayUrls) {
     await assertReachable(url, label);
@@ -502,7 +591,11 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
   validateSolutionCoverage(solution.coverage, `solutions[${index}].coverage`);
   validateRendering(solution.rendering, `solutions[${index}].rendering`);
   if ('precomputedMetricUrls' in solution && solution.precomputedMetricUrls !== undefined) {
-    assertUrlMap(solution.precomputedMetricUrls, `solutions[${index}].precomputedMetricUrls`);
+    assertSolutionPrecomputedMetricUrls(
+      solution.precomputedMetricUrls,
+      `solutions[${index}].precomputedMetricUrls`,
+      solution,
+    );
   }
 
   if (options.checkRemoteDisplayUrls) {

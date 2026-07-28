@@ -1721,15 +1721,6 @@
   padding: 12px 20px 0;
 }
 
-.aoi-panel-header:has(.aoi-scope-strip) .rs-area-unit-row {
-  border-bottom: none;
-}
-
-.aoi-panel-header:has(.aoi-scope-strip) {
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 14px;
-}
-
 .aoi-title-block {
   min-width: 0;
 }
@@ -1754,51 +1745,6 @@
   margin-top: 2px;
   font-size: 12px;
   color: var(--color-subtext);
-}
-
-/* SIRAP scope toggle strip */
-.aoi-scope-strip {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.aoi-scope-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-subtext);
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.aoi-scope-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-
-.aoi-scope-btn-active {
-  border-color: #93c5fd;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.aoi-scope-btn-active:hover {
-  background: #dbeafe;
-  border-color: #60a5fa;
-}
-
-.aoi-scope-btn i {
-  font-size: 10px;
 }
 
 /* Scrollable body */

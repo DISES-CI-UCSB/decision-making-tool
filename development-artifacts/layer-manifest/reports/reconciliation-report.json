@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T18:03:08.631Z",
+  "generatedAt": "2026-07-28T01:46:04.484Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -19,9 +19,9 @@
     "csvRows": 26,
     "includedRows": 23,
     "generatedLayers": 23,
-    "blobInventoryEntries": 109,
+    "blobInventoryEntries": 113,
     "missingRequired": 2,
-    "extraAvailable": 95,
+    "extraAvailable": 99,
     "includedRowMetadataGaps": 22,
     "excludedRows": 3,
     "generatedSolutions": 0,
@@ -180,6 +180,11 @@
       "pathname": "inputs/boundaries/sirap/siraps_merged.geojson",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged.geojson",
       "bytes": 3213695
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
+      "bytes": 3197262
     },
     {
       "pathname": "inputs/boundaries/sirap/siraps_territorial.geojson",
@@ -377,9 +382,24 @@
       "bytes": 1371037
     },
     {
+      "pathname": "inputs/features/ecosystems/ecosistemas_IDEAM_MEC_2024.provenance.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDEAM_MEC_2024.provenance.json",
+      "bytes": 109273
+    },
+    {
+      "pathname": "inputs/features/ecosystems/ecosistemas_IDEAM_MEC_2024.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDEAM_MEC_2024.tif",
+      "bytes": 715612
+    },
+    {
       "pathname": "inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv",
       "bytes": 17077
+    },
+    {
+      "pathname": "inputs/features/ecosystems/ecosistemas_IDs_IDEAM_MEC_2024.csv",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDs_IDEAM_MEC_2024.csv",
+      "bytes": 498326
     },
     {
       "pathname": "inputs/features/ecosystems/ecosystem-classification-summary.json",

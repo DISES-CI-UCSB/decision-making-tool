@@ -4,6 +4,7 @@ import type {
   GeographyLevel,
   GeographyMetricsScope,
   MetricValue,
+  RuntimeSolutionPrecomputedMetricUrls,
   SolutionMetricsResponse,
 } from '@core/models';
 
@@ -36,12 +37,12 @@ export function buildGoalsUrl(blobHost: string, solutionId: string): string {
 }
 
 export function getPrecomputedMetricUrl(
-  urls: Record<string, string> | undefined,
+  urls: RuntimeSolutionPrecomputedMetricUrls | undefined,
   keys: readonly string[],
 ): string | null {
   for (const key of keys) {
     const url = urls?.[key];
-    if (url) {
+    if (typeof url === 'string' && url) {
       return url;
     }
   }

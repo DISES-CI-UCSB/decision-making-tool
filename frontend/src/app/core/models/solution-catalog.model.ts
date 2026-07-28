@@ -2,6 +2,7 @@ import type {
   RuntimeLayerManifestRenderingConfig,
   RuntimeSolutionManifestFinderInputs,
   RuntimeSolutionManifestInputLayerIds,
+  RuntimeSolutionPrecomputedMetricUrls,
 } from './layer-manifest.model';
 
 export interface CatalogSolution {
@@ -15,7 +16,7 @@ export interface CatalogSolution {
   displayUrl: string;
   displayCogUrl?: string | null;
   metadataUrl: string;
-  precomputedMetricUrls?: Record<string, string>;
+  precomputedMetricUrls?: RuntimeSolutionPrecomputedMetricUrls;
   rendering: RuntimeLayerManifestRenderingConfig;
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;

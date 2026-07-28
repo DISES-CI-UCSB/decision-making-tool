@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from compact_metrics import to_verbose_document
+from metrics_contract import (
+    PROVENANCE_KEY,
+    VALID_METRIC_STATUSES,
+    expected_metric_definitions,
+    provenance_issues,
+)
+from solution_domain import SolutionDomain, normalize_domain
 
 _METRIC_KEYS = frozenset({
     "metricId",
@@ -19,14 +27,11 @@ _METRIC_KEYS = frozenset({
     "labelKey",
     "formatHint",
 })
-
-_VALID_STATUSES = frozenset({
-    "ready",
+_NULL_VALUE_STATUSES = frozenset({
     "blocked",
     "pending",
     "derivation_needed",
     "not_applicable",
-    "empty",
 })
 
 
@@ -57,6 +62,136 @@ def _resolve_path(repo_root: Path, raw_path: str) -> Path:
     return repo_root / path
 
 
+def _not_applicable_at_scope(
+    *,
+    definition: Any,
+    domain: SolutionDomain,
+    geography_level: str,
+) -> bool:
+    if domain not in definition.applicable_domains:
+        return True
+    if geography_level == "national":
+        return definition.kind == "aoi_percent"
+    return definition.kind in {"metadata_summary", "metadata_coverage"}
+
+
+def _inspect_metric_list(
+    solution_id: str,
+    *,
+    geography_level: str,
+    scope_id: str,
+    metrics: Any,
+    domain: SolutionDomain | None,
+) -> list[InspectIssue]:
+    issues: list[InspectIssue] = []
+    location = f"geographies.{geography_level}.{scope_id}.metrics"
+    if not isinstance(metrics, list) or not metrics:
+        return [InspectIssue(solution_id, f"{location} must be a non-empty list")]
+
+    definitions = expected_metric_definitions()
+    expected_ids = [definition.metric_id for definition in definitions]
+    observed_ids = [
+        metric.get("metricId") if isinstance(metric, dict) else None
+        for metric in metrics
+    ]
+    if observed_ids != expected_ids:
+        issues.append(InspectIssue(
+            solution_id,
+            f"{location} metric ID coverage/order mismatch: "
+            f"found {observed_ids!r}, expected {expected_ids!r}",
+        ))
+
+    definitions_by_id = {
+        definition.metric_id: definition for definition in definitions
+    }
+    seen_ids: set[str] = set()
+    for index, metric in enumerate(metrics):
+        if not isinstance(metric, dict):
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location}[{index}] must be an object",
+            ))
+            continue
+        missing = _METRIC_KEYS - metric.keys()
+        if missing:
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location}[{index}] missing keys {sorted(missing)}",
+            ))
+            continue
+        metric_id = metric.get("metricId")
+        if not isinstance(metric_id, str) or not metric_id:
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location}[{index}].metricId must be a non-empty string",
+            ))
+            continue
+        if metric_id in seen_ids:
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location} has duplicate metricId '{metric_id}'",
+            ))
+        seen_ids.add(metric_id)
+
+        status = metric.get("status")
+        if status not in VALID_METRIC_STATUSES:
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location} metric '{metric_id}' has unknown status '{status}'",
+            ))
+            continue
+
+        value = metric.get("value")
+        if status == "ready":
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+            ):
+                issues.append(InspectIssue(
+                    solution_id,
+                    f"{location} ready metric '{metric_id}' must have a finite numeric value",
+                ))
+        elif status in _NULL_VALUE_STATUSES and value is not None:
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location} metric '{metric_id}' with status '{status}' must have null value",
+            ))
+
+        if status == "not_applicable" and metric.get("source") != "n/a":
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location} not_applicable metric '{metric_id}' must use source 'n/a'",
+            ))
+
+        definition = definitions_by_id.get(metric_id)
+        if definition is None or domain is None:
+            continue
+        wrong_domain = domain not in definition.applicable_domains
+        expected_not_applicable = _not_applicable_at_scope(
+            definition=definition,
+            domain=domain,
+            geography_level=geography_level,
+        )
+        must_be_not_applicable = wrong_domain or (
+            status != "empty" and expected_not_applicable
+        )
+        if must_be_not_applicable and status != "not_applicable":
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location} metric '{metric_id}' must be not_applicable "
+                f"for {domain}/{geography_level}",
+            ))
+        elif not expected_not_applicable and status == "not_applicable":
+            issues.append(InspectIssue(
+                solution_id,
+                f"{location} metric '{metric_id}' is unexpectedly not_applicable "
+                f"for {domain}/{geography_level}",
+            ))
+
+    return issues
+
+
 def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
     issues: list[InspectIssue] = []
 
@@ -70,6 +205,18 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
         if key not in doc:
             issues.append(InspectIssue(solution_id, f"missing top-level key '{key}'"))
 
+    issues.extend(
+        InspectIssue(solution_id, message)
+        for message in provenance_issues(doc)
+    )
+    provenance = doc.get(PROVENANCE_KEY)
+    domain: SolutionDomain | None = None
+    if isinstance(provenance, dict):
+        try:
+            domain = normalize_domain(provenance.get("solutionDomain"))
+        except ValueError:
+            pass
+
     geographies = doc.get("geographies")
     if not isinstance(geographies, dict):
         issues.append(InspectIssue(solution_id, "geographies must be an object"))
@@ -80,40 +227,37 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
         issues.append(InspectIssue(solution_id, "geographies.national.colombia is required"))
         return issues
 
-    colombia = national.get("colombia")
-    if not isinstance(colombia, dict):
-        issues.append(InspectIssue(solution_id, "geographies.national.colombia must be an object"))
-        return issues
+    if (
+        isinstance(provenance, dict)
+        and isinstance(provenance.get("generationConfig"), dict)
+        and provenance["generationConfig"].get("nationalOnly") is True
+        and set(geographies) != {"national"}
+    ):
+        issues.append(InspectIssue(
+            solution_id,
+            "national-only cache must not contain non-national geography levels",
+        ))
 
-    metrics = colombia.get("metrics")
-    if not isinstance(metrics, list) or not metrics:
-        issues.append(InspectIssue(solution_id, "national metrics must be a non-empty list"))
-        return issues
-
-    seen_ids: set[str] = set()
-    for metric in metrics:
-        if not isinstance(metric, dict):
-            issues.append(InspectIssue(solution_id, "national metric entry must be an object"))
-            continue
-        missing = _METRIC_KEYS - metric.keys()
-        if missing:
+    for geography_level, scopes in geographies.items():
+        if not isinstance(scopes, dict):
             issues.append(InspectIssue(
                 solution_id,
-                f"metric missing keys {sorted(missing)}",
+                f"geographies.{geography_level} must be an object",
             ))
             continue
-        metric_id = metric.get("metricId")
-        if not isinstance(metric_id, str) or not metric_id:
-            issues.append(InspectIssue(solution_id, "metricId must be a non-empty string"))
-            continue
-        if metric_id in seen_ids:
-            issues.append(InspectIssue(solution_id, f"duplicate metricId '{metric_id}'"))
-        seen_ids.add(metric_id)
-        status = metric.get("status")
-        if status not in _VALID_STATUSES:
-            issues.append(InspectIssue(
+        for scope_id, scope in scopes.items():
+            if not isinstance(scope, dict):
+                issues.append(InspectIssue(
+                    solution_id,
+                    f"geographies.{geography_level}.{scope_id} must be an object",
+                ))
+                continue
+            issues.extend(_inspect_metric_list(
                 solution_id,
-                f"metric '{metric_id}' has unknown status '{status}'",
+                geography_level=geography_level,
+                scope_id=scope_id,
+                metrics=scope.get("metrics"),
+                domain=domain,
             ))
 
     return issues

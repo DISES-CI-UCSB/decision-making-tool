@@ -1010,6 +1010,16 @@
                 <h3 id="aoi-dashboard-region-name" class="aoi-region-name rs-header-optical-nudge">
                   {{ aoi.name }}
                 </h3>
+                @if (isSirapAoiSelected()) {
+                  <p
+                    id="aoi-dashboard-sirap-whole-feature-context"
+                    class="aoi-region-meta"
+                    role="note"
+                    [attr.aria-label]="'analysis.aoi.sirapWholeFeatureContext' | translate"
+                  >
+                    {{ 'analysis.aoi.sirapWholeFeatureContext' | translate }}
+                  </p>
+                }
               </div>
               <div id="aoi-dashboard-area-unit-row" class="rs-area-unit-row">
                 <span id="aoi-dashboard-area-unit-label" class="rs-area-unit-label">
@@ -1035,36 +1045,6 @@
                   }
                 </div>
               </div>
-
-              @if (isSirapAoiSelected()) {
-                <div
-                  id="aoi-dashboard-scope-strip"
-                  class="aoi-scope-strip"
-                  role="group"
-                  [attr.aria-label]="'analysis.aoi.sirapScopeLabel' | translate"
-                >
-                  <button
-                    id="aoi-dashboard-scope-polygon-btn"
-                    type="button"
-                    class="aoi-scope-btn"
-                    [class.aoi-scope-btn-active]="isSirapScopeSelected('part')"
-                    (click)="setSirapSelectionScope('part')"
-                  >
-                    <i class="fas fa-draw-polygon" aria-hidden="true"></i>
-                    {{ 'analysis.aoi.scopePolygon' | translate }}
-                  </button>
-                  <button
-                    id="aoi-dashboard-scope-whole-btn"
-                    type="button"
-                    class="aoi-scope-btn"
-                    [class.aoi-scope-btn-active]="isSirapScopeSelected('whole')"
-                    (click)="setSirapSelectionScope('whole')"
-                  >
-                    <i class="fas fa-layer-group" aria-hidden="true"></i>
-                    {{ 'analysis.aoi.scopeFull' | translate }}
-                  </button>
-                </div>
-              }
             </header>
 
             <!-- ═══ SCROLLABLE BODY ═══ -->
@@ -1527,7 +1507,7 @@
                     class="collapse-motion-inner aoi-section-body"
                   >
                     <p id="aoi-mec-source" class="aoi-ecosystem-source">
-                      {{ 'analysis.aoi.mec.source' | translate }}
+                      {{ getMecSourceKey() | translate }}
                     </p>
                     <label id="aoi-mec-breakdown-label" class="aoi-mec-select-label">
                       <span id="aoi-mec-breakdown-label-text">{{
@@ -1541,39 +1521,35 @@
                       >
                         @for (breakdown of mecBreakdowns; track breakdown.id) {
                           <option [id]="'aoi-mec-option-' + breakdown.id" [value]="breakdown.id">
-                            {{ breakdown.labelKey | translate }} ({{ breakdown.count }})
+                            {{ breakdown.labelKey | translate }} ({{
+                              getMecCategoryCount(breakdown)
+                            }})
                           </option>
                         }
                       </select>
                     </label>
 
-                    @if (!fillDummyAoiMetrics()) {
-                      <div id="aoi-mec-unavailable-state" class="aoi-mec-unavailable" role="status">
+                    @if (shouldShowMecStatus(selectedMecBreakdown())) {
+                      <div
+                        id="aoi-mec-unavailable-state"
+                        class="aoi-mec-unavailable"
+                        [attr.role]="getMecStatusRole()"
+                        aria-live="polite"
+                      >
                         <strong id="aoi-mec-unavailable-title">{{
-                          'analysis.aoi.mec.unavailableTitle' | translate
+                          getMecStatusTitleKey(selectedMecBreakdown()) | translate
                         }}</strong>
                         <span id="aoi-mec-unavailable-description">{{
-                          'analysis.aoi.mec.unavailableDescription' | translate
+                          getMecStatusDescriptionKey(selectedMecBreakdown()) | translate
                         }}</span>
                       </div>
                     }
 
                     @if (
-                      !fillDummyAoiMetrics() &&
-                      (ecosystemClassificationSummaryLoading() ||
-                        ecosystemClassificationSummaryError())
+                      fillDummyAoiMetrics() ||
+                      hasMecDataFor(selectedMecBreakdown()) ||
+                      supportsMecDrilldown()
                     ) {
-                      <div id="aoi-mec-summary-status" class="aoi-mec-unavailable" role="status">
-                        <strong id="aoi-mec-summary-status-title">{{
-                          (ecosystemClassificationSummaryLoading()
-                            ? 'analysis.aoi.mec.summaryLoading'
-                            : 'analysis.aoi.mec.summaryError'
-                          ) | translate
-                        }}</strong>
-                      </div>
-                    }
-
-                    @if (fillDummyAoiMetrics() || !ecosystemClassificationSummaryError()) {
                       <div
                         id="aoi-mec-preview-shell"
                         class="mt-3 overflow-hidden rounded-[7px] border border-slate-200 bg-white"
@@ -1589,10 +1565,10 @@
                             >
                               <span id="aoi-mec-donut-hole" class="aoi-mec-donut-hole">
                                 <strong id="aoi-mec-donut-value">{{
-                                  fillDummyAoiMetrics() ? getMecCandidateAreaValue() : '--'
+                                  getMecPreviewAreaValue()
                                 }}</strong>
                                 <span id="aoi-mec-donut-label">{{
-                                  'analysis.aoi.mec.candidateArea' | translate
+                                  getMecPreviewAreaLabelKey() | translate
                                 }}</span>
                               </span>
                             </div>
@@ -1615,7 +1591,7 @@
                                     item.label
                                   }}</span>
                                   <strong [id]="'aoi-mec-legend-value-' + index">{{
-                                    fillDummyAoiMetrics() ? item.percent + '%' : '--'
+                                    formatMecPreviewPercent(item.percent)
                                   }}</strong>
                                 </div>
                               }
@@ -1642,14 +1618,12 @@
                                       [id]="'aoi-mec-bar-fill-' + index"
                                       class="aoi-mec-bar-fill"
                                       [style.width.%]="
-                                        fillDummyAoiMetrics()
-                                          ? (item.percent / getMecPreviewMaximum()) * 100
-                                          : 0
+                                        ((item.percent || 0) / getMecPreviewMaximum()) * 100
                                       "
                                     ></span>
                                   </span>
                                   <strong [id]="'aoi-mec-bar-value-' + index">{{
-                                    fillDummyAoiMetrics() ? item.percent + '%' : '--'
+                                    formatMecPreviewPercent(item.percent)
                                   }}</strong>
                                 </div>
                               }
@@ -2288,148 +2262,306 @@
                 </div>
               </section>
 
-              <!-- ─── SECTION F: Marine (all conditional) ─── -->
-              <section id="aoi-section-marine">
-                <button
-                  id="aoi-head-marine"
-                  type="button"
-                  class="aoi-section-head"
-                  [attr.aria-expanded]="isAoiSectionExpanded('marine')"
-                  (click)="toggleAoiSection('marine')"
-                >
-                  <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge">{{
-                    'analysis.aoi.sections.marine' | translate
-                  }}</span>
-                  <span class="v3-tag-conditional">{{
-                    'analysis.aoi.allConditional' | translate
-                  }}</span>
-                  <span
-                    id="aoi-chevron-marine"
-                    class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('marine')"
-                    aria-hidden="true"
+              <!-- ─── SECTION F: Marine ─── -->
+              @if (isMarineSolution()) {
+                <section id="aoi-section-marine">
+                  <button
+                    id="aoi-head-marine"
+                    type="button"
+                    class="aoi-section-head"
+                    [attr.aria-expanded]="isAoiSectionExpanded('marine')"
+                    (click)="toggleAoiSection('marine')"
                   >
-                    <svg
-                      class="aoi-section-chevron-icon"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                    <span id="aoi-section-marine-dot" class="aoi-section-dot"></span>
+                    <span
+                      id="aoi-section-marine-label"
+                      class="aoi-section-label rs-header-optical-nudge"
+                      >{{ 'analysis.aoi.sections.marine' | translate }}</span
+                    >
+                    <span
+                      id="aoi-chevron-marine"
+                      class="aoi-section-chevron"
+                      [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('marine')"
                       aria-hidden="true"
                     >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id="aoi-body-marine"
-                  class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('marine')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('marine')"
-                >
-                  <div id="aoi-body-marine-inner" class="collapse-motion-inner aoi-section-body">
-                    <div id="aoi-marine-metrics" class="aoi-metric-table">
-                      <div id="aoi-row-mpa" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-water" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.mpaOverlap' | translate }}
+                      <svg
+                        id="aoi-chevron-marine-icon"
+                        class="aoi-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path id="aoi-chevron-marine-path" d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="aoi-body-marine"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isAoiSectionExpanded('marine')"
+                    [attr.aria-hidden]="!isAoiSectionExpanded('marine')"
+                  >
+                    <div id="aoi-body-marine-inner" class="collapse-motion-inner aoi-section-body">
+                      <div id="aoi-marine-metrics" class="aoi-metric-table">
+                        <div id="aoi-row-mpa" class="aoi-metric-row">
+                          <div id="aoi-row-mpa-icon-shell" class="aoi-m-icon">
+                            <i id="aoi-row-mpa-icon" class="fas fa-water" aria-hidden="true"></i>
                           </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.mpaOverlapDesc' | translate }}
+                          <div id="aoi-row-mpa-body" class="aoi-m-body">
+                            <div id="aoi-row-mpa-name" class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.mpaOverlap' | translate }}
+                              <span id="aoi-row-mpa-conditional" class="v3-tag-conditional">{{
+                                'analysis.overview.conditional' | translate
+                              }}</span>
+                              <span id="aoi-row-mpa-unavailable-help" class="v3-unavailable-help">
+                                <button
+                                  id="aoi-row-mpa-unavailable-trigger"
+                                  type="button"
+                                  class="v3-unavailable-trigger"
+                                  [attr.aria-label]="
+                                    'analysis.aoi.stats.marineUnavailableInfoLabel' | translate
+                                  "
+                                  aria-describedby="aoi-row-mpa-unavailable-tooltip"
+                                >
+                                  <span
+                                    id="aoi-row-mpa-unavailable-indicator"
+                                    class="v3-unavailable-indicator"
+                                    aria-hidden="true"
+                                    >i</span
+                                  >
+                                </button>
+                                <span
+                                  id="aoi-row-mpa-unavailable-tooltip"
+                                  role="tooltip"
+                                  class="v3-unavailable-tooltip"
+                                >
+                                  {{
+                                    'analysis.aoi.stats.marineSourceLayersUnavailable' | translate
+                                  }}
+                                </span>
+                              </span>
+                            </div>
+                            <div id="aoi-row-mpa-description" class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.mpaOverlapDesc' | translate }}
+                            </div>
+                          </div>
+                          <div id="aoi-row-mpa-value-shell">
+                            <div id="aoi-row-mpa-value" class="aoi-m-val">--</div>
+                            <div id="aoi-row-mpa-unit" class="aoi-m-unit">--</div>
                           </div>
                         </div>
-                        <div>
-                          <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">
-                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
+                        <div id="aoi-row-coral" class="aoi-metric-row">
+                          <div id="aoi-row-coral-icon-shell" class="aoi-m-icon">
+                            <i id="aoi-row-coral-icon" class="fas fa-fish" aria-hidden="true"></i>
+                          </div>
+                          <div id="aoi-row-coral-body" class="aoi-m-body">
+                            <div id="aoi-row-coral-name" class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.coralReef' | translate }}
+                            </div>
+                            <div id="aoi-row-coral-description" class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.coralReefDesc' | translate }}
+                            </div>
+                          </div>
+                          <div id="aoi-row-coral-value-shell">
+                            <div
+                              id="aoi-row-coral-value"
+                              class="aoi-m-val"
+                              [attr.data-full-value]="
+                                getMarineCoverageFullValue('coral_reef_coverage')
+                              "
+                              [attr.tabindex]="
+                                getMarineCoverageFullValue('coral_reef_coverage') ? 0 : null
+                              "
+                            >
+                              {{ getMarineCoverageValue('coral_reef_coverage', 18) }}
+                            </div>
+                            <div
+                              id="aoi-row-coral-unit"
+                              class="aoi-m-unit"
+                              [attr.data-full-value]="
+                                getMarineCoveragePercentFullValue('coral_reef_coverage')
+                              "
+                              [attr.tabindex]="
+                                getMarineCoveragePercentFullValue('coral_reef_coverage') ? 0 : null
+                              "
+                            >
+                              {{ getMarineCoveragePercentLabel('coral_reef_coverage', 12) }}
+                              @if (
+                                getMarineCoveragePercentLabel('coral_reef_coverage', 12) !== '--'
+                              ) {
+                                <span id="aoi-row-coral-percent-context">
+                                  {{
+                                    'analysis.aoi.stats.marineCoverageOfPriorityArea' | translate
+                                  }}
+                                </span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                        <div id="aoi-row-mangrove" class="aoi-metric-row">
+                          <div id="aoi-row-mangrove-icon-shell" class="aoi-m-icon">
+                            <i
+                              id="aoi-row-mangrove-icon"
+                              class="fas fa-seedling"
+                              aria-hidden="true"
+                            ></i>
+                          </div>
+                          <div id="aoi-row-mangrove-body" class="aoi-m-body">
+                            <div id="aoi-row-mangrove-name" class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.marineMangrove' | translate }}
+                            </div>
+                            <div id="aoi-row-mangrove-description" class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.marineMangroveDesc' | translate }}
+                            </div>
+                          </div>
+                          <div id="aoi-row-mangrove-value-shell">
+                            <div
+                              id="aoi-row-mangrove-value"
+                              class="aoi-m-val"
+                              [attr.data-full-value]="
+                                getMarineCoverageFullValue('marine_mangrove_coverage')
+                              "
+                              [attr.tabindex]="
+                                getMarineCoverageFullValue('marine_mangrove_coverage') ? 0 : null
+                              "
+                            >
+                              {{ getMarineCoverageValue('marine_mangrove_coverage', 12) }}
+                            </div>
+                            <div
+                              id="aoi-row-mangrove-unit"
+                              class="aoi-m-unit"
+                              [attr.data-full-value]="
+                                getMarineCoveragePercentFullValue('marine_mangrove_coverage')
+                              "
+                              [attr.tabindex]="
+                                getMarineCoveragePercentFullValue('marine_mangrove_coverage')
+                                  ? 0
+                                  : null
+                              "
+                            >
+                              {{ getMarineCoveragePercentLabel('marine_mangrove_coverage', 8) }}
+                              @if (
+                                getMarineCoveragePercentLabel('marine_mangrove_coverage', 8) !==
+                                '--'
+                              ) {
+                                <span id="aoi-row-mangrove-percent-context">
+                                  {{
+                                    'analysis.aoi.stats.marineCoverageOfPriorityArea' | translate
+                                  }}
+                                </span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                        <div id="aoi-row-seagrass" class="aoi-metric-row">
+                          <div id="aoi-row-seagrass-icon-shell" class="aoi-m-icon">
+                            <i
+                              id="aoi-row-seagrass-icon"
+                              class="fas fa-wheat-awn"
+                              aria-hidden="true"
+                            ></i>
+                          </div>
+                          <div id="aoi-row-seagrass-body" class="aoi-m-body">
+                            <div id="aoi-row-seagrass-name" class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.seagrass' | translate }}
+                            </div>
+                            <div id="aoi-row-seagrass-description" class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.seagrassDesc' | translate }}
+                            </div>
+                          </div>
+                          <div id="aoi-row-seagrass-value-shell">
+                            <div
+                              id="aoi-row-seagrass-value"
+                              class="aoi-m-val"
+                              [attr.data-full-value]="
+                                getMarineCoverageFullValue('seagrass_coverage')
+                              "
+                              [attr.tabindex]="
+                                getMarineCoverageFullValue('seagrass_coverage') ? 0 : null
+                              "
+                            >
+                              {{ getMarineCoverageValue('seagrass_coverage', 9) }}
+                            </div>
+                            <div
+                              id="aoi-row-seagrass-unit"
+                              class="aoi-m-unit"
+                              [attr.data-full-value]="
+                                getMarineCoveragePercentFullValue('seagrass_coverage')
+                              "
+                              [attr.tabindex]="
+                                getMarineCoveragePercentFullValue('seagrass_coverage') ? 0 : null
+                              "
+                            >
+                              {{ getMarineCoveragePercentLabel('seagrass_coverage', 6) }}
+                              @if (getMarineCoveragePercentLabel('seagrass_coverage', 6) !== '--') {
+                                <span id="aoi-row-seagrass-percent-context">
+                                  {{
+                                    'analysis.aoi.stats.marineCoverageOfPriorityArea' | translate
+                                  }}
+                                </span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                        <div id="aoi-row-eez" class="aoi-metric-row">
+                          <div id="aoi-row-eez-icon-shell" class="aoi-m-icon">
+                            <i id="aoi-row-eez-icon" class="fas fa-anchor" aria-hidden="true"></i>
+                          </div>
+                          <div id="aoi-row-eez-body" class="aoi-m-body">
+                            <div id="aoi-row-eez-name" class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.eez' | translate }}
+                              <span id="aoi-row-eez-conditional" class="v3-tag-conditional">{{
+                                'analysis.overview.conditional' | translate
+                              }}</span>
+                              <span id="aoi-row-eez-unavailable-help" class="v3-unavailable-help">
+                                <button
+                                  id="aoi-row-eez-unavailable-trigger"
+                                  type="button"
+                                  class="v3-unavailable-trigger"
+                                  [attr.aria-label]="
+                                    'analysis.aoi.stats.marineUnavailableInfoLabel' | translate
+                                  "
+                                  aria-describedby="aoi-row-eez-unavailable-tooltip"
+                                >
+                                  <span
+                                    id="aoi-row-eez-unavailable-indicator"
+                                    class="v3-unavailable-indicator"
+                                    aria-hidden="true"
+                                    >i</span
+                                  >
+                                </button>
+                                <span
+                                  id="aoi-row-eez-unavailable-tooltip"
+                                  role="tooltip"
+                                  class="v3-unavailable-tooltip"
+                                >
+                                  {{
+                                    'analysis.aoi.stats.marineSourceLayersUnavailable' | translate
+                                  }}
+                                </span>
+                              </span>
+                            </div>
+                            <div id="aoi-row-eez-description" class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.eezDesc' | translate }}
+                            </div>
+                          </div>
+                          <div id="aoi-row-eez-value-shell">
+                            <div id="aoi-row-eez-value" class="aoi-m-val">--</div>
+                            <div id="aoi-row-eez-unit" class="aoi-m-unit">--</div>
                           </div>
                         </div>
                       </div>
-                      <div id="aoi-row-coral" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-fish" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.coralReef' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.coralReefDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">
-                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
-                          </div>
-                        </div>
-                      </div>
-                      <div id="aoi-row-mangrove" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-seedling" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.mangrove' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.mangroveDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">
-                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
-                          </div>
-                        </div>
-                      </div>
-                      <div id="aoi-row-seagrass" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-wheat-awn" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.seagrass' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.seagrassDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">
-                            {{ 'analysis.aoi.stats.kmAndPct' | translate }}
-                          </div>
-                        </div>
-                      </div>
-                      <div id="aoi-row-eez" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-anchor" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">{{ 'analysis.aoi.stats.eez' | translate }}</div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.eezDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div class="aoi-m-val">—</div>
-                          <div class="aoi-m-unit">%</div>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div id="aoi-marine-narrative" class="aoi-narrative">
-                      {{ 'analysis.aoi.stats.marineNarrative' | translate }}
+                      <div id="aoi-marine-narrative" class="aoi-narrative">
+                        {{ 'analysis.aoi.stats.marineNarrative' | translate }}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              }
 
               <!-- ─── National Context Summary ─── -->
               @if (fillDummyAoiMetrics()) {
@@ -3455,6 +3587,12 @@
         }}</span>
         <strong id="aoi-mec-modal-candidate-area-value">{{ getMecCandidateAreaValue() }}</strong>
       </article>
+      <article id="aoi-mec-modal-unclassified-card" class="aoi-mec-modal-area-card">
+        <span id="aoi-mec-modal-unclassified-label">{{
+          'analysis.aoi.mec.modal.unclassifiedShare' | translate
+        }}</span>
+        <strong id="aoi-mec-modal-unclassified-value">{{ getMecUnclassifiedShareValue() }}</strong>
+      </article>
     </section>
 
     <div id="aoi-mec-modal-level-cards" class="aoi-mec-modal-level-cards">
@@ -3467,7 +3605,9 @@
           [attr.aria-pressed]="mecModalBreakdownId() === breakdown.id"
           (click)="selectMecModalBreakdown(breakdown.id)"
         >
-          <strong [id]="'aoi-mec-modal-level-count-' + breakdown.id">{{ breakdown.count }}</strong>
+          <strong [id]="'aoi-mec-modal-level-count-' + breakdown.id">{{
+            getMecCategoryCount(breakdown)
+          }}</strong>
           <span [id]="'aoi-mec-modal-level-label-' + breakdown.id">{{
             breakdown.pluralLabelKey | translate
           }}</span>
@@ -3491,13 +3631,18 @@
               | translate: { count: getMecCategoryCount(mecModalBreakdown()) }
           }}</span>
         </div>
-        @if (!fillDummyAoiMetrics()) {
-          <div id="aoi-mec-modal-unavailable-state" class="aoi-mec-unavailable" role="status">
+        @if (shouldShowMecStatus(mecModalBreakdown())) {
+          <div
+            id="aoi-mec-modal-unavailable-state"
+            class="aoi-mec-unavailable"
+            [attr.role]="getMecStatusRole()"
+            aria-live="polite"
+          >
             <strong id="aoi-mec-modal-unavailable-title">{{
-              'analysis.aoi.mec.unavailableTitle' | translate
+              getMecStatusTitleKey(mecModalBreakdown()) | translate
             }}</strong>
             <span id="aoi-mec-modal-unavailable-description">{{
-              'analysis.aoi.mec.modal.unavailableDescription' | translate
+              getMecStatusDescriptionKey(mecModalBreakdown()) | translate
             }}</span>
           </div>
         }
@@ -3593,24 +3738,24 @@
                   }
                 </td>
                 <td [id]="'aoi-mec-modal-available-' + row.id">
-                  {{ formatMecAvailableArea(row.availableKm2) }}
+                  {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
                 </td>
                 <td [id]="'aoi-mec-modal-coverage-' + row.id">
                   <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
                     <span
                       [id]="'aoi-mec-modal-existing-fill-' + row.id"
-                      [style.width.%]="row.existingPercent || 0"
+                      [style.width.%]="row.preExistingPercent ?? 0"
                       [style.background-color]="mecExistingColor()"
                     ></span>
                     <span
                       [id]="'aoi-mec-modal-additional-fill-' + row.id"
-                      [style.width.%]="row.additionalPercent || 0"
+                      [style.width.%]="row.newPrioritizrPercent ?? 0"
                       [style.background-color]="mecAdditionalColor()"
                     ></span>
                   </div>
                   <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
-                    {{ formatMecCoveragePercent(row.existingPercent) }} +
-                    {{ formatMecCoveragePercent(row.additionalPercent) }}
+                    {{ formatMecCoveragePercent(row.preExistingPercent) }} +
+                    {{ formatMecCoveragePercent(row.newPrioritizrPercent) }}
                   </span>
                 </td>
               </tr>

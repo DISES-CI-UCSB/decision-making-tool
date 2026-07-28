@@ -5,6 +5,7 @@ export function selectManifestSolutions({
   generatedSolutions,
   existingManifestIndex,
   registeredSolutionBlobPrefixes = [],
+  releaseId = null,
 }) {
   const preservedPublishedSolutions = publishedSolutions(publishedManifestIndex);
   const registeredGeneratedSolutions = generatedSolutions.filter((solution) =>
@@ -14,12 +15,12 @@ export function selectManifestSolutions({
     preservedPublishedSolutions.length > 0
       ? mergeSolutions(
           preservedPublishedSolutions,
-          preserveSolutionUrls(registeredGeneratedSolutions, publishedManifestIndex),
+          preserveSolutionUrls(registeredGeneratedSolutions, publishedManifestIndex, releaseId),
         )
       : generatedSolutions.length > 0
-        ? preserveSolutionUrls(generatedSolutions, existingManifestIndex)
+        ? preserveSolutionUrls(generatedSolutions, existingManifestIndex, releaseId)
         : (existingManifestIndex?.manifest?.solutions ?? []);
-  const solutions = rawSolutions.map(refreshSolutionMetricUrls);
+  const solutions = rawSolutions.map((solution) => refreshSolutionMetricUrls(solution, releaseId));
   const preservedExistingSolutions =
     preservedPublishedSolutions.length === 0 &&
     generatedSolutions.length === 0 &&
@@ -38,7 +39,7 @@ function mergeSolutions(published, registered) {
   return [...mergedById.values()];
 }
 
-function preserveSolutionUrls(solutions, existingManifestIndex) {
+function preserveSolutionUrls(solutions, existingManifestIndex, releaseId = null) {
   const existingSolutions = new Map(
     (existingManifestIndex?.manifest?.solutions ?? [])
       .filter((solution) => solution && typeof solution.id === 'string')
@@ -54,7 +55,8 @@ function preserveSolutionUrls(solutions, existingManifestIndex) {
       precomputedMetricUrls: createSolutionPrecomputedMetricUrls(
         solution.id,
         existingSolution?.precomputedMetricUrls ?? solution.precomputedMetricUrls ?? {},
-        solution.displayUrl,
+        solutionDomain(solution),
+        { releaseId },
       ),
     };
   });
@@ -68,13 +70,26 @@ function publishedSolutions(existingManifestIndex) {
   return structuredClone(solutions).map(refreshSolutionMetricUrls);
 }
 
-function refreshSolutionMetricUrls(solution) {
+function refreshSolutionMetricUrls(solution, releaseId = null) {
   return {
     ...solution,
     precomputedMetricUrls: createSolutionPrecomputedMetricUrls(
       solution.id,
       solution.precomputedMetricUrls ?? {},
-      solution.displayUrl,
+      solutionDomain(solution),
+      { releaseId },
     ),
   };
+}
+
+function solutionDomain(solution) {
+  if (
+    solution.domain === 'marine' ||
+    solution.finderInputs?.domain === 'marine' ||
+    solution.scope === 'marine' ||
+    solution.blobPath?.startsWith('solutions/marine/')
+  ) {
+    return 'marine';
+  }
+  return 'land';
 }

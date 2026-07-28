@@ -164,6 +164,27 @@ export interface RuntimeSolutionManifestCoverageRow {
   relativeShortfall: number | null;
 }
 
+export interface RuntimeSolutionMecGeographyUrls {
+  national: string;
+  departments: string;
+  municipalities: string;
+  siraps: string;
+  runaps: string;
+  omecs: string;
+}
+
+export interface RuntimeSolutionPrecomputedMetricUrls {
+  compactCache?: string;
+  compact?: string;
+  cache?: string;
+  goals?: string;
+  /** Legacy `mec-compact-v1` shards retained for older clients. */
+  mecByGeography?: RuntimeSolutionMecGeographyUrls;
+  /** Versioned `mec-compact-v2` shards used by current clients when published. */
+  mecV2ByGeography?: RuntimeSolutionMecGeographyUrls;
+  [key: string]: string | RuntimeSolutionMecGeographyUrls | undefined;
+}
+
 export interface RuntimeSolutionManifestEntry {
   id: string;
   name: string;
@@ -178,7 +199,7 @@ export interface RuntimeSolutionManifestEntry {
   metadataFile: string;
   blobPath: string;
   generatedAt: string | null;
-  precomputedMetricUrls?: Record<string, string>;
+  precomputedMetricUrls?: RuntimeSolutionPrecomputedMetricUrls;
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;
   summaryMetrics: RuntimeSolutionManifestSummaryMetrics;

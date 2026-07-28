@@ -14,8 +14,8 @@ const FLAGS = {
   development: {
     sirapLayers: {
       combined: true,
-      territorial: true, // on locally for end-to-end testing
-      thematic: true, // on locally for end-to-end testing
+      territorial: false,
+      thematic: false,
     },
   },
 

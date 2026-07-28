@@ -1,10 +1,11 @@
 """Readable raster overlap helpers using rasterio + numpy.
 
 Conventions:
-- Solution rasters follow the frontend GeoTiffLoaderService rule:
-    * skip GDAL nodata cells when present
-    * valid cells greater than 0 are 'selected'
-    * all other valid cells are 'not selected'
+- Solution rasters use categorical values:
+    * 0 = not selected
+    * 1 = new Prioritizr coverage
+    * 2 = authoritative pre-existing coverage for that run
+    * GDAL nodata and non-finite cells contain no solution data
 - Feature/include layer rasters used here are binary masks. We treat any
   finite, non-nodata, non-zero value as 'present' to be lenient across layer
   conventions while still failing clearly when alignment differs.
@@ -57,11 +58,71 @@ class RasterFingerprint:
 class SolutionRaster:
     path: Path
     selected_mask: np.ndarray  # bool, True where cell is selected
-    valid_mask: np.ndarray  # bool, True where cell is valid (not nodata)
+    # Legacy name for solution_data_valid_mask. This describes only where the
+    # solution raster contains data; it is not an ecosystem denominator.
+    valid_mask: np.ndarray
     pixel_area_km2_per_row: np.ndarray  # shape (height,) in km^2/cell
     fingerprint: RasterFingerprint
     selected_cells: int
     valid_cells: int
+    category_values: np.ndarray | None = None  # float64; NaN where no solution data
+    new_prioritizr_mask: np.ndarray | None = None
+    pre_existing_mask: np.ndarray | None = None
+
+    def __post_init__(self) -> None:
+        """Validate masks and fill categorical defaults for legacy constructors."""
+
+        shape = self.selected_mask.shape
+        if self.valid_mask.shape != shape:
+            raise ValueError("Solution selected_mask and valid_mask must have the same shape.")
+
+        new_mask = self.new_prioritizr_mask
+        pre_existing_mask = self.pre_existing_mask
+        if new_mask is None and pre_existing_mask is None:
+            # Older synthetic callers supplied only a binary selected mask.
+            # Treat those selections as new coverage without changing their
+            # selected-mask behavior.
+            new_mask = self.selected_mask.copy()
+            pre_existing_mask = np.zeros(shape, dtype=bool)
+        elif new_mask is None or pre_existing_mask is None:
+            raise ValueError(
+                "Solution categorical masks must provide both new_prioritizr_mask "
+                "and pre_existing_mask."
+            )
+
+        new_mask = np.asarray(new_mask, dtype=bool)
+        pre_existing_mask = np.asarray(pre_existing_mask, dtype=bool)
+        if new_mask.shape != shape or pre_existing_mask.shape != shape:
+            raise ValueError("Solution categorical masks must match selected_mask shape.")
+        if np.any(new_mask & pre_existing_mask):
+            raise ValueError("Solution categorical masks must be disjoint.")
+        if not np.array_equal(new_mask | pre_existing_mask, self.selected_mask):
+            raise ValueError(
+                "Solution selected_mask must equal the union of values 1 and 2."
+            )
+        if np.any(self.selected_mask & ~self.valid_mask):
+            raise ValueError("Selected solution cells must contain valid solution data.")
+
+        if self.category_values is not None:
+            category_values = np.asarray(self.category_values, dtype=np.float64)
+            if category_values.shape != shape:
+                raise ValueError("Solution category_values must match selected_mask shape.")
+            object.__setattr__(self, "category_values", category_values)
+
+        object.__setattr__(self, "new_prioritizr_mask", new_mask)
+        object.__setattr__(self, "pre_existing_mask", pre_existing_mask)
+
+    @property
+    def solution_data_valid_mask(self) -> np.ndarray:
+        """Cells containing 0/1/2 solution data, never an availability denominator."""
+
+        return self.valid_mask
+
+    @property
+    def grid_mask(self) -> np.ndarray:
+        """All cells on the aligned raster grid, independent of solution data."""
+
+        return np.ones(self.selected_mask.shape, dtype=bool)
 
     @property
     def selected_area_km2(self) -> float:
@@ -72,13 +133,21 @@ class SolutionRaster:
         return _area_km2(self.valid_mask, self.pixel_area_km2_per_row)
 
     def with_boundary_mask(self, boundary: np.ndarray) -> "SolutionRaster":
-        """Return a new SolutionRaster with both masks AND'd with a boundary pixel mask.
+        """Return a new SolutionRaster with all data masks clipped to a boundary.
 
         The boundary array must be a 2D bool array with the same shape as the
         solution raster. Typically produced by boundaries.boundary_mask.rasterize_boundary().
         """
+        if boundary.shape != self.selected_mask.shape:
+            raise ValueError("Boundary mask must match the solution raster shape.")
+
         new_selected = self.selected_mask & boundary
         new_valid = self.valid_mask & boundary
+        category_values = (
+            None
+            if self.category_values is None
+            else np.where(boundary, self.category_values, np.nan)
+        )
         return SolutionRaster(
             path=self.path,
             selected_mask=new_selected,
@@ -87,6 +156,9 @@ class SolutionRaster:
             fingerprint=self.fingerprint,
             selected_cells=int(new_selected.sum()),
             valid_cells=int(new_valid.sum()),
+            category_values=category_values,
+            new_prioritizr_mask=self.new_prioritizr_mask & boundary,
+            pre_existing_mask=self.pre_existing_mask & boundary,
         )
 
 
@@ -147,22 +219,40 @@ def read_solution_raster(path: Path) -> SolutionRaster:
     with rasterio.open(path) as dataset:
         if dataset.count < 1:
             raise RasterError(f"Solution raster {path} has no bands.")
-        band = dataset.read(1, masked=False)
+        band = dataset.read(1, masked=False).astype(np.float64)
         nodata = dataset.nodata
-        valid = (
+        solution_data_valid = (
             np.ones_like(band, dtype=bool) if nodata is None else (band != nodata)
         )
-        if np.issubdtype(band.dtype, np.floating):
-            valid &= np.isfinite(band)
-        selected = valid & (band > 0)
+        solution_data_valid &= np.isfinite(band)
+
+        unexpected = solution_data_valid & ~np.isin(band, (0.0, 1.0, 2.0))
+        if unexpected.any():
+            values = np.unique(band[unexpected])
+            preview = ", ".join(f"{value:g}" for value in values[:10])
+            suffix = "" if len(values) <= 10 else f", ... ({len(values)} unique)"
+            raise RasterError(
+                f"Solution raster {path} contains unsupported finite value(s): "
+                f"{preview}{suffix}. Expected only 0 (not selected), "
+                "1 (new Prioritizr), 2 (pre-existing), or nodata/NaN."
+            )
+
+        category_values = band.copy()
+        category_values[~solution_data_valid] = np.nan
+        new_prioritizr = solution_data_valid & (band == 1)
+        pre_existing = solution_data_valid & (band == 2)
+        selected = new_prioritizr | pre_existing
         return SolutionRaster(
             path=path,
             selected_mask=selected,
-            valid_mask=valid,
+            valid_mask=solution_data_valid,
             pixel_area_km2_per_row=_pixel_area_km2_per_row(dataset),
             fingerprint=_fingerprint(dataset),
             selected_cells=int(selected.sum()),
-            valid_cells=int(valid.sum()),
+            valid_cells=int(solution_data_valid.sum()),
+            category_values=category_values,
+            new_prioritizr_mask=new_prioritizr,
+            pre_existing_mask=pre_existing,
         )
 
 
@@ -224,14 +314,25 @@ def overlap_km2(
     return _area_km2(overlap, pixel_area_per_row)
 
 
+def categorical_overlap_km2(
+    selected: np.ndarray,
+    layer_values: np.ndarray,
+    category_ids: frozenset[int],
+    pixel_area_per_row: np.ndarray,
+) -> float:
+    """Return selected area whose finite layer value belongs to ``category_ids``."""
+    category_mask = np.isfinite(layer_values) & np.isin(layer_values, tuple(category_ids))
+    return overlap_km2(selected, category_mask, pixel_area_per_row)
+
+
 def read_layer_values(
     path: Path,
     expected: RasterFingerprint,
 ) -> np.ndarray:
-    """Read a continuous feature layer and return a float64 array (NaN for nodata).
+    """Read a numeric feature layer and return a float64 array (NaN for nodata).
 
-    Used for weighted-sum metrics where we need the raw pixel magnitudes (carbon
-    density, biomass, etc.) rather than a binary presence/absence mask.
+    Used for weighted-sum metrics and categorical class-overlap metrics where
+    raw pixel values are needed rather than a binary presence/absence mask.
     Raises RasterError if the layer does not align with the solution raster.
     """
     with rasterio.open(path) as dataset:

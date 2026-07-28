@@ -29,11 +29,17 @@ boundary that wins.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 
 import numpy as np
 
-from boundaries.boundary_loader import BoundaryFeature
-from boundaries.boundary_mask import BoundaryMaskCache
+from boundaries.boundary_loader import BoundaryFeature, canonical_geometry_sha256
+from boundaries.boundary_mask import (
+    BoundaryMaskCache,
+    ReferenceGridKey,
+    reference_grid_key,
+)
 from raster_metrics import RasterFingerprint
 
 
@@ -56,6 +62,39 @@ class BoundaryIdGrid:
         return len(self.boundary_ids)
 
 
+@dataclass(frozen=True)
+class BoundaryIdGridCacheKey:
+    grid: ReferenceGridKey
+    boundary_collection_sha256: str
+
+
+def boundary_collection_sha256(
+    boundaries_by_level: dict[str, list[BoundaryFeature]],
+) -> str:
+    """Hash IDs, order, source versions, and geometry for all grid inputs."""
+    signature = []
+    for level in sorted(boundaries_by_level):
+        features = boundaries_by_level[level]
+        signature.append(
+            (
+                level,
+                [
+                    (
+                        feature.boundary_id,
+                        feature.name,
+                        feature.source_crs,
+                        feature.source_sha256,
+                        feature.geometry_sha256
+                        or canonical_geometry_sha256(feature.geometry),
+                    )
+                    for feature in features
+                ],
+            )
+        )
+    encoded = json.dumps(signature, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def build_boundary_id_grid(
     level: str,
     features: list[BoundaryFeature],
@@ -76,7 +115,15 @@ def build_boundary_id_grid(
     for idx, feat in enumerate(features):
         ids.append(feat.boundary_id)
         names.append(feat.name)
-        bool_mask = mask_cache.get(level, feat.boundary_id, feat.geometry, fingerprint)
+        bool_mask = mask_cache.get(
+            level,
+            feat.boundary_id,
+            feat.geometry,
+            fingerprint,
+            source_crs=feat.source_crs,
+            source_sha256=feat.source_sha256,
+            geometry_sha256=feat.geometry_sha256,
+        )
         flat_mask = bool_mask.ravel()
         # Assign this boundary's index only to pixels not already claimed.
         unclaimed = (flat == -1) & flat_mask
@@ -100,3 +147,30 @@ def build_grids_for_levels(
     for level, features in boundaries_by_level.items():
         grids[level] = build_boundary_id_grid(level, features, fingerprint, mask_cache)
     return grids
+
+
+class BoundaryIdGridCache:
+    """Caches per-level boundary-ID grids independently for each raster grid."""
+
+    def __init__(self) -> None:
+        self._cache: dict[BoundaryIdGridCacheKey, dict[str, BoundaryIdGrid]] = {}
+
+    def get(
+        self,
+        boundaries_by_level: dict[str, list[BoundaryFeature]],
+        fingerprint: RasterFingerprint,
+        mask_cache: BoundaryMaskCache,
+    ) -> dict[str, BoundaryIdGrid]:
+        key = BoundaryIdGridCacheKey(
+            grid=reference_grid_key(fingerprint),
+            boundary_collection_sha256=boundary_collection_sha256(
+                boundaries_by_level
+            ),
+        )
+        if key not in self._cache:
+            self._cache[key] = build_grids_for_levels(
+                boundaries_by_level,
+                fingerprint,
+                mask_cache,
+            )
+        return self._cache[key]

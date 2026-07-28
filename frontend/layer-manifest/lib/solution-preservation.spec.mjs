@@ -32,6 +32,18 @@ describe('solution preservation policy', () => {
       published.precomputedMetricUrls.custom,
     );
     assert.match(result.solutions[0].precomputedMetricUrls.goals, /published\.goals\.json$/);
+    assert.match(
+      result.solutions[0].precomputedMetricUrls.compactCache,
+      /compact-cache\/published\.metrics\.compact\.json$/,
+    );
+    assert.strictEqual(
+      Object.keys(result.solutions[0].precomputedMetricUrls.mecByGeography).length,
+      6,
+    );
+    assert.strictEqual(
+      Object.keys(result.solutions[0].precomputedMetricUrls.mecV2ByGeography).length,
+      6,
+    );
   });
 
   it('merges only generated solutions from explicitly registered Blob prefixes', () => {
@@ -59,9 +71,16 @@ describe('solution preservation policy', () => {
       result.solutions.map(({ id }) => id),
       ['published', 'marine-30'],
     );
+    const marineResult = result.solutions.find(({ id }) => id === 'marine-30');
+    assert.match(
+      marineResult.precomputedMetricUrls.compactCache,
+      /compact-cache\/marine-30\.metrics\.compact\.json$/,
+    );
+    assert.strictEqual(marineResult.precomputedMetricUrls.mecByGeography, undefined);
+    assert.strictEqual(marineResult.precomputedMetricUrls.mecV2ByGeography, undefined);
   });
 
-  it('uses generated solutions and preserves matching verified URLs', () => {
+  it('uses generated solutions, preserves display COG URLs, and refreshes sidecar URLs', () => {
     const result = selectManifestSolutions({
       publishedManifestIndex: null,
       generatedSolutions: [generated],
@@ -81,7 +100,7 @@ describe('solution preservation policy', () => {
     assert.strictEqual(result.solutions[0].displayCogUrl, 'https://example.com/generated-cog.tif');
     assert.strictEqual(
       result.solutions[0].precomputedMetricUrls.compactCache,
-      'https://example.com/verified.json',
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/nick-runs/2026-05-27/compact-cache/generated.metrics.compact.json',
     );
   });
 

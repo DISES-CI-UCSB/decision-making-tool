@@ -15,7 +15,11 @@ import type ArcGISMapView from '@arcgis/core/views/MapView';
 import type { ViewHit } from '@arcgis/core/views/types';
 
 import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
-import { type AoiType } from '@core/models';
+import {
+  PRODUCTION_SIRAP_BOUNDARY_SOURCE,
+  type AoiType,
+  type BoundaryGeometrySelection,
+} from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { FEATURE_FLAGS } from '@feature-flags';
 
@@ -43,7 +47,11 @@ interface HitTestCandidate {
   geometry: Geometry | null;
 }
 
-export type SirapSelectionScope = 'part' | 'whole';
+interface ResolvedSelectionGeometry {
+  geometry: Geometry | null;
+  geometrySelection?: BoundaryGeometrySelection;
+}
+
 export type AdminBoundaryLayerKey =
   | 'siraps'
   | 'siraps_territorial'
@@ -142,12 +150,12 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
     opacity: 1,
   },
   {
-    id: 'aoi-siraps-combined-colombia',
-    layerKey: 'siraps',
+    id: PRODUCTION_SIRAP_BOUNDARY_SOURCE.sourceId,
+    layerKey: PRODUCTION_SIRAP_BOUNDARY_SOURCE.layerKey,
     title: 'Colombia SIRAPs - Combined Review Layer',
     type: 'sirap',
     sourceType: 'geojson',
-    url: `${PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/siraps_merged.geojson`,
+    url: `${PUBLIC_BLOB_HOST}/${PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname}`,
     idFields: ['sirap_id', 'sirap_name', 'nombre', 'sirap'],
     nameFields: ['sirap_name', 'nombre', 'sirap'],
     visible: false,
@@ -222,8 +230,6 @@ export class AdminBoundaryService {
   private viewPointerMoveHandle: { remove: () => void } | null = null;
   private viewPointerLeaveHandle: { remove: () => void } | null = null;
   private hoverRequestId = 0;
-  private lastSelectionCandidate: HitTestCandidate | null = null;
-  private lastClickPoint: InstanceType<typeof Point> | null = null;
   private readonly defaultVisibilityByLayerKey: Record<AdminBoundaryLayerKey, boolean> = {
     siraps: false,
     siraps_territorial: false,
@@ -247,7 +253,6 @@ export class AdminBoundaryService {
     };
   });
   readonly popupEnabled$ = signal(false);
-  readonly sirapSelectionScope$ = signal<SirapSelectionScope>('part');
   private readonly boundaryStyleByLayerKey = signal<Record<AdminBoundaryLayerKey, BoundaryStyle>>(
     DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY,
   );
@@ -256,8 +261,6 @@ export class AdminBoundaryService {
   constructor() {
     effect(() => {
       if (this.appState.selectedAOI$() === null) {
-        this.lastSelectionCandidate = null;
-        this.lastClickPoint = null;
         this.clearSelectionHighlight();
       }
     });
@@ -422,15 +425,6 @@ export class AdminBoundaryService {
     this.setPopupEnabled(!this.popupEnabled$());
   }
 
-  setSirapSelectionScope(scope: SirapSelectionScope): void {
-    if (this.sirapSelectionScope$() === scope) {
-      return;
-    }
-
-    this.sirapSelectionScope$.set(scope);
-    this.refreshSelectionForScope();
-  }
-
   private buildLayer(config: BoundaryConfig): FeatureLayer | GeoJSONLayer {
     const preferredVisibility = this.layerVisibilityByLayerKey$()[config.layerKey];
     const commonLayerProps = {
@@ -547,13 +541,12 @@ export class AdminBoundaryService {
       return;
     }
 
-    this.lastSelectionCandidate = candidate;
-    this.lastClickPoint = mapPoint;
-    const selectionGeometry = this.resolveSelectionGeometry(
+    const resolvedSelection = this.resolveSelectionGeometry(
       candidate.geometry,
       mapPoint,
       candidate.config.type,
     );
+    const selectionGeometry = resolvedSelection.geometry;
 
     this.setSelectionHighlight(selectionGeometry);
     await this.zoomToSelection(view, selectionGeometry);
@@ -562,6 +555,9 @@ export class AdminBoundaryService {
       name: aoiName,
       type: candidate.config.type,
       geometryUrl: candidate.config.url,
+      boundarySourceLayerKey: candidate.config.layerKey,
+      boundarySourceId: candidate.config.id,
+      boundaryGeometrySelection: resolvedSelection.geometrySelection,
       areaKm2: this.calculateAreaKm2(selectionGeometry),
     });
     this.appState.setRightSidebarMode('aoi');
@@ -914,19 +910,20 @@ export class AdminBoundaryService {
     geometry: Geometry | null,
     clickedPoint: InstanceType<typeof Point>,
     aoiType: AoiType,
-  ): Geometry | null {
+  ): ResolvedSelectionGeometry {
     if (!geometry) {
-      return null;
+      return { geometry: null };
     }
 
-    const isWholeSirapSelection = aoiType === 'sirap' && this.sirapSelectionScope$() === 'whole';
-    if (geometry.type !== 'polygon' || isWholeSirapSelection) {
-      return geometry;
+    // Merged SIRAP features are the analytical AOI. Their cached metrics and
+    // provenance describe the complete feature, including every polygon.
+    if (geometry.type !== 'polygon' || aoiType === 'sirap') {
+      return { geometry, geometrySelection: 'whole-feature' };
     }
 
     const polygon = geometry as Polygon;
     if (polygon.rings.length <= 1) {
-      return geometry;
+      return { geometry, geometrySelection: 'whole-feature' };
     }
 
     for (const ring of polygon.rings) {
@@ -938,11 +935,11 @@ export class AdminBoundaryService {
       });
 
       if (geometryEngine.contains(ringPolygon, clickedPoint)) {
-        return ringPolygon;
+        return { geometry: ringPolygon, geometrySelection: 'component' };
       }
     }
 
-    return geometry;
+    return { geometry, geometrySelection: 'whole-feature' };
   }
 
   private async zoomToSelection(
@@ -993,29 +990,5 @@ export class AdminBoundaryService {
 
     const area = geometryEngine.geodesicArea(geometry as Polygon, 'square-kilometers');
     return Number.isFinite(area) ? Math.abs(area) : undefined;
-  }
-
-  private refreshSelectionForScope(): void {
-    const candidate = this.lastSelectionCandidate;
-    const clickedPoint = this.lastClickPoint;
-    const view = this.view;
-    if (!candidate || !candidate.geometry || !clickedPoint || !view) {
-      return;
-    }
-
-    const selectionGeometry = this.resolveSelectionGeometry(
-      candidate.geometry,
-      clickedPoint,
-      candidate.config.type,
-    );
-    this.setSelectionHighlight(selectionGeometry);
-    const selectedAoi = this.appState.selectedAOI$();
-    if (selectedAoi && selectedAoi.type === candidate.config.type) {
-      this.appState.selectAOI({
-        ...selectedAoi,
-        areaKm2: this.calculateAreaKm2(selectionGeometry),
-      });
-    }
-    void this.zoomToSelection(view, selectionGeometry);
   }
 }

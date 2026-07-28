@@ -39,6 +39,14 @@ describe('cached-metrics.utils', () => {
         {
           cache: 'cache-url',
           compact: 'compact-url',
+          mecByGeography: {
+            national: 'national-url',
+            departments: 'departments-url',
+            municipalities: 'municipalities-url',
+            siraps: 'siraps-url',
+            runaps: 'runaps-url',
+            omecs: 'omecs-url',
+          },
         },
         PRECOMPUTED_METRIC_URL_KEYS.cache,
       ),

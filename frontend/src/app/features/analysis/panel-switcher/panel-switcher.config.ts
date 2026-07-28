@@ -305,6 +305,7 @@ export const OVERVIEW_SECTION_LOOKUP: Record<string, { id: string; labelKey: str
   ecosystem_coverage_dry_forest: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   ecosystem_coverage_wetlands: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   mangrove_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
+  marine_mangrove_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   indigenous_reservations_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   community_councils_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   // T10 additions

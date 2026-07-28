@@ -1,0 +1,9 @@
+{
+  "defaultReleaseId": "sirap-polygon-v2-20260727",
+  "prefixRoot": "releases",
+  "regularVerboseDirectory": "regular/verbose",
+  "regularCompactDirectory": "regular/compact",
+  "mecV2Directory": "mec/v2",
+  "sirapBoundaryPath": "inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
+  "sirapMetadataPath": "metadata/siraps_merged_polygon_v2.metadata.json"
+}

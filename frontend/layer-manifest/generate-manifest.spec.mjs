@@ -4,6 +4,7 @@ import {
   getCategoryPalette,
   pickRenderingForLayer,
   preserveExistingDisplayReference,
+  preserveReleaseLayerRendering,
 } from './generate-manifest.mjs';
 
 describe('preserveExistingDisplayReference', () => {
@@ -34,6 +35,53 @@ describe('preserveExistingDisplayReference', () => {
         displayUrl: 'https://example.com/existing.tif',
       }),
       discovered,
+    );
+  });
+});
+
+describe('preserveReleaseLayerRendering', () => {
+  it('keeps published rendering byte-for-byte during an unrelated release', () => {
+    const publishedRendering = {
+      valueType: 'binary',
+      renderMode: 'mask',
+      noDataValue: 255,
+      selectedValue: 1,
+      selectedColor: '#166526',
+    };
+    const generatedLayer = {
+      id: 'bosque_seco',
+      rendering: {
+        ...publishedRendering,
+        noDataValue: 0,
+      },
+    };
+
+    const result = preserveReleaseLayerRendering(
+      generatedLayer,
+      { id: 'bosque_seco', rendering: publishedRendering },
+      'sirap-polygon-v2-20260727',
+    );
+
+    assert.deepStrictEqual(result.rendering, publishedRendering);
+    assert.notStrictEqual(result.rendering, publishedRendering);
+  });
+
+  it('allows normal generation to refresh inferred rendering metadata', () => {
+    const generatedLayer = {
+      id: 'bosque_seco',
+      rendering: { valueType: 'binary', renderMode: 'mask', noDataValue: 0 },
+    };
+
+    assert.strictEqual(
+      preserveReleaseLayerRendering(
+        generatedLayer,
+        {
+          id: 'bosque_seco',
+          rendering: { valueType: 'binary', renderMode: 'mask', noDataValue: 255 },
+        },
+        null,
+      ),
+      generatedLayer,
     );
   });
 });

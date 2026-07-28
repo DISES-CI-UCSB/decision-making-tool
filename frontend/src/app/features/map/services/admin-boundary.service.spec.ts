@@ -1,6 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { AOI, AoiType } from '@core/models';
+import type Geometry from '@arcgis/core/geometry/Geometry';
+import Point from '@arcgis/core/geometry/Point';
+import Polygon from '@arcgis/core/geometry/Polygon';
+import { PRODUCTION_SIRAP_BOUNDARY_SOURCE, type AOI, type AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { AdminBoundaryService, type AdminBoundaryLayerKey } from './admin-boundary.service';
 
@@ -8,6 +11,7 @@ describe('AdminBoundaryService', () => {
   let selectedAOI: ReturnType<typeof signal<AOI | null>>;
   let appState: {
     selectedAOI$: typeof selectedAOI;
+    selectAOI: ReturnType<typeof vi.fn>;
     clearAOI: ReturnType<typeof vi.fn>;
     setRightSidebarMode: ReturnType<typeof vi.fn>;
     hasActiveSolution: ReturnType<typeof vi.fn>;
@@ -43,10 +47,28 @@ describe('AdminBoundaryService', () => {
     ).getInteractionSymbol({ type: geometryType }, color, width);
   }
 
+  function resolveSelectionGeometry(
+    service: AdminBoundaryService,
+    geometry: Geometry,
+    clickedPoint: Point,
+    aoiType: AoiType,
+  ): { geometry: Geometry | null; geometrySelection?: 'whole-feature' | 'component' } {
+    return (
+      service as unknown as {
+        resolveSelectionGeometry(
+          sourceGeometry: Geometry,
+          point: Point,
+          type: AoiType,
+        ): { geometry: Geometry | null; geometrySelection?: 'whole-feature' | 'component' };
+      }
+    ).resolveSelectionGeometry(geometry, clickedPoint, aoiType);
+  }
+
   beforeEach(() => {
     selectedAOI = signal<AOI | null>(null);
     appState = {
       selectedAOI$: selectedAOI,
+      selectAOI: vi.fn((aoi: AOI) => selectedAOI.set(aoi)),
       clearAOI: vi.fn(() => selectedAOI.set(null)),
       setRightSidebarMode: vi.fn(),
       hasActiveSolution: vi.fn(() => true),
@@ -166,6 +188,124 @@ describe('AdminBoundaryService', () => {
     );
   });
 
+  it('classifies an unchanged single-ring SIRAP polygon as the whole feature', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const polygon = new Polygon({
+      rings: [
+        [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+          [0, 0],
+        ],
+      ],
+    });
+
+    const resolved = resolveSelectionGeometry(service, polygon, new Point({ x: 5, y: 5 }), 'sirap');
+
+    expect(resolved.geometry).toBe(polygon);
+    expect(resolved.geometrySelection).toBe('whole-feature');
+  });
+
+  it('keeps reusable component extraction for non-SIRAP multipart boundaries', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const polygon = multipartPolygon();
+
+    const resolved = resolveSelectionGeometry(
+      service,
+      polygon,
+      new Point({ x: 5, y: 5 }),
+      'department',
+    );
+
+    expect(resolved.geometry).not.toBe(polygon);
+    expect((resolved.geometry as Polygon).rings).toHaveLength(1);
+    expect(resolved.geometrySelection).toBe('component');
+  });
+
+  it.each([
+    ['thematic_eje_cafetero_1', 'Eje Cafetero'],
+    ['thematic_macizo_2', 'Macizo'],
+    ['territorial_territorial_amazonia_3', 'Territorial Amazonia'],
+    ['territorial_territorial_andes_nororientales_4', 'Territorial Andes Nororientales'],
+    ['territorial_territorial_andes_occidentales_5', 'Territorial Andes Occidentales'],
+    ['territorial_territorial_caribe_6', 'Territorial Caribe'],
+    ['territorial_territorial_orinoquia_7', 'Territorial Orinoquia'],
+    ['territorial_territorial_pacifico_8', 'Territorial Pacifico'],
+    ['territorial_territorial_caribe_9', 'Territorial Caribe'],
+    ['territorial_territorial_pacifico_10', 'Territorial Pacifico'],
+  ])('selects the complete merged SIRAP from a normal map click: %s', async (sirapId, name) => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const polygon = multipartPolygon();
+    const layer = { id: 'aoi-siraps-combined-colombia', visible: true };
+    const view = {
+      hitTest: vi.fn().mockResolvedValue({
+        results: [
+          {
+            type: 'graphic',
+            graphic: {
+              layer,
+              attributes: { sirap_id: sirapId, sirap_name: name },
+              geometry: polygon,
+            },
+          },
+        ],
+      }),
+      goTo: vi.fn().mockResolvedValue(undefined),
+    };
+    Object.assign(service as unknown as Record<string, unknown>, {
+      boundaryLayers: [layer],
+    });
+
+    await (
+      service as unknown as {
+        handleMapClick(
+          mapView: never,
+          mapPoint: Point,
+          screenX: number,
+          screenY: number,
+        ): Promise<void>;
+      }
+    ).handleMapClick(view as never, new Point({ x: 5, y: 5 }), 100, 100);
+
+    expect(selectedAOI()).toEqual(
+      expect.objectContaining({
+        id: `sirap:${sirapId}`,
+        name,
+        type: 'sirap',
+        geometryUrl: expect.stringContaining(
+          '/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+        ),
+        boundarySourceLayerKey: 'siraps',
+        boundarySourceId: 'aoi-siraps-combined-colombia',
+        boundaryGeometrySelection: 'whole-feature',
+      }),
+    );
+    expect(view.goTo).toHaveBeenCalledOnce();
+  });
+
+  it('pins the polygon-only SIRAP source contract without changing layer identity', () => {
+    expect(PRODUCTION_SIRAP_BOUNDARY_SOURCE).toEqual({
+      layerKey: 'siraps',
+      sourceId: 'aoi-siraps-combined-colombia',
+      pathname: 'inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+      sha256: '2a44a7a4726448959432924a11703250a444fe9e06be3324563e7b89d14912de',
+      featureCount: 10,
+    });
+  });
+
+  it('registers only feature-flag-enabled SIRAP boundary configurations', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const configs = (
+      service as unknown as {
+        getConfigsForTarget(target: AoiType): { layerKey: AdminBoundaryLayerKey }[];
+      }
+    ).getConfigsForTarget('sirap');
+
+    expect(configs.map((config) => config.layerKey)).toEqual(['siraps']);
+  });
+
   it('clears a selected department when the departments layer is hidden', () => {
     const service = TestBed.inject(AdminBoundaryService);
     selectedAOI.set({
@@ -198,3 +338,24 @@ describe('AdminBoundaryService', () => {
     expect(selectedAOI()?.id).toBe('omec:site-1');
   });
 });
+
+function multipartPolygon(): Polygon {
+  return new Polygon({
+    rings: [
+      [
+        [0, 0],
+        [10, 0],
+        [10, 10],
+        [0, 10],
+        [0, 0],
+      ],
+      [
+        [20, 20],
+        [30, 20],
+        [30, 30],
+        [20, 30],
+        [20, 20],
+      ],
+    ],
+  });
+}

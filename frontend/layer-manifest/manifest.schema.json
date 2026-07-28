@@ -28,6 +28,10 @@
     "sourceCsv": {
       "type": "string"
     },
+    "releaseId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
     "manualEdit": {
       "$ref": "#/$defs/manualEdit"
     },
@@ -319,10 +323,7 @@
           "$ref": "#/$defs/nullableString"
         },
         "precomputedMetricUrls": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
+          "$ref": "#/$defs/solutionPrecomputedMetricUrls",
           "default": {}
         },
         "finderInputs": {
@@ -342,6 +343,51 @@
         },
         "rendering": {
           "$ref": "#/$defs/rendering"
+        }
+      }
+    },
+    "solutionPrecomputedMetricUrls": {
+      "type": "object",
+      "properties": {
+        "mecByGeography": {
+          "$ref": "#/$defs/mecGeographyUrls"
+        },
+        "mecV2ByGeography": {
+          "$ref": "#/$defs/mecGeographyUrls"
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "mecGeographyUrls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["national", "departments", "municipalities", "siraps", "runaps", "omecs"],
+      "properties": {
+        "national": {
+          "type": "string",
+          "format": "uri"
+        },
+        "departments": {
+          "type": "string",
+          "format": "uri"
+        },
+        "municipalities": {
+          "type": "string",
+          "format": "uri"
+        },
+        "siraps": {
+          "type": "string",
+          "format": "uri"
+        },
+        "runaps": {
+          "type": "string",
+          "format": "uri"
+        },
+        "omecs": {
+          "type": "string",
+          "format": "uri"
         }
       }
     },

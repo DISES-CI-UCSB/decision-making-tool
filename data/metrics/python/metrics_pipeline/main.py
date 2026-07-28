@@ -19,8 +19,8 @@ Usage:
     python data/metrics/python/metrics_pipeline/main.py --chunk-count 2 --chunk-index 1
 
 For each solution, this script:
-1. Fetches the Vercel Blob manifest and (optionally) downloads boundary data from
-   IGAC ArcGIS REST (departments + municipalities) and Vercel Blob (SIRAPs).
+1. Fetches the Vercel Blob manifest and validates version-pinned AOI snapshots
+   matching the frontend's IGAC, SIRAP, RUNAP, and OMEC identify sources.
 2. Computes Tier 1 metrics at:
    - national  : full solution raster vs. Colombia
    - departments: solution raster masked to each IGAC department
@@ -58,10 +58,11 @@ from blob_manifest import (
     resolve_layer_display_url,
     solution_blob_basename,
 )
-from boundaries.boundary_id_grid import BoundaryIdGrid, build_grids_for_levels
+from boundaries.boundary_id_grid import BoundaryIdGrid, BoundaryIdGridCache
 from boundaries.boundary_loader import BoundaryFeature, load_all_boundaries
 from boundaries.boundary_mask import BoundaryMaskCache
 from calculator_registry import (
+    categorical_area_calculator,
     overlap_area_calculator,
     overlap_percent_calculator,
     weighted_percent_calculator,
@@ -96,6 +97,14 @@ from metric_output import (
     not_applicable as _not_applicable,
     status_counts as _status_counts,
 )
+from metrics_contract import (
+    METRICS_SCHEMA_VERSION,
+    PROVENANCE_KEY,
+    build_metrics_provenance,
+    generation_config,
+    provenance_issues,
+)
+from release_config import load_release_config
 from raster_metrics import (
     RasterError,
     SolutionRaster,
@@ -114,7 +123,9 @@ from species_data import (
     parse_solution_target_percent,
     read_species_mask,
 )
+from solution_domain import SolutionDomain, solution_domain
 from summary_species_coverage import compute_species_group_coverage_details
+from summary_metadata import resolve_summary_csv_url
 from calculators import area as calc_area
 from calculators.species import (
     SpeciesAccumulator,
@@ -190,7 +201,7 @@ class _LayerMaskCache:
 
 
 class _LayerValueCache:
-    """Caches continuous-layer float arrays (for weighted-sum metrics) in memory.
+    """Caches numeric-layer float arrays for weighted and categorical metrics.
 
     Analogous to _LayerMaskCache but stores float64 arrays via read_layer_values
     instead of boolean masks.  Cleared automatically when the raster fingerprint
@@ -249,6 +260,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Vercel Blob prefix recorded in publish-report.json for generated metric caches "
             f"(default: {CACHE_BLOB_DIRECTORY})."
         ),
+    )
+    parser.add_argument(
+        "--release-id",
+        default=None,
+        help="Use the immutable regular verbose prefix for this explicit release id.",
     )
     parser.add_argument(
         "--solution-id",
@@ -331,7 +347,7 @@ def _select_solutions(
     only_ids: list[str] | None,
     limit: int | None,
 ) -> list[dict[str, Any]]:
-    solutions = manifest.national_solutions
+    solutions = manifest.batch_solutions
     if only_ids:
         wanted = set(only_ids)
         solutions = [s for s in solutions if str(s.get("id")) in wanted]
@@ -364,9 +380,16 @@ def _resume_entry_for_existing_cache(
     manifest: ResolvedManifest,
     output_dir: Path,
     cache_blob_directory: str,
+    *,
+    national_only: bool = False,
+    skip_species: bool = False,
+    skip_species_boundary_levels: set[str] | None = None,
+    species_csv_url: str = SPECIES_CSV_URL,
+    release_id: str | None = None,
 ) -> dict[str, Any] | None:
     """Return a publish-report entry for an existing valid cache file, if present."""
     solution_id = str(solution.get("id"))
+    domain = solution_domain(solution)
     cache_path = cache_solution_path(output_dir, solution_id)
     if not cache_path.exists():
         return None
@@ -378,6 +401,27 @@ def _resume_entry_for_existing_cache(
 
     geographies = doc.get("geographies")
     if doc.get("solutionId") != solution_id or not isinstance(geographies, dict):
+        return None
+
+    expected_config = generation_config(
+        domain,
+        national_only=national_only,
+        skip_species=skip_species,
+        skip_species_boundary_levels=skip_species_boundary_levels or set(),
+        species_csv_url=species_csv_url,
+    )
+    contract_issues = provenance_issues(
+        doc,
+        expected_domain=domain,
+        expected_config=expected_config,
+        expected_release_id=release_id,
+    )
+    if contract_issues:
+        print(
+            f"[tier1-metrics]   stale cache '{cache_path}' will be recomputed: "
+            f"{contract_issues[0]}",
+            file=sys.stderr,
+        )
         return None
 
     national_metrics = (
@@ -404,6 +448,8 @@ def _resume_entry_for_existing_cache(
             if isinstance(national_metrics, list)
             else {}
         ),
+        "solutionDomain": domain,
+        "catalogSignature": doc[PROVENANCE_KEY]["catalogSignature"],
         "resumeSkipped": True,
         "elapsedSeconds": 0.0,
     }
@@ -519,7 +565,7 @@ def _compute_metadata_summary_csv_coverage(
     if not isinstance(metadata_url, str) or not metadata_url:
         return None
 
-    summary_url = _summary_csv_url_from_metadata_url(metadata_url)
+    summary_url = resolve_summary_csv_url(metadata_url)
     try:
         summary_download = cached_download(summary_url, cache_dir, force=force_download)
         details = compute_species_group_coverage_details(summary_download.path, species_records)
@@ -548,15 +594,6 @@ def _compute_metadata_summary_csv_coverage(
         source="solution:metadataUrl:summary_csv+csv:biomod_spp_ranges_updatedIUCN",
         details=details,
     )
-
-
-def _summary_csv_url_from_metadata_url(metadata_url: str) -> str:
-    if metadata_url.endswith("_summary.csv"):
-        return metadata_url
-    if metadata_url.endswith(".json"):
-        return f"{metadata_url[:-5]}_summary.csv"
-    return f"{metadata_url.rstrip('/')}_summary.csv"
-
 
 def _compute_selected_area(definition: MetricDefinition, raster: SolutionRaster, subnational: bool = False) -> dict[str, Any]:
     value = calc_area.selected_area_km2(raster)
@@ -674,6 +711,72 @@ def _compute_overlap_download(
 
     metric = _compute_overlap_from_mask(definition, raster, mask, layer_id, rendering)
     return metric, mask
+
+
+def _compute_categorical_from_values(
+    definition: MetricDefinition,
+    raster: SolutionRaster,
+    layer_values: np.ndarray,
+    layer_id: str,
+) -> dict[str, Any]:
+    calc_fn = categorical_area_calculator(definition.metric_id)
+    if calc_fn is None:
+        return _metric_value(
+            definition, value=None, status="pending",
+            notes=f"No categorical calculator registered for '{definition.metric_id}'.",
+            source=f"raster:{layer_id}",
+        )
+    area = calc_fn(raster, layer_values)
+    return _metric_value(
+        definition, value=area, status="ready",
+        notes=(
+            f"Selected ∩ configured categorical classes in '{layer_id}'; "
+            "nodata and non-selected cells excluded."
+        ),
+        source=f"raster:{layer_id}",
+    )
+
+
+def _compute_categorical_download(
+    definition: MetricDefinition,
+    raster: SolutionRaster,
+    manifest: ResolvedManifest,
+    value_cache: _LayerValueCache,
+    cache_dir: Path,
+    force_download: bool,
+) -> tuple[dict[str, Any], np.ndarray | None]:
+    """Load a categorical layer once and compute one class-overlap metric."""
+    layer_id = definition.layer_id or ""
+    try:
+        layer_url = _resolve_layer_url(manifest, layer_id)
+    except ManifestError as exc:
+        return _metric_value(
+            definition, value=None, status="blocked",
+            notes=f"Layer '{layer_id}' unavailable: {exc}",
+            source=f"raster:{layer_id}",
+        ), None
+
+    try:
+        values = value_cache.get(
+            layer_id,
+            layer_url,
+            raster.fingerprint,
+            cache_dir,
+            force_download,
+        )
+    except (RasterError, OSError) as exc:
+        return _metric_value(
+            definition, value=None, status="blocked",
+            notes=f"Could not read layer '{layer_id}': {exc}",
+            source=f"raster:{layer_id}",
+        ), None
+
+    return _compute_categorical_from_values(
+        definition,
+        raster,
+        values,
+        layer_id,
+    ), values
 
 
 def _compute_weighted_download(
@@ -980,6 +1083,28 @@ def _process_species_for_solution(
 # Build metrics list for a given raster scope
 # ---------------------------------------------------------------------------
 
+def _metrics_for_domain(domain: SolutionDomain) -> tuple[MetricDefinition, ...]:
+    return tuple(
+        definition
+        for definition in computable_metrics()
+        if domain in definition.applicable_domains
+    )
+
+
+def _wrong_domain_metric(
+    definition: MetricDefinition,
+    domain: SolutionDomain,
+) -> dict[str, Any]:
+    supported = ", ".join(sorted(definition.applicable_domains))
+    return _not_applicable(
+        definition,
+        notes=(
+            f"Metric does not apply to the '{domain}' solution domain "
+            f"(supported: {supported})."
+        ),
+    )
+
+
 def _build_metrics(
     raster: SolutionRaster,
     solution: dict[str, Any],
@@ -1000,7 +1125,7 @@ def _build_metrics(
 
     - subnational=True: skip manifest-sourced metadata metrics (mark not_applicable).
     - preloaded_layer_masks: if provided, skip mask layer downloads and use these directly.
-    - preloaded_layer_values: if provided, skip value layer downloads and use these directly.
+    - preloaded_layer_values: if provided, skip numeric layer downloads and use these directly.
     - species_metrics: precomputed species values for this scope (None means species
       metrics will be marked 'derivation_needed').
     - species_target_pct: parsed solution target (17.0 / 30.0). None means
@@ -1008,11 +1133,21 @@ def _build_metrics(
     - species_records: loaded species lookup records, used by metadata summary CSV coverage.
     """
     results: list[dict[str, Any]] = []
+    domain = solution_domain(solution)
 
     if subnational and raster.valid_cells == 0:
-        return [_empty_boundary(defn) for defn in computable_metrics()]
+        return [
+            _empty_boundary(defn)
+            if domain in defn.applicable_domains
+            else _wrong_domain_metric(defn, domain)
+            for defn in computable_metrics()
+        ]
 
     for defn in computable_metrics():
+        if domain not in defn.applicable_domains:
+            results.append(_wrong_domain_metric(defn, domain))
+            continue
+
         if is_species_metric_kind(defn.kind):
             results.append(_compute_species_metric(defn, species_metrics, species_target_pct))
             continue
@@ -1052,6 +1187,28 @@ def _build_metrics(
                 )
             else:
                 metric, _ = _compute_overlap_download(defn, raster, manifest, layer_cache, cache_dir, force_download)
+                results.append(metric)
+
+        elif defn.kind == "categorical_overlap_area":
+            layer_id = defn.layer_id or ""
+            if preloaded_layer_values and layer_id in preloaded_layer_values:
+                results.append(
+                    _compute_categorical_from_values(
+                        defn,
+                        raster,
+                        preloaded_layer_values[layer_id],
+                        layer_id,
+                    )
+                )
+            else:
+                metric, _ = _compute_categorical_download(
+                    defn,
+                    raster,
+                    manifest,
+                    value_cache,
+                    cache_dir,
+                    force_download,
+                )
                 results.append(metric)
 
         elif defn.kind in ("weighted_sum", "weighted_percent_of_national"):
@@ -1118,6 +1275,7 @@ def _preload_layer_masks(
     layer_cache: _LayerMaskCache,
     cache_dir: Path,
     force_download: bool,
+    domain: SolutionDomain,
 ) -> dict[str, np.ndarray]:
     """Load all mask-based layer TIFs into the in-memory cache and return a dict.
 
@@ -1127,7 +1285,7 @@ def _preload_layer_masks(
     # Determine which layer_ids are used by mask-based metric kinds.
     mask_kinds = frozenset({"binary_overlap_area", "binary_overlap_percent_of_selected"})
     mask_layer_ids = {
-        m.layer_id for m in computable_metrics()
+        m.layer_id for m in _metrics_for_domain(domain)
         if m.layer_id and m.kind in mask_kinds
     }
 
@@ -1148,11 +1306,16 @@ def _preload_layer_values(
     value_cache: _LayerValueCache,
     cache_dir: Path,
     force_download: bool,
+    domain: SolutionDomain,
 ) -> dict[str, np.ndarray]:
-    """Load all continuous (weighted-sum) layer TIFs and return a dict of float arrays."""
-    value_kinds = frozenset({"weighted_sum", "weighted_percent_of_national"})
+    """Load all numeric layer TIFs and return a dict of float arrays."""
+    value_kinds = frozenset({
+        "categorical_overlap_area",
+        "weighted_sum",
+        "weighted_percent_of_national",
+    })
     value_layer_ids = {
-        m.layer_id for m in computable_metrics()
+        m.layer_id for m in _metrics_for_domain(domain)
         if m.layer_id and m.kind in value_kinds
     }
 
@@ -1179,31 +1342,37 @@ def _process_solution(
     national_only: bool = False,
     species_records: list[SpeciesRecord] | None = None,
     species_pool_sizes: SpeciesPoolSizes | None = None,
-    boundary_grids: dict[str, BoundaryIdGrid] | None = None,
+    boundary_grid_cache: BoundaryIdGridCache | None = None,
     skip_species: bool = False,
     skip_species_boundary_levels: set[str] | None = None,
+    species_csv_url: str = SPECIES_CSV_URL,
     cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
+    release_id: str | None = None,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
+    domain = solution_domain(solution)
     started = time.time()
 
     download = cached_download(solution["displayUrl"], cache_dir, force=force_download)
     raster = read_solution_raster(download.path)
 
     # --- Sub-national setup (rasterize boundaries + build boundary_id grids if needed) ---
+    boundary_grids: dict[str, BoundaryIdGrid] = {}
     if not national_only and boundaries_by_level:
         print(f"[tier1-metrics]   rasterizing boundaries…")
         boundary_mask_cache.precompute_all(boundaries_by_level, raster.fingerprint)
-        # Build boundary_id grids for sub-national species fan-out (once per pipeline run).
-        if boundary_grids is not None and not boundary_grids:
-            boundary_grids.update(
-                build_grids_for_levels(boundaries_by_level, raster.fingerprint, boundary_mask_cache)
+        # Reuse boundary-id grids only among solutions with the same reference grid.
+        if boundary_grid_cache is not None:
+            boundary_grids = boundary_grid_cache.get(
+                boundaries_by_level,
+                raster.fingerprint,
+                boundary_mask_cache,
             )
 
     # --- Species pass: compute counters across all scopes for this solution ---
     species_accumulator: SpeciesAccumulator | None = None
-    if not skip_species and species_records and species_pool_sizes:
+    if domain == "land" and not skip_species and species_records and species_pool_sizes:
         print(
             f"[tier1-metrics]   running species pass over {len(species_records):,} records…"
         )
@@ -1255,16 +1424,34 @@ def _process_solution(
     if not national_only and boundaries_by_level:
         # Preload all layer TIFs into memory once per solution.
         mask_count = sum(
-            1 for m in computable_metrics()
+            1 for m in _metrics_for_domain(domain)
             if m.layer_id and m.kind in ("binary_overlap_area", "binary_overlap_percent_of_selected")
         )
         value_count = sum(
-            1 for m in computable_metrics()
-            if m.layer_id and m.kind in ("weighted_sum", "weighted_percent_of_national")
+            1 for m in _metrics_for_domain(domain)
+            if m.layer_id and m.kind in (
+                "categorical_overlap_area",
+                "weighted_sum",
+                "weighted_percent_of_national",
+            )
         )
         print(f"[tier1-metrics]   preloading {mask_count} mask layer(s) + {value_count} value layer(s)…")
-        layer_masks = _preload_layer_masks(raster, manifest, layer_cache, cache_dir, force_download)
-        layer_values = _preload_layer_values(raster, manifest, value_cache, cache_dir, force_download)
+        layer_masks = _preload_layer_masks(
+            raster,
+            manifest,
+            layer_cache,
+            cache_dir,
+            force_download,
+            domain,
+        )
+        layer_values = _preload_layer_values(
+            raster,
+            manifest,
+            value_cache,
+            cache_dir,
+            force_download,
+            domain,
+        )
 
         for geo_level, features in boundaries_by_level.items():
             level_out: dict[str, Any] = {}
@@ -1275,7 +1462,13 @@ def _process_solution(
             )
             for feat in features:
                 px_mask = boundary_mask_cache.get(
-                    feat.geo_level, feat.boundary_id, feat.geometry, raster.fingerprint
+                    feat.geo_level,
+                    feat.boundary_id,
+                    feat.geometry,
+                    raster.fingerprint,
+                    source_crs=feat.source_crs,
+                    source_sha256=feat.source_sha256,
+                    geometry_sha256=feat.geometry_sha256,
                 )
                 masked = raster.with_boundary_mask(px_mask)
                 # Look up the precomputed species counts for this boundary, if any.
@@ -1314,7 +1507,20 @@ def _process_solution(
             print(f"[tier1-metrics]   {geo_level}: {len(level_out)} features processed")
 
     generated_at = _utc_now_iso()
-    doc = {"solutionId": solution_id, "generatedAt": generated_at, "geographies": geographies}
+    provenance = build_metrics_provenance(
+        domain,
+        national_only=national_only,
+        skip_species=skip_species,
+        skip_species_boundary_levels=skip_species_boundary_levels or set(),
+        species_csv_url=species_csv_url,
+        release_id=release_id,
+    )
+    doc = {
+        "solutionId": solution_id,
+        "generatedAt": generated_at,
+        PROVENANCE_KEY: provenance,
+        "geographies": geographies,
+    }
     cache_path = write_solution_cache(output_dir, solution_id, doc)
     print(f"[tier1-metrics]   cache → {cache_path}")
 
@@ -1338,6 +1544,8 @@ def _process_solution(
         "validAreaKm2": raster.valid_area_km2,
         "geographyLevels": list(geographies.keys()),
         "nationalMetricStatusCounts": _status_counts(national_metrics),
+        "solutionDomain": domain,
+        "catalogSignature": provenance["catalogSignature"],
         "speciesTargetPct": species_target,
         "speciesProcessed": species_accumulator.species_processed if species_accumulator else 0,
         "speciesWithRange": species_accumulator.species_with_range if species_accumulator else 0,
@@ -1352,6 +1560,10 @@ def _process_solution(
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.release_id:
+        args.cache_blob_directory = load_release_config(
+            args.release_id
+        ).regular_verbose_directory
     print(f"[tier1-metrics] manifest: {args.manifest_url}")
 
     try:
@@ -1360,9 +1572,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
         return 2
 
+    domain_counts = {
+        domain: sum(
+            solution_domain(solution) == domain
+            for solution in manifest.batch_solutions
+        )
+        for domain in ("land", "marine")
+    }
     print(
         f"[tier1-metrics] loaded {len(manifest.layers_by_id)} layers, "
-        f"{len(manifest.national_solutions)} nacional solutions"
+        f"{len(manifest.batch_solutions)} batch solutions "
+        f"({domain_counts['land']} land, {domain_counts['marine']} marine)"
     )
 
     missing_layers = _validate_required_layers(manifest)
@@ -1381,6 +1601,13 @@ def main(argv: list[str] | None = None) -> int:
         selected_solutions = _select_solutions(manifest, args.solution_id, args.limit)
     except ManifestError as exc:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+        return 2
+    if args.release_id and len(selected_solutions) != 108:
+        print(
+            "[tier1-metrics] ERROR: atomic release generation requires exactly "
+            f"108 solutions; got {len(selected_solutions)}",
+            file=sys.stderr,
+        )
         return 2
 
     solutions = _chunk_solutions(
@@ -1409,6 +1636,11 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 args.output_dir,
                 args.cache_blob_directory,
+                national_only=args.national_only,
+                skip_species=args.skip_species,
+                skip_species_boundary_levels=set(args.skip_species_boundary_level),
+                species_csv_url=args.species_csv_url,
+                release_id=args.release_id,
             )
             if resume_entry is None:
                 pending_solutions.append(solution)
@@ -1434,17 +1666,28 @@ def main(argv: list[str] | None = None) -> int:
             )
         if not boundaries_by_level:
             print("[tier1-metrics] WARNING: all boundary levels failed; national-only.", file=sys.stderr)
+        if args.release_id and boundary_errors:
+            print(
+                "[tier1-metrics] ERROR: release generation requires every pinned "
+                f"boundary source; failures={sorted(boundary_errors)}",
+                file=sys.stderr,
+            )
+            return 2
 
     layer_cache = _LayerMaskCache()
     value_cache = _LayerValueCache()
     boundary_mask_cache = BoundaryMaskCache()
-    boundary_grids: dict[str, BoundaryIdGrid] = {}
+    boundary_grid_cache = BoundaryIdGridCache()
 
-    # --- Species data loaded once (shared across all 18 solutions) ---
+    # --- Species data loaded once, only when this chunk contains land work ---
     species_records: list[SpeciesRecord] | None = None
     species_pool_sizes: SpeciesPoolSizes | None = None
     species_load_error: str | None = None
-    if pending_solutions and not args.skip_species:
+    has_pending_land = any(
+        solution_domain(solution) == "land"
+        for solution in pending_solutions
+    )
+    if has_pending_land and not args.skip_species:
         try:
             print(f"[tier1-metrics] fetching species CSV: {args.species_csv_url}")
             csv_dl = cached_download(args.species_csv_url, args.cache_dir, force=args.no_cache)
@@ -1489,10 +1732,12 @@ def main(argv: list[str] | None = None) -> int:
                     national_only=args.national_only,
                     species_records=species_records,
                     species_pool_sizes=species_pool_sizes,
-                    boundary_grids=boundary_grids,
+                    boundary_grid_cache=boundary_grid_cache,
                     skip_species=args.skip_species,
                     skip_species_boundary_levels=set(args.skip_species_boundary_level),
+                    species_csv_url=args.species_csv_url,
                     cache_blob_directory=args.cache_blob_directory,
+                    release_id=args.release_id,
                 )
             )
         except Exception as exc:
@@ -1514,6 +1759,7 @@ def main(argv: list[str] | None = None) -> int:
         "cacheBlobDirectory": args.cache_blob_directory,
         "geographyLevels": geo_levels,
         "boundaryErrors": boundary_errors if not args.national_only else {},
+        "metricsSchemaVersion": METRICS_SCHEMA_VERSION,
         "metricCatalog": [m.metric_id for m in METRIC_CATALOG],
         "deferredMetricIds": deferred,
         "missingRequiredLayers": missing_layers,

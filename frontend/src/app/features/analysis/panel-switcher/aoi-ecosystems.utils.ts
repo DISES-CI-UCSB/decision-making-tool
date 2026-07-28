@@ -1,4 +1,13 @@
+import {
+  isMecCompactV2Document,
+  PRODUCTION_SIRAP_BOUNDARY_SOURCE,
+  type AOI,
+  type MecCompactDocument,
+  type MecViewId,
+} from '@core/models';
 import type { EcosystemClassificationView } from '@features/left-sidebar/map-layers-panel/map-layers-panel-ecosystem.config';
+
+import { extractRawAoiScopeId, normalizeScopeLabel } from '../utils/aoi-cached-metrics.utils';
 
 export type MecBreakdownId = 'family' | 'context' | 'broad' | 'detailed' | 'iavh';
 export type MecSortId = 'coverage' | 'additional' | 'existing' | 'name';
@@ -15,16 +24,27 @@ export interface MecBreakdownConfig {
 
 export interface MecPreviewItem {
   label: string;
-  percent: number;
+  percent: number | null;
   color?: string;
 }
 
 export interface MecCoverageRow {
   id: string;
   label: string;
-  availableKm2: number | null;
-  existingPercent: number | null;
-  additionalPercent: number | null;
+  ecosystemAreaKm2: number | null;
+  preExistingCoverageKm2: number | null;
+  newPrioritizrCoverageKm2: number | null;
+  preExistingPercent: number | null;
+  newPrioritizrPercent: number | null;
+}
+
+export interface MecScopeSummary {
+  scopeAreaKm2: number;
+  classifiedKm2: number;
+  unclassifiedKm2: number;
+  classifiedPercent: number | null;
+  unclassifiedPercent: number | null;
+  boundaryProvenanceRef: string;
 }
 
 export interface StrategicEcosystemBar {
@@ -166,6 +186,147 @@ export function calculateOverlapPercent(
   return Math.max(0, Math.min(100, (overlapKm2 / candidateAreaKm2) * 100));
 }
 
+export function resolveMecScopeIndex(document: MecCompactDocument, aoi: AOI): number | null {
+  const rawScopeId = extractRawAoiScopeId(aoi.id);
+  const directIndex = document.scopeCatalog.findIndex(([scopeId]) => scopeId === rawScopeId);
+  if (directIndex >= 0) {
+    return directIndex;
+  }
+
+  // SIRAP cache resolution is ID-only. A name match could incorrectly attach a
+  // clicked component polygon to metrics for the whole merged production SIRAP.
+  if (aoi.type === 'sirap') {
+    return null;
+  }
+
+  const normalizedName = normalizeScopeLabel(aoi.name);
+  if (!normalizedName) {
+    return null;
+  }
+  const nameIndex = document.scopeCatalog.findIndex(
+    ([, scopeName]) => normalizeScopeLabel(scopeName) === normalizedName,
+  );
+  return nameIndex >= 0 ? nameIndex : null;
+}
+
+export function isMecViewAvailable(document: MecCompactDocument, view: MecViewId): boolean {
+  if (document.viewSupport.unsupported.some((item) => item.view === view)) {
+    return false;
+  }
+  return document.viewCatalog.some(([viewId]) => viewId === view);
+}
+
+export function buildMecCoverageRows(
+  document: MecCompactDocument,
+  scopeIndex: number,
+  view: MecViewId,
+): MecCoverageRow[] {
+  return buildMecCoverageRowsByView(document, scopeIndex).get(view) ?? [];
+}
+
+export function buildMecCoverageRowsByView(
+  document: MecCompactDocument,
+  scopeIndex: number,
+): ReadonlyMap<MecViewId, MecCoverageRow[]> {
+  const unsupportedViews = new Set(document.viewSupport.unsupported.map((item) => item.view));
+  const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
+  document.viewCatalog.forEach(([view]) => {
+    if (!unsupportedViews.has(view)) {
+      rowsByView.set(view, []);
+    }
+  });
+
+  document.rows.forEach((row) => {
+    const [
+      rowScopeIndex,
+      classIndex,
+      ecosystemAreaKm2,
+      preExistingCoverageKm2,
+      newPrioritizrCoverageKm2,
+    ] = row;
+    const classification = document.classCatalog[classIndex];
+    if (rowScopeIndex !== scopeIndex || !classification) {
+      return;
+    }
+
+    const view = document.viewCatalog[classification[0]]?.[0];
+    const viewRows = view ? rowsByView.get(view) : undefined;
+    if (!viewRows) {
+      return;
+    }
+
+    const [, classId, label] = classification;
+    viewRows.push({
+      id: slugify(classId),
+      label,
+      ecosystemAreaKm2,
+      preExistingCoverageKm2,
+      newPrioritizrCoverageKm2,
+      preExistingPercent:
+        ecosystemAreaKm2 > 0 ? (preExistingCoverageKm2 / ecosystemAreaKm2) * 100 : null,
+      newPrioritizrPercent:
+        ecosystemAreaKm2 > 0 ? (newPrioritizrCoverageKm2 / ecosystemAreaKm2) * 100 : null,
+    });
+  });
+  return rowsByView;
+}
+
+export function buildMecPreviewItems(
+  document: MecCompactDocument,
+  scopeIndex: number,
+  rows: readonly MecCoverageRow[],
+  legacyCandidateAreaKm2: number | null,
+  colors: readonly string[] = [],
+): MecPreviewItem[] {
+  const scopeAreaKm2 = isMecCompactV2Document(document)
+    ? (document.scopeStats[String(scopeIndex)]?.scopeAreaKm2 ?? null)
+    : legacyCandidateAreaKm2;
+  const hasDenominator = scopeAreaKm2 !== null && Number.isFinite(scopeAreaKm2) && scopeAreaKm2 > 0;
+  const previewArea = (row: MecCoverageRow): number =>
+    isMecCompactV2Document(document)
+      ? (row.ecosystemAreaKm2 ?? 0)
+      : (row.preExistingCoverageKm2 ?? 0) + (row.newPrioritizrCoverageKm2 ?? 0);
+
+  return [...rows]
+    .sort((a, b) => previewArea(b) - previewArea(a))
+    .slice(0, 5)
+    .map((row, index) => {
+      return {
+        label: row.label,
+        percent: hasDenominator ? (previewArea(row) / scopeAreaKm2) * 100 : null,
+        ...(colors[index] ? { color: colors[index] } : {}),
+      };
+    });
+}
+
+export function resolveMecScopeSummary(
+  document: MecCompactDocument,
+  scopeIndex: number,
+): MecScopeSummary | null {
+  if (!isMecCompactV2Document(document)) {
+    return null;
+  }
+  const stats = document.scopeStats[String(scopeIndex)];
+  if (!stats) {
+    return null;
+  }
+  const hasArea = stats.scopeAreaKm2 > 0;
+  return {
+    ...stats,
+    classifiedPercent: hasArea ? (stats.classifiedKm2 / stats.scopeAreaKm2) * 100 : null,
+    unclassifiedPercent: hasArea ? (stats.unclassifiedKm2 / stats.scopeAreaKm2) * 100 : null,
+  };
+}
+
+export function isWholeProductionSirapAoi(aoi: AOI): boolean {
+  return (
+    aoi.type === 'sirap' &&
+    aoi.boundarySourceLayerKey === PRODUCTION_SIRAP_BOUNDARY_SOURCE.layerKey &&
+    aoi.boundarySourceId === PRODUCTION_SIRAP_BOUNDARY_SOURCE.sourceId &&
+    aoi.boundaryGeometrySelection === 'whole-feature'
+  );
+}
+
 export function buildDummyCoverageRows(
   labels: readonly string[],
   candidateAreaKm2: number,
@@ -175,15 +336,17 @@ export function buildDummyCoverageRows(
   const weightTotal = weights.reduce((sum, weight) => sum + weight, 0) || 1;
 
   return labels.map((label, index) => {
-    const availableKm2 = (safeCandidateArea * weights[index]) / weightTotal;
-    const existingPercent = Math.max(3, 22 - index * 1.25);
-    const additionalPercent = Math.max(4, 38 - index * 1.7);
+    const ecosystemAreaKm2 = (safeCandidateArea * weights[index]) / weightTotal;
+    const preExistingPercent = Math.max(3, 22 - index * 1.25);
+    const newPrioritizrPercent = Math.max(4, 38 - index * 1.7);
     return {
       id: `${index}-${slugify(label)}`,
       label,
-      availableKm2,
-      existingPercent,
-      additionalPercent,
+      ecosystemAreaKm2,
+      preExistingCoverageKm2: (ecosystemAreaKm2 * preExistingPercent) / 100,
+      newPrioritizrCoverageKm2: (ecosystemAreaKm2 * newPrioritizrPercent) / 100,
+      preExistingPercent,
+      newPrioritizrPercent,
     };
   });
 }
