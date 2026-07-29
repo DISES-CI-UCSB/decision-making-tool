@@ -36,6 +36,7 @@ from mec_compact import (
     build_composite_taxonomy,
     build_mec_taxonomy,
     biome_family_for_label,
+    compute_inventory_rows,
     compute_scope_rows,
     compute_scope_stats,
     expected_mec_blob_path,
@@ -492,6 +493,24 @@ def test_class_shares_sum_to_classified_over_scope_share():
         stats["classifiedKm2"] / stats["scopeAreaKm2"]
     )
     assert stats["classifiedKm2"] / stats["scopeAreaKm2"] < 1
+
+
+def test_custom_area_inventory_rows_are_present_only_across_five_views():
+    taxonomy = _composite_taxonomy()
+    ecosystem_values = np.array([[1.0, 2.0], [1.0, np.nan]])
+    scope = np.array([[True, False], [True, False]])
+
+    rows = compute_inventory_rows(
+        scope_mask=scope,
+        ecosystem_values=ecosystem_values,
+        pixel_area_km2_per_row=np.array([1.0, 2.0]),
+        taxonomy=taxonomy,
+    )
+
+    assert len(rows) == len(UI_VIEW_IDS)
+    assert {taxonomy.classes[row[1]].view_index for row in rows} == set(range(5))
+    assert all(row[2] == pytest.approx(3.0) for row in rows)
+    assert all(row[3:] == [0.0, 0.0] for row in rows)
 
 
 def test_invalid_taxonomy_partition_and_solution_mask_invariants_fail():
@@ -1051,6 +1070,31 @@ def test_composite_crosswalk_accepts_na_only_with_canonical_other_family():
 
     assert rows[0].labels[0] == OTHER_BIOME_FAMILY
     assert rows[0].labels[2] == " N.A. "
+
+
+def test_composite_crosswalk_canonicalizes_known_label_variants():
+    content = (
+        "rasterValue,tipoEcosistema,biomeFamily,broadBiomeContext,"
+        "biomeRegion,broadEcosystem,detailedEcosystem\n"
+        "1,Bosque,Zonobioma,Contexto,"
+        "Zonobioma Alternohigrico Tropical  Cordillera Oriental Magdalena Medio,"
+        "Vegetacion Secundaria,Detalle A\n"
+        "2,Bosque,Zonobioma,Contexto,"
+        "Zonobioma Alternohigrico Tropical Cordillera Oriental Magdalena Medio,"
+        "Vegetación Secundaria,Detalle B\n"
+    )
+
+    rows = load_composite_crosswalk(content)
+    taxonomy = build_composite_taxonomy(rows)
+
+    assert rows[0].labels[2] == rows[1].labels[2]
+    assert rows[0].labels[3] == rows[1].labels[3] == "Vegetación Secundaria"
+    broad_ecosystem_index = 3
+    broad_classes = [
+        item for item in taxonomy.classes if item.view_index == broad_ecosystem_index
+    ]
+    assert len(broad_classes) == 1
+    assert broad_classes[0].raster_values == (1, 2)
 
 
 @pytest.mark.parametrize("family", ["Orobioma", " Other/N.A. "])

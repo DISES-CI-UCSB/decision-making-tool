@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from .area_profile import calculate_custom_area_profile
 from .artifacts import (
     artifact_ready,
     get_artifact_state,
@@ -16,6 +17,8 @@ from .artifacts import (
 )
 from .config import get_settings
 from .models import (
+    CustomAreaProfileRequest,
+    CustomAreaProfileResponse,
     HealthResponse,
     PolygonMetricsRequest,
     PolygonMetricsResponse,
@@ -150,4 +153,59 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
         requested_metrics=request.metrics,
         metrics=metrics,
         metadata=metadata,
+    )
+
+
+@app.post(
+    "/area-profile/custom-polygon",
+    response_model=CustomAreaProfileResponse,
+)
+def custom_polygon_area_profile(
+    request: CustomAreaProfileRequest,
+) -> CustomAreaProfileResponse:
+    settings = get_settings()
+    state = get_artifact_state(settings)
+    artifact = get_runtime_artifact(settings)
+    if artifact is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "artifact_required",
+                "message": "Runtime artifacts are required for custom area profiles.",
+            },
+        )
+    if request.artifact_version and request.artifact_version != state.artifact_version:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "status": "invalid_request",
+                "message": (
+                    f"Requested artifact_version {request.artifact_version} is not loaded."
+                ),
+            },
+        )
+
+    try:
+        sections, selection, overall_status = calculate_custom_area_profile(
+            artifact,
+            request.geometry,
+            request.sections,
+        )
+    except PolygonMetricError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"status": "invalid_request", "message": str(exc)},
+        ) from exc
+
+    if state.artifact_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"status": "artifact_required", "message": "Artifact version is unavailable."},
+        )
+    return CustomAreaProfileResponse(
+        status=overall_status,
+        artifact_version=state.artifact_version,
+        selection=selection,
+        requested_sections=request.sections,
+        sections=sections,
     )

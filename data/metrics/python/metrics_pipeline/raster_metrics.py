@@ -256,6 +256,30 @@ def read_solution_raster(path: Path) -> SolutionRaster:
         )
 
 
+def read_reference_raster(path: Path) -> SolutionRaster:
+    """Read grid geometry and valid cells without interpreting category values."""
+
+    with rasterio.open(path) as dataset:
+        if dataset.count < 1:
+            raise RasterError(f"Reference raster {path} has no bands.")
+        band = dataset.read(1, masked=False)
+        valid = dataset.read_masks(1) > 0
+        if np.issubdtype(band.dtype, np.floating):
+            valid &= np.isfinite(band)
+        selected = np.zeros_like(valid, dtype=bool)
+        return SolutionRaster(
+            path=path,
+            selected_mask=selected,
+            valid_mask=valid,
+            pixel_area_km2_per_row=_pixel_area_km2_per_row(dataset),
+            fingerprint=_fingerprint(dataset),
+            selected_cells=0,
+            valid_cells=int(valid.sum()),
+            new_prioritizr_mask=selected.copy(),
+            pre_existing_mask=selected.copy(),
+        )
+
+
 def read_layer_mask(
     path: Path,
     expected: RasterFingerprint,

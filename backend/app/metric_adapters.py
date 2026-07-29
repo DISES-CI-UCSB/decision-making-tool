@@ -53,6 +53,7 @@ from raster_metrics import (  # noqa: E402
     SolutionRaster,
     read_layer_mask,
     read_layer_values,
+    read_reference_raster,
     read_solution_raster,
 )
 from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata  # noqa: E402
@@ -224,7 +225,7 @@ def metric_ids_for_request(metrics: list[str] | None, *, raster_artifact: bool) 
 
 
 def build_custom_aoi_raster(reference_raster_path: Path, geometry: dict[str, Any]) -> SolutionRaster:
-    base = read_solution_raster(reference_raster_path)
+    base = read_reference_raster(reference_raster_path)
     selected = geometry_mask(
         [geometry],
         out_shape=base.valid_mask.shape,
@@ -236,6 +237,8 @@ def build_custom_aoi_raster(reference_raster_path: Path, geometry: dict[str, Any
     return replace(
         base,
         selected_mask=selected,
+        new_prioritizr_mask=selected.copy(),
+        pre_existing_mask=np.zeros_like(selected),
         selected_cells=int(selected.sum()),
     )
 

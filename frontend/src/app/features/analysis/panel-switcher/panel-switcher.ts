@@ -48,6 +48,7 @@ import {
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { FEATURE_FLAGS } from '@feature-flags';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import type { EcosystemClassificationView } from '@features/left-sidebar/map-layers-panel/map-layers-panel-ecosystem.config';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -122,6 +123,7 @@ import {
 } from './aoi-ecosystems.utils';
 import { formatSpeciesGroupsProtectedValue, resolveOverviewMetric } from './overview-metrics.utils';
 import { classifyOverviewTargetDomains } from './overview-target-domains.utils';
+import { CustomAoiAreaProfileComponent } from '../custom-aoi-area-profile/custom-aoi-area-profile';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type AoiSectionId =
@@ -312,11 +314,12 @@ const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
-  imports: [TranslatePipe, ModalShellComponent],
+  imports: [TranslatePipe, ModalShellComponent, CustomAoiAreaProfileComponent],
   templateUrl: './panel-switcher.html',
   styleUrl: './panel-switcher.scss',
 })
 export class PanelSwitcherComponent {
+  protected readonly customAoiAreaProfileEnabled = FEATURE_FLAGS.customAoiAreaProfile;
   private readonly aoiSpeciesColorSlotByPalette: Record<ChartPaletteId, Record<string, number>> = {
     okabeIto: {
       plants: 2,
@@ -529,9 +532,23 @@ export class PanelSwitcherComponent {
   protected readonly isCustomAoiSelected = computed(
     () => this.selectedAoi()?.type === 'custom' && this.customAoiGeometry() !== null,
   );
-  protected readonly isMarineSolution = computed(
-    () => this.findActiveCatalogSolution(this.activeSolution())?.domain === 'marine',
-  );
+  protected readonly isMarineSolution = computed(() => {
+    const solution = this.activeSolution();
+    return (
+      this.findActiveCatalogSolution(solution)?.domain === 'marine' ||
+      solution?.metadata?.['domain'] === 'marine'
+    );
+  });
+  protected readonly showCustomAoiAreaProfile = computed(() => {
+    const solution = this.activeSolution();
+    const domain =
+      this.findActiveCatalogSolution(solution)?.domain ?? solution?.metadata?.['domain'];
+    return (
+      this.customAoiAreaProfileEnabled &&
+      this.isCustomAoiSelected() &&
+      (!solution || domain === 'land')
+    );
+  });
 
   protected readonly comparisonMetrics = computed(() => {
     const baselineMetrics = nationalMetrics(this.cachedMetricsDocument());
@@ -1011,9 +1028,12 @@ export class PanelSwitcherComponent {
     return mode === tab;
   }
 
-  /** AOI and comparison require an active solution; overview is always available. */
+  /** Custom AOI profiles are solution-independent; fixed AOIs and comparison are not. */
   protected isSidebarTabDisabled(tab: SidebarTab): boolean {
     if (tab === 'overview') {
+      return false;
+    }
+    if (tab === 'aoi' && this.customAoiAreaProfileEnabled && this.isCustomAoiSelected()) {
       return false;
     }
     return this.activeSolution() === null;

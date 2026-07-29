@@ -14,6 +14,11 @@ from pydantic import BaseModel, Field
 
 from .config import Settings
 from .species_index import RuntimeSpeciesIndex, SpeciesIndexLoadError, load_runtime_species_index
+from .ecosystem_inventory import (
+    EcosystemInventoryError,
+    RuntimeEcosystemInventory,
+    load_ecosystem_inventory,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -60,6 +65,7 @@ class RuntimeArtifact:
     species_matrices: dict[str, RuntimeSpeciesMatrix] = field(default_factory=dict)
     species_index: RuntimeSpeciesIndex | None = None
     species_pool_sizes: dict[str, Any] = field(default_factory=dict)
+    ecosystem_inventory: RuntimeEcosystemInventory | None = None
 
     def close(self) -> None:
         if self.species_index is not None:
@@ -334,6 +340,84 @@ def _load_species_matrices(manifest_path: Path, manifest: dict[str, Any]) -> dic
     return matrices
 
 
+def _load_ecosystem_inventory(
+    manifest_path: Path,
+    manifest: dict[str, Any],
+) -> tuple[RuntimeEcosystemInventory | None, dict[str, Any]]:
+    raw = manifest.get("ecosystem_inventory")
+    if raw is None:
+        return None, {"status": "not_configured", "reason": "ecosystem_artifact_not_packaged"}
+    if not isinstance(raw, dict):
+        raise ArtifactValidationError("ecosystem_inventory must be an object when present.")
+
+    resolved: dict[str, Path] = {}
+    for key in ("raster", "crosswalk", "provenance"):
+        entry = raw.get(key)
+        if not isinstance(entry, dict):
+            raise ArtifactValidationError(f"ecosystem_inventory.{key} must be an object.")
+        raw_path = entry.get("path")
+        if not isinstance(raw_path, str) or not raw_path:
+            raise ArtifactValidationError(f"ecosystem_inventory.{key}.path is required.")
+        path = _relative_artifact_path(manifest_path, raw_path)
+        if not path.exists():
+            raise ArtifactValidationError(f"Ecosystem inventory {key} artifact is missing.")
+        checksum = entry.get("checksum")
+        if (
+            not isinstance(checksum, dict)
+            or checksum.get("algorithm") != "sha256"
+            or not isinstance(checksum.get("value"), str)
+        ):
+            raise ArtifactValidationError(
+                f"ecosystem_inventory.{key}.checksum must be a sha256 checksum."
+            )
+        _verify_checksum(path, checksum, f"Ecosystem inventory {key}")
+        resolved[key] = path
+
+    try:
+        inventory = load_ecosystem_inventory(
+            resolved["raster"],
+            resolved["crosswalk"],
+            resolved["provenance"],
+            raster_sha256=_sha256(resolved["raster"]),
+            crosswalk_sha256=_sha256(resolved["crosswalk"]),
+        )
+    except EcosystemInventoryError as exc:
+        raise ArtifactValidationError(str(exc)) from exc
+    return inventory, {
+        "status": "ready",
+        "source_mode": inventory.taxonomy.source_mode,
+        "view_ids": [view.view_id for view in inventory.taxonomy.views],
+        "class_count": len(inventory.taxonomy.classes),
+    }
+
+
+def _validate_ecosystem_grid_alignment(
+    reference_path: Path,
+    inventory: RuntimeEcosystemInventory,
+) -> None:
+    try:
+        with (
+            rasterio.open(reference_path) as reference,
+            rasterio.open(inventory.raster_path) as ecosystem,
+        ):
+            aligned = (
+                reference.width == ecosystem.width
+                and reference.height == ecosystem.height
+                and reference.crs == ecosystem.crs
+                and reference.transform.almost_equals(ecosystem.transform)
+            )
+            if not aligned:
+                raise ArtifactValidationError(
+                    "Ecosystem inventory raster does not align with the reference grid."
+                )
+    except ArtifactValidationError:
+        raise
+    except Exception as exc:
+        raise ArtifactValidationError(
+            f"Ecosystem inventory grid could not be validated: {exc}"
+        ) from exc
+
+
 def _load_raster_artifact(
     manifest_path: Path,
     manifest: dict[str, Any],
@@ -378,6 +462,20 @@ def _load_raster_artifact(
                 "Species sparse index warmup failed; request-time streaming fallback remains available",
                 extra={"reason": str(exc)},
             )
+    try:
+        ecosystem_inventory, ecosystem_inventory_metadata = _load_ecosystem_inventory(
+            manifest_path,
+            manifest,
+        )
+        if ecosystem_inventory is not None:
+            _validate_ecosystem_grid_alignment(
+                resolved_reference,
+                ecosystem_inventory,
+            )
+    except Exception:
+        if species_index is not None:
+            species_index.close()
+        raise
     metadata = {
         "artifact_kind": manifest.get("artifact_kind", "colombia-raster-custom-aoi/v1"),
         "reference_raster_path": str(resolved_reference),
@@ -388,6 +486,7 @@ def _load_raster_artifact(
         "species_matrix_groups": sorted(species_matrices.keys()),
         "species_index": species_index_metadata,
         "species_pool_sizes": species_pool_sizes,
+        "ecosystem_inventory": ecosystem_inventory_metadata,
         "metric_coverage": manifest.get("metric_coverage", {}),
     }
     artifact = RuntimeArtifact(
@@ -397,6 +496,7 @@ def _load_raster_artifact(
         species_matrices=species_matrices,
         species_index=species_index,
         species_pool_sizes=species_pool_sizes,
+        ecosystem_inventory=ecosystem_inventory,
     )
     return artifact, metadata
 

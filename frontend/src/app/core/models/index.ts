@@ -1,5 +1,6 @@
 export * from './aoi.model';
 export * from './chart-palette.model';
+export * from './custom-aoi-area-profile.model';
 export * from './layer-manifest.model';
 export * from './layer.model';
 export * from './mec-compact.model';

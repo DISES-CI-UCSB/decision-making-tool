@@ -137,6 +137,23 @@ UI_VIEW_IDS = (
     "broadEcosystem",
     "detailedEcosystem",
 )
+COMPOSITE_VIEW_LABELS = {
+    "biomeFamily": "Biome Family",
+    "broadBiomeContext": "Broad Biome Context",
+    "biomeRegion": "IAvH Biome-Region Class",
+    "broadEcosystem": "Broad Ecosystem",
+    "detailedEcosystem": "Detailed Ecosystem",
+}
+COMPOSITE_LABEL_ALIASES = {
+    (
+        "biomeRegion",
+        "Zonobioma Alternohigrico Tropical  Cordillera Oriental Magdalena Medio",
+    ): "Zonobioma Alternohigrico Tropical Cordillera Oriental Magdalena Medio",
+    (
+        "broadEcosystem",
+        "Vegetacion Secundaria",
+    ): "Vegetación Secundaria",
+}
 COMPOSITE_CROSSWALK_COLUMNS = (
     "rasterValue",
     "tipoEcosistema",
@@ -813,7 +830,14 @@ def load_composite_crosswalk(content: str) -> tuple[CompositeCrosswalkRow, ...]:
                 f"Composite crosswalk rasterValue {raster_value} must fit UInt16 "
                 "and exclude nodata 0."
             )
-        labels = tuple(raw[view_id] for view_id in UI_VIEW_IDS)
+        raw_labels = tuple(str(raw[view_id]) for view_id in UI_VIEW_IDS)
+        labels = tuple(
+            COMPOSITE_LABEL_ALIASES.get(
+                (view_id, raw_label),
+                raw_label,
+            )
+            for view_id, raw_label in zip(UI_VIEW_IDS, raw_labels, strict=True)
+        )
         tipo_ecosistema = raw["tipoEcosistema"]
         all_labels = (tipo_ecosistema, *labels)
         if any(not isinstance(label, str) or label == "" for label in all_labels):
@@ -827,17 +851,17 @@ def load_composite_crosswalk(content: str) -> tuple[CompositeCrosswalkRow, ...]:
                 f"{labels[0]!r} inconsistent with biomeRegion {labels[2]!r}; "
                 f"expected canonical {expected_family!r}."
             )
-        category_tuple = tuple(all_labels)
+        source_category_tuple = (str(tipo_ecosistema), *raw_labels)
         if raster_value in seen_ids:
             raise MecTaxonomyError(
                 f"Composite crosswalk repeats rasterValue {raster_value}."
             )
-        if category_tuple in seen_tuples:
+        if source_category_tuple in seen_tuples:
             raise MecTaxonomyError(
                 f"Composite crosswalk repeats a category tuple at row {row_number}."
             )
         seen_ids.add(raster_value)
-        seen_tuples.add(category_tuple)
+        seen_tuples.add(source_category_tuple)
         rows.append(
             CompositeCrosswalkRow(
                 raster_value=raster_value,
@@ -856,7 +880,7 @@ def build_composite_taxonomy(
     """Build all five UI views from exact composite crosswalk labels."""
 
     views = tuple(
-        MecView(view_id=view_id, label=view_id)
+        MecView(view_id=view_id, label=COMPOSITE_VIEW_LABELS[view_id])
         for view_id in UI_VIEW_IDS
     )
     classes: list[MecClass] = []
@@ -1342,6 +1366,27 @@ def compute_scope_rows(
                 f"not classified area {classified_area}."
             )
     return rows
+
+
+def compute_inventory_rows(
+    *,
+    scope_mask: np.ndarray,
+    ecosystem_values: np.ndarray,
+    pixel_area_km2_per_row: np.ndarray,
+    taxonomy: MecTaxonomy,
+) -> list[list[Any]]:
+    """Return present-only ecosystem denominator rows without solution coverage."""
+    empty_mask = np.zeros_like(scope_mask, dtype=bool)
+    return compute_scope_rows(
+        scope_index=0,
+        scope_mask=scope_mask,
+        pre_existing_mask=empty_mask,
+        new_prioritizr_mask=empty_mask,
+        selected_mask=empty_mask,
+        ecosystem_values=ecosystem_values,
+        pixel_area_km2_per_row=pixel_area_km2_per_row,
+        taxonomy=taxonomy,
+    )
 
 
 def build_mec_document(

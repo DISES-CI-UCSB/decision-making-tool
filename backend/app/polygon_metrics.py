@@ -23,7 +23,7 @@ def calculate_custom_polygon_metrics(
     requested_metrics: list[str] | None,
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
     started = time.perf_counter()
-    polygons = _parse_geometry(geometry)
+    polygons = validate_polygon_geometry(geometry)
 
     if artifact.area_grid is not None:
         return _calculate_tiny_grid_metrics(artifact, polygons, requested_metrics, started)
@@ -116,7 +116,9 @@ def _calculate_tiny_grid_metrics(
     return {metric_id: all_metrics[metric_id] for metric_id in metric_ids}, metadata
 
 
-def _parse_geometry(geometry: dict[str, Any]) -> list[list[list[tuple[float, float]]]]:
+def validate_polygon_geometry(
+    geometry: dict[str, Any],
+) -> list[list[list[tuple[float, float]]]]:
     if not isinstance(geometry, dict):
         raise PolygonMetricError("geometry must be a GeoJSON object.")
 

@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import {
   type CachedSolutionMetricsDocument,
+  type CustomAoiAreaProfileRequest,
+  type CustomAoiAreaProfileResponse,
   type CustomPolygonMetricsRequest,
   type CustomPolygonMetricsResponse,
 } from '@core/models';
@@ -26,6 +28,15 @@ export class ApiService {
   ): Observable<CustomPolygonMetricsResponse> {
     return this.http.post<CustomPolygonMetricsResponse>(
       `${this.metricsApiBaseUrl}/metrics/custom-polygon`,
+      request,
+    );
+  }
+
+  getCustomAoiAreaProfile(
+    request: CustomAoiAreaProfileRequest,
+  ): Observable<CustomAoiAreaProfileResponse> {
+    return this.http.post<CustomAoiAreaProfileResponse>(
+      `${this.metricsApiBaseUrl}/area-profile/custom-polygon`,
       request,
     );
   }

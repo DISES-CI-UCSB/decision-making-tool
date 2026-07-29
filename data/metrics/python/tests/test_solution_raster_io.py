@@ -4,7 +4,7 @@ import rasterio
 from rasterio.transform import from_origin
 
 from calculators.area import selected_area_km2
-from raster_metrics import RasterError, read_solution_raster
+from raster_metrics import RasterError, read_reference_raster, read_solution_raster
 
 
 def _write_solution_raster(path, data, *, nodata):
@@ -80,6 +80,20 @@ def test_read_solution_raster_rejects_unexpected_finite_value(tmp_path):
         match=r"unsupported finite value\(s\): 3.*Expected only 0.*1.*2",
     ):
         read_solution_raster(raster_path)
+
+
+def test_read_reference_raster_accepts_categorical_values(tmp_path):
+    raster_path = tmp_path / "categorical-reference.tif"
+    data = np.array([[3, 430, 65535]], dtype=np.uint16)
+    _write_solution_raster(raster_path, data, nodata=65535)
+
+    raster = read_reference_raster(raster_path)
+
+    assert raster.valid_cells == 2
+    assert raster.selected_cells == 0
+    assert raster.valid_mask.tolist() == [[True, True, False]]
+    assert not raster.selected_mask.any()
+    assert raster.category_values is None
 
 
 def test_existing_selected_mask_calculator_includes_values_one_and_two(tmp_path):

@@ -24,6 +24,20 @@ PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_MATRIX_GROUPS = (*CLASS_BUCKETS, "threatened")
+ECOSYSTEM_SOURCE_URLS = {
+    "raster": (
+        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+        "ecosistemas_IDEAM_MEC_2024.tif"
+    ),
+    "crosswalk": (
+        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+        "ecosistemas_IDs_IDEAM_MEC_2024.csv"
+    ),
+    "provenance": (
+        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+        "ecosistemas_IDEAM_MEC_2024.provenance.json"
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -121,6 +135,28 @@ def main() -> None:
         )
 
     species_pool_sizes = load_species_pool_sizes()
+    ecosystem_inventory: dict[str, Any] = {}
+    # These URLs are mutable publication targets, so refresh the small MEC bundle
+    # on every build rather than silently pairing stale files with a new manifest.
+    for source_name, source_url in ECOSYSTEM_SOURCE_URLS.items():
+        suffix = {
+            "raster": ".tif",
+            "crosswalk": ".csv",
+            "provenance": ".json",
+        }[source_name]
+        cached = download_source(
+            source_url,
+            sources_dir / "ecosystems" / f"mec-composite-{source_name}{suffix}",
+            force=True,
+        )
+        file_entries.append(file_entry(cached.path, artifact_dir, cached.sha256, cached.bytes))
+        ecosystem_inventory[source_name] = {
+            "path": str(cached.path.relative_to(artifact_dir)),
+            "source_url": source_url,
+            "checksum": {"algorithm": "sha256", "value": cached.sha256},
+            "size_bytes": cached.bytes,
+        }
+
     aggregate_checksum = aggregate_file_checksum(file_entries)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     runtime_manifest = {
@@ -143,6 +179,7 @@ def main() -> None:
         "raster_layers": layer_entries,
         "species_matrices": species_entries,
         "species_pool_sizes": species_pool_sizes,
+        "ecosystem_inventory": ecosystem_inventory,
         "metric_coverage": metric_coverage(layer_specs, species_specs),
         "files": file_entries,
     }

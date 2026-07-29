@@ -36,7 +36,10 @@ describe('PanelSwitcherComponent', () => {
   let appState: AppStateService;
   let appLocale: AppLocaleService;
   let mockData: MockDataService;
-  let apiServiceSpy: Pick<ApiService, 'getSolutionMetrics' | 'getCustomPolygonMetrics'>;
+  let apiServiceSpy: Pick<
+    ApiService,
+    'getSolutionMetrics' | 'getCustomPolygonMetrics' | 'getCustomAoiAreaProfile'
+  >;
   let mecMetricsLoaderSpy: Pick<MecMetricsLoaderService, 'loadMecMetrics'>;
   let httpClientSpy: { get: ReturnType<typeof vi.fn> };
   let goalsDocument: SolutionGoalsDocument | null;
@@ -60,6 +63,23 @@ describe('PanelSwitcherComponent', () => {
         );
       }),
       getCustomPolygonMetrics: vi.fn(),
+      getCustomAoiAreaProfile: vi.fn((request) =>
+        of({
+          format: 'custom-aoi-area-profile-v1' as const,
+          status: 'partial',
+          selection: {
+            status: 'unavailable' as const,
+            selected_cell_count: null,
+            available_cell_count: null,
+            area_km2: null,
+            source: 'test',
+          },
+          sections:
+            request.sections[0] === 'species'
+              ? { species: { status: 'unavailable' as const, records: [] } }
+              : { ecosystems: { status: 'unavailable' as const, views: [] } },
+        }),
+      ),
     };
     mecMetricsLoaderSpy = {
       loadMecMetrics: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
@@ -132,6 +152,22 @@ describe('PanelSwitcherComponent', () => {
       'analysis.empty.title',
     );
     expect(compiled.querySelector('#right-sidebar-welcome-hero-card')).toBeNull();
+  });
+
+  it('shows a custom AOI Area Profile without an active solution', async () => {
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#aoi-dashboard-custom-area-profile')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-area-unit-toggle')).toBeNull();
   });
 
   it('renders overview content for an active solution', () => {
@@ -551,6 +587,7 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
+    expect(compiled.querySelector('#aoi-dashboard-custom-area-profile')).toBeNull();
     expect(compiled.querySelector('#aoi-section-marine')).not.toBeNull();
     expect(compiled.querySelector('#aoi-row-coral-value')?.textContent).toContain('5 km²');
     expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent).toContain('25%');

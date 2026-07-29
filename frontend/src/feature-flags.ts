@@ -12,6 +12,7 @@ import { environment } from './environments/environment';
 
 const FLAGS = {
   development: {
+    customAoiAreaProfile: true,
     sirapLayers: {
       combined: true,
       territorial: false,
@@ -20,6 +21,7 @@ const FLAGS = {
   },
 
   production: {
+    customAoiAreaProfile: false,
     sirapLayers: {
       combined: true,
       territorial: false, // off until data is verified production-ready

@@ -475,6 +475,52 @@
           "extended": "Todavía trabajando... Los AOI grandes pueden necesitar más tiempo. Los valores de biodiversidad aparecerán aquí cuando termine el cálculo."
         }
       },
+      "customProfile": {
+        "methodology": "Este inventario describe especies cuyos rangos modelados se superponen con esta área y clases de ecosistemas cartografiadas. Los cálculos usan celdas ráster de aproximadamente 1 km; los AOI diminutos o estrechos pueden no seleccionar ninguna celda.",
+        "summary": {
+          "title": "Resumen del perfil del área",
+          "area": "Área del AOI",
+          "richness": "Riqueza potencial de especies",
+          "threatened": "Especies amenazadas",
+          "ecosystems": "Ecosistemas amplios cartografiados"
+        },
+        "species": {
+          "title": "Especies",
+          "description": "Rangos modelados que se superponen con esta área; no son observaciones confirmadas.",
+          "explore": "Explorar inventario",
+          "modalTitle": "Inventario de especies",
+          "search": "Buscar nombres científicos",
+          "group": "Filtrar por grupo",
+          "iucn": "Filtrar por estado UICN",
+          "showing": "Mostrando {{count}} especies"
+        },
+        "ecosystems": {
+          "title": "Clases de ecosistemas cartografiadas",
+          "description": "Solo clases presentes y área cartografiada. Los valores no describen la cobertura de una solución.",
+          "classification": "Vista de clasificación",
+          "search": "Buscar clases de ecosistemas cartografiadas",
+          "views": {
+            "biomeFamily": "Familia de bioma",
+            "broadBiomeContext": "Contexto amplio de bioma",
+            "biomeRegion": "Región de bioma",
+            "broadEcosystem": "Ecosistema amplio",
+            "detailedEcosystem": "Ecosistema detallado"
+          }
+        },
+        "states": {
+          "idle": "Esperando un polígono personalizado.",
+          "loading": "Cargando esta sección del inventario…",
+          "complete": "Inventario cargado.",
+          "empty": "No se encontraron registros coincidentes para esta área.",
+          "zero_cells": "Este AOI no seleccionó ninguna celda ráster de aproximadamente 1 km. Es posible que sea necesario ampliar los AOI diminutos o estrechos.",
+          "unavailable": "Esta sección del inventario no está disponible actualmente.",
+          "failed": "No se pudo cargar esta sección del inventario."
+        },
+        "retry": "Intentar de nuevo",
+        "noResults": "Ningún registro del inventario coincide con estos filtros.",
+        "allGroups": "Todos los grupos",
+        "allStatuses": "Todos los estados UICN"
+      },
       "biodiversityTaxa": {
         "mammals": "Mamíferos",
         "birds": "Aves",

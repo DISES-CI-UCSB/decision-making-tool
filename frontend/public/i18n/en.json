@@ -552,6 +552,52 @@
           "extended": "Still working... Large AOIs may need more time. Biodiversity values will appear here when the calculation finishes."
         }
       },
+      "customProfile": {
+        "methodology": "This inventory describes species with modeled ranges overlapping this area and mapped ecosystem classes. Calculations use approximately 1 km raster cells; tiny or narrow AOIs may select no cells.",
+        "summary": {
+          "title": "Area profile summary",
+          "area": "AOI area",
+          "richness": "Potential species richness",
+          "threatened": "Threatened species",
+          "ecosystems": "Mapped broad ecosystems"
+        },
+        "species": {
+          "title": "Species",
+          "description": "Modeled ranges overlapping this area; these are not confirmed observations.",
+          "explore": "Explore inventory",
+          "modalTitle": "Species inventory",
+          "search": "Search scientific names",
+          "group": "Filter by group",
+          "iucn": "Filter by IUCN status",
+          "showing": "Showing {{count}} species"
+        },
+        "ecosystems": {
+          "title": "Mapped ecosystem classes",
+          "description": "Present classes and mapped area only. Values do not describe solution coverage.",
+          "classification": "Classification view",
+          "search": "Search mapped ecosystem classes",
+          "views": {
+            "biomeFamily": "Biome family",
+            "broadBiomeContext": "Broad biome context",
+            "biomeRegion": "Biome region",
+            "broadEcosystem": "Broad ecosystem",
+            "detailedEcosystem": "Detailed ecosystem"
+          }
+        },
+        "states": {
+          "idle": "Waiting for a custom polygon.",
+          "loading": "Loading this inventory section…",
+          "complete": "Inventory loaded.",
+          "empty": "No matching records were found for this area.",
+          "zero_cells": "This AOI did not select an approximately 1 km raster cell. Tiny or narrow AOIs may need to be enlarged.",
+          "unavailable": "This inventory section is currently unavailable.",
+          "failed": "This inventory section could not be loaded."
+        },
+        "retry": "Try again",
+        "noResults": "No inventory records match these filters.",
+        "allGroups": "All groups",
+        "allStatuses": "All IUCN statuses"
+      },
       "biodiversityTaxa": {
         "mammals": "Mammals",
         "birds": "Birds",

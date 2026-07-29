@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import os
 import shutil
 import struct
 import sys
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -49,11 +51,35 @@ class SpeciesIndexQueryError(ValueError):
 
 
 @dataclass(frozen=True)
+class SpeciesOverlapRecord:
+    id: str
+    scientific_name: str
+    group: str
+    iucn_status: str
+
+
+@dataclass(frozen=True)
+class RuntimeSpeciesMetadata:
+    scientific_name: str
+    iucn_status: str
+    csv_class: str
+
+    def overlap_record(self, group: str) -> SpeciesOverlapRecord:
+        return SpeciesOverlapRecord(
+            id=species_dataset_id(self.scientific_name),
+            scientific_name=self.scientific_name,
+            group=group,
+            iucn_status=self.iucn_status,
+        )
+
+
+@dataclass(frozen=True)
 class RuntimeSpeciesGroupIndex:
     group: str
     grid: SparseMetadata
     cell_ids: np.ndarray
     offsets: np.ndarray
+    species_metadata: tuple[RuntimeSpeciesMetadata, ...]
     cache_path: Path
 
     @property
@@ -73,20 +99,27 @@ class RuntimeSpeciesGroupIndex:
         return int(self.cell_ids.nbytes)
 
     def count_overlaps(self, raster: SolutionRaster) -> int:
+        return len(self.overlap_records(raster))
+
+    def overlap_records(self, raster: SolutionRaster) -> list[SpeciesOverlapRecord]:
         selected_window = selected_window_for_species_grid(raster, self.grid, self.group)
         selected_cell_ids = np.flatnonzero(selected_window).astype(np.uint32, copy=False)
         if selected_cell_ids.size == 0:
-            return 0
+            return []
 
-        present_count = 0
-        for start, end in zip(self.offsets[:-1], self.offsets[1:]):
+        records: list[SpeciesOverlapRecord] = []
+        for metadata, start, end in zip(
+            self.species_metadata,
+            self.offsets[:-1],
+            self.offsets[1:],
+        ):
             start_index = int(start)
             end_index = int(end)
             if start_index == end_index:
                 continue
             if _sorted_cells_overlap(self.cell_ids[start_index:end_index], selected_cell_ids):
-                present_count += 1
-        return present_count
+                records.append(metadata.overlap_record(self.group))
+        return sort_species_records(records)
 
 
 @dataclass(frozen=True)
@@ -119,6 +152,12 @@ class RuntimeSpeciesIndex:
         if group_index is None:
             raise SpeciesIndexQueryError(f"species_index_group_missing:{group}")
         return group_index.count_overlaps(raster)
+
+    def overlap_records(self, group: str, raster: SolutionRaster) -> list[SpeciesOverlapRecord]:
+        group_index = self.groups.get(group)
+        if group_index is None:
+            raise SpeciesIndexQueryError(f"species_index_group_missing:{group}")
+        return group_index.overlap_records(raster)
 
     def entry_count(self, group: str) -> int:
         group_index = self.groups.get(group)
@@ -175,6 +214,62 @@ def load_runtime_species_index(matrices: dict[str, Any]) -> RuntimeSpeciesIndex:
         raise
 
 
+def normalize_species_name(name: str) -> str:
+    return " ".join(unicodedata.normalize("NFKC", name).casefold().split())
+
+
+def species_dataset_id(scientific_name: str) -> str:
+    digest = hashlib.sha256(normalize_species_name(scientific_name).encode("utf-8")).hexdigest()
+    return f"species:v1:{digest}"
+
+
+def sort_species_records(records: list[SpeciesOverlapRecord]) -> list[SpeciesOverlapRecord]:
+    return sorted(
+        records,
+        key=lambda record: (normalize_species_name(record.scientific_name), record.id),
+    )
+
+
+def stream_species_overlap_records(
+    matrix: Any,
+    raster: SolutionRaster,
+) -> list[SpeciesOverlapRecord]:
+    group = str(matrix.group)
+    try:
+        with gzip.open(Path(matrix.path), "rb") as handle:
+            header = handle.read(8)
+            if len(header) < 8 or header[:4] != SMSP_MAGIC:
+                raise SparseFormatError(f"bad species matrix magic for {group}")
+            toc_length = struct.unpack_from("<I", header, 4)[0]
+            toc = json.loads(handle.read(toc_length).decode("utf-8"))
+            grid = _species_grid_from_toc(toc, group)
+            selected_window = selected_window_for_species_grid(raster, grid, group).ravel()
+            records: list[SpeciesOverlapRecord] = []
+            cursor = 0
+            for entry in toc.get("species") or []:
+                offset = int(entry["offset"])
+                cell_count = int(entry["count"])
+                if offset != cursor:
+                    raise SparseFormatError(
+                        f"species matrix {group} has non-sequential body offset"
+                    )
+                chunk = handle.read(cell_count * 4)
+                if len(chunk) != cell_count * 4:
+                    raise SparseFormatError(f"species matrix {group} body ended early")
+                decoded = np.cumsum(np.frombuffer(chunk, dtype=np.uint32), dtype=np.uint32)
+                if decoded.size and bool(selected_window[decoded].any()):
+                    metadata = RuntimeSpeciesMetadata(
+                        scientific_name=str(entry["name"]),
+                        iucn_status=str(entry.get("iucn") or ""),
+                        csv_class=str(entry.get("class") or ""),
+                    )
+                    records.append(metadata.overlap_record(group))
+                cursor += len(chunk)
+            return sort_species_records(records)
+    except (OSError, json.JSONDecodeError, KeyError, UnicodeDecodeError, SparseFormatError) as exc:
+        raise SpeciesIndexQueryError(f"species_matrix_load_failed:{group}") from exc
+
+
 def selected_window_for_species_grid(
     raster: SolutionRaster,
     grid: SparseMetadata,
@@ -222,6 +317,14 @@ def _load_species_group_index(
             grid = _species_grid_from_toc(toc, group)
             species_entries = toc.get("species") or []
             total_cell_references = sum(int(entry["count"]) for entry in species_entries)
+            species_metadata = tuple(
+                RuntimeSpeciesMetadata(
+                    scientific_name=str(entry["name"]),
+                    iucn_status=str(entry.get("iucn") or ""),
+                    csv_class=str(entry.get("class") or ""),
+                )
+                for entry in species_entries
+            )
             offsets = np.empty(len(species_entries) + 1, dtype=np.uint64)
             offsets[0] = 0
             cache_path = cache_dir / f"{group}.uint32"
@@ -255,6 +358,7 @@ def _load_species_group_index(
                 grid=grid,
                 cell_ids=cell_ids,
                 offsets=offsets,
+                species_metadata=species_metadata,
                 cache_path=cache_path,
             )
     except (OSError, json.JSONDecodeError, KeyError, UnicodeDecodeError, SparseFormatError) as exc:
