@@ -13,17 +13,17 @@ import { environment } from './environments/environment';
 const FLAGS = {
   development: {
     sirapLayers: {
-      combined: true,
-      territorial: false,
-      thematic: false,
+      combined: false,
+      territorial: true,
+      thematic: true,
     },
   },
 
   production: {
     sirapLayers: {
-      combined: true,
-      territorial: false, // off until data is verified production-ready
-      thematic: false, // off until data is verified production-ready
+      combined: false,
+      territorial: true,
+      thematic: true,
     },
   },
 };

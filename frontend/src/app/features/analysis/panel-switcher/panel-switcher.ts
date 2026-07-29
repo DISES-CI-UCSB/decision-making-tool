@@ -109,7 +109,7 @@ import {
   calculateOverlapPercent,
   ECOSYSTEM_CLASSIFICATION_SUMMARY_URL,
   isMecViewAvailable,
-  isWholeProductionSirapAoi,
+  isWholeMetricCompatibleSirapAoi,
   MEC_BREAKDOWNS,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
@@ -1968,7 +1968,7 @@ export class PanelSwitcherComponent {
       aoi.boundarySourceId ?? 'missing-source',
       aoi.boundaryGeometrySelection ?? 'missing-selection',
     ].join(':');
-    if (aoi.type === 'sirap' && !isWholeProductionSirapAoi(aoi)) {
+    if (aoi.type === 'sirap' && !isWholeMetricCompatibleSirapAoi(aoi)) {
       return {
         key: `unavailable:partial-sirap:${aoi.id}:${boundaryProvenanceKey}`,
         kind: 'unavailable',

@@ -944,7 +944,7 @@ describe('PanelSwitcherComponent', () => {
   it.each([
     ['territorial', 'siraps_territorial', 'aoi-siraps-territorial-colombia'],
     ['thematic', 'siraps_thematic', 'aoi-siraps-thematic-colombia'],
-  ])('blocks a whole-marked %s SIRAP source', (_, boundarySourceLayerKey, boundarySourceId) => {
+  ])('loads metrics for a whole %s SIRAP source', (_, boundarySourceLayerKey, boundarySourceId) => {
     appState.activeSolution$.set(buildTestSolution());
     appState.selectAOI({
       id: 'sirap:_5',
@@ -960,11 +960,7 @@ describe('PanelSwitcherComponent', () => {
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
 
-    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
-        ?.textContent,
-    ).toContain('analysis.aoi.mec.states.partialSirapTitle');
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith('test-solution', 'siraps');
   });
 
   it('blocks legacy SIRAP selections without provenance', () => {

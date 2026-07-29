@@ -9,6 +9,17 @@ export const PRODUCTION_SIRAP_BOUNDARY_SOURCE = {
   featureCount: 10,
 } as const;
 
+export const METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES = [
+  {
+    layerKey: 'siraps_territorial',
+    sourceId: 'aoi-siraps-territorial-colombia',
+  },
+  {
+    layerKey: 'siraps_thematic',
+    sourceId: 'aoi-siraps-thematic-colombia',
+  },
+] as const;
+
 export interface AOI {
   id: string;
   name: string;

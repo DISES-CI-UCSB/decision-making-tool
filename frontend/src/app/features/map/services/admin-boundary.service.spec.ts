@@ -119,7 +119,18 @@ describe('AdminBoundaryService', () => {
         }),
       }),
     );
-    expect(boundaryRenderer(service, 'sirap')).toEqual(
+    expect(boundaryRenderer(service, 'siraps_territorial')).toEqual(
+      expect.objectContaining({
+        symbol: expect.objectContaining({
+          outline: expect.objectContaining({
+            color: [107, 114, 128, 235],
+            style: 'solid',
+            width: 1.25,
+          }),
+        }),
+      }),
+    );
+    expect(boundaryRenderer(service, 'siraps_thematic')).toEqual(
       expect.objectContaining({
         symbol: expect.objectContaining({
           outline: expect.objectContaining({
@@ -235,10 +246,13 @@ describe('AdminBoundaryService', () => {
     ['territorial_territorial_pacifico_8', 'Territorial Pacifico'],
     ['territorial_territorial_caribe_9', 'Territorial Caribe'],
     ['territorial_territorial_pacifico_10', 'Territorial Pacifico'],
-  ])('selects the complete merged SIRAP from a normal map click: %s', async (sirapId, name) => {
+  ])('selects a complete metric-compatible SIRAP from a map click: %s', async (sirapId, name) => {
     const service = TestBed.inject(AdminBoundaryService);
     const polygon = multipartPolygon();
-    const layer = { id: 'aoi-siraps-combined-colombia', visible: true };
+    const thematic = sirapId.startsWith('thematic_');
+    const layerKey = thematic ? 'siraps_thematic' : 'siraps_territorial';
+    const sourceId = thematic ? 'aoi-siraps-thematic-colombia' : 'aoi-siraps-territorial-colombia';
+    const layer = { id: sourceId, visible: true };
     const view = {
       hitTest: vi.fn().mockResolvedValue({
         results: [
@@ -277,8 +291,8 @@ describe('AdminBoundaryService', () => {
         geometryUrl: expect.stringContaining(
           '/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
         ),
-        boundarySourceLayerKey: 'siraps',
-        boundarySourceId: 'aoi-siraps-combined-colombia',
+        boundarySourceLayerKey: layerKey,
+        boundarySourceId: sourceId,
         boundaryGeometrySelection: 'whole-feature',
       }),
     );
@@ -299,11 +313,26 @@ describe('AdminBoundaryService', () => {
     const service = TestBed.inject(AdminBoundaryService);
     const configs = (
       service as unknown as {
-        getConfigsForTarget(target: AoiType): { layerKey: AdminBoundaryLayerKey }[];
+        getConfigsForTarget(target: AoiType): {
+          layerKey: AdminBoundaryLayerKey;
+          url: string;
+          definitionExpression?: string;
+        }[];
       }
     ).getConfigsForTarget('sirap');
 
-    expect(configs.map((config) => config.layerKey)).toEqual(['siraps']);
+    expect(configs).toEqual([
+      expect.objectContaining({
+        layerKey: 'siraps_territorial',
+        url: expect.stringContaining(PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname),
+        definitionExpression: "sirap_kind = 'territorial'",
+      }),
+      expect.objectContaining({
+        layerKey: 'siraps_thematic',
+        url: expect.stringContaining(PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname),
+        definitionExpression: "sirap_kind = 'thematic'",
+      }),
+    ]);
   });
 
   it('clears a selected department when the departments layer is hidden', () => {
