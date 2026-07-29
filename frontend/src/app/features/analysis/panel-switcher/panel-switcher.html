@@ -3084,7 +3084,7 @@
   rootId="conservation-goals-modal"
   mode="wide"
   headerAlign="start"
-  titleKey="analysis.overview.goalsWidget.modal.title"
+  [titleKey]="getGoalsModalTitleKey()"
   [isOpen]="goalsModalOpen()"
   (requestClose)="closeGoalsModal()"
 >
@@ -3104,21 +3104,64 @@
   @if (goalsModalDomain(); as domain) {
     <div id="conservation-goals-modal-body" class="grid gap-4 p-4 md:p-6">
       <section id="conservation-goals-modal-intro" class="grid gap-2">
-        <h3 id="conservation-goals-modal-domain-title" class="m-0 text-lg font-bold text-slate-900">
-          {{ domain.labelKey | translate }}
-        </h3>
         <p
           id="conservation-goals-modal-description"
           class="m-0 max-w-4xl text-xs leading-5 text-slate-600"
         >
-          {{
-            (domain.targeted
-              ? 'analysis.overview.goalsWidget.modal.targetedDescription'
-              : 'analysis.overview.goalsWidget.modal.additionalDescription'
-            ) | translate
-          }}
+          {{ getGoalsModalDescriptionKey(domain) | translate }}
         </p>
       </section>
+
+      @if (domain.featureType === 'ecosystems') {
+        <section
+          id="conservation-goals-modal-ecosystem-classifications"
+          class="flex snap-x gap-2 overflow-x-auto pb-1"
+          role="group"
+          [attr.aria-label]="
+            'analysis.overview.goalsWidget.modal.ecosystemClassificationGroup' | translate
+          "
+        >
+          @for (breakdown of mecBreakdowns; track breakdown.id) {
+            <button
+              [id]="'conservation-goals-modal-ecosystem-level-' + breakdown.id"
+              type="button"
+              class="grid min-h-16 min-w-38 flex-1 snap-start cursor-pointer gap-1 rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 md:min-w-0"
+              [class.border-slate-900]="goalsModalEcosystemBreakdownId() === breakdown.id"
+              [class.bg-slate-100]="goalsModalEcosystemBreakdownId() === breakdown.id"
+              [attr.aria-pressed]="goalsModalEcosystemBreakdownId() === breakdown.id"
+              [disabled]="!isGoalsModalEcosystemBreakdownAvailable(breakdown)"
+              [attr.title]="
+                isGoalsModalEcosystemBreakdownAvailable(breakdown)
+                  ? null
+                  : ('analysis.overview.goalsWidget.modal.classificationUnavailable' | translate)
+              "
+              (click)="selectGoalsModalEcosystemBreakdown(breakdown.id)"
+            >
+              <strong
+                [id]="'conservation-goals-modal-ecosystem-level-count-' + breakdown.id"
+                class="text-base leading-none text-slate-950"
+              >
+                {{ getGoalsModalEcosystemCategoryCount(breakdown) }}
+              </strong>
+              <span
+                [id]="'conservation-goals-modal-ecosystem-level-label-' + breakdown.id"
+                class="text-[9px] leading-tight font-semibold text-slate-500"
+              >
+                {{ breakdown.pluralLabelKey | translate }}
+              </span>
+            </button>
+          }
+        </section>
+        @if (goalsModalEcosystemMecLoading()) {
+          <p
+            id="conservation-goals-modal-ecosystem-classifications-loading"
+            class="m-0 text-xs text-slate-500"
+            role="status"
+          >
+            {{ 'analysis.overview.goalsWidget.modal.classificationsLoading' | translate }}
+          </p>
+        }
+      }
 
       @if (domain.targeted) {
         <section
@@ -3156,7 +3199,12 @@
               id="conservation-goals-modal-met-value"
               class="mt-1 block text-lg text-slate-950"
             >
-              {{ formatGoalsFullCount(domain.metCount, domain.totalCount) }}
+              {{
+                formatGoalsFullCount(
+                  getGoalsModalSummary(domain).metCount,
+                  getGoalsModalSummary(domain).totalCount
+                )
+              }}
             </strong>
           </article>
           <article
@@ -3173,7 +3221,7 @@
               id="conservation-goals-modal-progress-value"
               class="mt-1 block text-lg text-slate-950"
             >
-              {{ getGoalsPercentLabel(domain.pctMet) }}
+              {{ getGoalsPercentLabel(getGoalsModalSummary(domain).pctMet) }}
             </strong>
             <div
               id="conservation-goals-modal-progress-bar"
@@ -3182,7 +3230,7 @@
               <span
                 id="conservation-goals-modal-progress-fill"
                 class="block h-full rounded-full bg-emerald-500"
-                [style.width.%]="getGoalsProgressBarWidth(domain.pctMet)"
+                [style.width.%]="getGoalsProgressBarWidth(getGoalsModalSummary(domain).pctMet)"
               ></span>
             </div>
           </article>
@@ -3206,7 +3254,12 @@
               id="conservation-goals-modal-checkpoint-17-value"
               class="mt-1 block text-lg text-green-700"
             >
-              {{ formatGoalsFullCount(domain.reached17Count, domain.totalCount) }}
+              {{
+                formatGoalsFullCount(
+                  getGoalsModalSummary(domain).reached17Count,
+                  getGoalsModalSummary(domain).totalCount
+                )
+              }}
             </strong>
           </article>
           <article
@@ -3223,7 +3276,12 @@
               id="conservation-goals-modal-checkpoint-30-value"
               class="mt-1 block text-lg text-green-900"
             >
-              {{ formatGoalsFullCount(domain.reached30Count, domain.totalCount) }}
+              {{
+                formatGoalsFullCount(
+                  getGoalsModalSummary(domain).reached30Count,
+                  getGoalsModalSummary(domain).totalCount
+                )
+              }}
             </strong>
           </article>
           <article
@@ -3240,7 +3298,7 @@
               id="conservation-goals-modal-measured-value"
               class="mt-1 block text-lg text-slate-950"
             >
-              {{ domain.totalCount }}
+              {{ getGoalsModalSummary(domain).totalCount }}
             </strong>
           </article>
         </section>
@@ -3262,7 +3320,12 @@
               id="conservation-goals-modal-browser-title"
               class="m-0 text-sm font-bold text-slate-900"
             >
-              {{ 'analysis.overview.goalsWidget.modal.featureDetails' | translate }}
+              {{
+                (domain.featureType === 'ecosystems'
+                  ? goalsModalEcosystemBreakdown().labelKey
+                  : 'analysis.overview.goalsWidget.modal.featureDetails'
+                ) | translate
+              }}
             </h4>
             <span
               id="conservation-goals-modal-browser-count"
@@ -3400,13 +3463,37 @@
                   id="conservation-goals-modal-heading-feature"
                   class="px-3 py-2.5 font-bold text-slate-600"
                 >
-                  {{ 'analysis.overview.goalsWidget.modal.feature' | translate }}
+                  {{
+                    (domain.featureType === 'ecosystems'
+                      ? 'analysis.overview.goalsWidget.modal.category'
+                      : 'analysis.overview.goalsWidget.modal.feature'
+                    ) | translate
+                  }}
                 </th>
+                @if (domain.featureType === 'ecosystems') {
+                  <th
+                    id="conservation-goals-modal-heading-pre-existing-coverage"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.preExistingCoverage' | translate }}
+                  </th>
+                  <th
+                    id="conservation-goals-modal-heading-new-coverage"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.newSolutionCoverage' | translate }}
+                  </th>
+                }
                 <th
                   id="conservation-goals-modal-heading-coverage"
                   class="px-3 py-2.5 font-bold text-slate-600"
                 >
-                  {{ 'analysis.overview.goalsWidget.modal.rangeCoverage' | translate }}
+                  {{
+                    (domain.featureType === 'ecosystems'
+                      ? 'analysis.overview.goalsWidget.modal.totalCoverage'
+                      : 'analysis.overview.goalsWidget.modal.rangeCoverage'
+                    ) | translate
+                  }}
                 </th>
                 @if (domain.targeted) {
                   <th
@@ -3453,6 +3540,20 @@
                       </span>
                     }
                   </td>
+                  @if (domain.featureType === 'ecosystems') {
+                    <td
+                      [id]="'conservation-goals-modal-pre-existing-coverage-' + $index"
+                      class="px-3 py-2.5 font-semibold tabular-nums text-slate-700"
+                    >
+                      {{ formatGoalsModalPercent(row.preExistingRelativeHeld) }}
+                    </td>
+                    <td
+                      [id]="'conservation-goals-modal-new-coverage-' + $index"
+                      class="px-3 py-2.5 font-semibold tabular-nums text-slate-700"
+                    >
+                      {{ formatGoalsModalPercent(row.newRelativeHeld) }}
+                    </td>
+                  }
                   <td [id]="'conservation-goals-modal-coverage-' + $index" class="w-60 px-3 py-2.5">
                     <div
                       [id]="'conservation-goals-modal-coverage-layout-' + $index"

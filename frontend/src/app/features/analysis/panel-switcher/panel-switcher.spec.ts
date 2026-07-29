@@ -1316,6 +1316,74 @@ describe('PanelSwitcherComponent', () => {
     ).toContain('Andean bear');
   });
 
+  it('labels and switches the national ecosystem classification breakdown', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildFiveViewMecDocument(solution.id),
+        format: 'mec-compact-v1',
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-domain-view-ecosystems',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'national');
+    expect(compiled.querySelector('#conservation-goals-modal-domain-title')).toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-title')?.textContent).toContain(
+      'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
+    );
+    expect(
+      compiled.querySelectorAll('button[id^="conservation-goals-modal-ecosystem-level-"]'),
+    ).toHaveLength(5);
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-browser-title')
+        ?.textContent?.replace(/\s+/g, ' '),
+    ).toContain('analysis.aoi.mec.levels.iavh');
+
+    (
+      compiled.querySelector('#conservation-goals-modal-ecosystem-level-broad') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-browser-title')
+        ?.textContent?.replace(/\s+/g, ' '),
+    ).toContain('analysis.aoi.mec.levels.broad');
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-ecosystem-level-broad')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-feature-name-0')?.textContent,
+    ).toContain('Broad real');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-0')?.textContent,
+    ).toContain('10');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
+    ).toContain('30');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-coverage-value-0')?.textContent,
+    ).toContain('40');
+  });
+
   it('falls back when custom AOI backend loading fails', async () => {
     const solution = buildTestSolution();
     const geometry = buildTestGeometry();
@@ -1591,7 +1659,7 @@ function buildFiveViewMecDocument(solutionId: string): MecCompactDocument {
       `${viewCatalog[viewIndex][0]}:real`,
       label,
     ]),
-    rows: labels.map((_, classIndex) => [0, classIndex, 10, 0, 4]),
+    rows: labels.map((_, classIndex) => [0, classIndex, 10, 1, 3]),
     viewSupport: {
       supported: viewCatalog.map(([view]) => ({
         view,
