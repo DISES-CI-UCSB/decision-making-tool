@@ -235,8 +235,7 @@
       "goalsMet": "Targets Achieved",
       "goalsMetSub": "Share of optimization targets met",
       "goalsWidget": {
-        "kicker": "Conservation targets",
-        "title": "Target progress",
+        "title": "Conservation target progress",
         "targetRuleSingle": "Counts features that reached the {{target}}.",
         "targetRuleVariable": "Counts features that reached their feature-specific targets.",
         "targetRuleNone": "No conservation target was configured for this solution.",

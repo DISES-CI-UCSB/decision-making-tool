@@ -235,8 +235,7 @@
       "goalsMet": "Metas alcanzadas",
       "goalsMetSub": "Porcentaje de metas de optimización cumplidas",
       "goalsWidget": {
-        "kicker": "Metas de conservación",
-        "title": "Avance de metas",
+        "title": "Avance de metas de conservación",
         "targetRuleSingle": "Cuenta elementos que alcanzaron la {{target}}.",
         "targetRuleVariable": "Cuenta elementos que alcanzaron sus metas específicas.",
         "targetRuleNone": "No se configuró una meta de conservación para esta solución.",

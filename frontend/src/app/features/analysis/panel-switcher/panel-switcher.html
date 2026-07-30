@@ -95,15 +95,9 @@
                   class="mb-3 flex items-start justify-between gap-3"
                 >
                   <div id="right-sidebar-v3-overview-goals-widget-heading">
-                    <p
-                      id="right-sidebar-v3-overview-goals-widget-kicker"
-                      class="mb-0 text-[15px] font-bold tracking-[0.06em] text-slate-500 uppercase"
-                    >
-                      {{ 'analysis.overview.goalsWidget.kicker' | translate }}
-                    </p>
                     <h4
                       id="right-sidebar-v3-overview-goals-widget-title"
-                      class="mt-1 mb-0 text-sm leading-[18px] font-extrabold text-slate-900"
+                      class="m-0 text-sm leading-tight font-bold tracking-[0.06em] text-slate-500 uppercase"
                     >
                       {{ 'analysis.overview.goalsWidget.title' | translate }}
                     </h4>
@@ -145,6 +139,7 @@
                             >
                               <span
                                 [id]="'right-sidebar-v3-overview-goals-domain-label-' + domain.id"
+                                class="font-semibold"
                               >
                                 {{ domain.labelKey | translate }}
                               </span>
@@ -399,7 +394,7 @@
                                   'right-sidebar-v3-overview-goals-additional-domain-label-' +
                                   domain.id
                                 "
-                                class="min-w-0 flex-1 text-slate-800"
+                                class="min-w-0 flex-1 font-semibold text-slate-800"
                               >
                                 {{ domain.labelKey | translate }}
                               </span>
