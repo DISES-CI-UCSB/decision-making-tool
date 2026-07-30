@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from compact_metrics import to_compact_document
 from metrics_contract import PROVENANCE_KEY, build_metrics_provenance, provenance_issues
 from release_config import load_release_config
@@ -17,6 +19,13 @@ def test_release_prefixes_are_immutable_and_overridable():
     assert default.regular_compact_directory.endswith("/regular/compact")
     assert default.mec_v2_directory.endswith("/mec/v2")
     assert custom.regular_verbose_directory.startswith("releases/future-release-1/")
+
+
+def test_missing_release_contract_raises_file_not_found(tmp_path):
+    shallow_module_path = tmp_path / "metrics_pipeline" / "release_config.py"
+
+    with pytest.raises(FileNotFoundError, match="release-contract.json"):
+        load_release_config(search_start=shallow_module_path)
 
 
 def test_boundary_provenance_requires_exact_catalogs_and_compact_binding():

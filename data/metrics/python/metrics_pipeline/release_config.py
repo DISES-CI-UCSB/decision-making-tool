@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-_CONFIG_PATH = Path(__file__).parents[4] / "frontend/layer-manifest/release-contract.json"
+_CONFIG_RELATIVE_PATH = Path("frontend/layer-manifest/release-contract.json")
 _RELEASE_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
@@ -21,8 +21,25 @@ class ReleaseConfig:
     sirap_metadata_path: str
 
 
-def load_release_config(release_id: str | None = None) -> ReleaseConfig:
-    raw = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+def _find_release_config(search_start: Path | None = None) -> Path:
+    start = (search_start or Path(__file__)).resolve()
+    for ancestor in start.parents:
+        config_path = ancestor / _CONFIG_RELATIVE_PATH
+        if config_path.is_file():
+            return config_path
+
+    raise FileNotFoundError(
+        f"Could not find {_CONFIG_RELATIVE_PATH} in any parent of {start}"
+    )
+
+
+def load_release_config(
+    release_id: str | None = None,
+    *,
+    search_start: Path | None = None,
+) -> ReleaseConfig:
+    config_path = _find_release_config(search_start)
+    raw = json.loads(config_path.read_text(encoding="utf-8"))
     resolved_id = release_id or raw["defaultReleaseId"]
     if not _RELEASE_ID_PATTERN.fullmatch(resolved_id):
         raise ValueError(
