@@ -38,7 +38,20 @@ describe('custom AOI area profile parsing', () => {
               id: 'broadEcosystem',
               label: 'Broad ecosystem',
               records: [
-                { id: 'forest', label: 'Forest', area_km2: 2, share_of_classified_pct: 100 },
+                {
+                  id: 'forest',
+                  label: 'Forest',
+                  area_km2: 2,
+                  national_area_km2: 20,
+                  share_of_classified_pct: 100,
+                  share_of_national_class_pct: 10,
+                  solution_covered_area_km2: null,
+                  solution_covered_pct_of_aoi: null,
+                  pre_existing_covered_area_km2: null,
+                  pre_existing_covered_pct_of_aoi: null,
+                  new_covered_area_km2: null,
+                  new_covered_pct_of_aoi: null,
+                },
               ],
             },
           ],
@@ -48,7 +61,7 @@ describe('custom AOI area profile parsing', () => {
 
     expect(section.views.broadEcosystem).toHaveLength(1);
     expect(section.views.detailedEcosystem).toEqual([]);
-    expect(section.views.broadEcosystem[0]).not.toHaveProperty('solutionCoverage');
+    expect(section.views.broadEcosystem[0].solution_covered_area_km2).toBeNull();
   });
 
   it('rejects responses with the wrong format', () => {

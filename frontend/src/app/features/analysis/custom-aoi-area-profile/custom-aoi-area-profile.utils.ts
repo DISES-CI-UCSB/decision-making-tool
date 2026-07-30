@@ -105,6 +105,18 @@ function isEcosystemRecord(value: unknown): value is CustomAoiEcosystemRecord {
     typeof record.id === 'string' &&
     typeof record.label === 'string' &&
     Number.isFinite(record.area_km2) &&
-    (record.share_of_classified_pct === null || Number.isFinite(record.share_of_classified_pct))
+    Number.isFinite(record.national_area_km2) &&
+    isNullableNumber(record.share_of_classified_pct) &&
+    isNullableNumber(record.share_of_national_class_pct) &&
+    isNullableNumber(record.solution_covered_area_km2) &&
+    isNullableNumber(record.solution_covered_pct_of_aoi) &&
+    isNullableNumber(record.pre_existing_covered_area_km2) &&
+    isNullableNumber(record.pre_existing_covered_pct_of_aoi) &&
+    isNullableNumber(record.new_covered_area_km2) &&
+    isNullableNumber(record.new_covered_pct_of_aoi)
   );
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return value === null || Number.isFinite(value);
 }

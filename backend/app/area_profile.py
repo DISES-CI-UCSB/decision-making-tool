@@ -8,6 +8,7 @@ from .metric_adapters import build_custom_aoi_raster
 from .models import AreaProfileSectionName
 from .polygon_metrics import PolygonMetricError, validate_polygon_geometry
 from .species_index import (
+    RuntimeSpeciesBitsetIndex,
     SpeciesIndexQueryError,
     SpeciesOverlapRecord,
     sort_species_records,
@@ -25,6 +26,7 @@ def calculate_custom_area_profile(
     artifact: RuntimeArtifact,
     geometry: dict[str, Any],
     requested_sections: list[AreaProfileSectionName],
+    solution_raster: SolutionRaster | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], str]:
     validate_polygon_geometry(geometry)
     if artifact.reference_raster_path is None:
@@ -70,7 +72,11 @@ def calculate_custom_area_profile(
             sections[section] = (
                 _species_section(artifact, raster)
                 if section == "species"
-                else _ecosystems_section(artifact, raster)
+                else _ecosystems_section(
+                    artifact,
+                    raster,
+                    solution_raster,
+                )
             )
         except (SpeciesIndexQueryError, EcosystemInventoryError) as exc:
             sections[section] = _failed_section(section, str(exc))
@@ -86,21 +92,29 @@ def calculate_custom_area_profile(
 
 
 def _species_section(artifact: RuntimeArtifact, raster: SolutionRaster) -> dict[str, Any]:
-    missing = [group for group in SPECIES_GROUPS if group not in artifact.species_matrices]
+    available_groups = (
+        artifact.species_index.groups
+        if artifact.species_index is not None
+        else artifact.species_matrices
+    )
+    missing = [group for group in SPECIES_GROUPS if group not in available_groups]
     if missing:
         return _unavailable_section(
             "species",
             "species_matrix_group_missing:" + ",".join(missing),
         )
 
-    records: list[SpeciesOverlapRecord] = []
-    for group in SPECIES_GROUPS:
-        if artifact.species_index is not None and group in artifact.species_index.groups:
-            records.extend(artifact.species_index.overlap_records(group, raster))
-        else:
-            records.extend(
-                stream_species_overlap_records(artifact.species_matrices[group], raster)
-            )
+    if isinstance(artifact.species_index, RuntimeSpeciesBitsetIndex):
+        records = artifact.species_index.all_overlap_records(raster)
+    else:
+        records: list[SpeciesOverlapRecord] = []
+        for group in SPECIES_GROUPS:
+            if artifact.species_index is not None and group in artifact.species_index.groups:
+                records.extend(artifact.species_index.overlap_records(group, raster))
+            else:
+                records.extend(
+                    stream_species_overlap_records(artifact.species_matrices[group], raster)
+                )
     records = sort_species_records(records)
     return {
         "status": "complete" if records else "empty",
@@ -118,10 +132,18 @@ def _species_section(artifact: RuntimeArtifact, raster: SolutionRaster) -> dict[
     }
 
 
-def _ecosystems_section(artifact: RuntimeArtifact, raster: SolutionRaster) -> dict[str, Any]:
+def _ecosystems_section(
+    artifact: RuntimeArtifact,
+    raster: SolutionRaster,
+    solution_raster: SolutionRaster | None,
+) -> dict[str, Any]:
     if artifact.ecosystem_inventory is None:
         return _unavailable_section("ecosystems", "ecosystem_artifact_not_packaged")
-    inventory = build_ecosystem_inventory(artifact.ecosystem_inventory, raster)
+    inventory = build_ecosystem_inventory(
+        artifact.ecosystem_inventory,
+        raster,
+        solution_raster,
+    )
     record_count = sum(len(view["records"]) for view in inventory["views"])
     return {
         "status": "complete" if record_count else "empty",

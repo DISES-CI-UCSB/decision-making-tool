@@ -11,7 +11,7 @@ import tempfile
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -40,6 +40,10 @@ _install_metrics_pipeline_path()
 
 from raster_metrics import SolutionRaster  # noqa: E402
 from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata  # noqa: E402
+from sparse.species_bitset import (  # noqa: E402
+    SpeciesBitsetMetadata,
+    load_species_bitset_metadata,
+)
 
 
 class SpeciesIndexLoadError(ValueError):
@@ -56,6 +60,23 @@ class SpeciesOverlapRecord:
     scientific_name: str
     group: str
     iucn_status: str
+
+
+@dataclass(frozen=True)
+class SpeciesCoverageRecord:
+    id: str
+    scientific_name: str
+    group: str
+    iucn_status: str
+    range_area_km2: float
+    range_in_aoi_area_km2: float
+    range_in_aoi_pct: float
+    solution_covered_in_aoi_area_km2: float
+    solution_covered_in_aoi_pct: float
+    pre_existing_covered_in_aoi_area_km2: float
+    pre_existing_covered_in_aoi_pct: float
+    new_covered_in_aoi_area_km2: float
+    new_covered_in_aoi_pct: float
 
 
 @dataclass(frozen=True)
@@ -202,6 +223,214 @@ class RuntimeSpeciesIndex:
     cleanup = close
 
 
+@dataclass(frozen=True)
+class RuntimeSpeciesBitsetIndex:
+    metadata_document: SpeciesBitsetMetadata
+    bits: np.memmap
+    data_path: Path
+    metadata_path: Path
+    groups: dict[str, tuple[int, ...]]
+    query_chunk_cells: int = 2048
+
+    @property
+    def species_count(self) -> int:
+        return self.metadata_document.species_count
+
+    @property
+    def cell_reference_count(self) -> int:
+        return sum(entry.range_cell_count for entry in self.metadata_document.species)
+
+    def count_overlaps(self, group: str, raster: SolutionRaster) -> int:
+        return len(self.overlap_records(group, raster))
+
+    def overlap_records(
+        self,
+        group: str,
+        raster: SolutionRaster,
+    ) -> list[SpeciesOverlapRecord]:
+        indices = self.groups.get(group)
+        if indices is None:
+            raise SpeciesIndexQueryError(f"species_index_group_missing:{group}")
+        present = self._present_species(raster)
+        records = [
+            self._overlap_record(species_index)
+            for species_index in indices
+            if present[species_index]
+        ]
+        return sort_species_records(records)
+
+    def all_overlap_records(self, raster: SolutionRaster) -> list[SpeciesOverlapRecord]:
+        present = self._present_species(raster)
+        return sort_species_records(
+            [
+                self._overlap_record(species_index)
+                for species_index in np.flatnonzero(present)
+            ]
+        )
+
+    def detailed_coverage_records(
+        self,
+        aoi_raster: SolutionRaster,
+        solution_raster: SolutionRaster,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> list[SpeciesCoverageRecord]:
+        if not aoi_raster.fingerprint.matches(solution_raster.fingerprint):
+            raise SpeciesIndexQueryError("solution_raster_grid_mismatch")
+
+        grid = self.metadata_document.grid
+        aoi_window = selected_window_for_species_grid(
+            aoi_raster,
+            grid,
+            "cell-major",
+        )
+        solution_window = _array_window_for_species_grid(
+            solution_raster.selected_mask,
+            solution_raster,
+            grid,
+            "solution",
+        )
+        pre_existing_window = _array_window_for_species_grid(
+            solution_raster.pre_existing_mask,
+            solution_raster,
+            grid,
+            "solution",
+        )
+        new_window = _array_window_for_species_grid(
+            solution_raster.new_prioritizr_mask,
+            solution_raster,
+            grid,
+            "solution",
+        )
+        selected_cell_ids = np.flatnonzero(aoi_window).astype(np.uint32, copy=False)
+        if selected_cell_ids.size == 0:
+            return []
+
+        row_offset, _ = _species_grid_offsets(aoi_raster, grid, "cell-major")
+        local_rows = selected_cell_ids // grid.width
+        weights = aoi_raster.pixel_area_km2_per_row[row_offset + local_rows]
+        solution_selected = solution_window.ravel()[selected_cell_ids]
+        pre_existing_selected = pre_existing_window.ravel()[selected_cell_ids]
+        new_selected = new_window.ravel()[selected_cell_ids]
+
+        areas = np.zeros((4, self.species_count), dtype=np.float64)
+
+        for start in range(0, selected_cell_ids.size, self.query_chunk_cells):
+            if is_cancelled is not None and is_cancelled():
+                raise SpeciesIndexQueryError("species_coverage_cancelled")
+            end = min(start + self.query_chunk_cells, selected_cell_ids.size)
+            chunk_ids = selected_cell_ids[start:end]
+            presence = np.unpackbits(
+                self.bits[chunk_ids],
+                axis=1,
+                count=self.species_count,
+                bitorder="little",
+            )
+            chunk_weights = weights[start:end]
+            coverage_weights = np.stack(
+                (
+                    chunk_weights,
+                    chunk_weights * solution_selected[start:end],
+                    chunk_weights * pre_existing_selected[start:end],
+                    chunk_weights * new_selected[start:end],
+                )
+            )
+            areas += coverage_weights @ presence
+
+        within_area, covered_area, pre_existing_area, new_area = areas
+
+        records: list[SpeciesCoverageRecord] = []
+        for species_index in np.flatnonzero(within_area > 0):
+            entry = self.metadata_document.species[int(species_index)]
+            range_area = entry.range_area_km2
+            within = float(within_area[species_index])
+            covered = float(covered_area[species_index])
+            pre_existing = float(pre_existing_area[species_index])
+            new = float(new_area[species_index])
+            records.append(
+                SpeciesCoverageRecord(
+                    id=species_dataset_id(entry.scientific_name),
+                    scientific_name=entry.scientific_name,
+                    group=entry.group,
+                    iucn_status=entry.iucn_status,
+                    range_area_km2=range_area,
+                    range_in_aoi_area_km2=within,
+                    range_in_aoi_pct=_percentage(within, range_area),
+                    solution_covered_in_aoi_area_km2=covered,
+                    solution_covered_in_aoi_pct=_percentage(covered, within),
+                    pre_existing_covered_in_aoi_area_km2=pre_existing,
+                    pre_existing_covered_in_aoi_pct=_percentage(pre_existing, within),
+                    new_covered_in_aoi_area_km2=new,
+                    new_covered_in_aoi_pct=_percentage(new, within),
+                )
+            )
+        records.sort(
+            key=lambda record: (
+                normalize_species_name(record.scientific_name),
+                record.id,
+            )
+        )
+        return records
+
+    def entry_count(self, group: str) -> int:
+        indices = self.groups.get(group)
+        if indices is None:
+            raise SpeciesIndexQueryError(f"species_index_group_missing:{group}")
+        return len(indices)
+
+    def metadata(self) -> dict[str, Any]:
+        return {
+            "status": "ready",
+            "format": "species-cell-bitset/v1",
+            "species_count": self.species_count,
+            "cell_count": self.metadata_document.cell_count,
+            "cell_reference_count": self.cell_reference_count,
+            "data_bytes": int(self.bits.nbytes),
+            "data_mb": round(self.bits.nbytes / (1024 * 1024), 3),
+            "storage": "memmap",
+            "groups": {
+                group: {"species_count": len(indices)}
+                for group, indices in sorted(self.groups.items())
+            },
+        }
+
+    def close(self) -> None:
+        mmap = getattr(self.bits, "_mmap", None)
+        if mmap is not None:
+            mmap.close()
+
+    cleanup = close
+
+    def _present_species(self, raster: SolutionRaster) -> np.ndarray:
+        selected_window = selected_window_for_species_grid(
+            raster,
+            self.metadata_document.grid,
+            "cell-major",
+        )
+        selected_cell_ids = np.flatnonzero(selected_window).astype(
+            np.uint32,
+            copy=False,
+        )
+        packed = np.zeros(self.metadata_document.bytes_per_cell, dtype=np.uint8)
+        for start in range(0, selected_cell_ids.size, self.query_chunk_cells):
+            chunk = selected_cell_ids[start : start + self.query_chunk_cells]
+            if chunk.size:
+                packed |= np.bitwise_or.reduce(self.bits[chunk], axis=0)
+        return np.unpackbits(
+            packed,
+            count=self.species_count,
+            bitorder="little",
+        ).astype(bool, copy=False)
+
+    def _overlap_record(self, species_index: int) -> SpeciesOverlapRecord:
+        entry = self.metadata_document.species[int(species_index)]
+        return SpeciesOverlapRecord(
+            id=species_dataset_id(entry.scientific_name),
+            scientific_name=entry.scientific_name,
+            group=entry.group,
+            iucn_status=entry.iucn_status,
+        )
+
+
 def load_runtime_species_index(matrices: dict[str, Any]) -> RuntimeSpeciesIndex:
     cache_dir = Path(tempfile.mkdtemp(prefix="dmt-species-index-"))
     groups: dict[str, RuntimeSpeciesGroupIndex] = {}
@@ -212,6 +441,43 @@ def load_runtime_species_index(matrices: dict[str, Any]) -> RuntimeSpeciesIndex:
     except Exception:
         shutil.rmtree(cache_dir, ignore_errors=True)
         raise
+
+
+def load_runtime_species_bitset_index(
+    data_path: Path,
+    metadata_path: Path,
+) -> RuntimeSpeciesBitsetIndex:
+    try:
+        metadata = load_species_bitset_metadata(metadata_path)
+        if data_path.stat().st_size != metadata.expected_data_bytes:
+            raise SpeciesIndexLoadError(
+                "species_bitset_data_size_mismatch"
+            )
+        bits = np.memmap(
+            data_path,
+            dtype=np.uint8,
+            mode="r",
+            shape=(metadata.cell_count, metadata.bytes_per_cell),
+        )
+        groups: dict[str, list[int]] = {"threatened": []}
+        for index, entry in enumerate(metadata.species):
+            groups.setdefault(entry.group, []).append(index)
+            if entry.iucn_status.upper() in {"CR", "EN", "VU"}:
+                groups.setdefault("threatened", []).append(index)
+        return RuntimeSpeciesBitsetIndex(
+            metadata_document=metadata,
+            bits=bits,
+            data_path=data_path,
+            metadata_path=metadata_path,
+            groups={
+                group: tuple(indices)
+                for group, indices in groups.items()
+            },
+        )
+    except (OSError, SparseFormatError, ValueError) as exc:
+        if isinstance(exc, SpeciesIndexLoadError):
+            raise
+        raise SpeciesIndexLoadError(f"species_bitset_load_failed:{exc}") from exc
 
 
 def normalize_species_name(name: str) -> str:
@@ -275,6 +541,31 @@ def selected_window_for_species_grid(
     grid: SparseMetadata,
     group: str,
 ) -> np.ndarray:
+    return _array_window_for_species_grid(
+        raster.selected_mask,
+        raster,
+        grid,
+        group,
+    )
+
+
+def _array_window_for_species_grid(
+    values: np.ndarray,
+    raster: SolutionRaster,
+    grid: SparseMetadata,
+    group: str,
+) -> np.ndarray:
+    row_offset, col_offset = _species_grid_offsets(raster, grid, group)
+    row_end = row_offset + grid.height
+    col_end = col_offset + grid.width
+    return values[row_offset:row_end, col_offset:col_end]
+
+
+def _species_grid_offsets(
+    raster: SolutionRaster,
+    grid: SparseMetadata,
+    group: str,
+) -> tuple[int, int]:
     sol_a, sol_b, sol_c, sol_d, sol_e, sol_f = raster.fingerprint.transform
     if (
         abs(grid.x_scale - sol_a) > 1e-6
@@ -299,7 +590,7 @@ def selected_window_for_species_grid(
     ):
         raise SpeciesIndexQueryError(f"species_matrix_outside_reference_grid:{group}")
 
-    return raster.selected_mask[row_offset:row_end, col_offset:col_end].ravel()
+    return row_offset, col_offset
 
 
 def _load_species_group_index(
@@ -393,3 +684,9 @@ def _sorted_cells_overlap(cell_ids: np.ndarray, selected_cell_ids: np.ndarray) -
     positions = np.searchsorted(selected_cell_ids, cell_ids)
     valid = positions < selected_cell_ids.size
     return bool(valid.any() and np.any(selected_cell_ids[positions[valid]] == cell_ids[valid]))
+
+
+def _percentage(numerator: float, denominator: float) -> float:
+    if denominator <= 0:
+        return 0.0
+    return (numerator / denominator) * 100.0

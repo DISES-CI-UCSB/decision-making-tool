@@ -23,11 +23,15 @@ from app.main import app
 from app import main as main_module
 from app.models import CustomAreaProfileRequest
 from app.species_index import (
+    load_runtime_species_bitset_index,
     normalize_species_name,
+    sort_species_records,
     species_dataset_id,
     stream_species_overlap_records,
 )
+from raster_metrics import read_solution_raster
 from mec_compact import build_composite_taxonomy, load_composite_crosswalk
+from sparse.species_bitset import build_species_bitset
 from tests.test_raster_polygon_metrics import (
     POLYGON_LEFT_COLUMN,
     raster_artifact,
@@ -81,6 +85,90 @@ def test_warmed_species_metadata_and_overlap_records_match_streaming(tmp_path: P
     assert warmed_records[0].iucn_status == "LC"
     assert warmed_records[0].group == "mammals"
     assert warmed.species_index.groups["mammals"].species_metadata[0].csv_class == "Mammalia"
+
+
+def test_cell_major_species_inventory_matches_species_major_index(tmp_path: Path) -> None:
+    species_major = raster_artifact_with_species(tmp_path)
+    assert species_major.species_index is not None
+    matrix_paths = {
+        group: matrix.path
+        for group, matrix in species_major.species_matrices.items()
+        if group != "threatened"
+    }
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset(matrix_paths, data_path, metadata_path)
+    cell_major = load_runtime_species_bitset_index(data_path, metadata_path)
+
+    from app.metric_adapters import build_custom_aoi_raster
+
+    raster = build_custom_aoi_raster(
+        species_major.reference_raster_path,
+        POLYGON_LEFT_COLUMN,
+    )
+    expected = [
+        record
+        for group in ("amphibians", "birds", "mammals", "plants", "reptiles")
+        for record in species_major.species_index.overlap_records(group, raster)
+    ]
+    assert cell_major.all_overlap_records(raster) == sort_species_records(expected)
+    assert cell_major.count_overlaps("threatened", raster) == 0
+
+
+def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
+    tmp_path: Path,
+) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    matrix_paths = {
+        group: matrix.path
+        for group, matrix in artifact.species_matrices.items()
+        if group != "threatened"
+    }
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset(matrix_paths, data_path, metadata_path)
+    cell_major = load_runtime_species_bitset_index(data_path, metadata_path)
+
+    from app.metric_adapters import build_custom_aoi_raster
+
+    aoi = build_custom_aoi_raster(
+        artifact.reference_raster_path,
+        POLYGON_LEFT_COLUMN,
+    )
+    solution_path = tmp_path / "solution.tif"
+    with rasterio.open(
+        solution_path,
+        "w",
+        driver="GTiff",
+        width=2,
+        height=2,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:3857",
+        transform=from_origin(0.0, 2000.0, 1000.0, 1000.0),
+        nodata=255,
+    ) as dataset:
+        dataset.write(np.array([[2, 1], [0, 0]], dtype=np.uint8), 1)
+
+    records = {
+        record.scientific_name: record
+        for record in cell_major.detailed_coverage_records(
+            aoi,
+            read_solution_raster(solution_path),
+        )
+    }
+
+    mammal = records["Present mammal"]
+    assert mammal.range_area_km2 == pytest.approx(2.0)
+    assert mammal.range_in_aoi_area_km2 == pytest.approx(1.0)
+    assert mammal.range_in_aoi_pct == pytest.approx(50.0)
+    assert mammal.solution_covered_in_aoi_pct == pytest.approx(100.0)
+    assert mammal.pre_existing_covered_in_aoi_pct == pytest.approx(100.0)
+    assert mammal.new_covered_in_aoi_pct == pytest.approx(0.0)
+
+    bird = records["Present bird"]
+    assert bird.range_in_aoi_pct == pytest.approx(100.0)
+    assert bird.solution_covered_in_aoi_pct == pytest.approx(0.0)
 
 
 def test_species_profile_uses_five_bundles_and_never_threatened_union(tmp_path: Path) -> None:
@@ -269,10 +357,87 @@ def test_ecosystem_profile_maps_all_five_views_and_present_classes(tmp_path: Pat
             "id",
             "label",
             "area_km2",
+                "national_area_km2",
             "share_of_classified_pct",
+                "share_of_national_class_pct",
+                "solution_covered_area_km2",
+                "solution_covered_pct_of_aoi",
+                "pre_existing_covered_area_km2",
+                "pre_existing_covered_pct_of_aoi",
+                "new_covered_area_km2",
+                "new_covered_pct_of_aoi",
         }
         for view in ecosystem["views"]
     )
+
+
+def test_ecosystem_profile_calculates_real_solution_category_coverage(
+    tmp_path: Path,
+) -> None:
+    taxonomy = build_composite_taxonomy(
+        load_composite_crosswalk(
+            "rasterValue,tipoEcosistema,biomeFamily,broadBiomeContext,"
+            "biomeRegion,broadEcosystem,detailedEcosystem\n"
+            "1,Bosque,Orobioma,Contexto bosque,Orobioma Región,Bosque,Bosque húmedo\n"
+        )
+    )
+    mec_path = tmp_path / "mec.tif"
+    with rasterio.open(
+        mec_path,
+        "w",
+        driver="GTiff",
+        width=2,
+        height=2,
+        count=1,
+        dtype="uint16",
+        crs="EPSG:3857",
+        transform=from_origin(0.0, 2000.0, 1000.0, 1000.0),
+        nodata=0,
+    ) as dataset:
+        dataset.write(np.ones((2, 2), dtype=np.uint16), 1)
+
+    solution_path = tmp_path / "solution.tif"
+    with rasterio.open(
+        solution_path,
+        "w",
+        driver="GTiff",
+        width=2,
+        height=2,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:3857",
+        transform=from_origin(0.0, 2000.0, 1000.0, 1000.0),
+        nodata=255,
+    ) as dataset:
+        dataset.write(np.array([[2, 0], [1, 0]], dtype=np.uint8), 1)
+
+    base = raster_artifact(tmp_path)
+    artifact = replace(
+        base,
+        ecosystem_inventory=RuntimeEcosystemInventory(
+            raster_path=mec_path,
+            crosswalk_path=tmp_path / "crosswalk.csv",
+            provenance_path=tmp_path / "provenance.json",
+            taxonomy=taxonomy,
+            provenance={},
+        ),
+    )
+    sections, _, _ = calculate_custom_area_profile(
+        artifact,
+        POLYGON_LEFT_COLUMN,
+        ["ecosystems"],
+        read_solution_raster(solution_path),
+    )
+    record = next(
+        view["records"][0]
+        for view in sections["ecosystems"]["views"]
+        if view["id"] == "broadEcosystem"
+    )
+
+    assert record["share_of_national_class_pct"] == pytest.approx(50.0)
+    assert record["solution_covered_pct_of_aoi"] == pytest.approx(100.0)
+    assert record["pre_existing_covered_pct_of_aoi"] == pytest.approx(50.0)
+    assert record["new_covered_pct_of_aoi"] == pytest.approx(50.0)
 
 
 def test_ecosystem_inventory_grid_must_align_with_reference(tmp_path: Path) -> None:

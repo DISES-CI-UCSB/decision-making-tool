@@ -5,12 +5,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from mec_compact import (
     SOURCE_MODE_COMPOSITE,
     UI_VIEW_IDS,
     MecTaxonomy,
     build_composite_taxonomy,
     compute_inventory_rows,
+    compute_scope_rows,
     load_composite_crosswalk,
     read_mec_raster_values,
     validate_composite_provenance,
@@ -77,6 +80,7 @@ def load_ecosystem_inventory(
 def build_ecosystem_inventory(
     inventory: RuntimeEcosystemInventory,
     raster: SolutionRaster,
+    solution_raster: SolutionRaster | None = None,
 ) -> dict[str, Any]:
     try:
         ecosystem_values, _ = read_mec_raster_values(
@@ -84,8 +88,28 @@ def build_ecosystem_inventory(
             raster.fingerprint,
             inventory.taxonomy,
         )
-        rows = compute_inventory_rows(
-            scope_mask=raster.selected_mask,
+        if solution_raster is None:
+            rows = compute_inventory_rows(
+                scope_mask=raster.selected_mask,
+                ecosystem_values=ecosystem_values,
+                pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
+                taxonomy=inventory.taxonomy,
+            )
+        else:
+            if not raster.fingerprint.matches(solution_raster.fingerprint):
+                raise EcosystemInventoryError("solution_raster_grid_mismatch")
+            rows = compute_scope_rows(
+                scope_index=0,
+                scope_mask=raster.selected_mask,
+                pre_existing_mask=solution_raster.pre_existing_mask,
+                new_prioritizr_mask=solution_raster.new_prioritizr_mask,
+                selected_mask=solution_raster.selected_mask,
+                ecosystem_values=ecosystem_values,
+                pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
+                taxonomy=inventory.taxonomy,
+            )
+        national_rows = compute_inventory_rows(
+            scope_mask=np.isfinite(ecosystem_values),
             ecosystem_values=ecosystem_values,
             pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
             taxonomy=inventory.taxonomy,
@@ -102,20 +126,60 @@ def build_ecosystem_inventory(
     records_by_view: dict[str, list[dict[str, Any]]] = {
         view_id: [] for view_id in UI_VIEW_IDS
     }
+    national_area_by_class = {
+        int(row[1]): float(row[2])
+        for row in national_rows
+    }
     for row in rows:
         item = inventory.taxonomy.classes[int(row[1])]
         view_id = inventory.taxonomy.views[item.view_index].view_id
         area_km2 = float(row[2])
+        pre_existing_area_km2 = (
+            float(row[3])
+            if solution_raster is not None
+            else None
+        )
+        new_area_km2 = (
+            float(row[4])
+            if solution_raster is not None
+            else None
+        )
+        solution_area_km2 = (
+            pre_existing_area_km2 + new_area_km2
+            if pre_existing_area_km2 is not None and new_area_km2 is not None
+            else None
+        )
+        national_area_km2 = national_area_by_class.get(int(row[1]), 0.0)
         records_by_view[view_id].append(
             {
                 "id": item.class_id,
                 "label": item.label,
                 "area_km2": area_km2,
+                "national_area_km2": national_area_km2,
                 "share_of_classified_pct": (
                     (area_km2 / classified_area_km2) * 100.0
                     if classified_area_km2 > 0
                     else None
                 ),
+                "share_of_national_class_pct": _percentage(
+                    area_km2,
+                    national_area_km2,
+                ),
+                "solution_covered_area_km2": solution_area_km2,
+                "solution_covered_pct_of_aoi": _percentage(
+                    solution_area_km2,
+                    area_km2,
+                ) if solution_area_km2 is not None else None,
+                "pre_existing_covered_area_km2": pre_existing_area_km2,
+                "pre_existing_covered_pct_of_aoi": _percentage(
+                    pre_existing_area_km2,
+                    area_km2,
+                ) if pre_existing_area_km2 is not None else None,
+                "new_covered_area_km2": new_area_km2,
+                "new_covered_pct_of_aoi": _percentage(
+                    new_area_km2,
+                    area_km2,
+                ) if new_area_km2 is not None else None,
             }
         )
 
@@ -130,3 +194,9 @@ def build_ecosystem_inventory(
         "classified_area_km2": classified_area_km2,
         "views": views,
     }
+
+
+def _percentage(numerator: float, denominator: float) -> float | None:
+    if denominator <= 0:
+        return None
+    return (numerator / denominator) * 100.0

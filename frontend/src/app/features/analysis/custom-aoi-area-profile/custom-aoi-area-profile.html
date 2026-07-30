@@ -36,7 +36,13 @@
           id="custom-aoi-profile-summary-richness-value"
           class="mt-1 block text-base text-slate-900"
         >
-          {{ isResolvedSection(speciesState().status) ? speciesRecords().length : '--' }}
+          @if (isResolvedSection(speciesState().status)) {
+            {{ speciesRecords().length }}
+          } @else {
+            <span id="custom-aoi-profile-summary-richness-state" class="text-xs font-normal">
+              {{ sectionStateKey(speciesState().status) | translate }}
+            </span>
+          }
         </strong>
       </article>
       <article
@@ -50,7 +56,13 @@
           id="custom-aoi-profile-summary-threatened-value"
           class="mt-1 block text-base text-slate-900"
         >
-          {{ isResolvedSection(speciesState().status) ? threatenedCount() : '--' }}
+          @if (isResolvedSection(speciesState().status)) {
+            {{ threatenedCount() }}
+          } @else {
+            <span id="custom-aoi-profile-summary-threatened-state" class="text-xs font-normal">
+              {{ sectionStateKey(speciesState().status) | translate }}
+            </span>
+          }
         </strong>
       </article>
       <article
@@ -64,7 +76,13 @@
           id="custom-aoi-profile-summary-ecosystems-value"
           class="mt-1 block text-base text-slate-900"
         >
-          {{ isResolvedSection(ecosystemsState().status) ? broadEcosystemCount() : '--' }}
+          @if (isResolvedSection(ecosystemsState().status)) {
+            {{ broadEcosystemCount() }}
+          } @else {
+            <span id="custom-aoi-profile-summary-ecosystems-state" class="text-xs font-normal">
+              {{ sectionStateKey(ecosystemsState().status) | translate }}
+            </span>
+          }
         </strong>
       </article>
     </div>
@@ -233,6 +251,69 @@
                 formatPercent(row.share_of_classified_pct)
               }}</span>
             </div>
+            <dl
+              [id]="'custom-aoi-profile-ecosystem-coverage-' + index"
+              class="col-span-2 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-slate-100 pt-2 text-[11px]"
+            >
+              <div [id]="'custom-aoi-profile-ecosystem-national-share-' + index">
+                <dt
+                  [id]="'custom-aoi-profile-ecosystem-national-share-label-' + index"
+                  class="text-slate-500"
+                >
+                  {{ 'analysis.aoi.customProfile.ecosystems.nationalShare' | translate }}
+                </dt>
+                <dd
+                  [id]="'custom-aoi-profile-ecosystem-national-share-value-' + index"
+                  class="font-semibold text-slate-800"
+                >
+                  {{ formatPercent(row.share_of_national_class_pct) }}
+                </dd>
+              </div>
+              @if (row.solution_covered_area_km2 !== null) {
+                <div [id]="'custom-aoi-profile-ecosystem-solution-coverage-' + index">
+                  <dt
+                    [id]="'custom-aoi-profile-ecosystem-solution-coverage-label-' + index"
+                    class="text-slate-500"
+                  >
+                    {{ 'analysis.aoi.customProfile.ecosystems.solutionCoverage' | translate }}
+                  </dt>
+                  <dd
+                    [id]="'custom-aoi-profile-ecosystem-solution-coverage-value-' + index"
+                    class="font-semibold text-slate-800"
+                  >
+                    {{ formatPercent(row.solution_covered_pct_of_aoi) }}
+                  </dd>
+                </div>
+                <div [id]="'custom-aoi-profile-ecosystem-pre-existing-' + index">
+                  <dt
+                    [id]="'custom-aoi-profile-ecosystem-pre-existing-label-' + index"
+                    class="text-slate-500"
+                  >
+                    {{ 'analysis.aoi.customProfile.ecosystems.preExistingCoverage' | translate }}
+                  </dt>
+                  <dd
+                    [id]="'custom-aoi-profile-ecosystem-pre-existing-value-' + index"
+                    class="font-semibold text-slate-800"
+                  >
+                    {{ formatPercent(row.pre_existing_covered_pct_of_aoi) }}
+                  </dd>
+                </div>
+                <div [id]="'custom-aoi-profile-ecosystem-new-' + index">
+                  <dt
+                    [id]="'custom-aoi-profile-ecosystem-new-label-' + index"
+                    class="text-slate-500"
+                  >
+                    {{ 'analysis.aoi.customProfile.ecosystems.newCoverage' | translate }}
+                  </dt>
+                  <dd
+                    [id]="'custom-aoi-profile-ecosystem-new-value-' + index"
+                    class="font-semibold text-slate-800"
+                  >
+                    {{ formatPercent(row.new_covered_pct_of_aoi) }}
+                  </dd>
+                </div>
+              }
+            </dl>
           </article>
         } @empty {
           <p id="custom-aoi-profile-ecosystem-no-results" class="p-3 text-xs text-slate-600">
@@ -334,6 +415,42 @@
         }
       </select>
     </div>
+    <div
+      id="custom-aoi-profile-species-coverage-status"
+      class="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900"
+      aria-live="polite"
+    >
+      @if (!solutionId()) {
+        <p id="custom-aoi-profile-species-coverage-no-solution">
+          {{ 'analysis.aoi.customProfile.species.coverageNoSolution' | translate }}
+        </p>
+      } @else if (detailedSpeciesState() === 'submitting') {
+        <p id="custom-aoi-profile-species-coverage-submitting">
+          {{ 'analysis.aoi.customProfile.species.coverageSubmitting' | translate }}
+        </p>
+      } @else if (detailedSpeciesJob()?.status === 'queued') {
+        <p id="custom-aoi-profile-species-coverage-queued">
+          {{
+            'analysis.aoi.customProfile.species.coverageQueued'
+              | translate: { position: detailedSpeciesJob()?.queue_position }
+          }}
+        </p>
+      } @else if (detailedSpeciesJob()?.status === 'running') {
+        <p id="custom-aoi-profile-species-coverage-running">
+          {{ 'analysis.aoi.customProfile.species.coverageRunning' | translate }}
+        </p>
+      } @else if (
+        detailedSpeciesState() === 'failed' || detailedSpeciesJob()?.status === 'failed'
+      ) {
+        <p id="custom-aoi-profile-species-coverage-failed">
+          {{ 'analysis.aoi.customProfile.species.coverageFailed' | translate }}
+        </p>
+      } @else if (detailedSpeciesJob()?.status === 'complete') {
+        <p id="custom-aoi-profile-species-coverage-complete">
+          {{ 'analysis.aoi.customProfile.species.coverageComplete' | translate }}
+        </p>
+      }
+    </div>
     <p id="custom-aoi-profile-species-result-count" class="text-xs text-slate-600">
       {{
         'analysis.aoi.customProfile.species.showing'
@@ -370,8 +487,68 @@
             [id]="'custom-aoi-profile-species-iucn-value-' + index"
             class="self-center rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700"
           >
-            {{ record.iucn_status || '--' }}
+            {{ formatIucn(record.iucn_status) }}
           </span>
+          @if (speciesCoverage(record.id); as coverage) {
+            <dl
+              [id]="'custom-aoi-profile-species-coverage-values-' + index"
+              class="col-span-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-2 text-[11px] md:grid-cols-4"
+            >
+              <div [id]="'custom-aoi-profile-species-range-in-aoi-' + index">
+                <dt
+                  [id]="'custom-aoi-profile-species-range-in-aoi-label-' + index"
+                  class="text-slate-500"
+                >
+                  {{ 'analysis.aoi.customProfile.species.rangeInAoi' | translate }}
+                </dt>
+                <dd
+                  [id]="'custom-aoi-profile-species-range-in-aoi-value-' + index"
+                  class="font-semibold text-slate-800"
+                >
+                  {{ formatPercent(coverage.range_in_aoi_pct) }}
+                </dd>
+              </div>
+              <div [id]="'custom-aoi-profile-species-solution-coverage-' + index">
+                <dt
+                  [id]="'custom-aoi-profile-species-solution-coverage-label-' + index"
+                  class="text-slate-500"
+                >
+                  {{ 'analysis.aoi.customProfile.species.solutionCoverage' | translate }}
+                </dt>
+                <dd
+                  [id]="'custom-aoi-profile-species-solution-coverage-value-' + index"
+                  class="font-semibold text-slate-800"
+                >
+                  {{ formatPercent(coverage.solution_covered_in_aoi_pct) }}
+                </dd>
+              </div>
+              <div [id]="'custom-aoi-profile-species-pre-existing-' + index">
+                <dt
+                  [id]="'custom-aoi-profile-species-pre-existing-label-' + index"
+                  class="text-slate-500"
+                >
+                  {{ 'analysis.aoi.customProfile.species.preExistingCoverage' | translate }}
+                </dt>
+                <dd
+                  [id]="'custom-aoi-profile-species-pre-existing-value-' + index"
+                  class="font-semibold text-slate-800"
+                >
+                  {{ formatPercent(coverage.pre_existing_covered_in_aoi_pct) }}
+                </dd>
+              </div>
+              <div [id]="'custom-aoi-profile-species-new-' + index">
+                <dt [id]="'custom-aoi-profile-species-new-label-' + index" class="text-slate-500">
+                  {{ 'analysis.aoi.customProfile.species.newCoverage' | translate }}
+                </dt>
+                <dd
+                  [id]="'custom-aoi-profile-species-new-value-' + index"
+                  class="font-semibold text-slate-800"
+                >
+                  {{ formatPercent(coverage.new_covered_in_aoi_pct) }}
+                </dd>
+              </div>
+            </dl>
+          }
         </article>
       } @empty {
         <p id="custom-aoi-profile-species-no-results" class="p-4 text-sm text-slate-600">

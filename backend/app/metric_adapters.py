@@ -59,7 +59,13 @@ from raster_metrics import (  # noqa: E402
 from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata  # noqa: E402
 from species_data import CLASS_BUCKETS  # noqa: E402
 
-from .species_index import RuntimeSpeciesIndex, SpeciesIndexQueryError  # noqa: E402
+from .species_index import (  # noqa: E402
+    RuntimeSpeciesBitsetIndex,
+    RuntimeSpeciesIndex,
+    SpeciesIndexQueryError,
+)
+
+RuntimeSpeciesQueryIndex = RuntimeSpeciesIndex | RuntimeSpeciesBitsetIndex
 
 AREA_METRIC_IDS = ("national_contribution", "priority_area_in_region")
 AREA_ALIAS = "area"
@@ -247,7 +253,7 @@ def calculate_raster_metrics_for_aoi(
     raster: SolutionRaster,
     layers: dict[str, RuntimeRasterLayer],
     species_matrices: dict[str, RuntimeSpeciesMatrix],
-    species_index: RuntimeSpeciesIndex | None,
+    species_index: RuntimeSpeciesQueryIndex | None,
     species_pool_sizes: dict[str, Any],
     metric_ids: list[str],
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
@@ -414,7 +420,7 @@ def _calculate_species_metric(
     definition: MetricDefinition,
     raster: SolutionRaster,
     matrices: dict[str, RuntimeSpeciesMatrix],
-    species_index: RuntimeSpeciesIndex | None,
+    species_index: RuntimeSpeciesQueryIndex | None,
     pool_sizes: dict[str, Any],
     counts_cache: dict[str, int],
 ) -> tuple[float | int, set[str]]:
@@ -450,7 +456,7 @@ def _species_group_count(
     group: str,
     raster: SolutionRaster,
     matrices: dict[str, RuntimeSpeciesMatrix],
-    species_index: RuntimeSpeciesIndex | None,
+    species_index: RuntimeSpeciesQueryIndex | None,
     counts_cache: dict[str, int],
 ) -> int:
     if group in counts_cache:
@@ -556,7 +562,7 @@ def _species_chunk_overlaps_selection(chunk: bytes, selected_window: np.ndarray)
 def _species_total_non_fish(
     pool_sizes: dict[str, Any],
     matrices: dict[str, RuntimeSpeciesMatrix],
-    species_index: RuntimeSpeciesIndex | None,
+    species_index: RuntimeSpeciesQueryIndex | None,
 ) -> int:
     raw_total = pool_sizes.get("total_non_fish")
     if isinstance(raw_total, (int, float)) and raw_total > 0:

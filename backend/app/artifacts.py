@@ -13,7 +13,19 @@ import rasterio
 from pydantic import BaseModel, Field
 
 from .config import Settings
-from .species_index import RuntimeSpeciesIndex, SpeciesIndexLoadError, load_runtime_species_index
+from .solution_registry import (
+    RasterFingerprint,
+    RuntimeSolutionRegistry,
+    SolutionRegistryError,
+    build_solution_registry,
+)
+from .species_index import (
+    RuntimeSpeciesBitsetIndex,
+    RuntimeSpeciesIndex,
+    SpeciesIndexLoadError,
+    load_runtime_species_bitset_index,
+    load_runtime_species_index,
+)
 from .ecosystem_inventory import (
     EcosystemInventoryError,
     RuntimeEcosystemInventory,
@@ -63,13 +75,16 @@ class RuntimeArtifact:
     reference_raster_path: Path | None = None
     raster_layers: dict[str, RuntimeRasterLayer] = field(default_factory=dict)
     species_matrices: dict[str, RuntimeSpeciesMatrix] = field(default_factory=dict)
-    species_index: RuntimeSpeciesIndex | None = None
+    species_index: RuntimeSpeciesIndex | RuntimeSpeciesBitsetIndex | None = None
     species_pool_sizes: dict[str, Any] = field(default_factory=dict)
     ecosystem_inventory: RuntimeEcosystemInventory | None = None
+    solution_registry: RuntimeSolutionRegistry | None = None
 
     def close(self) -> None:
         if self.species_index is not None:
             self.species_index.close()
+        if self.solution_registry is not None:
+            self.solution_registry.close()
 
 
 class ArtifactValidationError(ValueError):
@@ -87,7 +102,7 @@ REQUIRED_MANIFEST_FIELDS = {
 _RUNTIME_LOCK = Lock()
 _RUNTIME_ARTIFACT: RuntimeArtifact | None = None
 _RUNTIME_STATE: ArtifactState | None = None
-_RUNTIME_SETTINGS_KEY: tuple[str, bool, str] | None = None
+_RUNTIME_SETTINGS_KEY: tuple[str, bool, str, str] | None = None
 
 
 def _close_runtime_artifact(artifact: RuntimeArtifact | None) -> None:
@@ -99,11 +114,12 @@ def _close_runtime_artifact(artifact: RuntimeArtifact | None) -> None:
         LOGGER.warning("Runtime artifact cleanup failed", exc_info=True)
 
 
-def _settings_key(settings: Settings) -> tuple[str, bool, str]:
+def _settings_key(settings: Settings) -> tuple[str, bool, str, str]:
     return (
         str(settings.artifact_manifest_path),
         settings.artifact_required,
         settings.artifact_schema_version,
+        str(settings.solution_cache_dir),
     )
 
 
@@ -207,6 +223,39 @@ def _verify_checksum(path: Path, checksum: Any, label: str) -> None:
         actual = _sha256(path)
         if actual != checksum.get("value"):
             raise ArtifactValidationError(f"{label} checksum does not match manifest.")
+
+
+def _verify_aggregate_checksum(manifest: dict[str, Any]) -> None:
+    if manifest.get("checksum_scope") != "files/v1":
+        return
+    files = manifest.get("files")
+    if files is None:
+        return
+    if not isinstance(files, list):
+        raise ArtifactValidationError("Artifact files must be a list.")
+    aggregate = manifest.get("checksum")
+    if (
+        not isinstance(aggregate, dict)
+        or aggregate.get("algorithm") != "sha256"
+        or not isinstance(aggregate.get("value"), str)
+    ):
+        raise ArtifactValidationError("Artifact aggregate checksum is invalid.")
+
+    digest = hashlib.sha256()
+    try:
+        for entry in sorted(files, key=lambda item: item["path"]):
+            checksum = entry["checksum"]
+            if checksum.get("algorithm") != "sha256":
+                raise ArtifactValidationError(
+                    "Artifact file checksum algorithm must be sha256."
+                )
+            digest.update(str(entry["path"]).encode("utf-8"))
+            digest.update(str(entry["size_bytes"]).encode("utf-8"))
+            digest.update(str(checksum["value"]).encode("utf-8"))
+    except (KeyError, TypeError) as exc:
+        raise ArtifactValidationError("Artifact file checksum entry is invalid.") from exc
+    if digest.hexdigest() != aggregate["value"]:
+        raise ArtifactValidationError("Artifact aggregate checksum mismatch.")
 
 
 def _load_area_grid(manifest_path: Path, manifest: dict[str, Any]) -> tuple[dict[str, Any], Path]:
@@ -340,6 +389,39 @@ def _load_species_matrices(manifest_path: Path, manifest: dict[str, Any]) -> dic
     return matrices
 
 
+def _load_species_bitset(
+    manifest_path: Path,
+    manifest: dict[str, Any],
+) -> RuntimeSpeciesBitsetIndex | None:
+    raw = manifest.get("species_bitset")
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ArtifactValidationError("species_bitset must be an object when present.")
+
+    resolved: dict[str, Path] = {}
+    for key in ("data", "metadata"):
+        entry = raw.get(key)
+        if not isinstance(entry, dict):
+            raise ArtifactValidationError(f"species_bitset.{key} must be an object.")
+        raw_path = entry.get("path")
+        if not isinstance(raw_path, str) or not raw_path:
+            raise ArtifactValidationError(f"species_bitset.{key}.path is required.")
+        path = _relative_artifact_path(manifest_path, raw_path)
+        if not path.is_file():
+            raise ArtifactValidationError(f"Species bitset {key} artifact is missing.")
+        _verify_checksum(path, entry.get("checksum"), f"Species bitset {key}")
+        resolved[key] = path
+
+    try:
+        return load_runtime_species_bitset_index(
+            resolved["data"],
+            resolved["metadata"],
+        )
+    except SpeciesIndexLoadError as exc:
+        raise ArtifactValidationError(str(exc)) from exc
+
+
 def _load_ecosystem_inventory(
     manifest_path: Path,
     manifest: dict[str, Any],
@@ -419,6 +501,7 @@ def _validate_ecosystem_grid_alignment(
 
 
 def _load_raster_artifact(
+    settings: Settings,
     manifest_path: Path,
     manifest: dict[str, Any],
 ) -> tuple[RuntimeArtifact, dict[str, Any]]:
@@ -433,6 +516,20 @@ def _load_raster_artifact(
 
     try:
         with rasterio.open(resolved_reference) as dataset:
+            transform = dataset.transform
+            reference_fingerprint = RasterFingerprint(
+                width=dataset.width,
+                height=dataset.height,
+                transform=(
+                    transform.a,
+                    transform.b,
+                    transform.c,
+                    transform.d,
+                    transform.e,
+                    transform.f,
+                ),
+                crs=str(dataset.crs) if dataset.crs else None,
+            )
             reference_metadata = {
                 "width": dataset.width,
                 "height": dataset.height,
@@ -443,6 +540,34 @@ def _load_raster_artifact(
     except Exception as exc:
         raise ArtifactValidationError(f"Reference raster could not be opened: {exc}") from exc
 
+    source_manifest = manifest.get("source_manifest") or {}
+    public_blob_host = source_manifest.get("public_blob_host")
+    if manifest.get("solution_rasters") is not None and (
+        not isinstance(public_blob_host, str) or not public_blob_host
+    ):
+        raise ArtifactValidationError(
+            "Artifact source_manifest.public_blob_host is required."
+        )
+    try:
+        solution_registry = build_solution_registry(
+            manifest.get("solution_rasters"),
+            cache_dir=settings.solution_cache_dir,
+            reference_fingerprint=reference_fingerprint,
+            public_blob_host=(
+                public_blob_host
+                if isinstance(public_blob_host, str)
+                else ""
+            ),
+            release_id=str(manifest.get("artifact_version") or ""),
+        )
+    except SolutionRegistryError as exc:
+        raise ArtifactValidationError(str(exc)) from exc
+    solution_registry_metadata = (
+        solution_registry.metadata()
+        if solution_registry is not None
+        else {"status": "not_configured"}
+    )
+
     layers = _load_raster_layers(manifest_path, manifest)
     species_matrices = _load_species_matrices(manifest_path, manifest)
     species_pool_sizes = (
@@ -450,9 +575,12 @@ def _load_raster_artifact(
         if isinstance(manifest.get("species_pool_sizes"), dict)
         else {}
     )
-    species_index: RuntimeSpeciesIndex | None = None
+    species_index: RuntimeSpeciesIndex | RuntimeSpeciesBitsetIndex | None = None
     species_index_metadata: dict[str, Any] = {"status": "not_configured"}
-    if species_matrices:
+    species_index = _load_species_bitset(manifest_path, manifest)
+    if species_index is not None:
+        species_index_metadata = species_index.metadata()
+    elif species_matrices:
         try:
             species_index = load_runtime_species_index(species_matrices)
             species_index_metadata = species_index.metadata()
@@ -475,6 +603,8 @@ def _load_raster_artifact(
     except Exception:
         if species_index is not None:
             species_index.close()
+        if solution_registry is not None:
+            solution_registry.close()
         raise
     metadata = {
         "artifact_kind": manifest.get("artifact_kind", "colombia-raster-custom-aoi/v1"),
@@ -487,6 +617,7 @@ def _load_raster_artifact(
         "species_index": species_index_metadata,
         "species_pool_sizes": species_pool_sizes,
         "ecosystem_inventory": ecosystem_inventory_metadata,
+        "solution_registry": solution_registry_metadata,
         "metric_coverage": manifest.get("metric_coverage", {}),
     }
     artifact = RuntimeArtifact(
@@ -497,6 +628,7 @@ def _load_raster_artifact(
         species_index=species_index,
         species_pool_sizes=species_pool_sizes,
         ecosystem_inventory=ecosystem_inventory,
+        solution_registry=solution_registry,
     )
     return artifact, metadata
 
@@ -509,9 +641,14 @@ def load_runtime_artifact(settings: Settings) -> tuple[RuntimeArtifact, Artifact
         raise ArtifactValidationError(
             f"Artifact manifest schema_version must be {settings.artifact_schema_version}."
         )
+    _verify_aggregate_checksum(manifest)
 
     if manifest.get("reference_raster_path"):
-        artifact, metadata = _load_raster_artifact(settings.artifact_manifest_path, manifest)
+        artifact, metadata = _load_raster_artifact(
+            settings,
+            settings.artifact_manifest_path,
+            manifest,
+        )
     else:
         area_grid, area_grid_path = _load_area_grid(settings.artifact_manifest_path, manifest)
         metadata = _artifact_metadata(area_grid, area_grid_path)

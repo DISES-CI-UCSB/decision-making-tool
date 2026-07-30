@@ -18,6 +18,9 @@ class Settings:
     artifact_manifest_path: Path
     artifact_required: bool
     artifact_schema_version: str
+    solution_cache_dir: Path = Path("runtime-cache/solutions")
+    custom_polygon_job_db: Path = Path("runtime-cache/jobs.sqlite3")
+    ops_token: str | None = None
 
 
 def get_settings() -> Settings:
@@ -29,6 +32,13 @@ def get_settings() -> Settings:
     return Settings(
         artifact_dir=artifact_dir,
         artifact_manifest_path=manifest_path,
+        solution_cache_dir=Path(
+            os.getenv("DMT_SOLUTION_CACHE_DIR", "runtime-cache/solutions")
+        ),
+        custom_polygon_job_db=Path(
+            os.getenv("DMT_CUSTOM_POLYGON_JOB_DB", "runtime-cache/jobs.sqlite3")
+        ),
+        ops_token=os.getenv("DMT_OPS_TOKEN") or None,
         artifact_required=_env_bool("DMT_ARTIFACT_REQUIRED", default=False),
         artifact_schema_version=os.getenv(
             "DMT_ARTIFACT_SCHEMA_VERSION", "metrics-artifact-manifest/v1"

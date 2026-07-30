@@ -154,7 +154,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-welcome-hero-card')).toBeNull();
   });
 
-  it('shows a custom AOI Area Profile without an active solution', async () => {
+  it('shows a custom AOI Area Profile additively with the shared AOI dashboard', async () => {
     vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
       of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
     );
@@ -167,7 +167,9 @@ describe('PanelSwitcherComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('#aoi-dashboard-custom-area-profile')).not.toBeNull();
-    expect(compiled.querySelector('#aoi-dashboard-area-unit-toggle')).toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-area-unit-toggle')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-general')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-dashboard-download-metrics-csv-btn')).not.toBeNull();
   });
 
   it('renders overview content for an active solution', () => {

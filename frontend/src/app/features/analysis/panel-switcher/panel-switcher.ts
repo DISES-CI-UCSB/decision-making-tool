@@ -539,6 +539,9 @@ export class PanelSwitcherComponent {
       solution?.metadata?.['domain'] === 'marine'
     );
   });
+  protected readonly activeSolutionId = computed(() =>
+    this.resolveMetricsSolutionId(this.activeSolution()),
+  );
   protected readonly showCustomAoiAreaProfile = computed(() => {
     const solution = this.activeSolution();
     const domain =

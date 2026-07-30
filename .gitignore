@@ -104,3 +104,5 @@ data/biomod_spp_ranges_updatedIUCN.csv
 /backend/.pytest_cache/
 /backend/runtime-artifacts/*
 !/backend/runtime-artifacts/.gitkeep
+/backend/runtime-cache/*
+!/backend/runtime-cache/.gitkeep

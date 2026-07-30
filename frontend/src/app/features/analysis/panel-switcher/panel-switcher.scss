@@ -2740,10 +2740,6 @@
   color: #475569;
 }
 
-.custom-aoi-profile-active > :not(app-custom-aoi-area-profile) {
-  display: none;
-}
-
 @media (max-width: 760px) {
   .aoi-mec-modal-level-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));

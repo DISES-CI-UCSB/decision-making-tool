@@ -19,6 +19,7 @@ if str(METRICS_PIPELINE) not in sys.path:
 from blob_manifest import DEFAULT_MANIFEST_URL, fetch_manifest  # noqa: E402
 from metric_definitions import METRIC_CATALOG  # noqa: E402
 from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records  # noqa: E402
+from sparse.species_bitset import build_species_bitset  # noqa: E402
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
@@ -62,12 +63,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest-url", default=DEFAULT_MANIFEST_URL)
     parser.add_argument("--solution-id", default=None)
     parser.add_argument("--force", action="store_true", help="Re-download source rasters.")
+    parser.add_argument(
+        "--immutable-release",
+        action="store_true",
+        help="Build into a versioned releases directory without activating it.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    artifact_dir = args.artifact_dir.resolve()
+    artifact_root = args.artifact_dir.resolve()
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    artifact_version = f"colombia-custom-aoi-v1-{now.replace(':', '').replace('-', '')}"
+    final_release_dir: Path | None = None
+    if args.immutable_release:
+        final_release_dir = artifact_root / "releases" / artifact_version
+        artifact_dir = final_release_dir.with_name(f".{artifact_version}.partial")
+        if artifact_dir.exists() or final_release_dir.exists():
+            raise SystemExit(f"Artifact release already exists: {artifact_version}")
+    else:
+        artifact_dir = artifact_root
     sources_dir = artifact_dir / "sources"
     sources_dir.mkdir(parents=True, exist_ok=True)
 
@@ -116,6 +132,7 @@ def main() -> None:
         )
 
     species_entries: list[dict[str, Any]] = []
+    species_matrix_paths: dict[str, Path] = {}
     for spec in species_specs:
         cached = download_source(
             spec.url,
@@ -133,8 +150,44 @@ def main() -> None:
                 "size_bytes": cached.bytes,
             }
         )
+        if spec.group in CLASS_BUCKETS:
+            species_matrix_paths[spec.group] = cached.path
+
+    species_bitset_dir = sources_dir / "species-bitset"
+    species_bitset_data = species_bitset_dir / "species.cells.bits"
+    species_bitset_metadata = species_bitset_dir / "species.cells.json"
+    build_species_bitset(
+        species_matrix_paths,
+        species_bitset_data,
+        species_bitset_metadata,
+    )
+    species_bitset: dict[str, Any] = {}
+    for key, path in {
+        "data": species_bitset_data,
+        "metadata": species_bitset_metadata,
+    }.items():
+        checksum = sha256_file(path)
+        size_bytes = path.stat().st_size
+        file_entries.append(file_entry(path, artifact_dir, checksum, size_bytes))
+        species_bitset[key] = {
+            "path": str(path.relative_to(artifact_dir)),
+            "checksum": {"algorithm": "sha256", "value": checksum},
+            "size_bytes": size_bytes,
+        }
 
     species_pool_sizes = load_species_pool_sizes()
+    solution_rasters = [
+        {
+            "solution_id": str(solution_entry["id"]),
+            "source_url": str(solution_entry["displayUrl"]),
+            "blob_path": str(solution_entry["blobPath"]),
+            "category_semantics": {
+                "1": "new_prioritizr",
+                "2": "pre_existing_aggregate",
+            },
+        }
+        for solution_entry in manifest.national_solutions
+    ]
     ecosystem_inventory: dict[str, Any] = {}
     # These URLs are mutable publication targets, so refresh the small MEC bundle
     # on every build rather than silently pairing stale files with a new manifest.
@@ -158,13 +211,13 @@ def main() -> None:
         }
 
     aggregate_checksum = aggregate_file_checksum(file_entries)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     runtime_manifest = {
-        "artifact_version": f"colombia-custom-aoi-v1-{now.replace(':', '').replace('-', '')}",
+        "artifact_version": artifact_version,
         "artifact_kind": "colombia-raster-custom-aoi/v1",
         "schema_version": "metrics-artifact-manifest/v1",
         "created_at": now,
         "checksum": {"algorithm": "sha256", "value": aggregate_checksum},
+        "checksum_scope": "files/v1",
         "source_manifest": {
             "url": manifest.url,
             "public_blob_host": manifest.public_blob_host,
@@ -178,14 +231,20 @@ def main() -> None:
         "reference_raster_checksum": {"algorithm": "sha256", "value": reference.sha256},
         "raster_layers": layer_entries,
         "species_matrices": species_entries,
+        "species_bitset": species_bitset,
         "species_pool_sizes": species_pool_sizes,
         "ecosystem_inventory": ecosystem_inventory,
+        "solution_rasters": solution_rasters,
         "metric_coverage": metric_coverage(layer_specs, species_specs),
         "files": file_entries,
     }
 
     manifest_path = artifact_dir / "manifest.json"
     write_json(manifest_path, runtime_manifest)
+    if final_release_dir is not None:
+        artifact_dir.replace(final_release_dir)
+        manifest_path = final_release_dir / "manifest.json"
+        print("Release built but not activated.")
     print(f"Wrote runtime artifact manifest: {manifest_path}")
     print(f"Downloaded/reused files: {len(file_entries)}")
     print(f"Implemented metric count: {len(runtime_manifest['metric_coverage']['implemented_now'])}")

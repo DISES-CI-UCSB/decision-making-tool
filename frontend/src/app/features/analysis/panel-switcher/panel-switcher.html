@@ -1021,45 +1021,40 @@
                   </p>
                 }
               </div>
-              @if (!showCustomAoiAreaProfile()) {
-                <div id="aoi-dashboard-area-unit-row" class="rs-area-unit-row">
-                  <span id="aoi-dashboard-area-unit-label" class="rs-area-unit-label">
-                    {{ 'analysis.areaUnitToggle.label' | translate }}
-                  </span>
-                  <div
-                    id="aoi-dashboard-area-unit-toggle"
-                    class="rs-area-unit-toggle"
-                    role="group"
-                    [attr.aria-label]="'analysis.areaUnitToggle.ariaLabel' | translate"
-                  >
-                    @for (unit of areaUnitOptions; track unit) {
-                      <button
-                        [id]="'aoi-dashboard-area-unit-toggle-' + unit"
-                        type="button"
-                        class="rs-area-unit-button"
-                        [class.rs-area-unit-button-active]="isAreaDisplayUnitSelected(unit)"
-                        [attr.aria-pressed]="isAreaDisplayUnitSelected(unit)"
-                        (click)="selectAreaDisplayUnit(unit)"
-                      >
-                        {{ getAreaDisplayUnitLabel(unit) }}
-                      </button>
-                    }
-                  </div>
+              <div id="aoi-dashboard-area-unit-row" class="rs-area-unit-row">
+                <span id="aoi-dashboard-area-unit-label" class="rs-area-unit-label">
+                  {{ 'analysis.areaUnitToggle.label' | translate }}
+                </span>
+                <div
+                  id="aoi-dashboard-area-unit-toggle"
+                  class="rs-area-unit-toggle"
+                  role="group"
+                  [attr.aria-label]="'analysis.areaUnitToggle.ariaLabel' | translate"
+                >
+                  @for (unit of areaUnitOptions; track unit) {
+                    <button
+                      [id]="'aoi-dashboard-area-unit-toggle-' + unit"
+                      type="button"
+                      class="rs-area-unit-button"
+                      [class.rs-area-unit-button-active]="isAreaDisplayUnitSelected(unit)"
+                      [attr.aria-pressed]="isAreaDisplayUnitSelected(unit)"
+                      (click)="selectAreaDisplayUnit(unit)"
+                    >
+                      {{ getAreaDisplayUnitLabel(unit) }}
+                    </button>
+                  }
                 </div>
-              }
+              </div>
             </header>
 
             <!-- ═══ SCROLLABLE BODY ═══ -->
-            <div
-              id="aoi-dashboard-body"
-              class="aoi-panel-body"
-              [class.custom-aoi-profile-active]="showCustomAoiAreaProfile()"
-            >
+            <div id="aoi-dashboard-body" class="aoi-panel-body">
               @if (showCustomAoiAreaProfile()) {
                 <app-custom-aoi-area-profile
                   id="aoi-dashboard-custom-area-profile"
                   [geometry]="customAoiGeometry()"
                   [areaKm2]="aoi.areaKm2 ?? null"
+                  [solutionId]="activeSolutionId()"
                 />
               }
               <p id="aoi-dashboard-scope-explanation" class="aoi-scope-explanation">
@@ -2590,13 +2585,7 @@
               }
             </div>
 
-            <footer
-              id="aoi-dashboard-footer"
-              class="aoi-panel-footer"
-              [class.hidden]="showCustomAoiAreaProfile()"
-              [attr.aria-hidden]="showCustomAoiAreaProfile()"
-              [attr.inert]="showCustomAoiAreaProfile() ? '' : null"
-            >
+            <footer id="aoi-dashboard-footer" class="aoi-panel-footer">
               <button
                 id="aoi-dashboard-download-metrics-csv-btn"
                 type="button"
