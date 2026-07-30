@@ -176,27 +176,194 @@ describe('AdminBoundaryService', () => {
     );
   });
 
-  it('uses distinct blue hover and yellow selection polygon outlines', () => {
+  it('uses distinct yellow hover and orange selection polygon outlines', () => {
     const service = TestBed.inject(AdminBoundaryService);
 
-    expect(interactionSymbol(service, 'polygon', [37, 99, 235, 255], 2.5)).toEqual(
-      expect.objectContaining({
-        color: [37, 99, 235, 0],
-        outline: expect.objectContaining({
-          color: [37, 99, 235, 255],
-          width: 2.5,
-        }),
-      }),
-    );
-    expect(interactionSymbol(service, 'polygon', [250, 204, 21, 255], 3)).toEqual(
+    expect(interactionSymbol(service, 'polygon', [250, 204, 21, 255], 2.5)).toEqual(
       expect.objectContaining({
         color: [250, 204, 21, 0],
         outline: expect.objectContaining({
           color: [250, 204, 21, 255],
+          width: 2.5,
+        }),
+      }),
+    );
+    expect(interactionSymbol(service, 'polygon', [249, 115, 22, 255], 3)).toEqual(
+      expect.objectContaining({
+        color: [249, 115, 22, 0],
+        outline: expect.objectContaining({
+          color: [249, 115, 22, 255],
           width: 3,
         }),
       }),
     );
+  });
+
+  it('registers the yellow native hover highlight without a polygon fill', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const highlights: Record<string, unknown>[] = [];
+
+    (
+      service as unknown as {
+        registerHoverHighlightOptions(view: { highlights: Record<string, unknown>[] }): void;
+      }
+    ).registerHoverHighlightOptions({ highlights });
+
+    expect(highlights).toEqual([
+      {
+        name: 'aoi-hover',
+        color: [250, 204, 21],
+        haloOpacity: 1,
+        fillOpacity: 0,
+        shadowOpacity: 0,
+      },
+    ]);
+  });
+
+  it('caps hover hit tests at two while retaining the latest pointer position', async () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const hitResolvers: ((value: { results: [] }) => void)[] = [];
+    const view = {
+      hitTest: vi.fn((screenPoint: unknown, options: unknown) => {
+        void screenPoint;
+        void options;
+        return new Promise<{ results: [] }>((resolve) => {
+          hitResolvers.push(resolve);
+        });
+      }),
+      allLayerViews: [],
+    };
+    Object.assign(service as unknown as Record<string, unknown>, {
+      boundaryLayers: [{ id: 'aoi-departments-colombia', visible: true }],
+    });
+    const hoverService = service as unknown as {
+      enqueuePointerMove(mapView: never, screenX: number, screenY: number): void;
+    };
+
+    hoverService.enqueuePointerMove(view as never, 10, 10);
+    hoverService.enqueuePointerMove(view as never, 20, 20);
+    hoverService.enqueuePointerMove(view as never, 30, 30);
+
+    expect(view.hitTest).toHaveBeenCalledTimes(2);
+    hitResolvers[0]?.({ results: [] });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(view.hitTest).toHaveBeenCalledTimes(3);
+    expect(view.hitTest.mock.calls[2]?.[0]).toEqual({ x: 30, y: 30 });
+
+    hitResolvers[1]?.({ results: [] });
+    hitResolvers[2]?.({ results: [] });
+    await Promise.resolve();
+  });
+
+  it('does not redraw hover and selection highlights for unchanged geometry', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const geometry = new Polygon({
+      rings: [
+        [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+          [0, 0],
+        ],
+      ],
+    });
+    const nextGeometry = geometry.clone();
+    nextGeometry.rings = nextGeometry.rings.map((ring) => ring.map(([x, y]) => [x + 20, y]));
+    const hoverLayer = { removeAll: vi.fn(), add: vi.fn() };
+    const selectionLayer = { removeAll: vi.fn(), add: vi.fn() };
+    Object.assign(service as unknown as Record<string, unknown>, {
+      aoiHoverLayer: hoverLayer,
+      aoiHighlightLayer: selectionLayer,
+    });
+    const highlightService = service as unknown as {
+      setHoverHighlight(hoverGeometry: Geometry): void;
+      setSelectionHighlight(selectionGeometry: Geometry): void;
+    };
+
+    highlightService.setHoverHighlight(geometry);
+    highlightService.setHoverHighlight(geometry);
+    highlightService.setHoverHighlight(nextGeometry);
+    highlightService.setSelectionHighlight(geometry);
+    highlightService.setSelectionHighlight(geometry);
+    highlightService.setSelectionHighlight(nextGeometry);
+
+    expect(hoverLayer.removeAll).not.toHaveBeenCalled();
+    expect(hoverLayer.add).toHaveBeenCalledOnce();
+    expect(hoverLayer.add.mock.calls[0][0].geometry).toBe(nextGeometry);
+    expect(hoverLayer.add.mock.calls[0][0].symbol.outline.color.toRgba()).toEqual([
+      250, 204, 21, 1,
+    ]);
+    expect(selectionLayer.removeAll).not.toHaveBeenCalled();
+    expect(selectionLayer.add).toHaveBeenCalledOnce();
+    expect(selectionLayer.add.mock.calls[0][0].geometry).toBe(nextGeometry);
+    expect(selectionLayer.add.mock.calls[0][0].symbol.outline.color.toRgba()).toEqual([
+      249, 115, 22, 1,
+    ]);
+  });
+
+  it('highlights a hovered boundary through its layer view only once per feature', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const removeHighlight = vi.fn();
+    const highlight = vi.fn(() => ({ remove: removeHighlight }));
+    const layer = { id: 'aoi-departments-colombia', objectIdField: 'OBJECTID' };
+    const view = { allLayerViews: [{ layer, highlight }] };
+    const hoverLayer = { removeAll: vi.fn(), add: vi.fn() };
+    Object.assign(service as unknown as Record<string, unknown>, { aoiHoverLayer: hoverLayer });
+    const hoverService = service as unknown as {
+      applyHoverHighlight(mapView: never, graphic: never): void;
+    };
+    const graphicFor = (objectId: number) => ({
+      layer,
+      attributes: { OBJECTID: objectId },
+      geometry: null,
+    });
+
+    hoverService.applyHoverHighlight(view as never, graphicFor(1) as never);
+    hoverService.applyHoverHighlight(view as never, graphicFor(1) as never);
+
+    expect(highlight).toHaveBeenCalledOnce();
+    expect(highlight).toHaveBeenCalledWith(expect.anything(), { name: 'aoi-hover' });
+    expect(hoverLayer.add).not.toHaveBeenCalled();
+
+    hoverService.applyHoverHighlight(view as never, graphicFor(2) as never);
+
+    expect(removeHighlight).toHaveBeenCalledOnce();
+    expect(highlight).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to an outline graphic when no layer view can highlight the feature', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const geometry = new Polygon({
+      rings: [
+        [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+          [0, 0],
+        ],
+      ],
+    });
+    const hoverLayer = { removeAll: vi.fn(), add: vi.fn() };
+    Object.assign(service as unknown as Record<string, unknown>, { aoiHoverLayer: hoverLayer });
+    const hoverService = service as unknown as {
+      applyHoverHighlight(mapView: never, graphic: never): void;
+    };
+
+    hoverService.applyHoverHighlight(
+      { allLayerViews: [] } as never,
+      {
+        layer: { id: 'custom-layer', objectIdField: 'OBJECTID' },
+        attributes: { OBJECTID: 7 },
+        geometry,
+      } as never,
+    );
+
+    expect(hoverLayer.add).toHaveBeenCalledOnce();
+    expect(hoverLayer.add.mock.calls[0][0].geometry).toBe(geometry);
   });
 
   it('classifies an unchanged single-ring SIRAP polygon as the whole feature', () => {
@@ -296,6 +463,7 @@ describe('AdminBoundaryService', () => {
         boundaryGeometrySelection: 'whole-feature',
       }),
     );
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     expect(view.goTo).toHaveBeenCalledOnce();
   });
 
