@@ -33,6 +33,8 @@ describe('custom AOI area profile parsing', () => {
       sections: {
         ecosystems: {
           status: 'complete',
+          canonical_summary_view: 'broadEcosystem',
+          classified_area_km2: 2,
           views: [
             {
               id: 'broadEcosystem',
@@ -61,6 +63,7 @@ describe('custom AOI area profile parsing', () => {
 
     expect(section.views.broadEcosystem).toHaveLength(1);
     expect(section.views.detailedEcosystem).toEqual([]);
+    expect(section.classifiedAreaKm2).toBe(2);
     expect(section.views.broadEcosystem[0].solution_covered_area_km2).toBeNull();
   });
 

@@ -17,6 +17,8 @@ export const CUSTOM_AOI_ECOSYSTEM_VIEWS: readonly CustomAoiEcosystemView[] = [
 
 export interface ParsedCustomAoiEcosystemsSection {
   status: CustomAoiProfileSectionStatus;
+  canonicalSummaryView: 'broadEcosystem';
+  classifiedAreaKm2: number;
   views: Record<CustomAoiEcosystemView, CustomAoiEcosystemRecord[]>;
 }
 
@@ -47,6 +49,12 @@ export function parseEcosystemsSection(response: unknown): ParsedCustomAoiEcosys
   if (!section || !SECTION_STATUSES.has(section.status)) {
     throw new Error('Invalid ecosystems section');
   }
+  if (
+    section.canonical_summary_view !== 'broadEcosystem' ||
+    !Number.isFinite(section.classified_area_km2)
+  ) {
+    throw new Error('Invalid ecosystems summary');
+  }
 
   const recordsByView = new Map<CustomAoiEcosystemView, unknown>();
   const rawViews = section.views as unknown;
@@ -64,6 +72,8 @@ export function parseEcosystemsSection(response: unknown): ParsedCustomAoiEcosys
 
   return {
     status: section.status,
+    canonicalSummaryView: section.canonical_summary_view,
+    classifiedAreaKm2: section.classified_area_km2,
     views: Object.fromEntries(
       CUSTOM_AOI_ECOSYSTEM_VIEWS.map((view) => [
         view,

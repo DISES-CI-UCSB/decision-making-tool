@@ -2557,6 +2557,12 @@
   color: #64748b;
 }
 
+.aoi-biodiversity-open-species-inventory {
+  margin-top: 2px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
 .aoi-mec-modal-body {
   display: grid;
   gap: 16px;
@@ -2626,7 +2632,7 @@
 }
 
 .aoi-mec-modal-level-card em,
-.aoi-mec-modal-table-wrapper td:first-child span {
+.aoi-mec-modal-category-cell span {
   width: fit-content;
   border-radius: 999px;
   background: #dcfce7;
@@ -2710,15 +2716,11 @@
 .aoi-mec-modal-table-wrapper th {
   position: sticky;
   top: 0;
+  z-index: 2;
   background: #fff;
   font-size: 9px;
   text-transform: uppercase;
   color: #64748b;
-}
-
-.aoi-mec-modal-table-wrapper td:first-child {
-  display: grid;
-  gap: 4px;
 }
 
 .aoi-mec-coverage-bar {
@@ -2730,6 +2732,35 @@
 .aoi-mec-coverage-bar span {
   display: block;
   height: 100%;
+}
+
+.aoi-mec-measure {
+  display: flex;
+  min-width: max-content;
+  align-items: center;
+  gap: 7px;
+}
+
+.aoi-mec-measure-bar {
+  width: 42px;
+  height: 7px;
+  flex: 0 0 42px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.aoi-mec-measure-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.aoi-mec-measure-value {
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .aoi-mec-modal-table-wrapper td:last-child > span {
@@ -2748,5 +2779,45 @@
   .aoi-mec-modal-controls,
   .aoi-mec-modal-area-grid {
     grid-template-columns: 1fr;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom table {
+    min-width: 0;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom tbody,
+  .aoi-mec-modal-table-wrapper-custom tr,
+  .aoi-mec-modal-table-wrapper-custom td,
+  .aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-cell {
+    display: block;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom tr {
+    margin: 10px;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-cell {
+    position: static;
+    min-width: 0;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom td {
+    display: grid;
+    grid-template-columns: minmax(130px, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    text-align: right;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom .aoi-mec-measure {
+    justify-content: flex-end;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom td::before {
+    content: attr(data-label);
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #64748b;
   }
 }

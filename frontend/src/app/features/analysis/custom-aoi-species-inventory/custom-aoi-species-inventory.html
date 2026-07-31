@@ -1,0 +1,460 @@
+<app-modal-shell
+  id="custom-aoi-species-inventory-modal-shell"
+  rootId="custom-aoi-species-inventory-modal"
+  mode="wide"
+  [isOpen]="modalOpen()"
+  titleKey="analysis.aoi.customProfile.species.modalTitle"
+  (requestClose)="close()"
+>
+  <div
+    id="custom-aoi-species-inventory-modal-content"
+    class="flex max-h-[82vh] flex-col gap-3 p-4 md:p-6"
+  >
+    @if (inventoryState().status === 'loading') {
+      <div
+        id="custom-aoi-species-inventory-loading"
+        class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"
+        role="status"
+        aria-live="polite"
+      >
+        <p id="custom-aoi-species-inventory-loading-copy">
+          {{ inventoryStateKey('loading') | translate }}
+        </p>
+      </div>
+    } @else if (inventoryState().status === 'complete' || inventoryState().status === 'empty') {
+      <div id="custom-aoi-species-inventory-filters" class="grid gap-2 md:grid-cols-3">
+        <label
+          id="custom-aoi-species-inventory-search-label"
+          class="sr-only"
+          for="custom-aoi-species-inventory-search"
+        >
+          {{ 'analysis.aoi.customProfile.species.search' | translate }}
+        </label>
+        <input
+          id="custom-aoi-species-inventory-search"
+          type="search"
+          class="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          [value]="speciesSearch()"
+          [placeholder]="'analysis.aoi.customProfile.species.search' | translate"
+          (input)="updateSpeciesSearch($event)"
+        />
+        <label
+          id="custom-aoi-species-inventory-group-label"
+          class="sr-only"
+          for="custom-aoi-species-inventory-group"
+        >
+          {{ 'analysis.aoi.customProfile.species.group' | translate }}
+        </label>
+        <select
+          id="custom-aoi-species-inventory-group"
+          class="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          [value]="speciesGroup()"
+          (change)="updateSpeciesGroup($event)"
+        >
+          <option id="custom-aoi-species-inventory-group-all" value="all">
+            {{ 'analysis.aoi.customProfile.allGroups' | translate }}
+          </option>
+          @for (group of speciesGroups(); track group; let index = $index) {
+            <option [id]="'custom-aoi-species-inventory-group-option-' + index" [value]="group">
+              {{ group }}
+            </option>
+          }
+        </select>
+        <label
+          id="custom-aoi-species-inventory-iucn-label"
+          class="sr-only"
+          for="custom-aoi-species-inventory-iucn"
+        >
+          {{ 'analysis.aoi.customProfile.species.iucn' | translate }}
+        </label>
+        <select
+          id="custom-aoi-species-inventory-iucn"
+          class="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          [value]="speciesIucn()"
+          (change)="updateSpeciesIucn($event)"
+        >
+          <option id="custom-aoi-species-inventory-iucn-all" value="all">
+            {{ 'analysis.aoi.customProfile.allStatuses' | translate }}
+          </option>
+          @for (status of speciesIucnStatuses(); track status; let index = $index) {
+            <option [id]="'custom-aoi-species-inventory-iucn-option-' + index" [value]="status">
+              {{ status }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div
+        id="custom-aoi-species-coverage-status"
+        class="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900"
+        [attr.role]="coverageState() === 'failed' ? 'alert' : 'status'"
+        [attr.aria-live]="coverageState() === 'failed' ? null : 'polite'"
+      >
+        <div
+          id="custom-aoi-species-coverage-status-copy"
+          class="flex min-w-0 flex-1 items-center gap-2"
+        >
+          @if (
+            coverageState() === 'submitting' ||
+            coverageJob()?.status === 'queued' ||
+            coverageJob()?.status === 'running'
+          ) {
+            <span
+              id="custom-aoi-species-coverage-active-spinner"
+              class="size-3.5 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-700 motion-reduce:animate-none"
+              aria-hidden="true"
+            ></span>
+          }
+          @if (!solutionId()) {
+            <p id="custom-aoi-species-coverage-no-solution">
+              {{ 'analysis.aoi.customProfile.species.coverageNoSolution' | translate }}
+            </p>
+          } @else if (coverageState() === 'submitting') {
+            <p id="custom-aoi-species-coverage-submitting">
+              {{ 'analysis.aoi.customProfile.species.coverageSubmitting' | translate }}
+            </p>
+          } @else if (coverageJob()?.status === 'queued') {
+            @if (hasQueuePosition(coverageJob()) && hasWaitEstimate(coverageJob())) {
+              <p id="custom-aoi-species-coverage-queued-position-wait">
+                {{
+                  'analysis.aoi.customProfile.species.coverageQueuedPositionWait'
+                    | translate
+                      : {
+                          position: coverageJob()?.queue_position,
+                          wait: formatWaitEstimate(coverageJob()?.estimated_wait_seconds),
+                        }
+                }}
+              </p>
+            } @else if (hasQueuePosition(coverageJob())) {
+              <p id="custom-aoi-species-coverage-queued-position">
+                {{
+                  'analysis.aoi.customProfile.species.coverageQueuedPosition'
+                    | translate: { position: coverageJob()?.queue_position }
+                }}
+              </p>
+            } @else if (hasWaitEstimate(coverageJob())) {
+              <p id="custom-aoi-species-coverage-queued-wait">
+                {{
+                  'analysis.aoi.customProfile.species.coverageQueuedWait'
+                    | translate: { wait: formatWaitEstimate(coverageJob()?.estimated_wait_seconds) }
+                }}
+              </p>
+            } @else {
+              <p id="custom-aoi-species-coverage-queued">
+                {{ 'analysis.aoi.customProfile.species.coverageQueued' | translate }}
+              </p>
+            }
+          } @else if (coverageJob()?.status === 'running') {
+            <p id="custom-aoi-species-coverage-running">
+              {{ 'analysis.aoi.customProfile.species.coverageRunning' | translate }}
+            </p>
+          } @else if (coverageState() === 'failed' || coverageJob()?.status === 'failed') {
+            <p id="custom-aoi-species-coverage-failed">
+              {{ 'analysis.aoi.customProfile.species.coverageFailed' | translate }}
+            </p>
+          } @else if (coverageState() === 'cancelled') {
+            <p id="custom-aoi-species-coverage-cancelled">
+              {{ 'analysis.aoi.customProfile.species.coverageCancelled' | translate }}
+            </p>
+          } @else if (
+            coverageJob()?.status === 'complete' && coverageJob()?.result?.records?.length === 0
+          ) {
+            <p id="custom-aoi-species-coverage-empty">
+              {{ 'analysis.aoi.customProfile.species.coverageEmpty' | translate }}
+            </p>
+          } @else if (coverageJob()?.status === 'complete') {
+            <p id="custom-aoi-species-coverage-complete">
+              {{ 'analysis.aoi.customProfile.species.coverageComplete' | translate }}
+            </p>
+          }
+        </div>
+
+        @if (canCancelCoverage()) {
+          <button
+            id="custom-aoi-species-coverage-cancel-button"
+            type="button"
+            class="min-h-9 max-w-full shrink-0 self-center rounded-md border border-blue-300 bg-white px-2.5 py-1 text-[11px] font-semibold leading-4 text-blue-900 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            (click)="cancelCoverage()"
+          >
+            {{ 'analysis.aoi.customProfile.species.cancelCalculation' | translate }}
+          </button>
+        } @else if (coverageState() === 'failed' || coverageState() === 'cancelled') {
+          <button
+            id="custom-aoi-species-coverage-restart-button"
+            type="button"
+            class="min-h-11 rounded-md border border-blue-300 bg-white px-3 py-2 font-semibold text-blue-900 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            (click)="restartCoverage()"
+          >
+            {{ 'analysis.aoi.customProfile.species.restartCalculation' | translate }}
+          </button>
+        }
+      </div>
+
+      <p id="custom-aoi-species-inventory-result-count" class="text-xs text-slate-600">
+        {{
+          'analysis.aoi.customProfile.species.showing'
+            | translate: { count: filteredSpecies().length }
+        }}
+      </p>
+      <div
+        id="custom-aoi-species-inventory-list"
+        class="min-h-40 flex-1 overflow-auto rounded-md border border-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+        tabindex="0"
+        role="region"
+        [attr.aria-label]="'analysis.aoi.customProfile.species.tableScrollLabel' | translate"
+      >
+        <table
+          id="custom-aoi-species-inventory-table"
+          class="w-full min-w-[980px] border-collapse text-[11px] max-[760px]:min-w-0"
+          aria-describedby="custom-aoi-species-inventory-caption custom-aoi-species-coverage-status"
+        >
+          <caption
+            id="custom-aoi-species-inventory-caption"
+            class="bg-sky-50 px-3 py-2 text-left text-xs leading-5 text-sky-950"
+          >
+            {{
+              'analysis.aoi.customProfile.methodology' | translate
+            }}
+          </caption>
+          <thead id="custom-aoi-species-inventory-table-head">
+            <tr id="custom-aoi-species-inventory-group-heading-row" class="h-8 max-[760px]:sr-only">
+              <th
+                id="custom-aoi-species-inventory-species-heading"
+                class="sticky left-0 top-0 z-[4] min-w-[180px] border-b border-slate-200 bg-white px-3 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                scope="col"
+                rowspan="2"
+              >
+                {{ 'analysis.aoi.customProfile.species.title' | translate }}
+              </th>
+              <th
+                id="custom-aoi-species-inventory-presence-group-heading"
+                class="sticky top-0 z-[3] h-8 border-b border-slate-200 bg-white px-3 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                scope="colgroup"
+                colspan="1"
+              >
+                {{ 'analysis.aoi.customProfile.species.aoiPresence' | translate }}
+              </th>
+              <th
+                id="custom-aoi-species-inventory-coverage-group-heading"
+                class="sticky top-0 z-[3] h-8 border-b border-slate-200 bg-white px-3 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                scope="colgroup"
+                colspan="3"
+              >
+                {{ 'analysis.aoi.customProfile.species.coverageOfRangeInsideAoi' | translate }}
+              </th>
+            </tr>
+            <tr id="custom-aoi-species-inventory-column-heading-row" class="max-[760px]:sr-only">
+              <th
+                id="custom-aoi-species-inventory-range-in-aoi-heading"
+                class="sticky top-8 z-[3] min-w-[205px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
+                scope="col"
+              >
+                <span id="custom-aoi-species-inventory-range-in-aoi-heading-label">
+                  {{ 'analysis.aoi.customProfile.species.rangeInAoi' | translate }}
+                </span>
+                <span
+                  id="custom-aoi-species-inventory-range-in-aoi-heading-denominator"
+                  class="mt-0.5 block font-normal leading-4 text-slate-500"
+                >
+                  {{ 'analysis.aoi.customProfile.species.ofNationalModeledRange' | translate }}
+                </span>
+              </th>
+              @for (
+                metricId of ['solutionCoverage', 'preExistingCoverage', 'newCoverage'];
+                track metricId
+              ) {
+                <th
+                  [id]="'custom-aoi-species-inventory-' + metricId + '-heading'"
+                  class="sticky top-8 z-[3] min-w-[190px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
+                  scope="col"
+                >
+                  <span [id]="'custom-aoi-species-inventory-' + metricId + '-heading-label'">
+                    {{ 'analysis.aoi.customProfile.species.' + metricId | translate }}
+                  </span>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody id="custom-aoi-species-inventory-table-body">
+            @for (record of filteredSpecies(); track record.id; let index = $index) {
+              <tr
+                [id]="'custom-aoi-species-inventory-row-' + index"
+                class="border-b border-slate-100 align-top last:border-0 max-[760px]:m-2 max-[760px]:block max-[760px]:rounded-md max-[760px]:border max-[760px]:border-slate-200"
+              >
+                <th
+                  [id]="'custom-aoi-species-inventory-name-block-' + index"
+                  class="sticky left-0 z-[1] min-w-[180px] bg-white px-3 py-2 text-left font-normal max-[760px]:static max-[760px]:block max-[760px]:min-w-0 max-[760px]:border-b max-[760px]:border-slate-200"
+                  scope="row"
+                >
+                  <span
+                    [id]="'custom-aoi-species-inventory-name-' + index"
+                    class="block break-words text-xs font-semibold italic leading-4 text-slate-900"
+                  >
+                    {{ record.scientific_name }}
+                  </span>
+                  <span
+                    [id]="'custom-aoi-species-inventory-identity-meta-' + index"
+                    class="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-600"
+                  >
+                    <span [id]="'custom-aoi-species-inventory-group-value-' + index">
+                      {{ record.group }}
+                    </span>
+                    <span
+                      [id]="'custom-aoi-species-inventory-iucn-value-' + index"
+                      class="rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700"
+                    >
+                      {{ formatIucn(record.iucn_status) }}
+                    </span>
+                  </span>
+                  @if (speciesCoverageView(record.id); as coverageView) {
+                    <span
+                      [id]="'custom-aoi-species-national-range-context-' + index"
+                      class="mt-1 block text-[10px] leading-4 text-slate-500"
+                    >
+                      {{
+                        'analysis.aoi.customProfile.species.nationalModeledRangeTotal'
+                          | translate: { area: coverageView.formattedNationalRangeArea }
+                      }}
+                    </span>
+                  }
+                </th>
+                @if (speciesCoverageView(record.id); as coverageView) {
+                  <td
+                    [id]="'custom-aoi-species-range-in-aoi-' + index"
+                    class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-center max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100"
+                    [attr.data-label]="coverageView.presence.labelKey | translate"
+                  >
+                    <span
+                      [id]="'custom-aoi-species-range-in-aoi-mobile-label-' + index"
+                      class="hidden text-[10px] font-semibold leading-4 text-slate-600 max-[760px]:block"
+                    >
+                      {{ coverageView.presence.labelKey | translate }}
+                    </span>
+                    <div
+                      [id]="'custom-aoi-species-range-in-aoi-value-' + index"
+                      class="grid min-w-0 grid-cols-[minmax(2.5rem,1fr)_auto] items-center gap-x-2 gap-y-1"
+                    >
+                      <div
+                        [id]="'custom-aoi-species-range-in-aoi-bar-' + index"
+                        class="h-1.5 overflow-hidden rounded-full bg-slate-200"
+                        role="img"
+                        [attr.aria-label]="coverageView.presence.ariaLabel"
+                      >
+                        <span
+                          [id]="'custom-aoi-species-range-in-aoi-fill-' + index"
+                          class="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300"
+                          aria-hidden="true"
+                          [style.background-color]="coverageView.presence.color"
+                          [style.width.%]="coverageView.presence.barPercent"
+                        ></span>
+                      </div>
+                      <span
+                        [id]="'custom-aoi-species-range-in-aoi-percent-' + index"
+                        class="whitespace-nowrap text-right font-semibold tabular-nums text-slate-800"
+                      >
+                        {{ coverageView.presence.formattedPercent }}
+                      </span>
+                      <span
+                        [id]="'custom-aoi-species-range-in-aoi-area-' + index"
+                        class="col-span-2 whitespace-nowrap text-right tabular-nums text-slate-700"
+                      >
+                        {{ coverageView.presence.formattedArea }}
+                      </span>
+                    </div>
+                  </td>
+                  @for (metric of coverageView.coverage; track metric.id) {
+                    <td
+                      [id]="'custom-aoi-species-' + metric.id + '-' + index"
+                      class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-center max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100 max-[760px]:last:border-0"
+                      [attr.data-label]="metric.labelKey | translate"
+                    >
+                      <span
+                        [id]="'custom-aoi-species-' + metric.id + '-mobile-label-' + index"
+                        class="hidden text-[10px] font-semibold leading-4 text-slate-600 max-[760px]:block"
+                      >
+                        {{ metric.labelKey | translate }}
+                      </span>
+                      <div
+                        [id]="'custom-aoi-species-' + metric.id + '-value-' + index"
+                        class="grid min-w-0 grid-cols-[minmax(2.5rem,1fr)_auto] items-center gap-x-2 gap-y-1"
+                      >
+                        <div
+                          [id]="'custom-aoi-species-' + metric.id + '-bar-' + index"
+                          class="h-1.5 overflow-hidden rounded-full bg-slate-200"
+                          role="img"
+                          [attr.aria-label]="metric.ariaLabel"
+                        >
+                          <span
+                            [id]="'custom-aoi-species-' + metric.id + '-fill-' + index"
+                            class="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300"
+                            aria-hidden="true"
+                            [style.background-color]="metric.color"
+                            [style.width.%]="metric.barPercent"
+                          ></span>
+                        </div>
+                        <span
+                          [id]="'custom-aoi-species-' + metric.id + '-percent-' + index"
+                          class="whitespace-nowrap text-right font-semibold tabular-nums text-slate-800"
+                        >
+                          {{ metric.formattedPercent }}
+                        </span>
+                        <span
+                          [id]="'custom-aoi-species-' + metric.id + '-area-' + index"
+                          class="col-span-2 whitespace-nowrap text-right tabular-nums text-slate-700"
+                        >
+                          {{ metric.formattedArea }}
+                        </span>
+                      </div>
+                    </td>
+                  }
+                } @else {
+                  <td
+                    [id]="'custom-aoi-species-inventory-pending-metrics-' + index"
+                    class="px-0 py-0 max-[760px]:hidden"
+                    colspan="4"
+                    aria-hidden="true"
+                  ></td>
+                }
+              </tr>
+            } @empty {
+              <tr id="custom-aoi-species-inventory-no-results-row">
+                <td
+                  id="custom-aoi-species-inventory-no-results"
+                  class="p-4 text-sm text-slate-600"
+                  colspan="5"
+                >
+                  {{
+                    (inventoryState().status === 'empty'
+                      ? 'analysis.aoi.customProfile.states.empty'
+                      : 'analysis.aoi.customProfile.noResults'
+                    ) | translate
+                  }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (inventoryState().status !== 'idle') {
+      <div
+        id="custom-aoi-species-inventory-state"
+        class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm leading-5 text-slate-700"
+        [attr.role]="inventoryState().status === 'failed' ? 'alert' : 'status'"
+      >
+        <p id="custom-aoi-species-inventory-state-copy">
+          {{ inventoryStateKey(inventoryState().status) | translate }}
+        </p>
+        @if (inventoryState().status === 'failed' || inventoryState().status === 'unavailable') {
+          <button
+            id="custom-aoi-species-inventory-retry-button"
+            type="button"
+            class="mt-2 min-h-11 rounded-md px-2 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            (click)="retryInventory()"
+          >
+            {{ 'analysis.aoi.customProfile.retry' | translate }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+</app-modal-shell>

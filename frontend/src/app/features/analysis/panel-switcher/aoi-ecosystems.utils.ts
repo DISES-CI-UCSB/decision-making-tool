@@ -2,6 +2,9 @@ import {
   isMecCompactV2Document,
   PRODUCTION_SIRAP_BOUNDARY_SOURCE,
   type AOI,
+  type CustomAoiAreaProfileResponse,
+  type CustomAoiEcosystemRecord,
+  type CustomAoiProfileSectionStatus,
   type MecCompactDocument,
   type MecViewId,
 } from '@core/models';
@@ -10,7 +13,13 @@ import type { EcosystemClassificationView } from '@features/left-sidebar/map-lay
 import { extractRawAoiScopeId, normalizeScopeLabel } from '../utils/aoi-cached-metrics.utils';
 
 export type MecBreakdownId = 'family' | 'context' | 'broad' | 'detailed' | 'iavh';
-export type MecSortId = 'coverage' | 'additional' | 'existing' | 'name';
+export type MecSortId =
+  | 'composition'
+  | 'national'
+  | 'coverage'
+  | 'additional'
+  | 'existing'
+  | 'name';
 
 export interface MecBreakdownConfig {
   id: MecBreakdownId;
@@ -32,10 +41,22 @@ export interface MecCoverageRow {
   id: string;
   label: string;
   ecosystemAreaKm2: number | null;
+  ecosystemSharePercent?: number | null;
+  nationalClassPercent?: number | null;
+  solutionCoverageKm2?: number | null;
+  solutionCoveragePercent?: number | null;
   preExistingCoverageKm2: number | null;
   newPrioritizrCoverageKm2: number | null;
   preExistingPercent: number | null;
   newPrioritizrPercent: number | null;
+}
+
+export interface CustomMecData {
+  status: CustomAoiProfileSectionStatus;
+  hasSolutionCoverage: boolean;
+  rowsByView: ReadonlyMap<MecViewId, MecCoverageRow[]>;
+  previewByView: ReadonlyMap<MecViewId, MecPreviewItem[]>;
+  scopeSummary: MecScopeSummary | null;
 }
 
 export interface MecScopeSummary {
@@ -297,6 +318,79 @@ export function buildMecPreviewItems(
         ...(colors[index] ? { color: colors[index] } : {}),
       };
     });
+}
+
+export function buildCustomMecData(response: CustomAoiAreaProfileResponse): CustomMecData {
+  const section = response.sections.ecosystems;
+  if (!section) {
+    throw new Error('Missing custom AOI ecosystems section');
+  }
+
+  const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
+  const previewByView = new Map<MecViewId, MecPreviewItem[]>();
+  section.views.forEach((view) => {
+    const rows = view.records.map(buildCustomMecCoverageRow);
+    rowsByView.set(view.id, rows);
+    previewByView.set(
+      view.id,
+      [...view.records]
+        .sort((a, b) => b.area_km2 - a.area_km2)
+        .slice(0, 5)
+        .map((record) => ({
+          label: record.label,
+          percent: record.share_of_classified_pct,
+        })),
+    );
+  });
+
+  return {
+    status: section.status,
+    hasSolutionCoverage: Boolean(response.solution_id),
+    rowsByView,
+    previewByView,
+    scopeSummary: buildCustomMecScopeSummary(
+      response.selection.area_km2,
+      section.classified_area_km2,
+      response.selection.source,
+    ),
+  };
+}
+
+export function buildCustomMecCoverageRow(record: CustomAoiEcosystemRecord): MecCoverageRow {
+  return {
+    id: slugify(record.id),
+    label: record.label,
+    ecosystemAreaKm2: record.area_km2,
+    ecosystemSharePercent: record.share_of_classified_pct,
+    nationalClassPercent: record.share_of_national_class_pct,
+    solutionCoverageKm2: record.solution_covered_area_km2,
+    solutionCoveragePercent: record.solution_covered_pct_of_aoi,
+    preExistingCoverageKm2: record.pre_existing_covered_area_km2,
+    newPrioritizrCoverageKm2: record.new_covered_area_km2,
+    preExistingPercent: record.pre_existing_covered_pct_of_aoi,
+    newPrioritizrPercent: record.new_covered_pct_of_aoi,
+  };
+}
+
+export function buildCustomMecScopeSummary(
+  scopeAreaKm2: number | null,
+  classifiedKm2: number,
+  boundaryProvenanceRef: string,
+): MecScopeSummary | null {
+  if (scopeAreaKm2 === null || !Number.isFinite(scopeAreaKm2) || scopeAreaKm2 < 0) {
+    return null;
+  }
+  const safeClassifiedKm2 = Math.max(0, Math.min(scopeAreaKm2, classifiedKm2));
+  const unclassifiedKm2 = scopeAreaKm2 - safeClassifiedKm2;
+  const hasArea = scopeAreaKm2 > 0;
+  return {
+    scopeAreaKm2,
+    classifiedKm2: safeClassifiedKm2,
+    unclassifiedKm2,
+    classifiedPercent: hasArea ? (safeClassifiedKm2 / scopeAreaKm2) * 100 : null,
+    unclassifiedPercent: hasArea ? (unclassifiedKm2 / scopeAreaKm2) * 100 : null,
+    boundaryProvenanceRef,
+  };
 }
 
 export function resolveMecScopeSummary(

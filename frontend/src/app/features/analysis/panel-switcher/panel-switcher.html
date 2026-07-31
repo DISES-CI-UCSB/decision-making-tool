@@ -1049,14 +1049,6 @@
 
             <!-- ═══ SCROLLABLE BODY ═══ -->
             <div id="aoi-dashboard-body" class="aoi-panel-body">
-              @if (showCustomAoiAreaProfile()) {
-                <app-custom-aoi-area-profile
-                  id="aoi-dashboard-custom-area-profile"
-                  [geometry]="customAoiGeometry()"
-                  [areaKm2]="aoi.areaKm2 ?? null"
-                  [solutionId]="activeSolutionId()"
-                />
-              }
               <p id="aoi-dashboard-scope-explanation" class="aoi-scope-explanation">
                 {{ 'analysis.aoi.scopeExplanation' | translate }}
               </p>
@@ -1367,95 +1359,164 @@
                             {{ getCustomAoiSpeciesLoadingKey() | translate }}
                           </p>
                         </div>
-                      }
-                      <p
-                        id="aoi-species-chart-axis-label"
-                        class="m-0 mb-0.5 ml-19 w-full text-start text-[13px] font-medium leading-[1.2] tracking-[0.01em] text-slate-600"
-                      >
-                        {{ 'analysis.aoi.stats.speciesChartAxisLabel' | translate }}
-                      </p>
-                      @for (entry of aoiBiodiversityBars(); track entry.id) {
+                      } @else if (isCustomAoiSelected() && customAoiSpeciesMetricsLoadFailed()) {
                         <div
-                          [id]="'aoi-species-row-' + entry.id"
-                          class="grid grid-cols-[70px_minmax(0,1fr)_auto] items-center gap-1.5"
+                          id="aoi-biodiversity-species-failure"
+                          class="mb-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs leading-5 text-red-900"
+                          role="alert"
                         >
-                          <span
-                            [id]="'aoi-species-label-' + entry.id"
-                            class="text-[11px] text-slate-800"
-                            >{{ entry.label }}</span
+                          <p id="aoi-biodiversity-species-failure-copy">
+                            {{ 'analysis.aoi.customMetrics.speciesFailed' | translate }}
+                          </p>
+                          <button
+                            id="aoi-biodiversity-species-retry-button"
+                            type="button"
+                            class="mt-1 min-h-11 rounded-md px-2 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                            (click)="retryCustomAoiSpeciesMetrics()"
                           >
-                          <div
-                            [id]="'aoi-species-bar-shell-' + entry.id"
-                            class="flex h-2.5 min-w-0 items-center"
-                          >
-                            <span
-                              [id]="'aoi-species-fill-' + entry.id"
-                              class="aoi-species-fill block h-full transition-[width] duration-300 ease-out"
-                              [style.width.%]="aoiSpeciesBarWidth(entry.count)"
-                              [style.background-color]="aoiSpeciesBarColor(entry.id)"
-                              [attr.aria-label]="
-                                'analysis.aoi.stats.speciesCountBarAriaLabel'
-                                  | translate: { label: entry.label }
-                              "
-                            ></span>
-                          </div>
-                          <span
-                            [id]="'aoi-species-value-' + entry.id"
-                            class="text-right text-[11px] font-semibold tabular-nums text-slate-700"
-                            >{{ entry.count === null ? '--' : entry.count }}</span
-                          >
+                            {{ 'analysis.aoi.customProfile.retry' | translate }}
+                          </button>
                         </div>
                       }
+                      @if (!isCustomAoiSelected() || hasResolvedCustomAoiBiodiversityBars()) {
+                        <p
+                          id="aoi-species-chart-axis-label"
+                          class="m-0 mb-0.5 ml-19 w-full text-start text-[13px] font-medium leading-[1.2] tracking-[0.01em] text-slate-600"
+                        >
+                          {{ 'analysis.aoi.stats.speciesChartAxisLabel' | translate }}
+                        </p>
+                        @for (entry of aoiBiodiversityBars(); track entry.id) {
+                          @if (!isCustomAoiSelected() || entry.count !== null) {
+                            <div
+                              [id]="'aoi-species-row-' + entry.id"
+                              class="grid grid-cols-[70px_minmax(0,1fr)_auto] items-center gap-1.5"
+                            >
+                              <span
+                                [id]="'aoi-species-label-' + entry.id"
+                                class="text-[11px] text-slate-800"
+                                >{{ entry.label }}</span
+                              >
+                              <div
+                                [id]="'aoi-species-bar-shell-' + entry.id"
+                                class="flex h-2.5 min-w-0 items-center"
+                              >
+                                <span
+                                  [id]="'aoi-species-fill-' + entry.id"
+                                  class="aoi-species-fill block h-full transition-[width] duration-300 ease-out"
+                                  [style.width.%]="aoiSpeciesBarWidth(entry.count)"
+                                  [style.background-color]="aoiSpeciesBarColor(entry.id)"
+                                  [attr.aria-label]="
+                                    'analysis.aoi.stats.speciesCountBarAriaLabel'
+                                      | translate: { label: entry.label }
+                                  "
+                                ></span>
+                              </div>
+                              <span
+                                [id]="'aoi-species-value-' + entry.id"
+                                class="text-right text-[11px] font-semibold tabular-nums text-slate-700"
+                                >{{ entry.count === null ? '--' : entry.count }}</span
+                              >
+                            </div>
+                          }
+                        }
+                      }
                     </div>
 
-                    <div id="aoi-bio-stats" class="aoi-stat-grid">
-                      <div id="aoi-stat-threatened" class="aoi-stat-card">
-                        <p class="aoi-stat-label">
-                          {{ 'analysis.aoi.stats.threatenedSpecies' | translate }}
+                    @if (!isCustomAoiSelected() || hasReadyAoiMetric('threatened_species_count')) {
+                      <div id="aoi-bio-stats" class="aoi-stat-grid">
+                        <div id="aoi-stat-threatened" class="aoi-stat-card">
+                          <p id="aoi-stat-threatened-label" class="aoi-stat-label">
+                            {{ 'analysis.aoi.stats.threatenedSpecies' | translate }}
+                          </p>
+                          <p
+                            id="aoi-stat-threatened-value"
+                            class="aoi-stat-value"
+                            [attr.data-full-value]="
+                              getAoiMetricFullValue('threatened_species_count')
+                            "
+                            [attr.tabindex]="
+                              getAoiMetricFullValue('threatened_species_count') ? 0 : null
+                            "
+                          >
+                            {{ getAoiMetricValue('threatened_species_count', '5') }}
+                          </p>
+                          <p id="aoi-stat-threatened-unit" class="aoi-stat-unit">
+                            {{ 'analysis.aoi.stats.iucnLabel' | translate }}
+                          </p>
+                        </div>
+                        @if (!isCustomAoiSelected()) {
+                          <div id="aoi-stat-endemic" class="aoi-stat-card">
+                            <p id="aoi-stat-endemic-label" class="aoi-stat-label">
+                              {{ 'analysis.aoi.stats.endemicSpecies' | translate }}
+                            </p>
+                            <p id="aoi-stat-endemic-value" class="aoi-stat-value">
+                              {{ aoiVal('12') }}
+                            </p>
+                            <p id="aoi-stat-endemic-unit" class="aoi-stat-unit">
+                              {{ 'analysis.aoi.stats.colombiaEndemics' | translate }}
+                            </p>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    @if (!isCustomAoiSelected() || hasReadyAoiMetric('species_pct_of_national')) {
+                      <div id="aoi-stat-national-species" class="aoi-stat-card">
+                        <p id="aoi-stat-national-species-label" class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.nationalSpeciesTotal' | translate }}
                         </p>
                         <p
+                          id="aoi-stat-national-species-value"
                           class="aoi-stat-value"
-                          [attr.data-full-value]="getAoiMetricFullValue('threatened_species_count')"
+                          [attr.data-full-value]="getAoiMetricFullValue('species_pct_of_national')"
                           [attr.tabindex]="
-                            getAoiMetricFullValue('threatened_species_count') ? 0 : null
+                            getAoiMetricFullValue('species_pct_of_national') ? 0 : null
                           "
                         >
-                          {{ getAoiMetricValue('threatened_species_count', '5') }}
+                          {{ getAoiMetricValue('species_pct_of_national', '7%') }}
                         </p>
-                        <p class="aoi-stat-unit">
-                          {{ 'analysis.aoi.stats.iucnLabel' | translate }}
-                        </p>
-                      </div>
-                      <div id="aoi-stat-endemic" class="aoi-stat-card">
-                        <p class="aoi-stat-label">
-                          {{ 'analysis.aoi.stats.endemicSpecies' | translate }}
-                        </p>
-                        <p class="aoi-stat-value">{{ aoiVal('12') }}</p>
-                        <p class="aoi-stat-unit">
-                          {{ 'analysis.aoi.stats.colombiaEndemics' | translate }}
+                        <p id="aoi-stat-national-species-unit" class="aoi-stat-unit">
+                          {{ 'analysis.aoi.stats.nationalSpeciesTotalDesc' | translate }}
                         </p>
                       </div>
-                    </div>
+                    }
 
-                    <div id="aoi-stat-national-species" class="aoi-stat-card">
-                      <p class="aoi-stat-label">
-                        {{ 'analysis.aoi.stats.nationalSpeciesTotal' | translate }}
-                      </p>
-                      <p
-                        class="aoi-stat-value"
-                        [attr.data-full-value]="getAoiMetricFullValue('species_pct_of_national')"
-                        [attr.tabindex]="
-                          getAoiMetricFullValue('species_pct_of_national') ? 0 : null
-                        "
+                    @if (showCustomAoiSpeciesInventory()) {
+                      <button
+                        id="aoi-biodiversity-open-species-inventory-button"
+                        type="button"
+                        class="aoi-mec-open-modal aoi-biodiversity-open-species-inventory min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+                        aria-haspopup="dialog"
+                        aria-controls="custom-aoi-species-inventory-modal"
+                        [attr.aria-expanded]="speciesInventoryModalOpen()"
+                        (click)="openCustomAoiSpeciesInventory()"
                       >
-                        {{ getAoiMetricValue('species_pct_of_national', '7%') }}
-                      </p>
-                      <p class="aoi-stat-unit">
-                        {{ 'analysis.aoi.stats.nationalSpeciesTotalDesc' | translate }}
-                      </p>
-                    </div>
+                        <span id="aoi-biodiversity-open-species-inventory-copy">
+                          <strong id="aoi-biodiversity-open-species-inventory-label">
+                            {{ 'analysis.aoi.customProfile.species.exploreCoverage' | translate }}
+                          </strong>
+                          <span id="aoi-biodiversity-open-species-inventory-description">
+                            {{
+                              'analysis.aoi.customProfile.species.exploreCoverageDescription'
+                                | translate
+                            }}
+                          </span>
+                        </span>
+                        <span id="aoi-biodiversity-open-species-inventory-icon" aria-hidden="true"
+                          >→</span
+                        >
+                      </button>
+                      <app-custom-aoi-species-inventory
+                        id="aoi-biodiversity-species-inventory"
+                        [geometry]="customAoiGeometry()"
+                        [newCoverageColor]="mecAdditionalColor()"
+                        [preExistingCoverageColor]="mecExistingColor()"
+                        [solutionId]="activeSolutionId()"
+                        (modalOpenChange)="speciesInventoryModalOpen.set($event)"
+                      />
+                    }
 
-                    @if (fillDummyAoiMetrics()) {
+                    @if (fillDummyAoiMetrics() && !isCustomAoiSelected()) {
                       <div id="aoi-bio-alert" class="aoi-alert">
                         <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
                         <span>
@@ -1553,11 +1614,7 @@
                       </div>
                     }
 
-                    @if (
-                      fillDummyAoiMetrics() ||
-                      hasMecDataFor(selectedMecBreakdown()) ||
-                      supportsMecDrilldown()
-                    ) {
+                    @if (shouldShowMecPreview(selectedMecBreakdown())) {
                       <div
                         id="aoi-mec-preview-shell"
                         class="mt-3 overflow-hidden rounded-[7px] border border-slate-200 bg-white"
@@ -3576,8 +3633,23 @@
 
   <div id="aoi-mec-classifications-modal-body" class="aoi-mec-modal-body">
     <p id="aoi-mec-classifications-modal-description" class="aoi-mec-modal-description">
-      {{ 'analysis.aoi.mec.modal.description' | translate }}
+      {{
+        (isCustomMecState()
+          ? 'analysis.aoi.mec.modal.customDescription'
+          : 'analysis.aoi.mec.modal.description'
+        ) | translate
+      }}
     </p>
+
+    @if (isCustomMecState() && !hasCustomMecCoverage()) {
+      <p
+        id="aoi-mec-modal-coverage-solution-guidance"
+        class="text-xs leading-5 text-slate-600"
+        role="status"
+      >
+        {{ 'analysis.aoi.mec.modal.coverageRequiresSolution' | translate }}
+      </p>
+    }
 
     <section id="aoi-mec-modal-area-context" class="aoi-mec-modal-area-grid">
       <article id="aoi-mec-modal-aoi-area-card" class="aoi-mec-modal-area-card">
@@ -3591,9 +3663,14 @@
         class="aoi-mec-modal-area-card aoi-mec-modal-candidate-card"
       >
         <span id="aoi-mec-modal-candidate-area-label">{{
-          'analysis.aoi.mec.modal.candidateArea' | translate
+          (isCustomMecState()
+            ? 'analysis.aoi.mec.modal.classifiedArea'
+            : 'analysis.aoi.mec.modal.candidateArea'
+          ) | translate
         }}</span>
-        <strong id="aoi-mec-modal-candidate-area-value">{{ getMecCandidateAreaValue() }}</strong>
+        <strong id="aoi-mec-modal-candidate-area-value">{{
+          isCustomMecState() ? getMecClassifiedAreaValue() : getMecCandidateAreaValue()
+        }}</strong>
       </article>
       <article id="aoi-mec-modal-unclassified-card" class="aoi-mec-modal-area-card">
         <span id="aoi-mec-modal-unclassified-label">{{
@@ -3654,30 +3731,32 @@
             }}</span>
           </div>
         }
-        <div
-          id="aoi-mec-modal-coverage-legend"
-          class="aoi-mec-modal-legend"
-          [attr.aria-label]="'analysis.aoi.mec.modal.legend' | translate"
-        >
-          <span id="aoi-mec-modal-legend-existing">
-            <i
-              id="aoi-mec-modal-legend-existing-swatch"
-              [style.background-color]="mecExistingColor()"
-            ></i>
-            {{ 'analysis.aoi.mec.modal.preExisting' | translate }}
-          </span>
-          <span id="aoi-mec-modal-legend-additional">
-            <i
-              id="aoi-mec-modal-legend-additional-swatch"
-              [style.background-color]="mecAdditionalColor()"
-            ></i>
-            {{ 'analysis.aoi.mec.modal.additional' | translate }}
-          </span>
-          <span id="aoi-mec-modal-legend-uncovered">
-            <i id="aoi-mec-modal-legend-uncovered-swatch"></i>
-            {{ 'analysis.aoi.mec.modal.notCovered' | translate }}
-          </span>
-        </div>
+        @if (!isCustomMecState()) {
+          <div
+            id="aoi-mec-modal-coverage-legend"
+            class="aoi-mec-modal-legend"
+            [attr.aria-label]="'analysis.aoi.mec.modal.legend' | translate"
+          >
+            <span id="aoi-mec-modal-legend-existing">
+              <i
+                id="aoi-mec-modal-legend-existing-swatch"
+                [style.background-color]="mecExistingColor()"
+              ></i>
+              {{ 'analysis.aoi.mec.modal.preExisting' | translate }}
+            </span>
+            <span id="aoi-mec-modal-legend-additional">
+              <i
+                id="aoi-mec-modal-legend-additional-swatch"
+                [style.background-color]="mecAdditionalColor()"
+              ></i>
+              {{ 'analysis.aoi.mec.modal.additional' | translate }}
+            </span>
+            <span id="aoi-mec-modal-legend-uncovered">
+              <i id="aoi-mec-modal-legend-uncovered-swatch"></i>
+              {{ 'analysis.aoi.mec.modal.notCovered' | translate }}
+            </span>
+          </div>
+        }
         <div id="aoi-mec-modal-controls" class="aoi-mec-modal-controls">
           <label id="aoi-mec-modal-search-label">
             <span id="aoi-mec-modal-search-label-text">{{
@@ -3702,15 +3781,33 @@
               [value]="mecSortId()"
               (change)="updateMecSort($event)"
             >
-              <option id="aoi-mec-modal-sort-coverage" value="coverage">
-                {{ 'analysis.aoi.mec.modal.sortCoverage' | translate }}
-              </option>
-              <option id="aoi-mec-modal-sort-additional" value="additional">
-                {{ 'analysis.aoi.mec.modal.sortAdditional' | translate }}
-              </option>
-              <option id="aoi-mec-modal-sort-existing" value="existing">
-                {{ 'analysis.aoi.mec.modal.sortExisting' | translate }}
-              </option>
+              @if (isCustomMecState()) {
+                <option id="aoi-mec-modal-sort-composition" value="composition">
+                  {{ 'analysis.aoi.mec.modal.sortComposition' | translate }}
+                </option>
+                <option id="aoi-mec-modal-sort-national" value="national">
+                  {{ 'analysis.aoi.mec.modal.sortNational' | translate }}
+                </option>
+                <option id="aoi-mec-modal-sort-coverage" value="coverage">
+                  {{ 'analysis.aoi.mec.modal.sortCoverage' | translate }}
+                </option>
+                <option id="aoi-mec-modal-sort-existing" value="existing">
+                  {{ 'analysis.aoi.mec.modal.sortExisting' | translate }}
+                </option>
+                <option id="aoi-mec-modal-sort-additional" value="additional">
+                  {{ 'analysis.aoi.mec.modal.sortNew' | translate }}
+                </option>
+              } @else {
+                <option id="aoi-mec-modal-sort-coverage" value="coverage">
+                  {{ 'analysis.aoi.mec.modal.sortCoverage' | translate }}
+                </option>
+                <option id="aoi-mec-modal-sort-additional" value="additional">
+                  {{ 'analysis.aoi.mec.modal.sortAdditional' | translate }}
+                </option>
+                <option id="aoi-mec-modal-sort-existing" value="existing">
+                  {{ 'analysis.aoi.mec.modal.sortExisting' | translate }}
+                </option>
+              }
               <option id="aoi-mec-modal-sort-name" value="name">
                 {{ 'analysis.aoi.mec.modal.sortName' | translate }}
               </option>
@@ -3719,57 +3816,265 @@
         </div>
       </header>
 
-      <div id="aoi-mec-modal-table-wrapper" class="aoi-mec-modal-table-wrapper">
-        <table id="aoi-mec-modal-table">
+      <ng-template
+        id="aoi-mec-custom-measure-template"
+        #customMecMeasure
+        let-areaKm2="areaKm2"
+        let-color="color"
+        let-ecosystemLabel="ecosystemLabel"
+        let-idPrefix="idPrefix"
+        let-labelKey="labelKey"
+        let-percent="percent"
+      >
+        @if (percent !== null && areaKm2 !== null) {
+          <div [id]="idPrefix + '-measure'" class="aoi-mec-measure">
+            <div
+              [id]="idPrefix + '-bar'"
+              class="aoi-mec-measure-bar"
+              role="img"
+              [attr.aria-label]="
+                getCustomMecBarAriaLabel(labelKey, ecosystemLabel, percent, areaKm2)
+              "
+            >
+              <span
+                [id]="idPrefix + '-fill'"
+                class="aoi-mec-measure-fill"
+                aria-hidden="true"
+                [style.background-color]="color"
+                [style.width.%]="clampMecBarPercent(percent)"
+              ></span>
+            </div>
+            <span [id]="idPrefix + '-value'" class="aoi-mec-measure-value">
+              {{ formatMecCoveragePercent(percent) }} · {{ formatCustomMecAreaKm2(areaKm2) }}
+            </span>
+          </div>
+        } @else {
+          <span [id]="idPrefix + '-unavailable'">
+            {{ 'analysis.common.valueUnavailable' | translate }}
+          </span>
+        }
+      </ng-template>
+
+      <div
+        id="aoi-mec-modal-table-wrapper"
+        class="aoi-mec-modal-table-wrapper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+        [class.aoi-mec-modal-table-wrapper-custom]="isCustomMecState()"
+        tabindex="0"
+        role="region"
+        [attr.aria-label]="'analysis.aoi.mec.modal.tableScrollLabel' | translate"
+      >
+        <table
+          id="aoi-mec-modal-table"
+          [attr.aria-describedby]="
+            isCustomMecState() && !hasCustomMecCoverage()
+              ? 'aoi-mec-modal-table-caption aoi-mec-modal-coverage-solution-guidance'
+              : 'aoi-mec-modal-table-caption'
+          "
+        >
+          <caption
+            id="aoi-mec-modal-table-caption"
+            class="px-3 py-2.5 text-left text-[11px] leading-[1.45] text-slate-600"
+          >
+            {{
+              (isCustomMecState()
+                ? 'analysis.aoi.mec.modal.customTableCaption'
+                : 'analysis.aoi.mec.modal.predefinedTableCaption'
+              ) | translate
+            }}
+          </caption>
           <thead id="aoi-mec-modal-table-head">
-            <tr id="aoi-mec-modal-table-heading-row">
-              <th id="aoi-mec-modal-heading-category">
-                {{ 'analysis.aoi.mec.modal.category' | translate }}
-              </th>
-              <th id="aoi-mec-modal-heading-available">
-                {{ 'analysis.aoi.mec.modal.availableArea' | translate }}
-              </th>
-              <th id="aoi-mec-modal-heading-coverage">
-                {{ 'analysis.aoi.mec.modal.solutionCoverage' | translate }}
-              </th>
-            </tr>
+            @if (isCustomMecState()) {
+              <tr id="aoi-mec-modal-table-group-heading-row" class="max-[760px]:sr-only">
+                <th
+                  id="aoi-mec-modal-heading-category"
+                  class="aoi-mec-modal-category-heading left-0 z-[4] min-w-[180px]"
+                  scope="col"
+                  rowspan="2"
+                >
+                  {{ 'analysis.aoi.mec.modal.category' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-presence-group" scope="colgroup" colspan="3">
+                  {{ 'analysis.aoi.mec.modal.presenceGroup' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-coverage-group" scope="colgroup" colspan="3">
+                  {{ 'analysis.aoi.mec.modal.coverageGroup' | translate }}
+                </th>
+              </tr>
+              <tr id="aoi-mec-modal-table-heading-row" class="max-[760px]:sr-only">
+                <th id="aoi-mec-modal-heading-available" class="top-[31px]" scope="col">
+                  {{ 'analysis.aoi.mec.modal.areaInsideAoi' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-national-share" class="top-[31px]" scope="col">
+                  {{ 'analysis.aoi.mec.modal.nationalExtentInsideAoi' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-aoi-share" class="top-[31px]" scope="col">
+                  {{ 'analysis.aoi.mec.modal.mappedAoiOccupied' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-total-coverage" class="top-[31px]" scope="col">
+                  {{ 'analysis.aoi.mec.modal.totalCoverage' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-pre-existing-coverage" class="top-[31px]" scope="col">
+                  {{ 'analysis.aoi.mec.modal.preExistingCoverage' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-new-coverage" class="top-[31px]" scope="col">
+                  {{ 'analysis.aoi.mec.modal.newCoverage' | translate }}
+                </th>
+              </tr>
+            } @else {
+              <tr id="aoi-mec-modal-table-heading-row">
+                <th id="aoi-mec-modal-heading-category" scope="col">
+                  {{ 'analysis.aoi.mec.modal.category' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-available" scope="col">
+                  {{ 'analysis.aoi.mec.modal.availableArea' | translate }}
+                </th>
+                <th id="aoi-mec-modal-heading-coverage" scope="col">
+                  {{ 'analysis.aoi.mec.modal.solutionCoverage' | translate }}
+                </th>
+              </tr>
+            }
           </thead>
           <tbody id="aoi-mec-modal-table-body">
             @for (row of mecCoverageRows(); track row.id) {
               <tr [id]="'aoi-mec-modal-row-' + row.id">
-                <td [id]="'aoi-mec-modal-category-' + row.id">
+                <th
+                  [id]="'aoi-mec-modal-category-' + row.id"
+                  class="aoi-mec-modal-category-cell sticky left-0 z-[1] grid min-w-[180px] gap-1 bg-white text-left text-[11px]"
+                  scope="row"
+                >
                   <strong [id]="'aoi-mec-modal-category-label-' + row.id">{{ row.label }}</strong>
                   @if (mecModalBreakdownId() === 'iavh' && iavhConsideredInRun()) {
                     <span [id]="'aoi-mec-modal-category-badge-' + row.id">{{
                       'analysis.aoi.mec.consideredInRun' | translate
                     }}</span>
                   }
-                </td>
-                <td [id]="'aoi-mec-modal-available-' + row.id">
-                  {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
-                </td>
-                <td [id]="'aoi-mec-modal-coverage-' + row.id">
-                  <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
-                    <span
-                      [id]="'aoi-mec-modal-existing-fill-' + row.id"
-                      [style.width.%]="row.preExistingPercent ?? 0"
-                      [style.background-color]="mecExistingColor()"
-                    ></span>
-                    <span
-                      [id]="'aoi-mec-modal-additional-fill-' + row.id"
-                      [style.width.%]="row.newPrioritizrPercent ?? 0"
-                      [style.background-color]="mecAdditionalColor()"
-                    ></span>
-                  </div>
-                  <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
-                    {{ formatMecCoveragePercent(row.preExistingPercent) }} +
-                    {{ formatMecCoveragePercent(row.newPrioritizrPercent) }}
-                  </span>
-                </td>
+                </th>
+                @if (isCustomMecState()) {
+                  <td
+                    [id]="'aoi-mec-modal-available-' + row.id"
+                    [attr.data-label]="'analysis.aoi.mec.modal.areaInsideAoi' | translate"
+                  >
+                    {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
+                  </td>
+                  <td
+                    [id]="'aoi-mec-modal-national-share-' + row.id"
+                    [attr.data-label]="'analysis.aoi.mec.modal.nationalExtentInsideAoi' | translate"
+                  >
+                    <ng-container
+                      [ngTemplateOutlet]="customMecMeasure"
+                      [ngTemplateOutletContext]="{
+                        areaKm2: row.ecosystemAreaKm2,
+                        color: '#64748b',
+                        ecosystemLabel: row.label,
+                        idPrefix: 'aoi-mec-modal-national-share-' + row.id,
+                        labelKey: 'analysis.aoi.mec.modal.nationalExtentInsideAoi',
+                        percent: row.nationalClassPercent ?? null,
+                      }"
+                    ></ng-container>
+                  </td>
+                  <td
+                    [id]="'aoi-mec-modal-aoi-share-' + row.id"
+                    [attr.data-label]="'analysis.aoi.mec.modal.mappedAoiOccupied' | translate"
+                  >
+                    <ng-container
+                      [ngTemplateOutlet]="customMecMeasure"
+                      [ngTemplateOutletContext]="{
+                        areaKm2: row.ecosystemAreaKm2,
+                        color: '#64748b',
+                        ecosystemLabel: row.label,
+                        idPrefix: 'aoi-mec-modal-aoi-share-' + row.id,
+                        labelKey: 'analysis.aoi.mec.modal.mappedAoiOccupied',
+                        percent: row.ecosystemSharePercent ?? null,
+                      }"
+                    ></ng-container>
+                  </td>
+                  <td
+                    [id]="'aoi-mec-modal-total-coverage-' + row.id"
+                    [attr.data-label]="'analysis.aoi.mec.modal.totalCoverage' | translate"
+                  >
+                    @if (hasCustomMecCoverage()) {
+                      <ng-container
+                        [ngTemplateOutlet]="customMecMeasure"
+                        [ngTemplateOutletContext]="{
+                          areaKm2: row.solutionCoverageKm2 ?? null,
+                          color: mecAdditionalColor(),
+                          ecosystemLabel: row.label,
+                          idPrefix: 'aoi-mec-modal-total-coverage-' + row.id,
+                          labelKey: 'analysis.aoi.mec.modal.totalCoverage',
+                          percent: row.solutionCoveragePercent ?? null,
+                        }"
+                      ></ng-container>
+                    } @else {
+                      {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
+                    }
+                  </td>
+                  <td
+                    [id]="'aoi-mec-modal-pre-existing-coverage-' + row.id"
+                    [attr.data-label]="'analysis.aoi.mec.modal.preExistingCoverage' | translate"
+                  >
+                    @if (hasCustomMecCoverage()) {
+                      <ng-container
+                        [ngTemplateOutlet]="customMecMeasure"
+                        [ngTemplateOutletContext]="{
+                          areaKm2: row.preExistingCoverageKm2,
+                          color: mecExistingColor(),
+                          ecosystemLabel: row.label,
+                          idPrefix: 'aoi-mec-modal-pre-existing-coverage-' + row.id,
+                          labelKey: 'analysis.aoi.mec.modal.preExistingCoverage',
+                          percent: row.preExistingPercent,
+                        }"
+                      ></ng-container>
+                    } @else {
+                      {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
+                    }
+                  </td>
+                  <td
+                    [id]="'aoi-mec-modal-new-coverage-' + row.id"
+                    [attr.data-label]="'analysis.aoi.mec.modal.newCoverage' | translate"
+                  >
+                    @if (hasCustomMecCoverage()) {
+                      <ng-container
+                        [ngTemplateOutlet]="customMecMeasure"
+                        [ngTemplateOutletContext]="{
+                          areaKm2: row.newPrioritizrCoverageKm2,
+                          color: mecAdditionalColor(),
+                          ecosystemLabel: row.label,
+                          idPrefix: 'aoi-mec-modal-new-coverage-' + row.id,
+                          labelKey: 'analysis.aoi.mec.modal.newCoverage',
+                          percent: row.newPrioritizrPercent,
+                        }"
+                      ></ng-container>
+                    } @else {
+                      {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
+                    }
+                  </td>
+                } @else {
+                  <td [id]="'aoi-mec-modal-available-' + row.id">
+                    {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
+                  </td>
+                  <td [id]="'aoi-mec-modal-coverage-' + row.id">
+                    <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
+                      <span
+                        [id]="'aoi-mec-modal-existing-fill-' + row.id"
+                        [style.width.%]="row.preExistingPercent ?? 0"
+                        [style.background-color]="mecExistingColor()"
+                      ></span>
+                      <span
+                        [id]="'aoi-mec-modal-additional-fill-' + row.id"
+                        [style.width.%]="row.newPrioritizrPercent ?? 0"
+                        [style.background-color]="mecAdditionalColor()"
+                      ></span>
+                    </div>
+                    <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
+                      {{ formatMecCoveragePercent(row.preExistingPercent) }} +
+                      {{ formatMecCoveragePercent(row.newPrioritizrPercent) }}
+                    </span>
+                  </td>
+                }
               </tr>
             } @empty {
               <tr id="aoi-mec-modal-empty-row">
-                <td id="aoi-mec-modal-empty-cell" colspan="3">
+                <td id="aoi-mec-modal-empty-cell" [attr.colspan]="isCustomMecState() ? 7 : 3">
                   {{ 'analysis.aoi.mec.modal.noRows' | translate }}
                 </td>
               </tr>

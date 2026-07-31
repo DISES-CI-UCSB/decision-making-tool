@@ -13,6 +13,7 @@ import type {
   AOI,
   CachedSolutionMetricsDocument,
   CatalogSolution,
+  CustomAoiAreaProfileResponse,
   CustomPolygonMetricsGeometry,
   CustomPolygonMetricsResponse,
   MecCompactDocument,
@@ -77,7 +78,14 @@ describe('PanelSwitcherComponent', () => {
           sections:
             request.sections[0] === 'species'
               ? { species: { status: 'unavailable' as const, records: [] } }
-              : { ecosystems: { status: 'unavailable' as const, views: [] } },
+              : {
+                  ecosystems: {
+                    status: 'unavailable' as const,
+                    canonical_summary_view: 'broadEcosystem' as const,
+                    classified_area_km2: 0,
+                    views: [],
+                  },
+                },
         }),
       ),
     };
@@ -154,7 +162,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-welcome-hero-card')).toBeNull();
   });
 
-  it('shows a custom AOI Area Profile additively with the shared AOI dashboard', async () => {
+  it('hosts the custom species inventory only inside the shared Biodiversity section', async () => {
     vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
       of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
     );
@@ -165,8 +173,21 @@ describe('PanelSwitcherComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
+    const biodiversitySection = compiled.querySelector('#aoi-section-bio');
+    const inventory = compiled.querySelector('#aoi-biodiversity-species-inventory');
 
-    expect(compiled.querySelector('#aoi-dashboard-custom-area-profile')).not.toBeNull();
+    expect(inventory).not.toBeNull();
+    expect(biodiversitySection?.contains(inventory)).toBe(true);
+    expect(compiled.querySelector('#aoi-dashboard-custom-area-profile')).toBeNull();
+    expect(compiled.querySelector('#custom-aoi-area-profile')).toBeNull();
+    const openButton = compiled.querySelector(
+      '#aoi-biodiversity-open-species-inventory-button',
+    ) as HTMLButtonElement;
+    expect(openButton).not.toBeNull();
+    openButton.click();
+    fixture.detectChanges();
+    expect(openButton.getAttribute('aria-expanded')).toBe('true');
+    expect(compiled.querySelector('#custom-aoi-species-inventory-modal')).not.toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-area-unit-toggle')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-general')).not.toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-download-metrics-csv-btn')).not.toBeNull();
@@ -311,7 +332,11 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
     expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
-    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
+    expect(compiled.querySelector('#aoi-species-value-mammals')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-threatened')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-national-species')).toBeNull();
+    expect(compiled.querySelector('#aoi-body-bio')?.textContent).not.toContain('--');
     expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
 
     const hectaresToggle = compiled.querySelector(
@@ -476,7 +501,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('7');
     expect(compiled.querySelector('#aoi-stat-threatened')?.textContent).toContain('3');
     expect(compiled.querySelector('#aoi-stat-national-species')?.textContent).toContain('1,4%');
-    expect(compiled.querySelector('#aoi-stat-endemic')?.textContent).toContain('--');
+    expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
   });
 
   it('keeps fast custom AOI metrics visible when the species request fails', async () => {
@@ -517,13 +542,36 @@ describe('PanelSwitcherComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
-    expect(compiled.querySelector('#aoi-custom-species-metrics-warning')).toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-species-failure')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-species-retry-button')).not.toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-loading-status')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-loading-spinner')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
     expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
-    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
+    expect(compiled.querySelector('#aoi-species-value-mammals')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
+    expect(compiled.querySelector('#aoi-body-bio')?.textContent).not.toContain('--');
+
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(
+        buildCustomPolygonResponse({
+          species_richness_mammals: 4,
+          species_richness_birds: 9,
+          species_richness_amphibians: 1,
+          species_richness_reptiles: 2,
+          species_richness_plants: 7,
+          threatened_species_count: 3,
+          species_pct_of_national: 1.4,
+        }),
+      ),
+    );
+    (compiled.querySelector('#aoi-biodiversity-species-retry-button') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#aoi-biodiversity-species-failure')).toBeNull();
+    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('4');
   });
 
   it('keeps fixed boundary AOIs on cached metrics instead of the backend client', async () => {
@@ -589,7 +637,7 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('#aoi-dashboard-custom-area-profile')).toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-species-inventory')).toBeNull();
     expect(compiled.querySelector('#aoi-section-marine')).not.toBeNull();
     expect(compiled.querySelector('#aoi-row-coral-value')?.textContent).toContain('5 km²');
     expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent).toContain('25%');
@@ -858,19 +906,209 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-bar-label-0')?.textContent).toContain('Forest');
   });
 
-  it('does not request MEC shards for custom AOIs', () => {
+  it('loads custom AOI ecosystems live without requesting MEC shards', async () => {
+    const geometry = buildTestGeometry();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2 })),
+    );
     appState.activeSolution$.set(buildTestSolution());
-    appState.selectAOI(buildCustomAoiWithArea(20));
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 20 });
     appState.setRightSidebarMode('aoi');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(apiServiceSpy.getCustomAoiAreaProfile).toHaveBeenCalledWith({
+      geometry,
+      sections: ['ecosystems'],
+      solution_id: 'test-solution',
+    });
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
         ?.textContent,
-    ).toContain('analysis.aoi.mec.states.customTitle');
+    ).toContain('analysis.aoi.mec.states.custom.unavailableTitle');
+  });
+
+  it('renders all custom ecosystem presence and coverage measures in one table', async () => {
+    const geometry = buildTestGeometry();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 5 })),
+    );
+    vi.mocked(apiServiceSpy.getCustomAoiAreaProfile).mockImplementation((request) =>
+      of(
+        request.sections[0] === 'ecosystems'
+          ? buildCustomEcosystemProfileResponse()
+          : {
+              ...buildCustomEcosystemProfileResponse(),
+              sections: { species: { status: 'unavailable' as const, records: [] } },
+            },
+      ),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const ecosystemCalls = vi
+      .mocked(apiServiceSpy.getCustomAoiAreaProfile)
+      .mock.calls.filter(([request]) => request.sections[0] === 'ecosystems');
+
+    expect(ecosystemCalls).toHaveLength(1);
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(compiled.querySelector('#custom-aoi-profile-ecosystems')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-bar-label-0')?.textContent).toContain('Andean forest');
+    expect(compiled.querySelector('#aoi-mec-bar-value-0')?.textContent).toContain('80%');
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('#aoi-mec-modal-table')).toHaveLength(1);
+    expect(compiled.querySelector('#aoi-mec-modal-mode-tabs')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-composition-tab')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-coverage-tab')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-heading-presence-group')?.textContent).toContain(
+      'analysis.aoi.mec.modal.presenceGroup',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-heading-coverage-group')?.textContent).toContain(
+      'analysis.aoi.mec.modal.coverageGroup',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-heading-available')?.textContent).toContain(
+      'analysis.aoi.mec.modal.areaInsideAoi',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-heading-national-share')?.textContent).toContain(
+      'analysis.aoi.mec.modal.nationalExtentInsideAoi',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-heading-aoi-share')?.textContent).toContain(
+      'analysis.aoi.mec.modal.mappedAoiOccupied',
+    );
+    expect(
+      compiled.querySelector('#aoi-mec-modal-heading-pre-existing-coverage')?.textContent,
+    ).toContain('analysis.aoi.mec.modal.preExistingCoverage');
+    expect(compiled.querySelector('#aoi-mec-modal-heading-new-coverage')?.textContent).toContain(
+      'analysis.aoi.mec.modal.newCoverage',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-available-forest')?.textContent).toContain('8');
+    const percentageMeasures = [
+      ['national-share', '20%', '8 km²'],
+      ['aoi-share', '80%', '8 km²'],
+      ['total-coverage', '50%', '4 km²'],
+      ['pre-existing-coverage', '12,5%', '1 km²'],
+      ['new-coverage', '37,5%', '3 km²'],
+    ] as const;
+    for (const [metricId, expectedPercent, expectedArea] of percentageMeasures) {
+      const measureId = `aoi-mec-modal-${metricId}-forest`;
+      const measure = compiled.querySelector(`#${measureId}-measure`);
+      const bar = compiled.querySelector(`#${measureId}-bar`);
+
+      expect(measure?.textContent).toContain(expectedPercent);
+      expect(measure?.textContent).toContain(expectedArea);
+      expect(bar).not.toBeNull();
+      expect(bar?.getAttribute('aria-label')).toContain('Andean forest');
+      expect(bar?.getAttribute('aria-label')).toContain(expectedPercent);
+      expect(bar?.getAttribute('aria-label')).toContain(expectedArea);
+    }
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-body')?.textContent,
+    ).not.toContain('--');
+  });
+
+  it('clamps custom ecosystem bar width without changing the displayed percentage', () => {
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      clampMecBarPercent(value: number): number;
+      formatCustomMecAreaKm2(value: number): string;
+      formatMecCoveragePercent(value: number | null): string;
+    };
+
+    expect(component.clampMecBarPercent(-4)).toBe(0);
+    expect(component.clampMecBarPercent(42.5)).toBe(42.5);
+    expect(component.clampMecBarPercent(140)).toBe(100);
+    expect(component.formatMecCoveragePercent(140)).toBe('140%');
+
+    appState.setAreaDisplayUnit('hectares');
+    expect(component.formatCustomMecAreaKm2(1.25)).toBe('1,3 km²');
+  });
+
+  it('keeps one custom table visible and populates coverage after solution selection', async () => {
+    const geometry = buildTestGeometry();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 5 })),
+    );
+    vi.mocked(apiServiceSpy.getCustomAoiAreaProfile).mockImplementation((request) =>
+      of(
+        request.sections[0] === 'ecosystems'
+          ? buildCustomEcosystemProfileResponse(request.solution_id ?? null)
+          : {
+              ...buildCustomEcosystemProfileResponse(null),
+              sections: { species: { status: 'unavailable' as const, records: [] } },
+            },
+      ),
+    );
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    let ecosystemCalls = vi
+      .mocked(apiServiceSpy.getCustomAoiAreaProfile)
+      .mock.calls.filter(([request]) => request.sections[0] === 'ecosystems');
+
+    expect(ecosystemCalls).toHaveLength(1);
+    expect(ecosystemCalls[0][0]).toEqual({ geometry, sections: ['ecosystems'] });
+    expect(compiled.querySelector('#aoi-mec-bar-label-0')?.textContent).toContain('Andean forest');
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const table = compiled.querySelector('#aoi-mec-modal-table');
+    expect(table).not.toBeNull();
+    expect(compiled.querySelectorAll('#aoi-mec-modal-table')).toHaveLength(1);
+    expect(compiled.querySelector('#aoi-mec-modal-mode-tabs')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-coverage-solution-guidance')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-available-forest')?.textContent).toContain('8');
+    expect(compiled.querySelector('#aoi-mec-modal-national-share-forest')?.textContent).toContain(
+      '20%',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-aoi-share-forest')?.textContent).toContain('80%');
+    expect(compiled.querySelector('#aoi-mec-modal-total-coverage-forest')?.textContent).toContain(
+      'analysis.aoi.mec.modal.coverageNotCalculated',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-national-share-forest-bar')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-aoi-share-forest-bar')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-total-coverage-forest-bar')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-pre-existing-coverage-forest-bar')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-new-coverage-forest-bar')).toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-body')?.textContent,
+    ).not.toContain('--');
+
+    appState.activeSolution$.set(buildTestSolution());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    ecosystemCalls = vi
+      .mocked(apiServiceSpy.getCustomAoiAreaProfile)
+      .mock.calls.filter(([request]) => request.sections[0] === 'ecosystems');
+
+    expect(ecosystemCalls).toHaveLength(2);
+    expect(ecosystemCalls[1][0]).toEqual({
+      geometry,
+      sections: ['ecosystems'],
+      solution_id: 'test-solution',
+    });
+    expect(compiled.querySelector('#aoi-mec-modal-table')).toBe(table);
+    expect(compiled.querySelector('#aoi-mec-modal-coverage-solution-guidance')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-total-coverage-forest')?.textContent).toContain(
+      '50%',
+    );
   });
 
   it.each([
@@ -1125,7 +1363,7 @@ describe('PanelSwitcherComponent', () => {
 
   it('shows the integrated MEC count and CTA only for drilldown views', () => {
     appState.activeSolution$.set(buildTestSolution());
-    appState.selectAOI(buildCustomAoiWithArea(20));
+    appState.selectAOI(buildFixedMunicipalityAoi());
     appState.setRightSidebarMode('aoi');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
@@ -1194,7 +1432,7 @@ describe('PanelSwitcherComponent', () => {
 
   it('opens and closes the MEC coverage modal with the shared modal shell', async () => {
     appState.activeSolution$.set(buildTestSolution());
-    appState.selectAOI(buildCustomAoiWithArea(20));
+    appState.selectAOI(buildFixedMunicipalityAoi());
     appState.setRightSidebarMode('aoi');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
@@ -1224,7 +1462,7 @@ describe('PanelSwitcherComponent', () => {
 
   it('gates MEC preview and modal coverage values behind the dummy flag', () => {
     appState.activeSolution$.set(buildTestSolution());
-    appState.selectAOI(buildCustomAoiWithArea(20));
+    appState.selectAOI(buildFixedMunicipalityAoi());
     appState.setRightSidebarMode('aoi');
     appState.setFillDummyAoiMetrics(true);
 
@@ -1245,7 +1483,7 @@ describe('PanelSwitcherComponent', () => {
 
   it('shows an honest unavailable state without synthetic MEC AOI values', () => {
     appState.activeSolution$.set(buildTestSolution());
-    appState.selectAOI(buildCustomAoiWithArea(20));
+    appState.selectAOI(buildFixedMunicipalityAoi());
     appState.setRightSidebarMode('aoi');
     appState.setFillDummyAoiMetrics(false);
 
@@ -1515,6 +1753,66 @@ function buildTestGeometry(): CustomPolygonMetricsGeometry {
         [-74.1, 4.6],
       ],
     ],
+  };
+}
+
+function buildCustomEcosystemProfileResponse(
+  solutionId: string | null = 'test-solution',
+): CustomAoiAreaProfileResponse {
+  return {
+    format: 'custom-aoi-area-profile-v1',
+    status: 'complete',
+    selection: {
+      status: 'selected',
+      selected_cell_count: 10,
+      available_cell_count: 10,
+      area_km2: 10,
+      source: 'test-grid',
+    },
+    ...(solutionId ? { solution_id: solutionId } : {}),
+    sections: {
+      ecosystems: {
+        status: 'complete',
+        canonical_summary_view: 'broadEcosystem',
+        classified_area_km2: 10,
+        views: [
+          {
+            id: 'broadEcosystem',
+            label: 'Broad ecosystem',
+            records: [
+              {
+                id: 'forest',
+                label: 'Andean forest',
+                area_km2: 8,
+                national_area_km2: 40,
+                share_of_classified_pct: 80,
+                share_of_national_class_pct: 20,
+                solution_covered_area_km2: solutionId ? 4 : null,
+                solution_covered_pct_of_aoi: solutionId ? 50 : null,
+                pre_existing_covered_area_km2: solutionId ? 1 : null,
+                pre_existing_covered_pct_of_aoi: solutionId ? 12.5 : null,
+                new_covered_area_km2: solutionId ? 3 : null,
+                new_covered_pct_of_aoi: solutionId ? 37.5 : null,
+              },
+              {
+                id: 'savanna',
+                label: 'Savanna',
+                area_km2: 2,
+                national_area_km2: 20,
+                share_of_classified_pct: 20,
+                share_of_national_class_pct: 10,
+                solution_covered_area_km2: solutionId ? 1 : null,
+                solution_covered_pct_of_aoi: solutionId ? 50 : null,
+                pre_existing_covered_area_km2: solutionId ? 0.25 : null,
+                pre_existing_covered_pct_of_aoi: solutionId ? 12.5 : null,
+                new_covered_area_km2: solutionId ? 0.75 : null,
+                new_covered_pct_of_aoi: solutionId ? 37.5 : null,
+              },
+            ],
+          },
+        ],
+      },
+    },
   };
 }
 

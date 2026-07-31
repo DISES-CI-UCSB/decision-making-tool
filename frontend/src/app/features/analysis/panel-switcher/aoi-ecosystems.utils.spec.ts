@@ -1,6 +1,12 @@
-import type { AOI, MecCompactDocument, MecCompactV2Document } from '@core/models';
+import type {
+  AOI,
+  CustomAoiAreaProfileResponse,
+  MecCompactDocument,
+  MecCompactV2Document,
+} from '@core/models';
 
 import {
+  buildCustomMecData,
   buildDummyCoverageRows,
   buildMecCoverageRows,
   buildMecPreviewItems,
@@ -83,6 +89,34 @@ describe('AOI ecosystems utilities', () => {
     });
   });
 
+  it('adapts live custom ecosystem composition and coverage without synthetic values', () => {
+    const data = buildCustomMecData(buildCustomProfileResponse());
+    const row = data.rowsByView.get('broadEcosystem')?.[0];
+
+    expect(data.status).toBe('complete');
+    expect(data.hasSolutionCoverage).toBe(true);
+    expect(
+      buildCustomMecData({ ...buildCustomProfileResponse(), solution_id: null })
+        .hasSolutionCoverage,
+    ).toBe(false);
+    expect(data.previewByView.get('broadEcosystem')).toEqual([{ label: 'Forest', percent: 80 }]);
+    expect(row).toMatchObject({
+      id: 'forest',
+      ecosystemAreaKm2: 8,
+      ecosystemSharePercent: 80,
+      nationalClassPercent: 20,
+      solutionCoverageKm2: 4,
+      solutionCoveragePercent: 50,
+      preExistingCoverageKm2: 1,
+      newPrioritizrCoverageKm2: 3,
+    });
+    expect(data.scopeSummary).toMatchObject({
+      scopeAreaKm2: 12,
+      classifiedKm2: 10,
+      unclassifiedKm2: 2,
+    });
+  });
+
   it('resolves SIRAPs by stable ID only and accepts only whole merged production provenance', () => {
     const document = buildV2MecDocument();
     document.geographyLevel = 'siraps';
@@ -129,6 +163,50 @@ describe('AOI ecosystems utilities', () => {
     expect(isWholeProductionSirapAoi(legacyAoi)).toBe(false);
   });
 });
+
+function buildCustomProfileResponse(): CustomAoiAreaProfileResponse {
+  return {
+    format: 'custom-aoi-area-profile-v1',
+    status: 'complete',
+    solution_id: 'test-solution',
+    selection: {
+      status: 'selected',
+      selected_cell_count: 12,
+      available_cell_count: 12,
+      area_km2: 12,
+      source: 'test-grid',
+    },
+    sections: {
+      ecosystems: {
+        status: 'complete',
+        canonical_summary_view: 'broadEcosystem',
+        classified_area_km2: 10,
+        views: [
+          {
+            id: 'broadEcosystem',
+            label: 'Broad ecosystem',
+            records: [
+              {
+                id: 'forest',
+                label: 'Forest',
+                area_km2: 8,
+                national_area_km2: 40,
+                share_of_classified_pct: 80,
+                share_of_national_class_pct: 20,
+                solution_covered_area_km2: 4,
+                solution_covered_pct_of_aoi: 50,
+                pre_existing_covered_area_km2: 1,
+                pre_existing_covered_pct_of_aoi: 12.5,
+                new_covered_area_km2: 3,
+                new_covered_pct_of_aoi: 37.5,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  };
+}
 
 function buildAoi(id: string, name: string): AOI {
   return {

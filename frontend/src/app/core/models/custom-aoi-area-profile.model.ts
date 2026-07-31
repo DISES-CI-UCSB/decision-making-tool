@@ -60,11 +60,14 @@ export interface CustomAoiSpeciesSection {
 
 export interface CustomAoiEcosystemsSection {
   status: CustomAoiProfileSectionStatus;
+  canonical_summary_view: 'broadEcosystem';
+  classified_area_km2: number;
   views: {
     id: CustomAoiEcosystemView;
     label: string;
     records: CustomAoiEcosystemRecord[];
   }[];
+  reason?: string | null;
 }
 
 export interface CustomAoiAreaProfileResponse {

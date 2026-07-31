@@ -1,5 +1,6 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   resolveLayerLabel,
@@ -104,6 +105,7 @@ import {
   type MetricFormatOptions,
 } from '../utils/metric-presentation.utils';
 import {
+  buildCustomMecData,
   buildDummyCoverageRows,
   buildMecCoverageRowsByView,
   buildMecPreviewItems,
@@ -117,13 +119,14 @@ import {
   type MecBreakdownConfig,
   type MecBreakdownId,
   type MecCoverageRow,
+  type CustomMecData,
   type MecPreviewItem,
   type MecSortId,
   STRATEGIC_ECOSYSTEM_BARS,
 } from './aoi-ecosystems.utils';
 import { formatSpeciesGroupsProtectedValue, resolveOverviewMetric } from './overview-metrics.utils';
 import { classifyOverviewTargetDomains } from './overview-target-domains.utils';
-import { CustomAoiAreaProfileComponent } from '../custom-aoi-area-profile/custom-aoi-area-profile';
+import { CustomAoiSpeciesInventoryComponent } from '../custom-aoi-species-inventory/custom-aoi-species-inventory';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type AoiSectionId =
@@ -292,10 +295,11 @@ type MecUnavailableReason =
   | 'no-url';
 type MecPanelState =
   | { status: 'unavailable'; reason: MecUnavailableReason }
-  | { status: 'loading' }
-  | { status: 'error'; error: 'http' | 'invalid-document' }
+  | { status: 'loading'; source?: 'custom' }
+  | { status: 'error'; error: 'http' | 'invalid-document'; source?: 'custom' }
   | { status: 'scope-missing'; document: MecCompactDocument }
-  | { status: 'loaded'; document: MecCompactDocument; scopeIndex: number };
+  | { status: 'loaded'; document: MecCompactDocument; scopeIndex: number }
+  | { status: 'custom'; data: CustomMecData };
 type MecRequest =
   | { key: string; kind: 'unavailable'; reason: MecUnavailableReason }
   | {
@@ -304,8 +308,13 @@ type MecRequest =
       solutionId: string;
       geographyLevel: GeographyLevel;
       aoi: AOI;
+    }
+  | {
+      key: string;
+      kind: 'custom-load';
+      solutionId?: string;
+      geometry: CustomPolygonMetricsGeometry;
     };
-
 const AREA_UNIT_OPTIONS: AreaDisplayUnit[] = ['km2', 'hectares'];
 
 const CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS = 10_000;
@@ -314,7 +323,12 @@ const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
-  imports: [TranslatePipe, ModalShellComponent, CustomAoiAreaProfileComponent],
+  imports: [
+    TranslatePipe,
+    NgTemplateOutlet,
+    ModalShellComponent,
+    CustomAoiSpeciesInventoryComponent,
+  ],
   templateUrl: './panel-switcher.html',
   styleUrl: './panel-switcher.scss',
 })
@@ -542,7 +556,7 @@ export class PanelSwitcherComponent {
   protected readonly activeSolutionId = computed(() =>
     this.resolveMetricsSolutionId(this.activeSolution()),
   );
-  protected readonly showCustomAoiAreaProfile = computed(() => {
+  protected readonly showCustomAoiSpeciesInventory = computed(() => {
     const solution = this.activeSolution();
     const domain =
       this.findActiveCatalogSolution(solution)?.domain ?? solution?.metadata?.['domain'];
@@ -591,6 +605,8 @@ export class PanelSwitcherComponent {
       this.mecBreakdowns[0],
   );
   protected readonly mecModalOpen = signal(false);
+  protected readonly speciesInventoryModalOpen = signal(false);
+  protected readonly customAoiSpeciesInventory = viewChild(CustomAoiSpeciesInventoryComponent);
   protected readonly mecModalBreakdownId = signal<MecBreakdownId>('broad');
   protected readonly mecSearchQuery = signal('');
   protected readonly mecSortId = signal<MecSortId>('coverage');
@@ -606,21 +622,35 @@ export class PanelSwitcherComponent {
   private readonly mecCoverageRowsByView = computed<ReadonlyMap<MecViewId, MecCoverageRow[]>>(
     () => {
       const state = this.mecPanelState();
-      return state.status === 'loaded'
-        ? buildMecCoverageRowsByView(state.document, state.scopeIndex)
+      if (state.status === 'loaded') {
+        return buildMecCoverageRowsByView(state.document, state.scopeIndex);
+      }
+      return state.status === 'custom'
+        ? state.data.rowsByView
         : new Map<MecViewId, MecCoverageRow[]>();
     },
   );
   protected readonly mecScopeSummary = computed(() => {
     const state = this.mecPanelState();
-    return state.status === 'loaded'
-      ? resolveMecScopeSummary(state.document, state.scopeIndex)
-      : null;
+    if (state.status === 'loaded') {
+      return resolveMecScopeSummary(state.document, state.scopeIndex);
+    }
+    return state.status === 'custom' ? state.data.scopeSummary : null;
   });
   protected readonly mecPreviewItems = computed<MecPreviewItem[]>(() => {
     const config = this.selectedMecBreakdown();
     if (this.hasMecDataFor(config)) {
       const state = this.mecPanelState();
+      if (state.status === 'custom') {
+        return (state.data.previewByView.get(config.view as MecViewId) ?? []).map(
+          (item, index) => ({
+            ...item,
+            ...(this.chartPalette().colors[index]
+              ? { color: this.chartPalette().colors[index] }
+              : {}),
+          }),
+        );
+      }
       if (state.status !== 'loaded') {
         return [];
       }
@@ -632,7 +662,7 @@ export class PanelSwitcherComponent {
         this.chartPalette().colors,
       );
     }
-    return this.fillDummyAoiMetrics() ? [...config.dummyItems] : [];
+    return this.canUseMecDummyData() ? [...config.dummyItems] : [];
   });
   protected readonly mecDonutGradient = computed(() => {
     const items = this.mecPreviewItems();
@@ -668,7 +698,7 @@ export class PanelSwitcherComponent {
     const config = this.mecModalBreakdown();
     const rows = this.hasMecDataFor(config)
       ? this.getRealMecCoverageRows(config)
-      : this.fillDummyAoiMetrics()
+      : this.canUseMecDummyData()
         ? buildDummyCoverageRows(
             this.getClassificationLabels(config),
             this.resolveMecCandidateAreaKm2() ?? 230,
@@ -711,6 +741,14 @@ export class PanelSwitcherComponent {
       });
     }
 
+    if (this.isCustomAoiSelected()) {
+      return this.aoiBiodiversityBaseCounts.map((item) => ({
+        id: item.id,
+        label: this.localizedText(item.labelKey),
+        count: null,
+      }));
+    }
+
     if (this.fillDummyAoiMetrics()) {
       const selectedAoi = this.selectedAoi();
       const scale = selectedAoi ? this.getAoiBiodiversityScale(selectedAoi.id) : 1;
@@ -727,6 +765,9 @@ export class PanelSwitcherComponent {
       count: null,
     }));
   });
+  protected readonly hasResolvedCustomAoiBiodiversityBars = computed(() =>
+    this.aoiBiodiversityBars().some((entry) => entry.count !== null),
+  );
   protected readonly aoiBiodiversityMaxCount = computed<number>(() =>
     this.aoiBiodiversityBars().reduce((maxValue, item) => {
       if (item.count === null) {
@@ -848,7 +889,7 @@ export class PanelSwitcherComponent {
       });
 
     const mecRequest = computed<MecRequest>(() =>
-      this.buildMecRequest(this.activeSolution(), this.selectedAoi()),
+      this.buildMecRequest(this.activeSolution(), this.selectedAoi(), this.customAoiGeometry()),
     );
     toObservable(mecRequest)
       .pipe(
@@ -856,6 +897,33 @@ export class PanelSwitcherComponent {
         switchMap((request) => {
           if (request.kind === 'unavailable') {
             return of<MecPanelState>({ status: 'unavailable', reason: request.reason });
+          }
+
+          if (request.kind === 'custom-load') {
+            return concat(
+              of<MecPanelState>({ status: 'loading', source: 'custom' }),
+              this.api
+                .getCustomAoiAreaProfile({
+                  geometry: request.geometry,
+                  sections: ['ecosystems'],
+                  ...(request.solutionId ? { solution_id: request.solutionId } : {}),
+                })
+                .pipe(
+                  map(
+                    (response): MecPanelState => ({
+                      status: 'custom',
+                      data: buildCustomMecData(response),
+                    }),
+                  ),
+                  catchError(() =>
+                    of<MecPanelState>({
+                      status: 'error',
+                      error: 'http',
+                      source: 'custom',
+                    }),
+                  ),
+                ),
+            );
           }
 
           return concat(
@@ -1489,12 +1557,17 @@ export class PanelSwitcherComponent {
 
   protected openMecModal(): void {
     this.mecModalBreakdownId.set(this.selectedMecBreakdownId());
+    this.mecSortId.set(this.isCustomMecState() ? 'composition' : 'coverage');
     this.mecSearchQuery.set('');
     this.mecModalOpen.set(true);
   }
 
   protected closeMecModal(): void {
     this.mecModalOpen.set(false);
+  }
+
+  protected openCustomAoiSpeciesInventory(): void {
+    this.customAoiSpeciesInventory()?.open();
   }
 
   protected updateMecSearch(event: Event): void {
@@ -1505,8 +1578,25 @@ export class PanelSwitcherComponent {
     this.mecSortId.set((event.target as HTMLSelectElement).value as MecSortId);
   }
 
+  protected isCustomMecState(): boolean {
+    return this.mecPanelState().status === 'custom';
+  }
+
+  protected hasCustomMecCoverage(): boolean {
+    const state = this.mecPanelState();
+    return state.status === 'custom' && state.data.hasSolutionCoverage;
+  }
+
   protected supportsMecDrilldown(config = this.selectedMecBreakdown()): boolean {
     return config.id === 'broad' || config.id === 'detailed' || config.id === 'iavh';
+  }
+
+  protected shouldShowMecPreview(config: MecBreakdownConfig): boolean {
+    return (
+      this.canUseMecDummyData() ||
+      this.hasMecDataFor(config) ||
+      (!this.isCustomAoiSelected() && this.supportsMecDrilldown(config))
+    );
   }
 
   protected getMecPreviewMaximum(): number {
@@ -1514,32 +1604,47 @@ export class PanelSwitcherComponent {
   }
 
   protected formatMecPreviewPercent(value: number | null): string {
-    return value === null
-      ? '--'
-      : this.appendUnit(this.formatNumber(value, this.metricNumberFormatMode(), 0, 1), '%');
+    if (value === null) {
+      return this.isCustomMecState()
+        ? this.translate.instant('analysis.common.valueUnavailable')
+        : '--';
+    }
+    return this.appendUnit(this.formatNumber(value, this.metricNumberFormatMode(), 0, 1), '%');
   }
 
   protected hasMecDataFor(config: MecBreakdownConfig): boolean {
     const state = this.mecPanelState();
+    if (state.status === 'loaded') {
+      return isMecViewAvailable(state.document, config.view as MecViewId);
+    }
     return (
-      state.status === 'loaded' && isMecViewAvailable(state.document, config.view as MecViewId)
+      state.status === 'custom' &&
+      state.data.status === 'complete' &&
+      state.data.rowsByView.has(config.view as MecViewId)
     );
   }
 
   protected shouldShowMecStatus(config: MecBreakdownConfig): boolean {
-    return !this.fillDummyAoiMetrics() && !this.hasMecDataFor(config);
+    return !this.canUseMecDummyData() && !this.hasMecDataFor(config);
   }
 
   protected getMecStatusTitleKey(config: MecBreakdownConfig): string {
     const state = this.mecPanelState();
     if (state.status === 'loading') {
-      return 'analysis.aoi.mec.states.loadingTitle';
+      return state.source === 'custom'
+        ? 'analysis.aoi.mec.states.custom.loadingTitle'
+        : 'analysis.aoi.mec.states.loadingTitle';
     }
     if (state.status === 'error') {
-      return 'analysis.aoi.mec.states.errorTitle';
+      return state.source === 'custom'
+        ? 'analysis.aoi.mec.states.custom.failedTitle'
+        : 'analysis.aoi.mec.states.errorTitle';
     }
     if (state.status === 'scope-missing') {
       return 'analysis.aoi.mec.states.scopeMissingTitle';
+    }
+    if (state.status === 'custom') {
+      return `analysis.aoi.mec.states.custom.${state.data.status}Title`;
     }
     if (
       state.status === 'loaded' &&
@@ -1562,13 +1667,20 @@ export class PanelSwitcherComponent {
   protected getMecStatusDescriptionKey(config: MecBreakdownConfig): string {
     const state = this.mecPanelState();
     if (state.status === 'loading') {
-      return 'analysis.aoi.mec.states.loadingDescription';
+      return state.source === 'custom'
+        ? 'analysis.aoi.mec.states.custom.loadingDescription'
+        : 'analysis.aoi.mec.states.loadingDescription';
     }
     if (state.status === 'error') {
-      return 'analysis.aoi.mec.states.errorDescription';
+      return state.source === 'custom'
+        ? 'analysis.aoi.mec.states.custom.failedDescription'
+        : 'analysis.aoi.mec.states.errorDescription';
     }
     if (state.status === 'scope-missing') {
       return 'analysis.aoi.mec.states.scopeMissingDescription';
+    }
+    if (state.status === 'custom') {
+      return `analysis.aoi.mec.states.custom.${state.data.status}Description`;
     }
     if (
       state.status === 'loaded' &&
@@ -1589,7 +1701,10 @@ export class PanelSwitcherComponent {
   }
 
   protected getMecStatusRole(): 'status' | 'alert' {
-    return this.mecPanelState().status === 'error' ? 'alert' : 'status';
+    const state = this.mecPanelState();
+    return state.status === 'error' || (state.status === 'custom' && state.data.status === 'failed')
+      ? 'alert'
+      : 'status';
   }
 
   protected getStrategicEcosystemPercent(metricId: string, dummyPercent: number): number {
@@ -1675,17 +1790,22 @@ export class PanelSwitcherComponent {
   }
 
   protected getMecPreviewAreaValue(): string {
-    return this.isLoadedMecV2() ? this.getMecAoiAreaValue() : this.getMecCandidateAreaValue();
+    return this.isLoadedMecV2() || this.isCustomMecState()
+      ? this.getMecAoiAreaValue()
+      : this.getMecCandidateAreaValue();
   }
 
   protected getMecPreviewAreaLabelKey(): string {
-    return this.isLoadedMecV2()
+    return this.isLoadedMecV2() || this.isCustomMecState()
       ? 'analysis.aoi.mec.aoiArea'
       : 'analysis.aoi.mec.legacyCandidateArea';
   }
 
   protected getMecSourceKey(): string {
     const state = this.mecPanelState();
+    if (state.status === 'custom') {
+      return 'analysis.aoi.mec.customSource';
+    }
     return state.status === 'loaded' && !isMecCompactV2Document(state.document)
       ? 'analysis.aoi.mec.legacySource'
       : 'analysis.aoi.mec.source';
@@ -1695,18 +1815,56 @@ export class PanelSwitcherComponent {
     return this.formatMecCoveragePercent(this.mecScopeSummary()?.unclassifiedPercent ?? null);
   }
 
+  protected getMecClassifiedAreaValue(): string {
+    const value = this.mecScopeSummary()?.classifiedKm2;
+    return value === undefined
+      ? this.translate.instant('analysis.common.valueUnavailable')
+      : this.formatAreaValue(value);
+  }
+
   protected formatMecEcosystemArea(value: number | null): string {
-    return value === null ? '--' : this.formatAreaValue(value);
+    return value === null
+      ? this.isCustomMecState()
+        ? this.translate.instant('analysis.common.valueUnavailable')
+        : '--'
+      : this.formatAreaValue(value);
   }
 
   protected formatMecCoveragePercent(value: number | null): string {
     if (value === null) {
-      return '--';
+      return this.isCustomMecState()
+        ? this.translate.instant('analysis.common.valueUnavailable')
+        : '--';
     }
     return this.appendUnit(this.formatNumber(value, this.metricNumberFormatMode(), 0, 1), '%');
   }
 
+  protected clampMecBarPercent(value: number): number {
+    return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  }
+
+  protected formatCustomMecAreaKm2(value: number): string {
+    return this.appendUnit(this.formatNumber(value, this.metricNumberFormatMode(), 0, 1), 'km²');
+  }
+
+  protected getCustomMecBarAriaLabel(
+    metricLabelKey: string,
+    ecosystemLabel: string,
+    percent: number,
+    areaKm2: number,
+  ): string {
+    return [
+      this.translate.instant(metricLabelKey),
+      ecosystemLabel,
+      this.formatMecCoveragePercent(percent),
+      this.formatCustomMecAreaKm2(areaKm2),
+    ].join(', ');
+  }
+
   protected getMecCoverageTotal(row: MecCoverageRow): number {
+    if (this.isCustomMecState()) {
+      return row.solutionCoveragePercent ?? -1;
+    }
     return (row.preExistingPercent ?? 0) + (row.newPrioritizrPercent ?? 0);
   }
 
@@ -1714,7 +1872,7 @@ export class PanelSwitcherComponent {
     if (this.hasMecDataFor(config)) {
       return this.getRealMecCoverageRows(config).length;
     }
-    return this.fillDummyAoiMetrics() ? config.count : this.getClassificationLabels(config).length;
+    return this.canUseMecDummyData() ? config.count : this.getClassificationLabels(config).length;
   }
 
   protected readonly mecExistingColor = computed(() => this.existingProtectedColor() || '#2563eb');
@@ -1733,6 +1891,11 @@ export class PanelSwitcherComponent {
       return fallbackWhenMissing;
     }
     return '--';
+  }
+
+  protected hasReadyAoiMetric(metricId: string): boolean {
+    const metric = this.aoiMetricsById().get(metricId);
+    return metric?.status === 'ready' && metric.value !== null;
   }
 
   protected getAoiUnitFallback(value: number, unit: string): string {
@@ -1979,13 +2142,49 @@ export class PanelSwitcherComponent {
       : null;
   }
 
-  private buildMecRequest(solution: Solution | null, aoi: AOI | null): MecRequest {
-    if (!solution || !aoi) {
+  private buildMecRequest(
+    solution: Solution | null,
+    aoi: AOI | null,
+    customGeometry: CustomPolygonMetricsGeometry | null,
+  ): MecRequest {
+    if (!aoi) {
       return { key: 'unavailable:no-selection', kind: 'unavailable', reason: 'no-selection' };
     }
-    if (aoi.type === 'custom') {
-      return { key: `unavailable:custom-aoi:${aoi.id}`, kind: 'unavailable', reason: 'custom-aoi' };
+
+    const catalogSolution = solution ? this.findActiveCatalogSolution(solution) : null;
+    const metadataDomain = solution?.metadata?.['domain'];
+    if (solution && (catalogSolution?.domain === 'marine' || metadataDomain === 'marine')) {
+      return {
+        key: `unavailable:marine-solution:${solution.id}`,
+        kind: 'unavailable',
+        reason: 'marine-solution',
+      };
     }
+
+    if (aoi.type === 'custom') {
+      if (!customGeometry) {
+        return {
+          key: `unavailable:custom-aoi:${aoi.id}`,
+          kind: 'unavailable',
+          reason: 'custom-aoi',
+        };
+      }
+      const solutionId = solution ? this.resolveMetricsSolutionId(solution) : null;
+      if (solution && !solutionId) {
+        return { key: 'unavailable:no-url', kind: 'unavailable', reason: 'no-url' };
+      }
+      return {
+        key: `${solutionId ?? 'no-solution'}|custom|${JSON.stringify(customGeometry)}`,
+        kind: 'custom-load',
+        ...(solutionId ? { solutionId } : {}),
+        geometry: customGeometry,
+      };
+    }
+
+    if (!solution) {
+      return { key: 'unavailable:no-selection', kind: 'unavailable', reason: 'no-selection' };
+    }
+    const solutionId = this.resolveMetricsSolutionId(solution);
     const boundaryProvenanceKey = [
       aoi.boundarySourceLayerKey ?? 'missing-layer',
       aoi.boundarySourceId ?? 'missing-source',
@@ -1999,17 +2198,6 @@ export class PanelSwitcherComponent {
       };
     }
 
-    const catalogSolution = this.findActiveCatalogSolution(solution);
-    const metadataDomain = solution.metadata?.['domain'];
-    if (catalogSolution?.domain === 'marine' || metadataDomain === 'marine') {
-      return {
-        key: `unavailable:marine-solution:${solution.id}`,
-        kind: 'unavailable',
-        reason: 'marine-solution',
-      };
-    }
-
-    const solutionId = this.resolveMetricsSolutionId(solution);
     const geographyLevel = aoiTypeToGeographyLevel(aoi.type);
     if (!solutionId || !geographyLevel) {
       return { key: 'unavailable:no-url', kind: 'unavailable', reason: 'no-url' };
@@ -2056,6 +2244,10 @@ export class PanelSwitcherComponent {
     switch (this.mecSortId()) {
       case 'name':
         return a.label.localeCompare(b.label, this.appLocale.locale());
+      case 'composition':
+        return (b.ecosystemAreaKm2 ?? -1) - (a.ecosystemAreaKm2 ?? -1);
+      case 'national':
+        return (b.nationalClassPercent ?? -1) - (a.nationalClassPercent ?? -1);
       case 'existing':
         return (b.preExistingPercent ?? -1) - (a.preExistingPercent ?? -1);
       case 'additional':
@@ -2068,6 +2260,10 @@ export class PanelSwitcherComponent {
   private isLoadedMecV2(): boolean {
     const state = this.mecPanelState();
     return state.status === 'loaded' && isMecCompactV2Document(state.document);
+  }
+
+  private canUseMecDummyData(): boolean {
+    return this.fillDummyAoiMetrics() && !this.isCustomAoiSelected();
   }
 
   private loadEcosystemClassificationSummary(): void {
@@ -2757,6 +2953,43 @@ export class PanelSwitcherComponent {
     );
   }
 
+  protected retryCustomAoiSpeciesMetrics(): void {
+    const geometry = this.customAoiGeometry();
+    if (!geometry || this.isCustomAoiSpeciesMetricsLoading()) {
+      return;
+    }
+
+    const requestId = this.customAoiMetricsRequestSequence;
+    this.customAoiSpeciesMetricsLoadFailed.set(false);
+    this.customAoiSpeciesMetricsMessage.set(null);
+    this.isCustomAoiSpeciesMetricsLoading.set(true);
+    this.startCustomAoiSpeciesLoadingStages();
+
+    this.loadCustomAoiMetricBatch(geometry, CUSTOM_AOI_SPECIES_METRIC_IDS, 'species', requestId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (speciesMetrics) => {
+          if (requestId === this.customAoiMetricsRequestSequence) {
+            this.customAoiMetrics.set(
+              this.mergeCustomAoiMetricValues(this.customAoiMetrics(), speciesMetrics),
+            );
+          }
+        },
+        error: (error: unknown) => {
+          if (requestId === this.customAoiMetricsRequestSequence) {
+            this.customAoiSpeciesMetricsLoadFailed.set(true);
+            this.customAoiSpeciesMetricsMessage.set(this.getCustomAoiErrorMessage(error));
+            this.finishCustomAoiSpeciesRetry();
+          }
+        },
+        complete: () => {
+          if (requestId === this.customAoiMetricsRequestSequence) {
+            this.finishCustomAoiSpeciesRetry();
+          }
+        },
+      });
+  }
+
   private classifyCustomAoiBiodiversityEstimate(): CustomAoiBiodiversityEstimateBand {
     return classifyCustomAoiBiodiversityEstimate(this.resolveSelectedAoiAreaKm2());
   }
@@ -2782,6 +3015,11 @@ export class PanelSwitcherComponent {
     }
     this.customAoiSpeciesStageTimeouts = [];
     this.customAoiSpeciesLoadingStage.set('initial');
+  }
+
+  private finishCustomAoiSpeciesRetry(): void {
+    this.isCustomAoiSpeciesMetricsLoading.set(false);
+    this.stopCustomAoiSpeciesLoadingStages();
   }
 
   private areCustomAoiGeometriesEqual(
