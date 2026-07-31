@@ -273,7 +273,10 @@
           "ecosystemTargetedDescription": "These classification views describe the same national MEC ecosystem map. Pre-existing and new solution coverage are area shares; total coverage is compared with the configured target. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
           "ecosystemAdditionalDescription": "These classification views describe the same national MEC ecosystem map. Pre-existing and new solution coverage are area shares; total coverage is compared with the illustrative 17% and 30% checkpoints. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
           "ecosystemClassificationGroup": "Ecosystem classification group",
+          "preparing": "Preparing feature breakdown...",
           "classificationsLoading": "Loading national ecosystem classifications...",
+          "classificationsLoadError": "The additional national ecosystem classifications could not be loaded. The available feature data is still shown below.",
+          "retry": "Retry",
           "classificationUnavailable": "This classification is not available for this solution.",
           "configuredTarget": "Configured target",
           "featuresMeetingTarget": "Features meeting target",
@@ -310,6 +313,7 @@
           "checkpoints": "Coverage checkpoints",
           "met": "Met",
           "notMet": "Not met",
+          "virtualScrollAriaLabel": "Scrollable species results",
           "noRows": "No features match these filters."
         }
       },

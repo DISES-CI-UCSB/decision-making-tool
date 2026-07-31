@@ -273,7 +273,10 @@
           "ecosystemTargetedDescription": "Estas vistas de clasificación describen el mismo mapa nacional de ecosistemas MEC. La cobertura preexistente y la nueva cobertura de la solución son porcentajes de área; la cobertura total se compara con la meta configurada. Las clasificaciones más generales son agregaciones de cobertura por área, no elementos separados de Prioritizr.",
           "ecosystemAdditionalDescription": "Estas vistas de clasificación describen el mismo mapa nacional de ecosistemas MEC. La cobertura preexistente y la nueva cobertura de la solución son porcentajes de área; la cobertura total se compara con los puntos ilustrativos de 17% y 30%. Las clasificaciones más generales son agregaciones de cobertura por área, no elementos separados de Prioritizr.",
           "ecosystemClassificationGroup": "Grupo de clasificación de ecosistemas",
+          "preparing": "Preparando el desglose de elementos...",
           "classificationsLoading": "Cargando clasificaciones nacionales de ecosistemas...",
+          "classificationsLoadError": "No se pudieron cargar las clasificaciones nacionales adicionales de ecosistemas. Los datos disponibles de los elementos se muestran a continuación.",
+          "retry": "Reintentar",
           "classificationUnavailable": "Esta clasificación no está disponible para esta solución.",
           "configuredTarget": "Meta configurada",
           "featuresMeetingTarget": "Elementos que alcanzan la meta",
@@ -310,6 +313,7 @@
           "checkpoints": "Puntos de cobertura",
           "met": "Alcanzada",
           "notMet": "No alcanzada",
+          "virtualScrollAriaLabel": "Resultados de especies desplazables",
           "noRows": "Ningún elemento coincide con estos filtros."
         }
       },

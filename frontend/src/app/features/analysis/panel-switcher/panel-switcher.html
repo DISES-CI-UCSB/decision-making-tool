@@ -3087,7 +3087,43 @@
     }}
   </p>
 
-  @if (goalsModalDomain(); as domain) {
+  @if (goalsModalOpen() && goalsModalDomain(); as domain) {
+    @if (!goalsModalContentReady()) {
+      <div
+        id="conservation-goals-modal-preparing-status"
+        class="flex min-h-56 items-center justify-center gap-3 p-6 text-sm text-slate-600"
+        role="status"
+        aria-live="polite"
+      >
+        <svg
+          id="conservation-goals-modal-preparing-spinner"
+          class="h-6 w-6 shrink-0 animate-spin"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle
+            id="conservation-goals-modal-preparing-spinner-ring"
+            class="fill-none stroke-slate-200"
+            cx="12"
+            cy="12"
+            r="9"
+            stroke-width="3"
+          ></circle>
+          <path
+            id="conservation-goals-modal-preparing-spinner-arc"
+            class="fill-none stroke-emerald-600"
+            d="M12 3a9 9 0 0 1 9 9"
+            stroke-width="3"
+            stroke-linecap="round"
+          ></path>
+        </svg>
+        <span id="conservation-goals-modal-preparing-copy">
+          {{ 'analysis.overview.goalsWidget.modal.preparing' | translate }}
+        </span>
+      </div>
+    }
+  }
+  @if (goalsModalOpen() && goalsModalContentReady() && goalsModalDomain(); as domain) {
     <div id="conservation-goals-modal-body" class="grid gap-4 p-4 md:p-6">
       <section id="conservation-goals-modal-intro" class="grid gap-2">
         <p
@@ -3139,13 +3175,56 @@
           }
         </section>
         @if (goalsModalEcosystemMecLoading()) {
-          <p
+          <div
             id="conservation-goals-modal-ecosystem-classifications-loading"
-            class="m-0 text-xs text-slate-500"
+            class="flex items-center gap-2 text-xs text-slate-500"
             role="status"
+            aria-live="polite"
           >
-            {{ 'analysis.overview.goalsWidget.modal.classificationsLoading' | translate }}
-          </p>
+            <svg
+              id="conservation-goals-modal-ecosystem-classifications-spinner"
+              class="h-4 w-4 shrink-0 animate-spin"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                id="conservation-goals-modal-ecosystem-classifications-spinner-ring"
+                class="fill-none stroke-slate-200"
+                cx="12"
+                cy="12"
+                r="9"
+                stroke-width="3"
+              ></circle>
+              <path
+                id="conservation-goals-modal-ecosystem-classifications-spinner-arc"
+                class="fill-none stroke-emerald-600"
+                d="M12 3a9 9 0 0 1 9 9"
+                stroke-width="3"
+                stroke-linecap="round"
+              ></path>
+            </svg>
+            <span id="conservation-goals-modal-ecosystem-classifications-loading-copy">
+              {{ 'analysis.overview.goalsWidget.modal.classificationsLoading' | translate }}
+            </span>
+          </div>
+        } @else if (goalsModalEcosystemMecLoadFailed()) {
+          <div
+            id="conservation-goals-modal-ecosystem-classifications-error"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+            role="alert"
+          >
+            <span id="conservation-goals-modal-ecosystem-classifications-error-copy">
+              {{ 'analysis.overview.goalsWidget.modal.classificationsLoadError' | translate }}
+            </span>
+            <button
+              id="conservation-goals-modal-ecosystem-classifications-retry-button"
+              type="button"
+              class="rounded-md border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-900 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+              (click)="retryGoalsModalEcosystemMec()"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.retry' | translate }}
+            </button>
+          </div>
         }
       }
 
@@ -3435,166 +3514,164 @@
           </div>
         </header>
 
-        <div id="conservation-goals-modal-table-wrapper" class="max-h-[48vh] overflow-auto">
-          <table
-            id="conservation-goals-modal-table"
-            class="w-full min-w-180 border-collapse text-left text-xs"
-          >
-            <thead
-              id="conservation-goals-modal-table-head"
-              class="sticky top-0 z-1 bg-white shadow-sm"
+        @if (domain.featureType === 'species') {
+          <div id="conservation-goals-modal-virtual-table-scroll-wrapper" class="overflow-x-auto">
+            <div
+              id="conservation-goals-modal-virtual-table"
+              class="min-w-180 text-left text-xs"
+              role="table"
+              [attr.aria-label]="'analysis.overview.goalsWidget.modal.featureDetails' | translate"
             >
-              <tr id="conservation-goals-modal-table-heading-row">
-                <th
-                  id="conservation-goals-modal-heading-feature"
+              <div
+                id="conservation-goals-modal-virtual-table-head"
+                class="grid bg-white shadow-sm"
+                [class.grid-cols-[minmax(15rem,1fr)_15rem_8rem_7rem]]="domain.targeted"
+                [class.grid-cols-[minmax(15rem,1fr)_15rem_10rem]]="!domain.targeted"
+                role="row"
+              >
+                <span
+                  id="conservation-goals-modal-virtual-heading-feature"
                   class="px-3 py-2.5 font-bold text-slate-600"
+                  role="columnheader"
                 >
-                  {{
-                    (domain.featureType === 'ecosystems'
-                      ? 'analysis.overview.goalsWidget.modal.category'
-                      : 'analysis.overview.goalsWidget.modal.feature'
-                    ) | translate
-                  }}
-                </th>
-                @if (domain.featureType === 'ecosystems') {
-                  <th
-                    id="conservation-goals-modal-heading-pre-existing-coverage"
-                    class="px-3 py-2.5 font-bold text-slate-600"
-                  >
-                    {{ 'analysis.overview.goalsWidget.modal.preExistingCoverage' | translate }}
-                  </th>
-                  <th
-                    id="conservation-goals-modal-heading-new-coverage"
-                    class="px-3 py-2.5 font-bold text-slate-600"
-                  >
-                    {{ 'analysis.overview.goalsWidget.modal.newSolutionCoverage' | translate }}
-                  </th>
-                }
-                <th
-                  id="conservation-goals-modal-heading-coverage"
+                  {{ 'analysis.overview.goalsWidget.modal.feature' | translate }}
+                </span>
+                <span
+                  id="conservation-goals-modal-virtual-heading-coverage"
                   class="px-3 py-2.5 font-bold text-slate-600"
+                  role="columnheader"
                 >
-                  {{
-                    (domain.featureType === 'ecosystems'
-                      ? 'analysis.overview.goalsWidget.modal.totalCoverage'
-                      : 'analysis.overview.goalsWidget.modal.rangeCoverage'
-                    ) | translate
-                  }}
-                </th>
+                  {{ 'analysis.overview.goalsWidget.modal.rangeCoverage' | translate }}
+                </span>
                 @if (domain.targeted) {
-                  <th
-                    id="conservation-goals-modal-heading-target"
+                  <span
+                    id="conservation-goals-modal-virtual-heading-target"
                     class="px-3 py-2.5 font-bold text-slate-600"
+                    role="columnheader"
                   >
                     {{ 'analysis.overview.goalsWidget.modal.target' | translate }}
-                  </th>
-                  <th
-                    id="conservation-goals-modal-heading-status"
+                  </span>
+                  <span
+                    id="conservation-goals-modal-virtual-heading-status"
                     class="px-3 py-2.5 font-bold text-slate-600"
+                    role="columnheader"
                   >
                     {{ 'analysis.overview.goalsWidget.modal.status' | translate }}
-                  </th>
+                  </span>
                 } @else {
-                  <th
-                    id="conservation-goals-modal-heading-checkpoints"
+                  <span
+                    id="conservation-goals-modal-virtual-heading-checkpoints"
                     class="px-3 py-2.5 font-bold text-slate-600"
+                    role="columnheader"
                   >
                     {{ 'analysis.overview.goalsWidget.modal.checkpoints' | translate }}
-                  </th>
+                  </span>
                 }
-              </tr>
-            </thead>
-            <tbody id="conservation-goals-modal-table-body">
-              @for (row of goalsModalRows(); track row.id) {
-                <tr
-                  [id]="'conservation-goals-modal-row-' + $index"
-                  class="border-t border-slate-100"
+              </div>
+
+              @if (goalsModalRows().length > 0) {
+                <cdk-virtual-scroll-viewport
+                  id="conservation-goals-modal-species-viewport"
+                  class="h-[48vh] max-h-120 min-h-40"
+                  [itemSize]="goalsModalVirtualRowSize"
+                  [minBufferPx]="goalsModalVirtualMinBuffer"
+                  [maxBufferPx]="goalsModalVirtualMaxBuffer"
+                  tabindex="0"
+                  [attr.aria-label]="
+                    'analysis.overview.goalsWidget.modal.virtualScrollAriaLabel' | translate
+                  "
                 >
-                  <td [id]="'conservation-goals-modal-feature-' + $index" class="px-3 py-2.5">
-                    <strong
-                      [id]="'conservation-goals-modal-feature-name-' + $index"
-                      class="block font-semibold text-slate-900"
+                  <div
+                    *cdkVirtualFor="
+                      let row of goalsModalRows();
+                      let rowIndex = index;
+                      trackBy: trackGoalsModalRow
+                    "
+                    [id]="'conservation-goals-modal-row-' + rowIndex"
+                    class="grid h-14.25 border-t border-slate-100"
+                    [class.grid-cols-[minmax(15rem,1fr)_15rem_8rem_7rem]]="domain.targeted"
+                    [class.grid-cols-[minmax(15rem,1fr)_15rem_10rem]]="!domain.targeted"
+                    role="row"
+                  >
+                    <span
+                      [id]="'conservation-goals-modal-feature-' + rowIndex"
+                      class="min-w-0 px-3 py-2"
+                      role="cell"
                     >
-                      {{ row.name }}
-                    </strong>
-                    @if (row.secondaryLabel) {
-                      <span
-                        [id]="'conservation-goals-modal-feature-secondary-' + $index"
-                        class="mt-0.5 block text-[10px] text-slate-500"
+                      <strong
+                        [id]="'conservation-goals-modal-feature-name-' + rowIndex"
+                        class="block truncate font-semibold text-slate-900"
                       >
-                        {{ row.secondaryLabel }}
-                      </span>
-                    }
-                  </td>
-                  @if (domain.featureType === 'ecosystems') {
-                    <td
-                      [id]="'conservation-goals-modal-pre-existing-coverage-' + $index"
-                      class="px-3 py-2.5 font-semibold tabular-nums text-slate-700"
+                        {{ row.name }}
+                      </strong>
+                      @if (row.secondaryLabel) {
+                        <span
+                          [id]="'conservation-goals-modal-feature-secondary-' + rowIndex"
+                          class="mt-0.5 block truncate text-[10px] text-slate-500"
+                        >
+                          {{ row.secondaryLabel }}
+                        </span>
+                      }
+                    </span>
+                    <span
+                      [id]="'conservation-goals-modal-coverage-' + rowIndex"
+                      class="flex items-center gap-2 px-3 py-2"
+                      role="cell"
                     >
-                      {{ formatGoalsModalPercent(row.preExistingRelativeHeld) }}
-                    </td>
-                    <td
-                      [id]="'conservation-goals-modal-new-coverage-' + $index"
-                      class="px-3 py-2.5 font-semibold tabular-nums text-slate-700"
-                    >
-                      {{ formatGoalsModalPercent(row.newRelativeHeld) }}
-                    </td>
-                  }
-                  <td [id]="'conservation-goals-modal-coverage-' + $index" class="w-60 px-3 py-2.5">
-                    <div
-                      [id]="'conservation-goals-modal-coverage-layout-' + $index"
-                      class="flex items-center gap-2"
-                    >
-                      <div
-                        [id]="'conservation-goals-modal-coverage-bar-' + $index"
+                      <span
+                        [id]="'conservation-goals-modal-coverage-bar-' + rowIndex"
                         class="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200"
                       >
                         <span
-                          [id]="'conservation-goals-modal-coverage-fill-' + $index"
+                          [id]="'conservation-goals-modal-coverage-fill-' + rowIndex"
                           class="block h-full rounded-full bg-emerald-500"
                           [style.width.%]="getGoalsProgressBarWidth((row.relativeHeld ?? 0) * 100)"
                         ></span>
-                      </div>
+                      </span>
                       <span
-                        [id]="'conservation-goals-modal-coverage-value-' + $index"
+                        [id]="'conservation-goals-modal-coverage-value-' + rowIndex"
                         class="w-11 text-right font-semibold tabular-nums text-slate-700"
                       >
                         {{ formatGoalsModalPercent(row.relativeHeld) }}
                       </span>
-                    </div>
-                  </td>
-                  @if (domain.targeted) {
-                    <td
-                      [id]="'conservation-goals-modal-target-value-' + $index"
-                      class="px-3 py-2.5 text-slate-700"
-                    >
-                      {{ formatGoalsModalPercent(row.relativeTarget) }}
-                    </td>
-                    <td [id]="'conservation-goals-modal-status-' + $index" class="px-3 py-2.5">
+                    </span>
+                    @if (domain.targeted) {
                       <span
-                        [id]="'conservation-goals-modal-status-badge-' + $index"
-                        class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
-                        [class.bg-emerald-100]="row.met === true"
-                        [class.text-emerald-800]="row.met === true"
-                        [class.bg-amber-100]="row.met !== true"
-                        [class.text-amber-800]="row.met !== true"
+                        [id]="'conservation-goals-modal-target-value-' + rowIndex"
+                        class="flex items-center px-3 py-2 text-slate-700"
+                        role="cell"
                       >
-                        {{
-                          (row.met
-                            ? 'analysis.overview.goalsWidget.modal.met'
-                            : 'analysis.overview.goalsWidget.modal.notMet'
-                          ) | translate
-                        }}
+                        {{ formatGoalsModalPercent(row.relativeTarget) }}
                       </span>
-                    </td>
-                  } @else {
-                    <td [id]="'conservation-goals-modal-checkpoints-' + $index" class="px-3 py-2.5">
-                      <div
-                        [id]="'conservation-goals-modal-checkpoint-badges-' + $index"
-                        class="flex gap-1.5"
+                      <span
+                        [id]="'conservation-goals-modal-status-' + rowIndex"
+                        class="flex items-center px-3 py-2"
+                        role="cell"
                       >
                         <span
-                          [id]="'conservation-goals-modal-checkpoint-17-badge-' + $index"
+                          [id]="'conservation-goals-modal-status-badge-' + rowIndex"
+                          class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          [class.bg-emerald-100]="row.met === true"
+                          [class.text-emerald-800]="row.met === true"
+                          [class.bg-amber-100]="row.met !== true"
+                          [class.text-amber-800]="row.met !== true"
+                        >
+                          {{
+                            (row.met
+                              ? 'analysis.overview.goalsWidget.modal.met'
+                              : 'analysis.overview.goalsWidget.modal.notMet'
+                            ) | translate
+                          }}
+                        </span>
+                      </span>
+                    } @else {
+                      <span
+                        [id]="'conservation-goals-modal-checkpoints-' + rowIndex"
+                        class="flex items-center gap-1.5 px-3 py-2"
+                        role="cell"
+                      >
+                        <span
+                          [id]="'conservation-goals-modal-checkpoint-17-badge-' + rowIndex"
                           class="rounded-full px-2 py-0.5 text-[10px] font-bold"
                           [class.bg-green-100]="row.reached17"
                           [class.text-green-800]="row.reached17"
@@ -3604,7 +3681,7 @@
                           17%
                         </span>
                         <span
-                          [id]="'conservation-goals-modal-checkpoint-30-badge-' + $index"
+                          [id]="'conservation-goals-modal-checkpoint-30-badge-' + rowIndex"
                           class="rounded-full px-2 py-0.5 text-[10px] font-bold"
                           [class.bg-green-700]="row.reached30"
                           [class.text-white]="row.reached30"
@@ -3613,24 +3690,239 @@
                         >
                           30%
                         </span>
-                      </div>
-                    </td>
+                      </span>
+                    }
+                  </div>
+                </cdk-virtual-scroll-viewport>
+              } @else {
+                <p
+                  id="conservation-goals-modal-virtual-empty"
+                  class="m-0 px-3 py-8 text-center text-sm text-slate-500"
+                >
+                  {{ 'analysis.overview.goalsWidget.modal.noRows' | translate }}
+                </p>
+              }
+            </div>
+          </div>
+        } @else {
+          <div id="conservation-goals-modal-table-wrapper" class="max-h-[48vh] overflow-auto">
+            <table
+              id="conservation-goals-modal-table"
+              class="w-full min-w-180 border-collapse text-left text-xs"
+            >
+              <thead
+                id="conservation-goals-modal-table-head"
+                class="sticky top-0 z-1 bg-white shadow-sm"
+              >
+                <tr id="conservation-goals-modal-table-heading-row">
+                  <th
+                    id="conservation-goals-modal-heading-feature"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                  >
+                    {{
+                      (domain.featureType === 'ecosystems'
+                        ? 'analysis.overview.goalsWidget.modal.category'
+                        : 'analysis.overview.goalsWidget.modal.feature'
+                      ) | translate
+                    }}
+                  </th>
+                  @if (domain.featureType === 'ecosystems') {
+                    <th
+                      id="conservation-goals-modal-heading-pre-existing-coverage"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                    >
+                      {{ 'analysis.overview.goalsWidget.modal.preExistingCoverage' | translate }}
+                    </th>
+                    <th
+                      id="conservation-goals-modal-heading-new-coverage"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                    >
+                      {{ 'analysis.overview.goalsWidget.modal.newSolutionCoverage' | translate }}
+                    </th>
+                  }
+                  <th
+                    id="conservation-goals-modal-heading-coverage"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                  >
+                    {{
+                      (domain.featureType === 'ecosystems'
+                        ? 'analysis.overview.goalsWidget.modal.totalCoverage'
+                        : 'analysis.overview.goalsWidget.modal.rangeCoverage'
+                      ) | translate
+                    }}
+                  </th>
+                  @if (domain.targeted) {
+                    <th
+                      id="conservation-goals-modal-heading-target"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                    >
+                      {{ 'analysis.overview.goalsWidget.modal.target' | translate }}
+                    </th>
+                    <th
+                      id="conservation-goals-modal-heading-status"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                    >
+                      {{ 'analysis.overview.goalsWidget.modal.status' | translate }}
+                    </th>
+                  } @else {
+                    <th
+                      id="conservation-goals-modal-heading-checkpoints"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                    >
+                      {{ 'analysis.overview.goalsWidget.modal.checkpoints' | translate }}
+                    </th>
                   }
                 </tr>
-              } @empty {
-                <tr id="conservation-goals-modal-empty-row">
-                  <td
-                    id="conservation-goals-modal-empty-cell"
-                    class="px-3 py-8 text-center text-sm text-slate-500"
-                    [attr.colspan]="domain.targeted ? 4 : 3"
+              </thead>
+              <tbody id="conservation-goals-modal-table-body">
+                @for (row of goalsModalRows(); track row.id) {
+                  <tr
+                    [id]="'conservation-goals-modal-row-' + $index"
+                    class="border-t border-slate-100"
                   >
-                    {{ 'analysis.overview.goalsWidget.modal.noRows' | translate }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+                    <td [id]="'conservation-goals-modal-feature-' + $index" class="px-3 py-2.5">
+                      <strong
+                        [id]="'conservation-goals-modal-feature-name-' + $index"
+                        class="block font-semibold text-slate-900"
+                      >
+                        {{ row.name }}
+                      </strong>
+                      @if (row.secondaryLabel) {
+                        <span
+                          [id]="'conservation-goals-modal-feature-secondary-' + $index"
+                          class="mt-0.5 block text-[10px] text-slate-500"
+                        >
+                          {{ row.secondaryLabel }}
+                        </span>
+                      }
+                    </td>
+                    @if (domain.featureType === 'ecosystems') {
+                      <td
+                        [id]="'conservation-goals-modal-pre-existing-coverage-' + $index"
+                        class="px-3 py-2.5 font-semibold tabular-nums text-slate-700"
+                      >
+                        {{ formatGoalsModalPercent(row.preExistingRelativeHeld) }}
+                      </td>
+                      <td
+                        [id]="'conservation-goals-modal-new-coverage-' + $index"
+                        class="px-3 py-2.5 font-semibold tabular-nums text-slate-700"
+                      >
+                        {{ formatGoalsModalPercent(row.newRelativeHeld) }}
+                      </td>
+                    }
+                    <td
+                      [id]="'conservation-goals-modal-coverage-' + $index"
+                      class="w-60 px-3 py-2.5"
+                    >
+                      <div
+                        [id]="'conservation-goals-modal-coverage-layout-' + $index"
+                        class="flex items-center gap-2"
+                      >
+                        <div
+                          [id]="'conservation-goals-modal-coverage-bar-' + $index"
+                          class="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200"
+                        >
+                          <span
+                            [id]="'conservation-goals-modal-coverage-fill-' + $index"
+                            class="block h-full rounded-full bg-emerald-500"
+                            [style.width.%]="
+                              getGoalsProgressBarWidth((row.relativeHeld ?? 0) * 100)
+                            "
+                          ></span>
+                        </div>
+                        <span
+                          [id]="'conservation-goals-modal-coverage-value-' + $index"
+                          class="w-11 text-right font-semibold tabular-nums text-slate-700"
+                        >
+                          {{ formatGoalsModalPercent(row.relativeHeld) }}
+                        </span>
+                      </div>
+                    </td>
+                    @if (domain.targeted) {
+                      <td
+                        [id]="'conservation-goals-modal-target-value-' + $index"
+                        class="px-3 py-2.5 text-slate-700"
+                      >
+                        {{ formatGoalsModalPercent(row.relativeTarget) }}
+                      </td>
+                      <td [id]="'conservation-goals-modal-status-' + $index" class="px-3 py-2.5">
+                        <span
+                          [id]="'conservation-goals-modal-status-badge-' + $index"
+                          class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          [class.bg-emerald-100]="row.met === true"
+                          [class.text-emerald-800]="row.met === true"
+                          [class.bg-amber-100]="row.met !== true"
+                          [class.text-amber-800]="row.met !== true"
+                        >
+                          {{
+                            (row.met
+                              ? 'analysis.overview.goalsWidget.modal.met'
+                              : 'analysis.overview.goalsWidget.modal.notMet'
+                            ) | translate
+                          }}
+                        </span>
+                      </td>
+                    } @else {
+                      <td
+                        [id]="'conservation-goals-modal-checkpoints-' + $index"
+                        class="px-3 py-2.5"
+                      >
+                        <div
+                          [id]="'conservation-goals-modal-checkpoint-badges-' + $index"
+                          class="flex gap-1.5"
+                        >
+                          <span
+                            [id]="'conservation-goals-modal-checkpoint-17-badge-' + $index"
+                            class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                            [class.bg-green-100]="row.reached17"
+                            [class.text-green-800]="row.reached17"
+                            [class.bg-slate-100]="!row.reached17"
+                            [class.text-slate-500]="!row.reached17"
+                          >
+                            17%
+                          </span>
+                          <span
+                            [id]="'conservation-goals-modal-checkpoint-30-badge-' + $index"
+                            class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                            [class.bg-green-700]="row.reached30"
+                            [class.text-white]="row.reached30"
+                            [class.bg-slate-100]="!row.reached30"
+                            [class.text-slate-500]="!row.reached30"
+                          >
+                            30%
+                          </span>
+                        </div>
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr id="conservation-goals-modal-empty-row">
+                    <td
+                      id="conservation-goals-modal-empty-cell"
+                      class="px-3 py-8 text-center text-sm text-slate-500"
+                      [attr.colspan]="
+                        domain.featureType === 'ecosystems'
+                          ? domain.targeted
+                            ? 6
+                            : 5
+                          : domain.targeted
+                            ? 4
+                            : 3
+                      "
+                    >
+                      {{
+                        (domain.featureType === 'ecosystems' && goalsModalEcosystemMecLoading()
+                          ? 'analysis.overview.goalsWidget.modal.classificationsLoading'
+                          : 'analysis.overview.goalsWidget.modal.noRows'
+                        ) | translate
+                      }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </section>
     </div>
   }

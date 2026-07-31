@@ -1,4 +1,5 @@
 import { HttpClient } from '@angular/common/http';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
@@ -318,11 +319,14 @@ const AREA_UNIT_OPTIONS: AreaDisplayUnit[] = ['km2', 'hectares'];
 
 const CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS = 10_000;
 const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
+const GOALS_MODAL_VIRTUAL_ROW_SIZE_PX = 57;
+const GOALS_MODAL_VIRTUAL_MIN_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 4;
+const GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
 
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
-  imports: [TranslatePipe, ModalShellComponent],
+  imports: [TranslatePipe, ModalShellComponent, ScrollingModule],
   templateUrl: './panel-switcher.html',
   styleUrl: './panel-switcher.scss',
 })
@@ -396,6 +400,8 @@ export class PanelSwitcherComponent {
   private readonly destroyRef = inject(DestroyRef);
   private customAoiMetricsRequestSequence = 0;
   private customAoiSpeciesStageTimeouts: ReturnType<typeof setTimeout>[] = [];
+  private goalsModalPreparationFrame: number | null = null;
+  private goalsModalPreparationTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Reactive comparison colors sourced from the SolutionLayerService (driven by the left sidebar). */
   protected readonly comparisonBaselineColor = this.solutionLayer.baselineColor$;
@@ -457,6 +463,11 @@ export class PanelSwitcherComponent {
   protected readonly goalsModalEcosystemBreakdownId = signal<MecBreakdownId>('iavh');
   protected readonly goalsModalEcosystemMecDocument = signal<MecCompactDocument | null>(null);
   protected readonly goalsModalEcosystemMecLoading = signal(false);
+  protected readonly goalsModalEcosystemMecLoadFailed = signal(false);
+  protected readonly goalsModalContentReady = signal(false);
+  protected readonly goalsModalVirtualRowSize = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX;
+  protected readonly goalsModalVirtualMinBuffer = GOALS_MODAL_VIRTUAL_MIN_BUFFER_PX;
+  protected readonly goalsModalVirtualMaxBuffer = GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX;
   private goalsModalEcosystemMecSolutionId: string | null = null;
   protected readonly goalsModalDomain = computed<OverviewGoalsDomainEntry | null>(
     () =>
@@ -830,7 +841,10 @@ export class PanelSwitcherComponent {
   ];
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.stopCustomAoiSpeciesLoadingStages());
+    this.destroyRef.onDestroy(() => {
+      this.stopCustomAoiSpeciesLoadingStages();
+      this.cancelGoalsModalPreparation();
+    });
 
     toObservable(this.activeSolution)
       .pipe(
@@ -1485,20 +1499,57 @@ export class PanelSwitcherComponent {
   }
 
   protected openGoalsModal(domainId: string): void {
+    this.cancelGoalsModalPreparation();
     this.goalsModalDomainId.set(domainId);
     this.goalsModalSearchQuery.set('');
     this.goalsModalSortId.set('coverage-desc');
     this.goalsModalFilterId.set('all');
     this.goalsModalTaxonGroup.set('all');
     this.goalsModalEcosystemBreakdownId.set('iavh');
+    this.goalsModalContentReady.set(false);
     this.goalsModalOpen.set(true);
+    this.scheduleGoalsModalContent();
     if (this.goalsModalDomain()?.featureType === 'ecosystems') {
       this.loadGoalsModalEcosystemMec();
     }
   }
 
   protected closeGoalsModal(): void {
+    this.cancelGoalsModalPreparation();
+    this.goalsModalContentReady.set(false);
     this.goalsModalOpen.set(false);
+  }
+
+  private scheduleGoalsModalContent(): void {
+    const revealContent = () => {
+      this.goalsModalPreparationTimer = setTimeout(() => {
+        this.goalsModalPreparationTimer = null;
+        if (this.goalsModalOpen()) {
+          this.goalsModalContentReady.set(true);
+        }
+      }, 0);
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      this.goalsModalPreparationFrame = requestAnimationFrame(() => {
+        this.goalsModalPreparationFrame = null;
+        revealContent();
+      });
+      return;
+    }
+    revealContent();
+  }
+
+  private cancelGoalsModalPreparation(): void {
+    if (this.goalsModalPreparationFrame !== null) {
+      cancelAnimationFrame(this.goalsModalPreparationFrame);
+      this.goalsModalPreparationFrame = null;
+    }
+    if (this.goalsModalPreparationTimer === null) {
+      return;
+    }
+    clearTimeout(this.goalsModalPreparationTimer);
+    this.goalsModalPreparationTimer = null;
   }
 
   protected setGoalsModalSearchQuery(value: string): void {
@@ -1515,6 +1566,10 @@ export class PanelSwitcherComponent {
 
   protected setGoalsModalTaxonGroup(value: string): void {
     this.goalsModalTaxonGroup.set(value);
+  }
+
+  protected trackGoalsModalRow(_index: number, row: GoalsModalRow): string {
+    return row.id;
   }
 
   protected getGoalsModalTitleKey(): string {
@@ -1575,6 +1630,7 @@ export class PanelSwitcherComponent {
     this.goalsModalEcosystemMecSolutionId = solutionId;
     this.goalsModalEcosystemMecDocument.set(null);
     this.goalsModalEcosystemMecLoading.set(true);
+    this.goalsModalEcosystemMecLoadFailed.set(false);
     this.mecMetrics
       .loadMecMetrics(solutionId, 'national')
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -1585,8 +1641,14 @@ export class PanelSwitcherComponent {
         this.goalsModalEcosystemMecDocument.set(
           result.status === 'loaded' ? result.document : null,
         );
+        this.goalsModalEcosystemMecLoadFailed.set(result.status !== 'loaded');
         this.goalsModalEcosystemMecLoading.set(false);
       });
+  }
+
+  protected retryGoalsModalEcosystemMec(): void {
+    this.goalsModalEcosystemMecSolutionId = null;
+    this.loadGoalsModalEcosystemMec();
   }
 
   protected formatGoalsModalPercent(value: number | null): string {
