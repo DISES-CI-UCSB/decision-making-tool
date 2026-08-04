@@ -222,7 +222,7 @@ describe('reconcileMapLayersManifest', () => {
     ]);
   });
 
-  it('keeps only merged SIRAP in development and cannot reconcile disabled rows back', () => {
+  it('keeps separate SIRAP layers and cannot reconcile the disabled merged row back', () => {
     const existingSirapRows = [
       ['siraps', 'boundary-siraps'],
       ['siraps_territorial', 'boundary-siraps_territorial'],
@@ -251,8 +251,11 @@ describe('reconcileMapLayersManifest', () => {
       ports,
     });
 
-    expect(enabledSirapBoundaryLayerKeys()).toEqual(['siraps']);
-    expect(result.groups[0].rows.map((item) => item.id)).toEqual(['boundary-siraps']);
+    expect(enabledSirapBoundaryLayerKeys()).toEqual(['siraps_territorial', 'siraps_thematic']);
+    expect(result.groups[0].rows.map((item) => item.id)).toEqual([
+      'boundary-siraps_territorial',
+      'boundary-siraps_thematic',
+    ]);
   });
 
   it('keeps selected state but hides a row when its manifest asset is unavailable', () => {

@@ -11,7 +11,7 @@ import {
   buildMecCoverageRows,
   buildMecPreviewItems,
   calculateOverlapPercent,
-  isWholeProductionSirapAoi,
+  isWholeMetricCompatibleSirapAoi,
   isMecViewAvailable,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
@@ -117,7 +117,7 @@ describe('AOI ecosystems utilities', () => {
     });
   });
 
-  it('resolves SIRAPs by stable ID only and accepts only whole merged production provenance', () => {
+  it('resolves SIRAPs by stable ID and accepts whole metric-compatible provenance', () => {
     const document = buildV2MecDocument();
     document.geographyLevel = 'siraps';
     document.scopeCatalog = [['_7', 'SIRAP Orinoquia']];
@@ -137,13 +137,11 @@ describe('AOI ecosystems utilities', () => {
     const territorialAoi: AOI = {
       ...mergedAoi,
       id: 'sirap:_5',
-      geometryUrl: 'https://example.com/inputs/boundaries/sirap/siraps_territorial.geojson',
       boundarySourceLayerKey: 'siraps_territorial',
       boundarySourceId: 'aoi-siraps-territorial-colombia',
     };
     const thematicAoi: AOI = {
       ...territorialAoi,
-      geometryUrl: 'https://example.com/inputs/boundaries/sirap/siraps_thematic.geojson',
       boundarySourceLayerKey: 'siraps_thematic',
       boundarySourceId: 'aoi-siraps-thematic-colombia',
     };
@@ -156,11 +154,11 @@ describe('AOI ecosystems utilities', () => {
 
     expect(resolveMecScopeIndex(document, mergedAoi)).toBe(0);
     expect(resolveMecScopeIndex(document, { ...mergedAoi, id: 'sirap:missing' })).toBeNull();
-    expect(isWholeProductionSirapAoi(mergedAoi)).toBe(true);
-    expect(isWholeProductionSirapAoi(componentAoi)).toBe(false);
-    expect(isWholeProductionSirapAoi(territorialAoi)).toBe(false);
-    expect(isWholeProductionSirapAoi(thematicAoi)).toBe(false);
-    expect(isWholeProductionSirapAoi(legacyAoi)).toBe(false);
+    expect(isWholeMetricCompatibleSirapAoi(mergedAoi)).toBe(true);
+    expect(isWholeMetricCompatibleSirapAoi(componentAoi)).toBe(false);
+    expect(isWholeMetricCompatibleSirapAoi(territorialAoi)).toBe(true);
+    expect(isWholeMetricCompatibleSirapAoi(thematicAoi)).toBe(true);
+    expect(isWholeMetricCompatibleSirapAoi(legacyAoi)).toBe(false);
   });
 });
 

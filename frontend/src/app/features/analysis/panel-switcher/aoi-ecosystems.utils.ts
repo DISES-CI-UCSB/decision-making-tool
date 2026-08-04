@@ -1,5 +1,6 @@
 import {
   isMecCompactV2Document,
+  METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES,
   PRODUCTION_SIRAP_BOUNDARY_SOURCE,
   type AOI,
   type CustomAoiAreaProfileResponse,
@@ -412,12 +413,18 @@ export function resolveMecScopeSummary(
   };
 }
 
-export function isWholeProductionSirapAoi(aoi: AOI): boolean {
+export function isWholeMetricCompatibleSirapAoi(aoi: AOI): boolean {
+  if (aoi.type !== 'sirap' || aoi.boundaryGeometrySelection !== 'whole-feature') {
+    return false;
+  }
+
   return (
-    aoi.type === 'sirap' &&
-    aoi.boundarySourceLayerKey === PRODUCTION_SIRAP_BOUNDARY_SOURCE.layerKey &&
-    aoi.boundarySourceId === PRODUCTION_SIRAP_BOUNDARY_SOURCE.sourceId &&
-    aoi.boundaryGeometrySelection === 'whole-feature'
+    (aoi.boundarySourceLayerKey === PRODUCTION_SIRAP_BOUNDARY_SOURCE.layerKey &&
+      aoi.boundarySourceId === PRODUCTION_SIRAP_BOUNDARY_SOURCE.sourceId) ||
+    METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES.some(
+      (source) =>
+        source.layerKey === aoi.boundarySourceLayerKey && source.sourceId === aoi.boundarySourceId,
+    )
   );
 }
 

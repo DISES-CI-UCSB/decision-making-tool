@@ -315,7 +315,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       const layers = this.appState.visibleLayers$();
       console.info(`[MapView][${this.debugMarker}] visibleLayers$ -> ${layers.length} layer(s)`);
       this.layerRenderer.syncLayers(layers);
-      this.syncOperationalLayerViewTracking();
     });
 
     effect(() => {
@@ -329,7 +328,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       this.manifestRasterLayerService.isLayerRendering$();
       untracked(() => {
         void this.syncComparisonMode();
-        this.syncOperationalLayerViewTracking();
       });
     });
 
@@ -727,8 +725,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         ui: { components: [] },
       });
 
-      this.syncVectorOverlayLayerViews();
-      this.syncOperationalLayerViewTracking();
       this.addMapWidgets();
       this.setupCustomAoiDrawing();
       this.adminBoundaries.initialize(this.map, this.view);
@@ -1060,14 +1056,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       borderStyle: state.borderStyle,
       borderWidth: state.borderWidth,
     }) as never;
-    if (state.visible) {
-      this.watchVectorOverlayLayerView(config, layer);
-    } else {
-      this.bumpVectorOverlayLayerViewRequest(config.overlayId);
-      this.vectorOverlayLayerViewHandles.get(config.overlayId)?.remove();
-      this.vectorOverlayLayerViewHandles.delete(config.overlayId);
-      this.setVectorOverlayRendering(config.overlayId, false);
-    }
   }
 
   private watchVectorOverlayLoadStatus(
@@ -1280,10 +1268,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
   private isAnyVectorOverlayLoading(): boolean {
     for (const config of VECTOR_OVERLAY_CONFIGS) {
-      if (
-        this.getOrCreateLoadingSignal(config.overlayId)() ||
-        this.getOrCreateRenderingSignal(config.overlayId)()
-      ) {
+      if (this.getOrCreateLoadingSignal(config.overlayId)()) {
         return true;
       }
     }
@@ -1291,17 +1276,12 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private isRasterLayerLoading(): boolean {
-    return (
-      this.manifestRasterLayerService.isLayerRendering$() || this.isAnyOperationalLayerRendering()
-    );
+    return this.manifestRasterLayerService.isLayerRendering$();
   }
 
   private activeLoadingOverlayKey(): string {
     for (const config of VECTOR_OVERLAY_CONFIGS) {
-      if (
-        this.getOrCreateLoadingSignal(config.overlayId)() ||
-        this.getOrCreateRenderingSignal(config.overlayId)()
-      ) {
+      if (this.getOrCreateLoadingSignal(config.overlayId)()) {
         return config.loadingI18nKey;
       }
     }
@@ -1409,12 +1389,20 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       if (layer.loadStatus === 'not-loaded') {
         await layer.load();
       }
-      const hitTest = await view.hitTest({ x: screenX, y: screenY }, { include: [layer] });
-      const firstGraphicHit = hitTest.results.find((result) => result.type === 'graphic');
-      const hit = firstGraphicHit?.type === 'graphic' ? firstGraphicHit.graphic : null;
+      const cachedHit = this.adminBoundaries.getRecentHoverGraphic(layer, screenX, screenY);
+      const hitTest = cachedHit
+        ? null
+        : await view.hitTest({ x: screenX, y: screenY }, { include: [layer] });
+      const firstGraphicHit = hitTest?.results.find((result) => result.type === 'graphic');
+      const hit =
+        cachedHit ?? (firstGraphicHit?.type === 'graphic' ? firstGraphicHit.graphic : null);
       if (!hit) {
         return false;
       }
+      // Draw the click feedback before popup/state work so selection feels immediate.
+      const highlightGeometry = (hit.geometry as Geometry | null) ?? mapPoint;
+      this.adminBoundaries.highlightAoiGeometry(highlightGeometry);
+
       const attributes = hit.attributes as Record<string, unknown>;
       const rawName = `${attributes[config.nameField] ?? ''}`.trim();
       const rawId = `${attributes[config.idField] ?? ''}`.trim();
@@ -1454,10 +1442,6 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         areaKm2: this.calculateAreaKm2(hit.geometry as Geometry | null),
       });
       this.appState.setRightSidebarMode('aoi');
-      // Reuse the boundary service's AOI highlight layer so the selected
-      // polygon gets the same selection outline as admin boundaries.
-      const highlightGeometry = (hit.geometry as Geometry | null) ?? mapPoint;
-      this.adminBoundaries.highlightAoiGeometry(highlightGeometry);
       return true;
     } catch (error) {
       console.warn(

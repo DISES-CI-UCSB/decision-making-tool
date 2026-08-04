@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
+import { By } from '@angular/platform-browser';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import {
   provideTranslateLoader,
   provideTranslateService,
@@ -1221,7 +1223,7 @@ describe('PanelSwitcherComponent', () => {
   it.each([
     ['territorial', 'siraps_territorial', 'aoi-siraps-territorial-colombia'],
     ['thematic', 'siraps_thematic', 'aoi-siraps-thematic-colombia'],
-  ])('blocks a whole-marked %s SIRAP source', (_, boundarySourceLayerKey, boundarySourceId) => {
+  ])('loads metrics for a whole %s SIRAP source', (_, boundarySourceLayerKey, boundarySourceId) => {
     appState.activeSolution$.set(buildTestSolution());
     appState.selectAOI({
       id: 'sirap:_5',
@@ -1237,11 +1239,7 @@ describe('PanelSwitcherComponent', () => {
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
 
-    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
-        ?.textContent,
-    ).toContain('analysis.aoi.mec.states.partialSirapTitle');
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith('test-solution', 'siraps');
   });
 
   it('blocks legacy SIRAP selections without provenance', () => {
@@ -1566,6 +1564,9 @@ describe('PanelSwitcherComponent', () => {
     appState.setRightSidebarMode('overview');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => unknown[];
+    };
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -1575,14 +1576,22 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(compiled.querySelector('#conservation-goals-modal-preparing-status')).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-virtual-table')).toBeNull();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
 
     expect((compiled.querySelector('#conservation-goals-modal') as HTMLDialogElement).open).toBe(
       true,
     );
-    expect(compiled.querySelectorAll('[id^="conservation-goals-modal-row-"]')).toHaveLength(3);
-    expect(compiled.querySelector('#conservation-goals-modal-heading-checkpoints')).not.toBeNull();
-    expect(compiled.querySelector('#conservation-goals-modal-heading-target')).toBeNull();
+    expect(component.goalsModalRows()).toHaveLength(3);
+    expect(fixture.debugElement.query(By.directive(CdkVirtualScrollViewport))).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-virtual-heading-checkpoints'),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-virtual-heading-target')).toBeNull();
 
     const filter = compiled.querySelector(
       '#conservation-goals-modal-filter-select',
@@ -1591,10 +1600,163 @@ describe('PanelSwitcherComponent', () => {
     filter.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    expect(compiled.querySelectorAll('[id^="conservation-goals-modal-row-"]')).toHaveLength(1);
+    expect(component.goalsModalRows()).toHaveLength(1);
+
+    (compiled.querySelector('#conservation-goals-modal-close-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#conservation-goals-modal-virtual-table')).toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-preparing-status')).toBeNull();
+  });
+
+  it('bounds a large species breakdown with the virtual viewport', async () => {
+    const document = buildGoalsDocument();
+    document.features.species = Array.from({ length: 250 }, (_, index) =>
+      buildGoalFeature(
+        `species-${index}`,
+        `Species ${index}`,
+        'species',
+        (index % 100) / 100,
+        index % 3 === 0,
+        'Birds',
+        'LC',
+      ),
+    );
+    document.summary.byType.species.totalSpeciesCount = 250;
+    document.rollups.species.totalSpeciesCount = 250;
+    goalsDocument = document;
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => unknown[];
+    };
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    const viewport = fixture.debugElement.query(By.directive(CdkVirtualScrollViewport))
+      .componentInstance as CdkVirtualScrollViewport;
+    const renderedRange = viewport.getRenderedRange();
+
+    expect(component.goalsModalRows()).toHaveLength(250);
+    expect(viewport.getDataLength()).toBe(250);
+    expect(renderedRange.end - renderedRange.start).toBeLessThan(250);
+  });
+
+  it('labels and switches the national ecosystem classification breakdown', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildFiveViewMecDocument(solution.id),
+        format: 'mec-compact-v1',
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-domain-view-ecosystems',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'national');
+    expect(compiled.querySelector('#conservation-goals-modal-domain-title')).toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-title')?.textContent).toContain(
+      'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
+    );
+    expect(
+      compiled.querySelectorAll('button[id^="conservation-goals-modal-ecosystem-level-"]'),
+    ).toHaveLength(5);
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-browser-title')
+        ?.textContent?.replace(/\s+/g, ' '),
+    ).toContain('analysis.aoi.mec.levels.iavh');
+
+    (
+      compiled.querySelector('#conservation-goals-modal-ecosystem-level-broad') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-browser-title')
+        ?.textContent?.replace(/\s+/g, ' '),
+    ).toContain('analysis.aoi.mec.levels.broad');
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-ecosystem-level-broad')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('true');
     expect(
       compiled.querySelector('#conservation-goals-modal-feature-name-0')?.textContent,
-    ).toContain('Andean bear');
+    ).toContain('Broad real');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-0')?.textContent,
+    ).toContain('10');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
+    ).toContain('30');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-coverage-value-0')?.textContent,
+    ).toContain('40');
+  });
+
+  it('shows loading and recoverable error states for national ecosystem classifications', async () => {
+    const nationalMecRequest = new Subject<MecMetricsLoadResult>();
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(nationalMecRequest);
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-domain-view-ecosystems',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-classifications-loading'),
+    ).not.toBeNull();
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-ecosystem-classifications-loading')
+        ?.getAttribute('role'),
+    ).toBe('status');
+
+    nationalMecRequest.next({ status: 'unavailable', document: null });
+    fixture.detectChanges();
+
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-classifications-error'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-classifications-retry-button'),
+    ).not.toBeNull();
   });
 
   it('falls back when custom AOI backend loading fails', async () => {
@@ -1932,7 +2094,7 @@ function buildFiveViewMecDocument(solutionId: string): MecCompactDocument {
       `${viewCatalog[viewIndex][0]}:real`,
       label,
     ]),
-    rows: labels.map((_, classIndex) => [0, classIndex, 10, 0, 4]),
+    rows: labels.map((_, classIndex) => [0, classIndex, 10, 1, 3]),
     viewSupport: {
       supported: viewCatalog.map(([view]) => ({
         view,
