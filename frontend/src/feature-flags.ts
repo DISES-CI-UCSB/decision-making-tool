@@ -21,7 +21,7 @@ const FLAGS = {
   },
 
   production: {
-    customAoiAreaProfile: false,
+    customAoiAreaProfile: true,
     sirapLayers: {
       combined: false,
       territorial: true,
