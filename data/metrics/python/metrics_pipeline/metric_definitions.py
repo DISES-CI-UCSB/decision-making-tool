@@ -155,8 +155,8 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         source_note=(
             "Count of CR/EN/VU non-fish species (Actinopteri excluded) where "
             "(species range ∩ priority area within scope) / (species range within scope) "
-            "× 100 ≥ the solution target percent (parsed from the solution name: "
-            "ESTR<NN> takes precedence over Ecos<NN>).  Pool of 213 threatened "
+            "× 100 ≥ the solution target percent (structured species metadata is "
+            "authoritative, with legacy solution-token fallback).  Pool of 213 threatened "
             "species from biomod_spp_ranges_updatedIUCN.csv.  Per-scope denominator "
             "means a species is 'secured in this region' when ≥ target % of its "
             "range *within this region* falls inside the priority area."

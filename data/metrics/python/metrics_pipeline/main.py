@@ -144,7 +144,7 @@ from species_data import (
     SpeciesRecord,
     compute_pool_sizes,
     load_species_records,
-    parse_solution_target_percent,
+    resolve_solution_species_target_percent,
 )
 from species_exception import (
     SpeciesExceptionError,
@@ -570,9 +570,7 @@ def _solution_source_identity(
         "consumedManifestMetadata": {
             "summaryMetrics": solution.get("summaryMetrics"),
             "coverage": solution.get("coverage"),
-            "targetPercent": parse_solution_target_percent(
-                str(solution.get("name") or solution.get("id") or "")
-            ),
+            "targetPercent": resolve_solution_species_target_percent(solution),
         },
     }
 
@@ -663,9 +661,27 @@ def _has_complete_required_input_metrics(
 ) -> bool:
     """Require every applicable layer/species metric to be ready."""
 
+    return not _required_input_metric_issues(
+        geographies,
+        domain=domain,
+        skip_species=skip_species,
+        species_exception_binding=species_exception_binding,
+    )
+
+
+def _required_input_metric_issues(
+    geographies: dict[str, Any],
+    *,
+    domain: SolutionDomain,
+    skip_species: bool,
+    species_exception_binding: dict[str, Any] | None = None,
+) -> list[dict[str, str]]:
+    """Describe every required layer/species metric with an invalid status."""
+
+    issues: list[dict[str, str]] = []
     definitions = computable_metrics()
-    for scopes in geographies.values():
-        for scope in scopes.values():
+    for level, scopes in geographies.items():
+        for scope_id, scope in scopes.items():
             metrics = scope.get("metrics", [])
             for definition, metric in zip(definitions, metrics):
                 requires_complete_input = (
@@ -686,8 +702,16 @@ def _has_complete_required_input_metrics(
                     and domain in definition.applicable_domains
                     and metric.get("status") != expected_status
                 ):
-                    return False
-    return True
+                    issues.append(
+                        {
+                            "geography": f"{level}/{scope_id}",
+                            "metricId": definition.metric_id,
+                            "expectedStatus": expected_status,
+                            "actualStatus": str(metric.get("status")),
+                            "reason": str(metric.get("notes") or "No reason provided."),
+                        }
+                    )
+    return issues
 
 
 def _resume_entry_for_existing_cache(
@@ -1506,8 +1530,9 @@ def _compute_species_metric(
             return _metric_value(
                 definition, value=None, status="derivation_needed",
                 notes=(
-                    "Could not derive solution target percent from solution name "
-                    "(no ESTR<NN> or Ecos<NN> token found); species group coverage cannot be computed."
+                    "Could not resolve an unambiguous species target percent from "
+                    "manifest metadata or legacy solution tokens; species group "
+                    "coverage cannot be computed."
                 ),
                 source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
             )
@@ -1570,8 +1595,9 @@ def _compute_species_metric(
             return _metric_value(
                 definition, value=None, status="derivation_needed",
                 notes=(
-                    "Could not derive solution target percent from solution name "
-                    "(no ESTR<NN> or Ecos<NN> token found); secured count cannot be computed."
+                    "Could not resolve an unambiguous species target percent from "
+                    "manifest metadata or legacy solution tokens; secured count "
+                    "cannot be computed."
                 ),
                 source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
             )
@@ -1625,10 +1651,11 @@ def _process_species_for_solution(
       ``BoundaryIdGrid`` at the same range indices and using ``np.bincount``
       to fan out per-boundary totals in one call.
 
-    The caller is responsible for passing the parsed solution target percent;
-    when None, the secured-count metric (#3) is reported as 'derivation_needed'.
+    The target percent is resolved from structured manifest metadata with a
+    legacy solution-token fallback. When None, target-dependent species metrics
+    are reported as 'derivation_needed'.
     """
-    target_pct = parse_solution_target_percent(solution.get("name") or solution.get("id") or "")
+    target_pct = resolve_solution_species_target_percent(solution)
 
     sub_sizes = {level: g.num_boundaries for level, g in boundary_grids.items()}
     accumulator = SpeciesAccumulator(
@@ -2210,23 +2237,33 @@ def _process_solution(
             geographies[geo_level] = level_out
             print(f"[tier1-metrics]   {geo_level}: {len(level_out)} features processed")
 
-    if (
-        not _has_complete_regular_output_shape(
-            geographies,
-            national_only=national_only,
-            domain=domain,
-            skip_species=skip_species,
-        )
-        or not _has_complete_required_input_metrics(
-            geographies,
-            domain=domain,
-            skip_species=skip_species,
-            species_exception_binding=species_exception_binding,
-        )
+    if not _has_complete_regular_output_shape(
+        geographies,
+        national_only=national_only,
+        domain=domain,
+        skip_species=skip_species,
     ):
         raise RuntimeError(
+            "Regular metrics output shape is incomplete; no metrics document was written."
+        )
+    required_metric_issues = _required_input_metric_issues(
+        geographies,
+        domain=domain,
+        skip_species=skip_species,
+        species_exception_binding=species_exception_binding,
+    )
+    if required_metric_issues:
+        issue_details = "; ".join(
+            (
+                f"{issue['geography']} metric={issue['metricId']} "
+                f"expected={issue['expectedStatus']} actual={issue['actualStatus']} "
+                f"reason={issue['reason']}"
+            )
+            for issue in required_metric_issues
+        )
+        raise RuntimeError(
             "Required layer/species metrics are blocked or incomplete; "
-            "no metrics document was written."
+            f"no metrics document was written. Failures: {issue_details}"
         )
 
     generated_at = _utc_now_iso()

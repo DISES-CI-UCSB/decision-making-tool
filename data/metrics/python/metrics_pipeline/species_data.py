@@ -41,6 +41,7 @@ for fish.
 from __future__ import annotations
 
 import csv
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -125,6 +126,54 @@ def parse_solution_target_percent(solution_name_or_id: str) -> float | None:
                 # Tokens are "ESTR17", "estr30", etc. — last two chars are the percent.
                 return float(tok[-2:])
     return None
+
+
+def resolve_solution_species_target_percent(solution: dict[str, Any]) -> float | None:
+    """Return the unambiguous species target from structured manifest metadata.
+
+    The finder-level target is authoritative when the finder explicitly
+    identifies a species target. Per-feature structured targets are the
+    fallback because approved unavailable species can legitimately carry 0%
+    entries while the solution's scientific target remains 17% or 30%.
+    Legacy names remain supported for older manifests.
+    """
+    finder_inputs = solution.get("finderInputs")
+    if isinstance(finder_inputs, dict):
+        target_feature_set = str(finder_inputs.get("targetFeatureSet") or "").lower()
+        target_percent = finder_inputs.get("targetPercent")
+        if (
+            "species" in target_feature_set
+            and isinstance(target_percent, (int, float))
+            and not isinstance(target_percent, bool)
+            and math.isfinite(target_percent)
+        ):
+            return float(target_percent)
+
+        structured_targets = finder_inputs.get("structuredTargets")
+        if isinstance(structured_targets, dict):
+            target_values: set[float] = set()
+            for dimension in ("speciesRepresentation", "espRn"):
+                targets = structured_targets.get(dimension)
+                if not isinstance(targets, list):
+                    continue
+                for target in targets:
+                    if not isinstance(target, dict):
+                        continue
+                    value = target.get("targetPercent")
+                    if (
+                        isinstance(value, (int, float))
+                        and not isinstance(value, bool)
+                        and math.isfinite(value)
+                    ):
+                        target_values.add(float(value))
+            if len(target_values) == 1:
+                return next(iter(target_values))
+            if len(target_values) > 1:
+                return None
+
+    return parse_solution_target_percent(
+        str(solution.get("name") or solution.get("id") or "")
+    )
 
 
 def species_blob_url(scientific_name: str) -> str:
