@@ -32,11 +32,20 @@ describe('solution matching utils', () => {
     ]);
   });
 
-  it('uses target-specific name percentages before the manifest fallback', () => {
+  it('uses structured per-dimension targets before the scalar fallback', () => {
     const solution = buildSolution({
       id: 'ecos30_estr17_runap_hf',
       name: 'Ecos30+Estr17+RUNAP_HF',
       targetPercent: 17,
+      structuredTargets: {
+        format: 'solution-target-metadata-v1',
+        sourceEvaluation: 'prioritizr_model',
+        ecosystems: [{ featureId: 'ecosistemas', targetPercent: 30 }],
+        strategicEcosystems: [{ featureId: 'paramos', targetPercent: 17 }],
+        ecosystemServices: [],
+        speciesRepresentation: [{ featureId: 'species', targetPercent: 17 }],
+        espRn: [],
+      },
     });
 
     expect(getSolutionTargetLevel(solution, 'ecosystems')).toBe(30);
@@ -52,19 +61,15 @@ describe('solution matching utils', () => {
     expect(getSolutionTargetLevel(solution, 'species-richness')).toBeNull();
   });
 
-  it('can infer target types from legacy solution names for display metadata', () => {
+  it('does not infer target metadata from legacy solution names', () => {
     const solution = buildSolution({
       id: 'ecos30_estr17_esp30_runap_hf',
       targetFeatureSet: '',
       targetFeatureIds: [],
     });
 
-    expect([...getSolutionTargetTypes(solution, { inferFromName: true })]).toEqual([
-      'strategic-ecosystems',
-      'ecosystems',
-      'species-richness',
-    ]);
-    expect(getSolutionTargetLevel(solution, 'species-richness')).toBe(30);
+    expect([...getSolutionTargetTypes(solution, { inferFromName: true })]).toEqual([]);
+    expect(getSolutionTargetLevel(solution, 'species-richness')).toBeNull();
   });
 
   it('combines finder and input include ids into matching flags', () => {
@@ -132,6 +137,7 @@ function buildSolution(
     inputCostId: string | null;
     includeLayerIds: string[];
     inputIncludeIds: string[];
+    structuredTargets: NonNullable<SolutionMatchingSource['finderInputs']['structuredTargets']>;
   }> = {},
 ): SolutionMatchingSource {
   return {
@@ -142,6 +148,7 @@ function buildSolution(
       targetFeatureSet: overrides.targetFeatureSet ?? 'ecosystems',
       targetFeatureIds: overrides.targetFeatureIds ?? ['ecosistemas'],
       targetPercent: overrides.targetPercent ?? null,
+      structuredTargets: overrides.structuredTargets,
       costLayerId: overrides.costLayerId ?? 'human_footprint_2022',
       includeLayerIds: overrides.includeLayerIds ?? ['runap'],
       excludeLayerIds: [],

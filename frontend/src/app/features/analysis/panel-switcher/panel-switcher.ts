@@ -103,6 +103,8 @@ import {
   formatNumber as formatPresentedNumber,
   formatPanelMetric,
   getMetricDisplayUnit,
+  isDisplayableMetricValue,
+  metricAvailabilityWarning,
   type MetricFormatOptions,
 } from '../utils/metric-presentation.utils';
 import {
@@ -1366,7 +1368,7 @@ export class PanelSwitcherComponent {
     }
 
     const metric = this.findOverviewMetric(metricId);
-    if (metric && this.isMetricReady(metric)) {
+    if (isDisplayableMetricValue(metric)) {
       return this.formatOverviewMetricForPanel(metric);
     }
 
@@ -2132,7 +2134,7 @@ export class PanelSwitcherComponent {
 
   protected getAoiMetricValue(metricId: string, fallbackWhenMissing = '--'): string {
     const metric = this.aoiMetricsById().get(metricId);
-    if (metric && metric.status === 'ready' && metric.value !== null) {
+    if (isDisplayableMetricValue(metric)) {
       return this.formatMetricForPanel(metric);
     }
     if (this.fillDummyAoiMetrics()) {
@@ -2152,7 +2154,7 @@ export class PanelSwitcherComponent {
 
   protected getAoiMetricFullValue(metricId: string): string | null {
     const metric = this.aoiMetricsById().get(metricId);
-    if (metric && metric.status === 'ready' && metric.value !== null) {
+    if (isDisplayableMetricValue(metric)) {
       const compactValue = this.formatMetricForPanel(metric);
       const fullValue = this.formatMetricForPanel(metric, 'full');
       return compactValue === fullValue ? null : fullValue;
@@ -2162,7 +2164,10 @@ export class PanelSwitcherComponent {
 
   protected getAoiMetricStatus(metricId: string): string {
     const metric = this.aoiMetricsById().get(metricId);
-    return metric && metric.status === 'ready' && metric.value !== null ? '' : '--';
+    if (!isDisplayableMetricValue(metric)) {
+      return '--';
+    }
+    return metricAvailabilityWarning(metric) ?? '';
   }
 
   protected getAoiMetricPercent(metricId: string, fallbackWhenMissing = 0): number {

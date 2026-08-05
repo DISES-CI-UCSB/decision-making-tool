@@ -951,7 +951,7 @@ function buildSolution(
       scope: overrides.scope ?? 'nacional',
       targetFeatureSet: overrides.targetFeatureSet,
       targetFeatureIds: overrides.targetFeatureIds,
-      targetPercent: overrides.targetPercent,
+      targetPercent: overrides.targetPercent ?? 30,
       costLayerId: overrides.costLayerId,
       includeLayerIds: overrides.includeLayerIds,
       excludeLayerIds: [],

@@ -4,6 +4,8 @@ import {
   formatMetricDelta,
   formatMetricValue,
   formatNumber,
+  isDisplayableMetricValue,
+  metricAvailabilityWarning,
 } from './metric-presentation.utils';
 
 describe('metric presentation utilities', () => {
@@ -55,6 +57,25 @@ describe('metric presentation utilities', () => {
     expect(formatNumber(2_300, { locale: 'es', mode: 'compact' }, 0, 1)).toBe('2,3 mil');
     expect(formatNumber(2_300, { locale: 'en', mode: 'compact' }, 0, 1)).toBe('2.3K');
     expect(formatAreaValue(2.5, options)).toBe('2,5 km²');
+  });
+
+  it('displays partial values with an explicit source warning', () => {
+    const metric: MetricValue = {
+      ...buildMetric('threatened_species_secured', 27, 'count'),
+      status: 'partial',
+      notes: 'Calculated from the available species inventory.',
+      details: {
+        speciesException: {
+          excluded: 2,
+        },
+      },
+    };
+
+    expect(isDisplayableMetricValue(metric)).toBe(true);
+    expect(formatMetricValue(metric, options, '--')).toBe('27');
+    expect(metricAvailabilityWarning(metric)).toBe(
+      'Partial value: 2 approved species sources unavailable.',
+    );
   });
 });
 

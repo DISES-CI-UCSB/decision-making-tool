@@ -144,9 +144,25 @@ export interface RuntimeSolutionManifestFinderInputs {
   targetFeatureSet: string | null;
   targetFeatureIds: string[];
   targetPercent: number | null;
+  structuredTargets?: RuntimeSolutionStructuredTargets;
   costLayerId: string | null;
   includeLayerIds: string[];
   excludeLayerIds: string[];
+}
+
+export interface RuntimeSolutionTargetEntry {
+  featureId: string;
+  targetPercent: number;
+}
+
+export interface RuntimeSolutionStructuredTargets {
+  format: 'solution-target-metadata-v1';
+  sourceEvaluation: 'prioritizr_model' | 'legacy-single-ecosystem';
+  ecosystems: RuntimeSolutionTargetEntry[];
+  strategicEcosystems: RuntimeSolutionTargetEntry[];
+  ecosystemServices: RuntimeSolutionTargetEntry[];
+  speciesRepresentation: RuntimeSolutionTargetEntry[];
+  espRn: RuntimeSolutionTargetEntry[];
 }
 
 export interface RuntimeSolutionManifestSummaryMetrics {
@@ -162,6 +178,9 @@ export interface RuntimeSolutionManifestCoverageRow {
   relativeTarget: number | null;
   relativeHeld: number | null;
   relativeShortfall: number | null;
+  type: string | null;
+  evaluated: string | null;
+  targetDimension: string | null;
 }
 
 export interface RuntimeSolutionMecGeographyUrls {
@@ -191,7 +210,7 @@ export interface RuntimeSolutionManifestEntry {
   description: string;
   domain?: 'land' | 'marine';
   scope: string;
-  sirapId: string | null;
+  sirapId?: string | null;
   displayUrl: string;
   displayCogUrl?: string | null;
   metadataUrl: string;

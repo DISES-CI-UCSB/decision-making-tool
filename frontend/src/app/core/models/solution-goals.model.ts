@@ -1,3 +1,5 @@
+import type { RuntimeSolutionStructuredTargets } from './layer-manifest.model';
+
 export type SolutionGoalsFormat = 'conservation-goals-v1';
 
 export interface GoalCountSummary {
@@ -22,6 +24,7 @@ export interface SolutionGoalsTargetContext {
   targetFeatureSet: string | null;
   targetFeatureIds: string[];
   relativeTargetsByType: Record<string, number[]>;
+  structuredTargets?: RuntimeSolutionStructuredTargets;
 }
 
 export interface SolutionGoalsSummary extends GoalCountSummary {

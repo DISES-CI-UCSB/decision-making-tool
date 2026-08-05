@@ -27,6 +27,32 @@ const AREA_METRIC_IDS = new Set([
   'agricultural_area',
 ]);
 
+export function isDisplayableMetricValue(
+  metric: MetricValue | null | undefined,
+): metric is MetricValue & { value: number } {
+  return (
+    metric !== null &&
+    metric !== undefined &&
+    (metric.status === 'ready' || metric.status === 'partial') &&
+    metric.value !== null &&
+    Number.isFinite(metric.value)
+  );
+}
+
+export function metricAvailabilityWarning(metric: MetricValue): string | null {
+  if (metric.status !== 'partial') {
+    return null;
+  }
+  const speciesException = metric.details?.['speciesException'];
+  const excluded =
+    speciesException && typeof speciesException === 'object'
+      ? (speciesException as Record<string, unknown>)['excluded']
+      : null;
+  return typeof excluded === 'number'
+    ? `Partial value: ${excluded} approved species sources unavailable.`
+    : 'Partial value: approved source inputs are unavailable.';
+}
+
 export function formatMetricValue(
   metric: MetricValue,
   options: MetricFormatOptions,

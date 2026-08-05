@@ -44,33 +44,35 @@ export function normalizeSolutionToken(
 
 export function getSolutionTargetTypes(
   solution: SolutionMatchingSource,
-  options: { inferFromName?: boolean } = {},
+  _options: { inferFromName?: boolean } = {},
 ): Set<SolutionTargetType> {
+  void _options; // Retained for call-site compatibility; filename inference is disabled.
   const targetTypes = new Set<SolutionTargetType>();
+  const structured = solution.finderInputs.structuredTargets;
+  if (structured?.strategicEcosystems.length) targetTypes.add('strategic-ecosystems');
+  if (structured?.ecosystems.length) targetTypes.add('ecosystems');
+  if (structured?.ecosystemServices.length) targetTypes.add('ecosystem-services');
+  if (structured?.speciesRepresentation.length || structured?.espRn.length) {
+    targetTypes.add('species-richness');
+  }
   const targetFeatureSet = normalizeSolutionToken(solution.finderInputs.targetFeatureSet ?? '');
   const targetFeatureIds = solution.finderInputs.targetFeatureIds.map((id) =>
     normalizeSolutionToken(id),
   );
-  const source = options.inferFromName ? `${solution.id} ${solution.name}`.toLowerCase() : '';
 
   if (
     targetFeatureSet.includes('strategic') ||
-    targetFeatureIds.some((id) => STRATEGIC_TARGET_IDS.includes(id)) ||
-    source.includes('estr')
+    targetFeatureIds.some((id) => STRATEGIC_TARGET_IDS.includes(id))
   ) {
     targetTypes.add('strategic-ecosystems');
   }
-  if (
-    targetFeatureSet === 'ecosystems' ||
-    targetFeatureIds.includes('ecosistemas') ||
-    source.includes('ecos')
-  ) {
+  if (targetFeatureSet === 'ecosystems' || targetFeatureIds.includes('ecosistemas')) {
     targetTypes.add('ecosystems');
   }
   if (
     targetFeatureSet.includes('species') ||
-    (!targetFeatureSet && targetFeatureIds.includes('species-richness')) ||
-    source.includes('esp')
+    targetFeatureSet === 'esp-rn' ||
+    (!targetFeatureSet && targetFeatureIds.includes('species-richness'))
   ) {
     targetTypes.add('species-richness');
   }
@@ -82,19 +84,35 @@ export function getSolutionTargetLevel(
   solution: SolutionMatchingSource,
   targetType: SolutionTargetType,
 ): SolutionTargetLevel | null {
-  const prefixByTargetType: Partial<Record<SolutionTargetType, string>> = {
-    ecosystems: 'ecos',
-    'strategic-ecosystems': 'estr',
-    'species-richness': 'esp',
-  };
-  const prefix = prefixByTargetType[targetType];
+  const dimensionByTargetType = {
+    ecosystems: 'ecosystems',
+    'strategic-ecosystems': 'strategicEcosystems',
+    'ecosystem-services': 'ecosystemServices',
+    'species-richness': 'speciesRepresentation',
+  } as const;
+  const structured = solution.finderInputs.structuredTargets;
+  const dimension = dimensionByTargetType[targetType];
+  const targets = [
+    ...(structured?.[dimension] ?? []),
+    ...(targetType === 'species-richness' ? (structured?.espRn ?? []) : []),
+  ];
+  const levels = [...new Set(targets.map((target) => target.targetPercent))];
+  if (levels.length === 1 && (levels[0] === 17 || levels[0] === 30)) {
+    return levels[0];
+  }
+  if (levels.length > 0) {
+    return null;
+  }
 
-  if (prefix) {
-    const source = `${solution.id} ${solution.name}`.toLowerCase();
-    const match = source.match(new RegExp(`${prefix}(17|30)(?!\\d)`));
-    if (match) {
-      return Number(match[1]) as SolutionTargetLevel;
-    }
+  const explicitFeatureSetByTargetType: Partial<Record<SolutionTargetType, string[]>> = {
+    ecosystems: ['ecosystems'],
+    'strategic-ecosystems': ['strategic-ecosystems'],
+    'ecosystem-services': ['ecosystem-services'],
+    'species-richness': ['species', 'species-richness', 'esp-rn'],
+  };
+  const featureSet = normalizeSolutionToken(solution.finderInputs.targetFeatureSet ?? '');
+  if (!explicitFeatureSetByTargetType[targetType]?.includes(featureSet)) {
+    return null;
   }
 
   const manifestLevel = solution.finderInputs.targetPercent;
@@ -102,9 +120,13 @@ export function getSolutionTargetLevel(
 }
 
 export function inferSolutionTargetPercent(solution: SolutionMatchingSource): number {
-  const source = `${solution.id} ${solution.name}`.toLowerCase();
-  const match = source.match(/(?:ecos|estr)(17|30)(?!\d)/);
-  return match ? Number(match[1]) : 0;
+  const ecosystemTargets = solution.finderInputs.structuredTargets?.ecosystems ?? [];
+  const structuredLevels = [...new Set(ecosystemTargets.map((target) => target.targetPercent))];
+  if (structuredLevels.length === 1 && (structuredLevels[0] === 17 || structuredLevels[0] === 30)) {
+    return structuredLevels[0];
+  }
+  const manifestTarget = solution.finderInputs.targetPercent;
+  return manifestTarget === 17 || manifestTarget === 30 ? manifestTarget : 0;
 }
 
 export function getSolutionIncludeIds(solution: SolutionMatchingSource): string[] {

@@ -1,5 +1,6 @@
 export type MetricReadinessStatus =
   | 'ready'
+  | 'partial'
   | 'derivation_needed'
   | 'blocked'
   | 'pending'
@@ -55,7 +56,7 @@ export interface MetricValue {
   metricId: string;
   /**
    * Nullability convention:
-   * - `ready` => value should be a number
+   * - `ready|partial` => value should be a number
    * - `derivation_needed|blocked|pending` => value should be null
    */
   value: number | null;
