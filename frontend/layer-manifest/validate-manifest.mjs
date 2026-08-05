@@ -1,7 +1,11 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH } from '../shared/runtime-manifest.constants.mjs';
+import {
+  LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
+  PUBLIC_BLOB_HOST,
+} from '../shared/runtime-manifest.constants.mjs';
+import { readSolutionCatalog, validateManifestAgainstCatalog } from './lib/solution-catalog.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -260,6 +264,15 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manifest.releaseId),
       'releaseId must be lowercase and hyphenated',
     );
+    assertString(manifest.catalogVersion, 'catalogVersion');
+    assert(
+      options.catalog,
+      'release manifest validation requires an explicit --catalog <path> catalog',
+    );
+    assert(
+      manifest.publicBlobHost === PUBLIC_BLOB_HOST,
+      `release publicBlobHost must equal the configured Blob host "${PUBLIC_BLOB_HOST}"`,
+    );
   }
   if ('manualEdit' in manifest && manifest.manualEdit !== undefined) {
     assert(
@@ -510,6 +523,7 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
 
   assertUnique(solutionIds, 'solutions.id');
   if (manifest.releaseId) {
+    validateManifestAgainstCatalog(manifest, options.catalog);
     const land = manifest.solutions.filter((solution) => {
       const domain =
         solution.domain ??
@@ -518,36 +532,21 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       return domain !== 'marine';
     });
     const marine = manifest.solutions.filter((solution) => !land.includes(solution));
-    assert(
-      land.length === 104,
-      `release manifest must contain exactly 104 land solutions; got ${land.length}`,
-    );
-    assert(
-      marine.length === 4,
-      `release manifest must contain exactly 4 marine solutions; got ${marine.length}`,
-    );
     for (const solution of land) {
       const urls = solution.precomputedMetricUrls ?? {};
+      assertRequiredReleaseMetricUrls(solution, manifest.releaseId);
       assert(!('mecByGeography' in urls), `${solution.id} must omit MEC v1 in release mode`);
       assertMecGeographyUrls(urls.mecV2ByGeography, `${solution.id}.mecV2ByGeography`);
-      for (const url of Object.values(urls.mecV2ByGeography)) {
-        assert(
-          url.includes(`/releases/${manifest.releaseId}/`),
-          `${solution.id} MEC v2 URL must use release prefix`,
-        );
-      }
-      assert(
-        urls.cache?.includes(`/releases/${manifest.releaseId}/`) &&
-          urls.compactCache?.includes(`/releases/${manifest.releaseId}/`),
-        `${solution.id} regular metric URLs must use release prefix`,
-      );
+      assertReleaseMetricUrls(solution, manifest.releaseId);
     }
     for (const solution of marine) {
       const urls = solution.precomputedMetricUrls ?? {};
+      assertRequiredReleaseMetricUrls(solution, manifest.releaseId);
       assert(
         !urls.mecByGeography && !urls.mecV2ByGeography,
         `${solution.id} must not advertise terrestrial MEC URLs`,
       );
+      assertReleaseMetricUrls(solution, manifest.releaseId);
     }
   }
 
@@ -564,6 +563,39 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
   };
 }
 
+function assertRequiredReleaseMetricUrls(solution, releaseId) {
+  const urls = solution.precomputedMetricUrls ?? {};
+  for (const key of ['goals', 'cache', 'compactCache']) {
+    assertReleaseMetricUrl(urls[key], releaseId, `${solution.id} precomputedMetricUrls.${key}`);
+  }
+}
+
+function assertReleaseMetricUrls(solution, releaseId) {
+  for (const [key, value] of Object.entries(solution.precomputedMetricUrls ?? {})) {
+    const urls =
+      value && typeof value === 'object' && !Array.isArray(value) ? Object.values(value) : [value];
+    for (const url of urls) {
+      assertReleaseMetricUrl(url, releaseId, `${solution.id} precomputedMetricUrls.${key}`);
+    }
+  }
+}
+
+function assertReleaseMetricUrl(value, releaseId, label) {
+  assert(typeof value === 'string', `${label} must be a URL`);
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`${label} must be a valid URL`);
+  }
+  const expectedOrigin = new URL(PUBLIC_BLOB_HOST).origin;
+  assert(parsed.origin === expectedOrigin, `${label} must use configured Blob origin`);
+  assert(
+    parsed.pathname.startsWith(`/releases/${releaseId}/`),
+    `${label} must use exact release pathname prefix`,
+  );
+}
+
 function validateSolution(solution, index, remoteDisplayUrls, options) {
   assert(solution && typeof solution === 'object', `solutions[${index}] must be an object`);
   assertString(solution.id, `solutions[${index}].id`);
@@ -573,7 +605,9 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
     assertOneOf(solution.domain, SOLUTION_DOMAINS, `solutions[${index}].domain`);
   }
   assertString(solution.scope, `solutions[${index}].scope`);
-  assertNullableString(solution.sirapId, `solutions[${index}].sirapId`);
+  if ('sirapId' in solution) {
+    assertNullableString(solution.sirapId, `solutions[${index}].sirapId`);
+  }
   assertString(solution.displayUrl, `solutions[${index}].displayUrl`);
   assertValidUrl(solution.displayUrl, `solutions[${index}].displayUrl`);
   if ('displayCogUrl' in solution) {
@@ -584,6 +618,12 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
   assertString(solution.rasterFile, `solutions[${index}].rasterFile`);
   assertString(solution.metadataFile, `solutions[${index}].metadataFile`);
   assertString(solution.blobPath, `solutions[${index}].blobPath`);
+  if ('rasterSha256' in solution) {
+    assert(
+      typeof solution.rasterSha256 === 'string' && /^[0-9a-f]{64}$/.test(solution.rasterSha256),
+      `solutions[${index}].rasterSha256 must be a lowercase SHA-256 digest`,
+    );
+  }
   assertNullableString(solution.generatedAt, `solutions[${index}].generatedAt`);
   validateSolutionFinderInputs(solution.finderInputs, `solutions[${index}].finderInputs`);
   validateSolutionInputLayerIds(solution.inputLayerIds, `solutions[${index}].inputLayerIds`);
@@ -619,9 +659,57 @@ function validateSolutionFinderInputs(finderInputs, label) {
   assertNullableString(finderInputs.targetFeatureSet, `${label}.targetFeatureSet`);
   assertStringArray(finderInputs.targetFeatureIds, `${label}.targetFeatureIds`);
   assertNumberOrNull(finderInputs.targetPercent, `${label}.targetPercent`);
+  if (finderInputs.structuredTargets !== undefined) {
+    validateStructuredTargets(finderInputs.structuredTargets, `${label}.structuredTargets`);
+  }
   assertNullableString(finderInputs.costLayerId, `${label}.costLayerId`);
   assertStringArray(finderInputs.includeLayerIds, `${label}.includeLayerIds`);
   assertStringArray(finderInputs.excludeLayerIds, `${label}.excludeLayerIds`);
+}
+
+function validateStructuredTargets(targets, label) {
+  assert(
+    targets && typeof targets === 'object' && !Array.isArray(targets),
+    `${label} must be an object`,
+  );
+  assert(
+    targets.format === 'solution-target-metadata-v1',
+    `${label}.format must be solution-target-metadata-v1`,
+  );
+  assertOneOf(
+    targets.sourceEvaluation,
+    ['prioritizr_model', 'legacy-single-ecosystem'],
+    `${label}.sourceEvaluation`,
+  );
+  for (const dimension of [
+    'ecosystems',
+    'strategicEcosystems',
+    'ecosystemServices',
+    'speciesRepresentation',
+    'espRn',
+  ]) {
+    const entries = targets[dimension];
+    assert(Array.isArray(entries), `${label}.${dimension} must be an array`);
+    let previousFeatureId = '';
+    for (const [index, entry] of entries.entries()) {
+      assert(
+        entry && typeof entry === 'object' && !Array.isArray(entry),
+        `${label}.${dimension}[${index}] must be an object`,
+      );
+      assertString(entry.featureId, `${label}.${dimension}[${index}].featureId`);
+      assert(
+        Number.isFinite(entry.targetPercent) &&
+          entry.targetPercent >= 0 &&
+          entry.targetPercent <= 100,
+        `${label}.${dimension}[${index}].targetPercent must be between 0 and 100`,
+      );
+      assert(
+        entry.featureId > previousFeatureId,
+        `${label}.${dimension} must be uniquely sorted by featureId`,
+      );
+      previousFeatureId = entry.featureId;
+    }
+  }
 }
 
 function validateSolutionInputLayerIds(inputLayerIds, label) {
@@ -684,13 +772,24 @@ async function readJson(filePath) {
   return JSON.parse(raw);
 }
 
-async function getTargetPaths() {
-  const cliArgs = process.argv.slice(2);
+function parseCliArgs(cliArgs) {
   const includeExample = cliArgs.includes('--include-example');
-  const args = cliArgs.filter((arg) => !arg.startsWith('--'));
+  const catalogIndex = cliArgs.indexOf('--catalog');
+  const catalogArg = catalogIndex >= 0 ? cliArgs[catalogIndex + 1] : null;
+  if (catalogIndex >= 0 && (!catalogArg || catalogArg.startsWith('--'))) {
+    throw new Error('--catalog requires a path');
+  }
+  const catalogPath = catalogIndex >= 0 ? path.resolve(process.cwd(), catalogArg) : null;
+  const valueOptionIndexes = new Set(catalogIndex >= 0 ? [catalogIndex, catalogIndex + 1] : []);
+  const targetArgs = cliArgs.filter(
+    (arg, index) => !arg.startsWith('--') && !valueOptionIndexes.has(index),
+  );
+  return { catalogPath, includeExample, targetArgs };
+}
 
-  if (args.length > 0) {
-    return args.map((arg) => path.resolve(process.cwd(), arg));
+async function getTargetPaths(targetArgs, includeExample) {
+  if (targetArgs.length > 0) {
+    return targetArgs.map((arg) => path.resolve(process.cwd(), arg));
   }
 
   const paths = [];
@@ -706,12 +805,18 @@ async function getTargetPaths() {
 }
 
 async function main() {
-  const checkRemoteDisplayUrls = shouldCheckRemoteDisplayUrls(process.argv.slice(2));
-  const targetPaths = await getTargetPaths();
+  const cliArgs = process.argv.slice(2);
+  const checkRemoteDisplayUrls = shouldCheckRemoteDisplayUrls(cliArgs);
+  const { catalogPath, includeExample, targetArgs } = parseCliArgs(cliArgs);
+  const catalog = catalogPath ? await readSolutionCatalog(catalogPath) : null;
+  const targetPaths = await getTargetPaths(targetArgs, includeExample);
 
   for (const targetPath of targetPaths) {
     const manifest = await readJson(targetPath);
-    const result = await validateManifest(manifest, targetPath, { checkRemoteDisplayUrls });
+    const result = await validateManifest(manifest, targetPath, {
+      catalog,
+      checkRemoteDisplayUrls,
+    });
     console.log(
       `[validate:layer-manifest] ${path.relative(process.cwd(), result.manifestPath)} passed (${result.layerCount} layer(s), ${result.solutionCount} solution(s), ${result.categoryCount} categories)`,
     );

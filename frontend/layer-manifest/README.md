@@ -55,7 +55,7 @@ El reporte de reconciliacion no es para la aplicacion. Es para humanos y desarro
 - `compressedDataForLiveMetricsUrl`: URL del archivo comprimido usado para calculo vivo de metricas.
 - `precomputedMetricUrls`: URLs para metricas precalculadas.
 - `speciesManifestUrl`: URL del manifest secundario de especies, cuando aplica.
-- `solutions[]`: catalogo app-facing de soluciones disponibles en Blob, con URL del raster, URL de metadatos, entradas normalizadas para Finder, metricas resumen y cobertura.
+- `solutions[]`: catalogo app-facing de soluciones disponibles en Blob, con URL del raster, URL de metadatos, entradas normalizadas para Finder, metricas resumen y cobertura. `finderInputs.structuredTargets` conserva objetivos por ecosistemas, ecosistemas estratégicos, servicios, representación de especies y EspRN por rasgo; solo filas `evaluated == prioritizr_model` son autoritativas. `targetPercent` sigue siendo únicamente el escalar ecosistema/MEC 17/30.
 
 ### Roles de datos
 
@@ -110,6 +110,28 @@ Las etiquetas se obtienen de tres fuentes, aplicadas en este orden de prioridad 
 npm run generate:layer-manifest
 npm run validate:layer-manifest
 ```
+
+Para una entrega inmutable, el catálogo versionado es la fuente de verdad para `releaseId`, `catalogVersion`, `expectedSolutionCount`, `expectedLandSolutionCount`, `expectedMarineSolutionCount` y el conjunto exacto y ordenado de IDs. Cada entrada declara un `solutionId` que ya cumple la expresión canónica segura que Python aplica después de su normalización de compatibilidad, `solutionBasename` terminado exactamente en `.tif` minúsculo (por ejemplo, `demo.tif`), `domain` y un `rasterSha256` válido y obligatorio. El manifest repite el checksum y debe asociar el mismo basename, ruta de Blob, URL de visualización y archivo de metadatos; también se rechazan colisiones después de la normalización de rutas de artefactos.
+
+```bash
+npm run generate:layer-manifest -- --catalog ../ruta/solution-catalog.json
+npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json
+```
+
+El formato admitido es `solution-catalog-v1`; `catalogVersion` usa SemVer y admite versiones pre-1.0 como `0.1.0`. Todas las URLs de métricas de una entrega quedan bajo `releases/{releaseId}/`. La versión `0.1.0` en `frontend/package.json` es la versión SemVer de la aplicación: es independiente de `catalogVersion` y de los contratos existentes de esquema/procedencia de métricas, y no debe usarse para invalidar cachés de métricas.
+
+Previsualizar y promover una entrega:
+
+```bash
+npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --dry-run
+npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --confirm-release <releaseId>
+```
+
+Cada `--artifact-inventory` debe ser una salida `metric-artifact-verification-v1` de `verify_artifacts.py`. Su `sourceReport` debe apuntar al resumen `publish-report.json` de Python; catálogo, URLs, tamaños y SHA-256 locales/remotos deben coincidir exactamente con el manifest. Antes de promover, el publicador también abre esos mismos archivos locales y exige geografías regulares completas, catálogos compactos referenciables, esquema y filas de features de goals, y catálogos/filas MEC v2 válidos. Como el inventario demuestra que el Blob remoto tiene el mismo SHA-256, esta validación estructural cubre exactamente los bytes publicados. Soluciones terrestres requieren regular verbose/compact, goals y seis artefactos MEC v2; soluciones marinas requieren regular verbose/compact y goals, sin MEC.
+
+El publicador conserva cada revisión (incluidos cambios solo de estilo) en `manifest/releases/{releaseId}/revisions/{sha256}.json`, archiva el puntero remoto actual y promueve la revisión mediante un `put` condicional con el ETag del destino activo. `--dry-run` ejecuta las mismas lecturas y comparaciones remotas, pero omite todas las escrituras. Para rollback, seleccionar un archivo con `--use`, proporcionar su catálogo histórico con `--catalog`, revisar con `--dry-run` y luego repetir con `--confirm-rollback`; los archivos sin identidad de entrega se rechazan.
+
+La operación mantiene el supuesto de un único capitán de entrega. Como defensa adicional, promoción y rollback vuelven a leer la identidad del manifest activo inmediatamente antes de reemplazarlo y usan el ETag del destino como precondición; si cambia, la operación falla y debe reiniciarse. Si el puntero todavía no existe, la creación falla salvo que se añada explícitamente `--confirm-create-first-pointer`; aun así debe existir un solo capitán.
 
 ## English
 
@@ -166,7 +188,7 @@ The reconciliation report is not for the application. It is for humans and devel
 - `compressedDataForLiveMetricsUrl`: URL for compressed data used in live metric calculation.
 - `precomputedMetricUrls`: URLs for precomputed metrics.
 - `speciesManifestUrl`: URL for the secondary species manifest, when relevant.
-- `solutions[]`: app-facing catalog of available Blob solutions, including raster URL, metadata URL, normalized Finder inputs, summary metrics, and coverage.
+- `solutions[]`: app-facing catalog of available Blob solutions, including raster URL, metadata URL, normalized Finder inputs, summary metrics, and coverage. `finderInputs.structuredTargets` preserves per-feature ecosystem, strategic-ecosystem, service, species-representation, and EspRN targets; only `evaluated == prioritizr_model` rows are authoritative. `targetPercent` remains only the 17/30 ecosystem/MEC scalar.
 
 ### Data Roles
 
@@ -221,3 +243,25 @@ Labels are populated from three sources, applied in this order of precedence dur
 npm run generate:layer-manifest
 npm run validate:layer-manifest
 ```
+
+For an immutable release, the versioned catalog is the source of truth for `releaseId`, `catalogVersion`, `expectedSolutionCount`, `expectedLandSolutionCount`, `expectedMarineSolutionCount`, and the exact sorted solution ID set. Each entry declares a `solutionId` that already matches the canonical safe expression Python applies after compatibility normalization, `solutionBasename` ending in the exact lowercase `.tif` extension (for example, `demo.tif`), `domain`, and a mandatory valid `rasterSha256`. The manifest repeats that checksum and must bind the same basename, Blob path, display URL, and metadata file; collisions after artifact-path normalization are rejected.
+
+```bash
+npm run generate:layer-manifest -- --catalog ../path/solution-catalog.json
+npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json
+```
+
+The supported format is `solution-catalog-v1`; `catalogVersion` uses SemVer and supports pre-1.0 versions such as `0.1.0`. Every release metric URL is rooted under `releases/{releaseId}/`, so publishing the manifest atomically switches the complete release. The `0.1.0` version in `frontend/package.json` is application SemVer: it is independent from `catalogVersion` and existing metric schema/provenance contracts, and must not be used to invalidate metric caches.
+
+Preview and promote a release:
+
+```bash
+npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --dry-run
+npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --confirm-release <releaseId>
+```
+
+Each `--artifact-inventory` must be a `metric-artifact-verification-v1` output from `verify_artifacts.py`. Its `sourceReport` must reference the Python `publish-report.json`; catalog identity, URLs, byte counts, and local/remote SHA-256 values must exactly match the manifest. Before promotion, the publisher also opens those same local files and requires complete regular geographies, referentially valid compact catalogs, goals schema and feature rows, and valid MEC v2 catalogs/rows. Because the inventory proves that the remote Blob has the same SHA-256, this structural check covers the exact published bytes. Land solutions require regular verbose/compact, goals, and all six MEC v2 artifacts; marine solutions require regular verbose/compact and goals, with no MEC.
+
+The publisher preserves every revision (including style-only changes) at `manifest/releases/{releaseId}/revisions/{sha256}.json`, archives the current remote pointer, then promotes the revision with a destination-conditional `put` using the live ETag. `--dry-run` performs the same remote reads and comparisons but skips every write. For rollback, select an archive with `--use`, provide its historical catalog with `--catalog`, review with `--dry-run`, then repeat with `--confirm-rollback`; archives without release identity are rejected.
+
+Operations retain the single-release-captain assumption. Promotion and rollback re-read the live manifest immediately before replacement and use the destination ETag as a precondition; if it changed, the operation fails and must be restarted. If the pointer does not exist yet, creation fails unless `--confirm-create-first-pointer` is explicitly supplied, and a single captain is still required.

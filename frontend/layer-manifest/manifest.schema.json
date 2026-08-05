@@ -13,6 +13,24 @@
     "layers",
     "solutions"
   ],
+  "allOf": [
+    {
+      "if": {
+        "required": ["releaseId"]
+      },
+      "then": {
+        "required": ["catalogVersion"]
+      }
+    },
+    {
+      "if": {
+        "required": ["catalogVersion"]
+      },
+      "then": {
+        "required": ["releaseId"]
+      }
+    }
+  ],
   "properties": {
     "version": {
       "type": "string"
@@ -31,6 +49,10 @@
     "releaseId": {
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "catalogVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
     },
     "manualEdit": {
       "$ref": "#/$defs/manualEdit"
@@ -110,7 +132,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+()\\-]*$"
         },
         "spanishLabel": {
           "type": "string"
@@ -264,7 +286,6 @@
         "name",
         "description",
         "scope",
-        "sirapId",
         "displayUrl",
         "metadataUrl",
         "rasterFile",
@@ -318,6 +339,10 @@
         },
         "blobPath": {
           "type": "string"
+        },
+        "rasterSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         },
         "generatedAt": {
           "$ref": "#/$defs/nullableString"
@@ -423,6 +448,9 @@
         "targetPercent": {
           "$ref": "#/$defs/nullableNumber"
         },
+        "structuredTargets": {
+          "$ref": "#/$defs/solutionStructuredTargets"
+        },
         "costLayerId": {
           "$ref": "#/$defs/nullableString"
         },
@@ -438,6 +466,65 @@
             "type": "string"
           }
         }
+      }
+    },
+    "solutionTargetEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["featureId", "targetPercent"],
+      "properties": {
+        "featureId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "targetPercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "solutionStructuredTargets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "sourceEvaluation",
+        "ecosystems",
+        "strategicEcosystems",
+        "ecosystemServices",
+        "speciesRepresentation",
+        "espRn"
+      ],
+      "properties": {
+        "format": {
+          "const": "solution-target-metadata-v1"
+        },
+        "sourceEvaluation": {
+          "type": "string",
+          "enum": ["prioritizr_model", "legacy-single-ecosystem"]
+        },
+        "ecosystems": {
+          "$ref": "#/$defs/solutionTargetEntries"
+        },
+        "strategicEcosystems": {
+          "$ref": "#/$defs/solutionTargetEntries"
+        },
+        "ecosystemServices": {
+          "$ref": "#/$defs/solutionTargetEntries"
+        },
+        "speciesRepresentation": {
+          "$ref": "#/$defs/solutionTargetEntries"
+        },
+        "espRn": {
+          "$ref": "#/$defs/solutionTargetEntries"
+        }
+      }
+    },
+    "solutionTargetEntries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/solutionTargetEntry"
       }
     },
     "solutionInputLayerIds": {
@@ -506,6 +593,15 @@
         },
         "relativeShortfall": {
           "$ref": "#/$defs/nullableNumber"
+        },
+        "type": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "evaluated": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "targetDimension": {
+          "$ref": "#/$defs/nullableString"
         }
       }
     },

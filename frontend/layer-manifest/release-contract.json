@@ -1,6 +1,7 @@
 {
   "defaultReleaseId": "sirap-polygon-v2-20260727",
   "prefixRoot": "releases",
+  "goalsDirectory": "goals",
   "regularVerboseDirectory": "regular/verbose",
   "regularCompactDirectory": "regular/compact",
   "mecV2Directory": "mec/v2",

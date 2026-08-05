@@ -9,6 +9,8 @@ import {
 describe('manifest style requests', () => {
   it('applies a style request to a newer manifest without dropping solutions', () => {
     const manifest = baseManifest({
+      releaseId: 'release-one',
+      catalogVersion: '0.1.0',
       solutions: [{ id: 'solution-new', name: 'Latest solution', extra: 'preserved' }],
       futureTopLevelField: { survives: true },
     });
@@ -36,6 +38,8 @@ describe('manifest style requests', () => {
     });
 
     assert.deepStrictEqual(updated.solutions, manifest.solutions);
+    assert.equal(updated.releaseId, manifest.releaseId);
+    assert.equal(updated.catalogVersion, manifest.catalogVersion);
     assert.deepStrictEqual(updated.futureTopLevelField, { survives: true });
     assert.equal(updated.categories[0].styleDefaults.selectedColor, '#15803d');
     assert.equal(updated.layers[0].rendering.selectedColor, '#15803d');

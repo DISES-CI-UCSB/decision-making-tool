@@ -30,6 +30,9 @@ const publishWorkDir = path.resolve(__dirname, '../development-artifacts/layer-m
 
 function parseArgs(args) {
   let sourcePath = null;
+  let catalogPath = null;
+  const artifactInventoryPaths = [];
+  let confirmReleaseId = null;
   let publish = false;
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
@@ -38,11 +41,34 @@ function parseArgs(args) {
       index += 1;
       continue;
     }
+    if (value === '--catalog') {
+      const catalogArg = args[index + 1];
+      if (!catalogArg || catalogArg.startsWith('--')) {
+        throw new Error('--catalog requires a path');
+      }
+      catalogPath = path.resolve(process.cwd(), catalogArg);
+      index += 1;
+      continue;
+    }
+    if (value === '--artifact-inventory') {
+      const inventoryArg = args[index + 1];
+      if (!inventoryArg || inventoryArg.startsWith('--')) {
+        throw new Error('--artifact-inventory requires a path');
+      }
+      artifactInventoryPaths.push(path.resolve(process.cwd(), inventoryArg));
+      index += 1;
+      continue;
+    }
+    if (value === '--confirm-release') {
+      confirmReleaseId = args[index + 1] ?? null;
+      index += 1;
+      continue;
+    }
     if (value === '--publish') {
       publish = true;
     }
   }
-  return { sourcePath, publish };
+  return { sourcePath, catalogPath, artifactInventoryPaths, confirmReleaseId, publish };
 }
 
 async function runNodeScript(scriptPath, args) {
@@ -218,7 +244,13 @@ function extractPublishedManifestUrl(output) {
 
 async function main() {
   await loadLocalEnv(path.resolve(__dirname, '..'));
-  const { sourcePath: sourceArg, publish } = parseArgs(process.argv.slice(2));
+  const {
+    sourcePath: sourceArg,
+    catalogPath,
+    artifactInventoryPaths,
+    confirmReleaseId,
+    publish,
+  } = parseArgs(process.argv.slice(2));
   const { manifest: latestManifest, url: sourceManifestUrl } = await loadLatestPublishedManifest();
   let firestore = null;
   let request;
@@ -247,7 +279,8 @@ async function main() {
   );
 
   // Validate the supplied styled manifest before touching runtime/publish files.
-  await runNodeScript(path.resolve(__dirname, './validate-manifest.mjs'), [publishSourcePath]);
+  const validationArgs = [publishSourcePath, ...(catalogPath ? ['--catalog', catalogPath] : [])];
+  await runNodeScript(path.resolve(__dirname, './validate-manifest.mjs'), validationArgs);
 
   if (!publish) {
     console.log(
@@ -260,6 +293,9 @@ async function main() {
   const publishOutput = await runNodeScript(path.resolve(__dirname, './publish-manifest.mjs'), [
     '--source',
     publishSourcePath,
+    ...(catalogPath ? ['--catalog', catalogPath] : []),
+    ...artifactInventoryPaths.flatMap((inventoryPath) => ['--artifact-inventory', inventoryPath]),
+    ...(confirmReleaseId ? ['--confirm-release', confirmReleaseId] : []),
   ]);
   const publishedManifestUrl = extractPublishedManifestUrl(publishOutput);
 

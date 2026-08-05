@@ -2,6 +2,8 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import { validateManifest } from './validate-manifest.mjs';
 
+const BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
+
 describe('solution precomputedMetricUrls validation', () => {
   it('accepts an optional map of named URLs', async () => {
     const manifest = createManifest({
@@ -102,6 +104,55 @@ describe('solution precomputedMetricUrls validation', () => {
   });
 });
 
+describe('catalog-driven release validation', () => {
+  it('fails closed when a release manifest is validated without a catalog', async () => {
+    const manifest = createReleaseManifest();
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /requires an explicit --catalog <path>/,
+    );
+  });
+
+  it('accepts exact catalog counts, domains, IDs, and immutable metric URLs', async () => {
+    const manifest = createReleaseManifest();
+    const catalog = createReleaseCatalog();
+
+    await assert.doesNotReject(validateManifest(manifest, 'manifest.json', { catalog }));
+  });
+
+  it('rejects a release whose solution ID set differs from the catalog', async () => {
+    const manifest = createReleaseManifest();
+    manifest.solutions[0].id = 'unexpected_solution';
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
+      /missing: demo_solution; unexpected: unexpected_solution/,
+    );
+  });
+
+  it('rejects any release metric URL outside the release prefix', async () => {
+    const manifest = createReleaseManifest();
+    manifest.solutions[0].precomputedMetricUrls.goals =
+      'https://example.com/metrics/goals/demo_solution.goals.json';
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
+      /precomputedMetricUrls.goals must use configured Blob origin/,
+    );
+  });
+
+  it('rejects release-looking substrings outside the exact pathname prefix', async () => {
+    const manifest = createReleaseManifest();
+    manifest.solutions[0].precomputedMetricUrls.goals = `${BLOB_HOST}/metrics/releases/${manifest.releaseId}/goals/demo_solution.goals.json`;
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
+      /must use exact release pathname prefix/,
+    );
+  });
+});
+
 function createMecUrls(directory = 'mec') {
   return Object.fromEntries(
     ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'].map((level) => [
@@ -165,5 +216,48 @@ function createManifest(precomputedMetricUrls) {
     categories: [],
     layers: [],
     solutions: [solution],
+  };
+}
+
+function createReleaseManifest() {
+  const releaseId = 'catalog-2026-08-04';
+  const prefix = `${BLOB_HOST}/releases/${releaseId}`;
+  const manifest = createManifest({
+    goals: `${prefix}/goals/demo_solution.goals.json`,
+    cache: `${prefix}/regular/verbose/demo_solution.metrics.json`,
+    compactCache: `${prefix}/regular/compact/demo_solution.metrics.compact.json`,
+    mecV2ByGeography: Object.fromEntries(
+      ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'].map((level) => [
+        level,
+        `${prefix}/mec/v2/demo_solution/${level}.mec.compact.json`,
+      ]),
+    ),
+  });
+  manifest.releaseId = releaseId;
+  manifest.catalogVersion = '0.1.0';
+  manifest.publicBlobHost = BLOB_HOST;
+  manifest.solutions[0].domain = 'land';
+  manifest.solutions[0].displayUrl = `${BLOB_HOST}/solutions/demo.tif`;
+  manifest.solutions[0].metadataUrl = `${BLOB_HOST}/solutions/demo.json`;
+  manifest.solutions[0].rasterSha256 = 'a'.repeat(64);
+  return manifest;
+}
+
+function createReleaseCatalog() {
+  return {
+    format: 'solution-catalog-v1',
+    catalogVersion: '0.1.0',
+    releaseId: 'catalog-2026-08-04',
+    expectedSolutionCount: 1,
+    expectedLandSolutionCount: 1,
+    expectedMarineSolutionCount: 0,
+    solutions: [
+      {
+        solutionId: 'demo_solution',
+        solutionBasename: 'demo.tif',
+        domain: 'land',
+        rasterSha256: 'a'.repeat(64),
+      },
+    ],
   };
 }

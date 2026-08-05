@@ -1,6 +1,6 @@
 {
   "name": "eco-plan",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "scripts": {
     "ng": "ng",
     "start": "npm run sync:solutions && npm run sync:boundaries && ng serve --proxy-config proxy.conf.json",

@@ -3,12 +3,10 @@ import { describe, it } from 'node:test';
 import { createSolutionPrecomputedMetricUrls } from './lib/metric-urls.mjs';
 
 describe('createSolutionPrecomputedMetricUrls', () => {
-  it('sanitizes slashes and spaces in the goals path', () => {
-    const result = createSolutionPrecomputedMetricUrls('regional/run one');
-
-    assert.strictEqual(
-      result.goals,
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metrics/goals/regional_run_one.goals.json',
+  it('rejects IDs that would require path sanitization', () => {
+    assert.throws(
+      () => createSolutionPrecomputedMetricUrls('regional/run one'),
+      /unsafe solutionId/,
     );
   });
 

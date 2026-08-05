@@ -44,4 +44,65 @@ describe('marine solution manifest entries', () => {
     assert.strictEqual(entry.precomputedMetricUrls.mecByGeography, undefined);
     assert.strictEqual(entry.precomputedMetricUrls.mecV2ByGeography, undefined);
   });
+
+  it('derives sorted structured targets only from prioritizr model rows', () => {
+    const entry = createSolutionManifestEntry({
+      metadata: {
+        id: 'structured_targets',
+        run_name: 'Structured targets',
+        scope: 'nacional',
+        target_feature_set: 'ecosystems_and_esp_rn',
+        input_layer_ids: {
+          features: ['FEAT_ECOSYSTEMS'],
+          cost: 'COST_HF',
+          includes: ['INCL_RUNAP'],
+          excludes: [],
+        },
+        coverage: [
+          {
+            feature: 'Haematopus palliatus',
+            feature_type: 'species',
+            evaluated: 'prioritizr_model',
+            relative_target: 0.23,
+          },
+          {
+            feature: 'ecosistemas',
+            type: 'ecosystem',
+            evaluated: 'prioritizr_model',
+            relative_target: 0.17,
+          },
+          {
+            feature: 'Hypericum strictum',
+            feature_type: 'species',
+            evaluated: 'prioritizr_model',
+            relative_target: 0.11,
+          },
+          {
+            feature: 'paramos',
+            type: 'ecosystem',
+            evaluated: 'post-hoc',
+            relative_target: 0.3,
+          },
+        ],
+      },
+      metadataBlob: {
+        pathname: 'solutions/nacional/structured_targets.json',
+        url: 'https://example.com/structured.json',
+      },
+      rasterBlob: {
+        pathname: 'solutions/nacional/structured_targets.tif',
+        url: 'https://example.com/structured.tif',
+      },
+    });
+
+    assert.equal(entry.finderInputs.targetPercent, 17);
+    assert.deepEqual(entry.finderInputs.structuredTargets.espRn, [
+      { featureId: 'haematopus_palliatus', targetPercent: 23 },
+      { featureId: 'hypericum_strictum', targetPercent: 11 },
+    ]);
+    assert.deepEqual(entry.finderInputs.structuredTargets.ecosystems, [
+      { featureId: 'ecosistemas', targetPercent: 17 },
+    ]);
+    assert.deepEqual(entry.finderInputs.structuredTargets.strategicEcosystems, []);
+  });
 });

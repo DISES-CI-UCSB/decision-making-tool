@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { PUBLIC_BLOB_HOST } from '../../shared/runtime-manifest.constants.mjs';
+import { assertArtifactSafeSolutionIds } from './solution-catalog.mjs';
 
 const require = createRequire(import.meta.url);
 const RELEASE_CONTRACT = require('../release-contract.json');
@@ -36,7 +37,8 @@ export function createSolutionPrecomputedMetricUrls(
   domain = 'land',
   options = {},
 ) {
-  const safeSolutionId = String(solutionId).replace(/\//g, '_').replace(/ /g, '_');
+  assertArtifactSafeSolutionIds([solutionId]);
+  const safeSolutionId = solutionId;
   const {
     mecByGeography: _existingMecByGeography,
     mecV2ByGeography: _existingMecV2ByGeography,
@@ -45,6 +47,9 @@ export function createSolutionPrecomputedMetricUrls(
 
   const releaseId = options.releaseId ?? null;
   const releaseRoot = releaseId ? `${RELEASE_CONTRACT.prefixRoot}/${releaseId}` : null;
+  const goalsDirectory = releaseRoot
+    ? `${releaseRoot}/${RELEASE_CONTRACT.goalsDirectory}`
+    : SOLUTION_GOALS_BLOB_DIRECTORY;
   const compactDirectory = releaseRoot
     ? `${releaseRoot}/${RELEASE_CONTRACT.regularCompactDirectory}`
     : SOLUTION_COMPACT_CACHE_BLOB_DIRECTORY;
@@ -54,7 +59,7 @@ export function createSolutionPrecomputedMetricUrls(
 
   return {
     ...preservedUrls,
-    goals: `${PUBLIC_BLOB_HOST}/${SOLUTION_GOALS_BLOB_DIRECTORY}/${safeSolutionId}.goals.json`,
+    goals: `${PUBLIC_BLOB_HOST}/${goalsDirectory}/${safeSolutionId}.goals.json`,
     ...(releaseRoot
       ? {
           cache: `${PUBLIC_BLOB_HOST}/${releaseRoot}/${RELEASE_CONTRACT.regularVerboseDirectory}/${safeSolutionId}.metrics.json`,

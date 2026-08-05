@@ -21,9 +21,18 @@ describe('metric URL construction', () => {
     });
   });
 
+  it('rejects solution IDs outside the canonical Python path contract', () => {
+    for (const solutionId of ['Uppercase', 'unsafe.id', 'unsafe+id', 'unsafe/id', 'unsafe id']) {
+      assert.throws(
+        () => createSolutionPrecomputedMetricUrls(solutionId),
+        /unsafe solutionId/,
+      );
+    }
+  });
+
   it('constructs stable compact, goals, and MEC URLs for land solutions', () => {
     const result = createSolutionPrecomputedMetricUrls(
-      'regional/run one',
+      'regional_run_one',
       { custom: 'https://example.com/custom.json' },
       'land',
     );
@@ -72,6 +81,7 @@ describe('metric URL construction', () => {
 
     assert.equal(releaseId, 'sirap-polygon-v2-20260727');
     assert.equal(result.mecByGeography, undefined);
+    assert.match(result.goals, new RegExp(`/releases/${releaseId}/goals/`));
     assert.match(result.cache, new RegExp(`/releases/${releaseId}/regular/verbose/`));
     assert.match(result.compactCache, new RegExp(`/releases/${releaseId}/regular/compact/`));
     for (const url of Object.values(result.mecV2ByGeography)) {

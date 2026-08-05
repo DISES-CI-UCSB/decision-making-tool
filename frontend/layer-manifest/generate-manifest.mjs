@@ -14,6 +14,11 @@ import {
 } from './lib/metric-urls.mjs';
 import { selectManifestSolutions } from './lib/solution-preservation.mjs';
 import {
+  bindManifestSolutionsToCatalog,
+  readSolutionCatalog,
+  validateManifestAgainstCatalog,
+} from './lib/solution-catalog.mjs';
+import {
   LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
   PUBLIC_BLOB_HOST,
   RUNTIME_MANIFEST_BLOB_URL,
@@ -99,6 +104,16 @@ function getReleaseId(args) {
     throw new Error('--release-id requires a lowercase, hyphenated immutable release id');
   }
   return releaseId;
+}
+
+function getCatalogPath(args) {
+  const index = args.indexOf('--catalog');
+  if (index < 0) return null;
+  const value = args[index + 1];
+  if (!value || value.startsWith('--')) {
+    throw new Error('--catalog requires a path to a solution-catalog-v1 JSON file');
+  }
+  return path.resolve(process.cwd(), value);
 }
 
 /**
@@ -784,6 +799,7 @@ export function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob
   const coverage = normalizeSolutionCoverage(metadata.coverage);
   const scope = normalizeSolutionScope(metadata.scope, metadataBlob.pathname);
   const domain = normalizeSolutionDomain(metadata.domain, scope);
+  const structuredTargets = buildStructuredTargets(coverage, metadata);
   const id = toLayerId(
     metadata.id ||
       metadata.run_name ||
@@ -793,9 +809,10 @@ export function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob
   const finderInputs = {
     domain,
     scope,
-    targetFeatureSet: inferSolutionTargetFeatureSet({ metadata, inputLayerIds, coverage }),
+    targetFeatureSet: inferSolutionTargetFeatureSet({ metadata, structuredTargets }),
     targetFeatureIds: inputLayerIds.features,
     targetPercent: inferTargetPercent(metadata.target_percent, coverage),
+    structuredTargets,
     costLayerId: inputLayerIds.cost,
     includeLayerIds: inputLayerIds.includes,
     excludeLayerIds: inputLayerIds.excludes,
@@ -813,7 +830,7 @@ export function createSolutionManifestEntry({ metadata, metadataBlob, rasterBlob
       }),
     domain,
     scope,
-    sirapId: inferSirapIdFromPath(metadataBlob.pathname),
+    ...(scope === 'sirap' ? { sirapId: inferSirapIdFromPath(metadataBlob.pathname) } : {}),
     displayUrl: rasterBlob.url,
     metadataUrl: metadataBlob.url,
     rasterFile: path.posix.basename(rasterBlob.pathname),
@@ -852,7 +869,7 @@ function normalizeSolutionInputId(value) {
   return toLayerId(value.replace(/^(FEAT|COST|INCL|EXCL)_/i, ''));
 }
 
-function normalizeSolutionCoverage(coverage) {
+export function normalizeSolutionCoverage(coverage) {
   if (!Array.isArray(coverage)) {
     return [];
   }
@@ -866,7 +883,87 @@ function normalizeSolutionCoverage(coverage) {
     relativeTarget: parseFiniteNumberOrNull(row.relative_target),
     relativeHeld: parseFiniteNumberOrNull(row.relative_held),
     relativeShortfall: parseFiniteNumberOrNull(row.relative_shortfall),
+    type:
+      typeof (row.type ?? row.feature_type) === 'string'
+        ? (row.type ?? row.feature_type).trim()
+        : null,
+    targetDimension:
+      typeof (row.targetDimension ?? row.target_dimension) === 'string'
+        ? (row.targetDimension ?? row.target_dimension).trim()
+        : null,
+    evaluated:
+      typeof (row.evaluated ?? row.evaluation_source) === 'string'
+        ? (row.evaluated ?? row.evaluation_source).trim()
+        : null,
   }));
+}
+
+const STRUCTURED_TARGET_DIMENSIONS = [
+  'ecosystems',
+  'strategicEcosystems',
+  'ecosystemServices',
+  'speciesRepresentation',
+  'espRn',
+];
+
+export function buildStructuredTargets(coverage, metadata = {}) {
+  const dimensions = Object.fromEntries(
+    STRUCTURED_TARGET_DIMENSIONS.map((dimension) => [dimension, []]),
+  );
+  const authoritativeRows = coverage.filter((row) => row.evaluated === 'prioritizr_model');
+  const rows =
+    authoritativeRows.length > 0
+      ? authoritativeRows
+      : coverage.filter(
+          (row) =>
+            row.evaluated === null &&
+            coverage.length === 1 &&
+            normalizeTargetFeatureId(row.feature) === 'ecosistemas',
+        );
+  const explicitFeatureSet = normalizeTargetFeatureId(metadata.target_feature_set);
+
+  for (const row of rows) {
+    if (typeof row.relativeTarget !== 'number') continue;
+    const featureId = normalizeTargetFeatureId(row.feature);
+    const type = (row.type ?? '').toLowerCase();
+    let dimension = null;
+    if (STRUCTURED_TARGET_DIMENSIONS.includes(row.targetDimension)) {
+      dimension = row.targetDimension;
+    } else if (/^esprn(?:_|$)/i.test(featureId)) dimension = 'espRn';
+    else if (type.includes('species') && explicitFeatureSet.includes('esp_rn')) {
+      dimension = 'espRn';
+    } else if (type.includes('species')) dimension = 'speciesRepresentation';
+    else if (type.includes('service') || type.includes('servicio')) dimension = 'ecosystemServices';
+    else if (['paramos', 'bosque_seco', 'humedales', 'wetlands', 'manglares'].includes(featureId)) {
+      dimension = 'strategicEcosystems';
+    } else if (type.includes('ecosystem') || featureId === 'ecosistemas') {
+      dimension = 'ecosystems';
+    }
+    if (dimension) {
+      dimensions[dimension].push({
+        featureId,
+        targetPercent: Number((row.relativeTarget * 100).toFixed(6)),
+      });
+    }
+  }
+  for (const dimension of STRUCTURED_TARGET_DIMENSIONS) {
+    dimensions[dimension].sort((left, right) => left.featureId.localeCompare(right.featureId));
+  }
+  return {
+    format: 'solution-target-metadata-v1',
+    sourceEvaluation: authoritativeRows.length > 0 ? 'prioritizr_model' : 'legacy-single-ecosystem',
+    ...dimensions,
+  };
+}
+
+function normalizeTargetFeatureId(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 function normalizeSolutionSummaryMetrics(evaluation = {}, coverage = []) {
@@ -930,23 +1027,30 @@ function inferTargetPercent(configuredTargetPercent, coverage) {
   if (configured !== null) {
     return configured;
   }
-  const firstTarget = coverage.find(
-    (row) => typeof row.relativeTarget === 'number',
-  )?.relativeTarget;
-  return typeof firstTarget === 'number' ? Number((firstTarget * 100).toFixed(6)) : null;
+  const ecosystemTargets = coverage
+    .filter(
+      (row) =>
+        typeof row.relativeTarget === 'number' &&
+        normalizeTargetFeatureId(row.feature) === 'ecosistemas' &&
+        (row.evaluated === 'prioritizr_model' || row.evaluated === null),
+    )
+    .map((row) => Number((row.relativeTarget * 100).toFixed(6)));
+  const uniqueTargets = [...new Set(ecosystemTargets)];
+  if (uniqueTargets.length > 1) {
+    throw new Error(`ecosystem/MEC target rows disagree: ${uniqueTargets.join(', ')}`);
+  }
+  return uniqueTargets[0] ?? null;
 }
 
-function inferSolutionTargetFeatureSet({ metadata, inputLayerIds, coverage }) {
+export function inferSolutionTargetFeatureSet({ metadata, structuredTargets }) {
   if (typeof metadata.target_feature_set === 'string' && metadata.target_feature_set.trim()) {
     return toLayerId(metadata.target_feature_set);
   }
-  const name = `${metadata.id ?? ''} ${metadata.run_name ?? ''}`.toLowerCase();
-  if (name.includes('estr') || inputLayerIds.features.length > 1 || coverage.length > 1) {
-    return 'strategic_ecosystems';
-  }
-  if (name.includes('ecos') || inputLayerIds.features.includes('species_richness')) {
-    return 'ecosystems';
-  }
+  if (structuredTargets.espRn.length > 0) return 'esp_rn';
+  if (structuredTargets.speciesRepresentation.length > 0) return 'species';
+  if (structuredTargets.strategicEcosystems.length > 0) return 'strategic_ecosystems';
+  if (structuredTargets.ecosystemServices.length > 0) return 'ecosystem_services';
+  if (structuredTargets.ecosystems.length > 0) return 'ecosystems';
   return null;
 }
 
@@ -2320,7 +2424,18 @@ async function main() {
   renderingOverrideByLayerId.marine_ecosystems = await loadMarineEcosystemRendering();
   const cliArgs = process.argv.slice(2);
   const registeredSolutionBlobPrefixes = getRegisteredSolutionBlobPrefixes(cliArgs);
-  const releaseId = getReleaseId(cliArgs);
+  const requestedReleaseId = getReleaseId(cliArgs);
+  const catalogPath = getCatalogPath(cliArgs);
+  if (requestedReleaseId && !catalogPath) {
+    throw new Error('release generation requires an explicit --catalog <path> catalog');
+  }
+  const releaseCatalog = catalogPath ? await readSolutionCatalog(catalogPath) : null;
+  if (requestedReleaseId && requestedReleaseId !== releaseCatalog.releaseId) {
+    throw new Error(
+      `--release-id "${requestedReleaseId}" does not match catalog releaseId "${releaseCatalog.releaseId}"`,
+    );
+  }
+  const releaseId = releaseCatalog?.releaseId ?? null;
 
   const csvRaw = await fs.readFile(REQUIRED_LAYERS_CSV, 'utf-8');
   const rows = rowsToObjects(parseCsv(csvRaw), columnAliases);
@@ -2362,14 +2477,30 @@ async function main() {
       releaseId,
     );
   });
-  const { solutions, preservedPublishedSolutions, preservedExistingSolutions } =
-    selectManifestSolutions({
-      publishedManifestIndex,
-      generatedSolutions: solutionCatalog.solutions,
-      existingManifestIndex,
-      registeredSolutionBlobPrefixes,
-      releaseId,
-    });
+  const {
+    solutions: selectedSolutions,
+    preservedPublishedSolutions,
+    preservedExistingSolutions,
+  } = selectManifestSolutions({
+    publishedManifestIndex,
+    generatedSolutions: solutionCatalog.solutions,
+    existingManifestIndex,
+    registeredSolutionBlobPrefixes,
+    releaseId,
+  });
+  const solutions = releaseCatalog
+    ? bindManifestSolutionsToCatalog(selectedSolutions, releaseCatalog)
+    : selectedSolutions;
+  if (releaseCatalog) {
+    validateManifestAgainstCatalog(
+      {
+        releaseId,
+        catalogVersion: releaseCatalog.catalogVersion,
+        solutions,
+      },
+      releaseCatalog,
+    );
+  }
   const solutionCatalogReport =
     preservedPublishedSolutions.length > 0
       ? createPublishedSolutionCatalogReport(
@@ -2423,6 +2554,7 @@ async function main() {
     generatedAt: GENERATED_AT,
     publicBlobHost: PUBLIC_BLOB_HOST,
     ...(releaseId ? { releaseId } : {}),
+    ...(releaseCatalog ? { catalogVersion: releaseCatalog.catalogVersion } : {}),
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     categories,
     layers,
