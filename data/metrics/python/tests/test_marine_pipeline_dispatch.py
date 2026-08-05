@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -7,7 +8,12 @@ import numpy as np
 import pytest
 
 import main as pipeline
-from blob_manifest import ManifestError, ResolvedManifest, _validate_and_index
+from blob_manifest import (
+    ManifestError,
+    ResolvedManifest,
+    _validate_and_index,
+    fetch_manifest,
+)
 from helpers import raster_from_fixture
 from solution_domain import solution_domain
 
@@ -64,6 +70,32 @@ def test_manifest_batch_includes_land_and_marine_but_excludes_other_scopes():
 def test_manifest_rejects_unknown_batch_domain():
     with pytest.raises(ManifestError, match="Unknown solution domain"):
         _manifest([_solution("unknown", "nacional", domain="freshwater")])
+
+
+def test_fetch_manifest_supports_local_release_preflight(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "publicBlobHost": "https://example.test",
+                "layers": [
+                    {
+                        "id": "dummy",
+                        "displayUrl": "https://example.test/dummy.tif",
+                    }
+                ],
+                "solutions": [_solution("local-land", "nacional")],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = fetch_manifest(path.resolve().as_uri())
+
+    assert manifest.url == path.resolve().as_uri()
+    assert [solution["id"] for solution in manifest.batch_solutions] == [
+        "local-land"
+    ]
 
 
 @pytest.mark.parametrize(
@@ -177,7 +209,19 @@ def test_process_solution_skips_species_prepass_for_marine(
         lambda *args, **kwargs: SimpleNamespace(path=tmp_path / "marine.tif", sha256="abc"),
     )
     monkeypatch.setattr(pipeline, "read_solution_raster", lambda path: raster)
-    monkeypatch.setattr(pipeline, "_build_metrics", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        pipeline,
+        "_build_metrics",
+        lambda *args, **kwargs: [
+            {
+                "metricId": definition.metric_id,
+                "status": "ready",
+                "unit": definition.unit,
+                "labelKey": definition.label_key,
+            }
+            for definition in pipeline.computable_metrics()
+        ],
+    )
     monkeypatch.setattr(
         pipeline,
         "_process_species_for_solution",
@@ -211,5 +255,5 @@ def test_process_solution_skips_species_prepass_for_marine(
     assert result["speciesProcessed"] == 0
     assert written_documents[0]["metricsProvenance"]["solutionDomain"] == "marine"
     assert written_documents[0]["metricsProvenance"]["catalogSignature"].startswith(
-        "metrics-catalog-v1:"
+        "metrics-catalog-v3:"
     )

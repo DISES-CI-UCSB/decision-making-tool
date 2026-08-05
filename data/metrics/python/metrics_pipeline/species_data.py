@@ -10,11 +10,9 @@ Vercel Blob:
     species's range raster.
 
 2.  ``inputs/features/species/<Genus_species>_10_MAXENT.tif``
-    Per-species 1 km binary range rasters (uint8, values ``{0, 1, 255}`` with
-    255 = nodata).  Each raster is pixel-snapped to the solution raster grid
-    but cropped to a tighter Colombia bounding box, so it is offset from the
-    solution grid by an integer number of pixels and must be placed into a
-    zero-padded array of the solution grid shape before any boolean overlap.
+    Per-species binary 30-arc-second EPSG:4326 rasters (uint8, values
+    ``{0, 1, 255}`` with 255 = nodata). Exact projected source-cell overlap is
+    built and cached by ``species_overlap``.
 
 This module exposes:
 
@@ -22,8 +20,6 @@ This module exposes:
 - ``load_species_records``  — read the CSV and return non-fish records.
 - ``species_blob_url``      — build the public Vercel Blob URL for a species's
                                range raster from its scientific name.
-- ``read_species_mask``     — read a species range raster from disk and return
-                               a boolean mask aligned to the solution grid.
 
 The five class buckets used by the richness metrics (#21–#25) are:
 

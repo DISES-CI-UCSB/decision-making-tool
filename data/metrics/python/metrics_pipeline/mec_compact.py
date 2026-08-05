@@ -47,6 +47,7 @@ from blob_manifest import (
     ManifestError,
     ResolvedManifest,
     fetch_manifest,
+    solution_blob_basename,
 )
 from boundaries.boundary_loader import BoundaryFeature, load_all_boundaries
 from boundaries.boundary_mask import BoundaryMaskCache
@@ -60,6 +61,7 @@ from raster_metrics import (
     read_layer_values,
     read_solution_raster,
 )
+from raster_align import NEAREST_CATEGORICAL, AlignmentResult, RasterAlignmentCache
 from release_config import load_release_config
 from release_selection import (
     ReleaseSelection,
@@ -69,12 +71,21 @@ from release_selection import (
     reconcile_release_reports,
     validate_release_entries,
 )
+from solution_catalog import (
+    SolutionCatalog,
+    SolutionCatalogError,
+    bind_release_output,
+    load_release_plan,
+    load_solution_catalog,
+    release_plan_cache_policy,
+    validate_catalog_solution_ids,
+)
 
 LEGACY_MEC_COMPACT_FORMAT = "mec-compact-v1"
 MEC_COMPACT_FORMAT = "mec-compact-v2"
 MEC_COMPACT_SUFFIX = ".mec.compact.json"
-MEC_SIGNATURE_FORMAT = "mec-generation-signature-v2"
-MEC_GENERATOR_CONFIG_VERSION = "mec-generator-config-v5"
+MEC_SIGNATURE_FORMAT = "mec-generation-signature-v3"
+MEC_GENERATOR_CONFIG_VERSION = "mec-generator-config-v6"
 DEFAULT_OUTPUT_DIR = Path("data/metrics/generated/mec")
 DEFAULT_BLOB_DIRECTORY = "metrics/mec-cache"
 SOURCE_MODE_COMPOSITE = "composite"
@@ -584,6 +595,7 @@ def build_generation_signature(
     solution_grid: RasterFingerprint,
     boundary_provenance: dict[str, dict[str, Any]],
     national_target: dict[str, Any],
+    aligned_mec_identity: dict[str, str],
 ) -> dict[str, str]:
     """Return a deterministic signature for every input affecting an artifact."""
 
@@ -631,6 +643,7 @@ def build_generation_signature(
             "manifest": manifest_url,
             "mecRasterUrl": mec_raster_url,
             "mecRasterSha256": mec_raster_sha256,
+            "alignedMec": aligned_mec_identity,
             "solutionUrl": solution_url,
             "solutionRasterSha256": solution_raster_sha256,
         },
@@ -1410,7 +1423,9 @@ def build_mec_document(
     boundary_provenance: dict[str, dict[str, Any]],
     national_target: dict[str, Any],
     generation_signature: dict[str, str],
+    aligned_mec_identity: dict[str, str],
     generated_at: str,
+    solution_catalog_binding: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     _validate_geography_level(geography_level)
     scope_catalog: list[list[str]] = []
@@ -1467,6 +1482,7 @@ def build_mec_document(
             ),
             "mecRaster": _portable_source_reference(mec_raster_source),
             "mecRasterSha256": mec_raster_sha256,
+            "alignedMec": aligned_mec_identity,
             "crosswalkSourceId": (
                 "ecosistemas_IDs_IDEAM_MEC_2024"
                 if taxonomy.source_mode == SOURCE_MODE_COMPOSITE
@@ -1524,6 +1540,8 @@ def build_mec_document(
     }
     if geography_level == "national":
         document["nationalCoverageBenchmark"] = national_target
+    if solution_catalog_binding is not None:
+        document["solutionCatalogBinding"] = solution_catalog_binding
     return document
 
 
@@ -1656,12 +1674,128 @@ def _manifest_solution_catalog(
     return land_solutions, sorted(known_ids), land_ids
 
 
+def _release_plan_land_ids(
+    path: Path,
+    *,
+    catalog: SolutionCatalog,
+    land_solution_ids: Iterable[str],
+) -> tuple[str, ...]:
+    recompute_ids = set(
+        load_release_plan(path, catalog=catalog, action="recompute")
+    )
+    land_ids = set(land_solution_ids)
+    selected = tuple(
+        solution_id
+        for solution_id in catalog.solution_ids
+        if solution_id in recompute_ids and solution_id in land_ids
+    )
+    if len(selected) != len(recompute_ids & land_ids):
+        raise SolutionCatalogError(
+            "release plan recompute count does not match MEC land selection."
+        )
+    return selected
+
+
+def mec_document_is_complete(
+    document: dict[str, Any],
+    *,
+    solution_id: str,
+    geography_level: str,
+    generation_signature: dict[str, str] | None = None,
+    aligned_mec_identity: dict[str, Any] | None = None,
+    expected_catalog_binding: dict[str, str] | None = None,
+) -> bool:
+    observed_signature = document.get("generationSignature")
+    if generation_signature is None:
+        generation_signature = observed_signature
+    if not (
+        isinstance(observed_signature, dict)
+        and observed_signature.get("format") == MEC_SIGNATURE_FORMAT
+        and isinstance(observed_signature.get("sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", observed_signature["sha256"])
+    ):
+        return False
+    scope_catalog = document.get("scopeCatalog")
+    class_catalog = document.get("classCatalog")
+    view_catalog = document.get("viewCatalog")
+    scope_stats = document.get("scopeStats")
+    rows = document.get("rows")
+    if not (
+        document.get("format") == MEC_COMPACT_FORMAT
+        and document.get("solutionId") == solution_id
+        and document.get("geographyLevel") == geography_level
+        and document.get("generationSignature") == generation_signature
+        and (
+            aligned_mec_identity is None
+            or document.get("sources", {}).get("alignedMec")
+            == aligned_mec_identity
+        )
+        and (
+            expected_catalog_binding is None
+            or document.get("solutionCatalogBinding") == expected_catalog_binding
+        )
+        and document.get("rowLayout") == ROW_LAYOUT
+        and document.get("scopeStatsFields") == list(SCOPE_STATS_FIELDS)
+        and isinstance(scope_catalog, list)
+        and bool(scope_catalog)
+        and isinstance(class_catalog, list)
+        and bool(class_catalog)
+        and isinstance(view_catalog, list)
+        and bool(view_catalog)
+        and isinstance(scope_stats, dict)
+        and isinstance(rows, list)
+    ):
+        return False
+    if any(
+        not isinstance(scope, list)
+        or len(scope) != 2
+        or not isinstance(scope[0], str)
+        for scope in scope_catalog
+    ):
+        return False
+    if len({scope[0] for scope in scope_catalog}) != len(scope_catalog):
+        return False
+    if set(scope_stats) != {str(index) for index in range(len(scope_catalog))}:
+        return False
+    if any(
+        not isinstance(stats, dict)
+        or any(field not in stats for field in SCOPE_STATS_FIELDS)
+        for stats in scope_stats.values()
+    ):
+        return False
+    rows_by_scope = {
+        index: 0
+        for index in range(len(scope_catalog))
+    }
+    for row in rows:
+        if isinstance(row, list) and row and isinstance(row[0], int):
+            rows_by_scope[row[0]] = rows_by_scope.get(row[0], 0) + 1
+    if any(
+        isinstance(scope_stats[str(index)].get("classifiedKm2"), (int, float))
+        and scope_stats[str(index)]["classifiedKm2"] > 0
+        and rows_by_scope.get(index, 0) == 0
+        for index in range(len(scope_catalog))
+    ):
+        return False
+    return all(
+        isinstance(row, list)
+        and len(row) == len(ROW_LAYOUT)
+        and isinstance(row[0], int)
+        and 0 <= row[0] < len(scope_catalog)
+        and isinstance(row[1], int)
+        and 0 <= row[1] < len(class_catalog)
+        for row in rows
+    )
+
+
 def _artifact_is_resumable(
     path: Path,
     *,
     solution_id: str,
     geography_level: str,
     generation_signature: dict[str, str],
+    aligned_mec_identity: dict[str, Any] | None = None,
+    expected_catalog_binding: dict[str, str] | None = None,
 ) -> bool:
     if not path.exists():
         return False
@@ -1669,12 +1803,13 @@ def _artifact_is_resumable(
         document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False
-    return (
-        document.get("format") == MEC_COMPACT_FORMAT
-        and document.get("solutionId") == solution_id
-        and document.get("geographyLevel") == geography_level
-        and document.get("generationSignature") == generation_signature
-        and isinstance(document.get("rows"), list)
+    return mec_document_is_complete(
+        document,
+        solution_id=solution_id,
+        geography_level=geography_level,
+        generation_signature=generation_signature,
+        aligned_mec_identity=aligned_mec_identity,
+        expected_catalog_binding=expected_catalog_binding,
     )
 
 
@@ -1853,6 +1988,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Use the immutable MEC v2 prefix for this explicit release id.",
     )
     parser.add_argument(
+        "--solution-catalog",
+        type=Path,
+        default=None,
+        help="Versioned solution-catalog-v1 contract (required with --release-id).",
+    )
+    parser.add_argument(
+        "--release-plan",
+        type=Path,
+        default=None,
+        help="Process only catalog entries marked recompute in a release preflight plan.",
+    )
+    parser.add_argument(
         "--release-partition",
         type=Path,
         default=None,
@@ -1886,9 +2033,13 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Regenerate valid existing solution/geography artifacts.",
+        "--cache-policy",
+        choices=("use-cache", "recompute-all"),
+        default="use-cache",
+        help=(
+            "use-cache resumes valid artifacts (default); recompute-all ignores "
+            "calculated outputs and rebuilds the selected artifacts."
+        ),
     )
     parser.add_argument(
         "--no-cache",
@@ -1900,11 +2051,38 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Validate the manifest and explicit taxonomy mapping, then exit.",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.release_id and args.solution_catalog is None:
+        parser.error("--release-id requires --solution-catalog")
+    if args.release_plan is not None and args.solution_catalog is None:
+        parser.error("--release-plan requires --solution-catalog")
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    try:
+        solution_catalog = (
+            load_solution_catalog(args.solution_catalog)
+            if args.solution_catalog is not None
+            else None
+        )
+        if (
+            solution_catalog is not None
+            and args.release_id is not None
+            and solution_catalog.release_id != args.release_id
+        ):
+            raise SolutionCatalogError(
+                "--release-id must exactly match solution catalog releaseId."
+            )
+        if solution_catalog is not None and args.release_plan is not None:
+            args.cache_policy = release_plan_cache_policy(
+                args.release_plan,
+                catalog=solution_catalog,
+            )
+    except SolutionCatalogError as exc:
+        print(f"[mec-compact] ERROR: {exc}", file=sys.stderr)
+        return 2
     if args.release_partition and not args.release_id:
         print(
             "[mec-compact] ERROR: --release-partition requires --release-id",
@@ -1919,9 +2097,25 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.release_id:
         args.blob_directory = load_release_config(args.release_id).mec_v2_directory
+        if args.output_dir == DEFAULT_OUTPUT_DIR:
+            args.output_dir = (
+                Path("data/metrics/generated/releases")
+                / args.release_id
+                / "mec/v2"
+            )
     repo_root = find_repo_root()
     output_dir = resolve_output_dir(repo_root, args.output_dir)
     cache_dir = resolve_output_dir(repo_root, args.cache_dir)
+    if solution_catalog is not None and args.release_id is not None:
+        try:
+            bind_release_output(
+                output_dir,
+                catalog=solution_catalog,
+                component="mec-v2",
+            )
+        except SolutionCatalogError as exc:
+            print(f"[mec-compact] ERROR: {exc}", file=sys.stderr)
+            return 2
     if args.reconcile_partition_report:
         if any(
             (
@@ -1930,7 +2124,6 @@ def main(argv: list[str] | None = None) -> int:
                 args.geography_level,
                 args.limit,
                 args.validate_only,
-                args.force,
             )
         ):
             print(
@@ -1941,6 +2134,14 @@ def main(argv: list[str] | None = None) -> int:
         try:
             manifest = fetch_manifest(args.manifest_url)
             _, _, land_ids = _manifest_solution_catalog(manifest)
+            assert solution_catalog is not None
+            validate_catalog_solution_ids(
+                solution_catalog,
+                (
+                    str(solution.get("id"))
+                    for solution in manifest.batch_solutions
+                ),
+            )
             reports = [
                 json.loads(
                     resolve_output_dir(repo_root, report_path).read_text(
@@ -1954,7 +2155,7 @@ def main(argv: list[str] | None = None) -> int:
                 release_id=args.release_id,
                 land_solution_ids=land_ids,
                 artifact_levels=GEOGRAPHY_LEVELS,
-                expected_solution_count=104,
+                expected_solution_count=solution_catalog.expected_land_count,
                 expected_blob_directory=args.blob_directory,
             )
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -1967,6 +2168,7 @@ def main(argv: list[str] | None = None) -> int:
             json.JSONDecodeError,
             ManifestError,
             ReleaseSelectionError,
+            SolutionCatalogError,
         ) as exc:
             print(f"[mec-compact] ERROR: {exc}", file=sys.stderr)
             return 2
@@ -2002,6 +2204,22 @@ def main(argv: list[str] | None = None) -> int:
             else output_dir.name
         ),
         "blobDirectory": args.blob_directory,
+        "cachePolicy": args.cache_policy,
+        "solutionCatalog": (
+            {
+                "format": "solution-catalog-v1",
+                "catalogVersion": solution_catalog.catalog_version,
+                "releaseId": solution_catalog.release_id,
+                "sha256": solution_catalog.sha256,
+                "expectedCounts": {
+                    "total": solution_catalog.expected_total_count,
+                    "land": solution_catalog.expected_land_count,
+                    "marine": solution_catalog.expected_marine_count,
+                },
+            }
+            if solution_catalog is not None
+            else None
+        ),
         "geographyLevels": list(levels),
         "entries": [],
         "failures": [],
@@ -2062,13 +2280,63 @@ def main(argv: list[str] | None = None) -> int:
         validate_taxonomy_partition(taxonomy)
         manifest = fetch_manifest(args.manifest_url)
         land_solutions, known_ids, land_ids = _manifest_solution_catalog(manifest)
+        if solution_catalog is not None:
+            validate_catalog_solution_ids(
+                solution_catalog,
+                (
+                    str(solution.get("id"))
+                    for solution in manifest.batch_solutions
+                ),
+            )
+            catalog_land_ids = tuple(
+                entry.solution_id
+                for entry in solution_catalog.solutions
+                if entry.domain == "land"
+            )
+            if tuple(sorted(land_ids)) != catalog_land_ids:
+                raise SolutionCatalogError(
+                    "manifest land solution ids do not match the solution catalog."
+                )
+            catalog_by_id = solution_catalog.by_id
+            catalog_land_solutions: list[dict[str, Any]] = []
+            for solution in land_solutions:
+                solution_id = str(solution["id"])
+                entry = catalog_by_id[solution_id]
+                observed_basename = solution_blob_basename(solution)
+                if observed_basename != entry.solution_basename:
+                    raise SolutionCatalogError(
+                        f"solution {solution_id!r} basename mismatch: "
+                        f"manifest={observed_basename!r}, "
+                        f"catalog={entry.solution_basename!r}"
+                    )
+                catalog_land_solutions.append(dict(solution))
+            land_solutions = catalog_land_solutions
         release_selection: ReleaseSelection | None = None
         if args.release_id:
             if set(levels) != set(GEOGRAPHY_LEVELS):
                 raise ManifestError(
                     "MEC v2 release generation requires all six geography levels"
                 )
-            if args.release_partition:
+            if args.release_plan:
+                if args.release_partition or args.solution_id or args.limit is not None:
+                    raise ManifestError(
+                        "--release-plan cannot be combined with release selection filters"
+                    )
+                assert solution_catalog is not None
+                selected_land_ids = _release_plan_land_ids(
+                    args.release_plan,
+                    catalog=solution_catalog,
+                    land_solution_ids=land_ids,
+                )
+                release_selection = ReleaseSelection(
+                    release_id=args.release_id,
+                    solution_ids=selected_land_ids,
+                    expected_artifact_count=(
+                        len(selected_land_ids) * len(GEOGRAPHY_LEVELS)
+                    ),
+                    mode="recompute",
+                )
+            elif args.release_partition:
                 if args.solution_id or args.limit is not None:
                     raise ManifestError(
                         "--release-partition cannot be combined with --solution-id or --limit"
@@ -2089,7 +2357,7 @@ def main(argv: list[str] | None = None) -> int:
                 release_selection = full_release_selection(
                     release_id=args.release_id,
                     land_solution_ids=land_ids,
-                    expected_solution_count=104,
+                    expected_solution_count=solution_catalog.expected_land_count,
                     artifact_levels=GEOGRAPHY_LEVELS,
                 )
             solution_by_id = {
@@ -2114,6 +2382,7 @@ def main(argv: list[str] | None = None) -> int:
         MecTaxonomyError,
         ManifestError,
         ReleaseSelectionError,
+        SolutionCatalogError,
     ) as exc:
         base_report["failures"].append(
             {"stage": "validation", "error": str(exc)}
@@ -2163,6 +2432,8 @@ def main(argv: list[str] | None = None) -> int:
     reference_fingerprint: RasterFingerprint | None = None
     ecosystem_values: np.ndarray | None = None
     observed_biome_ids: set[int] | None = None
+    aligned_mec: AlignmentResult | None = None
+    alignment_cache = RasterAlignmentCache(cache_dir)
     boundary_masks = BoundaryMaskCache()
     denominator_signatures_by_level: dict[str, str] = {}
 
@@ -2175,14 +2446,29 @@ def main(argv: list[str] | None = None) -> int:
                 force=args.no_cache,
             ).path
             solution_raster_sha256 = _sha256_path(solution_path)
+            if solution_catalog is not None:
+                expected_sha256 = solution_catalog.by_id[solution_id].raster_sha256
+                if solution_raster_sha256 != expected_sha256:
+                    raise SolutionCatalogError(
+                        f"raster SHA-256 mismatch for {solution_id!r}: "
+                        f"expected {expected_sha256}, observed "
+                        f"{solution_raster_sha256}"
+                    )
             raster = read_solution_raster(solution_path)
             if reference_fingerprint is None:
                 candidate_fingerprint = raster.fingerprint
+                aligned_mec = alignment_cache.align(
+                    mec_raster_path,
+                    mec_raster_sha256,
+                    candidate_fingerprint,
+                    NEAREST_CATEGORICAL,
+                    source_url=mec_raster_source,
+                )
                 (
                     candidate_ecosystem_values,
                     candidate_observed_biome_ids,
                 ) = read_mec_raster_values(
-                    mec_raster_path,
+                    aligned_mec.path,
                     candidate_fingerprint,
                     taxonomy,
                 )
@@ -2197,6 +2483,14 @@ def main(argv: list[str] | None = None) -> int:
                 )
             assert ecosystem_values is not None
             assert observed_biome_ids is not None
+            assert aligned_mec is not None
+            aligned_mec_identity = {
+                "cacheKey": aligned_mec.cache_key,
+                "sourceSha256": aligned_mec.source_sha256,
+                "alignedSha256": aligned_mec.aligned_sha256,
+                "targetGridSha256": aligned_mec.target_grid_sha256,
+                "policySha256": aligned_mec.policy_sha256,
+            }
             generation_signature = build_generation_signature(
                 taxonomy=taxonomy,
                 crosswalk_content=crosswalk_content,
@@ -2213,6 +2507,7 @@ def main(argv: list[str] | None = None) -> int:
                 solution_grid=raster.fingerprint,
                 boundary_provenance=boundary_provenance,
                 national_target=national_targets[solution_id],
+                aligned_mec_identity=aligned_mec_identity,
             )
         except Exception as exc:
             setup_traceback = traceback.format_exc()
@@ -2235,11 +2530,22 @@ def main(argv: list[str] | None = None) -> int:
         pending_levels: list[str] = []
         for level in levels:
             path = mec_output_path(output_dir, solution_id, level)
-            if not args.force and _artifact_is_resumable(
+            if args.cache_policy == "use-cache" and _artifact_is_resumable(
                 path,
                 solution_id=solution_id,
                 geography_level=level,
                 generation_signature=generation_signature,
+                aligned_mec_identity=aligned_mec_identity,
+                expected_catalog_binding=(
+                    {
+                        "format": "solution-catalog-binding-v1",
+                        "releaseId": solution_catalog.release_id,
+                        "catalogVersion": solution_catalog.catalog_version,
+                        "catalogSha256": solution_catalog.sha256,
+                    }
+                    if solution_catalog is not None
+                    else None
+                ),
             ):
                 base_report["entries"].append(
                     _entry(
@@ -2293,7 +2599,18 @@ def main(argv: list[str] | None = None) -> int:
                 boundary_provenance=boundary_provenance,
                 national_target=national_targets[solution_id],
                 generation_signature=generation_signature,
+                aligned_mec_identity=aligned_mec_identity,
                 generated_at=generated_at,
+                solution_catalog_binding=(
+                    {
+                        "format": "solution-catalog-binding-v1",
+                        "releaseId": solution_catalog.release_id,
+                        "catalogVersion": solution_catalog.catalog_version,
+                        "catalogSha256": solution_catalog.sha256,
+                    }
+                    if solution_catalog is not None
+                    else None
+                ),
             )
             denominator_signature = ecosystem_denominator_signature(document)
             expected_denominator_signature = denominator_signatures_by_level.setdefault(

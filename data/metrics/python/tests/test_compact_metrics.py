@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 from compact_metrics import (
     COMPACT_METRICS_FORMAT,
-    RELEASE_SOLUTION_COUNT,
     ReleaseSelection,
     convert_publish_report,
     expected_compact_blob_path,
@@ -16,12 +15,20 @@ from compact_metrics import (
     to_verbose_document,
 )
 from metrics_contract import PROVENANCE_KEY, build_metrics_provenance
+from metric_definitions import computable_metrics
+from solution_catalog import load_solution_catalog
+
+TEST_SOLUTION_COUNT = 108
 
 
 def _verbose_doc(solution_id: str = "demo_solution") -> dict:
     return {
         "solutionId": solution_id,
         "generatedAt": "2026-05-28T00:00:00Z",
+        "solutionRaster": {
+            "solutionBasename": f"{solution_id}.tif",
+            "sha256": "a" * 64,
+        },
         PROVENANCE_KEY: build_metrics_provenance("land"),
         "geographies": {
             "national": {
@@ -86,7 +93,7 @@ def _verbose_doc(solution_id: str = "demo_solution") -> dict:
 def _release_solution_ids() -> list[str]:
     return [
         f"solution_{index:03d}"
-        for index in range(RELEASE_SOLUTION_COUNT)
+        for index in range(TEST_SOLUTION_COUNT)
     ]
 
 
@@ -96,16 +103,80 @@ def _write_release_input(
     *,
     release_id: str = "test-release",
 ) -> Path:
+    catalog_path = repo_root / "solution-catalog.json"
+    if not catalog_path.exists():
+        catalog_path.write_text(
+            json.dumps(
+                {
+                    "format": "solution-catalog-v1",
+                    "catalogVersion": "0.1.0",
+                    "releaseId": release_id,
+                    "expectedSolutionCount": TEST_SOLUTION_COUNT,
+                    "expectedLandSolutionCount": TEST_SOLUTION_COUNT,
+                    "expectedMarineSolutionCount": 0,
+                    "solutions": [
+                        {
+                            "solutionId": solution_id,
+                            "solutionBasename": f"{solution_id}.tif",
+                            "domain": "land",
+                            "rasterSha256": "a" * 64,
+                        }
+                        for solution_id in _release_solution_ids()
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+    catalog = load_solution_catalog(catalog_path)
+    binding = {
+        "format": "solution-catalog-binding-v1",
+        "releaseId": catalog.release_id,
+        "catalogVersion": catalog.catalog_version,
+        "catalogSha256": catalog.sha256,
+    }
     input_dir = repo_root / "generated" / "verbose"
     input_cache = input_dir / "cache"
     input_cache.mkdir(parents=True)
     entries = []
     for solution_id in solution_ids:
         verbose = _verbose_doc(solution_id)
+        metrics = [
+            {
+                "metricId": definition.metric_id,
+                "value": None,
+                "unit": definition.unit,
+                "status": "ready",
+                "source": "test",
+                "notes": "test",
+                "labelKey": definition.label_key,
+                "formatHint": definition.format_hint,
+            }
+            for definition in computable_metrics()
+        ]
+        verbose["geographies"] = {
+            "national": {"colombia": {"metrics": metrics}},
+            "departments": {"01": {"metrics": metrics}},
+            "municipalities": {"001": {"metrics": metrics}},
+            "siraps": {"sirap-1": {"metrics": metrics}},
+            "runaps": {"runap-1": {"metrics": metrics}},
+            "omecs": {"omec-1": {"metrics": metrics}},
+        }
         verbose[PROVENANCE_KEY] = build_metrics_provenance(
             "land",
             release_id=release_id,
         )
+        verbose["solutionInputSignature"] = {
+            "format": "solution-input-signature-v1",
+            "sha256": "b" * 64,
+        }
+        verbose["solutionCatalogBinding"] = binding
+        verbose["speciesCompleteness"] = {
+            "expected": 1,
+            "aligned": 1,
+            "processed": 1,
+            "missing": 0,
+            "complete": True,
+        }
         verbose_path = input_cache / f"{solution_id}.metrics.json"
         verbose_path.write_text(json.dumps(verbose), encoding="utf-8")
         entries.append({
@@ -115,11 +186,19 @@ def _write_release_input(
     (input_dir / "publish-report.json").write_text(
         json.dumps({
             "publicBlobHost": "https://example.test",
+            "solutionCatalog": {
+                "releaseId": catalog.release_id,
+                "sha256": catalog.sha256,
+            },
             "entries": entries,
         }),
         encoding="utf-8",
     )
     return input_dir
+
+
+def _test_catalog(repo_root: Path):
+    return load_solution_catalog(repo_root / "solution-catalog.json")
 
 
 def _release_selection(
@@ -159,8 +238,8 @@ def test_compact_document_is_smaller_than_pretty_verbose_json():
 
 def test_expected_compact_blob_path_uses_compact_suffix():
     assert (
-        expected_compact_blob_path("demo solution")
-        == "metrics/nick-runs/2026-05-27/compact-cache/demo_solution.metrics.compact.json"
+        expected_compact_blob_path("demo-solution")
+        == "metrics/nick-runs/2026-05-27/compact-cache/demo-solution.metrics.compact.json"
     )
 
 
@@ -205,6 +284,23 @@ def test_convert_publish_report_writes_compact_cache_and_report(tmp_path: Path):
     assert entry["expectedBlobPath"] == "metrics/staged/compact/demo_solution.metrics.compact.json"
     assert to_verbose_document(json.loads(compact_path.read_text(encoding="utf-8"))) == _verbose_doc()
 
+    resumed = convert_publish_report(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        repo_root=repo_root,
+        cache_blob_directory="metrics/staged/compact",
+        cache_policy="use-cache",
+    )
+    rebuilt = convert_publish_report(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        repo_root=repo_root,
+        cache_blob_directory="metrics/staged/compact",
+        cache_policy="recompute-all",
+    )
+    assert resumed["entries"][0]["resumeSkipped"] is True
+    assert rebuilt["entries"][0]["resumeSkipped"] is False
+
 
 def test_release_compaction_accepts_declared_27_solution_chunk(tmp_path: Path):
     catalog_ids = _release_solution_ids()
@@ -218,6 +314,7 @@ def test_release_compaction_accepts_declared_27_solution_chunk(tmp_path: Path):
         cache_blob_directory="releases/test-release/regular/compact",
         release_id="test-release",
         release_selection=_release_selection(catalog_ids, selected_ids),
+        solution_catalog=_test_catalog(tmp_path),
     )
 
     assert len(report["entries"]) == 27
@@ -263,6 +360,7 @@ def test_release_compaction_rejects_missing_unknown_and_duplicate_input_ids(
             cache_blob_directory="releases/test-release/regular/compact",
             release_id="test-release",
             release_selection=_release_selection(catalog_ids, selected_ids),
+            solution_catalog=_test_catalog(tmp_path),
         )
 
 
@@ -344,6 +442,7 @@ def test_release_compaction_rejects_wrong_document_release(tmp_path: Path):
             cache_blob_directory="releases/test-release/regular/compact",
             release_id="test-release",
             release_selection=_release_selection(catalog_ids, selected_ids),
+            solution_catalog=_test_catalog(tmp_path),
         )
 
 
@@ -364,11 +463,11 @@ def test_four_release_chunks_reconcile_to_complete_catalog():
         expected_release_id="test-release",
     )
 
-    assert result["solutionCount"] == RELEASE_SOLUTION_COUNT
+    assert result["solutionCount"] == TEST_SOLUTION_COUNT
     assert len(result["solutionIdsSha256"]) == 64
 
 
-def test_final_release_compaction_still_requires_all_108_solutions(tmp_path: Path):
+def test_final_release_compaction_requires_complete_catalog(tmp_path: Path):
     catalog_ids = _release_solution_ids()
     input_dir = _write_release_input(tmp_path, catalog_ids)
 
@@ -378,20 +477,49 @@ def test_final_release_compaction_still_requires_all_108_solutions(tmp_path: Pat
         repo_root=tmp_path,
         cache_blob_directory="releases/test-release/regular/compact",
         release_id="test-release",
+        catalog_solution_ids=catalog_ids,
+        solution_catalog=_test_catalog(tmp_path),
     )
 
-    assert len(report["entries"]) == RELEASE_SOLUTION_COUNT
+    assert len(report["entries"]) == TEST_SOLUTION_COUNT
     assert report["releaseSelection"]["mode"] == "final"
 
 
-def test_release_compaction_without_selection_rejects_partial_input(tmp_path: Path):
-    input_dir = _write_release_input(tmp_path, _release_solution_ids()[:27])
+def test_release_compaction_rejects_input_missing_catalog_solutions(tmp_path: Path):
+    catalog_ids = _release_solution_ids()
+    input_dir = _write_release_input(tmp_path, catalog_ids[:27])
 
-    with pytest.raises(ValueError, match="requires exactly 108 verbose inputs"):
+    with pytest.raises(ValueError, match="do not exactly match"):
         convert_publish_report(
             input_dir=input_dir,
             output_dir=tmp_path / "generated" / "compact",
             repo_root=tmp_path,
             cache_blob_directory="releases/test-release/regular/compact",
             release_id="test-release",
+            catalog_solution_ids=catalog_ids,
+            solution_catalog=_test_catalog(tmp_path),
         )
+
+
+def test_release_compaction_rejects_provenance_before_binding_output(tmp_path: Path):
+    catalog_ids = _release_solution_ids()
+    selected_ids = catalog_ids[:1]
+    input_dir = _write_release_input(tmp_path, selected_ids)
+    verbose_path = input_dir / "cache" / f"{selected_ids[0]}.metrics.json"
+    document = json.loads(verbose_path.read_text(encoding="utf-8"))
+    document[PROVENANCE_KEY]["boundaryProvenance"]["sha256"] = "0" * 64
+    verbose_path.write_text(json.dumps(document), encoding="utf-8")
+    output_dir = tmp_path / "generated" / "compact"
+
+    with pytest.raises(ValueError, match="invalid provenance"):
+        convert_publish_report(
+            input_dir=input_dir,
+            output_dir=output_dir,
+            repo_root=tmp_path,
+            cache_blob_directory="releases/test-release/regular/compact",
+            release_id="test-release",
+            release_selection=_release_selection(catalog_ids, selected_ids),
+            solution_catalog=_test_catalog(tmp_path),
+        )
+
+    assert not (output_dir / ".solution-release.json").exists()

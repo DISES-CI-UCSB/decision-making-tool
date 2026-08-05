@@ -38,7 +38,14 @@ def _minimal_doc(solution_id: str, *, domain: str = "land") -> dict:
     return {
         "solutionId": solution_id,
         "generatedAt": "2026-05-22T00:00:00Z",
-        PROVENANCE_KEY: build_metrics_provenance(domain),
+        PROVENANCE_KEY: build_metrics_provenance(domain, national_only=True),
+        "speciesCompleteness": {
+            "expected": 1,
+            "aligned": 1,
+            "processed": 1,
+            "missing": 0,
+            "complete": True,
+        },
         "geographies": {
             "national": {
                 "colombia": {

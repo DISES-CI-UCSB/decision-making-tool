@@ -64,6 +64,8 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 !/data/metrics/python/requirements.txt
 !/data/metrics/python/pytest.ini
 !/data/metrics/fixtures/*.json
+# Versioned release policy exceptions are governed source contracts, not generated artifacts.
+!/data/metrics/release-specs/**/*.json
 !/data/**/.gitkeep
 # Frontend deploy assets (bundled into Vercel build)
 !/data/frontend_deploy/

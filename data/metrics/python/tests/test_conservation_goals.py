@@ -12,11 +12,15 @@ from conservation_goals import (
     DEFAULT_LOCAL_MANIFEST,
     DEFAULT_MANIFEST_URL,
     GOALS_FORMAT,
+    _goals_is_resumable,
+    _goals_provenance,
     _load_manifest_payload,
     _parse_args,
     build_goals_document,
     expected_goals_blob_path,
 )
+from release_config import load_release_config
+from solution_catalog import load_solution_catalog
 
 
 @dataclass(frozen=True)
@@ -218,13 +222,13 @@ def test_build_goals_document_classifies_marine_rows_without_type_column(
     assert doc["source"]["solutionDomain"] == "marine"
     assert doc["diagnostics"]["rowCounts"] == {
         "species": 0,
-        "strategicEcosystems": 5,
+        "strategicEcosystems": 0,
         "ecosystems": 141,
         "other": 0,
     }
     assert doc["summary"]["byType"]["species"]["totalSpeciesCount"] == 0
     assert doc["summary"]["byType"]["ecosystems"]["totalCount"] == 141
-    assert doc["summary"]["byType"]["strategicEcosystems"]["totalCount"] == 5
+    assert doc["summary"]["byType"]["strategicEcosystems"]["totalCount"] == 0
     assert all(
         feature["featureType"] == "ecosystems"
         for feature in doc["features"]["ecosystems"]
@@ -234,14 +238,80 @@ def test_build_goals_document_classifies_marine_rows_without_type_column(
         for feature in doc["features"]["strategicEcosystems"]
     )
     assert doc["features"]["ecosystems"][0]["evaluationSource"] == "prioritizr_model"
-    assert (
-        doc["features"]["strategicEcosystems"][0]["evaluationSource"]
-        == "post-hoc"
-    )
+    assert doc["features"]["strategicEcosystems"] == []
 
 
 def test_expected_goals_blob_path_uses_safe_solution_id():
     assert (
-        expected_goals_blob_path("demo solution/one")
-        == "metrics/goals/demo_solution_one.goals.json"
+        expected_goals_blob_path("demo-solution-one")
+        == "metrics/goals/demo-solution-one.goals.json"
     )
+
+
+def test_release_goals_resume_requires_exact_provenance(tmp_path: Path):
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(
+        json.dumps(
+            {
+                "format": "solution-catalog-v1",
+                "catalogVersion": "0.1.0",
+                "releaseId": "goals-release",
+                "expectedSolutionCount": 1,
+                "expectedLandSolutionCount": 1,
+                "expectedMarineSolutionCount": 0,
+                "solutions": [
+                    {
+                        "solutionId": "demo",
+                        "solutionBasename": "demo.tif",
+                        "domain": "land",
+                        "rasterSha256": "a" * 64,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    catalog = load_solution_catalog(catalog_path)
+    solution = {
+        "id": "demo",
+        "name": "Ecos17",
+        "metadataUrl": "https://example.test/demo.csv",
+    }
+    provenance = _goals_provenance(
+        solution=solution,
+        catalog=catalog,
+        summary_csv_url=solution["metadataUrl"],
+        summary_csv_sha256="b" * 64,
+        species_csv_sha256="c" * 64,
+    )
+    path = tmp_path / "demo.goals.json"
+    summary_path = tmp_path / "summary.csv"
+    summary_path.write_text("feature,type,met\n", encoding="utf-8")
+    document = build_goals_document(
+        solution=solution,
+        summary_csv_path=summary_path,
+        species_records=[],
+        summary_csv_url=solution["metadataUrl"],
+        generated_at="2026-01-01T00:00:00Z",
+    )
+    document["goalsProvenance"] = provenance
+    path.write_text(
+        json.dumps(document),
+        encoding="utf-8",
+    )
+
+    assert _goals_is_resumable(
+        path,
+        solution_id="demo",
+        expected_provenance=provenance,
+    )
+    assert not _goals_is_resumable(
+        path,
+        solution_id="demo",
+        expected_provenance={**provenance, "summaryCsvSha256": "d" * 64},
+    )
+    release_directory = load_release_config("goals-release").goals_directory
+    assert expected_goals_blob_path(
+        "demo",
+        goals_blob_directory=release_directory,
+    ) == "releases/goals-release/goals/demo.goals.json"

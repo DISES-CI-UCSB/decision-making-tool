@@ -178,6 +178,13 @@ def _signature(
             "applicability": "national-only",
             "targetPercent": 17,
         },
+        aligned_mec_identity={
+            "cacheKey": "1" * 64,
+            "sourceSha256": "a" * 64,
+            "alignedSha256": "2" * 64,
+            "targetGridSha256": "3" * 64,
+            "policySha256": "4" * 64,
+        },
     )
 
 
@@ -207,6 +214,13 @@ def _composite_signature():
         national_target={
             "applicability": "national-only",
             "targetPercent": 17,
+        },
+        aligned_mec_identity={
+            "cacheKey": "1" * 64,
+            "sourceSha256": "a" * 64,
+            "alignedSha256": "2" * 64,
+            "targetGridSha256": "3" * 64,
+            "policySha256": "4" * 64,
         },
     )
 
@@ -325,7 +339,7 @@ def test_document_uses_shared_catalogs_for_two_scopes_and_classes():
     ]
 
     document = build_mec_document(
-        solution_id="solution one",
+        solution_id="solution-one",
         geography_level="departments",
         scopes=scopes,
         raster=raster,
@@ -355,6 +369,13 @@ def test_document_uses_shared_catalogs_for_two_scopes_and_classes():
             }
         ),
         generation_signature=_signature(),
+        aligned_mec_identity={
+            "cacheKey": "1" * 64,
+            "sourceSha256": "a" * 64,
+            "alignedSha256": "2" * 64,
+            "targetGridSha256": "3" * 64,
+            "policySha256": "4" * 64,
+        },
         generated_at="2026-07-23T00:00:00Z",
     )
 
@@ -610,6 +631,13 @@ def test_composite_document_marks_five_views_supported_and_retains_source_catalo
             }
         ),
         generation_signature=_composite_signature(),
+        aligned_mec_identity={
+            "cacheKey": "1" * 64,
+            "sourceSha256": "a" * 64,
+            "alignedSha256": "2" * 64,
+            "targetGridSha256": "3" * 64,
+            "policySha256": "4" * 64,
+        },
         generated_at="2026-07-23T00:00:00Z",
     )
 
@@ -815,20 +843,20 @@ def test_path_contract_partitions_by_safe_solution_and_exact_geography():
     output_dir = Path("generated")
 
     assert mec_output_path(
-        output_dir, "demo solution/one", "omecs"
-    ) == output_dir / "cache" / "demo_solution_one" / "omecs.mec.compact.json"
+        output_dir, "demo-solution-one", "omecs"
+    ) == output_dir / "cache" / "demo-solution-one" / "omecs.mec.compact.json"
     assert expected_mec_blob_path(
-        "demo solution/one",
+        "demo-solution-one",
         "omecs",
         blob_directory="/custom/mec/",
-    ) == "custom/mec/demo_solution_one/omecs.mec.compact.json"
+    ) == "custom/mec/demo-solution-one/omecs.mec.compact.json"
     assert expected_mec_public_url(
         "https://example.test/",
-        "demo solution/one",
+        "demo-solution-one",
         "omecs",
     ) == (
         "https://example.test/metrics/mec-cache/"
-        "demo_solution_one/omecs.mec.compact.json"
+        "demo-solution-one/omecs.mec.compact.json"
     )
 
 
@@ -853,6 +881,17 @@ def test_resume_requires_matching_versioned_taxonomy_config_and_sources(
         "solutionId": "solution",
         "geographyLevel": "national",
         "generationSignature": signature,
+        "rowLayout": mec_compact.ROW_LAYOUT,
+        "scopeStatsFields": list(mec_compact.SCOPE_STATS_FIELDS),
+        "scopeCatalog": [["colombia", "Colombia"]],
+        "scopeStats": {
+            "0": {
+                field: None
+                for field in mec_compact.SCOPE_STATS_FIELDS
+            }
+        },
+        "viewCatalog": [["broad", "Broad"]],
+        "classCatalog": [[0, "class", "Class"]],
         "rows": [],
     }
     artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
@@ -863,6 +902,16 @@ def test_resume_requires_matching_versioned_taxonomy_config_and_sources(
         geography_level="national",
         generation_signature=signature,
     )
+    incomplete = dict(artifact)
+    incomplete["scopeStats"] = {}
+    artifact_path.write_text(json.dumps(incomplete), encoding="utf-8")
+    assert not _artifact_is_resumable(
+        artifact_path,
+        solution_id="solution",
+        geography_level="national",
+        generation_signature=signature,
+    )
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
     assert not _artifact_is_resumable(
         artifact_path,
         solution_id="solution",
@@ -917,7 +966,7 @@ def test_resume_requires_matching_versioned_taxonomy_config_and_sources(
     )
 
     monkeypatch.setattr(
-        mec_compact, "MEC_GENERATOR_CONFIG_VERSION", "mec-generator-config-v6"
+        mec_compact, "MEC_GENERATOR_CONFIG_VERSION", "mec-generator-config-v7"
     )
     assert not _artifact_is_resumable(
         artifact_path,

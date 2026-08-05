@@ -14,6 +14,7 @@ from metrics_contract import (
     VALID_METRIC_STATUSES,
     expected_metric_definitions,
     provenance_issues,
+    regular_artifact_completeness_issues,
 )
 from solution_domain import SolutionDomain, normalize_domain
 
@@ -142,7 +143,7 @@ def _inspect_metric_list(
             continue
 
         value = metric.get("value")
-        if status == "ready":
+        if status in {"ready", "partial"}:
             if (
                 isinstance(value, bool)
                 or not isinstance(value, (int, float))
@@ -150,7 +151,8 @@ def _inspect_metric_list(
             ):
                 issues.append(InspectIssue(
                     solution_id,
-                    f"{location} ready metric '{metric_id}' must have a finite numeric value",
+                    f"{location} {status} metric '{metric_id}' must have a finite "
+                    "numeric value",
                 ))
         elif status in _NULL_VALUE_STATUSES and value is not None:
             issues.append(InspectIssue(
@@ -216,6 +218,18 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
             domain = normalize_domain(provenance.get("solutionDomain"))
         except ValueError:
             pass
+    if domain is not None and isinstance(provenance, dict):
+        config = provenance.get("generationConfig")
+        if isinstance(config, dict):
+            issues.extend(
+                InspectIssue(solution_id, message)
+                for message in regular_artifact_completeness_issues(
+                    doc,
+                    national_only=bool(config.get("nationalOnly")),
+                    domain=domain,
+                    skip_species=bool(config.get("speciesSkipped")),
+                )
+            )
 
     geographies = doc.get("geographies")
     if not isinstance(geographies, dict):

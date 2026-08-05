@@ -15,13 +15,14 @@ Dry run:
 
     python data/metrics/python/metrics_pipeline/publish.py --dry-run
 
-Requires BLOB_READ_WRITE_TOKEN in .env.local at the repo root and the Vercel CLI
-on PATH. Uploads to metrics/cache/{solution_id}.metrics.json with --force overwrite.
+Requires BLOB_READ_WRITE_TOKEN in .env.local at the repo root and the Vercel CLI.
+Release paths accept only absent or checksum-identical content.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -30,6 +31,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import urllib.error
+import urllib.request
 
 from cli_utils import (
     BLOB_TOKEN_ENV_VAR,
@@ -121,6 +124,20 @@ def _load_report_entries(report_path: Path) -> list[dict[str, Any]]:
         raise RuntimeError(f"publish report contains generation failures: {ids}")
     if not entries:
         raise RuntimeError("publish report has no entries to publish")
+    if any(
+        not isinstance(entry.get("cachePath"), str) or not entry["cachePath"]
+        for entry in entries
+    ):
+        raise RuntimeError(
+            "publish report entries must declare canonical cachePath"
+        )
+    if report.get("format") == "solution-release-publish-report-v1":
+        if report.get("complete") is not True:
+            raise RuntimeError("assembled release publish report is incomplete")
+        if report.get("artifactCount") != len(entries):
+            raise RuntimeError(
+                "assembled release artifactCount does not match entries"
+            )
     return entries
 
 
@@ -133,7 +150,6 @@ def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
             str(local_path),
             "--pathname",
             blob_path,
-            "--force",
             "--rw-token",
             token,
             "--no-color",
@@ -146,6 +162,25 @@ def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
     if completed.returncode != 0:
         raise RuntimeError(output.strip() or f"vercel blob put failed with code {completed.returncode}")
     return extract_first_url(output)
+
+
+def _remote_sha256(url: str) -> str | None:
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "dises-metrics-publisher/1"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            digest = hashlib.sha256()
+            for chunk in iter(lambda: response.read(1024 * 1024), b""):
+                digest.update(chunk)
+            return digest.hexdigest()
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise RuntimeError(f"could not inspect existing blob {url}: HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"could not inspect existing blob {url}: {exc}") from exc
 
 
 def _print_publish_report(run: PublishRun, *, elapsed_seconds: float) -> None:
@@ -184,7 +219,13 @@ def main(argv: list[str] | None = None) -> int:
     solution_ids = set(args.solution_id) if args.solution_id else None
     started = time.time()
 
-    if not args.skip_inspect:
+    try:
+        report_format = json.loads(
+            report_path.read_text(encoding="utf-8")
+        ).get("format")
+    except (OSError, json.JSONDecodeError):
+        report_format = None
+    if not args.skip_inspect and report_format != "solution-release-publish-report-v1":
         inspect_result = inspect_publish_report(
             report_path,
             repo_root=repo_root,
@@ -240,17 +281,33 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         file_bytes = local_path.stat().st_size
-        if args.dry_run:
-            run.uploads.append(UploadResult(
-                solution_id=solution_id,
-                blob_path=blob_path,
-                local_path=local_path,
-                bytes=file_bytes,
-            ))
-            continue
-
         try:
-            uploaded_url = _put_blob(token, local_path, blob_path)
+            expected_url = str(entry.get("expectedPublicUrl") or "")
+            if not expected_url:
+                raise RuntimeError("entry missing expectedPublicUrl for immutable publish")
+            local_sha256 = hashlib.sha256(local_path.read_bytes()).hexdigest()
+            declared_sha256 = entry.get("artifactSha256") or entry.get("sha256")
+            if declared_sha256 is not None and declared_sha256 != local_sha256:
+                raise RuntimeError(
+                    "local artifact checksum differs from publish inventory"
+                )
+            remote_sha256 = _remote_sha256(expected_url)
+            if remote_sha256 is not None and remote_sha256 != local_sha256:
+                raise RuntimeError(
+                    f"immutable blob path already contains differing content: {blob_path}"
+                )
+            if args.dry_run:
+                uploaded_url = (
+                    expected_url
+                    if remote_sha256 == local_sha256
+                    else None
+                )
+            else:
+                uploaded_url = (
+                    expected_url
+                    if remote_sha256 == local_sha256
+                    else _put_blob(token, local_path, blob_path)
+                )
             run.uploads.append(UploadResult(
                 solution_id=solution_id,
                 blob_path=blob_path,

@@ -1,9 +1,9 @@
 """Species richness, threatened-species, and species-coverage calculators.
 
 These eight Tier 1 metrics share a single underlying loop: for every
-non-fish species in the IUCN range CSV, read the species's range raster
-and check whether any of its range pixels fall inside the solution-selected
-pixels at every geography scope.
+non-fish species in the IUCN range CSV, read its sparse exact source-grid
+intersection areas and check which positive-area target cells fall inside
+the solution at every geography scope.
 
 Metrics implemented here
 ------------------------
@@ -20,19 +20,17 @@ Algorithm
 ---------
 For each species with at least one valid range pixel:
 
-1.  Place its range raster into the solution grid (zero-padded) and flatten
-    to ``range_indices`` — a 1-D array of pixel positions.
-2.  ``selected_at_range = solution.selected_flat[range_indices]`` — a small
-    boolean array marking which range pixels are inside the priority area.
-3.  ``n_selected_in_range = selected_at_range.sum()`` — total cells in
-    (range ∩ selected).  Zero means this species contributes nothing.
+1.  Load sorted target indexes and exact intersection areas.
+2.  Index the solution selection at those target indexes.
+3.  Sum intersection area in selected cells. Zero means this species
+    contributes nothing to presence/count metrics.
 4.  For sub-national scopes, look up each ``boundary_id_per_pixel`` array at
     ``range_indices`` (and at the subset that's also selected) and use
     ``np.bincount`` to fan out to all boundaries simultaneously.
 
 For the "secured" metric (#3), the per-scope coverage ratio is::
 
-    cells_in_scope_selected / cells_in_scope_range >= solution_target_pct
+    exact_area_in_scope_selected / exact_area_in_scope_range >= solution_target_pct
 
 i.e. "what fraction of this species's range *that exists in this region* is
 captured by the priority area?".  That gives intuitive sub-national readouts
@@ -116,7 +114,9 @@ class SpeciesAccumulator:
     """
     target_pct: float | None              # 17.0 or 30.0 — None means "skip secured"
     pool_sizes: SpeciesPoolSizes
+    species_expected: int = 0
     species_processed: int = 0
+    species_aligned: int = 0
     species_with_range: int = 0           # range raster had >=1 valid pixel
     species_missing_tif: int = 0          # raster could not be loaded
     national: SpeciesScopeCounts = field(default_factory=SpeciesScopeCounts)
@@ -136,12 +136,12 @@ class SpeciesAccumulator:
     def record_species_national(
         self,
         sp: SpeciesRecord,
-        n_selected_in_range: int,
-        total_range: int,
+        selected_range_area_m2: float,
+        total_range_area_m2: float,
     ) -> None:
         coverage_target_met = _species_coverage_target_met(
-            n_selected=n_selected_in_range,
-            total=total_range,
+            selected_area_m2=selected_range_area_m2,
+            total_area_m2=total_range_area_m2,
             target_pct=self.target_pct,
         )
         if sp.bucket is not None:
@@ -150,7 +150,7 @@ class SpeciesAccumulator:
                 sp.iucn_status,
             )
 
-        if n_selected_in_range == 0:
+        if selected_range_area_m2 <= 0:
             return
         self.national.all_present += 1
         if sp.bucket is not None:
@@ -159,8 +159,9 @@ class SpeciesAccumulator:
             self.national.threatened_present += 1
             if (
                 self.target_pct is not None
-                and total_range > 0
-                and (n_selected_in_range / total_range) * 100.0 >= self.target_pct
+                and total_range_area_m2 > 0
+                and (selected_range_area_m2 / total_range_area_m2) * 100.0
+                >= self.target_pct
             ):
                 self.national.threatened_secured += 1
 
@@ -184,12 +185,12 @@ class SpeciesAccumulator:
         if bucket is not None:
             range_indices = np.flatnonzero(total_per_boundary > 0)
             for bidx in range_indices.tolist():
-                denom = int(total_per_boundary[bidx])
-                selected = int(sel_per_boundary[bidx])
+                denom = float(total_per_boundary[bidx])
+                selected = float(sel_per_boundary[bidx])
                 scope_counts[bidx].coverage_by_bucket[bucket].record(
                     _species_coverage_target_met(
-                        n_selected=selected,
-                        total=denom,
+                        selected_area_m2=selected,
+                        total_area_m2=denom,
                         target_pct=target,
                     ),
                     sp.iucn_status,
@@ -206,9 +207,9 @@ class SpeciesAccumulator:
             if is_threatened:
                 counts.threatened_present += 1
                 if target is not None:
-                    denom = int(total_per_boundary[bidx])
+                    denom = float(total_per_boundary[bidx])
                     if denom > 0:
-                        ratio_pct = (int(sel_per_boundary[bidx]) / denom) * 100.0
+                        ratio_pct = (float(sel_per_boundary[bidx]) / denom) * 100.0
                         if ratio_pct >= target:
                             counts.threatened_secured += 1
 
@@ -276,11 +277,15 @@ def filter_records_with_pool(records: Iterable[SpeciesRecord]) -> list[SpeciesRe
 
 def _species_coverage_target_met(
     *,
-    n_selected: int,
-    total: int,
+    selected_area_m2: float,
+    total_area_m2: float,
     target_pct: float | None,
 ) -> bool:
-    return target_pct is not None and total > 0 and (n_selected / total) * 100.0 >= target_pct
+    return (
+        target_pct is not None
+        and total_area_m2 > 0
+        and (selected_area_m2 / total_area_m2) * 100.0 >= target_pct
+    )
 
 
 def _species_group_coverage_details(counts: SpeciesScopeCounts) -> dict[str, object]:

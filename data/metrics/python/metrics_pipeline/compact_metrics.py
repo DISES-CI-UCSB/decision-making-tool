@@ -18,17 +18,28 @@ from pathlib import Path
 from typing import Any
 
 from cli_utils import find_repo_root, resolve_output_dir
-from metrics_contract import PROVENANCE_KEY
+from metrics_contract import (
+    PROVENANCE_KEY,
+    provenance_issues,
+    regular_artifact_completeness_issues,
+)
 from path_contracts import (
     solution_artifact_name,
     solution_blob_path,
     solution_public_url,
 )
 from release_config import load_release_config
+from solution_catalog import (
+    SolutionCatalog,
+    SolutionCatalogError,
+    bind_release_output,
+    load_release_plan,
+    load_solution_catalog,
+    release_plan_cache_policy,
+)
 
 COMPACT_METRICS_FORMAT = "metrics-compact-v1"
 COMPACT_CACHE_SUFFIX = ".metrics.compact.json"
-RELEASE_SOLUTION_COUNT = 108
 DEFAULT_COMPACT_OUTPUT_DIR = Path("data/metrics/generated/nick-runs-2026-05-27-compact")
 DEFAULT_COMPACT_BLOB_DIRECTORY = "metrics/nick-runs/2026-05-27/compact-cache"
 
@@ -94,24 +105,18 @@ def _validate_release_selection(selection: ReleaseSelection) -> None:
         list(selection.selected_solution_ids),
         field="selectedSolutionIds",
     )
-    if len(catalog_ids) != RELEASE_SOLUTION_COUNT:
-        raise ValueError(
-            "release selection catalog must contain exactly "
-            f"{RELEASE_SOLUTION_COUNT} solution ids; got {len(catalog_ids)}"
-        )
     unknown_ids = sorted(set(selected_ids) - set(catalog_ids))
     if unknown_ids:
         raise ValueError(
             f"selectedSolutionIds contains ids outside the release catalog: {unknown_ids}"
         )
-    if selection.mode == "partial" and len(selected_ids) >= RELEASE_SOLUTION_COUNT:
+    if selection.mode == "partial" and len(selected_ids) >= len(catalog_ids):
         raise ValueError(
-            "partial release selection must contain fewer than "
-            f"{RELEASE_SOLUTION_COUNT} solution ids"
+            "partial release selection must contain fewer ids than its catalog"
         )
     if selection.mode == "final" and set(selected_ids) != set(catalog_ids):
         raise ValueError(
-            "final release selection must select the complete 108-solution catalog"
+            "final release selection must select the complete solution catalog"
         )
     if selection.mode not in {"partial", "final"}:
         raise ValueError(f"unknown release selection mode {selection.mode!r}")
@@ -155,7 +160,7 @@ def reconcile_release_selections(
     *,
     expected_release_id: str,
 ) -> dict[str, Any]:
-    """Validate that partial reports form one complete 108-solution release."""
+    """Validate that partial reports form one complete catalog-driven release."""
     if not reports:
         raise ValueError("at least one compact publish report is required")
 
@@ -168,11 +173,6 @@ def reconcile_release_selections(
         first.get("catalogSolutionIds"),
         field="catalogSolutionIds",
     )
-    if len(catalog_ids) != RELEASE_SOLUTION_COUNT:
-        raise ValueError(
-            f"final release requires exactly {RELEASE_SOLUTION_COUNT} catalog ids"
-        )
-
     combined: list[str] = []
     for selection in selections:
         assert isinstance(selection, dict)
@@ -350,6 +350,14 @@ def to_compact_document(doc: dict[str, Any]) -> dict[str, Any]:
                 separators=(",", ":"),
             ).encode("utf-8")
         ).hexdigest()
+    for field in (
+        "solutionRaster",
+        "solutionInputSignature",
+        "solutionCatalogBinding",
+        "speciesCompleteness",
+    ):
+        if field in doc:
+            compact_document[field] = doc[field]
     return compact_document
 
 
@@ -398,6 +406,14 @@ def to_verbose_document(doc: dict[str, Any]) -> dict[str, Any]:
     }
     if PROVENANCE_KEY in doc:
         verbose_document[PROVENANCE_KEY] = doc[PROVENANCE_KEY]
+    for field in (
+        "solutionRaster",
+        "solutionInputSignature",
+        "solutionCatalogBinding",
+        "speciesCompleteness",
+    ):
+        if field in doc:
+            verbose_document[field] = doc[field]
     return verbose_document
 
 
@@ -415,6 +431,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Use the immutable regular compact prefix for this explicit release id.",
     )
     parser.add_argument(
+        "--solution-catalog",
+        type=Path,
+        default=None,
+        help="Versioned solution-catalog-v1 contract (required with --release-id).",
+    )
+    parser.add_argument(
         "--release-selection",
         type=Path,
         default=None,
@@ -422,6 +444,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "JSON contract declaring releaseId, the complete catalogSolutionIds, "
             "and selectedSolutionIds."
         ),
+    )
+    parser.add_argument("--release-plan", type=Path, default=None)
+    parser.add_argument(
+        "--cache-policy",
+        choices=("use-cache", "recompute-all"),
+        default="use-cache",
     )
     parser.add_argument(
         "--partial-release",
@@ -452,6 +480,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--partial-release requires --release-selection")
     if args.release_selection is not None and not args.release_id:
         parser.error("--release-selection requires --release-id")
+    if args.release_id and args.solution_catalog is None:
+        parser.error("--release-id requires --solution-catalog")
+    if args.release_plan is not None and not args.release_id:
+        parser.error("--release-plan requires --release-id")
+    if args.release_plan is not None and args.release_selection is not None:
+        parser.error("--release-plan cannot be combined with --release-selection")
     return args
 
 
@@ -462,6 +496,83 @@ def _resolve_path(repo_root: Path, raw_path: str) -> Path:
     return repo_root / path
 
 
+def _catalog_binding(catalog: SolutionCatalog) -> dict[str, str]:
+    return {
+        "format": "solution-catalog-binding-v1",
+        "releaseId": catalog.release_id,
+        "catalogVersion": catalog.catalog_version,
+        "catalogSha256": catalog.sha256,
+    }
+
+
+def _validate_release_verbose_document(
+    document: dict[str, Any],
+    *,
+    catalog: SolutionCatalog,
+    solution_id: str,
+) -> None:
+    catalog_entry = catalog.by_id[solution_id]
+    if document.get("solutionId") != solution_id:
+        raise ValueError(f"verbose document solutionId mismatch for {solution_id!r}")
+    if document.get("solutionCatalogBinding") != _catalog_binding(catalog):
+        raise ValueError(
+            f"verbose document {solution_id!r} has a stale catalog binding"
+        )
+    raster = document.get("solutionRaster")
+    if not isinstance(raster, dict):
+        raise ValueError(
+            f"verbose document {solution_id!r} has no solution raster provenance"
+        )
+    if raster.get("solutionBasename") != catalog_entry.solution_basename:
+        raise ValueError(
+            f"verbose document {solution_id!r} solution basename mismatch"
+        )
+    if raster.get("sha256") != catalog_entry.raster_sha256:
+        raise ValueError(
+            f"verbose document {solution_id!r} raster SHA-256 mismatch"
+        )
+    input_signature = document.get("solutionInputSignature")
+    if (
+        not isinstance(input_signature, dict)
+        or input_signature.get("format")
+        not in {
+            "solution-input-signature-v1",
+            "solution-input-signature-v2",
+            "solution-input-signature-v3",
+        }
+        or not isinstance(input_signature.get("sha256"), str)
+        or len(input_signature["sha256"]) != 64
+    ):
+        raise ValueError(
+            f"verbose document {solution_id!r} has invalid input signature"
+        )
+    issues = provenance_issues(
+        document,
+        expected_domain=catalog_entry.domain,
+        expected_release_id=catalog.release_id,
+    )
+    if issues:
+        raise ValueError(
+            f"verbose document {solution_id!r} has invalid provenance: {issues[0]}"
+        )
+    provenance = document[PROVENANCE_KEY]
+    completeness_issues = regular_artifact_completeness_issues(
+        document,
+        national_only=bool(
+            provenance.get("generationConfig", {}).get("nationalOnly")
+        ),
+        domain=catalog_entry.domain,
+        skip_species=bool(
+            provenance.get("generationConfig", {}).get("speciesSkipped")
+        ),
+    )
+    if completeness_issues:
+        raise ValueError(
+            f"verbose document {solution_id!r} is incomplete: "
+            f"{completeness_issues[0]}"
+        )
+
+
 def convert_publish_report(
     *,
     input_dir: Path,
@@ -470,12 +581,33 @@ def convert_publish_report(
     cache_blob_directory: str,
     release_id: str | None = None,
     release_selection: ReleaseSelection | None = None,
+    catalog_solution_ids: tuple[str, ...] | None = None,
+    solution_catalog: SolutionCatalog | None = None,
+    cache_policy: str = "use-cache",
 ) -> dict[str, Any]:
     input_report_path = input_dir / "publish-report.json"
     input_report = json.loads(input_report_path.read_text(encoding="utf-8"))
     input_entries = input_report.get("entries") or []
     input_ids = [str(entry.get("solutionId") or "").strip() for entry in input_entries]
+    verbose_inputs: dict[str, tuple[Path, dict[str, Any]]] = {}
     if release_id:
+        if solution_catalog is None:
+            raise ValueError("release compact conversion requires the full solution catalog")
+        if solution_catalog.release_id != release_id:
+            raise ValueError(
+                f"solution catalog has releaseId {solution_catalog.release_id!r}; "
+                f"expected {release_id!r}"
+            )
+        catalog_solution_ids = solution_catalog.solution_ids
+        source_catalog = input_report.get("solutionCatalog")
+        if (
+            not isinstance(source_catalog, dict)
+            or source_catalog.get("releaseId") != solution_catalog.release_id
+            or source_catalog.get("sha256") != solution_catalog.sha256
+        ):
+            raise ValueError(
+                "source publish report solution catalog SHA does not match"
+            )
         if any(not solution_id for solution_id in input_ids):
             raise ValueError("release publish report contains an entry without a solutionId")
         duplicate_ids = sorted({
@@ -487,14 +619,20 @@ def convert_publish_report(
                 f"release publish report contains duplicate solution ids: {duplicate_ids}"
             )
         if release_selection is None:
-            if len(input_ids) != RELEASE_SOLUTION_COUNT:
+            if catalog_solution_ids is None:
                 raise ValueError(
-                    "final release compact conversion requires exactly "
-                    f"{RELEASE_SOLUTION_COUNT} verbose inputs; got {len(input_ids)}"
+                    "release compact conversion requires a solution catalog"
+                )
+            if set(input_ids) != set(catalog_solution_ids):
+                missing = sorted(set(catalog_solution_ids) - set(input_ids))
+                unexpected = sorted(set(input_ids) - set(catalog_solution_ids))
+                raise ValueError(
+                    "final release inputs do not exactly match the solution catalog; "
+                    f"missing={missing[:8]}, unexpected={unexpected[:8]}"
                 )
             release_selection = ReleaseSelection(
                 release_id=release_id,
-                catalog_solution_ids=tuple(input_ids),
+                catalog_solution_ids=catalog_solution_ids,
                 selected_solution_ids=tuple(input_ids),
                 mode="final",
             )
@@ -505,6 +643,14 @@ def convert_publish_report(
                     f"expected {release_id!r}"
                 )
             _validate_release_selection(release_selection)
+            if (
+                catalog_solution_ids is not None
+                and set(release_selection.catalog_solution_ids)
+                != set(catalog_solution_ids)
+            ):
+                raise ValueError(
+                    "release selection catalog does not match --solution-catalog"
+                )
             missing_ids = sorted(set(release_selection.selected_solution_ids) - set(input_ids))
             unknown_ids = sorted(set(input_ids) - set(release_selection.selected_solution_ids))
             if missing_ids or unknown_ids:
@@ -517,19 +663,18 @@ def convert_publish_report(
             solution_id = str(entry["solutionId"])
             verbose_path = _resolve_path(repo_root, str(entry.get("cachePath")))
             verbose_doc = json.loads(verbose_path.read_text(encoding="utf-8"))
-            if verbose_doc.get("solutionId") != solution_id:
-                raise ValueError(
-                    f"verbose document solutionId mismatch for {solution_id!r}"
-                )
-            provenance = verbose_doc.get(PROVENANCE_KEY)
-            document_release_id = (
-                provenance.get("releaseId") if isinstance(provenance, dict) else None
+            _validate_release_verbose_document(
+                verbose_doc,
+                catalog=solution_catalog,
+                solution_id=solution_id,
             )
-            if document_release_id != release_id:
-                raise ValueError(
-                    f"verbose document {solution_id!r} has releaseId "
-                    f"{document_release_id!r}; expected {release_id!r}"
-                )
+            verbose_inputs[solution_id] = (verbose_path, verbose_doc)
+
+        bind_release_output(
+            output_dir,
+            catalog=solution_catalog,
+            component="regular-compact",
+        )
 
     output_cache_dir = output_dir / "cache"
     output_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -540,17 +685,30 @@ def convert_publish_report(
 
     for entry in input_entries:
         solution_id = str(entry.get("solutionId"))
-        verbose_path = _resolve_path(repo_root, str(entry.get("cachePath")))
-        verbose_doc = json.loads(verbose_path.read_text(encoding="utf-8"))
+        if solution_id in verbose_inputs:
+            verbose_path, verbose_doc = verbose_inputs[solution_id]
+        else:
+            verbose_path = _resolve_path(repo_root, str(entry.get("cachePath")))
+            verbose_doc = json.loads(verbose_path.read_text(encoding="utf-8"))
         compact_doc = to_compact_document(verbose_doc)
         compact_path = output_cache_dir / solution_artifact_name(
             solution_id,
             suffix=COMPACT_CACHE_SUFFIX,
         )
-        compact_path.write_text(
-            json.dumps(compact_doc, ensure_ascii=False, separators=(",", ":")) + "\n",
-            encoding="utf-8",
-        )
+        resume_skipped = False
+        if cache_policy == "use-cache" and compact_path.is_file():
+            try:
+                resume_skipped = (
+                    json.loads(compact_path.read_text(encoding="utf-8"))
+                    == compact_doc
+                )
+            except (OSError, json.JSONDecodeError):
+                resume_skipped = False
+        if not resume_skipped:
+            compact_path.write_text(
+                json.dumps(compact_doc, ensure_ascii=False, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+            )
 
         verbose_bytes = verbose_path.stat().st_size
         compact_bytes = compact_path.stat().st_size
@@ -573,6 +731,7 @@ def convert_publish_report(
             "verboseBytes": verbose_bytes,
             "compactBytes": compact_bytes,
             "compactRatio": round(compact_bytes / verbose_bytes, 4) if verbose_bytes else None,
+            "resumeSkipped": resume_skipped,
         })
 
     output_report = {
@@ -581,6 +740,7 @@ def convert_publish_report(
         "sourcePublishReport": str(input_report_path.relative_to(repo_root)),
         "outputDir": str(output_dir),
         "cacheBlobDirectory": cache_blob_directory,
+        "cachePolicy": cache_policy,
         "metricsFormat": COMPACT_METRICS_FORMAT,
         "compactSummary": {
             "verboseBytes": total_verbose_bytes,
@@ -597,12 +757,62 @@ def convert_publish_report(
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    solution_catalog = None
+    if args.solution_catalog is not None:
+        try:
+            solution_catalog = load_solution_catalog(args.solution_catalog)
+        except SolutionCatalogError as exc:
+            raise SystemExit(f"[compact-metrics] ERROR: {exc}") from exc
+        if solution_catalog.release_id != args.release_id:
+            raise SystemExit(
+                "[compact-metrics] ERROR: --release-id must exactly match "
+                "solution catalog releaseId"
+            )
+        if args.release_plan is not None:
+            args.cache_policy = release_plan_cache_policy(
+                args.release_plan,
+                catalog=solution_catalog,
+            )
     release_selection = None
     if args.release_id:
         args.cache_blob_directory = load_release_config(
             args.release_id
         ).regular_compact_directory
+        if args.output_dir == DEFAULT_COMPACT_OUTPUT_DIR:
+            args.output_dir = (
+                Path("data/metrics/generated/releases")
+                / args.release_id
+                / "regular/compact"
+            )
     repo_root = find_repo_root()
+    if args.release_plan is not None:
+        assert solution_catalog is not None
+        recompute_ids = load_release_plan(
+            args.release_plan,
+            catalog=solution_catalog,
+            action="recompute",
+        )
+        input_report = json.loads(
+            resolve_output_dir(repo_root, args.input_dir)
+            .joinpath("publish-report.json")
+            .read_text(encoding="utf-8")
+        )
+        input_ids = tuple(
+            str(entry.get("solutionId"))
+            for entry in input_report.get("entries") or []
+        )
+        if set(input_ids) != set(recompute_ids) or len(input_ids) != len(recompute_ids):
+            raise SystemExit(
+                "[compact-metrics] ERROR: input report does not match plan recompute IDs"
+            )
+        release_selection = ReleaseSelection(
+            release_id=args.release_id,
+            catalog_solution_ids=solution_catalog.solution_ids,
+            selected_solution_ids=input_ids,
+            mode="recompute",
+        )
+    else:
+        release_selection = None
     if args.release_selection is not None:
         selection_path = _resolve_path(repo_root, str(args.release_selection))
         release_selection = load_release_selection(
@@ -621,6 +831,13 @@ def main(argv: list[str] | None = None) -> int:
         cache_blob_directory=args.cache_blob_directory,
         release_id=args.release_id,
         release_selection=release_selection,
+        catalog_solution_ids=(
+            solution_catalog.solution_ids
+            if solution_catalog is not None
+            else None
+        ),
+        solution_catalog=solution_catalog,
+        cache_policy=args.cache_policy,
     )
     report_path = output_dir / "publish-report.json"
     report_path.write_text(

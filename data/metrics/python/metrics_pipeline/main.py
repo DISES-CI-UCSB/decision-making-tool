@@ -11,7 +11,7 @@ Usage:
     # Skip sub-national boundary calculation
     python data/metrics/python/metrics_pipeline/main.py --national-only
 
-    # Validate manifest + boundary availability; do not compute
+    # Validate manifest + selected raster sources; do not compute
     python data/metrics/python/metrics_pipeline/main.py --validate-only
 
     # Split a full batch across two workers (zero-based chunk indexes)
@@ -41,12 +41,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import traceback
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import numpy as np
 
@@ -72,6 +76,8 @@ from local_io import (
     CACHE_BLOB_DIRECTORY,
     DEFAULT_CACHE_DIR,
     DEFAULT_OUTPUT_DIR,
+    CachedDownload,
+    DownloadError,
     cache_solution_path,
     cached_download,
     expected_cache_blob_path,
@@ -103,6 +109,7 @@ from metrics_contract import (
     build_metrics_provenance,
     generation_config,
     provenance_issues,
+    regular_artifact_completeness_issues,
 )
 from release_config import load_release_config
 from raster_metrics import (
@@ -114,6 +121,23 @@ from raster_metrics import (
     weighted_percent_of_valid,
     weighted_sum_km2,
 )
+from raster_align import (
+    AlignmentError,
+    AlignmentResult,
+    RasterAlignmentCache,
+    alignment_policy_manifest_sha256,
+    canonical_sha256 as alignment_manifest_sha256,
+    exact_grid_matches,
+    grid_sha256,
+    layer_policy_registry,
+    policy_for_layer,
+)
+from species_overlap import (
+    SPECIES_OVERLAP_ALGORITHM_VERSION,
+    SPECIES_POLICY,
+    SpeciesOverlapResult,
+    read_species_overlap,
+)
 from species_data import (
     SPECIES_CSV_URL,
     SpeciesPoolSizes,
@@ -121,9 +145,24 @@ from species_data import (
     compute_pool_sizes,
     load_species_records,
     parse_solution_target_percent,
-    read_species_mask,
+)
+from species_exception import (
+    SpeciesExceptionError,
+    SpeciesExceptionPolicy,
+    load_species_exception,
 )
 from solution_domain import SolutionDomain, solution_domain
+from solution_catalog import (
+    SolutionCatalog,
+    SolutionCatalogEntry,
+    SolutionCatalogError,
+    bind_release_output,
+    load_release_plan,
+    load_solution_catalog,
+    release_plan_cache_policy,
+    validate_catalog_solution_ids,
+)
+from solution_input_signature import build_solution_input_signature
 from summary_species_coverage import compute_species_group_coverage_details
 from summary_metadata import resolve_summary_csv_url
 from calculators import area as calc_area
@@ -177,9 +216,11 @@ class _LayerMaskCache:
     each one once. If the fingerprint changes between solutions, we clear and reload.
     """
 
-    def __init__(self) -> None:
-        self._masks: dict[str, np.ndarray] = {}
+    def __init__(self, alignment_cache: RasterAlignmentCache | None = None) -> None:
+        self._masks: OrderedDict[str, np.ndarray] = OrderedDict()
         self._last_fingerprint = None
+        self._alignment_cache = alignment_cache or RasterAlignmentCache(DEFAULT_CACHE_DIR)
+        self._max_items = int(os.environ.get("METRICS_LAYER_LRU_MAX_ITEMS", "4"))
 
     def get(
         self,
@@ -196,7 +237,19 @@ class _LayerMaskCache:
 
         if layer_id not in self._masks:
             dl = cached_download(url, cache_dir, force=force)
-            self._masks[layer_id] = read_layer_mask(dl.path, fingerprint, rendering=rendering)
+            aligned = self._alignment_cache.align(
+                dl.path,
+                dl.sha256,
+                fingerprint,
+                policy_for_layer(layer_id),
+            )
+            self._masks[layer_id] = read_layer_mask(
+                aligned.path, fingerprint, rendering=rendering
+            )
+            while len(self._masks) > self._max_items:
+                self._masks.popitem(last=False)
+        else:
+            self._masks.move_to_end(layer_id)
         return self._masks[layer_id]
 
 
@@ -208,9 +261,11 @@ class _LayerValueCache:
     changes (i.e. across solution grids — though in practice the grid is constant).
     """
 
-    def __init__(self) -> None:
-        self._arrays: dict[str, np.ndarray] = {}
+    def __init__(self, alignment_cache: RasterAlignmentCache | None = None) -> None:
+        self._arrays: OrderedDict[str, np.ndarray] = OrderedDict()
         self._last_fingerprint = None
+        self._alignment_cache = alignment_cache or RasterAlignmentCache(DEFAULT_CACHE_DIR)
+        self._max_items = int(os.environ.get("METRICS_LAYER_LRU_MAX_ITEMS", "4"))
 
     def get(
         self,
@@ -226,7 +281,17 @@ class _LayerValueCache:
 
         if layer_id not in self._arrays:
             dl = cached_download(url, cache_dir, force=force)
-            self._arrays[layer_id] = read_layer_values(dl.path, fingerprint)
+            aligned = self._alignment_cache.align(
+                dl.path,
+                dl.sha256,
+                fingerprint,
+                policy_for_layer(layer_id),
+            )
+            self._arrays[layer_id] = read_layer_values(aligned.path, fingerprint)
+            while len(self._arrays) > self._max_items:
+                self._arrays.popitem(last=False)
+        else:
+            self._arrays.move_to_end(layer_id)
         return self._arrays[layer_id]
 
 
@@ -267,6 +332,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Use the immutable regular verbose prefix for this explicit release id.",
     )
     parser.add_argument(
+        "--solution-catalog",
+        type=Path,
+        default=None,
+        help="Versioned solution-catalog-v1 contract (required with --release-id).",
+    )
+    parser.add_argument(
+        "--release-plan",
+        type=Path,
+        default=None,
+        help="Process only entries marked recompute in a deterministic release plan.",
+    )
+    parser.add_argument(
         "--solution-id",
         action="append",
         default=None,
@@ -284,9 +361,13 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Force re-download of rasters even if cached files are present.",
     )
     parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Recompute solution metrics even when output cache files already exist.",
+        "--cache-policy",
+        choices=("use-cache", "recompute-all"),
+        default="use-cache",
+        help=(
+            "use-cache resumes only checksum/provenance-identical outputs (default); "
+            "recompute-all ignores calculated outputs and rebuilds every selection."
+        ),
     )
     parser.add_argument(
         "--chunk-index",
@@ -308,7 +389,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--validate-only",
         action="store_true",
-        help="Fetch manifest + check required layers exist; do not compute or write.",
+        help=(
+            "Validate the manifest plus selected raster reachability and catalog "
+            "checksums; do not compute or write outputs."
+        ),
+    )
+    parser.add_argument(
+        "--write-input-signatures-only",
+        action="store_true",
+        help="Resolve and write deterministic solution input signatures, then exit.",
     )
     parser.add_argument(
         "--skip-species",
@@ -330,11 +419,24 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=SPECIES_CSV_URL,
         help=f"Override the species CSV URL (default: {SPECIES_CSV_URL}).",
     )
+    parser.add_argument(
+        "--species-exception-contract",
+        type=Path,
+        default=None,
+        help=(
+            "Apply one catalog-bound, versioned release species exception contract. "
+            "Arbitrary species skipping is not supported."
+        ),
+    )
     args = parser.parse_args(argv)
     if args.chunk_count < 1:
         parser.error("--chunk-count must be at least 1")
     if args.chunk_index < 0 or args.chunk_index >= args.chunk_count:
         parser.error("--chunk-index must be between 0 and --chunk-count - 1")
+    if args.release_id and args.solution_catalog is None:
+        parser.error("--release-id requires --solution-catalog")
+    if args.release_plan is not None and args.solution_catalog is None:
+        parser.error("--release-plan requires --solution-catalog")
     return args
 
 
@@ -375,6 +477,219 @@ def _chunk_solutions(
     ]
 
 
+def _filter_release_plan_solutions(
+    solutions: list[dict[str, Any]],
+    *,
+    catalog: SolutionCatalog,
+    release_plan: Path,
+) -> list[dict[str, Any]]:
+    recompute_ids = set(
+        load_release_plan(
+            release_plan,
+            catalog=catalog,
+            action="recompute",
+        )
+    )
+    selected = [
+        solution
+        for solution in solutions
+        if str(solution.get("id")) in recompute_ids
+    ]
+    if len(selected) != len(recompute_ids):
+        raise SolutionCatalogError(
+            "release plan recompute count does not match runtime selection."
+        )
+    return selected
+
+
+def _solution_source_identity(
+    solution: dict[str, Any],
+    *,
+    cache_dir: Path,
+    force_download: bool,
+    raster_sha256: str,
+    species_csv_url: str,
+    species_csv_sha256: str | None,
+) -> dict[str, Any]:
+    """Resolve checksums for external solution metadata consumed by metrics."""
+
+    metadata_url = str(solution.get("metadataUrl") or "")
+    metadata_download_url = str(
+        solution.get("_localMetadataUrl") or metadata_url
+    )
+    metadata_sha256: str | None = None
+    summary_csv_url: str | None = None
+    summary_csv_download_url: str | None = None
+    summary_csv_sha256: str | None = None
+    if metadata_url and species_csv_sha256 is not None:
+        try:
+            metadata_document = None
+            if urlsplit(metadata_download_url).path.lower().endswith(".json"):
+                metadata_download = cached_download(
+                    metadata_download_url,
+                    cache_dir,
+                    force=force_download,
+                )
+                metadata_sha256 = metadata_download.sha256
+                metadata_document = json.loads(
+                    metadata_download.path.read_text(encoding="utf-8")
+                )
+            summary_csv_url = resolve_summary_csv_url(
+                metadata_url,
+                metadata_document=metadata_document,
+            )
+            summary_csv_download_url = resolve_summary_csv_url(
+                metadata_download_url,
+                metadata_document=metadata_document,
+            )
+            summary_download = cached_download(
+                summary_csv_download_url,
+                cache_dir,
+                force=force_download,
+            )
+            summary_csv_sha256 = summary_download.sha256
+            solution["_resolvedSummaryCsvUrl"] = summary_csv_download_url
+        except Exception:
+            solution["_metricsSummaryUnavailable"] = True
+
+    return {
+        "solutionRaster": {
+            "url": solution.get("displayUrl"),
+            "sha256": raster_sha256,
+        },
+        "speciesCsv": {
+            "url": species_csv_url if species_csv_sha256 is not None else None,
+            "sha256": species_csv_sha256,
+        },
+        "solutionMetadata": {
+            "url": metadata_url or None,
+            "sha256": metadata_sha256,
+            "summaryCsvUrl": summary_csv_url,
+            "summaryCsvSha256": summary_csv_sha256,
+        },
+        "consumedManifestMetadata": {
+            "summaryMetrics": solution.get("summaryMetrics"),
+            "coverage": solution.get("coverage"),
+            "targetPercent": parse_solution_target_percent(
+                str(solution.get("name") or solution.get("id") or "")
+            ),
+        },
+    }
+
+
+def _apply_solution_catalog(
+    manifest: ResolvedManifest,
+    catalog: SolutionCatalog,
+) -> list[dict[str, Any]]:
+    """Validate the manifest against the release contract and apply raster sources."""
+
+    validate_catalog_solution_ids(
+        catalog,
+        (str(solution.get("id")) for solution in manifest.batch_solutions),
+    )
+    manifest_by_id = {
+        str(solution.get("id")): solution
+        for solution in manifest.batch_solutions
+    }
+    resolved: list[dict[str, Any]] = []
+    for entry in catalog.solutions:
+        solution = dict(manifest_by_id[entry.solution_id])
+        observed_basename = solution_blob_basename(solution)
+        observed_domain = solution_domain(solution)
+        if observed_basename != entry.solution_basename:
+            raise SolutionCatalogError(
+                f"solution {entry.solution_id!r} basename mismatch: "
+                f"manifest={observed_basename!r}, catalog={entry.solution_basename!r}"
+            )
+        if observed_domain != entry.domain:
+            raise SolutionCatalogError(
+                f"solution {entry.solution_id!r} domain mismatch: "
+                f"manifest={observed_domain!r}, catalog={entry.domain!r}"
+            )
+        resolved.append(solution)
+    return resolved
+
+
+def _has_complete_regular_output_shape(
+    geographies: dict[str, Any],
+    *,
+    national_only: bool,
+    domain: SolutionDomain = "land",
+    skip_species: bool = False,
+) -> bool:
+    expected_levels = (
+        {"national"}
+        if national_only
+        else {"national", "departments", "municipalities", "siraps", "runaps", "omecs"}
+    )
+    if set(geographies) != expected_levels:
+        return False
+    expected_metric_ids = [
+        definition.metric_id
+        for definition in computable_metrics()
+    ]
+    for level, scopes in geographies.items():
+        if not isinstance(scopes, dict) or not scopes:
+            return False
+        if level == "national" and set(scopes) != {"colombia"}:
+            return False
+        for scope in scopes.values():
+            if not isinstance(scope, dict):
+                return False
+            metrics = scope.get("metrics")
+            if not isinstance(metrics, list):
+                return False
+            if [
+                metric.get("metricId") if isinstance(metric, dict) else None
+                for metric in metrics
+            ] != expected_metric_ids:
+                return False
+            if any(
+                not isinstance(metric.get("status"), str)
+                or not isinstance(metric.get("unit"), str)
+                or not isinstance(metric.get("labelKey"), str)
+                for metric in metrics
+            ):
+                return False
+    return True
+
+
+def _has_complete_required_input_metrics(
+    geographies: dict[str, Any],
+    *,
+    domain: SolutionDomain,
+    skip_species: bool,
+    species_exception_binding: dict[str, Any] | None = None,
+) -> bool:
+    """Require every applicable layer/species metric to be ready."""
+
+    definitions = computable_metrics()
+    for scopes in geographies.values():
+        for scope in scopes.values():
+            metrics = scope.get("metrics", [])
+            for definition, metric in zip(definitions, metrics):
+                requires_complete_input = (
+                    definition.layer_id is not None
+                    or (
+                        is_species_metric_kind(definition.kind)
+                        and not skip_species
+                    )
+                )
+                expected_status = (
+                    "partial"
+                    if species_exception_binding is not None
+                    and is_species_metric_kind(definition.kind)
+                    else "ready"
+                )
+                if (
+                    requires_complete_input
+                    and domain in definition.applicable_domains
+                    and metric.get("status") != expected_status
+                ):
+                    return False
+    return True
+
+
 def _resume_entry_for_existing_cache(
     solution: dict[str, Any],
     manifest: ResolvedManifest,
@@ -386,6 +701,11 @@ def _resume_entry_for_existing_cache(
     skip_species_boundary_levels: set[str] | None = None,
     species_csv_url: str = SPECIES_CSV_URL,
     release_id: str | None = None,
+    expected_solution_basename: str | None = None,
+    expected_raster_sha256: str | None = None,
+    expected_input_signature: dict[str, str] | None = None,
+    expected_catalog_binding: dict[str, Any] | None = None,
+    species_exception_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Return a publish-report entry for an existing valid cache file, if present."""
     solution_id = str(solution.get("id"))
@@ -402,13 +722,34 @@ def _resume_entry_for_existing_cache(
     geographies = doc.get("geographies")
     if doc.get("solutionId") != solution_id or not isinstance(geographies, dict):
         return None
-
+    if not _has_complete_regular_output_shape(
+        geographies,
+        national_only=national_only,
+        domain=domain,
+        skip_species=skip_species,
+    ):
+        return None
+    if not _has_complete_required_input_metrics(
+        geographies,
+        domain=domain,
+        skip_species=skip_species,
+        species_exception_binding=species_exception_binding,
+    ):
+        return None
+    if regular_artifact_completeness_issues(
+        doc,
+        national_only=national_only,
+        domain=domain,
+        skip_species=skip_species,
+    ):
+        return None
     expected_config = generation_config(
         domain,
         national_only=national_only,
         skip_species=skip_species,
         skip_species_boundary_levels=skip_species_boundary_levels or set(),
         species_csv_url=species_csv_url,
+        species_exception_binding=species_exception_binding,
     )
     contract_issues = provenance_issues(
         doc,
@@ -424,6 +765,32 @@ def _resume_entry_for_existing_cache(
         )
         return None
 
+    raster_provenance = doc.get("solutionRaster")
+    if (
+        expected_solution_basename is not None
+        or expected_raster_sha256 is not None
+    ) and not isinstance(raster_provenance, dict):
+        return None
+    if (
+        expected_solution_basename is not None
+        and raster_provenance.get("solutionBasename") != expected_solution_basename
+    ):
+        return None
+    if (
+        expected_raster_sha256 is not None
+        and raster_provenance.get("sha256") != expected_raster_sha256
+    ):
+        return None
+    if (
+        expected_input_signature is not None
+        and doc.get("solutionInputSignature") != expected_input_signature
+    ):
+        return None
+    if (
+        expected_catalog_binding is not None
+        and doc.get("solutionCatalogBinding") != expected_catalog_binding
+    ):
+        return None
     national_metrics = (
         geographies.get("national", {})
         .get("colombia", {})
@@ -463,6 +830,263 @@ def _validate_required_layers(manifest: ResolvedManifest) -> list[str]:
         except ManifestError:
             missing.append(layer_id)
     return missing
+
+
+def _solution_raster_source_url(solution: dict[str, Any]) -> str:
+    """Return the exact raster source used by metrics processing."""
+
+    url = solution.get("displayUrl")
+    if not isinstance(url, str) or not url.strip():
+        raise ValueError("displayUrl must be a non-empty URL")
+    return url.strip()
+
+
+def _safe_source_label(url: str) -> str:
+    """Describe a source without exposing query parameters or credentials."""
+
+    parsed = urlsplit(url)
+    if parsed.scheme == "file":
+        return f"file://{parsed.path}"
+    host = parsed.hostname or ""
+    return f"{parsed.scheme}://{host}{parsed.path}"
+
+
+def _preflight_solution_rasters(
+    solutions: list[dict[str, Any]],
+    *,
+    cache_dir: Path,
+    catalog: SolutionCatalog | None,
+) -> tuple[dict[str, CachedDownload], list[str]]:
+    """Freshly fetch and checksum every selected raster, collecting all failures."""
+
+    downloads: dict[str, CachedDownload] = {}
+    failures: list[str] = []
+    catalog_by_id = catalog.by_id if catalog is not None else {}
+    for solution in solutions:
+        solution_id = str(solution.get("id"))
+        try:
+            source_url = _solution_raster_source_url(solution)
+            source_label = _safe_source_label(source_url)
+        except ValueError as exc:
+            failures.append(f"{solution_id}: invalid raster source ({exc})")
+            continue
+
+        try:
+            download = cached_download(
+                source_url,
+                cache_dir,
+                force=True,
+            )
+        except (OSError, DownloadError, ValueError) as exc:
+            failures.append(
+                f"{solution_id}: unreachable raster source {source_label} "
+                f"({type(exc).__name__})"
+            )
+            continue
+
+        catalog_entry = catalog_by_id.get(solution_id)
+        if (
+            catalog_entry is not None
+            and download.sha256 != catalog_entry.raster_sha256
+        ):
+            failures.append(
+                f"{solution_id}: raster SHA-256 mismatch for {source_label}; "
+                f"expected {catalog_entry.raster_sha256}, observed {download.sha256}"
+            )
+            continue
+        downloads[solution_id] = download
+    return downloads, failures
+
+
+def _preflight_aligned_inputs(
+    solutions: list[dict[str, Any]],
+    solution_downloads: dict[str, CachedDownload],
+    manifest: ResolvedManifest,
+    *,
+    cache_dir: Path,
+    force_download: bool,
+    species_records: list[SpeciesRecord] | None,
+    skip_species: bool,
+    species_exception: SpeciesExceptionPolicy | None = None,
+) -> tuple[RasterAlignmentCache | None, dict[str, Any] | None, list[str]]:
+    """Validate the shared grid and warm every required aligned input once."""
+
+    failures: list[str] = []
+    if not solutions:
+        return None, None, failures
+
+    reference = read_solution_raster(
+        solution_downloads[str(solutions[0].get("id"))].path
+    ).fingerprint
+    for solution in solutions[1:]:
+        solution_id = str(solution.get("id"))
+        try:
+            observed = read_solution_raster(
+                solution_downloads[solution_id].path
+            ).fingerprint
+            if not exact_grid_matches(observed, reference):
+                failures.append(
+                    f"{solution_id}: solution grid differs from the authoritative "
+                    f"target grid ({observed!r} != {reference!r})"
+                )
+        except (OSError, RasterError) as exc:
+            failures.append(f"{solution_id}: invalid solution raster ({exc})")
+    if failures:
+        return None, None, failures
+
+    try:
+        policies = layer_policy_registry()
+    except AlignmentError as exc:
+        return None, None, [str(exc)]
+
+    alignment_cache = RasterAlignmentCache(cache_dir)
+    aligned_entries: dict[str, dict[str, Any]] = {}
+    active_domains = {solution_domain(solution) for solution in solutions}
+    required_for_domains = {
+        definition.layer_id
+        for definition in computable_metrics()
+        if definition.layer_id
+        and definition.applicable_domains.intersection(active_domains)
+    }
+    for layer_id in sorted(required_for_domains):
+        try:
+            url = _resolve_layer_url(manifest, layer_id)
+            download = cached_download(url, cache_dir, force=force_download)
+            aligned = alignment_cache.align(
+                download.path,
+                download.sha256,
+                reference,
+                policies[layer_id],
+                source_url=url,
+            )
+            aligned_entries[f"layer:{layer_id}"] = _alignment_identity(
+                aligned,
+                input_id=f"layer:{layer_id}",
+                source_url=url,
+            )
+        except (AlignmentError, DownloadError, ManifestError, OSError, ValueError) as exc:
+            failures.append(f"layer {layer_id!r}: {exc}")
+
+    has_land = "land" in active_domains
+    if has_land and not skip_species:
+        if species_records is None:
+            failures.append("species records were not available for alignment preflight")
+        else:
+            def align_species(species):
+                input_id = f"species:{species.blob_filename}"
+                try:
+                    download = cached_download(
+                        species.blob_url,
+                        cache_dir,
+                        force=force_download,
+                    )
+                    aligned = alignment_cache.species.align(
+                        download.path,
+                        download.sha256,
+                        reference,
+                        source_url=species.blob_url,
+                        authoritative_area_km2=species.range_km2,
+                    )
+                    return input_id, _alignment_identity(
+                        aligned, input_id=input_id, source_url=species.blob_url
+                    )
+                except (AlignmentError, DownloadError, OSError, ValueError) as exc:
+                    return input_id, f"species {species.blob_filename!r}: {exc}"
+
+            worker_count = max(
+                1,
+                int(os.environ.get("METRICS_ALIGNMENT_PREFLIGHT_WORKERS", "8")),
+            )
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                futures = [
+                    executor.submit(align_species, species)
+                    for species in species_records
+                ]
+                for future in as_completed(futures):
+                    input_id, result = future.result()
+                    if isinstance(result, str):
+                        failures.append(result)
+                    else:
+                        aligned_entries[input_id] = result
+
+    inventory = {
+        "format": "metrics-alignment-inventory-v3",
+        "targetGridSha256": grid_sha256(reference),
+        "policyManifestSha256": alignment_policy_manifest_sha256(),
+        "expectedAlignedInputs": len(required_for_domains)
+        + (
+            len(species_records or [])
+            if has_land and not skip_species
+            else 0
+        ),
+        "alignedInputs": len(aligned_entries),
+        "entries": [
+            aligned_entries[key]
+            for key in sorted(aligned_entries)
+        ],
+        "entriesSha256": alignment_manifest_sha256(aligned_entries),
+        "cacheStorage": {
+            "completePairBytes": (
+                alignment_cache.cache_usage_bytes()
+                + alignment_cache.species.cache_usage_bytes()
+            ),
+            "configuredMaxBytes": alignment_cache.max_cache_bytes,
+            "estimatedReleaseBytes": sum(
+                entry["alignedBytes"] for entry in aligned_entries.values()
+            ),
+        },
+    }
+    if has_land and not skip_species:
+        excluded = (
+            len(species_exception.excluded_filenames)
+            if species_exception is not None
+            else 0
+        )
+        available_expected = len(species_records or [])
+        species_aligned = sum(key.startswith("species:") for key in aligned_entries)
+        species_failures = sum(failure.startswith("species ") for failure in failures)
+        inventory["speciesInventory"] = {
+            "catalogTotal": available_expected + excluded,
+            "availableExpected": available_expected,
+            "excluded": excluded,
+            "processed": species_aligned,
+            "missingUnexpected": species_failures,
+        }
+        inventory["speciesException"] = (
+            species_exception.binding if species_exception is not None else None
+        )
+    inventory["sha256"] = alignment_manifest_sha256(inventory)
+    return alignment_cache, inventory, failures
+
+
+def _alignment_identity(
+    result: AlignmentResult | SpeciesOverlapResult,
+    *,
+    input_id: str,
+    source_url: str,
+) -> dict[str, Any]:
+    identity = {
+        "inputId": input_id,
+        "sourceUrl": source_url,
+        "cacheKey": result.cache_key,
+        "sourceSha256": result.source_sha256,
+        "alignedSha256": result.aligned_sha256,
+        "targetGridSha256": result.target_grid_sha256,
+        "policySha256": result.policy_sha256,
+        "alignedBytes": result.path.stat().st_size,
+    }
+    if isinstance(result, SpeciesOverlapResult):
+        qa = result.manifest["qa"]
+        identity.update(
+            {
+                "algorithmVersion": SPECIES_OVERLAP_ALGORITHM_VERSION,
+                "sourceAreaKm2": qa["projectedSourceGeometryAreaKm2"],
+                "intersectedAreaKm2": qa["intersectedAreaKm2"],
+                "positiveTargetCellCount": qa["positiveTargetCellCount"],
+                "conservationDeltaM2": qa["conservationDeltaM2"],
+            }
+        )
+    return identity
 
 
 def _compute_aoi_percent(
@@ -560,12 +1184,18 @@ def _compute_metadata_summary_csv_coverage(
 ) -> dict[str, Any] | None:
     if definition.metric_id != "species_groups_protected" or not species_records:
         return None
+    if solution.get("_metricsSummaryUnavailable"):
+        return None
 
-    metadata_url = solution.get("metadataUrl")
+    metadata_url = solution.get("_resolvedSummaryCsvUrl") or solution.get("metadataUrl")
     if not isinstance(metadata_url, str) or not metadata_url:
         return None
 
-    summary_url = resolve_summary_csv_url(metadata_url)
+    summary_url = (
+        metadata_url
+        if solution.get("_resolvedSummaryCsvUrl")
+        else resolve_summary_csv_url(metadata_url)
+    )
     try:
         summary_download = cached_download(summary_url, cache_dir, force=force_download)
         details = compute_species_group_coverage_details(summary_download.path, species_records)
@@ -918,14 +1548,20 @@ def _compute_species_metric(
         value = int(getattr(species_metrics, field_name))
         return _metric_value(
             definition, value=value, status="ready",
-            notes=f"Species count where (range ∩ priority area) > 0 in this scope (bucket: {bucket}).",
+            notes=(
+                "Species count where exact source-grid intersection area with "
+                f"the priority area is positive in this scope (bucket: {bucket})."
+            ),
             source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
         )
 
     if definition.kind == "species_threatened_count":
         return _metric_value(
             definition, value=int(species_metrics.threatened_present), status="ready",
-            notes="CR/EN/VU non-fish species with any range pixel in the priority area.",
+            notes=(
+                "CR/EN/VU non-fish species with positive exact range-intersection "
+                "area in the priority area."
+            ),
             source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
         )
 
@@ -974,16 +1610,17 @@ def _process_species_for_solution(
     boundary_grids: dict[str, BoundaryIdGrid],
     cache_dir: Path,
     force_download: bool,
+    alignment_cache: RasterAlignmentCache,
 ) -> SpeciesAccumulator:
     """Read every species range raster once and accumulate counts across scopes.
 
     For each species:
 
-    - Download (cached) the species TIF, place it into a solution-grid-shaped
-      bool mask, and convert to flat range pixel indices.
-    - Index into the solution's selected mask at those indices to get the
-      cells that are both in-range and in the priority area.
-    - National counters are updated directly from those cells.
+    - Download (cached) the species TIF and load its deterministic sparse exact
+      overlap indexes and area weights.
+    - Index into the solution's selected mask and sum exact source-grid
+      intersection area in selected target cells.
+    - National counters are updated from positive area and weighted coverage.
     - Sub-national counters are updated by indexing each level's
       ``BoundaryIdGrid`` at the same range indices and using ``np.bincount``
       to fan out per-boundary totals in one call.
@@ -994,7 +1631,11 @@ def _process_species_for_solution(
     target_pct = parse_solution_target_percent(solution.get("name") or solution.get("id") or "")
 
     sub_sizes = {level: g.num_boundaries for level, g in boundary_grids.items()}
-    accumulator = SpeciesAccumulator(target_pct=target_pct, pool_sizes=pool_sizes)
+    accumulator = SpeciesAccumulator(
+        target_pct=target_pct,
+        pool_sizes=pool_sizes,
+        species_expected=len(species_records),
+    )
     accumulator.init_sub(sub_sizes)
 
     selected_flat = raster.selected_mask.ravel()
@@ -1011,47 +1652,50 @@ def _process_species_for_solution(
                 f"({elapsed:.1f}s, present_nat={accumulator.national.all_present})"
             )
 
-        accumulator.species_processed += 1
-
         try:
             url = sp.blob_url
             dl = cached_download(url, cache_dir, force=force_download)
-        except Exception as exc:
+            aligned = alignment_cache.species.align(
+                dl.path,
+                dl.sha256,
+                raster.fingerprint,
+                source_url=url,
+                authoritative_area_km2=sp.range_km2,
+            )
+            overlap = read_species_overlap(aligned.path, raster.fingerprint)
+            accumulator.species_aligned += 1
+            accumulator.species_processed += 1
+        except (AlignmentError, DownloadError, RasterError, OSError, ValueError) as exc:
             accumulator.species_missing_tif += 1
-            if accumulator.species_missing_tif <= 5:
-                print(
-                    f"[tier1-metrics]   WARN: failed to fetch species TIF '{sp.blob_filename}': {exc}",
-                    file=sys.stderr,
-                )
-            continue
+            raise AlignmentError(
+                f"Species input {sp.blob_filename!r} failed; no metrics will be "
+                f"accepted for this solution: {exc}"
+            ) from exc
 
-        try:
-            mask = read_species_mask(dl.path, raster.fingerprint)
-        except (RasterError, OSError) as exc:
-            accumulator.species_missing_tif += 1
-            if accumulator.species_missing_tif <= 5:
-                print(
-                    f"[tier1-metrics]   WARN: failed to read species TIF '{sp.blob_filename}': {exc}",
-                    file=sys.stderr,
-                )
-            continue
-
-        range_indices = np.flatnonzero(mask.ravel())
-        total_range = int(range_indices.size)
-        if total_range == 0:
+        range_indices = overlap.flat_indices
+        range_areas_m2 = overlap.areas_m2
+        total_range_area_m2 = float(range_areas_m2.sum(dtype=np.float64))
+        if range_indices.size == 0:
             continue
 
         accumulator.species_with_range += 1
 
         selected_at_range = selected_flat[range_indices]
-        n_selected_in_range = int(selected_at_range.sum())
+        selected_range_area_m2 = float(
+            range_areas_m2[selected_at_range].sum(dtype=np.float64)
+        )
 
-        accumulator.record_species_national(sp, n_selected_in_range, total_range)
+        accumulator.record_species_national(
+            sp,
+            selected_range_area_m2,
+            total_range_area_m2,
+        )
 
-        if n_selected_in_range == 0:
+        if selected_range_area_m2 <= 0:
             continue
 
         selected_range_indices = range_indices[selected_at_range]
+        selected_range_areas_m2 = range_areas_m2[selected_at_range]
 
         for level, bid_arr in bid_flats.items():
             bids_at_range = bid_arr[range_indices]
@@ -1065,9 +1709,18 @@ def _process_species_for_solution(
 
             total_per = np.bincount(
                 bids_at_range[mask_total] if mask_total.any() else np.empty(0, dtype=np.int32),
+                weights=(
+                    range_areas_m2[mask_total]
+                    if mask_total.any()
+                    else np.empty(0, dtype=np.float64)
+                ),
                 minlength=n_levels,
             )
-            sel_per = np.bincount(bids_at_selected[mask_sel], minlength=n_levels)
+            sel_per = np.bincount(
+                bids_at_selected[mask_sel],
+                weights=selected_range_areas_m2[mask_sel],
+                minlength=n_levels,
+            )
             accumulator.record_species_sub_level(sp, level, sel_per, total_per)
 
     elapsed = time.time() - started
@@ -1076,6 +1729,19 @@ def _process_species_for_solution(
         f"(processed={accumulator.species_processed}, with_range={accumulator.species_with_range}, "
         f"missing={accumulator.species_missing_tif}, target_pct={target_pct})"
     )
+    if not (
+        accumulator.species_expected
+        == accumulator.species_aligned
+        == accumulator.species_processed
+        and accumulator.species_missing_tif == 0
+    ):
+        raise AlignmentError(
+            "Species completeness failed: "
+            f"expected={accumulator.species_expected}, "
+            f"aligned={accumulator.species_aligned}, "
+            f"processed={accumulator.species_processed}, "
+            f"missing={accumulator.species_missing_tif}."
+        )
     return accumulator
 
 
@@ -1120,6 +1786,7 @@ def _build_metrics(
     species_metrics: SpeciesScopeMetrics | None = None,
     species_target_pct: float | None = None,
     species_records: list[SpeciesRecord] | None = None,
+    species_exception_binding: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Compute all computable Tier 1 metrics for one raster scope.
 
@@ -1149,7 +1816,25 @@ def _build_metrics(
             continue
 
         if is_species_metric_kind(defn.kind):
-            results.append(_compute_species_metric(defn, species_metrics, species_target_pct))
+            metric = _compute_species_metric(
+                defn, species_metrics, species_target_pct
+            )
+            if (
+                species_exception_binding is not None
+                and metric.get("status") == "ready"
+                and isinstance(metric.get("value"), (int, float))
+            ):
+                metric["status"] = "partial"
+                metric["notes"] = (
+                    f"{metric.get('notes') or ''} Partial: "
+                    f"{species_exception_binding['excluded']} approved unavailable "
+                    "species sources were excluded."
+                ).strip()
+                metric["details"] = {
+                    **(metric.get("details") or {}),
+                    "speciesException": species_exception_binding,
+                }
+            results.append(metric)
             continue
 
         if defn.kind in _NATIONAL_ONLY_KINDS:
@@ -1295,8 +1980,10 @@ def _preload_layer_masks(
             url = _resolve_layer_url(manifest, layer_id)
             rendering = _layer_rendering(manifest, layer_id)
             masks[layer_id] = layer_cache.get(layer_id, url, raster.fingerprint, rendering, cache_dir, force_download)
-        except (ManifestError, RasterError, OSError) as exc:
-            print(f"[tier1-metrics]   WARNING: could not preload mask layer '{layer_id}': {exc}", file=sys.stderr)
+        except (AlignmentError, ManifestError, RasterError, OSError) as exc:
+            raise AlignmentError(
+                f"Required mask layer {layer_id!r} could not be loaded: {exc}"
+            ) from exc
     return masks
 
 
@@ -1324,8 +2011,10 @@ def _preload_layer_values(
         try:
             url = _resolve_layer_url(manifest, layer_id)
             arrays[layer_id] = value_cache.get(layer_id, url, raster.fingerprint, cache_dir, force_download)
-        except (ManifestError, RasterError, OSError) as exc:
-            print(f"[tier1-metrics]   WARNING: could not preload value layer '{layer_id}': {exc}", file=sys.stderr)
+        except (AlignmentError, ManifestError, RasterError, OSError) as exc:
+            raise AlignmentError(
+                f"Required value layer {layer_id!r} could not be loaded: {exc}"
+            ) from exc
     return arrays
 
 
@@ -1348,14 +2037,26 @@ def _process_solution(
     species_csv_url: str = SPECIES_CSV_URL,
     cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
     release_id: str | None = None,
+    solution_input_signature: dict[str, str] | None = None,
+    solution_catalog_binding: dict[str, Any] | None = None,
+    raster_download: CachedDownload | None = None,
+    alignment_cache: RasterAlignmentCache | None = None,
+    alignment_provenance: dict[str, Any] | None = None,
+    species_exception_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
     domain = solution_domain(solution)
     started = time.time()
 
-    download = cached_download(solution["displayUrl"], cache_dir, force=force_download)
+    download = raster_download or cached_download(
+        _solution_raster_source_url(solution),
+        cache_dir,
+        force=force_download,
+    )
     raster = read_solution_raster(download.path)
+    if alignment_cache is None:
+        alignment_cache = RasterAlignmentCache(cache_dir)
 
     # --- Sub-national setup (rasterize boundaries + build boundary_id grids if needed) ---
     boundary_grids: dict[str, BoundaryIdGrid] = {}
@@ -1395,6 +2096,7 @@ def _process_solution(
             boundary_grids=species_boundary_grids if not national_only else {},
             cache_dir=cache_dir,
             force_download=force_download,
+            alignment_cache=alignment_cache,
         )
 
     # --- National level ---
@@ -1409,6 +2111,7 @@ def _process_solution(
         species_metrics=national_species,
         species_target_pct=species_target,
         species_records=species_records,
+        species_exception_binding=species_exception_binding,
     )
 
     geographies: dict[str, Any] = {
@@ -1489,6 +2192,7 @@ def _process_solution(
                     species_metrics=feat_species,
                     species_target_pct=species_target,
                     species_records=species_records,
+                    species_exception_binding=species_exception_binding,
                 )
                 entry: dict[str, Any] = {"name": feat.name, "metrics": metrics}
                 # Include sirap_kind if present (legacy SIRAP entry shape).
@@ -1506,6 +2210,25 @@ def _process_solution(
             geographies[geo_level] = level_out
             print(f"[tier1-metrics]   {geo_level}: {len(level_out)} features processed")
 
+    if (
+        not _has_complete_regular_output_shape(
+            geographies,
+            national_only=national_only,
+            domain=domain,
+            skip_species=skip_species,
+        )
+        or not _has_complete_required_input_metrics(
+            geographies,
+            domain=domain,
+            skip_species=skip_species,
+            species_exception_binding=species_exception_binding,
+        )
+    ):
+        raise RuntimeError(
+            "Required layer/species metrics are blocked or incomplete; "
+            "no metrics document was written."
+        )
+
     generated_at = _utc_now_iso()
     provenance = build_metrics_provenance(
         domain,
@@ -1514,11 +2237,91 @@ def _process_solution(
         skip_species_boundary_levels=skip_species_boundary_levels or set(),
         species_csv_url=species_csv_url,
         release_id=release_id,
+        alignment_provenance=alignment_provenance,
+        species_exception_binding=species_exception_binding,
     )
+    species_completeness = {
+        "catalogTotal": (
+            species_exception_binding["catalogTotal"]
+            if species_exception_binding is not None
+            else (
+                species_accumulator.species_expected
+                if species_accumulator
+                else 0
+            )
+        ),
+        "availableExpected": (
+            species_exception_binding["availableExpected"]
+            if species_exception_binding is not None
+            else (
+                species_accumulator.species_expected
+                if species_accumulator
+                else 0
+            )
+        ),
+        "excluded": (
+            species_exception_binding["excluded"]
+            if species_exception_binding is not None
+            else 0
+        ),
+        "expected": (
+            species_accumulator.species_expected
+            if species_accumulator
+            else 0
+        ),
+        "aligned": (
+            species_accumulator.species_aligned
+            if species_accumulator
+            else 0
+        ),
+        "processed": (
+            species_accumulator.species_processed
+            if species_accumulator
+            else 0
+        ),
+        "missing": (
+            species_accumulator.species_missing_tif
+            if species_accumulator
+            else 0
+        ),
+        "missingUnexpected": (
+            species_accumulator.species_missing_tif
+            if species_accumulator
+            else 0
+        ),
+        "exception": species_exception_binding,
+        "complete": (
+            species_accumulator is None
+            or (
+                species_accumulator.species_expected
+                == species_accumulator.species_aligned
+                == species_accumulator.species_processed
+                and species_accumulator.species_missing_tif == 0
+                and (
+                    species_exception_binding is None
+                    or (
+                        species_accumulator.species_expected
+                        == species_exception_binding["availableExpected"]
+                        and species_exception_binding["catalogTotal"]
+                        == species_exception_binding["availableExpected"]
+                        + species_exception_binding["excluded"]
+                    )
+                )
+            )
+        ),
+    }
+    provenance["speciesCompleteness"] = species_completeness
     doc = {
         "solutionId": solution_id,
         "generatedAt": generated_at,
+        "solutionRaster": {
+            "solutionBasename": basename,
+            "sha256": download.sha256,
+        },
+        "solutionInputSignature": solution_input_signature,
+        "solutionCatalogBinding": solution_catalog_binding,
         PROVENANCE_KEY: provenance,
+        "speciesCompleteness": species_completeness,
         "geographies": geographies,
     }
     cache_path = write_solution_cache(output_dir, solution_id, doc)
@@ -1547,7 +2350,13 @@ def _process_solution(
         "solutionDomain": domain,
         "catalogSignature": provenance["catalogSignature"],
         "speciesTargetPct": species_target,
+        "speciesExpected": species_completeness["expected"],
+        "speciesCatalogTotal": species_completeness["catalogTotal"],
+        "speciesAvailableExpected": species_completeness["availableExpected"],
+        "speciesExcluded": species_completeness["excluded"],
+        "speciesAligned": species_completeness["aligned"],
         "speciesProcessed": species_accumulator.species_processed if species_accumulator else 0,
+        "speciesMissingUnexpected": species_completeness["missingUnexpected"],
         "speciesWithRange": species_accumulator.species_with_range if species_accumulator else 0,
         "speciesMissingTif": species_accumulator.species_missing_tif if species_accumulator else 0,
         "elapsedSeconds": round(time.time() - started, 2),
@@ -1560,28 +2369,88 @@ def _process_solution(
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    catalog: SolutionCatalog | None = None
+    species_exception: SpeciesExceptionPolicy | None = None
+    if args.solution_catalog is not None:
+        try:
+            catalog = load_solution_catalog(args.solution_catalog)
+        except SolutionCatalogError as exc:
+            print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+            return 2
+        if args.release_id is not None and catalog.release_id != args.release_id:
+            print(
+                "[tier1-metrics] ERROR: --release-id must exactly match "
+                "solution catalog releaseId",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            if catalog.species_exception_binding is not None:
+                if args.species_exception_contract is None:
+                    raise SpeciesExceptionError(
+                        "catalog requires --species-exception-contract."
+                    )
+                species_exception = load_species_exception(
+                    args.species_exception_contract,
+                    release_id=catalog.release_id,
+                    catalog_version=catalog.catalog_version,
+                )
+                if species_exception.binding != catalog.species_exception_binding:
+                    raise SpeciesExceptionError(
+                        "species exception contract does not match catalog binding."
+                    )
+            elif args.species_exception_contract is not None:
+                raise SpeciesExceptionError(
+                    "species exception contract is not authorized by the catalog."
+                )
+        except SpeciesExceptionError as exc:
+            print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+            return 2
+        if args.release_plan is not None:
+            try:
+                args.cache_policy = release_plan_cache_policy(
+                    args.release_plan,
+                    catalog=catalog,
+                )
+            except SolutionCatalogError as exc:
+                print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+                return 2
     if args.release_id:
         args.cache_blob_directory = load_release_config(
             args.release_id
         ).regular_verbose_directory
+        if args.output_dir == DEFAULT_OUTPUT_DIR:
+            args.output_dir = (
+                Path("data/metrics/generated/releases")
+                / args.release_id
+                / "regular/verbose"
+            )
     print(f"[tier1-metrics] manifest: {args.manifest_url}")
 
     try:
         manifest = fetch_manifest(args.manifest_url)
+        catalog_solutions = (
+            _apply_solution_catalog(manifest, catalog)
+            if catalog is not None
+            else manifest.batch_solutions
+        )
     except ManifestError as exc:
+        print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+        return 2
+    except SolutionCatalogError as exc:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
         return 2
 
     domain_counts = {
         domain: sum(
             solution_domain(solution) == domain
-            for solution in manifest.batch_solutions
+            for solution in catalog_solutions
         )
         for domain in ("land", "marine")
     }
     print(
         f"[tier1-metrics] loaded {len(manifest.layers_by_id)} layers, "
-        f"{len(manifest.batch_solutions)} batch solutions "
+        f"{len(catalog_solutions)} batch solutions "
         f"({domain_counts['land']} land, {domain_counts['marine']} marine)"
     )
 
@@ -1593,22 +2462,131 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
 
-    if args.validate_only:
-        print("[tier1-metrics] validate-only: catalog OK, exiting before computation.")
-        return 0
-
     try:
-        selected_solutions = _select_solutions(manifest, args.solution_id, args.limit)
-    except ManifestError as exc:
+        selection_manifest = ResolvedManifest(
+            url=manifest.url,
+            raw=manifest.raw,
+            public_blob_host=manifest.public_blob_host,
+            layers_by_id=manifest.layers_by_id,
+            national_solutions=manifest.national_solutions,
+            batch_solutions=catalog_solutions,
+        )
+        selected_solutions = _select_solutions(
+            selection_manifest,
+            args.solution_id,
+            args.limit,
+        )
+        if catalog is not None and args.release_plan is not None:
+            selected_solutions = _filter_release_plan_solutions(
+                selected_solutions,
+                catalog=catalog,
+                release_plan=args.release_plan,
+            )
+    except (ManifestError, SolutionCatalogError) as exc:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
         return 2
-    if args.release_id and len(selected_solutions) != 108:
+
+    print(
+        f"[tier1-metrics] preflight: validating "
+        f"{len(selected_solutions)} selected raster source(s)"
+    )
+    preflight_downloads, preflight_failures = _preflight_solution_rasters(
+        selected_solutions,
+        cache_dir=args.cache_dir,
+        catalog=catalog,
+    )
+    if preflight_failures:
         print(
-            "[tier1-metrics] ERROR: atomic release generation requires exactly "
-            f"108 solutions; got {len(selected_solutions)}",
+            f"[tier1-metrics] ERROR: raster preflight failed for "
+            f"{len(preflight_failures)} of {len(selected_solutions)} source(s); "
+            "no solutions were processed:",
+            file=sys.stderr,
+        )
+        for failure in preflight_failures:
+            print(f"[tier1-metrics]   - {failure}", file=sys.stderr)
+        return 2
+    print(
+        f"[tier1-metrics] preflight: all {len(preflight_downloads)} "
+        "selected raster source(s) passed"
+    )
+
+    species_csv_download: CachedDownload | None = None
+    species_records: list[SpeciesRecord] | None = None
+    species_pool_sizes: SpeciesPoolSizes | None = None
+    if (
+        any(solution_domain(solution) == "land" for solution in selected_solutions)
+        and not args.skip_species
+    ):
+        try:
+            species_csv_download = cached_download(
+                args.species_csv_url,
+                args.cache_dir,
+                force=args.no_cache,
+            )
+            catalog_species_records = load_species_records(species_csv_download.path)
+            species_pool_sizes = compute_pool_sizes(catalog_species_records)
+            species_records = (
+                species_exception.filter_available(catalog_species_records)
+                if species_exception is not None
+                else catalog_species_records
+            )
+        except Exception as exc:
+            print(
+                f"[tier1-metrics] ERROR: species preflight failed ({exc}); "
+                "no solutions were processed.",
+                file=sys.stderr,
+            )
+            return 2
+
+    print("[tier1-metrics] preflight: warming aligned input cache")
+    alignment_cache, alignment_provenance, alignment_failures = (
+        _preflight_aligned_inputs(
+            selected_solutions,
+            preflight_downloads,
+            manifest,
+            cache_dir=args.cache_dir,
+            force_download=args.no_cache,
+            species_records=species_records,
+            skip_species=args.skip_species,
+            species_exception=species_exception,
+        )
+    )
+    if alignment_provenance is not None:
+        print(
+            "[tier1-metrics] preflight: aligned "
+            f"{alignment_provenance['alignedInputs']} required input(s) to grid "
+            f"{alignment_provenance['targetGridSha256'][:12]}"
+        )
+        cache_storage = alignment_provenance["cacheStorage"]
+        print(
+            "[tier1-metrics] preflight: aligned cache "
+            f"{cache_storage['completePairBytes'] / 1024**3:.2f} GB used; "
+            f"{cache_storage['estimatedReleaseBytes'] / 1024**3:.2f} GB pinned "
+            f"for this run; "
+            f"{cache_storage['configuredMaxBytes'] / 1024**3:.2f} GB limit"
+        )
+    if alignment_failures:
+        print(
+            f"[tier1-metrics] ERROR: input alignment preflight failed for "
+            f"{len(alignment_failures)} required asset(s); no solutions were processed:",
+            file=sys.stderr,
+        )
+        for failure in alignment_failures:
+            print(f"[tier1-metrics]   - {failure}", file=sys.stderr)
+        if not args.write_input_signatures_only:
+            return 2
+    if alignment_cache is None or alignment_provenance is None:
+        print(
+            "[tier1-metrics] ERROR: alignment preflight produced no shared grid.",
             file=sys.stderr,
         )
         return 2
+    if args.validate_only:
+        print(
+            "[tier1-metrics] validate-only: sources and aligned inputs OK; "
+            "exiting before computation."
+        )
+        return 0
 
     solutions = _chunk_solutions(
         selected_solutions,
@@ -1622,12 +2600,123 @@ def main(argv: list[str] | None = None) -> int:
         )
     print(f"[tier1-metrics] processing {len(solutions)} solution(s)")
 
+    if catalog is not None and args.release_id is not None:
+        try:
+            bind_release_output(
+                args.output_dir,
+                catalog=catalog,
+                component="regular-verbose",
+            )
+        except SolutionCatalogError as exc:
+            print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+            return 2
     args.output_dir.mkdir(parents=True, exist_ok=True)
     args.cache_dir.mkdir(parents=True, exist_ok=True)
 
     resume_entries_by_id: dict[str, dict[str, Any]] = {}
     pending_solutions: list[dict[str, Any]] = []
-    if args.force:
+    solution_checksums = {
+        str(solution.get("id")): preflight_downloads[
+            str(solution.get("id"))
+        ].sha256
+        for solution in solutions
+    }
+    solution_input_signatures: dict[str, dict[str, str]] = {}
+    solution_catalog_binding = (
+        {
+            "format": "solution-catalog-binding-v1",
+            "releaseId": catalog.release_id,
+            "catalogVersion": catalog.catalog_version,
+            "catalogSha256": catalog.sha256,
+            "speciesException": catalog.species_exception_binding,
+        }
+        if catalog is not None
+        else None
+    )
+    try:
+        catalog_by_id = catalog.by_id if catalog is not None else {}
+        for solution in solutions:
+            solution_id = str(solution.get("id"))
+            observed = solution_checksums[solution_id]
+            if catalog is not None:
+                catalog_entry = catalog_by_id[solution_id]
+            else:
+                catalog_entry = SolutionCatalogEntry(
+                    solution_id=solution_id,
+                    solution_basename=solution_blob_basename(solution),
+                    domain=solution_domain(solution),
+                    raster_sha256=observed,
+                )
+            expected_provenance = build_metrics_provenance(
+                solution_domain(solution),
+                national_only=args.national_only,
+                skip_species=args.skip_species,
+                skip_species_boundary_levels=set(args.skip_species_boundary_level),
+                species_csv_url=args.species_csv_url,
+                release_id=args.release_id,
+                alignment_provenance=alignment_provenance,
+                species_exception_binding=(
+                    species_exception.binding
+                    if species_exception is not None
+                    and solution_domain(solution) == "land"
+                    else None
+                ),
+            )
+            source_identity = _solution_source_identity(
+                solution,
+                cache_dir=args.cache_dir,
+                force_download=args.no_cache,
+                raster_sha256=observed,
+                species_csv_url=args.species_csv_url,
+                species_csv_sha256=(
+                    species_csv_download.sha256
+                    if (
+                        species_csv_download is not None
+                        and solution_domain(solution) == "land"
+                    )
+                    else None
+                ),
+            )
+            source_identity["inputAlignment"] = alignment_provenance
+            solution_input_signatures[solution_id] = build_solution_input_signature(
+                solution=solution,
+                catalog_entry=catalog_entry,
+                manifest=manifest,
+                metrics_provenance=expected_provenance,
+                source_identity=source_identity,
+            )
+    except (OSError, DownloadError, SolutionCatalogError) as exc:
+        print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+        return 2
+    if args.write_input_signatures_only:
+        if catalog is None:
+            print(
+                "[tier1-metrics] ERROR: input-signature inventory requires a solution catalog",
+                file=sys.stderr,
+            )
+            return 2
+        signature_path = args.output_dir / "solution-input-signatures.json"
+        signature_path.write_text(
+            json.dumps(
+                {
+                    "format": "solution-input-signatures-v1",
+                    "releaseId": catalog.release_id,
+                    "catalogSha256": catalog.sha256,
+                    "signatures": {
+                        solution_id: solution_input_signatures[solution_id]
+                        for solution_id in sorted(solution_input_signatures)
+                    },
+                },
+                indent=2,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(f"[tier1-metrics] input signatures -> {signature_path}")
+        return 2 if alignment_failures else 0
+    if args.cache_policy == "recompute-all":
         pending_solutions = solutions
     else:
         for solution in solutions:
@@ -1641,6 +2730,24 @@ def main(argv: list[str] | None = None) -> int:
                 skip_species_boundary_levels=set(args.skip_species_boundary_level),
                 species_csv_url=args.species_csv_url,
                 release_id=args.release_id,
+                expected_solution_basename=(
+                    catalog.by_id[str(solution.get("id"))].solution_basename
+                    if catalog is not None
+                    else None
+                ),
+                expected_raster_sha256=solution_checksums.get(
+                    str(solution.get("id"))
+                ),
+                expected_input_signature=solution_input_signatures.get(
+                    str(solution.get("id"))
+                ),
+                expected_catalog_binding=solution_catalog_binding,
+                species_exception_binding=(
+                    species_exception.binding
+                    if species_exception is not None
+                    and solution_domain(solution) == "land"
+                    else None
+                ),
             )
             if resume_entry is None:
                 pending_solutions.append(solution)
@@ -1649,7 +2756,7 @@ def main(argv: list[str] | None = None) -> int:
         if resume_entries_by_id:
             print(
                 f"[tier1-metrics] resume: {len(resume_entries_by_id)} existing cache file(s) "
-                f"will be skipped; pass --force to recompute"
+                "will be skipped; use --cache-policy recompute-all to rebuild"
             )
 
     # --- Load boundary data ---
@@ -1674,36 +2781,27 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 2
 
-    layer_cache = _LayerMaskCache()
-    value_cache = _LayerValueCache()
+    layer_cache = _LayerMaskCache(alignment_cache)
+    value_cache = _LayerValueCache(alignment_cache)
     boundary_mask_cache = BoundaryMaskCache()
     boundary_grid_cache = BoundaryIdGridCache()
 
-    # --- Species data loaded once, only when this chunk contains land work ---
-    species_records: list[SpeciesRecord] | None = None
-    species_pool_sizes: SpeciesPoolSizes | None = None
     species_load_error: str | None = None
     has_pending_land = any(
         solution_domain(solution) == "land"
         for solution in pending_solutions
     )
     if has_pending_land and not args.skip_species:
-        try:
-            print(f"[tier1-metrics] fetching species CSV: {args.species_csv_url}")
-            csv_dl = cached_download(args.species_csv_url, args.cache_dir, force=args.no_cache)
-            species_records = load_species_records(csv_dl.path)
-            species_pool_sizes = compute_pool_sizes(species_records)
+        if species_records is None or species_pool_sizes is None:
             print(
-                f"[tier1-metrics] species CSV: {len(species_records):,} non-fish records "
-                f"(pool: {species_pool_sizes.by_bucket})"
-            )
-        except Exception as exc:
-            species_load_error = str(exc)
-            print(
-                f"[tier1-metrics] WARNING: could not load species CSV ({exc}); "
-                "species metrics will be marked 'derivation_needed'.",
+                "[tier1-metrics] ERROR: species preflight did not produce complete inputs.",
                 file=sys.stderr,
             )
+            return 2
+        print(
+            f"[tier1-metrics] species CSV: {len(species_records):,} non-fish records "
+            f"(pool: {species_pool_sizes.by_bucket})"
+        )
 
     deferred = sorted(deferred_metric_ids())
     entries: list[dict[str, Any]] = []
@@ -1738,6 +2836,17 @@ def main(argv: list[str] | None = None) -> int:
                     species_csv_url=args.species_csv_url,
                     cache_blob_directory=args.cache_blob_directory,
                     release_id=args.release_id,
+                    solution_input_signature=solution_input_signatures[solution_id],
+                    solution_catalog_binding=solution_catalog_binding,
+                    raster_download=preflight_downloads[solution_id],
+                    alignment_cache=alignment_cache,
+                    alignment_provenance=alignment_provenance,
+                    species_exception_binding=(
+                        species_exception.binding
+                        if species_exception is not None
+                        and solution_domain(solution) == "land"
+                        else None
+                    ),
                 )
             )
         except Exception as exc:
@@ -1781,7 +2890,24 @@ def main(argv: list[str] | None = None) -> int:
             "selectedBeforeChunk": len(selected_solutions),
             "selectedForChunk": len(solutions),
         },
-        "resumeEnabled": not args.force,
+        "cachePolicy": args.cache_policy,
+        "inputAlignment": alignment_provenance,
+        "solutionCatalog": (
+            {
+                "format": "solution-catalog-v1",
+                "catalogVersion": catalog.catalog_version,
+                "releaseId": catalog.release_id,
+                "sha256": catalog.sha256,
+                "expectedCounts": {
+                    "total": catalog.expected_total_count,
+                    "land": catalog.expected_land_count,
+                    "marine": catalog.expected_marine_count,
+                },
+            }
+            if catalog is not None
+            else None
+        ),
+        "resumeEnabled": args.cache_policy == "use-cache",
         "entries": entries,
         "failures": failures,
     }

@@ -1,0 +1,22 @@
+{
+  "format": "solution-catalog-v1",
+  "catalogVersion": "0.1.0",
+  "releaseId": "shared-fixture-release",
+  "expectedSolutionCount": 2,
+  "expectedLandSolutionCount": 1,
+  "expectedMarineSolutionCount": 1,
+  "solutions": [
+    {
+      "solutionId": "fixture-land",
+      "solutionBasename": "fixture-land.tif",
+      "domain": "land",
+      "rasterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "solutionId": "fixture-marine",
+      "solutionBasename": "fixture-marine.tif",
+      "domain": "marine",
+      "rasterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}

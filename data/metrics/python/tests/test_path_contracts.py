@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from compact_metrics import (
     expected_compact_blob_path,
     expected_compact_public_url,
@@ -17,12 +19,40 @@ from local_io import (
 from path_contracts import safe_solution_id
 
 
-SOLUTION_ID = "demo solution/one"
-SAFE_SOLUTION_ID = "demo_solution_one"
+SOLUTION_ID = "demo-solution_one"
+SAFE_SOLUTION_ID = SOLUTION_ID
 
 
-def test_safe_solution_id_preserves_compatibility_contract():
+def test_safe_solution_id_preserves_canonical_identifier():
     assert safe_solution_id(SOLUTION_ID) == SAFE_SOLUTION_ID
+
+
+@pytest.mark.parametrize(
+    "solution_id",
+    (
+        "",
+        "../escape",
+        "demo/escape",
+        "demo escape",
+        "demo\\escape",
+        ".hidden",
+        "demo\nid",
+        "demo@id",
+        "Demo",
+        "demo.id",
+        "demo+id",
+        "demo(id)",
+        "_demo",
+        "demo-",
+        "demo__id",
+        "demo--id",
+        "demo_-id",
+        "demo-_id",
+    ),
+)
+def test_safe_solution_id_rejects_unsafe_values(solution_id: str):
+    with pytest.raises(ValueError, match="unsafe solution id"):
+        safe_solution_id(solution_id)
 
 
 def test_cache_paths_share_safe_solution_id_contract():

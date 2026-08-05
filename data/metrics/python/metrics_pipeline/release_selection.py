@@ -126,6 +126,7 @@ class ReleaseSelection:
     partition_index: int | None = None
     partition_count: int | None = None
     descriptor_sha256: str | None = None
+    mode: str | None = None
 
     @property
     def is_partition(self) -> bool:
@@ -134,7 +135,7 @@ class ReleaseSelection:
     def to_report(self) -> dict[str, Any]:
         return {
             "format": RELEASE_SELECTION_FORMAT,
-            "mode": "partition" if self.is_partition else "full",
+            "mode": self.mode or ("partition" if self.is_partition else "full"),
             "releaseId": self.release_id,
             "partitionIndex": self.partition_index,
             "partitionCount": self.partition_count,

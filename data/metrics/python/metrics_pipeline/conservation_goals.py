@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 from collections import Counter
@@ -19,7 +20,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from blob_manifest import DEFAULT_MANIFEST_URL, fetch_manifest
+from blob_manifest import (
+    DEFAULT_MANIFEST_URL,
+    solution_blob_basename,
+    fetch_manifest,
+)
 from cli_utils import find_repo_root, resolve_output_dir
 from local_io import DEFAULT_CACHE_DIR, cached_download
 from path_contracts import (
@@ -28,9 +33,21 @@ from path_contracts import (
     solution_public_url,
 )
 from solution_domain import SolutionDomain, is_batch_solution, solution_domain
+from release_config import load_release_config
+from solution_catalog import (
+    SolutionCatalog,
+    SolutionCatalogError,
+    bind_release_output,
+    load_release_plan,
+    load_solution_catalog,
+    release_plan_cache_policy,
+    validate_catalog_solution_ids,
+)
+from solution_input_signature import canonical_sha256
 from summary_metadata import resolve_summary_csv_url
 
 GOALS_FORMAT = "conservation-goals-v1"
+GOALS_PROVENANCE_FORMAT = "conservation-goals-provenance-v1"
 GOALS_SUFFIX = ".goals.json"
 DEFAULT_GOALS_OUTPUT_DIR = Path("data/metrics/generated/goals")
 DEFAULT_GOALS_BLOB_DIRECTORY = "metrics/goals"
@@ -262,6 +279,190 @@ def goals_output_path(output_dir: Path, solution_id: str) -> Path:
     return solution_artifact_path(output_dir, solution_id, suffix=GOALS_SUFFIX)
 
 
+def _catalog_binding(catalog: SolutionCatalog) -> dict[str, str]:
+    return {
+        "format": "solution-catalog-binding-v1",
+        "releaseId": catalog.release_id,
+        "catalogVersion": catalog.catalog_version,
+        "catalogSha256": catalog.sha256,
+    }
+
+
+def _goals_provenance(
+    *,
+    solution: dict[str, Any],
+    catalog: SolutionCatalog,
+    summary_csv_url: str,
+    summary_csv_sha256: str,
+    species_csv_sha256: str | None,
+) -> dict[str, Any]:
+    catalog_entry = catalog.by_id[str(solution["id"])]
+    descriptor = {
+        "format": GOALS_PROVENANCE_FORMAT,
+        "goalsFormat": GOALS_FORMAT,
+        "catalogSolution": catalog_entry.to_dict(),
+        "manifestSolution": {
+            key: value
+            for key, value in solution.items()
+            if key != "precomputedMetricUrls"
+        },
+        "summaryCsv": {
+            "url": summary_csv_url,
+            "sha256": summary_csv_sha256,
+        },
+        "speciesCsv": {
+            "url": SPECIES_CSV_URL if species_csv_sha256 else None,
+            "sha256": species_csv_sha256,
+        },
+    }
+    return {
+        "format": GOALS_PROVENANCE_FORMAT,
+        "releaseId": catalog.release_id,
+        "catalogBinding": _catalog_binding(catalog),
+        "solutionBasename": catalog_entry.solution_basename,
+        "rasterSha256": catalog_entry.raster_sha256,
+        "summaryCsvUrl": summary_csv_url,
+        "summaryCsvSha256": summary_csv_sha256,
+        "speciesCsvSha256": species_csv_sha256,
+        "inputSignature": canonical_sha256(descriptor),
+    }
+
+
+def _goal_count_is_valid(value: Any, *, species: bool = False) -> bool:
+    if not isinstance(value, dict):
+        return False
+    met_key = "metSpeciesCount" if species else "metCount"
+    total_key = "totalSpeciesCount" if species else "totalCount"
+    met = value.get(met_key)
+    total = value.get(total_key)
+    pct = value.get("pctMet")
+    return (
+        isinstance(met, int)
+        and not isinstance(met, bool)
+        and isinstance(total, int)
+        and not isinstance(total, bool)
+        and 0 <= met <= total
+        and (pct is None or isinstance(pct, (int, float)))
+    )
+
+
+def goals_document_is_complete(
+    document: dict[str, Any],
+    *,
+    solution_id: str,
+    expected_provenance: dict[str, Any] | None = None,
+) -> bool:
+    features = document.get("features")
+    summary = document.get("summary")
+    by_type = summary.get("byType") if isinstance(summary, dict) else None
+    source = document.get("source")
+    target_context = document.get("targetContext")
+    rollups = document.get("rollups")
+    diagnostics = document.get("diagnostics")
+    row_counts = (
+        diagnostics.get("rowCounts")
+        if isinstance(diagnostics, dict)
+        else None
+    )
+    feature_keys = ("species", "strategicEcosystems", "ecosystems", "other")
+    if not (
+        document.get("format") == GOALS_FORMAT
+        and document.get("solutionId") == solution_id
+        and isinstance(document.get("generatedAt"), str)
+        and bool(document["generatedAt"])
+        and (
+            expected_provenance is None
+            or document.get("goalsProvenance") == expected_provenance
+        )
+        and isinstance(source, dict)
+        and {
+            "metadataUrl",
+            "summaryCsvUrl",
+            "summaryCsvRows",
+            "solutionDomain",
+            "speciesLookupUrl",
+        }.issubset(source)
+        and isinstance(source.get("summaryCsvRows"), int)
+        and source["summaryCsvRows"] >= 0
+        and source.get("solutionDomain") in {"land", "marine"}
+        and isinstance(target_context, dict)
+        and isinstance(summary, dict)
+        and _goal_count_is_valid(summary)
+        and isinstance(by_type, dict)
+        and set(by_type) == set(feature_keys)
+        and _goal_count_is_valid(by_type.get("species"), species=True)
+        and all(
+            _goal_count_is_valid(by_type.get(key))
+            for key in ("strategicEcosystems", "ecosystems", "other")
+        )
+        and isinstance(rollups, dict)
+        and {"species", "strategicEcosystems", "ecosystems"}.issubset(rollups)
+        and isinstance(features, dict)
+        and set(features) == set(feature_keys)
+        and all(isinstance(features.get(key), list) for key in feature_keys)
+        and isinstance(diagnostics, dict)
+        and isinstance(diagnostics.get("rawTypeCounts"), dict)
+        and isinstance(row_counts, dict)
+        and set(row_counts) == set(feature_keys)
+        and all(
+            row_counts[key] == len(features[key])
+            for key in feature_keys
+        )
+        and source["summaryCsvRows"] == sum(row_counts.values())
+        and summary["totalCount"] == sum(row_counts.values())
+        and by_type["species"]["totalSpeciesCount"] == row_counts["species"]
+        and all(
+            by_type[key]["totalCount"] == row_counts[key]
+            for key in ("strategicEcosystems", "ecosystems", "other")
+        )
+    ):
+        return False
+    required_feature_fields = {
+        "featureId",
+        "featureName",
+        "featureType",
+        "met",
+        "totalAmount",
+        "absoluteTarget",
+        "absoluteHeld",
+        "absoluteShortfall",
+        "relativeTarget",
+        "relativeHeld",
+        "relativeShortfall",
+        "scenario",
+    }
+    return all(
+        isinstance(feature, dict)
+        and required_feature_fields.issubset(feature)
+        and feature.get("featureType") == feature_type
+        and isinstance(feature.get("featureId"), str)
+        and isinstance(feature.get("featureName"), str)
+        and (
+            feature.get("met") is None
+            or isinstance(feature.get("met"), bool)
+        )
+        for feature_type in feature_keys
+        for feature in features[feature_type]
+    )
+
+
+def _goals_is_resumable(
+    path: Path,
+    *,
+    solution_id: str,
+    expected_provenance: dict[str, Any],
+) -> bool:
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return goals_document_is_complete(
+        document,
+        solution_id=solution_id,
+        expected_provenance=expected_provenance,
+    )
+
+
 def expected_goals_blob_path(
     solution_id: str,
     *,
@@ -290,7 +491,14 @@ def expected_goals_public_url(
 
 def _read_summary_rows(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8-sig") as handle:
-        return list(csv.DictReader(handle))
+        rows = list(csv.DictReader(handle))
+    if any(_clean_text(row.get("evaluated")) for row in rows):
+        return [
+            row
+            for row in rows
+            if _clean_text(row.get("evaluated")) == "prioritizr_model"
+        ]
+    return rows
 
 
 def _base_feature(row: dict[str, str], *, feature_type: str, met: bool | None) -> dict[str, Any]:
@@ -357,6 +565,7 @@ def _target_context(
         "finderTargetPercent": finder_inputs.get("targetPercent"),
         "targetFeatureSet": finder_inputs.get("targetFeatureSet"),
         "targetFeatureIds": finder_inputs.get("targetFeatureIds") or [],
+        "structuredTargets": finder_inputs.get("structuredTargets"),
         "relativeTargetsByType": {
             key: _unique_sorted_numbers(values)
             for key, values in targets_by_type.items()
@@ -520,6 +729,14 @@ def _summary_csv_path(url: str, cache_dir: Path, *, force: bool) -> Path:
     return Path(url)
 
 
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     manifest_source = parser.add_mutually_exclusive_group()
@@ -556,6 +773,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_GOALS_BLOB_DIRECTORY,
         help=f"Future Blob prefix recorded in the report (default: {DEFAULT_GOALS_BLOB_DIRECTORY}).",
     )
+    parser.add_argument("--release-id", default=None)
+    parser.add_argument("--solution-catalog", type=Path, default=None)
+    parser.add_argument("--release-plan", type=Path, default=None)
+    parser.add_argument(
+        "--cache-policy",
+        choices=("use-cache", "recompute-all"),
+        default="use-cache",
+    )
     parser.add_argument(
         "--solution-id",
         action="append",
@@ -567,37 +792,108 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Re-download source CSVs even when cached locally.",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.release_id and args.solution_catalog is None:
+        parser.error("--release-id requires --solution-catalog")
+    if args.release_plan is not None and not args.release_id:
+        parser.error("--release-plan requires --release-id")
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     repo_root = find_repo_root()
+    catalog = (
+        load_solution_catalog(resolve_output_dir(repo_root, args.solution_catalog))
+        if args.solution_catalog is not None
+        else None
+    )
+    if catalog is not None and catalog.release_id != args.release_id:
+        raise SystemExit("[goals] ERROR: release ID does not match solution catalog")
+    if catalog is not None and args.release_plan is not None:
+        args.cache_policy = release_plan_cache_policy(
+            resolve_output_dir(repo_root, args.release_plan),
+            catalog=catalog,
+        )
+    if args.release_id:
+        release_config = load_release_config(args.release_id)
+        args.goals_blob_directory = release_config.goals_directory
+        if args.output_dir == DEFAULT_GOALS_OUTPUT_DIR:
+            args.output_dir = (
+                Path("data/metrics/generated/releases")
+                / args.release_id
+                / "goals"
+            )
     output_dir = resolve_output_dir(repo_root, args.output_dir)
     cache_dir = resolve_output_dir(repo_root, args.cache_dir)
     manifest, manifest_source = _load_manifest_payload(args, repo_root)
     public_blob_host = str(manifest.get("publicBlobHost") or "").rstrip("/")
     solution_ids = set(args.solution_id or [])
 
+    batch_solutions = [
+        solution
+        for solution in manifest.get("solutions") or []
+        if isinstance(solution, dict) and is_batch_solution(solution)
+    ]
+    if catalog is not None:
+        validate_catalog_solution_ids(
+            catalog,
+            (str(solution.get("id")) for solution in batch_solutions),
+        )
+        for solution in batch_solutions:
+            entry = catalog.by_id[str(solution["id"])]
+            if solution_domain(solution) != entry.domain:
+                raise SystemExit(
+                    f"[goals] ERROR: domain mismatch for {solution['id']!r}"
+                )
+            observed_basename = solution_blob_basename(solution)
+            if observed_basename != entry.solution_basename:
+                raise SystemExit(
+                    f"[goals] ERROR: basename mismatch for {solution['id']!r}"
+                )
+
     solutions: list[dict[str, Any]] = []
-    for solution in manifest.get("solutions") or []:
-        if not isinstance(solution, dict) or not is_batch_solution(solution):
-            continue
+    for solution in batch_solutions:
         solution_id = str(solution.get("id") or "")
         if solution_ids and solution_id not in solution_ids:
             continue
         metadata_path = urlsplit(str(solution.get("metadataUrl") or "")).path.lower()
         if metadata_path.endswith((".csv", ".json")):
             solutions.append(solution)
+    if catalog is not None and args.release_plan is not None:
+        recompute_ids = set(
+            load_release_plan(
+                resolve_output_dir(repo_root, args.release_plan),
+                catalog=catalog,
+                action="recompute",
+            )
+        )
+        solutions = [
+            solution
+            for solution in solutions
+            if str(solution.get("id")) in recompute_ids
+        ]
+        if len(solutions) != len(recompute_ids):
+            raise SystemExit(
+                "[goals] ERROR: release plan recompute count does not match goals selection"
+            )
+    if catalog is not None:
+        bind_release_output(
+            output_dir,
+            catalog=catalog,
+            component="conservation-goals",
+        )
 
     species_records: list[GoalSpeciesRecord] = []
+    species_csv_sha256: str | None = None
     if any(solution_domain(solution) == "land" for solution in solutions):
-        species_csv_path = cached_download(
+        species_download = cached_download(
             SPECIES_CSV_URL,
             cache_dir,
             force=args.force_download,
-        ).path
-        species_records = load_goal_species_records(species_csv_path)
+        )
+        species_csv_sha256 = species_download.sha256
+        species_records = load_goal_species_records(species_download.path)
 
     entries: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
@@ -611,13 +907,45 @@ def main(argv: list[str] | None = None) -> int:
                 cache_dir,
                 force=args.force_download,
             )
-            doc = build_goals_document(
-                solution=solution,
-                summary_csv_path=csv_path,
-                species_records=species_records,
-                summary_csv_url=summary_csv_url,
+            summary_csv_sha256 = _sha256_path(csv_path)
+            goals_provenance = (
+                _goals_provenance(
+                    solution=solution,
+                    catalog=catalog,
+                    summary_csv_url=summary_csv_url,
+                    summary_csv_sha256=summary_csv_sha256,
+                    species_csv_sha256=(
+                        species_csv_sha256
+                        if solution_domain(solution) == "land"
+                        else None
+                    ),
+                )
+                if catalog is not None
+                else None
             )
-            local_path = write_goals_document(output_dir, solution_id, doc)
+            local_path = goals_output_path(output_dir, solution_id)
+            if (
+                args.cache_policy == "use-cache"
+                and goals_provenance is not None
+                and _goals_is_resumable(
+                    local_path,
+                    solution_id=solution_id,
+                    expected_provenance=goals_provenance,
+                )
+            ):
+                doc = json.loads(local_path.read_text(encoding="utf-8"))
+                resume_skipped = True
+            else:
+                doc = build_goals_document(
+                    solution=solution,
+                    summary_csv_path=csv_path,
+                    species_records=species_records,
+                    summary_csv_url=summary_csv_url,
+                )
+                if goals_provenance is not None:
+                    doc["goalsProvenance"] = goals_provenance
+                local_path = write_goals_document(output_dir, solution_id, doc)
+                resume_skipped = False
             expected_blob_path = expected_goals_blob_path(
                 solution_id,
                 goals_blob_directory=args.goals_blob_directory,
@@ -626,13 +954,14 @@ def main(argv: list[str] | None = None) -> int:
                 "solutionId": solution_id,
                 "solutionName": solution.get("name"),
                 "sourceSummaryCsvUrl": summary_csv_url,
-                "goalsPath": str(local_path.relative_to(repo_root)),
+                "cachePath": str(local_path.relative_to(repo_root)),
                 "expectedBlobPath": expected_blob_path,
                 "expectedPublicUrl": (
                     f"{public_blob_host}/{expected_blob_path}" if public_blob_host else None
                 ),
                 "summary": doc["summary"],
                 "rowCounts": doc["diagnostics"]["rowCounts"],
+                "resumeSkipped": resume_skipped,
             })
             print(f"[goals] wrote {solution_id} -> {local_path}")
         except Exception as exc:  # noqa: BLE001 - generation should continue per solution.
@@ -644,6 +973,16 @@ def main(argv: list[str] | None = None) -> int:
         "format": "conservation-goals-report-v1",
         "manifestSource": manifest_source,
         "goalsBlobDirectory": args.goals_blob_directory,
+        "cachePolicy": args.cache_policy,
+        "solutionCatalog": (
+            {
+                "releaseId": catalog.release_id,
+                "catalogVersion": catalog.catalog_version,
+                "sha256": catalog.sha256,
+            }
+            if catalog is not None
+            else None
+        ),
         "entries": entries,
         "failures": failures,
     }

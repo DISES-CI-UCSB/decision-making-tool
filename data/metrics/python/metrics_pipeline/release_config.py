@@ -16,6 +16,7 @@ class ReleaseConfig:
     release_id: str
     regular_verbose_directory: str
     regular_compact_directory: str
+    goals_directory: str
     mec_v2_directory: str
     sirap_boundary_path: str
     sirap_metadata_path: str
@@ -54,6 +55,7 @@ def load_release_config(
         release_id=resolved_id,
         regular_verbose_directory=directory("regularVerboseDirectory"),
         regular_compact_directory=directory("regularCompactDirectory"),
+        goals_directory=directory("goalsDirectory"),
         mec_v2_directory=directory("mecV2Directory"),
         sirap_boundary_path=raw["sirapBoundaryPath"],
         sirap_metadata_path=raw["sirapMetadataPath"],

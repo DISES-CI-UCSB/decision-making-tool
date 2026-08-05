@@ -79,3 +79,26 @@ def test_remote_verification_compares_hash_size_headers_and_format(tmp_path):
 
     assert result["ok"] is True
     assert result["entries"][0]["format"] == "metrics-verbose-v1"
+
+
+def test_remote_verification_rejects_legacy_goals_path(tmp_path):
+    artifact = tmp_path / "demo.goals.json"
+    artifact.write_text('{"solutionId":"demo"}\n', encoding="utf-8")
+    report = tmp_path / "goals-publish-report.json"
+    report.write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {
+                        "solutionId": "demo",
+                        "goalsPath": str(artifact),
+                        "expectedPublicUrl": "https://example.test/demo.goals.json",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="canonical cachePath"):
+        verify_report(report, repo_root=tmp_path)

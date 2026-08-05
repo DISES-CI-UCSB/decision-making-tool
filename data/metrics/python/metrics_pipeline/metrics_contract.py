@@ -4,17 +4,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Iterable
 from typing import Any
 
 from boundaries.boundary_loader import BOUNDARY_SOURCE_SPECS
-from metric_definitions import MetricDefinition, computable_metrics
+from metric_definitions import (
+    MetricDefinition,
+    computable_metrics,
+    is_species_metric_kind,
+)
 from solution_domain import SolutionDomain, normalize_domain
+from species_overlap import SPECIES_OVERLAP_ALGORITHM_VERSION
 
 # Bump this when output schema or calculation semantics change without a
 # corresponding MetricDefinition change. The catalog itself is hashed below.
-METRICS_SCHEMA_VERSION = 1
-CATALOG_SIGNATURE_VERSION = "metrics-catalog-v1"
+METRICS_SCHEMA_VERSION = 3
+CATALOG_SIGNATURE_VERSION = "metrics-catalog-v3"
 PROVENANCE_KEY = "metricsProvenance"
 BOUNDARY_PROVENANCE_VERSION = "boundary-provenance-v1"
 EXPECTED_BOUNDARY_COUNTS = {
@@ -43,6 +49,7 @@ METRIC_OUTPUT_FIELDS = (
 )
 VALID_METRIC_STATUSES = (
     "ready",
+    "partial",
     "blocked",
     "pending",
     "derivation_needed",
@@ -58,6 +65,7 @@ def generation_config(
     skip_species: bool = False,
     skip_species_boundary_levels: Iterable[str] = (),
     species_csv_url: str | None = None,
+    species_exception_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return the normalized output-affecting options for one solution."""
 
@@ -71,6 +79,12 @@ def generation_config(
             else sorted(set(skip_species_boundary_levels))
         )
         config["speciesCsvUrl"] = None if species_skipped else species_csv_url
+        config["speciesAlignmentPolicy"] = (
+            None if species_skipped else SPECIES_OVERLAP_ALGORITHM_VERSION
+        )
+        config["speciesException"] = (
+            None if species_skipped else species_exception_binding
+        )
     return config
 
 
@@ -129,6 +143,8 @@ def build_metrics_provenance(
     skip_species_boundary_levels: Iterable[str] = (),
     species_csv_url: str | None = None,
     release_id: str | None = None,
+    alignment_provenance: dict[str, Any] | None = None,
+    species_exception_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config = generation_config(
         domain,
@@ -136,6 +152,7 @@ def build_metrics_provenance(
         skip_species=skip_species,
         skip_species_boundary_levels=skip_species_boundary_levels,
         species_csv_url=species_csv_url,
+        species_exception_binding=species_exception_binding,
     )
     boundary_sources = {
         level: {
@@ -160,7 +177,7 @@ def build_metrics_provenance(
             separators=(",", ":"),
         ).encode("utf-8")
     ).hexdigest()
-    return {
+    provenance = {
         "schemaVersion": METRICS_SCHEMA_VERSION,
         "solutionDomain": domain,
         "generationConfig": config,
@@ -172,6 +189,9 @@ def build_metrics_provenance(
             "sources": boundary_sources,
         },
     }
+    if alignment_provenance is not None:
+        provenance["inputAlignment"] = alignment_provenance
+    return provenance
 
 
 def provenance_issues(
@@ -276,6 +296,148 @@ def provenance_issues(
             if boundary_provenance.get("sha256") != hashlib.sha256(encoded).hexdigest():
                 issues.append("boundary provenance signature mismatch")
 
+    return issues
+
+
+def regular_artifact_completeness_issues(
+    document: dict[str, Any],
+    *,
+    national_only: bool,
+    domain: SolutionDomain,
+    skip_species: bool = False,
+) -> list[str]:
+    """Validate the complete regular artifact contract shared by every gate."""
+
+    expected_levels = (
+        {"national"}
+        if national_only
+        else {"national", "departments", "municipalities", "siraps", "runaps", "omecs"}
+    )
+    geographies = document.get("geographies")
+    if not isinstance(geographies, dict) or set(geographies) != expected_levels:
+        return ["geography levels are incomplete or unexpected"]
+
+    definitions = computable_metrics()
+    expected_ids = [definition.metric_id for definition in definitions]
+    issues: list[str] = []
+    provenance = document.get(PROVENANCE_KEY)
+    generation = (
+        provenance.get("generationConfig")
+        if isinstance(provenance, dict)
+        else None
+    )
+    species_exception_binding = (
+        generation.get("speciesException")
+        if isinstance(generation, dict)
+        else None
+    )
+    for level, scopes in geographies.items():
+        if not isinstance(scopes, dict) or not scopes:
+            issues.append(f"{level} has no scopes")
+            continue
+        if level == "national" and set(scopes) != {"colombia"}:
+            issues.append("national scopes must contain exactly 'colombia'")
+        for scope_id, scope in scopes.items():
+            metrics = scope.get("metrics") if isinstance(scope, dict) else None
+            if not isinstance(metrics, list):
+                issues.append(f"{level}/{scope_id} has no metrics list")
+                continue
+            observed_ids = [
+                metric.get("metricId") if isinstance(metric, dict) else None
+                for metric in metrics
+            ]
+            if observed_ids != expected_ids:
+                issues.append(f"{level}/{scope_id} metric catalog order is incomplete")
+                continue
+            for definition, metric in zip(definitions, metrics, strict=True):
+                if not isinstance(metric, dict):
+                    issues.append(f"{level}/{scope_id}/{definition.metric_id} is malformed")
+                    continue
+                status = metric.get("status")
+                if status not in VALID_METRIC_STATUSES:
+                    issues.append(
+                        f"{level}/{scope_id}/{definition.metric_id} has invalid status "
+                        f"{status!r}"
+                    )
+                    continue
+                applicable_input = (
+                    domain in definition.applicable_domains
+                    and (
+                        definition.layer_id is not None
+                        or (
+                            is_species_metric_kind(definition.kind)
+                            and not skip_species
+                        )
+                    )
+                )
+                expected_status = (
+                    "partial"
+                    if species_exception_binding is not None
+                    and is_species_metric_kind(definition.kind)
+                    else "ready"
+                )
+                if applicable_input and status != expected_status:
+                    issues.append(
+                        f"{level}/{scope_id}/{definition.metric_id} must be "
+                        f"{expected_status}"
+                    )
+                if status == "partial" and (
+                    isinstance(metric.get("value"), bool)
+                    or not isinstance(metric.get("value"), (int, float))
+                    or not math.isfinite(metric["value"])
+                    or metric.get("details", {}).get("speciesException")
+                    != species_exception_binding
+                ):
+                    issues.append(
+                        f"{level}/{scope_id}/{definition.metric_id} has invalid "
+                        "partial-value provenance"
+                    )
+                if not isinstance(metric.get("unit"), str) or not isinstance(
+                    metric.get("labelKey"), str
+                ):
+                    issues.append(
+                        f"{level}/{scope_id}/{definition.metric_id} metadata is incomplete"
+                    )
+
+    if domain == "land" and not skip_species:
+        completeness = document.get("speciesCompleteness")
+        if not isinstance(completeness, dict):
+            issues.append("speciesCompleteness is missing")
+        else:
+            if species_exception_binding is not None:
+                expected = {
+                    "catalogTotal": species_exception_binding["catalogTotal"],
+                    "availableExpected": species_exception_binding["availableExpected"],
+                    "excluded": species_exception_binding["excluded"],
+                    "aligned": species_exception_binding["availableExpected"],
+                    "processed": species_exception_binding["availableExpected"],
+                    "missingUnexpected": 0,
+                    "complete": True,
+                    "exception": species_exception_binding,
+                }
+                if any(completeness.get(key) != value for key, value in expected.items()):
+                    issues.append(
+                        "speciesCompleteness does not match the signed exception policy"
+                    )
+            else:
+                counts = [
+                    completeness.get("expected"),
+                    completeness.get("aligned"),
+                    completeness.get("processed"),
+                ]
+                if (
+                    completeness.get("complete") is not True
+                    or completeness.get("missing") != 0
+                    or any(
+                        isinstance(value, bool) or not isinstance(value, int)
+                        for value in counts
+                    )
+                    or len(set(counts)) != 1
+                ):
+                    issues.append(
+                        "speciesCompleteness must have complete=true, missing=0, and "
+                        "expected=aligned=processed"
+                    )
     return issues
 
 

@@ -10,7 +10,9 @@ import json
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 from solution_domain import is_batch_solution, solution_domain
 
@@ -43,6 +45,18 @@ def fetch_manifest(url: str | None = None, *, timeout: int = 30) -> ResolvedMani
     target = (url or DEFAULT_MANIFEST_URL).strip()
     if not target:
         raise ManifestError("Manifest URL is empty.")
+
+    parsed = urlsplit(target)
+    if parsed.scheme == "file":
+        try:
+            payload = json.loads(
+                Path(unquote(parsed.path)).read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ManifestError(
+                f"Failed to read local manifest at {target}: {exc}"
+            ) from exc
+        return _validate_and_index(target, payload)
 
     cache_buster_url = f"{target}{'&' if '?' in target else '?'}v={int(__import__('time').time())}"
     req = urllib.request.Request(cache_buster_url, headers={"User-Agent": "tier1-metrics/0.1"})
@@ -126,12 +140,15 @@ def resolve_layer_display_url(manifest: ResolvedManifest, layer_id: str) -> str:
 
 
 def solution_blob_basename(solution: dict[str, Any]) -> str:
-    """Return the file basename (no extension) for the solution's Blob raster."""
+    """Return the solution raster filename, including its extension."""
 
     raster_file = solution.get("rasterFile") or ""
     if raster_file:
-        return raster_file.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        return raster_file.rsplit("/", 1)[-1]
     blob_path = solution.get("blobPath") or ""
     if blob_path:
-        return blob_path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        return blob_path.rsplit("/", 1)[-1]
+    display_url = str(solution.get("displayUrl") or "").split("?", 1)[0]
+    if display_url:
+        return display_url.rsplit("/", 1)[-1]
     return str(solution.get("id", "unknown"))

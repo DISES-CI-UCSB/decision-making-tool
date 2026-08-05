@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+
+SAFE_SOLUTION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:[_-][a-z0-9]+)*$")
 
 
 def safe_solution_id(solution_id: str) -> str:
-    """Return the compatibility-safe identifier used in existing artifact names."""
-    return solution_id.replace("/", "_").replace(" ", "_")
+    """Validate and return the canonical frontend-safe solution identifier."""
+    value = str(solution_id)
+    if not SAFE_SOLUTION_ID_PATTERN.fullmatch(value):
+        raise ValueError(f"unsafe solution id {solution_id!r}")
+    return value
 
 
 def solution_artifact_name(solution_id: str, *, suffix: str) -> str:

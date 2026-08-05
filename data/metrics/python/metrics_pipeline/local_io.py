@@ -11,12 +11,16 @@ import hashlib
 import json
 import os
 import shutil
+import time
 import urllib.error
 import urllib.request
+import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import fcntl
 from path_contracts import (
     solution_artifact_name,
     solution_artifact_path,
@@ -32,6 +36,7 @@ SIDECAR_SUFFIX = ".tier1-metrics.json"
 # Canonical multi-geography cache (T5+).
 CACHE_BLOB_DIRECTORY = "metrics/cache"
 CACHE_SUFFIX = ".metrics.json"
+DEFAULT_DOWNLOAD_LOCK_TIMEOUT_SECONDS = 120.0
 
 
 class DownloadError(RuntimeError):
@@ -52,25 +57,36 @@ def cached_download(url: str, cache_dir: Path, *, force: bool = False) -> Cached
     suffix = _suffix_from_url(url)
     target = cache_dir / f"{digest}{suffix}"
 
-    if target.exists() and not force:
-        return CachedDownload(
-            url=url,
-            path=target,
-            sha256=_sha256_file(target),
-            bytes=target.stat().st_size,
+    lock_timeout = float(
+        os.environ.get(
+            "METRICS_DOWNLOAD_LOCK_TIMEOUT_SECONDS",
+            DEFAULT_DOWNLOAD_LOCK_TIMEOUT_SECONDS,
         )
+    )
+    with _file_lock(target.with_suffix(target.suffix + ".lock"), lock_timeout):
+        if target.exists() and not force:
+            return CachedDownload(
+                url=url,
+                path=target,
+                sha256=_sha256_file(target),
+                bytes=target.stat().st_size,
+            )
 
-    tmp = target.with_name(f".{target.name}.{os.getpid()}.part")
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "tier1-metrics/0.1"})
-        with urllib.request.urlopen(req, timeout=120) as response, tmp.open("wb") as out:
-            shutil.copyfileobj(response, out)
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
-        if tmp.exists():
+        tmp = target.with_name(
+            f".{target.name}.{os.getpid()}.{uuid.uuid4().hex}.part"
+        )
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "tier1-metrics/0.1"})
+            with urllib.request.urlopen(req, timeout=120) as response, tmp.open("wb") as out:
+                shutil.copyfileobj(response, out)
+                out.flush()
+                os.fsync(out.fileno())
+            tmp.replace(target)
+            _fsync_directory(target.parent)
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+            raise DownloadError(f"Failed to download {url}: {exc}") from exc
+        finally:
             tmp.unlink(missing_ok=True)
-        raise DownloadError(f"Failed to download {url}: {exc}") from exc
-
-    tmp.replace(target)
     return CachedDownload(
         url=url,
         path=target,
@@ -92,6 +108,35 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+@contextmanager
+def _file_lock(path: Path, timeout_seconds: float):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+b") as handle:
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise DownloadError(
+                        f"Timed out waiting for download cache lock {path.name}."
+                    )
+                time.sleep(0.05)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def staged_sidecar_path(output_dir: Path, solution_basename: str) -> Path:

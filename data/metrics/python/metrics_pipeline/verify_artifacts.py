@@ -22,7 +22,10 @@ def verify_entry(
     repo_root: Path,
     fetch: Callable[[str], tuple[bytes, dict[str, str]]],
 ) -> dict[str, Any]:
-    local_path = Path(str(entry["cachePath"]))
+    cache_path = entry.get("cachePath")
+    if not isinstance(cache_path, str) or not cache_path:
+        raise ValueError("publish report entry must declare canonical cachePath")
+    local_path = Path(cache_path)
     if not local_path.is_absolute():
         local_path = repo_root / local_path
     local_bytes = local_path.read_bytes()
