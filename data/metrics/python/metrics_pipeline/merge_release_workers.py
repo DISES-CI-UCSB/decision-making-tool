@@ -226,6 +226,7 @@ def merge_workers(
     partition_counts: dict[str, int] = {}
     entries_by_id: dict[str, dict[str, Any]] = {}
     shared_contract: dict[str, Any] | None = None
+    species_pool_sizes_by_partition: dict[str, Any] = {}
     worker_mode: str | None = None
 
     for worker_dir in worker_output_dirs:
@@ -306,7 +307,6 @@ def merge_workers(
                 "metricCatalog",
                 "deferredMetricIds",
                 "speciesMetricIds",
-                "speciesPoolSizes",
                 "speciesSkipped",
                 "speciesBoundaryLevelsSkipped",
                 "cachePolicy",
@@ -318,6 +318,16 @@ def merge_workers(
             shared_contract = contract
         elif contract != shared_contract:
             raise SolutionCatalogError("worker generation contracts disagree.")
+
+        species_pool_sizes = report.get("speciesPoolSizes")
+        if partition_key in species_pool_sizes_by_partition:
+            if species_pool_sizes != species_pool_sizes_by_partition[partition_key]:
+                raise SolutionCatalogError(
+                    "worker species pool metadata disagrees for "
+                    f"{partition_key}."
+                )
+        else:
+            species_pool_sizes_by_partition[partition_key] = species_pool_sizes
 
         entries = report.get("entries")
         if not isinstance(entries, list):
@@ -377,6 +387,14 @@ def merge_workers(
             raise SolutionCatalogError(
                 "domain workers do not cover every recompute domain."
             )
+        if set(species_pool_sizes_by_partition) != required_domains:
+            raise SolutionCatalogError(
+                "species pool metadata does not cover every recompute domain."
+            )
+        merged_species_pool_sizes = {
+            domain: species_pool_sizes_by_partition[domain]
+            for domain in sorted(required_domains)
+        }
         alignment = _merge_domain_alignment(reports)
     else:
         if len(partition_counts) != 1:
@@ -386,6 +404,7 @@ def merge_workers(
         alignment = reports[0].get("inputAlignment")
         if any(report.get("inputAlignment") != alignment for report in reports[1:]):
             raise SolutionCatalogError("worker generation contracts disagree.")
+        merged_species_pool_sizes = species_pool_sizes_by_partition["global"]
     if set(entries_by_id) != expected_ids:
         missing = sorted(expected_ids - set(entries_by_id))
         unexpected = sorted(set(entries_by_id) - expected_ids)
@@ -394,6 +413,7 @@ def merge_workers(
             f"missing={missing[:8]}, unexpected={unexpected[:8]}"
         )
     assert shared_contract is not None
+    shared_contract["speciesPoolSizes"] = merged_species_pool_sizes
     bind_release_output(output_dir, catalog=catalog, component="regular-verbose")
     merged_entries = []
     for solution_id in sorted(entries_by_id):

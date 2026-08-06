@@ -238,6 +238,7 @@ def _domain_worker(
     count: int,
     solution_ids: list[str],
     alignment_marker: str | None = None,
+    species_pool_sizes: dict | None = None,
 ) -> Path:
     worker = (
         Path("data/metrics/generated/releases/mixed-release/workers")
@@ -277,7 +278,7 @@ def _domain_worker(
         "metricCatalog": ["metric"],
         "deferredMetricIds": [],
         "speciesMetricIds": [],
-        "speciesPoolSizes": {},
+        "speciesPoolSizes": species_pool_sizes,
         "speciesSkipped": False,
         "speciesBoundaryLevelsSkipped": [],
         "cachePolicy": "recompute-all",
@@ -399,6 +400,63 @@ def test_merge_two_land_workers_and_one_marine_worker(tmp_path: Path):
         ).as_posix()
         for entry in merged["entries"]
     )
+
+
+def test_merge_allows_domain_specific_species_pool_sizes(tmp_path: Path):
+    catalog_path, plan_path, catalog = _mixed_release_contracts(tmp_path)
+    workers = [
+        _domain_worker(
+            tmp_path,
+            catalog=catalog,
+            plan_path=plan_path,
+            domain="land",
+            index=index,
+            count=2,
+            solution_ids=[solution_id],
+            species_pool_sizes={"totalNonFish": 12},
+        )
+        for index, solution_id in enumerate(("land-a", "land-b"))
+    ]
+    workers.append(
+        _domain_worker(
+            tmp_path,
+            catalog=catalog,
+            plan_path=plan_path,
+            domain="marine",
+            index=0,
+            count=1,
+            solution_ids=["marine-a", "marine-b"],
+        )
+    )
+
+    merged = merge_workers(
+        catalog_path=catalog_path,
+        release_plan_path=plan_path,
+        worker_output_dirs=workers,
+        output_dir=tmp_path / "merged",
+    )
+
+    assert merged["speciesPoolSizes"] == {
+        "land": {"totalNonFish": 12},
+        "marine": None,
+    }
+
+
+def test_merge_rejects_species_pool_disagreement_within_domain(tmp_path: Path):
+    catalog_path, plan_path, catalog = _mixed_release_contracts(tmp_path)
+    workers = _three_domain_workers(tmp_path, catalog, plan_path)
+    report_path = workers[2] / "publish-report.json"
+    report = json.loads(report_path.read_text())
+    report["speciesPoolSizes"] = {"totalNonFish": 13}
+    report_path.write_text(json.dumps(report))
+
+    with pytest.raises(SolutionCatalogError, match="species pool metadata disagrees"):
+        merge_workers(
+            catalog_path=catalog_path,
+            release_plan_path=plan_path,
+            worker_output_dirs=workers,
+            output_dir=tmp_path / "merged",
+        )
 
 
 def test_merge_rejects_wrong_domain_entry(tmp_path: Path):
