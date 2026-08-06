@@ -154,6 +154,94 @@ describe('release artifact document validation', () => {
     assert.throws(() => validateCompactMetricsDocument(nonFinitePartial), /finite for partial/);
   });
 
+  it('accepts bound dual outcomes and rejects threshold or policy forgeries', () => {
+    const dualReference = createVerboseDocument();
+    dualReference.metricsProvenance.speciesTargetPolicy = {
+      format: 'species-target-policy-v1',
+      kind: 'dual_reference',
+      source: 'manifest:finderInputs.structuredTargets',
+      decisionSource: 'approved:dual-reference-species-thresholds-v1',
+      structuredTargetDimension: null,
+      structuredTargetCount: 0,
+      structuredTargetsSha256: '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
+      referenceThresholds: [17, 30],
+      referenceThresholdsSha256: '309368de552126d50d8a6ada4eba81fd2d4f48cf5ada1a2044886bf9a5028acb',
+    };
+    for (const scopes of Object.values(dualReference.geographies)) {
+      for (const scope of Object.values(scopes)) {
+        scope.metrics[0] = {
+          metricId: 'threatened_species_secured',
+          value: null,
+          status: 'partial',
+          unit: 'count',
+          labelKey: 'metrics.threatened_species_secured',
+          source: 'manifest:finderInputs.structuredTargets',
+          notes:
+            'No species optimization target was configured; reporting 17% and 30% reference-threshold outcomes.',
+          details: {
+            speciesException: dualReference.metricsProvenance.generationConfig.speciesException,
+            thresholdOutcomes: [
+              { targetPercent: 17, value: 7 },
+              { targetPercent: 30, value: 4 },
+            ],
+          },
+        };
+      }
+    }
+    assert.doesNotThrow(() =>
+      validateVerboseMetricsDocument(dualReference, 'dual-reference', {
+        speciesTargetPolicyEvidence: dualReference.metricsProvenance.speciesTargetPolicy,
+      }),
+    );
+
+    const missingThreshold = structuredClone(dualReference);
+    missingThreshold.geographies.national.colombia.metrics[0].details.thresholdOutcomes.pop();
+    assert.throws(
+      () => validateVerboseMetricsDocument(missingThreshold),
+      /exactly two threshold outcomes/,
+    );
+
+    const nonFiniteOutcome = structuredClone(dualReference);
+    nonFiniteOutcome.geographies.national.colombia.metrics[0].details.thresholdOutcomes[0].value =
+      null;
+    assert.throws(() => validateVerboseMetricsDocument(nonFiniteOutcome), /value must be finite/);
+
+    const nonNullTopLevel = structuredClone(dualReference);
+    nonNullTopLevel.geographies.national.colombia.metrics[0].value = 7;
+    assert.throws(
+      () => validateVerboseMetricsDocument(nonNullTopLevel),
+      /dual-reference status\/provenance/,
+    );
+
+    const forgedPolicy = structuredClone(dualReference);
+    forgedPolicy.metricsProvenance.speciesTargetPolicy.referenceThresholds = [17, 25];
+    assert.throws(
+      () => validateVerboseMetricsDocument(forgedPolicy),
+      /dual-reference thresholds are invalid/,
+    );
+
+    const forgedHash = structuredClone(dualReference);
+    forgedHash.metricsProvenance.speciesTargetPolicy = {
+      format: 'species-target-policy-v1',
+      kind: 'per_species',
+      source: 'manifest:finderInputs.structuredTargets',
+      structuredTargetDimension: 'espRn',
+      structuredTargetCount: 1,
+      structuredTargetsSha256: '2'.repeat(64),
+      matchingInventory: { matchedTargetCount: 1 },
+    };
+    assert.throws(
+      () =>
+        validateVerboseMetricsDocument(forgedHash, 'per-species', {
+          speciesTargetPolicyEvidence: {
+            ...forgedHash.metricsProvenance.speciesTargetPolicy,
+            structuredTargetsSha256: '3'.repeat(64),
+          },
+        }),
+      /must match catalog\/manifest context/,
+    );
+  });
+
   it('rejects skeletal regular artifacts despite valid JSON structure', async () => {
     const missingGeographies = createVerboseDocument();
     delete missingGeographies.geographies.omecs;

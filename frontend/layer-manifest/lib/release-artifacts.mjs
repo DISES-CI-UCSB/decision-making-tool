@@ -76,6 +76,7 @@ export async function validatePublishSummaryArtifacts(verification, summary, lab
           releaseId: catalog?.releaseId,
           catalogVersion: catalog?.catalogVersion,
           catalogSha256,
+          speciesTargetPolicyEvidence: entry.speciesTargetPolicyEvidence,
         },
         entryLabel,
       );

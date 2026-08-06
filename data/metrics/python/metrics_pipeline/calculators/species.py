@@ -44,12 +44,12 @@ final metric values.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 import numpy as np
-
 from species_data import CLASS_BUCKETS, SpeciesPoolSizes, SpeciesRecord
+from species_target_policy import REFERENCE_THRESHOLDS, SpeciesTargetPolicy
 
 IUCN_STATUS_ORDER: tuple[str, ...] = ("CR", "EN", "VU", "NT", "LC", "DD", "other", "unknown")
 _GROUP_LABELS: dict[str, str] = {
@@ -72,12 +72,23 @@ class SpeciesScopeCounts:
     by_bucket: dict[str, int] = field(default_factory=lambda: {b: 0 for b in CLASS_BUCKETS})
     # Species group coverage (#2): species with usable range, and subset meeting
     # the solution target in this scope.
-    coverage_by_bucket: dict[str, "SpeciesCoverageCounts"] = field(
+    coverage_by_bucket: dict[str, SpeciesCoverageCounts] = field(
         default_factory=lambda: {b: SpeciesCoverageCounts() for b in CLASS_BUCKETS}
+    )
+    reference_coverage_by_threshold: dict[
+        float, dict[str, SpeciesCoverageCounts]
+    ] = field(
+        default_factory=lambda: {
+            threshold: {bucket: SpeciesCoverageCounts() for bucket in CLASS_BUCKETS}
+            for threshold in REFERENCE_THRESHOLDS
+        }
     )
     # Threatened metrics (#26 / #3).
     threatened_present: int = 0           # CR/EN/VU non-fish whose range overlaps selection
     threatened_secured: int = 0           # subset whose coverage ratio >= solution_target_pct
+    reference_threatened_secured: dict[float, int] = field(
+        default_factory=lambda: {threshold: 0 for threshold in REFERENCE_THRESHOLDS}
+    )
     # All-non-fish present (numerator of #28).
     all_present: int = 0
 
@@ -87,7 +98,7 @@ class SpeciesCoverageCounts:
     """Met/total counts for species target coverage, with IUCN breakdown."""
     met: int = 0
     total: int = 0
-    by_status: dict[str, "SpeciesCoverageCounts"] = field(default_factory=dict)
+    by_status: dict[str, SpeciesCoverageCounts] = field(default_factory=dict)
 
     def record(self, met: bool, iucn_status: str | None = None) -> None:
         self.total += 1
@@ -114,6 +125,7 @@ class SpeciesAccumulator:
     """
     target_pct: float | None              # 17.0 or 30.0 — None means "skip secured"
     pool_sizes: SpeciesPoolSizes
+    target_policy: SpeciesTargetPolicy | None = None
     species_expected: int = 0
     species_processed: int = 0
     species_aligned: int = 0
@@ -139,16 +151,34 @@ class SpeciesAccumulator:
         selected_range_area_m2: float,
         total_range_area_m2: float,
     ) -> None:
+        target_pct = self._target_for(sp)
+        target_is_applicable = target_pct is not None
         coverage_target_met = _species_coverage_target_met(
             selected_area_m2=selected_range_area_m2,
             total_area_m2=total_range_area_m2,
-            target_pct=self.target_pct,
+            target_pct=target_pct,
         )
-        if sp.bucket is not None:
+        if sp.bucket is not None and target_is_applicable:
             self.national.coverage_by_bucket[sp.bucket].record(
                 coverage_target_met,
                 sp.iucn_status,
             )
+        if (
+            sp.bucket is not None
+            and self.target_policy is not None
+            and self.target_policy.kind == "dual_reference"
+        ):
+            for threshold in REFERENCE_THRESHOLDS:
+                self.national.reference_coverage_by_threshold[threshold][
+                    sp.bucket
+                ].record(
+                    _species_coverage_target_met(
+                        selected_area_m2=selected_range_area_m2,
+                        total_area_m2=total_range_area_m2,
+                        target_pct=threshold,
+                    ),
+                    sp.iucn_status,
+                )
 
         if selected_range_area_m2 <= 0:
             return
@@ -158,12 +188,21 @@ class SpeciesAccumulator:
         if sp.threatened:
             self.national.threatened_present += 1
             if (
-                self.target_pct is not None
+                target_is_applicable
                 and total_range_area_m2 > 0
                 and (selected_range_area_m2 / total_range_area_m2) * 100.0
-                >= self.target_pct
+                >= target_pct
             ):
                 self.national.threatened_secured += 1
+            if (
+                self.target_policy is not None
+                and self.target_policy.kind == "dual_reference"
+                and total_range_area_m2 > 0
+            ):
+                ratio_pct = (selected_range_area_m2 / total_range_area_m2) * 100.0
+                for threshold in REFERENCE_THRESHOLDS:
+                    if ratio_pct >= threshold:
+                        self.national.reference_threatened_secured[threshold] += 1
 
     def record_species_sub_level(
         self,
@@ -179,10 +218,10 @@ class SpeciesAccumulator:
         """
         scope_counts = self.sub[level]
         is_threatened = sp.threatened
-        target = self.target_pct
+        target = self._target_for(sp)
         bucket = sp.bucket
 
-        if bucket is not None:
+        if bucket is not None and target is not None:
             range_indices = np.flatnonzero(total_per_boundary > 0)
             for bidx in range_indices.tolist():
                 denom = float(total_per_boundary[bidx])
@@ -195,6 +234,26 @@ class SpeciesAccumulator:
                     ),
                     sp.iucn_status,
                 )
+        if (
+            bucket is not None
+            and self.target_policy is not None
+            and self.target_policy.kind == "dual_reference"
+        ):
+            range_indices = np.flatnonzero(total_per_boundary > 0)
+            for bidx in range_indices.tolist():
+                denom = float(total_per_boundary[bidx])
+                selected = float(sel_per_boundary[bidx])
+                for threshold in REFERENCE_THRESHOLDS:
+                    scope_counts[bidx].reference_coverage_by_threshold[threshold][
+                        bucket
+                    ].record(
+                        _species_coverage_target_met(
+                            selected_area_m2=selected,
+                            total_area_m2=denom,
+                            target_pct=threshold,
+                        ),
+                        sp.iucn_status,
+                    )
 
         present_indices = np.flatnonzero(sel_per_boundary > 0)
         if present_indices.size == 0:
@@ -206,12 +265,24 @@ class SpeciesAccumulator:
                 counts.by_bucket[bucket] += 1
             if is_threatened:
                 counts.threatened_present += 1
-                if target is not None:
-                    denom = float(total_per_boundary[bidx])
-                    if denom > 0:
-                        ratio_pct = (float(sel_per_boundary[bidx]) / denom) * 100.0
-                        if ratio_pct >= target:
-                            counts.threatened_secured += 1
+                denom = float(total_per_boundary[bidx])
+                if denom <= 0:
+                    continue
+                ratio_pct = (float(sel_per_boundary[bidx]) / denom) * 100.0
+                if target is not None and ratio_pct >= target:
+                    counts.threatened_secured += 1
+                if (
+                    self.target_policy is not None
+                    and self.target_policy.kind == "dual_reference"
+                ):
+                    for threshold in REFERENCE_THRESHOLDS:
+                        if ratio_pct >= threshold:
+                            counts.reference_threatened_secured[threshold] += 1
+
+    def _target_for(self, species: SpeciesRecord) -> float | None:
+        if self.target_policy is not None:
+            return self.target_policy.target_for(species.scientific_name)
+        return self.target_pct
 
 
 # ---------------------------------------------------------------------------
@@ -234,13 +305,15 @@ class SpeciesScopeMetrics:
     threatened_secured: int               # #3
     pct_of_national: float                # #28: all_present / pool * 100
     species_group_coverage: dict[str, object]  # #2 details payload
+    species_group_reference_outcomes: list[dict[str, object]]
+    threatened_secured_reference_outcomes: list[dict[str, object]]
 
     @classmethod
     def from_counts(
         cls,
         counts: SpeciesScopeCounts,
         pool_sizes: SpeciesPoolSizes,
-    ) -> "SpeciesScopeMetrics":
+    ) -> SpeciesScopeMetrics:
         denom = pool_sizes.total_non_fish
         pct = (counts.all_present / denom) * 100.0 if denom else 0.0
         return cls(
@@ -253,6 +326,25 @@ class SpeciesScopeMetrics:
             threatened_secured=counts.threatened_secured,
             pct_of_national=pct,
             species_group_coverage=_species_group_coverage_details(counts),
+            species_group_reference_outcomes=[
+                {
+                    "targetPercent": threshold,
+                    "value": _coverage_met_count(
+                        counts.reference_coverage_by_threshold[threshold]
+                    ),
+                    "details": _species_group_coverage_details_for_buckets(
+                        counts.reference_coverage_by_threshold[threshold]
+                    ),
+                }
+                for threshold in REFERENCE_THRESHOLDS
+            ],
+            threatened_secured_reference_outcomes=[
+                {
+                    "targetPercent": threshold,
+                    "value": counts.reference_threatened_secured[threshold],
+                }
+                for threshold in REFERENCE_THRESHOLDS
+            ],
         )
 
 
@@ -289,11 +381,23 @@ def _species_coverage_target_met(
 
 
 def _species_group_coverage_details(counts: SpeciesScopeCounts) -> dict[str, object]:
+    return _species_group_coverage_details_for_buckets(counts.coverage_by_bucket)
+
+
+def _coverage_met_count(
+    coverage_by_bucket: dict[str, SpeciesCoverageCounts],
+) -> int:
+    return sum(count.met for count in coverage_by_bucket.values())
+
+
+def _species_group_coverage_details_for_buckets(
+    coverage_by_bucket: dict[str, SpeciesCoverageCounts],
+) -> dict[str, object]:
     total = SpeciesCoverageCounts()
     groups: dict[str, object] = {}
 
     for group in CLASS_BUCKETS:
-        group_count = counts.coverage_by_bucket[group]
+        group_count = coverage_by_bucket[group]
         if group_count.total == 0:
             continue
         total.met += group_count.met

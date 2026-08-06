@@ -7,6 +7,7 @@ upload step (run separately) does not have to re-derive paths.
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
@@ -20,7 +21,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import fcntl
 from path_contracts import (
     solution_artifact_name,
     solution_artifact_path,
@@ -51,7 +51,9 @@ class CachedDownload:
     bytes: int
 
 
-def cached_download(url: str, cache_dir: Path, *, force: bool = False) -> CachedDownload:
+def cached_download(
+    url: str, cache_dir: Path, *, force: bool = False
+) -> CachedDownload:
     cache_dir.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
     suffix = _suffix_from_url(url)
@@ -72,12 +74,15 @@ def cached_download(url: str, cache_dir: Path, *, force: bool = False) -> Cached
                 bytes=target.stat().st_size,
             )
 
-        tmp = target.with_name(
-            f".{target.name}.{os.getpid()}.{uuid.uuid4().hex}.part"
-        )
+        tmp = target.with_name(f".{target.name}.{os.getpid()}.{uuid.uuid4().hex}.part")
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "tier1-metrics/0.1"})
-            with urllib.request.urlopen(req, timeout=120) as response, tmp.open("wb") as out:
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "tier1-metrics/0.1"}
+            )
+            with (
+                urllib.request.urlopen(req, timeout=120) as response,
+                tmp.open("wb") as out,
+            ):
                 shutil.copyfileobj(response, out)
                 out.flush()
                 os.fsync(out.fileno())
@@ -140,7 +145,12 @@ def _fsync_directory(path: Path) -> None:
 
 
 def staged_sidecar_path(output_dir: Path, solution_basename: str) -> Path:
-    return output_dir / "blob-staged" / SOLUTION_BLOB_DIRECTORY / f"{solution_basename}{SIDECAR_SUFFIX}"
+    return (
+        output_dir
+        / "blob-staged"
+        / SOLUTION_BLOB_DIRECTORY
+        / f"{solution_basename}{SIDECAR_SUFFIX}"
+    )
 
 
 def expected_blob_path(solution_basename: str) -> str:
@@ -217,11 +227,17 @@ def write_publish_report(output_dir: Path, report: dict[str, Any]) -> Path:
 
 def _write_json_atomic(target: Path, doc: dict[str, Any]) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    tmp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
-    with tmp.open("w", encoding="utf-8") as handle:
-        json.dump(doc, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
-    tmp.replace(target)
+    tmp = target.with_name(f".{target.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    try:
+        with tmp.open("w", encoding="utf-8") as handle:
+            json.dump(doc, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        tmp.replace(target)
+        _fsync_directory(target.parent)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def write_example_output(

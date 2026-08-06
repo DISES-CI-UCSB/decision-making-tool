@@ -127,6 +127,19 @@ describe('cached-metrics.utils', () => {
       format: 'metrics-compact-v1',
       solutionId: 'demo',
       generatedAt: '2026-05-28T00:00:00Z',
+      metricsProvenance: {
+        speciesTargetPolicy: {
+          format: 'species-target-policy-v1',
+          kind: 'dual_reference',
+          source: 'manifest:finderInputs.structuredTargets',
+          decisionSource: 'approved:dual-reference-species-thresholds-v1',
+          structuredTargetDimension: null,
+          structuredTargetCount: 0,
+          structuredTargetsSha256: 'd'.repeat(64),
+          referenceThresholds: [17, 30],
+          referenceThresholdsSha256: 'e'.repeat(64),
+        },
+      },
       metricCatalog: [
         ['national_contribution', '%', 'metrics.national_contribution', 'percent'],
         ['species_groups_protected', 'count', 'metrics.species_groups_protected', 'number'],
@@ -212,6 +225,7 @@ describe('cached-metrics.utils', () => {
         },
       },
     ]);
+    expect(document.metricsProvenance?.speciesTargetPolicy?.kind).toBe('dual_reference');
     expect(geographyScope(document, 'national', 'colombia')?.scopeState).toEqual({
       format: 'solution-raster-scope-state-v1',
       classification: 'supported',

@@ -4,10 +4,9 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import main as pipeline
 import numpy as np
 import pytest
-
-import main as pipeline
 from blob_manifest import (
     ManifestError,
     ResolvedManifest,
@@ -41,20 +40,24 @@ def _manifest(solutions: list[dict]) -> ResolvedManifest:
 
 
 def _raster():
-    return raster_from_fixture({
+    return raster_from_fixture(
+        {
         "shape": [2, 2],
         "pixel_area_km2": 1,
         "selected": [[True, False], [True, True]],
         "valid": [[True, True], [True, True]],
-    })
+        }
+    )
 
 
 def test_manifest_batch_includes_land_and_marine_but_excludes_other_scopes():
-    manifest = _manifest([
+    manifest = _manifest(
+        [
         _solution("legacy-land", "nacional"),
         _solution("marine", "marine", domain="marine"),
         _solution("regional", "sirap", domain="land"),
-    ])
+        ]
+    )
 
     assert [row["id"] for row in manifest.batch_solutions] == [
         "legacy-land",
@@ -93,9 +96,7 @@ def test_fetch_manifest_supports_local_release_preflight(tmp_path: Path):
     manifest = fetch_manifest(path.resolve().as_uri())
 
     assert manifest.url == path.resolve().as_uri()
-    assert [solution["id"] for solution in manifest.batch_solutions] == [
-        "local-land"
-    ]
+    assert [solution["id"] for solution in manifest.batch_solutions] == ["local-land"]
 
 
 @pytest.mark.parametrize(
@@ -255,14 +256,14 @@ def test_process_solution_skips_species_prepass_for_marine(
         "_process_species_for_solution",
         lambda *args, **kwargs: pytest.fail("marine species pre-pass ran"),
     )
-    monkeypatch.setattr(
-        pipeline,
-        "write_solution_cache",
-        lambda output_dir, solution_id, document: (
-            written_documents.append(document)
-            or tmp_path / "marine.metrics.json"
-        ),
-    )
+
+    def write_solution_cache(_output_dir, _solution_id, document):
+        written_documents.append(document)
+        path = tmp_path / "marine.metrics.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        return path
+
+    monkeypatch.setattr(pipeline, "write_solution_cache", write_solution_cache)
 
     result = pipeline._process_solution(
         solution=solution,

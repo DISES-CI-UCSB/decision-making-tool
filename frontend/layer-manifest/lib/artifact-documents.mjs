@@ -119,6 +119,22 @@ const REGULAR_METRIC_IDS = [
   'national_parks_pct',
   'indigenous_territory_pct',
 ];
+const SPECIES_METRIC_IDS = new Set([
+  'species_groups_protected',
+  'threatened_species_secured',
+  'species_richness_mammals',
+  'species_richness_birds',
+  'species_richness_amphibians',
+  'species_richness_reptiles',
+  'species_richness_plants',
+  'threatened_species_count',
+  'species_pct_of_national',
+]);
+const TARGET_DEPENDENT_SPECIES_METRIC_IDS = new Set([
+  'species_groups_protected',
+  'threatened_species_secured',
+]);
+const TARGET_POLICY_SOURCE = 'manifest:finderInputs.structuredTargets';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -193,8 +209,13 @@ export function validateVerboseMetricsDocument(
           VALID_METRIC_STATUSES.has(metric.status),
           `${rowLabel}.status is outside the metrics contract`,
         );
-        validateMetricValue(metric.status, metric.value, rowLabel);
+        validateMetricValue(metric.status, metric.value, rowLabel, {
+          allowPartialNull:
+            context.provenance.speciesTargetPolicy?.kind === 'dual_reference' &&
+            TARGET_DEPENDENT_SPECIES_METRIC_IDS.has(metric.metricId),
+        });
       }
+      validateSpeciesMetricPolicy(metrics, scope, context, metricLabel);
       validateEmptyMetricProof(metrics, scope, metricLabel);
     },
   );
@@ -260,7 +281,11 @@ export function validateCompactMetricsDocument(
           VALID_METRIC_STATUSES.has(document.statusCatalog[row[2]]),
           `${rowLabel}.statusIndex references a status outside the metrics contract`,
         );
-        validateMetricValue(document.statusCatalog[row[2]], row[1], rowLabel);
+        validateMetricValue(document.statusCatalog[row[2]], row[1], rowLabel, {
+          allowPartialNull:
+            context.provenance.speciesTargetPolicy?.kind === 'dual_reference' &&
+            TARGET_DEPENDENT_SPECIES_METRIC_IDS.has(document.metricCatalog[row[0]][0]),
+        });
       }
       validateEmptyMetricProof(
         metrics.map((row) => ({ status: document.statusCatalog[row[2]], value: row[1] })),
@@ -269,6 +294,19 @@ export function validateCompactMetricsDocument(
       );
       const metricIds = metrics.map((row) => document.metricCatalog[row[0]][0]);
       assertExactArray(metricIds, REGULAR_METRIC_IDS, `${metricLabel} metric IDs`);
+      validateSpeciesMetricPolicy(
+        metrics.map((row) => ({
+          metricId: document.metricCatalog[row[0]][0],
+          status: document.statusCatalog[row[2]],
+          source: document.sourceCatalog[row[3]],
+          notes: document.notesCatalog[row[4]],
+          value: row[1],
+          details: row[5],
+        })),
+        scope,
+        context,
+        metricLabel,
+      );
     },
   );
 }
@@ -309,7 +347,8 @@ function isSha256(value) {
   return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 }
 
-function validateMetricValue(status, value, label) {
+function validateMetricValue(status, value, label, { allowPartialNull = false } = {}) {
+  if (status === 'partial' && value === null && allowPartialNull) return;
   if (status === 'ready' || status === 'partial') {
     assert(Number.isFinite(value), `${label}.value must be finite for ${status}`);
     return;
@@ -436,8 +475,128 @@ function validateMetricsProvenance(provenance, label, expected) {
       `${label}.metricsProvenance.catalogSignature must match publish provenance`,
     );
   }
+  validateSpeciesTargetPolicy(provenance.speciesTargetPolicy, expected, label);
   validateBoundaryProvenance(provenance.boundaryProvenance, label);
   return provenance;
+}
+
+function validateSpeciesTargetPolicy(policy, expected, label) {
+  if (policy === undefined) {
+    assert(
+      expected?.speciesTargetPolicyEvidence === undefined ||
+        expected.speciesTargetPolicyEvidence === null,
+      `${label}.metricsProvenance species target policy must match manifest context`,
+    );
+    return;
+  }
+  const policyLabel = `${label}.metricsProvenance.speciesTargetPolicy`;
+  assert(isRecord(policy), `${policyLabel} must be an object`);
+  assert(policy.format === 'species-target-policy-v1', `${policyLabel}.format is invalid`);
+  assert(
+    policy.kind === 'per_species' || policy.kind === 'dual_reference',
+    `${policyLabel}.kind is invalid`,
+  );
+  assert(policy.source === TARGET_POLICY_SOURCE, `${policyLabel}.source is invalid`);
+  assert(
+    Number.isSafeInteger(policy.structuredTargetCount) && policy.structuredTargetCount >= 0,
+    `${policyLabel}.structuredTargetCount is invalid`,
+  );
+  assert(isSha256(policy.structuredTargetsSha256), `${policyLabel} target hash is invalid`);
+  if (policy.kind === 'dual_reference') {
+    assert(
+      policy.structuredTargetCount === 0 &&
+        policy.structuredTargetDimension === null &&
+        policy.structuredTargetsSha256 === sha256Canonical([]),
+      `${policyLabel} dual-reference policy must have zero structured targets`,
+    );
+    assert(
+      canonicalJson(policy.referenceThresholds) === canonicalJson([17, 30]) &&
+        policy.referenceThresholdsSha256 === sha256Canonical([17, 30]) &&
+        policy.decisionSource === 'approved:dual-reference-species-thresholds-v1',
+      `${policyLabel} dual-reference thresholds are invalid`,
+    );
+  } else {
+    assert(
+      policy.structuredTargetCount > 0 &&
+        policy.structuredTargetDimension === 'espRn' &&
+        isRecord(policy.matchingInventory) &&
+        policy.matchingInventory.matchedTargetCount === policy.structuredTargetCount,
+      `${policyLabel} per-species matching inventory is invalid`,
+    );
+  }
+  if (expected?.speciesTargetPolicyEvidence !== undefined) {
+    assert(
+      canonicalJson(policy) === canonicalJson(expected.speciesTargetPolicyEvidence),
+      `${policyLabel} must match catalog/manifest context`,
+    );
+  }
+}
+
+function validateSpeciesMetricPolicy(metrics, scope, context, label) {
+  if (scope.scopeState?.classification === 'empty') return;
+  const policyKind = context.provenance.speciesTargetPolicy?.kind ?? 'scalar';
+  const hasException = isRecord(context.provenance.generationConfig?.speciesException);
+  for (const metric of metrics) {
+    if (!SPECIES_METRIC_IDS.has(metric.metricId)) continue;
+    if (
+      policyKind === 'dual_reference' &&
+      TARGET_DEPENDENT_SPECIES_METRIC_IDS.has(metric.metricId)
+    ) {
+      validateDualThresholdMetric(
+        metric,
+        `${label} ${metric.metricId}`,
+        context.provenance.generationConfig?.speciesException,
+      );
+      continue;
+    }
+    if (hasException) {
+      assert(
+        metric.status === 'partial',
+        `${label} ${metric.metricId} must be partial under the species exception`,
+      );
+    }
+    assert(
+      metric.status !== 'not_applicable',
+      `${label} ${metric.metricId} must not be not_applicable`,
+    );
+  }
+}
+
+function validateDualThresholdMetric(metric, label, speciesException) {
+  assert(
+    metric.status === 'partial' &&
+      metric.value === null &&
+      metric.source === TARGET_POLICY_SOURCE &&
+      isRecord(metric.details) &&
+      Array.isArray(metric.details.thresholdOutcomes),
+    `${label} dual-reference status/provenance is invalid`,
+  );
+  const outcomes = metric.details.thresholdOutcomes;
+  if (isRecord(speciesException)) {
+    assert(
+      canonicalJson(metric.details.speciesException) === canonicalJson(speciesException),
+      `${label} species exception binding is invalid`,
+    );
+  }
+  assert(outcomes.length === 2, `${label} must contain exactly two threshold outcomes`);
+  assert(
+    canonicalJson(outcomes.map((outcome) => outcome?.targetPercent)) === canonicalJson([17, 30]),
+    `${label} thresholds must be unique and sorted as 17,30`,
+  );
+  for (const [index, outcome] of outcomes.entries()) {
+    assert(
+      isRecord(outcome) && Number.isFinite(outcome.value),
+      `${label}.details.thresholdOutcomes[${index}].value must be finite`,
+    );
+    if (metric.metricId === 'species_groups_protected') {
+      assert(
+        isRecord(outcome.details) &&
+          isRecord(outcome.details.summary) &&
+          isRecord(outcome.details.groups),
+        `${label}.details.thresholdOutcomes[${index}] group breakdown is invalid`,
+      );
+    }
+  }
 }
 
 function validateBoundaryProvenance(boundaryProvenance, label) {

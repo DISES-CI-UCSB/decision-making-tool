@@ -56,7 +56,8 @@ export interface MetricValue {
   metricId: string;
   /**
    * Nullability convention:
-   * - `ready|partial` => value should be a number
+   * - `ready` and ordinary `partial` => value should be a number
+   * - dual-reference target `partial` => value is null and thresholdOutcomes are finite
    * - `derivation_needed|blocked|pending|not_applicable|empty` => value should be null
    */
   value: number | null;
@@ -66,7 +67,17 @@ export interface MetricValue {
   notes: string | null;
   labelKey: string;
   formatHint: MetricValueFormatHint;
+  details?: MetricValueDetails;
+}
+
+export interface SpeciesThresholdOutcome {
+  targetPercent: 17 | 30;
+  value: number;
   details?: Record<string, unknown>;
+}
+
+export interface MetricValueDetails extends Record<string, unknown> {
+  thresholdOutcomes?: [SpeciesThresholdOutcome, SpeciesThresholdOutcome];
 }
 
 export interface GeographyScopeState {
@@ -90,6 +101,30 @@ export interface GeographyScopeState {
     allTouched: false;
     referenceGrid: 'solution raster grid';
   };
+}
+
+export type SpeciesTargetPolicyKind = 'scalar' | 'per_species' | 'dual_reference';
+
+export interface SpeciesTargetMatchingInventory {
+  normalization: 'manifest-target-feature-id-v1';
+  catalogSpeciesCount: number;
+  availableSpeciesCount: number;
+  matchedTargetCount: number;
+  availableMatchedTargetCount: number;
+  excludedMatchedTargetCount: number;
+}
+
+export interface SpeciesTargetPolicyProvenance {
+  format: 'species-target-policy-v1';
+  kind: Exclude<SpeciesTargetPolicyKind, 'scalar'>;
+  source: 'manifest:finderInputs.structuredTargets';
+  structuredTargetDimension: 'espRn' | null;
+  structuredTargetCount: number;
+  structuredTargetsSha256: string;
+  matchingInventory?: SpeciesTargetMatchingInventory;
+  decisionSource?: 'approved:dual-reference-species-thresholds-v1';
+  referenceThresholds?: [17, 30];
+  referenceThresholdsSha256?: string;
 }
 
 /** One administrative scope (national Colombia, a department, municipality, SIRAP, …). */
@@ -133,6 +168,10 @@ export interface CachedSolutionMetricsGeographies {
 export interface CachedSolutionMetricsDocument {
   solutionId: string;
   generatedAt: string;
+  metricsProvenance?: {
+    speciesTargetPolicy?: SpeciesTargetPolicyProvenance;
+    [key: string]: unknown;
+  };
   geographies: CachedSolutionMetricsGeographies;
 }
 
@@ -168,6 +207,7 @@ export interface CompactSolutionMetricsDocument {
   statusCatalog: MetricReadinessStatus[];
   sourceCatalog: string[];
   notesCatalog: (string | null)[];
+  metricsProvenance?: CachedSolutionMetricsDocument['metricsProvenance'];
   geographies: Record<string, Record<string, CompactGeographyMetricsScope> | undefined>;
 }
 

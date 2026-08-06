@@ -117,6 +117,7 @@ export function expandCompactMetricsDocument(
   return {
     solutionId: document.solutionId,
     generatedAt: document.generatedAt,
+    ...(document.metricsProvenance ? { metricsProvenance: document.metricsProvenance } : {}),
     geographies,
   };
 }

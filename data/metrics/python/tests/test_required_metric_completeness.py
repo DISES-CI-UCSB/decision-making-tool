@@ -93,3 +93,33 @@ def test_required_metric_issues_report_every_exact_failure(monkeypatch):
             "reason": "Species target unavailable.",
         },
     ]
+
+
+def test_dual_reference_policy_requires_target_dependent_metrics_partial(
+    monkeypatch,
+):
+    definitions = (
+        _definition("groups", kind="species_group_coverage"),
+        _definition("secured", kind="species_threatened_secured"),
+        _definition("richness", kind="species_richness"),
+    )
+    monkeypatch.setattr(pipeline, "computable_metrics", lambda: definitions)
+    geographies = {
+        "national": {
+            "colombia": {
+                "metrics": [
+                    {"metricId": "groups", "status": "partial"},
+                    {"metricId": "secured", "status": "partial"},
+                    {"metricId": "richness", "status": "partial"},
+                ]
+            }
+        }
+    }
+
+    assert pipeline._has_complete_required_input_metrics(
+        geographies,
+        domain="land",
+        skip_species=False,
+        species_exception_binding={"excluded": 2},
+        species_target_policy_kind="dual_reference",
+    )

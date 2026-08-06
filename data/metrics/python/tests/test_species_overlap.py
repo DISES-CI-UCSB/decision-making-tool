@@ -11,20 +11,20 @@ import numpy as np
 import pyproj
 import pytest
 import rasterio
+from calculators.species import SpeciesAccumulator, SpeciesScopeMetrics
+from raster_align import AlignmentError, RasterAlignmentCache
+from raster_metrics import RasterFingerprint
 from rasterio.transform import from_origin
 from rasterio.warp import calculate_default_transform
 from shapely.geometry import Polygon
 from shapely.ops import transform as transform_geometry
-
-from calculators.species import SpeciesAccumulator
-from raster_align import AlignmentError, RasterAlignmentCache
-from raster_metrics import RasterFingerprint
 from species_data import SpeciesPoolSizes, SpeciesRecord
 from species_overlap import (
     SPECIES_OVERLAP_ALGORITHM_VERSION,
     SpeciesOverlapCache,
     read_species_overlap,
 )
+from species_target_policy import SpeciesTargetPolicy
 
 
 def _sha256(path: Path) -> str:
@@ -396,3 +396,91 @@ def test_species_coverage_uses_exact_area_weights():
         total_range_area_m2=1_000_000.0,
     )
     assert accumulator.national.threatened_secured == 1
+
+
+def test_per_species_targets_control_eligibility_and_thresholds():
+    pool = SpeciesPoolSizes(
+        total_non_fish=3,
+        threatened_total=3,
+        by_bucket={
+            "mammals": 0,
+            "birds": 3,
+            "amphibians": 0,
+            "reptiles": 0,
+            "plants": 0,
+        },
+    )
+    policy = SpeciesTargetPolicy(
+        kind="per_species",
+        scalar_target_pct=None,
+        targets_by_species={"low_target": 20.0, "high_target": 80.0},
+        provenance={},
+    )
+    accumulator = SpeciesAccumulator(
+        target_pct=None,
+        pool_sizes=pool,
+        target_policy=policy,
+    )
+    records = [
+        SpeciesRecord(name, "Aves", "EN", 1.0, "birds", True)
+        for name in ("Low target", "High target", "Not targeted")
+    ]
+
+    for record in records:
+        accumulator.record_species_national(
+            record,
+            selected_range_area_m2=500_000,
+            total_range_area_m2=1_000_000,
+        )
+
+    coverage = accumulator.national.coverage_by_bucket["birds"]
+    assert coverage.total == 2
+    assert coverage.met == 1
+    assert accumulator.national.threatened_present == 3
+    assert accumulator.national.threatened_secured == 1
+
+
+def test_dual_reference_thresholds_are_computed_in_one_accumulator_pass():
+    pool = SpeciesPoolSizes(
+        total_non_fish=3,
+        threatened_total=3,
+        by_bucket={
+            "mammals": 0,
+            "birds": 3,
+            "amphibians": 0,
+            "reptiles": 0,
+            "plants": 0,
+        },
+    )
+    policy = SpeciesTargetPolicy(
+        kind="dual_reference",
+        scalar_target_pct=None,
+        targets_by_species={},
+        provenance={},
+    )
+    accumulator = SpeciesAccumulator(
+        target_pct=None,
+        pool_sizes=pool,
+        target_policy=policy,
+    )
+
+    for name, coverage_pct in (("Below", 10), ("Seventeen", 20), ("Thirty", 40)):
+        accumulator.record_species_national(
+            SpeciesRecord(name, "Aves", "EN", 1.0, "birds", True),
+            selected_range_area_m2=coverage_pct,
+            total_range_area_m2=100,
+        )
+
+    metrics = SpeciesScopeMetrics.from_counts(accumulator.national, pool)
+    assert [
+        (outcome["targetPercent"], outcome["value"])
+        for outcome in metrics.species_group_reference_outcomes
+    ] == [(17.0, 2), (30.0, 1)]
+    assert [
+        (outcome["targetPercent"], outcome["value"])
+        for outcome in metrics.threatened_secured_reference_outcomes
+    ] == [(17.0, 2), (30.0, 1)]
+    assert metrics.species_group_reference_outcomes[0]["details"]["summary"] == {
+        "metSpeciesCount": 2,
+        "totalSpeciesCount": 3,
+    }

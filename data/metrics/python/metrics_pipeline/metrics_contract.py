@@ -63,6 +63,7 @@ VALID_METRIC_STATUSES = (
     "empty",
 )
 _SHA256_LENGTH = 64
+_UNSET = object()
 
 
 def _is_nonnegative_int(value: Any) -> bool:
@@ -317,6 +318,7 @@ def build_metrics_provenance(
     release_id: str | None = None,
     alignment_provenance: dict[str, Any] | None = None,
     species_exception_binding: dict[str, Any] | None = None,
+    species_target_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config = generation_config(
         domain,
@@ -363,6 +365,8 @@ def build_metrics_provenance(
     }
     if alignment_provenance is not None:
         provenance["inputAlignment"] = alignment_provenance
+    if species_target_policy is not None:
+        provenance["speciesTargetPolicy"] = species_target_policy
     return provenance
 
 
@@ -372,6 +376,7 @@ def provenance_issues(
     expected_domain: SolutionDomain | None = None,
     expected_config: dict[str, Any] | None = None,
     expected_release_id: str | None = None,
+    expected_species_target_policy: Any = _UNSET,
 ) -> list[str]:
     """Describe missing, malformed, stale, or context-mismatched provenance."""
 
@@ -391,6 +396,45 @@ def provenance_issues(
             f"found {provenance.get('schemaVersion')!r}, "
             f"expected {METRICS_SCHEMA_VERSION!r}"
         )
+    target_policy = provenance.get("speciesTargetPolicy")
+    if target_policy is not None:
+        if (
+            not isinstance(target_policy, dict)
+            or target_policy.get("format") != "species-target-policy-v1"
+            or target_policy.get("kind") not in {"per_species", "dual_reference"}
+            or target_policy.get("source")
+            != "manifest:finderInputs.structuredTargets"
+            or not _is_nonnegative_int(target_policy.get("structuredTargetCount"))
+            or not _is_sha256(target_policy.get("structuredTargetsSha256"))
+        ):
+            issues.append("species target policy provenance is invalid")
+        elif target_policy.get("kind") == "dual_reference":
+            thresholds = target_policy.get("referenceThresholds")
+            expected_thresholds = [17, 30]
+            if (
+                thresholds != expected_thresholds
+                or target_policy.get("decisionSource")
+                != "approved:dual-reference-species-thresholds-v1"
+                or target_policy.get("structuredTargetCount") != 0
+                or target_policy.get("structuredTargetDimension") is not None
+                or target_policy.get("structuredTargetsSha256")
+                != hashlib.sha256(b"[]").hexdigest()
+                or target_policy.get("referenceThresholdsSha256")
+                != hashlib.sha256(
+                    json.dumps(
+                        expected_thresholds,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                ).hexdigest()
+            ):
+                issues.append("dual-reference target policy provenance is invalid")
+    if (
+        expected_species_target_policy is not _UNSET
+        and target_policy != expected_species_target_policy
+    ):
+        issues.append("species target policy does not match manifest context")
 
     raw_domain = provenance.get("solutionDomain")
     try:
@@ -471,6 +515,40 @@ def provenance_issues(
     return issues
 
 
+def _valid_dual_threshold_outcomes(
+    metric: dict[str, Any],
+    definition: MetricDefinition,
+) -> bool:
+    details = metric.get("details")
+    outcomes = details.get("thresholdOutcomes") if isinstance(details, dict) else None
+    if not isinstance(outcomes, list) or len(outcomes) != 2:
+        return False
+    if [outcome.get("targetPercent") for outcome in outcomes if isinstance(outcome, dict)] != [
+        17.0,
+        30.0,
+    ]:
+        return False
+    for outcome in outcomes:
+        if not isinstance(outcome, dict):
+            return False
+        value = outcome.get("value")
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
+            return False
+        if definition.kind == "species_group_coverage":
+            breakdown = outcome.get("details")
+            if (
+                not isinstance(breakdown, dict)
+                or not isinstance(breakdown.get("summary"), dict)
+                or not isinstance(breakdown.get("groups"), dict)
+            ):
+                return False
+    return True
+
+
 def regular_artifact_completeness_issues(
     document: dict[str, Any],
     *,
@@ -510,6 +588,16 @@ def regular_artifact_completeness_issues(
         generation.get("speciesException")
         if isinstance(generation, dict)
         else None
+    )
+    target_policy = (
+        provenance.get("speciesTargetPolicy")
+        if isinstance(provenance, dict)
+        else None
+    )
+    target_policy_kind = (
+        target_policy.get("kind")
+        if isinstance(target_policy, dict)
+        else "scalar"
     )
     national_scope = geographies.get("national", {}).get("colombia", {})
     national_scope_state = (
@@ -593,7 +681,22 @@ def regular_artifact_completeness_issues(
                     )
                     continue
                 value = metric.get("value")
-                if status in {"ready", "partial"}:
+                dual_reference_metric = (
+                    target_policy_kind == "dual_reference"
+                    and definition.kind
+                    in {"species_group_coverage", "species_threatened_secured"}
+                )
+                if (
+                    status == "partial"
+                    and value is None
+                    and dual_reference_metric
+                ):
+                    if not _valid_dual_threshold_outcomes(metric, definition):
+                        issues.append(
+                            f"{level}/{scope_id}/{definition.metric_id} has invalid "
+                            "dual-reference threshold outcomes"
+                        )
+                elif status in {"ready", "partial"}:
                     if (
                         isinstance(value, bool)
                         or not isinstance(value, (int, float))
@@ -645,6 +748,10 @@ def regular_artifact_completeness_issues(
                 elif skip_species and is_species_metric_kind(definition.kind):
                     expected_status = None
                 elif (
+                    target_policy_kind == "dual_reference"
+                    and definition.kind
+                    in {"species_group_coverage", "species_threatened_secured"}
+                ) or (
                     species_exception_binding is not None
                     and is_species_metric_kind(definition.kind)
                 ):
@@ -655,6 +762,19 @@ def regular_artifact_completeness_issues(
                     issues.append(
                         f"{level}/{scope_id}/{definition.metric_id} must be "
                         f"{expected_status}"
+                    )
+                if (
+                    dual_reference_metric
+                    and (
+                        metric.get("source")
+                        != "manifest:finderInputs.structuredTargets"
+                        or metric.get("value") is not None
+                        or not _valid_dual_threshold_outcomes(metric, definition)
+                    )
+                ):
+                    issues.append(
+                        f"{level}/{scope_id}/{definition.metric_id} has invalid "
+                        "dual-reference metric contract"
                     )
                 if status == "partial" and (
                     metric.get("details", {}).get("speciesException")

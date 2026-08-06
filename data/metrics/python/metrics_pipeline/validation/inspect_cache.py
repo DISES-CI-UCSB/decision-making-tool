@@ -83,6 +83,7 @@ def _inspect_metric_list(
     scope_id: str,
     metrics: Any,
     domain: SolutionDomain | None,
+    target_policy_kind: str,
 ) -> list[InspectIssue]:
     issues: list[InspectIssue] = []
     location = f"geographies.{geography_level}.{scope_id}.metrics"
@@ -143,7 +144,14 @@ def _inspect_metric_list(
             continue
 
         value = metric.get("value")
-        if status in {"ready", "partial"}:
+        dual_reference_value = (
+            status == "partial"
+            and value is None
+            and target_policy_kind == "dual_reference"
+            and metric_id
+            in {"species_groups_protected", "threatened_species_secured"}
+        )
+        if status in {"ready", "partial"} and not dual_reference_value:
             if (
                 isinstance(value, bool)
                 or not isinstance(value, (int, float))
@@ -163,7 +171,7 @@ def _inspect_metric_list(
         if status == "not_applicable" and metric.get("source") != "n/a":
             issues.append(InspectIssue(
                 solution_id,
-                f"{location} not_applicable metric '{metric_id}' must use source 'n/a'",
+                f"{location} not_applicable metric '{metric_id}' has invalid source",
             ))
 
         definition = definitions_by_id.get(metric_id)
@@ -184,7 +192,10 @@ def _inspect_metric_list(
                 f"{location} metric '{metric_id}' must be not_applicable "
                 f"for {domain}/{geography_level}",
             ))
-        elif not expected_not_applicable and status == "not_applicable":
+        elif (
+            not expected_not_applicable
+            and status == "not_applicable"
+        ):
             issues.append(InspectIssue(
                 solution_id,
                 f"{location} metric '{metric_id}' is unexpectedly not_applicable "
@@ -213,7 +224,11 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
     )
     provenance = doc.get(PROVENANCE_KEY)
     domain: SolutionDomain | None = None
+    target_policy_kind = "scalar"
     if isinstance(provenance, dict):
+        target_policy = provenance.get("speciesTargetPolicy")
+        if isinstance(target_policy, dict):
+            target_policy_kind = str(target_policy.get("kind"))
         try:
             domain = normalize_domain(provenance.get("solutionDomain"))
         except ValueError:
@@ -272,6 +287,7 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
                 scope_id=scope_id,
                 metrics=scope.get("metrics"),
                 domain=domain,
+                target_policy_kind=target_policy_kind,
             ))
 
     return issues
