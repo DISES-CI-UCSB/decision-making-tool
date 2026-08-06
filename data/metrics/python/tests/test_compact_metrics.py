@@ -7,6 +7,7 @@ import pytest
 from compact_metrics import (
     COMPACT_METRICS_FORMAT,
     ReleaseSelection,
+    _validate_release_selection,
     convert_publish_report,
     expected_compact_blob_path,
     load_release_selection,
@@ -346,6 +347,34 @@ def test_release_compaction_accepts_declared_27_solution_chunk(tmp_path: Path):
     assert report["releaseSelection"]["mode"] == "partial"
     assert report["releaseSelection"]["selectedSolutionIds"] == sorted(selected_ids)
     assert len(report["releaseSelection"]["selectedSolutionIdsSha256"]) == 64
+
+
+@pytest.mark.parametrize(
+    "selected_ids",
+    [_release_solution_ids()[:27], _release_solution_ids()],
+)
+def test_release_selection_accepts_exact_plan_recompute_ids(
+    selected_ids: list[str],
+):
+    catalog_ids = _release_solution_ids()
+    selection = _release_selection(catalog_ids, selected_ids, mode="recompute")
+
+    _validate_release_selection(selection)
+
+    assert selection.as_report_metadata()["mode"] == "recompute"
+    assert selection.as_report_metadata()["selectedSolutionIds"] == sorted(selected_ids)
+
+
+def test_release_selection_rejects_recompute_ids_outside_catalog():
+    catalog_ids = _release_solution_ids()
+    selection = _release_selection(
+        catalog_ids,
+        [catalog_ids[0], "unknown_solution"],
+        mode="recompute",
+    )
+
+    with pytest.raises(ValueError, match="outside the release catalog"):
+        _validate_release_selection(selection)
 
 
 @pytest.mark.parametrize(

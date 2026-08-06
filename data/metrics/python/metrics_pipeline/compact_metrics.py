@@ -97,6 +97,8 @@ def _validated_solution_ids(value: Any, *, field: str) -> tuple[str, ...]:
 
 
 def _validate_release_selection(selection: ReleaseSelection) -> None:
+    if selection.mode not in {"partial", "final", "recompute"}:
+        raise ValueError(f"unknown release selection mode {selection.mode!r}")
     catalog_ids = _validated_solution_ids(
         list(selection.catalog_solution_ids),
         field="catalogSolutionIds",
@@ -118,8 +120,6 @@ def _validate_release_selection(selection: ReleaseSelection) -> None:
         raise ValueError(
             "final release selection must select the complete solution catalog"
         )
-    if selection.mode not in {"partial", "final"}:
-        raise ValueError(f"unknown release selection mode {selection.mode!r}")
 
 
 def load_release_selection(
