@@ -17,6 +17,7 @@ from compact_metrics import (
 from metrics_contract import PROVENANCE_KEY, build_metrics_provenance
 from metric_definitions import computable_metrics
 from solution_catalog import load_solution_catalog
+from helpers import scope_state
 
 TEST_SOLUTION_COUNT = 108
 
@@ -34,6 +35,7 @@ def _verbose_doc(solution_id: str = "demo_solution") -> dict:
             "national": {
                 "colombia": {
                     "name": "Colombia",
+                    "scopeState": scope_state("national", "colombia"),
                     "metrics": [
                         {
                             "metricId": "national_contribution",
@@ -72,6 +74,7 @@ def _verbose_doc(solution_id: str = "demo_solution") -> dict:
                 "05": {
                     "name": "Antioquia",
                     "subtype": "Departamento",
+                    "scopeState": scope_state("departments", "05"),
                     "metrics": [
                         {
                             "metricId": "priority_area_in_region",
@@ -140,26 +143,48 @@ def _write_release_input(
     entries = []
     for solution_id in solution_ids:
         verbose = _verbose_doc(solution_id)
-        metrics = [
-            {
-                "metricId": definition.metric_id,
-                "value": None,
-                "unit": definition.unit,
-                "status": "ready",
-                "source": "test",
-                "notes": "test",
-                "labelKey": definition.label_key,
-                "formatHint": definition.format_hint,
-            }
-            for definition in computable_metrics()
-        ]
+        def metrics_for(level: str) -> list[dict]:
+            metrics = []
+            for definition in computable_metrics():
+                not_applicable = (
+                    "land" not in definition.applicable_domains
+                    or (
+                        level == "national"
+                        and definition.kind == "aoi_percent"
+                    )
+                    or (
+                        level != "national"
+                        and definition.kind
+                        in {"metadata_summary", "metadata_coverage"}
+                    )
+                )
+                metrics.append({
+                    "metricId": definition.metric_id,
+                    "value": None if not_applicable else 1.0,
+                    "unit": definition.unit,
+                    "status": "not_applicable" if not_applicable else "ready",
+                    "source": "n/a" if not_applicable else "test",
+                    "notes": "test",
+                    "labelKey": definition.label_key,
+                    "formatHint": definition.format_hint,
+                })
+            return metrics
+        levels = {
+            "national": "colombia",
+            "departments": "01",
+            "municipalities": "001",
+            "siraps": "sirap-1",
+            "runaps": "runap-1",
+            "omecs": "omec-1",
+        }
         verbose["geographies"] = {
-            "national": {"colombia": {"metrics": metrics}},
-            "departments": {"01": {"metrics": metrics}},
-            "municipalities": {"001": {"metrics": metrics}},
-            "siraps": {"sirap-1": {"metrics": metrics}},
-            "runaps": {"runap-1": {"metrics": metrics}},
-            "omecs": {"omec-1": {"metrics": metrics}},
+            level: {
+                scope_id: {
+                    "scopeState": scope_state(level, scope_id),
+                    "metrics": metrics_for(level),
+                }
+            }
+            for level, scope_id in levels.items()
         }
         verbose[PROVENANCE_KEY] = build_metrics_provenance(
             "land",

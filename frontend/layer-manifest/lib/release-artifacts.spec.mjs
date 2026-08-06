@@ -113,11 +113,18 @@ describe('release artifact verification', () => {
     };
     verification.entries[0].remote = { ...verification.entries[0].local };
     const summary = {
-      entries: [{ solutionId: 'land', cachePath: artifactPath, expectedPublicUrl: url }],
+      entries: [
+        {
+          solutionId: 'land',
+          cachePath: artifactPath,
+          expectedPublicUrl: url,
+          catalogSignature: `metrics-catalog-v4:${'0'.repeat(64)}`,
+        },
+      ],
     };
     await assert.rejects(
       validatePublishSummaryArtifacts(verification, summary, 'inventory'),
-      /geographies must contain exactly/,
+      /solutionRaster must be an object/,
     );
     await fs.rm(directory, { recursive: true, force: true });
   });
@@ -149,6 +156,8 @@ describe('release artifact verification', () => {
           solutionId: 'fixture-land',
           cachePath: fixturePath,
           expectedPublicUrl: url,
+          catalogSignature:
+            'metrics-catalog-v4:609762e9ce722d85eff74f703b1de69e9e98d6830b791a162c02151ec7d4fe43',
         },
       ],
     };

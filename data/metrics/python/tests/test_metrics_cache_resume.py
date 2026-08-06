@@ -4,6 +4,7 @@ import hashlib
 import json
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import main as pipeline
 import pytest
@@ -15,7 +16,9 @@ from metrics_contract import (
     build_metrics_provenance,
     catalog_signature,
 )
+from raster_metrics import RasterFingerprint
 from solution_catalog import SolutionCatalog, SolutionCatalogEntry
+from helpers import TEST_RASTER_SHA256, scope_state
 
 
 def _solution(solution_id: str = "demo", *, domain: str = "land") -> dict:
@@ -47,25 +50,51 @@ def _write_cache(
     cache_path = pipeline.cache_solution_path(output_dir, solution["id"])
     cache_path.parent.mkdir(parents=True)
     domain = solution["domain"]
-    metrics = [
-        {
-            "metricId": definition.metric_id,
-            "status": (
+    def metrics_for(level: str) -> list[dict]:
+        metrics = []
+        for definition in computable_metrics():
+            status = (
                 "not_applicable"
                 if (
                     domain not in definition.applicable_domains
-                    or definition.kind == "aoi_percent"
+                    or (
+                        level == "national"
+                        and definition.kind == "aoi_percent"
+                    )
+                    or (
+                        level != "national"
+                        and definition.kind
+                        in {"metadata_summary", "metadata_coverage"}
+                    )
                 )
                 else "ready"
-            ),
-            "unit": definition.unit,
-            "labelKey": definition.label_key,
-        }
-        for definition in computable_metrics()
-    ]
+            )
+            metrics.append({
+                "metricId": definition.metric_id,
+                "value": None if status == "not_applicable" else 1.0,
+                "status": status,
+                "unit": definition.unit,
+                "source": "n/a" if status == "not_applicable" else "test",
+                "notes": None,
+                "labelKey": definition.label_key,
+                "formatHint": definition.format_hint,
+            })
+        return metrics
+    levels = {
+        "national": "colombia",
+        "departments": "01",
+        "municipalities": "001",
+        "siraps": "sirap-1",
+        "runaps": "runap-1",
+        "omecs": "omec-1",
+    }
     document = {
         "solutionId": solution["id"],
         "generatedAt": "2026-07-23T00:00:00Z",
+        "solutionRaster": {
+            "solutionBasename": f"{solution['id']}.tif",
+            "sha256": TEST_RASTER_SHA256,
+        },
         "speciesCompleteness": {
             "expected": 1,
             "aligned": 1,
@@ -74,12 +103,13 @@ def _write_cache(
             "complete": True,
         },
         "geographies": {
-            "national": {"colombia": {"metrics": metrics}},
-            "departments": {"01": {"metrics": metrics}},
-            "municipalities": {"001": {"metrics": metrics}},
-            "siraps": {"sirap-1": {"metrics": metrics}},
-            "runaps": {"runap-1": {"metrics": metrics}},
-            "omecs": {"omec-1": {"metrics": metrics}},
+            level: {
+                scope_id: {
+                    "scopeState": scope_state(level, scope_id),
+                    "metrics": metrics_for(level),
+                }
+            }
+            for level, scope_id in levels.items()
         },
     }
     if provenance is not None:
@@ -106,6 +136,173 @@ def _catalog(entries: list[SolutionCatalogEntry], tmp_path: Path) -> SolutionCat
         solutions=tuple(entries),
         source_path=tmp_path / "catalog.json",
     )
+
+
+def _fingerprint(width: int, height: int) -> RasterFingerprint:
+    return RasterFingerprint(
+        width=width,
+        height=height,
+        transform=(1000.0, 0.0, 0.0, 0.0, -1000.0, float(height * 1000)),
+        crs="EPSG:9377",
+    )
+
+
+def _run_alignment_preflight(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    solutions: list[dict],
+    fingerprints: dict[str, RasterFingerprint],
+):
+    downloads = {}
+    for solution in solutions:
+        solution_id = solution["id"]
+        path = tmp_path / f"{solution_id}.tif"
+        path.write_bytes(solution_id.encode("utf-8"))
+        downloads[solution_id] = CachedDownload(
+            url=path.resolve().as_uri(),
+            path=path,
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            bytes=path.stat().st_size,
+        )
+    monkeypatch.setattr(
+        pipeline,
+        "read_solution_raster",
+        lambda path: SimpleNamespace(fingerprint=fingerprints[path.stem]),
+    )
+    monkeypatch.setattr(pipeline, "computable_metrics", lambda: ())
+    manifest = ResolvedManifest(
+        url="https://example.test/manifest.json",
+        raw={},
+        public_blob_host="https://example.test",
+        layers_by_id={},
+        national_solutions=[
+            solution for solution in solutions if solution["domain"] == "land"
+        ],
+        batch_solutions=solutions,
+    )
+    return pipeline._preflight_aligned_inputs(
+        solutions,
+        downloads,
+        manifest,
+        cache_dir=tmp_path / "cache",
+        force_download=False,
+        species_records=None,
+        skip_species=True,
+    )
+
+
+def test_alignment_preflight_accepts_distinct_valid_land_and_marine_grids(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    solutions = [
+        _solution("land-a", domain="land"),
+        _solution("marine-a", domain="marine"),
+        _solution("land-b", domain="land"),
+        _solution("marine-b", domain="marine"),
+    ]
+    land = _fingerprint(1353, 1838)
+    marine = _fingerprint(1833, 1639)
+
+    cache, inventory, failures = _run_alignment_preflight(
+        tmp_path,
+        monkeypatch,
+        solutions,
+        {
+            "land-a": land,
+            "land-b": land,
+            "marine-a": marine,
+            "marine-b": marine,
+        },
+    )
+
+    assert cache is not None
+    assert failures == []
+    assert inventory["format"] == "metrics-alignment-inventory-v4"
+    assert inventory["domains"]["land"]["targetGridSha256"] != (
+        inventory["domains"]["marine"]["targetGridSha256"]
+    )
+    assert inventory["domains"]["land"]["solutionCount"] == 2
+    assert inventory["domains"]["marine"]["solutionCount"] == 2
+
+
+@pytest.mark.parametrize("mismatch_domain", ["land", "marine"])
+def test_alignment_preflight_rejects_mismatch_within_domain(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mismatch_domain: str,
+):
+    other_domain = "marine" if mismatch_domain == "land" else "land"
+    solutions = [
+        _solution(f"{mismatch_domain}-reference", domain=mismatch_domain),
+        _solution(f"{other_domain}-valid", domain=other_domain),
+        _solution(f"{mismatch_domain}-mismatch", domain=mismatch_domain),
+    ]
+
+    cache, inventory, failures = _run_alignment_preflight(
+        tmp_path,
+        monkeypatch,
+        solutions,
+        {
+            f"{mismatch_domain}-reference": _fingerprint(10, 20),
+            f"{other_domain}-valid": _fingerprint(30, 40),
+            f"{mismatch_domain}-mismatch": _fingerprint(11, 20),
+        },
+    )
+
+    assert cache is None
+    assert inventory is None
+    assert len(failures) == 1
+    assert f"domain={mismatch_domain}" in failures[0]
+    assert f"solution='{mismatch_domain}-mismatch'" in failures[0]
+    assert "11x20" in failures[0]
+
+
+def test_chunked_solutions_select_only_their_domain_grid_provenance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    solutions = [
+        _solution("land-a", domain="land"),
+        _solution("marine-a", domain="marine"),
+        _solution("land-b", domain="land"),
+        _solution("marine-b", domain="marine"),
+    ]
+    _, inventory, failures = _run_alignment_preflight(
+        tmp_path,
+        monkeypatch,
+        solutions,
+        {
+            "land-a": _fingerprint(10, 20),
+            "land-b": _fingerprint(10, 20),
+            "marine-a": _fingerprint(30, 40),
+            "marine-b": _fingerprint(30, 40),
+        },
+    )
+
+    assert failures == []
+    first_chunk = pipeline._chunk_solutions(
+        solutions,
+        chunk_index=0,
+        chunk_count=2,
+    )
+    second_chunk = pipeline._chunk_solutions(
+        solutions,
+        chunk_index=1,
+        chunk_count=2,
+    )
+    assert [solution["id"] for solution in first_chunk] == ["land-a", "land-b"]
+    assert [solution["id"] for solution in second_chunk] == [
+        "marine-a",
+        "marine-b",
+    ]
+    for solution in first_chunk + second_chunk:
+        provenance = pipeline._alignment_provenance_for_solution(
+            inventory,
+            solution,
+        )
+        assert provenance["domain"] == solution["domain"]
+        assert provenance is inventory["domains"][solution["domain"]]
 
 
 def test_raster_preflight_reports_every_public_failure_and_ignores_local_fallback(

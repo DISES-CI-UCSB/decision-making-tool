@@ -4,7 +4,12 @@ import rasterio
 from rasterio.transform import from_origin
 
 from calculators.area import selected_area_km2
-from raster_metrics import RasterError, read_reference_raster, read_solution_raster
+from raster_metrics import (
+    RasterError,
+    boolean_mask_sha256,
+    read_reference_raster,
+    read_solution_raster,
+)
 
 
 def _write_solution_raster(path, data, *, nodata):
@@ -104,3 +109,14 @@ def test_existing_selected_mask_calculator_includes_values_one_and_two(tmp_path)
     raster = read_solution_raster(raster_path)
 
     assert selected_area_km2(raster) == pytest.approx(2 / 1_000_000)
+
+
+def test_boolean_mask_sha_binds_shape_and_cell_content():
+    original = np.array([[True, False], [False, True]])
+    same = original.copy()
+    changed = np.array([[True, False], [True, False]])
+    reshaped = original.reshape(1, 4)
+
+    assert boolean_mask_sha256(original) == boolean_mask_sha256(same)
+    assert boolean_mask_sha256(original) != boolean_mask_sha256(changed)
+    assert boolean_mask_sha256(original) != boolean_mask_sha256(reshaped)

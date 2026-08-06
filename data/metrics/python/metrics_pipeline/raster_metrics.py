@@ -20,7 +20,9 @@ Pixel area in km^2:
 
 from __future__ import annotations
 
+import hashlib
 import math
+import struct
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,6 +36,20 @@ EARTH_RADIUS_KM = 6371.0088
 # without masking a real grid offset. Sibling layers in this dataset commonly
 # differ by ~1e-12, so this is comfortably above that and well below 1 pixel.
 _TRANSFORM_ABS_TOL = 1e-7
+BOOLEAN_MASK_SHA256_FORMAT = "bool-mask-c-order-packbits-v1"
+
+
+def boolean_mask_sha256(mask: np.ndarray) -> str:
+    """Hash a 2-D bool mask with dimensions and stable C-order bit packing."""
+
+    normalized = np.asarray(mask, dtype=bool)
+    if normalized.ndim != 2:
+        raise ValueError("Boolean mask SHA requires a 2-D array.")
+    digest = hashlib.sha256()
+    digest.update(BOOLEAN_MASK_SHA256_FORMAT.encode("ascii"))
+    digest.update(struct.pack(">QQ", normalized.shape[0], normalized.shape[1]))
+    digest.update(np.packbits(normalized.ravel(order="C"), bitorder="little").tobytes())
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True)

@@ -57,7 +57,7 @@ export interface MetricValue {
   /**
    * Nullability convention:
    * - `ready|partial` => value should be a number
-   * - `derivation_needed|blocked|pending` => value should be null
+   * - `derivation_needed|blocked|pending|not_applicable|empty` => value should be null
    */
   value: number | null;
   unit: string | null;
@@ -67,6 +67,29 @@ export interface MetricValue {
   labelKey: string;
   formatHint: MetricValueFormatHint;
   details?: Record<string, unknown>;
+}
+
+export interface GeographyScopeState {
+  format: 'solution-raster-scope-state-v1';
+  classification: 'supported' | 'empty';
+  reason: 'positive_solution_valid_support' | 'zero_solution_valid_support';
+  solutionValidCellCount: number;
+  selectedCellCount: number;
+  boundaryGridCellCount: number;
+  targetGridSha256: string;
+  solutionRasterSha256: string;
+  solutionValidityMaskSha256: string;
+  boundary: {
+    geographyLevel: string;
+    scopeId: string;
+    sourceSha256: string;
+    geometrySha256: string;
+  } | null;
+  rasterizationPolicy: {
+    boundaryInclusion: 'none' | 'pixel-center';
+    allTouched: false;
+    referenceGrid: 'solution raster grid';
+  };
 }
 
 /** One administrative scope (national Colombia, a department, municipality, SIRAP, …). */
@@ -81,6 +104,7 @@ export interface GeographyMetricsScope {
    * GeoJSON properties.
    */
   subtype?: string;
+  scopeState?: GeographyScopeState;
   metrics: MetricValue[];
 }
 
@@ -132,6 +156,7 @@ export interface CompactGeographyMetricsScope {
   name?: string;
   kind?: string;
   subtype?: string;
+  scopeState?: GeographyScopeState;
   metrics: CompactMetricRow[];
 }
 

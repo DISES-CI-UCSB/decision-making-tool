@@ -143,6 +143,7 @@ class BoundaryMaskCache:
 
     def __init__(self) -> None:
         self._cache: dict[_BoundaryMaskKey, np.ndarray] = {}
+        self._cell_counts: dict[int, int] = {}
 
     def get(
         self,
@@ -172,12 +173,23 @@ class BoundaryMaskCache:
             grid=reference_grid_key(fingerprint),
         )
         if key not in self._cache:
-            self._cache[key] = rasterize_boundary(
+            mask = rasterize_boundary(
                 geometry,
                 fingerprint,
                 source_crs=source_crs,
             )
+            self._cache[key] = mask
+            self._cell_counts[id(mask)] = int(np.count_nonzero(mask))
         return self._cache[key]
+
+    def cell_count(self, mask: np.ndarray) -> int:
+        """Return a cached rasterized-cell count for a mask from this cache."""
+
+        count = self._cell_counts.get(id(mask))
+        if count is None:
+            count = int(np.count_nonzero(mask))
+            self._cell_counts[id(mask)] = count
+        return count
 
     def precompute_all(self, boundaries_by_level: dict, fingerprint: RasterFingerprint) -> None:
         """Rasterize all boundaries upfront so the first solution pays the full cost."""

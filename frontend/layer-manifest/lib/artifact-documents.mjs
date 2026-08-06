@@ -1,4 +1,63 @@
+import { createHash } from 'node:crypto';
+
 const GEOGRAPHY_LEVELS = ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'];
+const METRICS_SCHEMA_VERSION = 4;
+const CATALOG_SIGNATURE_PATTERN = /^metrics-catalog-v4:[0-9a-f]{64}$/;
+const SCOPE_STATE_FORMAT = 'solution-raster-scope-state-v1';
+const BOUNDARY_PROVENANCE_FORMAT = 'boundary-provenance-v1';
+const SOLUTION_CATALOG_BINDING_FORMAT = 'solution-catalog-binding-v1';
+const BOUNDARY_RASTERIZATION = {
+  boundaryInclusion: 'pixel-center',
+  allTouched: false,
+  referenceGrid: 'solution raster grid',
+};
+const NATIONAL_RASTERIZATION = {
+  boundaryInclusion: 'none',
+  allTouched: false,
+  referenceGrid: 'solution raster grid',
+};
+const BOUNDARY_SOURCES = {
+  departments: {
+    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/igac_departments_detailed.geojson',
+    sha256: '88304394fdd315f7803a65730392cafe2d0defa7b73acc068ba51d1795d3ed64',
+    catalogSha256: '12a5a3ea5b5fdbe0e2348aa76614773fb8b428e429199ee0a655a9a7933c7ee0',
+    geometryCollectionSha256: 'd840e04d13bdecbab8fdd99cc7c9d2d73afba6a968e5d34b13291cfde991334a',
+    crs: 'EPSG:4326',
+    featureCount: 33,
+  },
+  municipalities: {
+    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/igac_municipalities_detailed.geojson',
+    sha256: '13775cad6853b632029597e101628b6ed1051e7adc7e983864a84aa8aac9876a',
+    catalogSha256: 'e175d902e48890e43299b7445c29af5eafbb0d4a5e5205a4ade0fd208ab91d3c',
+    geometryCollectionSha256: '7c0aac724cababa2bfc69fefc4cd30eb16760fca6af4f06d235dff616b00c12d',
+    crs: 'EPSG:4326',
+    featureCount: 1105,
+  },
+  siraps: {
+    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+    sha256: '2a44a7a4726448959432924a11703250a444fe9e06be3324563e7b89d14912de',
+    catalogSha256: 'ded62832b2d97b3d47ff20299bf9c9399abda79a45400927b0bf4062faf73864',
+    geometryCollectionSha256: '83d2003347811cc2aa7599abb535d029c68e8f680d136ca01a8877a7df717e8f',
+    crs: 'EPSG:4326',
+    featureCount: 10,
+  },
+  runaps: {
+    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
+    sha256: 'b1c940228b110e18b588ed2667b8d36f447c933a5f798adc024c51502c1a06a6',
+    catalogSha256: 'ee492b9519252517a7f3589c385dda55daed31eef8b98d3ca242c1e90586c564',
+    geometryCollectionSha256: 'fa123bd47ad64c01a29dd5367680b2ab72da60324fbf554f8cc4b8366960652d',
+    crs: 'OGC:CRS84',
+    featureCount: 1879,
+  },
+  omecs: {
+    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/omecs_identify.geojson',
+    sha256: 'b22742c079acbb09230daae68ecee09a4543765e3d4c88459f649f1e2d375b83',
+    catalogSha256: '34173a94279ad1b6b553ef2aefaa2cc4adba1fb298a91a1da9e9340ae2d699f5',
+    geometryCollectionSha256: '3f516e4f4389a43afd21a11e7a11299f4c59c563eb9aa57b805667218e3fef40',
+    crs: 'OGC:CRS84',
+    featureCount: 614,
+  },
+};
 const MEC_ROW_LAYOUT = [
   'scopeIndex',
   'classIndex',
@@ -15,6 +74,7 @@ const MEC_SCOPE_STATS_FIELDS = [
 const GOAL_FEATURE_TYPES = ['species', 'strategicEcosystems', 'ecosystems', 'other'];
 const VALID_METRIC_STATUSES = new Set([
   'ready',
+  'partial',
   'blocked',
   'pending',
   'derivation_needed',
@@ -90,7 +150,7 @@ export function validateArtifactDocument(document, expected, label = 'artifact')
   );
 
   if (document.format === 'metrics-compact-v1') {
-    validateCompactMetricsDocument(document, label);
+    validateCompactMetricsDocument(document, label, expected);
     return;
   }
   if (document.format === 'conservation-goals-v1') {
@@ -105,27 +165,55 @@ export function validateArtifactDocument(document, expected, label = 'artifact')
     document.format === undefined || document.format === 'metrics-verbose-v1',
     `${label}.format is not a supported release artifact format`,
   );
-  validateVerboseMetricsDocument(document, label);
+  validateVerboseMetricsDocument(document, label, expected);
 }
 
-export function validateVerboseMetricsDocument(document, label = 'regular metrics') {
-  validateCompleteGeographies(document.geographies, label, (metrics, metricLabel) => {
-    assert(metrics.length > 0, `${metricLabel} must be non-empty`);
-    for (const [index, metric] of metrics.entries()) {
-      const rowLabel = `${metricLabel}[${index}]`;
-      assert(isRecord(metric), `${rowLabel} must be an object`);
-      for (const field of ['metricId', 'status', 'unit', 'labelKey']) {
-        assert(isNonEmptyString(metric[field]), `${rowLabel}.${field} must be a non-empty string`);
+export function validateVerboseMetricsDocument(
+  document,
+  label = 'regular metrics',
+  expected = undefined,
+) {
+  const context = validateRegularDocumentProvenance(document, label, expected);
+  validateCompleteGeographies(
+    document.geographies,
+    label,
+    context,
+    (metrics, metricLabel, scope) => {
+      assert(metrics.length > 0, `${metricLabel} must be non-empty`);
+      for (const [index, metric] of metrics.entries()) {
+        const rowLabel = `${metricLabel}[${index}]`;
+        assert(isRecord(metric), `${rowLabel} must be an object`);
+        for (const field of ['metricId', 'status', 'unit', 'labelKey']) {
+          assert(
+            isNonEmptyString(metric[field]),
+            `${rowLabel}.${field} must be a non-empty string`,
+          );
+        }
+        assert(
+          VALID_METRIC_STATUSES.has(metric.status),
+          `${rowLabel}.status is outside the metrics contract`,
+        );
+        validateMetricValue(metric.status, metric.value, rowLabel);
       }
-      assert(
-        VALID_METRIC_STATUSES.has(metric.status),
-        `${rowLabel}.status is outside the metrics contract`,
-      );
-    }
-  });
+      validateEmptyMetricProof(metrics, scope, metricLabel);
+    },
+  );
 }
 
-export function validateCompactMetricsDocument(document, label = 'compact metrics') {
+export function validateCompactMetricsDocument(
+  document,
+  label = 'compact metrics',
+  expected = undefined,
+) {
+  const context = validateRegularDocumentProvenance(document, label, expected);
+  assert(
+    isSha256(document.metricsProvenanceSha256),
+    `${label}.metricsProvenanceSha256 must be a SHA-256`,
+  );
+  assert(
+    document.metricsProvenanceSha256 === sha256Canonical(document.metricsProvenance),
+    `${label}.metricsProvenanceSha256 must match metricsProvenance`,
+  );
   assert(
     Array.isArray(document.metricCatalog) && document.metricCatalog.length > 0,
     `${label}.metricCatalog must be non-empty`,
@@ -141,37 +229,292 @@ export function validateCompactMetricsDocument(document, label = 'compact metric
   for (const field of ['statusCatalog', 'sourceCatalog', 'notesCatalog']) {
     assert(Array.isArray(document[field]), `${label}.${field} must be an array`);
   }
-  validateCompleteGeographies(document.geographies, label, (metrics, metricLabel) => {
-    assert(metrics.length > 0, `${metricLabel} must be non-empty`);
-    for (const [index, row] of metrics.entries()) {
-      const rowLabel = `${metricLabel}[${index}]`;
-      assert(
-        Array.isArray(row) && row.length >= 5,
-        `${rowLabel} must contain at least five fields`,
-      );
-      for (const [value, catalog, field] of [
-        [row[0], document.metricCatalog, 'metricIndex'],
-        [row[2], document.statusCatalog, 'statusIndex'],
-        [row[3], document.sourceCatalog, 'sourceIndex'],
-        [row[4], document.notesCatalog, 'notesIndex'],
-      ]) {
+  validateCompleteGeographies(
+    document.geographies,
+    label,
+    context,
+    (metrics, metricLabel, scope) => {
+      assert(metrics.length > 0, `${metricLabel} must be non-empty`);
+      for (const [index, row] of metrics.entries()) {
+        const rowLabel = `${metricLabel}[${index}]`;
         assert(
-          Number.isInteger(value) && value >= 0 && value < catalog.length,
-          `${rowLabel}.${field} must reference its catalog`,
+          Array.isArray(row) && row.length >= 5,
+          `${rowLabel} must contain at least five fields`,
         );
+        for (const [value, catalog, field] of [
+          [row[0], document.metricCatalog, 'metricIndex'],
+          [row[2], document.statusCatalog, 'statusIndex'],
+          [row[3], document.sourceCatalog, 'sourceIndex'],
+          [row[4], document.notesCatalog, 'notesIndex'],
+        ]) {
+          assert(
+            Number.isInteger(value) && value >= 0 && value < catalog.length,
+            `${rowLabel}.${field} must reference its catalog`,
+          );
+        }
+        assert(
+          typeof document.statusCatalog[row[2]] === 'string',
+          `${rowLabel}.statusIndex must reference a string status`,
+        );
+        assert(
+          VALID_METRIC_STATUSES.has(document.statusCatalog[row[2]]),
+          `${rowLabel}.statusIndex references a status outside the metrics contract`,
+        );
+        validateMetricValue(document.statusCatalog[row[2]], row[1], rowLabel);
       }
-      assert(
-        typeof document.statusCatalog[row[2]] === 'string',
-        `${rowLabel}.statusIndex must reference a string status`,
+      validateEmptyMetricProof(
+        metrics.map((row) => ({ status: document.statusCatalog[row[2]], value: row[1] })),
+        scope,
+        metricLabel,
       );
+      const metricIds = metrics.map((row) => document.metricCatalog[row[0]][0]);
+      assertExactArray(metricIds, REGULAR_METRIC_IDS, `${metricLabel} metric IDs`);
+    },
+  );
+}
+
+function validateRegularDocumentProvenance(document, label, expected) {
+  validateSolutionRaster(document.solutionRaster, label, expected);
+  validateSolutionInputSignature(document.solutionInputSignature, label);
+  const provenance = validateMetricsProvenance(document.metricsProvenance, label, expected);
+  validateSolutionCatalogBinding(document.solutionCatalogBinding, label, expected);
+  return {
+    solutionRasterSha256: document.solutionRaster.sha256,
+    provenance,
+  };
+}
+
+function validateSolutionRaster(solutionRaster, label, expected) {
+  assert(isRecord(solutionRaster), `${label}.solutionRaster must be an object`);
+  assert(isSha256(solutionRaster.sha256), `${label}.solutionRaster.sha256 must be a SHA-256`);
+  assert(
+    isNonEmptyString(solutionRaster.solutionBasename),
+    `${label}.solutionRaster.solutionBasename must be non-empty`,
+  );
+  if (expected?.rasterSha256 !== undefined) {
+    assert(
+      solutionRaster.sha256 === expected.rasterSha256,
+      `${label}.solutionRaster.sha256 must match release catalog provenance`,
+    );
+  }
+  if (expected?.solutionBasename !== undefined) {
+    assert(
+      solutionRaster.solutionBasename === expected.solutionBasename,
+      `${label}.solutionRaster.solutionBasename must match release catalog provenance`,
+    );
+  }
+}
+
+function isSha256(value) {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+}
+
+function validateMetricValue(status, value, label) {
+  if (status === 'ready' || status === 'partial') {
+    assert(Number.isFinite(value), `${label}.value must be finite for ${status}`);
+    return;
+  }
+  assert(value === null, `${label}.value must be null for ${status}`);
+}
+
+function validateEmptyMetricProof(metrics, scope, label) {
+  if (!metrics.some((metric) => metric.status === 'empty')) return;
+  assert(
+    scope.scopeState.classification === 'empty' &&
+      scope.scopeState.solutionValidCellCount === 0 &&
+      scope.scopeState.selectedCellCount === 0,
+    `${label} empty statuses require proven zero-support scopeState`,
+  );
+}
+
+function validateScopeState(state, geographyLevel, scopeId, context, label) {
+  assert(isRecord(state), `${label}.scopeState must be an object`);
+  assert(state.format === SCOPE_STATE_FORMAT, `${label}.scopeState.format is invalid`);
+  for (const field of ['solutionValidCellCount', 'selectedCellCount', 'boundaryGridCellCount']) {
+    assert(
+      Number.isSafeInteger(state[field]) && state[field] >= 0,
+      `${label}.scopeState.${field} must be a non-negative integer`,
+    );
+  }
+  assert(
+    state.selectedCellCount <= state.solutionValidCellCount &&
+      state.solutionValidCellCount <= state.boundaryGridCellCount,
+    `${label}.scopeState cell counts must reconcile`,
+  );
+  const expectedClassification = state.solutionValidCellCount === 0 ? 'empty' : 'supported';
+  assert(
+    state.classification === expectedClassification,
+    `${label}.scopeState.classification does not match support`,
+  );
+  const expectedReason =
+    state.solutionValidCellCount === 0
+      ? 'zero_solution_valid_support'
+      : 'positive_solution_valid_support';
+  assert(state.reason === expectedReason, `${label}.scopeState.reason does not match support`);
+  assert(
+    geographyLevel !== 'national' || state.solutionValidCellCount > 0,
+    `${label}.scopeState national support must be positive`,
+  );
+  for (const field of ['targetGridSha256', 'solutionRasterSha256', 'solutionValidityMaskSha256']) {
+    assert(isSha256(state[field]), `${label}.scopeState.${field} must be a SHA-256`);
+  }
+  assert(
+    state.solutionRasterSha256 === context.solutionRasterSha256,
+    `${label}.scopeState solution raster SHA mismatch`,
+  );
+  assert(
+    state.targetGridSha256 === context.targetGridSha256,
+    `${label}.scopeState target grid SHA mismatch`,
+  );
+  assert(
+    state.solutionValidityMaskSha256 === context.solutionValidityMaskSha256,
+    `${label}.scopeState validity-mask SHA mismatch`,
+  );
+  if (geographyLevel === 'national') {
+    assert(state.boundary === null, `${label}.scopeState.boundary must be null`);
+  } else {
+    assert(isRecord(state.boundary), `${label}.scopeState.boundary must be an object`);
+    assert(
+      state.boundary.geographyLevel === geographyLevel && state.boundary.scopeId === scopeId,
+      `${label}.scopeState boundary identity mismatch`,
+    );
+    assert(
+      isSha256(state.boundary.sourceSha256) && isSha256(state.boundary.geometrySha256),
+      `${label}.scopeState boundary hashes must be SHA-256`,
+    );
+    assert(
+      state.boundary.sourceSha256 ===
+        context.provenance.boundaryProvenance.sources[geographyLevel].sha256,
+      `${label}.scopeState boundary source SHA mismatch`,
+    );
+  }
+  const expectedPolicy =
+    geographyLevel === 'national' ? NATIONAL_RASTERIZATION : BOUNDARY_RASTERIZATION;
+  assert(
+    recordsEqual(state.rasterizationPolicy, expectedPolicy),
+    `${label}.scopeState.rasterizationPolicy is invalid`,
+  );
+}
+
+function validateMetricsProvenance(provenance, label, expected) {
+  assert(isRecord(provenance), `${label}.metricsProvenance must be an object`);
+  assert(
+    provenance.schemaVersion === METRICS_SCHEMA_VERSION,
+    `${label}.metricsProvenance.schemaVersion must be ${METRICS_SCHEMA_VERSION}`,
+  );
+  assert(
+    provenance.solutionDomain === 'land' || provenance.solutionDomain === 'marine',
+    `${label}.metricsProvenance.solutionDomain is invalid`,
+  );
+  assert(
+    isRecord(provenance.generationConfig),
+    `${label}.metricsProvenance.generationConfig must be an object`,
+  );
+  assert(
+    CATALOG_SIGNATURE_PATTERN.test(provenance.catalogSignature),
+    `${label}.metricsProvenance.catalogSignature must use metrics-catalog-v4`,
+  );
+  assert(
+    isNonEmptyString(provenance.releaseId),
+    `${label}.metricsProvenance.releaseId must be non-empty`,
+  );
+  if (expected?.solutionDomain !== undefined) {
+    assert(
+      provenance.solutionDomain === expected.solutionDomain,
+      `${label}.metricsProvenance.solutionDomain must match release catalog provenance`,
+    );
+  }
+  if (expected?.releaseId !== undefined) {
+    assert(
+      provenance.releaseId === expected.releaseId,
+      `${label}.metricsProvenance.releaseId must match release catalog provenance`,
+    );
+  }
+  if (expected?.catalogSignature !== undefined) {
+    assert(
+      provenance.catalogSignature === expected.catalogSignature,
+      `${label}.metricsProvenance.catalogSignature must match publish provenance`,
+    );
+  }
+  validateBoundaryProvenance(provenance.boundaryProvenance, label);
+  return provenance;
+}
+
+function validateBoundaryProvenance(boundaryProvenance, label) {
+  const provenanceLabel = `${label}.metricsProvenance.boundaryProvenance`;
+  assert(isRecord(boundaryProvenance), `${provenanceLabel} must be an object`);
+  assert(
+    boundaryProvenance.format === BOUNDARY_PROVENANCE_FORMAT,
+    `${provenanceLabel}.format is stale`,
+  );
+  assert(isRecord(boundaryProvenance.sources), `${provenanceLabel}.sources must be an object`);
+  for (const [level, expectedSource] of Object.entries(BOUNDARY_SOURCES)) {
+    const source = boundaryProvenance.sources[level];
+    assert(isRecord(source), `${provenanceLabel}.sources.${level} must be an object`);
+    for (const [field, value] of Object.entries(expectedSource)) {
       assert(
-        VALID_METRIC_STATUSES.has(document.statusCatalog[row[2]]),
-        `${rowLabel}.statusIndex references a status outside the metrics contract`,
+        source[field] === value,
+        `${provenanceLabel}.sources.${level}.${field} is missing or stale`,
       );
     }
-    const metricIds = metrics.map((row) => document.metricCatalog[row[0]][0]);
-    assertExactArray(metricIds, REGULAR_METRIC_IDS, `${metricLabel} metric IDs`);
-  });
+    assert(
+      recordsEqual(source.rasterization, BOUNDARY_RASTERIZATION),
+      `${provenanceLabel}.sources.${level}.rasterization is missing or stale`,
+    );
+  }
+  assert(
+    isSha256(boundaryProvenance.sha256) &&
+      boundaryProvenance.sha256 === sha256Canonical(boundaryProvenance.sources),
+    `${provenanceLabel}.sha256 must match boundary sources`,
+  );
+}
+
+function validateSolutionCatalogBinding(binding, label, expected) {
+  assert(isRecord(binding), `${label}.solutionCatalogBinding must be an object`);
+  assert(
+    binding.format === SOLUTION_CATALOG_BINDING_FORMAT,
+    `${label}.solutionCatalogBinding.format is invalid`,
+  );
+  assert(
+    isNonEmptyString(binding.releaseId),
+    `${label}.solutionCatalogBinding.releaseId is invalid`,
+  );
+  assert(
+    isNonEmptyString(binding.catalogVersion),
+    `${label}.solutionCatalogBinding.catalogVersion is invalid`,
+  );
+  assert(
+    isSha256(binding.catalogSha256),
+    `${label}.solutionCatalogBinding.catalogSha256 must be a SHA-256`,
+  );
+  for (const [field, expectedField] of [
+    ['releaseId', 'releaseId'],
+    ['catalogVersion', 'catalogVersion'],
+    ['catalogSha256', 'catalogSha256'],
+  ]) {
+    if (expected?.[expectedField] !== undefined) {
+      assert(
+        binding[field] === expected[expectedField],
+        `${label}.solutionCatalogBinding.${field} must match release catalog provenance`,
+      );
+    }
+  }
+}
+
+function validateSolutionInputSignature(signature, label) {
+  assert(isRecord(signature), `${label}.solutionInputSignature must be an object`);
+  assert(
+    [
+      'solution-input-signature-v1',
+      'solution-input-signature-v2',
+      'solution-input-signature-v3',
+    ].includes(signature.format),
+    `${label}.solutionInputSignature.format is invalid`,
+  );
+  assert(
+    typeof signature.sha256 === 'string' && signature.sha256.length === 64,
+    `${label}.solutionInputSignature.sha256 is invalid`,
+  );
 }
 
 export function validateGoalsDocument(document, label = 'goals') {
@@ -422,8 +765,22 @@ function validateGoalCount(summary, species, label) {
   );
 }
 
-function validateCompleteGeographies(geographies, label, validateMetrics) {
+function validateCompleteGeographies(geographies, label, documentContext, validateMetrics) {
   assertExactKeys(geographies, GEOGRAPHY_LEVELS, `${label}.geographies`);
+  const nationalState = geographies.national?.colombia?.scopeState;
+  assert(isRecord(nationalState), `${label}.national.colombia.scopeState must be an object`);
+  const context = {
+    ...documentContext,
+    targetGridSha256: nationalState.targetGridSha256,
+    solutionValidityMaskSha256: nationalState.solutionValidityMaskSha256,
+  };
+  const alignment = documentContext.provenance.inputAlignment;
+  if (isRecord(alignment)) {
+    assert(
+      alignment.targetGridSha256 === context.targetGridSha256,
+      `${label}.metricsProvenance.inputAlignment target grid SHA mismatch`,
+    );
+  }
   for (const level of GEOGRAPHY_LEVELS) {
     const scopes = geographies[level];
     assert(
@@ -436,7 +793,8 @@ function validateCompleteGeographies(geographies, label, validateMetrics) {
     for (const [scopeId, scope] of Object.entries(scopes)) {
       assert(isRecord(scope), `${label}.${level}.${scopeId} must be an object`);
       assert(Array.isArray(scope.metrics), `${label}.${level}.${scopeId}.metrics must be an array`);
-      validateMetrics(scope.metrics, `${label}.${level}.${scopeId}.metrics`);
+      validateScopeState(scope.scopeState, level, scopeId, context, `${label}.${level}.${scopeId}`);
+      validateMetrics(scope.metrics, `${label}.${level}.${scopeId}.metrics`, scope);
     }
   }
 }
@@ -448,4 +806,25 @@ function assertExactArray(actual, expected, label) {
       actual.every((value, index) => value === expected[index]),
     `${label} must match the release contract`,
   );
+}
+
+function recordsEqual(actual, expected) {
+  return isRecord(actual) && canonicalJson(actual) === canonicalJson(expected);
+}
+
+function sha256Canonical(value) {
+  return createHash('sha256').update(canonicalJson(value)).digest('hex');
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
 }

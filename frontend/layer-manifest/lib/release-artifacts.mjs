@@ -23,14 +23,18 @@ export async function readArtifactVerifications(paths, catalog) {
       const publishSummary = await readPublishSummary(document.sourceReport, inventoryPath);
       validatePublishSummary(publishSummary, catalog, document.sourceReport);
       validateVerificationAgainstSummary(document, publishSummary, inventoryPath);
-      await validatePublishSummaryArtifacts(document, publishSummary, inventoryPath);
+      await validatePublishSummaryArtifacts(document, publishSummary, inventoryPath, catalog);
       return document;
     }),
   );
 }
 
-export async function validatePublishSummaryArtifacts(verification, summary, label) {
+export async function validatePublishSummaryArtifacts(verification, summary, label, catalog) {
   const verificationByUrl = new Map(verification.entries.map((entry) => [entry.url, entry]));
+  const catalogById = new Map(
+    (catalog?.solutions ?? []).map((solution) => [solution.solutionId, solution]),
+  );
+  const catalogSha256 = catalog ? solutionCatalogSha256(catalog) : undefined;
   await Promise.all(
     summary.entries.map(async (entry, index) => {
       const entryLabel = `${label} source artifact ${index}`;
@@ -53,11 +57,25 @@ export async function validatePublishSummaryArtifacts(verification, summary, lab
         verificationEntry?.format === documentFormat,
         `${entryLabel} verification format must match the artifact document`,
       );
+      if (documentFormat === 'metrics-verbose-v1' || documentFormat === 'metrics-compact-v1') {
+        assert(
+          typeof entry.catalogSignature === 'string' && entry.catalogSignature.length > 0,
+          `${entryLabel} publish summary must declare catalogSignature`,
+        );
+      }
+      const catalogSolution = catalogById.get(entry.solutionId);
       validateArtifactDocument(
         document,
         {
           solutionId: entry.solutionId,
           geographyLevel: entry.geographyLevel,
+          solutionDomain: entry.solutionDomain ?? catalogSolution?.domain,
+          solutionBasename: entry.solutionBasename ?? catalogSolution?.solutionBasename,
+          rasterSha256: entry.rasterCacheSha256 ?? catalogSolution?.rasterSha256,
+          catalogSignature: entry.catalogSignature,
+          releaseId: catalog?.releaseId,
+          catalogVersion: catalog?.catalogVersion,
+          catalogSha256,
         },
         entryLabel,
       );

@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from cli_utils import find_repo_root
+from compact_metrics import to_verbose_document
+from metrics_contract import PROVENANCE_KEY, regular_artifact_completeness_issues
+from solution_domain import normalize_domain
 
 
 def _sha256(data: bytes) -> str:
@@ -30,6 +33,23 @@ def verify_entry(
         local_path = repo_root / local_path
     local_bytes = local_path.read_bytes()
     document = json.loads(local_bytes)
+    contract_issues: list[str] = []
+    if document.get("format") in {None, "metrics-verbose-v1", "metrics-compact-v1"}:
+        try:
+            verbose = to_verbose_document(document)
+            provenance = verbose.get(PROVENANCE_KEY)
+            config = provenance.get("generationConfig") if isinstance(provenance, dict) else None
+            domain = normalize_domain(
+                provenance.get("solutionDomain") if isinstance(provenance, dict) else None
+            )
+            contract_issues = regular_artifact_completeness_issues(
+                verbose,
+                national_only=bool(config.get("nationalOnly")) if isinstance(config, dict) else False,
+                domain=domain,
+                skip_species=bool(config.get("speciesSkipped")) if isinstance(config, dict) else False,
+            )
+        except (IndexError, KeyError, TypeError, ValueError) as exc:
+            contract_issues = [f"invalid regular metrics artifact: {exc}"]
     remote_bytes, headers = fetch(str(entry["expectedPublicUrl"]))
     content_type = headers.get("content-type", "").split(";", 1)[0].lower()
     cache_control = headers.get("cache-control", "")
@@ -45,6 +65,7 @@ def verify_entry(
             "contentType": content_type,
             "cacheControl": cache_control,
         },
+        "contractIssues": contract_issues,
     }
     result["ok"] = (
         result["local"] == {
@@ -53,6 +74,7 @@ def verify_entry(
         }
         and content_type in {"application/json", "application/geo+json"}
         and "max-age=31536000" in cache_control
+        and not contract_issues
     )
     return result
 

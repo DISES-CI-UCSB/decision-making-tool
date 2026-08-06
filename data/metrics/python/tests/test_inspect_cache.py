@@ -9,6 +9,7 @@ from compact_metrics import to_compact_document
 from metric_definitions import computable_metrics
 from metrics_contract import PROVENANCE_KEY, build_metrics_provenance
 from validation.inspect_cache import inspect_publish_report
+from helpers import TEST_RASTER_SHA256, scope_state
 
 
 def _write_cache(cache_dir: Path, solution_id: str, doc: dict) -> Path:
@@ -38,6 +39,10 @@ def _minimal_doc(solution_id: str, *, domain: str = "land") -> dict:
     return {
         "solutionId": solution_id,
         "generatedAt": "2026-05-22T00:00:00Z",
+        "solutionRaster": {
+            "solutionBasename": f"{solution_id}.tif",
+            "sha256": TEST_RASTER_SHA256,
+        },
         PROVENANCE_KEY: build_metrics_provenance(domain, national_only=True),
         "speciesCompleteness": {
             "expected": 1,
@@ -49,6 +54,7 @@ def _minimal_doc(solution_id: str, *, domain: str = "land") -> dict:
         "geographies": {
             "national": {
                 "colombia": {
+                    "scopeState": scope_state("national", "colombia"),
                     "metrics": metrics,
                 }
             }

@@ -102,6 +102,39 @@ def test_mixed_crs_alignment_is_content_addressed_and_reused(tmp_path: Path):
         assert (aligned.width, aligned.height) == (target.width, target.height)
 
 
+def test_cache_identity_isolated_between_land_and_marine_target_grids(
+    tmp_path: Path,
+):
+    source = tmp_path / "source.tif"
+    _write_source(source)
+    land_target = _projected_target(source)
+    marine_target = RasterFingerprint(
+        width=land_target.width + 1,
+        height=land_target.height,
+        transform=land_target.transform,
+        crs=land_target.crs,
+    )
+    cache = RasterAlignmentCache(tmp_path / "cache")
+
+    land = cache.align(
+        source,
+        _sha256(source),
+        land_target,
+        NEAREST_CATEGORICAL,
+    )
+    marine = cache.align(
+        source,
+        _sha256(source),
+        marine_target,
+        NEAREST_CATEGORICAL,
+    )
+
+    assert land.cache_key != marine.cache_key
+    assert land.path != marine.path
+    assert land.target_grid_sha256 == grid_sha256(land_target)
+    assert marine.target_grid_sha256 == grid_sha256(marine_target)
+
+
 def test_categorical_alignment_preserves_actual_taxonomy(tmp_path: Path):
     source = tmp_path / "marine-classes.tif"
     values = np.arange(1, 13, dtype=np.uint8).reshape(3, 4)

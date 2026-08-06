@@ -23,6 +23,7 @@ from mec_compact import (
 )
 from plan_solution_release import build_release_plan
 from solution_catalog import SolutionCatalogError, load_solution_catalog
+from helpers import scope_state
 
 
 def _signature(value: str) -> dict[str, str]:
@@ -43,20 +44,38 @@ def _binding(catalog) -> dict[str, str]:
 
 def _document(component, entry, catalog, signature, geography_level):
     if component in {"regularVerbose", "regularCompact"}:
-        metrics = [
-            {
-                "metricId": definition.metric_id,
-                "value": 0,
-                "status": "ready",
-                "unit": definition.unit,
-                "labelKey": definition.label_key,
-            }
-            for definition in computable_metrics()
-        ]
+        def metrics_for(level: str) -> list[dict]:
+            metrics = []
+            for definition in computable_metrics():
+                not_applicable = (
+                    "land" not in definition.applicable_domains
+                    or (
+                        level == "national"
+                        and definition.kind == "aoi_percent"
+                    )
+                    or (
+                        level != "national"
+                        and definition.kind
+                        in {"metadata_summary", "metadata_coverage"}
+                    )
+                )
+                metrics.append({
+                    "metricId": definition.metric_id,
+                    "value": None if not_applicable else 0,
+                    "status": "not_applicable" if not_applicable else "ready",
+                    "unit": definition.unit,
+                    "labelKey": definition.label_key,
+                })
+            return metrics
         geographies = {
             level: {
                 ("colombia" if level == "national" else "scope"): {
-                    "metrics": metrics,
+                    "scopeState": scope_state(
+                        level,
+                        "colombia" if level == "national" else "scope",
+                        solution_raster_sha256=entry.raster_sha256,
+                    ),
+                    "metrics": metrics_for(level),
                 }
             }
             for level in (

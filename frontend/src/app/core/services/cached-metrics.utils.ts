@@ -92,6 +92,7 @@ export function expandCompactMetricsDocument(
           ...(scope.name ? { name: scope.name } : {}),
           ...(scope.kind ? { kind: scope.kind } : {}),
           ...(scope.subtype ? { subtype: scope.subtype } : {}),
+          ...(scope.scopeState ? { scopeState: scope.scopeState } : {}),
           metrics: scope.metrics.map(
             ([metricIndex, value, statusIndex, sourceIndex, notesIndex, details]) => {
               const [metricId, unit, labelKey, formatHint] = document.metricCatalog[metricIndex];

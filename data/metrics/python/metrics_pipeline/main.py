@@ -40,6 +40,7 @@ After generation, inspect then publish (from repo root):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -106,6 +107,7 @@ from metric_output import (
 from metrics_contract import (
     METRICS_SCHEMA_VERSION,
     PROVENANCE_KEY,
+    build_scope_state,
     build_metrics_provenance,
     generation_config,
     provenance_issues,
@@ -115,6 +117,7 @@ from release_config import load_release_config
 from raster_metrics import (
     RasterError,
     SolutionRaster,
+    boolean_mask_sha256,
     read_layer_mask,
     read_layer_values,
     read_solution_raster,
@@ -344,6 +347,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Process only entries marked recompute in a deterministic release plan.",
     )
     parser.add_argument(
+        "--domain",
+        choices=("land", "marine"),
+        default=None,
+        help=(
+            "Process exactly one catalog domain after validating the complete release "
+            "plan. Requires --solution-catalog and --release-plan."
+        ),
+    )
+    parser.add_argument(
         "--solution-id",
         action="append",
         default=None,
@@ -437,6 +449,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--release-id requires --solution-catalog")
     if args.release_plan is not None and args.solution_catalog is None:
         parser.error("--release-plan requires --solution-catalog")
+    if args.domain is not None and (
+        args.solution_catalog is None or args.release_plan is None
+    ):
+        parser.error("--domain requires --solution-catalog and --release-plan")
+    if args.domain is not None and (args.solution_id is not None or args.limit is not None):
+        parser.error("--domain cannot be combined with --solution-id or --limit")
     return args
 
 
@@ -482,6 +500,7 @@ def _filter_release_plan_solutions(
     *,
     catalog: SolutionCatalog,
     release_plan: Path,
+    domain: SolutionDomain | None = None,
 ) -> list[dict[str, Any]]:
     recompute_ids = set(
         load_release_plan(
@@ -490,16 +509,69 @@ def _filter_release_plan_solutions(
             action="recompute",
         )
     )
+    if domain is not None:
+        catalog_ids = set(catalog.solution_ids)
+        if recompute_ids != catalog_ids:
+            missing = sorted(catalog_ids - recompute_ids)
+            unexpected = sorted(recompute_ids - catalog_ids)
+            raise SolutionCatalogError(
+                "domain execution requires every catalog solution to be marked "
+                f"recompute; missing={missing[:8]}, unexpected={unexpected[:8]}"
+            )
+        expected_domain_ids = {
+            entry.solution_id
+            for entry in catalog.solutions
+            if entry.domain == domain
+        }
+        recompute_domain_ids = {
+            solution_id
+            for solution_id in recompute_ids
+            if catalog.by_id[solution_id].domain == domain
+        }
+        if recompute_domain_ids != expected_domain_ids:
+            missing = sorted(expected_domain_ids - recompute_domain_ids)
+            unexpected = sorted(recompute_domain_ids - expected_domain_ids)
+            raise SolutionCatalogError(
+                f"release plan does not exactly select catalog domain={domain}; "
+                f"missing={missing[:8]}, unexpected={unexpected[:8]}"
+            )
+        recompute_ids = recompute_domain_ids
     selected = [
         solution
         for solution in solutions
         if str(solution.get("id")) in recompute_ids
+        and (domain is None or solution_domain(solution) == domain)
     ]
-    if len(selected) != len(recompute_ids):
+    selected_ids = {str(solution.get("id")) for solution in selected}
+    if selected_ids != recompute_ids:
+        missing = sorted(recompute_ids - selected_ids)
+        unexpected = sorted(selected_ids - recompute_ids)
         raise SolutionCatalogError(
-            "release plan recompute count does not match runtime selection."
+            "release plan recompute ids do not exactly match runtime selection; "
+            f"missing={missing[:8]}, unexpected={unexpected[:8]}"
         )
     return selected
+
+
+def _release_plan_binding(
+    release_plan: Path,
+    *,
+    catalog: SolutionCatalog,
+) -> dict[str, Any]:
+    """Return a content-addressed binding after the plan has been validated."""
+
+    recompute_ids = load_release_plan(
+        release_plan,
+        catalog=catalog,
+        action="recompute",
+    )
+    return {
+        "format": "solution-release-plan-binding-v1",
+        "releaseId": catalog.release_id,
+        "catalogSha256": catalog.sha256,
+        "sha256": hashlib.sha256(release_plan.read_bytes()).hexdigest(),
+        "recomputeCount": len(recompute_ids),
+    }
 
 
 def _solution_source_identity(
@@ -683,6 +755,13 @@ def _required_input_metric_issues(
     for level, scopes in geographies.items():
         for scope_id, scope in scopes.items():
             metrics = scope.get("metrics", [])
+            scope_state = scope.get("scopeState")
+            scope_is_empty = (
+                isinstance(scope_state, dict)
+                and level != "national"
+                and scope_state.get("classification") == "empty"
+                and scope_state.get("solutionValidCellCount") == 0
+            )
             for definition, metric in zip(definitions, metrics):
                 requires_complete_input = (
                     definition.layer_id is not None
@@ -692,10 +771,18 @@ def _required_input_metric_issues(
                     )
                 )
                 expected_status = (
-                    "partial"
-                    if species_exception_binding is not None
-                    and is_species_metric_kind(definition.kind)
-                    else "ready"
+                    (
+                        "empty"
+                        if domain in definition.applicable_domains
+                        else "not_applicable"
+                    )
+                    if scope_is_empty
+                    else (
+                        "partial"
+                        if species_exception_binding is not None
+                        and is_species_metric_kind(definition.kind)
+                        else "ready"
+                    )
                 )
                 if (
                     requires_complete_input
@@ -933,28 +1020,42 @@ def _preflight_aligned_inputs(
     skip_species: bool,
     species_exception: SpeciesExceptionPolicy | None = None,
 ) -> tuple[RasterAlignmentCache | None, dict[str, Any] | None, list[str]]:
-    """Validate the shared grid and warm every required aligned input once."""
+    """Validate one grid per domain and warm each domain's aligned inputs."""
 
     failures: list[str] = []
     if not solutions:
         return None, None, failures
 
-    reference = read_solution_raster(
-        solution_downloads[str(solutions[0].get("id"))].path
-    ).fingerprint
-    for solution in solutions[1:]:
+    domain_references: dict[SolutionDomain, Any] = {}
+    domain_reference_solutions: dict[SolutionDomain, str] = {}
+    domain_solution_counts: dict[SolutionDomain, int] = {}
+    for solution in solutions:
         solution_id = str(solution.get("id"))
+        domain = solution_domain(solution)
         try:
             observed = read_solution_raster(
                 solution_downloads[solution_id].path
             ).fingerprint
-            if not exact_grid_matches(observed, reference):
+            reference = domain_references.get(domain)
+            if reference is None:
+                domain_references[domain] = observed
+                domain_reference_solutions[domain] = solution_id
+                domain_solution_counts[domain] = 1
+            elif not exact_grid_matches(observed, reference):
                 failures.append(
-                    f"{solution_id}: solution grid differs from the authoritative "
-                    f"target grid ({observed!r} != {reference!r})"
+                    f"domain={domain} solution={solution_id!r} grid="
+                    f"{grid_sha256(observed)} ({observed.width}x{observed.height}) "
+                    f"differs from domain reference solution="
+                    f"{domain_reference_solutions[domain]!r} grid="
+                    f"{grid_sha256(reference)} "
+                    f"({reference.width}x{reference.height})"
                 )
+            else:
+                domain_solution_counts[domain] += 1
         except (OSError, RasterError) as exc:
-            failures.append(f"{solution_id}: invalid solution raster ({exc})")
+            failures.append(
+                f"domain={domain} solution={solution_id!r}: invalid solution raster ({exc})"
+            )
     if failures:
         return None, None, failures
 
@@ -964,91 +1065,178 @@ def _preflight_aligned_inputs(
         return None, None, [str(exc)]
 
     alignment_cache = RasterAlignmentCache(cache_dir)
-    aligned_entries: dict[str, dict[str, Any]] = {}
-    active_domains = {solution_domain(solution) for solution in solutions}
-    required_for_domains = {
-        definition.layer_id
-        for definition in computable_metrics()
-        if definition.layer_id
-        and definition.applicable_domains.intersection(active_domains)
-    }
-    for layer_id in sorted(required_for_domains):
-        try:
-            url = _resolve_layer_url(manifest, layer_id)
-            download = cached_download(url, cache_dir, force=force_download)
-            aligned = alignment_cache.align(
-                download.path,
-                download.sha256,
-                reference,
-                policies[layer_id],
-                source_url=url,
-            )
-            aligned_entries[f"layer:{layer_id}"] = _alignment_identity(
-                aligned,
-                input_id=f"layer:{layer_id}",
-                source_url=url,
-            )
-        except (AlignmentError, DownloadError, ManifestError, OSError, ValueError) as exc:
-            failures.append(f"layer {layer_id!r}: {exc}")
+    domain_inventories: dict[SolutionDomain, dict[str, Any]] = {}
+    policy_manifest_sha256 = alignment_policy_manifest_sha256()
+    for domain in sorted(domain_references):
+        reference = domain_references[domain]
+        aligned_entries: dict[str, dict[str, Any]] = {}
+        required_layers = {
+            definition.layer_id
+            for definition in computable_metrics()
+            if definition.layer_id and domain in definition.applicable_domains
+        }
+        print(
+            f"[tier1-metrics] preflight: domain={domain} "
+            f"solutions={domain_solution_counts[domain]} grid="
+            f"{grid_sha256(reference)[:12]} "
+            f"({reference.width}x{reference.height}) "
+            f"layers={len(required_layers)}"
+        )
+        for layer_id in sorted(required_layers):
+            try:
+                url = _resolve_layer_url(manifest, layer_id)
+                download = cached_download(url, cache_dir, force=force_download)
+                aligned = alignment_cache.align(
+                    download.path,
+                    download.sha256,
+                    reference,
+                    policies[layer_id],
+                    source_url=url,
+                )
+                aligned_entries[f"layer:{layer_id}"] = _alignment_identity(
+                    aligned,
+                    input_id=f"layer:{layer_id}",
+                    source_url=url,
+                )
+            except (
+                AlignmentError,
+                DownloadError,
+                ManifestError,
+                OSError,
+                ValueError,
+            ) as exc:
+                failures.append(
+                    f"domain={domain} grid={grid_sha256(reference)} "
+                    f"layer={layer_id!r}: {exc}"
+                )
 
-    has_land = "land" in active_domains
-    if has_land and not skip_species:
-        if species_records is None:
-            failures.append("species records were not available for alignment preflight")
-        else:
-            def align_species(species):
-                input_id = f"species:{species.blob_filename}"
-                try:
-                    download = cached_download(
-                        species.blob_url,
-                        cache_dir,
-                        force=force_download,
-                    )
-                    aligned = alignment_cache.species.align(
-                        download.path,
-                        download.sha256,
-                        reference,
-                        source_url=species.blob_url,
-                        authoritative_area_km2=species.range_km2,
-                    )
-                    return input_id, _alignment_identity(
-                        aligned, input_id=input_id, source_url=species.blob_url
-                    )
-                except (AlignmentError, DownloadError, OSError, ValueError) as exc:
-                    return input_id, f"species {species.blob_filename!r}: {exc}"
+        if domain == "land" and not skip_species:
+            if species_records is None:
+                failures.append(
+                    f"domain=land grid={grid_sha256(reference)}: species records "
+                    "were not available for alignment preflight"
+                )
+            else:
+                def align_species(species):
+                    input_id = f"species:{species.blob_filename}"
+                    try:
+                        download = cached_download(
+                            species.blob_url,
+                            cache_dir,
+                            force=force_download,
+                        )
+                        aligned = alignment_cache.species.align(
+                            download.path,
+                            download.sha256,
+                            reference,
+                            source_url=species.blob_url,
+                            authoritative_area_km2=species.range_km2,
+                        )
+                        return input_id, _alignment_identity(
+                            aligned, input_id=input_id, source_url=species.blob_url
+                        )
+                    except (
+                        AlignmentError,
+                        DownloadError,
+                        OSError,
+                        ValueError,
+                    ) as exc:
+                        return (
+                            input_id,
+                            f"domain=land grid={grid_sha256(reference)} "
+                            f"species={species.blob_filename!r}: {exc}",
+                        )
 
-            worker_count = max(
-                1,
-                int(os.environ.get("METRICS_ALIGNMENT_PREFLIGHT_WORKERS", "8")),
+                worker_count = max(
+                    1,
+                    int(os.environ.get("METRICS_ALIGNMENT_PREFLIGHT_WORKERS", "8")),
+                )
+                print(
+                    f"[tier1-metrics] preflight: domain=land aligning "
+                    f"{len(species_records):,} species with {worker_count} worker(s)"
+                )
+                with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                    futures = [
+                        executor.submit(align_species, species)
+                        for species in species_records
+                    ]
+                    for completed, future in enumerate(
+                        as_completed(futures),
+                        start=1,
+                    ):
+                        input_id, result = future.result()
+                        if isinstance(result, str):
+                            failures.append(result)
+                        else:
+                            aligned_entries[input_id] = result
+                        if (
+                            completed % _SPECIES_PROGRESS_INTERVAL == 0
+                            or completed == len(futures)
+                        ):
+                            print(
+                                "[tier1-metrics] preflight: domain=land species "
+                                f"{completed:,}/{len(futures):,}"
+                            )
+
+        expected_aligned_inputs = len(required_layers)
+        if domain == "land" and not skip_species:
+            expected_aligned_inputs += len(species_records or [])
+        domain_inventory = {
+            "format": "metrics-domain-alignment-inventory-v1",
+            "domain": domain,
+            "solutionCount": domain_solution_counts[domain],
+            "referenceSolutionId": domain_reference_solutions[domain],
+            "targetGridSha256": grid_sha256(reference),
+            "targetGrid": {
+                "width": reference.width,
+                "height": reference.height,
+                "crs": reference.crs,
+            },
+            "policyManifestSha256": policy_manifest_sha256,
+            "expectedAlignedInputs": expected_aligned_inputs,
+            "alignedInputs": len(aligned_entries),
+            "entries": [
+                aligned_entries[key]
+                for key in sorted(aligned_entries)
+            ],
+            "entriesSha256": alignment_manifest_sha256(aligned_entries),
+            "estimatedReleaseBytes": sum(
+                entry["alignedBytes"] for entry in aligned_entries.values()
+            ),
+        }
+        if domain == "land" and not skip_species:
+            excluded = (
+                len(species_exception.excluded_filenames)
+                if species_exception is not None
+                else 0
             )
-            with ThreadPoolExecutor(max_workers=worker_count) as executor:
-                futures = [
-                    executor.submit(align_species, species)
-                    for species in species_records
-                ]
-                for future in as_completed(futures):
-                    input_id, result = future.result()
-                    if isinstance(result, str):
-                        failures.append(result)
-                    else:
-                        aligned_entries[input_id] = result
+            available_expected = len(species_records or [])
+            species_aligned = sum(
+                key.startswith("species:") for key in aligned_entries
+            )
+            species_failures = sum(
+                failure.startswith("domain=land") and " species=" in failure
+                for failure in failures
+            )
+            domain_inventory["speciesInventory"] = {
+                "catalogTotal": available_expected + excluded,
+                "availableExpected": available_expected,
+                "excluded": excluded,
+                "processed": species_aligned,
+                "missingUnexpected": species_failures,
+            }
+            domain_inventory["speciesException"] = (
+                species_exception.binding if species_exception is not None else None
+            )
+        domain_inventory["sha256"] = alignment_manifest_sha256(domain_inventory)
+        domain_inventories[domain] = domain_inventory
 
     inventory = {
-        "format": "metrics-alignment-inventory-v3",
-        "targetGridSha256": grid_sha256(reference),
-        "policyManifestSha256": alignment_policy_manifest_sha256(),
-        "expectedAlignedInputs": len(required_for_domains)
-        + (
-            len(species_records or [])
-            if has_land and not skip_species
-            else 0
-        ),
-        "alignedInputs": len(aligned_entries),
-        "entries": [
-            aligned_entries[key]
-            for key in sorted(aligned_entries)
-        ],
-        "entriesSha256": alignment_manifest_sha256(aligned_entries),
+        "format": "metrics-alignment-inventory-v4",
+        "domains": {
+            domain: domain_inventories[domain]
+            for domain in sorted(domain_inventories)
+        },
         "cacheStorage": {
             "completePairBytes": (
                 alignment_cache.cache_usage_bytes()
@@ -1056,31 +1244,36 @@ def _preflight_aligned_inputs(
             ),
             "configuredMaxBytes": alignment_cache.max_cache_bytes,
             "estimatedReleaseBytes": sum(
-                entry["alignedBytes"] for entry in aligned_entries.values()
+                domain_inventory["estimatedReleaseBytes"]
+                for domain_inventory in domain_inventories.values()
             ),
         },
     }
-    if has_land and not skip_species:
-        excluded = (
-            len(species_exception.excluded_filenames)
-            if species_exception is not None
-            else 0
-        )
-        available_expected = len(species_records or [])
-        species_aligned = sum(key.startswith("species:") for key in aligned_entries)
-        species_failures = sum(failure.startswith("species ") for failure in failures)
-        inventory["speciesInventory"] = {
-            "catalogTotal": available_expected + excluded,
-            "availableExpected": available_expected,
-            "excluded": excluded,
-            "processed": species_aligned,
-            "missingUnexpected": species_failures,
-        }
-        inventory["speciesException"] = (
-            species_exception.binding if species_exception is not None else None
-        )
     inventory["sha256"] = alignment_manifest_sha256(inventory)
     return alignment_cache, inventory, failures
+
+
+def _alignment_provenance_for_solution(
+    alignment_inventory: dict[str, Any],
+    solution: dict[str, Any],
+) -> dict[str, Any]:
+    """Return the fail-closed domain inventory bound to one solution."""
+
+    domain = solution_domain(solution)
+    domains = alignment_inventory.get("domains")
+    domain_inventory = domains.get(domain) if isinstance(domains, dict) else None
+    if (
+        alignment_inventory.get("format") != "metrics-alignment-inventory-v4"
+        or not isinstance(domain_inventory, dict)
+        or domain_inventory.get("domain") != domain
+        or not isinstance(domain_inventory.get("targetGridSha256"), str)
+        or not isinstance(domain_inventory.get("sha256"), str)
+    ):
+        raise AlignmentError(
+            f"No valid alignment inventory exists for domain={domain} "
+            f"solution={str(solution.get('id'))!r}."
+        )
+    return domain_inventory
 
 
 def _alignment_identity(
@@ -2082,6 +2275,25 @@ def _process_solution(
         force=force_download,
     )
     raster = read_solution_raster(download.path)
+    if raster.valid_cells == 0:
+        raise RasterError(
+            f"Solution {solution_id!r} has zero valid cells at national scope."
+        )
+    target_grid_sha256 = grid_sha256(raster.fingerprint)
+    validity_mask_sha256 = boolean_mask_sha256(raster.solution_data_valid_mask)
+    if alignment_provenance is not None:
+        expected_grid_sha256 = alignment_provenance.get("targetGridSha256")
+        observed_grid_sha256 = grid_sha256(raster.fingerprint)
+        if (
+            alignment_provenance.get("domain") != domain
+            or expected_grid_sha256 != observed_grid_sha256
+        ):
+            raise AlignmentError(
+                f"domain={domain} solution={solution_id!r} grid="
+                f"{observed_grid_sha256} does not match bound alignment inventory "
+                f"domain={alignment_provenance.get('domain')!r} "
+                f"grid={expected_grid_sha256!r}."
+            )
     if alignment_cache is None:
         alignment_cache = RasterAlignmentCache(cache_dir)
 
@@ -2145,6 +2357,17 @@ def _process_solution(
         "national": {
             "colombia": {
                 "name": "Colombia",
+                "scopeState": build_scope_state(
+                    geography_level="national",
+                    scope_id="colombia",
+                    solution_valid_cell_count=raster.valid_cells,
+                    selected_cell_count=raster.selected_cells,
+                    boundary_grid_cell_count=raster.fingerprint.width
+                    * raster.fingerprint.height,
+                    target_grid_sha256=target_grid_sha256,
+                    solution_raster_sha256=download.sha256,
+                    solution_validity_mask_sha256=validity_mask_sha256,
+                ),
                 "metrics": national_metrics,
             }
         }
@@ -2221,7 +2444,22 @@ def _process_solution(
                     species_records=species_records,
                     species_exception_binding=species_exception_binding,
                 )
-                entry: dict[str, Any] = {"name": feat.name, "metrics": metrics}
+                entry: dict[str, Any] = {
+                    "name": feat.name,
+                    "scopeState": build_scope_state(
+                        geography_level=geo_level,
+                        scope_id=feat.boundary_id,
+                        solution_valid_cell_count=masked.valid_cells,
+                        selected_cell_count=masked.selected_cells,
+                        boundary_grid_cell_count=boundary_mask_cache.cell_count(px_mask),
+                        target_grid_sha256=target_grid_sha256,
+                        solution_raster_sha256=download.sha256,
+                        solution_validity_mask_sha256=validity_mask_sha256,
+                        boundary_source_sha256=feat.source_sha256,
+                        boundary_geometry_sha256=feat.geometry_sha256,
+                    ),
+                    "metrics": metrics,
+                }
                 # Include sirap_kind if present (legacy SIRAP entry shape).
                 if "sirap_kind" in feat.properties:
                     entry["kind"] = feat.properties["sirap_kind"]
@@ -2236,35 +2474,6 @@ def _process_solution(
                 level_out[feat.boundary_id] = entry
             geographies[geo_level] = level_out
             print(f"[tier1-metrics]   {geo_level}: {len(level_out)} features processed")
-
-    if not _has_complete_regular_output_shape(
-        geographies,
-        national_only=national_only,
-        domain=domain,
-        skip_species=skip_species,
-    ):
-        raise RuntimeError(
-            "Regular metrics output shape is incomplete; no metrics document was written."
-        )
-    required_metric_issues = _required_input_metric_issues(
-        geographies,
-        domain=domain,
-        skip_species=skip_species,
-        species_exception_binding=species_exception_binding,
-    )
-    if required_metric_issues:
-        issue_details = "; ".join(
-            (
-                f"{issue['geography']} metric={issue['metricId']} "
-                f"expected={issue['expectedStatus']} actual={issue['actualStatus']} "
-                f"reason={issue['reason']}"
-            )
-            for issue in required_metric_issues
-        )
-        raise RuntimeError(
-            "Required layer/species metrics are blocked or incomplete; "
-            f"no metrics document was written. Failures: {issue_details}"
-        )
 
     generated_at = _utc_now_iso()
     provenance = build_metrics_provenance(
@@ -2361,6 +2570,17 @@ def _process_solution(
         "speciesCompleteness": species_completeness,
         "geographies": geographies,
     }
+    completeness_issues = regular_artifact_completeness_issues(
+        doc,
+        national_only=national_only,
+        domain=domain,
+        skip_species=skip_species,
+    )
+    if completeness_issues:
+        raise RuntimeError(
+            "Regular metrics artifact is incomplete; no metrics document was written. "
+            f"Failure: {completeness_issues[0]}"
+        )
     cache_path = write_solution_cache(output_dir, solution_id, doc)
     print(f"[tier1-metrics]   cache → {cache_path}")
 
@@ -2408,6 +2628,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     catalog: SolutionCatalog | None = None
     species_exception: SpeciesExceptionPolicy | None = None
+    release_plan_binding: dict[str, Any] | None = None
     if args.solution_catalog is not None:
         try:
             catalog = load_solution_catalog(args.solution_catalog)
@@ -2449,7 +2670,11 @@ def main(argv: list[str] | None = None) -> int:
                     args.release_plan,
                     catalog=catalog,
                 )
-            except SolutionCatalogError as exc:
+                release_plan_binding = _release_plan_binding(
+                    args.release_plan,
+                    catalog=catalog,
+                )
+            except (OSError, SolutionCatalogError) as exc:
                 print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
                 return 2
     if args.release_id:
@@ -2462,6 +2687,15 @@ def main(argv: list[str] | None = None) -> int:
                 / args.release_id
                 / "regular/verbose"
             )
+            if args.domain is not None:
+                args.output_dir = (
+                    args.output_dir
+                    / "workers"
+                    / (
+                        f"{args.domain}-chunk-{args.chunk_index}"
+                        f"-of-{args.chunk_count}"
+                    )
+                )
     print(f"[tier1-metrics] manifest: {args.manifest_url}")
 
     try:
@@ -2508,12 +2742,24 @@ def main(argv: list[str] | None = None) -> int:
             national_solutions=manifest.national_solutions,
             batch_solutions=catalog_solutions,
         )
-        selected_solutions = _select_solutions(
-            selection_manifest,
-            args.solution_id,
-            args.limit,
-        )
-        if catalog is not None and args.release_plan is not None:
+        if catalog is not None and args.release_plan is not None and args.domain:
+            selected_solutions = _filter_release_plan_solutions(
+                catalog_solutions,
+                catalog=catalog,
+                release_plan=args.release_plan,
+                domain=args.domain,
+            )
+        else:
+            selected_solutions = _select_solutions(
+                selection_manifest,
+                args.solution_id,
+                args.limit,
+            )
+        if (
+            catalog is not None
+            and args.release_plan is not None
+            and args.domain is None
+        ):
             selected_solutions = _filter_release_plan_solutions(
                 selected_solutions,
                 catalog=catalog,
@@ -2589,11 +2835,13 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     if alignment_provenance is not None:
-        print(
-            "[tier1-metrics] preflight: aligned "
-            f"{alignment_provenance['alignedInputs']} required input(s) to grid "
-            f"{alignment_provenance['targetGridSha256'][:12]}"
-        )
+        for domain, domain_inventory in alignment_provenance["domains"].items():
+            print(
+                f"[tier1-metrics] preflight: domain={domain} aligned "
+                f"{domain_inventory['alignedInputs']}/"
+                f"{domain_inventory['expectedAlignedInputs']} required input(s) "
+                f"to grid {domain_inventory['targetGridSha256'][:12]}"
+            )
         cache_storage = alignment_provenance["cacheStorage"]
         print(
             "[tier1-metrics] preflight: aligned cache "
@@ -2639,10 +2887,23 @@ def main(argv: list[str] | None = None) -> int:
 
     if catalog is not None and args.release_id is not None:
         try:
+            worker_identity = (
+                f"domain-{args.domain}-chunk-{args.chunk_index}-of-{args.chunk_count}"
+                if args.domain is not None
+                else (
+                    f"global-chunk-{args.chunk_index}-of-{args.chunk_count}"
+                    if args.chunk_count > 1
+                    else None
+                )
+            )
             bind_release_output(
                 args.output_dir,
                 catalog=catalog,
-                component="regular-verbose",
+                component=(
+                    f"regular-verbose-{worker_identity}"
+                    if worker_identity is not None
+                    else "regular-verbose"
+                ),
             )
         except SolutionCatalogError as exc:
             print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
@@ -2675,6 +2936,10 @@ def main(argv: list[str] | None = None) -> int:
         for solution in solutions:
             solution_id = str(solution.get("id"))
             observed = solution_checksums[solution_id]
+            solution_alignment_provenance = _alignment_provenance_for_solution(
+                alignment_provenance,
+                solution,
+            )
             if catalog is not None:
                 catalog_entry = catalog_by_id[solution_id]
             else:
@@ -2691,7 +2956,7 @@ def main(argv: list[str] | None = None) -> int:
                 skip_species_boundary_levels=set(args.skip_species_boundary_level),
                 species_csv_url=args.species_csv_url,
                 release_id=args.release_id,
-                alignment_provenance=alignment_provenance,
+                alignment_provenance=solution_alignment_provenance,
                 species_exception_binding=(
                     species_exception.binding
                     if species_exception is not None
@@ -2714,7 +2979,7 @@ def main(argv: list[str] | None = None) -> int:
                     else None
                 ),
             )
-            source_identity["inputAlignment"] = alignment_provenance
+            source_identity["inputAlignment"] = solution_alignment_provenance
             solution_input_signatures[solution_id] = build_solution_input_signature(
                 solution=solution,
                 catalog_entry=catalog_entry,
@@ -2722,7 +2987,7 @@ def main(argv: list[str] | None = None) -> int:
                 metrics_provenance=expected_provenance,
                 source_identity=source_identity,
             )
-    except (OSError, DownloadError, SolutionCatalogError) as exc:
+    except (AlignmentError, OSError, DownloadError, SolutionCatalogError) as exc:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
         return 2
     if args.write_input_signatures_only:
@@ -2877,7 +3142,10 @@ def main(argv: list[str] | None = None) -> int:
                     solution_catalog_binding=solution_catalog_binding,
                     raster_download=preflight_downloads[solution_id],
                     alignment_cache=alignment_cache,
-                    alignment_provenance=alignment_provenance,
+                    alignment_provenance=_alignment_provenance_for_solution(
+                        alignment_provenance,
+                        solution,
+                    ),
                     species_exception_binding=(
                         species_exception.binding
                         if species_exception is not None
@@ -2924,11 +3192,23 @@ def main(argv: list[str] | None = None) -> int:
         "chunk": {
             "index": args.chunk_index,
             "count": args.chunk_count,
+            "scope": "domain" if args.domain is not None else "global",
+            "domain": args.domain,
             "selectedBeforeChunk": len(selected_solutions),
             "selectedForChunk": len(solutions),
         },
+        "domainSelection": (
+            {
+                "domain": args.domain,
+                "catalogDomainCount": catalog.count_for_domain(args.domain),
+                "selectedRecomputeCount": len(selected_solutions),
+            }
+            if args.domain is not None and catalog is not None
+            else None
+        ),
         "cachePolicy": args.cache_policy,
         "inputAlignment": alignment_provenance,
+        "releasePlan": release_plan_binding,
         "solutionCatalog": (
             {
                 "format": "solution-catalog-v1",

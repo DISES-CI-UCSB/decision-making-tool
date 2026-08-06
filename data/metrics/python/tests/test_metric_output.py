@@ -49,7 +49,7 @@ def test_status_helpers_preserve_metric_status_contracts():
     definition = _definition()
 
     assert not_applicable(definition)["status"] == "not_applicable"
-    assert empty_boundary(definition)["value"] == 0.0
+    assert empty_boundary(definition)["value"] is None
     assert blocked_no_data(definition) == {
         "metricId": "demo_metric",
         "value": None,
@@ -62,8 +62,9 @@ def test_status_helpers_preserve_metric_status_contracts():
     }
 
 
-def test_empty_boundary_uses_none_for_non_area_or_percent_units():
-    assert empty_boundary(_definition(unit="count"))["value"] is None
+def test_empty_boundary_uses_none_for_every_unit():
+    for unit in ("count", "km2", "%"):
+        assert empty_boundary(_definition(unit=unit))["value"] is None
 
 
 def test_status_counts_groups_metric_outputs():

@@ -4,6 +4,7 @@ import {
   buildGoalsUrl,
   buildStagingCompactMetricsUrl,
   expandCompactMetricsDocument,
+  geographyScope,
   getPrecomputedMetricUrl,
   metricsForScope,
   nationalMetrics,
@@ -137,6 +138,23 @@ describe('cached-metrics.utils', () => {
         national: {
           colombia: {
             name: 'Colombia',
+            scopeState: {
+              format: 'solution-raster-scope-state-v1',
+              classification: 'supported',
+              reason: 'positive_solution_valid_support',
+              solutionValidCellCount: 10,
+              selectedCellCount: 2,
+              boundaryGridCellCount: 10,
+              targetGridSha256: 'a'.repeat(64),
+              solutionRasterSha256: 'b'.repeat(64),
+              solutionValidityMaskSha256: 'c'.repeat(64),
+              boundary: null,
+              rasterizationPolicy: {
+                boundaryInclusion: 'none',
+                allTouched: false,
+                referenceGrid: 'solution raster grid',
+              },
+            },
             metrics: [
               [0, 12.5, 0, 0, 0],
               [
@@ -194,5 +212,22 @@ describe('cached-metrics.utils', () => {
         },
       },
     ]);
+    expect(geographyScope(document, 'national', 'colombia')?.scopeState).toEqual({
+      format: 'solution-raster-scope-state-v1',
+      classification: 'supported',
+      reason: 'positive_solution_valid_support',
+      solutionValidCellCount: 10,
+      selectedCellCount: 2,
+      boundaryGridCellCount: 10,
+      targetGridSha256: 'a'.repeat(64),
+      solutionRasterSha256: 'b'.repeat(64),
+      solutionValidityMaskSha256: 'c'.repeat(64),
+      boundary: null,
+      rasterizationPolicy: {
+        boundaryInclusion: 'none',
+        allTouched: false,
+        referenceGrid: 'solution raster grid',
+      },
+    });
   });
 });

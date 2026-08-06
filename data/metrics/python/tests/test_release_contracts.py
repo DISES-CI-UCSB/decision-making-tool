@@ -77,8 +77,9 @@ def test_remote_verification_compares_hash_size_headers_and_format(tmp_path):
         ),
     )
 
-    assert result["ok"] is True
+    assert result["ok"] is False
     assert result["entries"][0]["format"] == "metrics-verbose-v1"
+    assert result["entries"][0]["contractIssues"]
 
 
 def test_remote_verification_rejects_legacy_goals_path(tmp_path):

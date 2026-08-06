@@ -206,7 +206,10 @@ def test_process_solution_skips_species_prepass_for_marine(
     monkeypatch.setattr(
         pipeline,
         "cached_download",
-        lambda *args, **kwargs: SimpleNamespace(path=tmp_path / "marine.tif", sha256="abc"),
+        lambda *args, **kwargs: SimpleNamespace(
+            path=tmp_path / "marine.tif",
+            sha256="a" * 64,
+        ),
     )
     monkeypatch.setattr(pipeline, "read_solution_raster", lambda path: raster)
     monkeypatch.setattr(
@@ -215,9 +218,34 @@ def test_process_solution_skips_species_prepass_for_marine(
         lambda *args, **kwargs: [
             {
                 "metricId": definition.metric_id,
-                "status": "ready",
+                "value": (
+                    1.0
+                    if (
+                        "marine" in definition.applicable_domains
+                        and definition.kind != "aoi_percent"
+                    )
+                    else None
+                ),
+                "status": (
+                    "ready"
+                    if (
+                        "marine" in definition.applicable_domains
+                        and definition.kind != "aoi_percent"
+                    )
+                    else "not_applicable"
+                ),
                 "unit": definition.unit,
+                "source": (
+                    "test"
+                    if (
+                        "marine" in definition.applicable_domains
+                        and definition.kind != "aoi_percent"
+                    )
+                    else "n/a"
+                ),
+                "notes": None,
                 "labelKey": definition.label_key,
+                "formatHint": definition.format_hint,
             }
             for definition in pipeline.computable_metrics()
         ],
@@ -255,5 +283,5 @@ def test_process_solution_skips_species_prepass_for_marine(
     assert result["speciesProcessed"] == 0
     assert written_documents[0]["metricsProvenance"]["solutionDomain"] == "marine"
     assert written_documents[0]["metricsProvenance"]["catalogSignature"].startswith(
-        "metrics-catalog-v3:"
+        "metrics-catalog-v4:"
     )

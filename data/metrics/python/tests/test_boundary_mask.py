@@ -112,6 +112,14 @@ def test_boundary_mask_cache_separates_land_and_marine_grids():
     assert land_mask is not marine_mask
 
 
+def test_boundary_mask_cache_preserves_rasterized_cell_count():
+    cache = BoundaryMaskCache()
+    mask = cache.get("departments", "example", WGS84_SQUARE, _land_grid())
+
+    assert cache.cell_count(mask) == 1
+    assert cache.cell_count(mask) == int(np.count_nonzero(mask))
+
+
 def test_boundary_mask_cache_invalidates_on_source_hash_change():
     cache = BoundaryMaskCache()
     grid = _land_grid()

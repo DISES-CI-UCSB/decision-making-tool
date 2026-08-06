@@ -19,10 +19,11 @@ from species_overlap import SPECIES_OVERLAP_ALGORITHM_VERSION
 
 # Bump this when output schema or calculation semantics change without a
 # corresponding MetricDefinition change. The catalog itself is hashed below.
-METRICS_SCHEMA_VERSION = 3
-CATALOG_SIGNATURE_VERSION = "metrics-catalog-v3"
+METRICS_SCHEMA_VERSION = 4
+CATALOG_SIGNATURE_VERSION = "metrics-catalog-v4"
 PROVENANCE_KEY = "metricsProvenance"
 BOUNDARY_PROVENANCE_VERSION = "boundary-provenance-v1"
+SCOPE_STATE_FORMAT = "solution-raster-scope-state-v1"
 EXPECTED_BOUNDARY_COUNTS = {
     "departments": 33,
     "municipalities": 1105,
@@ -32,6 +33,11 @@ EXPECTED_BOUNDARY_COUNTS = {
 }
 BOUNDARY_RASTERIZATION = {
     "boundaryInclusion": "pixel-center",
+    "allTouched": False,
+    "referenceGrid": "solution raster grid",
+}
+NATIONAL_RASTERIZATION = {
+    "boundaryInclusion": "none",
     "allTouched": False,
     "referenceGrid": "solution raster grid",
 }
@@ -56,6 +62,172 @@ VALID_METRIC_STATUSES = (
     "not_applicable",
     "empty",
 )
+_SHA256_LENGTH = 64
+
+
+def _is_nonnegative_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _is_sha256(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == _SHA256_LENGTH
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def build_scope_state(
+    *,
+    geography_level: str,
+    scope_id: str,
+    solution_valid_cell_count: int,
+    selected_cell_count: int,
+    boundary_grid_cell_count: int,
+    target_grid_sha256: str,
+    solution_raster_sha256: str,
+    solution_validity_mask_sha256: str,
+    boundary_source_sha256: str | None = None,
+    boundary_geometry_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Build cryptographically bound support evidence for one geography scope."""
+
+    is_national = geography_level == "national"
+    classification = (
+        "supported" if solution_valid_cell_count > 0 else "empty"
+    )
+    return {
+        "format": SCOPE_STATE_FORMAT,
+        "classification": classification,
+        "reason": (
+            "positive_solution_valid_support"
+            if classification == "supported"
+            else "zero_solution_valid_support"
+        ),
+        "solutionValidCellCount": solution_valid_cell_count,
+        "selectedCellCount": selected_cell_count,
+        "boundaryGridCellCount": boundary_grid_cell_count,
+        "targetGridSha256": target_grid_sha256,
+        "solutionRasterSha256": solution_raster_sha256,
+        "solutionValidityMaskSha256": solution_validity_mask_sha256,
+        "boundary": (
+            None
+            if is_national
+            else {
+                "geographyLevel": geography_level,
+                "scopeId": scope_id,
+                "sourceSha256": boundary_source_sha256,
+                "geometrySha256": boundary_geometry_sha256,
+            }
+        ),
+        "rasterizationPolicy": (
+            NATIONAL_RASTERIZATION if is_national else BOUNDARY_RASTERIZATION
+        ),
+    }
+
+
+def scope_state_issues(
+    scope_state: Any,
+    *,
+    geography_level: str,
+    scope_id: str,
+    expected_solution_raster_sha256: str | None = None,
+    expected_target_grid_sha256: str | None = None,
+    expected_solution_validity_mask_sha256: str | None = None,
+    expected_boundary_source_sha256: str | None = None,
+) -> list[str]:
+    """Validate support evidence without trusting metric statuses."""
+
+    label = f"{geography_level}/{scope_id} scopeState"
+    if not isinstance(scope_state, dict):
+        return [f"{label} is missing or invalid"]
+
+    issues: list[str] = []
+    if scope_state.get("format") != SCOPE_STATE_FORMAT:
+        issues.append(f"{label} format is invalid")
+
+    counts = {
+        field: scope_state.get(field)
+        for field in (
+            "solutionValidCellCount",
+            "selectedCellCount",
+            "boundaryGridCellCount",
+        )
+    }
+    for field, value in counts.items():
+        if not _is_nonnegative_int(value):
+            issues.append(f"{label}.{field} must be a non-negative integer")
+    if all(_is_nonnegative_int(value) for value in counts.values()):
+        valid = counts["solutionValidCellCount"]
+        selected = counts["selectedCellCount"]
+        boundary = counts["boundaryGridCellCount"]
+        if selected > valid:
+            issues.append(f"{label} selected cells exceed solution-valid cells")
+        if valid > boundary:
+            issues.append(f"{label} solution-valid cells exceed boundary-grid cells")
+
+        expected_classification = "supported" if valid > 0 else "empty"
+        expected_reason = (
+            "positive_solution_valid_support"
+            if valid > 0
+            else "zero_solution_valid_support"
+        )
+        if scope_state.get("classification") != expected_classification:
+            issues.append(f"{label} classification does not match support counts")
+        if scope_state.get("reason") != expected_reason:
+            issues.append(f"{label} reason does not match support counts")
+        if geography_level == "national" and valid == 0:
+            issues.append("national/colombia has zero solution-valid support")
+
+    for field in (
+        "targetGridSha256",
+        "solutionRasterSha256",
+        "solutionValidityMaskSha256",
+    ):
+        if not _is_sha256(scope_state.get(field)):
+            issues.append(f"{label}.{field} must be a lowercase SHA-256")
+    if (
+        expected_solution_raster_sha256 is not None
+        and scope_state.get("solutionRasterSha256")
+        != expected_solution_raster_sha256
+    ):
+        issues.append(f"{label} solution raster SHA does not match document provenance")
+    if (
+        expected_target_grid_sha256 is not None
+        and scope_state.get("targetGridSha256") != expected_target_grid_sha256
+    ):
+        issues.append(f"{label} target grid SHA does not match document identity")
+    if (
+        expected_solution_validity_mask_sha256 is not None
+        and scope_state.get("solutionValidityMaskSha256")
+        != expected_solution_validity_mask_sha256
+    ):
+        issues.append(f"{label} validity-mask SHA does not match national scope")
+
+    is_national = geography_level == "national"
+    expected_policy = NATIONAL_RASTERIZATION if is_national else BOUNDARY_RASTERIZATION
+    if scope_state.get("rasterizationPolicy") != expected_policy:
+        issues.append(f"{label} rasterization policy is invalid")
+    boundary = scope_state.get("boundary")
+    if is_national:
+        if boundary is not None:
+            issues.append(f"{label}.boundary must be null")
+    elif not isinstance(boundary, dict):
+        issues.append(f"{label}.boundary is missing or invalid")
+    else:
+        if boundary.get("geographyLevel") != geography_level:
+            issues.append(f"{label} boundary geography level mismatch")
+        if boundary.get("scopeId") != scope_id:
+            issues.append(f"{label} boundary scope id mismatch")
+        for field in ("sourceSha256", "geometrySha256"):
+            if not _is_sha256(boundary.get(field)):
+                issues.append(f"{label}.boundary.{field} must be a lowercase SHA-256")
+        if (
+            expected_boundary_source_sha256 is not None
+            and boundary.get("sourceSha256") != expected_boundary_source_sha256
+        ):
+            issues.append(f"{label} boundary source SHA does not match provenance")
+    return issues
 
 
 def generation_config(
@@ -320,6 +492,14 @@ def regular_artifact_completeness_issues(
     definitions = computable_metrics()
     expected_ids = [definition.metric_id for definition in definitions]
     issues: list[str] = []
+    solution_raster = document.get("solutionRaster")
+    solution_raster_sha256 = (
+        solution_raster.get("sha256")
+        if isinstance(solution_raster, dict)
+        else None
+    )
+    if not _is_sha256(solution_raster_sha256):
+        issues.append("solutionRaster.sha256 must be a lowercase SHA-256")
     provenance = document.get(PROVENANCE_KEY)
     generation = (
         provenance.get("generationConfig")
@@ -331,6 +511,33 @@ def regular_artifact_completeness_issues(
         if isinstance(generation, dict)
         else None
     )
+    national_scope = geographies.get("national", {}).get("colombia", {})
+    national_scope_state = (
+        national_scope.get("scopeState")
+        if isinstance(national_scope, dict)
+        else None
+    )
+    expected_target_grid_sha256 = (
+        national_scope_state.get("targetGridSha256")
+        if isinstance(national_scope_state, dict)
+        else None
+    )
+    expected_validity_mask_sha256 = (
+        national_scope_state.get("solutionValidityMaskSha256")
+        if isinstance(national_scope_state, dict)
+        else None
+    )
+    alignment = provenance.get("inputAlignment") if isinstance(provenance, dict) else None
+    if (
+        isinstance(alignment, dict)
+        and alignment.get("targetGridSha256") != expected_target_grid_sha256
+    ):
+        issues.append("national scope target grid SHA does not match input alignment")
+    boundary_sources = (
+        provenance.get("boundaryProvenance", {}).get("sources", {})
+        if isinstance(provenance, dict)
+        else {}
+    )
     for level, scopes in geographies.items():
         if not isinstance(scopes, dict) or not scopes:
             issues.append(f"{level} has no scopes")
@@ -338,6 +545,31 @@ def regular_artifact_completeness_issues(
         if level == "national" and set(scopes) != {"colombia"}:
             issues.append("national scopes must contain exactly 'colombia'")
         for scope_id, scope in scopes.items():
+            if not isinstance(scope, dict):
+                issues.append(f"{level}/{scope_id} scope is malformed")
+                continue
+            scope_state = scope.get("scopeState")
+            issues.extend(
+                scope_state_issues(
+                    scope_state,
+                    geography_level=level,
+                    scope_id=scope_id,
+                    expected_solution_raster_sha256=solution_raster_sha256,
+                    expected_target_grid_sha256=expected_target_grid_sha256,
+                    expected_solution_validity_mask_sha256=expected_validity_mask_sha256,
+                    expected_boundary_source_sha256=(
+                        boundary_sources.get(level, {}).get("sha256")
+                        if level != "national"
+                        and isinstance(boundary_sources.get(level), dict)
+                        else None
+                    ),
+                )
+            )
+            scope_is_empty = (
+                isinstance(scope_state, dict)
+                and scope_state.get("classification") == "empty"
+                and scope_state.get("solutionValidCellCount") == 0
+            )
             metrics = scope.get("metrics") if isinstance(scope, dict) else None
             if not isinstance(metrics, list):
                 issues.append(f"{level}/{scope_id} has no metrics list")
@@ -360,32 +592,72 @@ def regular_artifact_completeness_issues(
                         f"{status!r}"
                     )
                     continue
-                applicable_input = (
-                    domain in definition.applicable_domains
-                    and (
-                        definition.layer_id is not None
-                        or (
-                            is_species_metric_kind(definition.kind)
-                            and not skip_species
+                value = metric.get("value")
+                if status in {"ready", "partial"}:
+                    if (
+                        isinstance(value, bool)
+                        or not isinstance(value, (int, float))
+                        or not math.isfinite(value)
+                    ):
+                        issues.append(
+                            f"{level}/{scope_id}/{definition.metric_id} {status} "
+                            "value must be finite numeric"
                         )
+                elif value is not None:
+                    issues.append(
+                        f"{level}/{scope_id}/{definition.metric_id} {status} "
+                        "value must be null"
+                    )
+
+                if scope_is_empty:
+                    expected_empty_status = (
+                        "empty"
+                        if domain in definition.applicable_domains
+                        else "not_applicable"
+                    )
+                    if status != expected_empty_status:
+                        issues.append(
+                            f"{level}/{scope_id}/{definition.metric_id} must be "
+                            f"{expected_empty_status} for proven empty scope"
+                        )
+                    continue
+                if status == "empty":
+                    issues.append(
+                        f"{level}/{scope_id}/{definition.metric_id} cannot be empty "
+                        "without zero-support scope evidence"
+                    )
+                    continue
+                structurally_not_applicable = (
+                    domain not in definition.applicable_domains
+                    or (
+                        level == "national"
+                        and definition.kind == "aoi_percent"
+                    )
+                    or (
+                        level != "national"
+                        and definition.kind
+                        in {"metadata_summary", "metadata_coverage"}
                     )
                 )
-                expected_status = (
-                    "partial"
-                    if species_exception_binding is not None
+                expected_status: str | None
+                if structurally_not_applicable:
+                    expected_status = "not_applicable"
+                elif skip_species and is_species_metric_kind(definition.kind):
+                    expected_status = None
+                elif (
+                    species_exception_binding is not None
                     and is_species_metric_kind(definition.kind)
-                    else "ready"
-                )
-                if applicable_input and status != expected_status:
+                ):
+                    expected_status = "partial"
+                else:
+                    expected_status = "ready"
+                if expected_status is not None and status != expected_status:
                     issues.append(
                         f"{level}/{scope_id}/{definition.metric_id} must be "
                         f"{expected_status}"
                     )
                 if status == "partial" and (
-                    isinstance(metric.get("value"), bool)
-                    or not isinstance(metric.get("value"), (int, float))
-                    or not math.isfinite(metric["value"])
-                    or metric.get("details", {}).get("speciesException")
+                    metric.get("details", {}).get("speciesException")
                     != species_exception_binding
                 ):
                     issues.append(

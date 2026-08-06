@@ -49,9 +49,9 @@ def empty_boundary(definition: MetricDefinition) -> dict[str, Any]:
     """Build output for a boundary with no valid raster overlap."""
     return metric_value(
         definition,
-        value=0.0 if definition.unit in ("km2", "%") else None,
+        value=None,
         status="empty",
-        notes="Boundary does not intersect the solution raster extent.",
+        notes="Boundary has zero cells intersecting verified solution valid data.",
         source="raster:boundary_mask",
     )
 
