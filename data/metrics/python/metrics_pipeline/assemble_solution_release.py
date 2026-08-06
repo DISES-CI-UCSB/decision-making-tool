@@ -29,6 +29,7 @@ from solution_catalog import (
     SolutionCatalog,
     SolutionCatalogError,
     bind_release_output,
+    catalog_binding,
     load_release_plan,
     load_solution_catalog,
 )
@@ -45,15 +46,6 @@ def sha256_bytes(content: bytes) -> str:
 
 def sha256_path(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
-
-
-def _catalog_binding(catalog: SolutionCatalog) -> dict[str, str]:
-    return {
-        "format": "solution-catalog-binding-v1",
-        "releaseId": catalog.release_id,
-        "catalogVersion": catalog.catalog_version,
-        "catalogSha256": catalog.sha256,
-    }
 
 
 def _artifact_key(record: dict[str, Any]) -> tuple[str, str, str | None]:
@@ -178,7 +170,7 @@ def _document_has_usable_structure(
     component: str,
     solution_id: str,
     geography_level: str | None,
-    expected_catalog_binding: dict[str, str] | None = None,
+    expected_catalog_binding: dict[str, Any] | None = None,
 ) -> bool:
     if component in {"regularVerbose", "regularCompact"}:
         try:
@@ -230,7 +222,7 @@ def _rebind_reused_document(
             f"baseline {component} artifact must be a JSON object."
         )
     entry = catalog.by_id[solution_id]
-    binding = _catalog_binding(catalog)
+    binding = catalog_binding(catalog)
     if not _document_has_usable_structure(
         document,
         component=component,
@@ -372,7 +364,7 @@ def _validate_recomputed_document(
             f"recomputed {component} artifact must be a JSON object: {path}"
         )
     entry = catalog.by_id[solution_id]
-    binding = _catalog_binding(catalog)
+    binding = catalog_binding(catalog)
     if not _document_has_usable_structure(
         document,
         component=component,

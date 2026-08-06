@@ -15,6 +15,9 @@ from solution_domain import normalize_domain
 
 SOLUTION_CATALOG_FORMAT = "solution-catalog-v1"
 SOLUTION_RELEASE_PLAN_FORMAT = "solution-release-plan-v1"
+SOLUTION_CATALOG_BINDING_FORMAT = "solution-catalog-binding-v1"
+SPECIES_EXCEPTION_BINDING_FORMAT = "release-species-exception-binding-v1"
+SPECIES_EXCEPTION_POLICY_FORMAT = "release-species-exception-v1"
 
 _SEMVER_PATTERN = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
@@ -95,6 +98,34 @@ class SolutionCatalog:
         if self.species_exception_binding is not None:
             document["speciesException"] = self.species_exception_binding
         return document
+
+
+def catalog_binding(catalog: SolutionCatalog) -> dict[str, Any]:
+    """Build the exact binding shared by every release artifact."""
+
+    binding: dict[str, Any] = {
+        "format": SOLUTION_CATALOG_BINDING_FORMAT,
+        "releaseId": catalog.release_id,
+        "catalogVersion": catalog.catalog_version,
+        "catalogSha256": catalog.sha256,
+    }
+    if catalog.species_exception_binding is not None:
+        binding["speciesException"] = catalog.species_exception_binding
+    return binding
+
+
+def validate_catalog_binding(
+    value: Any,
+    *,
+    catalog: SolutionCatalog,
+    label: str = "solutionCatalogBinding",
+) -> None:
+    """Require an exact binding, rejecting missing and unrelated fields."""
+
+    if value != catalog_binding(catalog):
+        raise SolutionCatalogError(
+            f"{label} does not exactly match the solution catalog."
+        )
 
 
 def _required_string(raw: dict[str, Any], field: str, *, label: str) -> str:
@@ -206,12 +237,24 @@ def load_solution_catalog(path: Path) -> SolutionCatalog:
         )
     species_exception_binding = raw.get("speciesException")
     if species_exception_binding is not None:
+        expected_keys = {
+            "format",
+            "policyFormat",
+            "policyId",
+            "policySha256",
+            "catalogTotal",
+            "availableExpected",
+            "excluded",
+        }
         if (
             not isinstance(species_exception_binding, dict)
+            or set(species_exception_binding) != expected_keys
             or species_exception_binding.get("format")
-            != "release-species-exception-binding-v1"
+            != SPECIES_EXCEPTION_BINDING_FORMAT
             or species_exception_binding.get("policyFormat")
-            != "release-species-exception-v1"
+            != SPECIES_EXCEPTION_POLICY_FORMAT
+            or not isinstance(species_exception_binding.get("policyId"), str)
+            or not species_exception_binding["policyId"].strip()
             or not _SHA256_PATTERN.fullmatch(
                 str(species_exception_binding.get("policySha256", ""))
             )

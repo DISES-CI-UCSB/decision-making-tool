@@ -902,6 +902,44 @@ def test_resume_requires_matching_versioned_taxonomy_config_and_sources(
         geography_level="national",
         generation_signature=signature,
     )
+    full_binding = {
+        "format": "solution-catalog-binding-v1",
+        "releaseId": "species-release",
+        "catalogVersion": "0.2.0",
+        "catalogSha256": "a" * 64,
+        "speciesException": {
+            "format": "release-species-exception-binding-v1",
+            "policyFormat": "release-species-exception-v1",
+            "policyId": "species-release-policy",
+            "policySha256": "b" * 64,
+            "catalogTotal": 8300,
+            "availableExpected": 8298,
+            "excluded": 2,
+        },
+    }
+    artifact["solutionCatalogBinding"] = full_binding
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+    assert _artifact_is_resumable(
+        artifact_path,
+        solution_id="solution",
+        geography_level="national",
+        generation_signature=signature,
+        expected_catalog_binding=full_binding,
+    )
+    artifact["solutionCatalogBinding"] = {
+        key: value
+        for key, value in full_binding.items()
+        if key != "speciesException"
+    }
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+    assert not _artifact_is_resumable(
+        artifact_path,
+        solution_id="solution",
+        geography_level="national",
+        generation_signature=signature,
+        expected_catalog_binding=full_binding,
+    )
+    artifact["solutionCatalogBinding"] = full_binding
     incomplete = dict(artifact)
     incomplete["scopeStats"] = {}
     artifact_path.write_text(json.dumps(incomplete), encoding="utf-8")

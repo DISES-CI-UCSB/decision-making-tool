@@ -159,6 +159,7 @@ from solution_catalog import (
     SolutionCatalogEntry,
     SolutionCatalogError,
     bind_release_output,
+    catalog_binding,
     load_release_plan,
     load_solution_catalog,
     release_plan_cache_policy,
@@ -3457,13 +3458,7 @@ def main(argv: list[str] | None = None) -> int:
     solution_input_signatures: dict[str, dict[str, str]] = {}
     expected_provenance_by_id: dict[str, dict[str, Any]] = {}
     solution_catalog_binding = (
-        {
-            "format": "solution-catalog-binding-v1",
-            "releaseId": catalog.release_id,
-            "catalogVersion": catalog.catalog_version,
-            "catalogSha256": catalog.sha256,
-            "speciesException": catalog.species_exception_binding,
-        }
+        catalog_binding(catalog)
         if catalog is not None
         else None
     )

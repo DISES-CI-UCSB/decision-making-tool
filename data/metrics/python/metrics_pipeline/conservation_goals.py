@@ -38,6 +38,7 @@ from solution_catalog import (
     SolutionCatalog,
     SolutionCatalogError,
     bind_release_output,
+    catalog_binding,
     load_release_plan,
     load_solution_catalog,
     release_plan_cache_policy,
@@ -279,15 +280,6 @@ def goals_output_path(output_dir: Path, solution_id: str) -> Path:
     return solution_artifact_path(output_dir, solution_id, suffix=GOALS_SUFFIX)
 
 
-def _catalog_binding(catalog: SolutionCatalog) -> dict[str, str]:
-    return {
-        "format": "solution-catalog-binding-v1",
-        "releaseId": catalog.release_id,
-        "catalogVersion": catalog.catalog_version,
-        "catalogSha256": catalog.sha256,
-    }
-
-
 def _goals_provenance(
     *,
     solution: dict[str, Any],
@@ -318,7 +310,7 @@ def _goals_provenance(
     return {
         "format": GOALS_PROVENANCE_FORMAT,
         "releaseId": catalog.release_id,
-        "catalogBinding": _catalog_binding(catalog),
+        "catalogBinding": catalog_binding(catalog),
         "solutionBasename": catalog_entry.solution_basename,
         "rasterSha256": catalog_entry.raster_sha256,
         "summaryCsvUrl": summary_csv_url,

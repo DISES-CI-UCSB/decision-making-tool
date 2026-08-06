@@ -36,6 +36,7 @@ from solution_catalog import (
     load_release_plan,
     load_solution_catalog,
     release_plan_cache_policy,
+    validate_catalog_binding,
 )
 
 COMPACT_METRICS_FORMAT = "metrics-compact-v1"
@@ -496,15 +497,6 @@ def _resolve_path(repo_root: Path, raw_path: str) -> Path:
     return repo_root / path
 
 
-def _catalog_binding(catalog: SolutionCatalog) -> dict[str, str]:
-    return {
-        "format": "solution-catalog-binding-v1",
-        "releaseId": catalog.release_id,
-        "catalogVersion": catalog.catalog_version,
-        "catalogSha256": catalog.sha256,
-    }
-
-
 def _validate_release_verbose_document(
     document: dict[str, Any],
     *,
@@ -514,10 +506,15 @@ def _validate_release_verbose_document(
     catalog_entry = catalog.by_id[solution_id]
     if document.get("solutionId") != solution_id:
         raise ValueError(f"verbose document solutionId mismatch for {solution_id!r}")
-    if document.get("solutionCatalogBinding") != _catalog_binding(catalog):
+    try:
+        validate_catalog_binding(
+            document.get("solutionCatalogBinding"),
+            catalog=catalog,
+        )
+    except SolutionCatalogError as exc:
         raise ValueError(
             f"verbose document {solution_id!r} has a stale catalog binding"
-        )
+        ) from exc
     raster = document.get("solutionRaster")
     if not isinstance(raster, dict):
         raise ValueError(

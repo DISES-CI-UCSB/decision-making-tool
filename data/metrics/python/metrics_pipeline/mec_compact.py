@@ -75,6 +75,7 @@ from solution_catalog import (
     SolutionCatalog,
     SolutionCatalogError,
     bind_release_output,
+    catalog_binding,
     load_release_plan,
     load_solution_catalog,
     release_plan_cache_policy,
@@ -1425,7 +1426,7 @@ def build_mec_document(
     generation_signature: dict[str, str],
     aligned_mec_identity: dict[str, str],
     generated_at: str,
-    solution_catalog_binding: dict[str, str] | None = None,
+    solution_catalog_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     _validate_geography_level(geography_level)
     scope_catalog: list[list[str]] = []
@@ -1703,7 +1704,7 @@ def mec_document_is_complete(
     geography_level: str,
     generation_signature: dict[str, str] | None = None,
     aligned_mec_identity: dict[str, Any] | None = None,
-    expected_catalog_binding: dict[str, str] | None = None,
+    expected_catalog_binding: dict[str, Any] | None = None,
 ) -> bool:
     observed_signature = document.get("generationSignature")
     if generation_signature is None:
@@ -1795,7 +1796,7 @@ def _artifact_is_resumable(
     geography_level: str,
     generation_signature: dict[str, str],
     aligned_mec_identity: dict[str, Any] | None = None,
-    expected_catalog_binding: dict[str, str] | None = None,
+    expected_catalog_binding: dict[str, Any] | None = None,
 ) -> bool:
     if not path.exists():
         return False
@@ -2083,6 +2084,11 @@ def main(argv: list[str] | None = None) -> int:
     except SolutionCatalogError as exc:
         print(f"[mec-compact] ERROR: {exc}", file=sys.stderr)
         return 2
+    solution_catalog_binding = (
+        catalog_binding(solution_catalog)
+        if solution_catalog is not None
+        else None
+    )
     if args.release_partition and not args.release_id:
         print(
             "[mec-compact] ERROR: --release-partition requires --release-id",
@@ -2536,16 +2542,7 @@ def main(argv: list[str] | None = None) -> int:
                 geography_level=level,
                 generation_signature=generation_signature,
                 aligned_mec_identity=aligned_mec_identity,
-                expected_catalog_binding=(
-                    {
-                        "format": "solution-catalog-binding-v1",
-                        "releaseId": solution_catalog.release_id,
-                        "catalogVersion": solution_catalog.catalog_version,
-                        "catalogSha256": solution_catalog.sha256,
-                    }
-                    if solution_catalog is not None
-                    else None
-                ),
+                expected_catalog_binding=solution_catalog_binding,
             ):
                 base_report["entries"].append(
                     _entry(
@@ -2601,16 +2598,7 @@ def main(argv: list[str] | None = None) -> int:
                 generation_signature=generation_signature,
                 aligned_mec_identity=aligned_mec_identity,
                 generated_at=generated_at,
-                solution_catalog_binding=(
-                    {
-                        "format": "solution-catalog-binding-v1",
-                        "releaseId": solution_catalog.release_id,
-                        "catalogVersion": solution_catalog.catalog_version,
-                        "catalogSha256": solution_catalog.sha256,
-                    }
-                    if solution_catalog is not None
-                    else None
-                ),
+                solution_catalog_binding=solution_catalog_binding,
             )
             denominator_signature = ecosystem_denominator_signature(document)
             expected_denominator_signature = denominator_signatures_by_level.setdefault(

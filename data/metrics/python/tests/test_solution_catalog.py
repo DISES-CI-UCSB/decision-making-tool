@@ -13,8 +13,10 @@ from solution_catalog import (
     SOLUTION_CATALOG_FORMAT,
     SolutionCatalogError,
     bind_release_output,
+    catalog_binding,
     load_release_plan,
     load_solution_catalog,
+    validate_catalog_binding,
 )
 from solution_input_signature import build_solution_input_signature
 
@@ -92,6 +94,44 @@ def test_shared_catalog_fixture_matches_canonical_contract():
         SHARED_CATALOG_FIXTURE.read_text(encoding="utf-8")
     )
     assert catalog.solution_ids == ("fixture-land", "fixture-marine")
+
+
+def test_catalog_binding_includes_only_the_valid_species_exception(tmp_path: Path):
+    rasters = [tmp_path / "land.tif", tmp_path / "marine.tif"]
+    for raster in rasters:
+        raster.write_bytes(b"content")
+    catalog_path = _write_catalog(
+        tmp_path / "catalog.json",
+        rasters,
+        release_id="species-release",
+    )
+    raw = json.loads(catalog_path.read_text(encoding="utf-8"))
+    raw["speciesException"] = {
+        "format": "release-species-exception-binding-v1",
+        "policyFormat": "release-species-exception-v1",
+        "policyId": "species-release-policy",
+        "policySha256": "a" * 64,
+        "catalogTotal": 8300,
+        "availableExpected": 8298,
+        "excluded": 2,
+    }
+    catalog_path.write_text(json.dumps(raw), encoding="utf-8")
+    catalog = load_solution_catalog(catalog_path)
+
+    binding = catalog_binding(catalog)
+
+    assert binding["speciesException"] == raw["speciesException"]
+    validate_catalog_binding(binding, catalog=catalog)
+    with pytest.raises(SolutionCatalogError, match="does not exactly match"):
+        validate_catalog_binding(
+            {**binding, "unrelated": True},
+            catalog=catalog,
+        )
+
+    raw["speciesException"]["unrelated"] = True
+    catalog_path.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(SolutionCatalogError, match="missing or invalid"):
+        load_solution_catalog(catalog_path)
 
 
 def test_solution_input_signature_covers_consumed_manifest_metadata():

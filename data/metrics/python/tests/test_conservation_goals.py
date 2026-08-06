@@ -259,6 +259,15 @@ def test_release_goals_resume_requires_exact_provenance(tmp_path: Path):
                 "expectedSolutionCount": 1,
                 "expectedLandSolutionCount": 1,
                 "expectedMarineSolutionCount": 0,
+                "speciesException": {
+                    "format": "release-species-exception-binding-v1",
+                    "policyFormat": "release-species-exception-v1",
+                    "policyId": "goals-release-policy",
+                    "policySha256": "d" * 64,
+                    "catalogTotal": 8300,
+                    "availableExpected": 8298,
+                    "excluded": 2,
+                },
                 "solutions": [
                     {
                         "solutionId": "demo",
@@ -305,6 +314,17 @@ def test_release_goals_resume_requires_exact_provenance(tmp_path: Path):
         solution_id="demo",
         expected_provenance=provenance,
     )
+    assert provenance["catalogBinding"]["speciesException"]["excluded"] == 2
+    stale_document = json.loads(path.read_text(encoding="utf-8"))
+    stale_document["goalsProvenance"]["catalogBinding"].pop("speciesException")
+    path.write_text(json.dumps(stale_document), encoding="utf-8")
+    assert not _goals_is_resumable(
+        path,
+        solution_id="demo",
+        expected_provenance=provenance,
+    )
+    document["goalsProvenance"] = provenance
+    path.write_text(json.dumps(document), encoding="utf-8")
     assert not _goals_is_resumable(
         path,
         solution_id="demo",

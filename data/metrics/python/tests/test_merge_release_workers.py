@@ -8,7 +8,11 @@ import pytest
 
 from merge_release_workers import merge_workers
 from plan_solution_release import build_release_plan
-from solution_catalog import SolutionCatalogError, load_solution_catalog
+from solution_catalog import (
+    SolutionCatalogError,
+    catalog_binding,
+    load_solution_catalog,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -66,10 +70,7 @@ def _worker(
         json.dumps(
             {
                 "solutionId": solution_id,
-                "solutionCatalogBinding": {
-                    "releaseId": catalog.release_id,
-                    "catalogSha256": catalog.sha256,
-                },
+                "solutionCatalogBinding": catalog_binding(catalog),
             }
         ),
         encoding="utf-8",
@@ -253,10 +254,7 @@ def _domain_worker(
             json.dumps(
                 {
                     "solutionId": solution_id,
-                    "solutionCatalogBinding": {
-                        "releaseId": catalog.release_id,
-                        "catalogSha256": catalog.sha256,
-                    },
+                    "solutionCatalogBinding": catalog_binding(catalog),
                 }
             ),
             encoding="utf-8",

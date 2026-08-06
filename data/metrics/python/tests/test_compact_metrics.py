@@ -17,7 +17,7 @@ from compact_metrics import (
 )
 from metrics_contract import PROVENANCE_KEY, build_metrics_provenance
 from metric_definitions import computable_metrics
-from solution_catalog import load_solution_catalog
+from solution_catalog import catalog_binding, load_solution_catalog
 from helpers import scope_state
 
 TEST_SOLUTION_COUNT = 108
@@ -106,6 +106,7 @@ def _write_release_input(
     solution_ids: list[str],
     *,
     release_id: str = "test-release",
+    species_exception: dict | None = None,
 ) -> Path:
     catalog_path = repo_root / "solution-catalog.json"
     if not catalog_path.exists():
@@ -127,17 +128,17 @@ def _write_release_input(
                         }
                         for solution_id in _release_solution_ids()
                     ],
+                    **(
+                        {"speciesException": species_exception}
+                        if species_exception is not None
+                        else {}
+                    ),
                 }
             ),
             encoding="utf-8",
         )
     catalog = load_solution_catalog(catalog_path)
-    binding = {
-        "format": "solution-catalog-binding-v1",
-        "releaseId": catalog.release_id,
-        "catalogVersion": catalog.catalog_version,
-        "catalogSha256": catalog.sha256,
-    }
+    binding = catalog_binding(catalog)
     input_dir = repo_root / "generated" / "verbose"
     input_cache = input_dir / "cache"
     input_cache.mkdir(parents=True)
@@ -347,6 +348,58 @@ def test_release_compaction_accepts_declared_27_solution_chunk(tmp_path: Path):
     assert report["releaseSelection"]["mode"] == "partial"
     assert report["releaseSelection"]["selectedSolutionIds"] == sorted(selected_ids)
     assert len(report["releaseSelection"]["selectedSolutionIdsSha256"]) == 64
+
+
+def test_release_compaction_requires_full_species_exception_binding(tmp_path: Path):
+    species_exception = {
+        "format": "release-species-exception-binding-v1",
+        "policyFormat": "release-species-exception-v1",
+        "policyId": "test-release-policy",
+        "policySha256": "c" * 64,
+        "catalogTotal": 8300,
+        "availableExpected": 8298,
+        "excluded": 2,
+    }
+    selected_ids = _release_solution_ids()[:1]
+    input_dir = _write_release_input(
+        tmp_path,
+        selected_ids,
+        species_exception=species_exception,
+    )
+    catalog = _test_catalog(tmp_path)
+    output_dir = tmp_path / "generated" / "compact"
+
+    report = convert_publish_report(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        repo_root=tmp_path,
+        cache_blob_directory="releases/test-release/regular/compact",
+        release_id="test-release",
+        release_selection=_release_selection(_release_solution_ids(), selected_ids),
+        solution_catalog=catalog,
+    )
+    compact = json.loads(
+        (tmp_path / report["entries"][0]["cachePath"]).read_text(encoding="utf-8")
+    )
+    assert compact["solutionCatalogBinding"] == catalog_binding(catalog)
+
+    verbose_path = input_dir / "cache" / f"{selected_ids[0]}.metrics.json"
+    verbose = json.loads(verbose_path.read_text(encoding="utf-8"))
+    verbose["solutionCatalogBinding"].pop("speciesException")
+    verbose_path.write_text(json.dumps(verbose), encoding="utf-8")
+    with pytest.raises(ValueError, match="stale catalog binding"):
+        convert_publish_report(
+            input_dir=input_dir,
+            output_dir=output_dir,
+            repo_root=tmp_path,
+            cache_blob_directory="releases/test-release/regular/compact",
+            release_id="test-release",
+            release_selection=_release_selection(
+                _release_solution_ids(),
+                selected_ids,
+            ),
+            solution_catalog=catalog,
+        )
 
 
 @pytest.mark.parametrize(

@@ -22,7 +22,11 @@ from mec_compact import (
     SCOPE_STATS_FIELDS,
 )
 from plan_solution_release import build_release_plan
-from solution_catalog import SolutionCatalogError, load_solution_catalog
+from solution_catalog import (
+    SolutionCatalogError,
+    catalog_binding,
+    load_solution_catalog,
+)
 from helpers import scope_state
 
 
@@ -33,13 +37,8 @@ def _signature(value: str) -> dict[str, str]:
     }
 
 
-def _binding(catalog) -> dict[str, str]:
-    return {
-        "format": "solution-catalog-binding-v1",
-        "releaseId": catalog.release_id,
-        "catalogVersion": catalog.catalog_version,
-        "catalogSha256": catalog.sha256,
-    }
+def _binding(catalog) -> dict:
+    return catalog_binding(catalog)
 
 
 def _document(component, entry, catalog, signature, geography_level):
@@ -194,7 +193,13 @@ def _document(component, entry, catalog, signature, geography_level):
     }
 
 
-def _write_catalog(path: Path, release_id: str, count: int):
+def _write_catalog(
+    path: Path,
+    release_id: str,
+    count: int,
+    *,
+    species_exception: dict | None = None,
+):
     path.write_text(
         json.dumps(
             {
@@ -204,6 +209,11 @@ def _write_catalog(path: Path, release_id: str, count: int):
                 "expectedSolutionCount": count,
                 "expectedLandSolutionCount": count,
                 "expectedMarineSolutionCount": 0,
+                **(
+                    {"speciesException": species_exception}
+                    if species_exception is not None
+                    else {}
+                ),
                 "solutions": [
                     {
                         "solutionId": f"solution-{index:03d}",
@@ -220,9 +230,24 @@ def _write_catalog(path: Path, release_id: str, count: int):
     return load_solution_catalog(path)
 
 
-def _prepare_release(tmp_path: Path, count: int = 192):
-    baseline = _write_catalog(tmp_path / "baseline.json", "phase-one", count)
-    catalog = _write_catalog(tmp_path / "catalog.json", "phase-two", count)
+def _prepare_release(
+    tmp_path: Path,
+    count: int = 192,
+    *,
+    species_exception: dict | None = None,
+):
+    baseline = _write_catalog(
+        tmp_path / "baseline.json",
+        "phase-one",
+        count,
+        species_exception=species_exception,
+    )
+    catalog = _write_catalog(
+        tmp_path / "catalog.json",
+        "phase-two",
+        count,
+        species_exception=species_exception,
+    )
     baseline_signatures = {
         solution_id: _signature("a")
         for solution_id in catalog.solution_ids
@@ -328,6 +353,49 @@ def test_assembles_realistic_168_reuse_and_24_recompute_release(tmp_path: Path):
     assert reused["metricsProvenance"]["releaseId"] == "phase-two"
     assert reused["metricsProvenance"]["reusedFromReleaseId"] == "phase-one"
     assert reused["solutionCatalogBinding"]["catalogSha256"] == catalog.sha256
+
+
+def test_assembly_preserves_species_exception_in_all_catalog_bindings(tmp_path: Path):
+    species_exception = {
+        "format": "release-species-exception-binding-v1",
+        "policyFormat": "release-species-exception-v1",
+        "policyId": "assembly-release-policy",
+        "policySha256": "c" * 64,
+        "catalogTotal": 8300,
+        "availableExpected": 8298,
+        "excluded": 2,
+    }
+    catalog, plan, inventory_path, baseline_root, release_root = _prepare_release(
+        tmp_path,
+        count=25,
+        species_exception=species_exception,
+    )
+
+    assemble_release(
+        catalog=catalog,
+        release_plan=plan,
+        baseline_inventory_path=inventory_path,
+        baseline_root=baseline_root,
+        release_root=release_root,
+    )
+
+    reused = json.loads(
+        (
+            release_root
+            / "regular/verbose/cache/solution-000.metrics.json"
+        ).read_text(encoding="utf-8")
+    )
+    recomputed_goals = json.loads(
+        (
+            release_root
+            / "goals/cache/solution-024.goals.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert reused["solutionCatalogBinding"]["speciesException"] == species_exception
+    assert (
+        recomputed_goals["goalsProvenance"]["catalogBinding"]["speciesException"]
+        == species_exception
+    )
 
 
 def test_shared_compact_fixture_matches_python_assembly_contract():

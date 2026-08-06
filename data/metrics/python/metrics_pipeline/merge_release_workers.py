@@ -16,6 +16,7 @@ from solution_catalog import (
     bind_release_output,
     load_release_plan,
     load_solution_catalog,
+    validate_catalog_binding,
 )
 
 
@@ -356,16 +357,15 @@ def merge_workers(
             )
             content = source.read_bytes()
             document = json.loads(content)
-            binding = document.get("solutionCatalogBinding")
-            if (
-                document.get("solutionId") != solution_id
-                or not isinstance(binding, dict)
-                or binding.get("releaseId") != catalog.release_id
-                or binding.get("catalogSha256") != catalog.sha256
-            ):
+            if document.get("solutionId") != solution_id:
                 raise SolutionCatalogError(
                     f"worker artifact provenance mismatch: {source}"
                 )
+            validate_catalog_binding(
+                document.get("solutionCatalogBinding"),
+                catalog=catalog,
+                label=f"worker artifact catalog binding: {source}",
+            )
             entries_by_id[solution_id] = {
                 **entry,
                 "artifactSha256": _sha256(content),
