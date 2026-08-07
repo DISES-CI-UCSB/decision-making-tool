@@ -31,25 +31,48 @@ from scripts.aligned_cache import (  # noqa: E402
     read_fingerprint,
     sha256_file,
 )
+from scripts.land_solution_inputs import (  # noqa: E402
+    ECOSYSTEM_BLOB_PATHS,
+    LAND_SOLUTION_REFERENCE_PIN,
+    ReferenceRasterPinError,
+    public_url,
+    species_matrix_blob_path,
+)
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_MATRIX_GROUPS = (*CLASS_BUCKETS, "threatened")
 ECOSYSTEM_LAYER_ID = "ecosistemas_IAVH_2024"
-ECOSYSTEM_SOURCE_URLS = {
-    "raster": (
-        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
-        "ecosistemas_IDEAM_MEC_2024.tif"
+
+# The MEC ecosystem bundle and the species matrices exist once per reference
+# grid. The EPSG:4326 objects the deployed backend rebuilds from stay exactly
+# where they are; the EPSG:9377 grid reads its own `land-solution-9377/` objects.
+ECOSYSTEM_SOURCE_URLS_BY_GRID = {
+    "ecosistemas": {
+        "raster": (
+            f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+            "ecosistemas_IDEAM_MEC_2024.tif"
+        ),
+        "crosswalk": (
+            f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+            "ecosistemas_IDs_IDEAM_MEC_2024.csv"
+        ),
+        "provenance": (
+            f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+            "ecosistemas_IDEAM_MEC_2024.provenance.json"
+        ),
+    },
+    "land-solution": {
+        name: public_url(blob_path) for name, blob_path in ECOSYSTEM_BLOB_PATHS.items()
+    },
+}
+
+SPECIES_MATRIX_URL_BUILDERS = {
+    "ecosistemas": lambda group: (
+        f"{PUBLIC_BLOB_HOST}/inputs/features/species-sparse/species_{group}.smtx.gz"
     ),
-    "crosswalk": (
-        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
-        "ecosistemas_IDs_IDEAM_MEC_2024.csv"
-    ),
-    "provenance": (
-        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
-        "ecosistemas_IDEAM_MEC_2024.provenance.json"
-    ),
+    "land-solution": lambda group: public_url(species_matrix_blob_path(group)),
 }
 
 
@@ -138,8 +161,8 @@ def parse_args() -> argparse.Namespace:
         "--reference-raster",
         default=None,
         help=(
-            "URL or local path defining the land-solution reference grid. "
-            "Required with --reference-grid land-solution."
+            "URL or local path defining the land-solution reference grid. Defaults "
+            "to the pinned aligned MEC composite and must match that pin either way."
         ),
     )
     parser.add_argument(
@@ -155,7 +178,7 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if args.reference_grid == "land-solution":
         if not args.reference_raster:
-            parser.error("--reference-grid land-solution requires --reference-raster.")
+            args.reference_raster = LAND_SOLUTION_REFERENCE_PIN.url
         if args.aligned_cache is None:
             parser.error("--reference-grid land-solution requires --aligned-cache.")
     elif args.reference_raster:
@@ -197,6 +220,12 @@ def main() -> None:
             f"Reference raster {reference_source_url} is {reference_fingerprint.crs}; "
             f"reference grid {reference_grid.name} requires {reference_grid.expected_crs}."
         )
+    if args.reference_grid == "land-solution":
+        try:
+            LAND_SOLUTION_REFERENCE_PIN.verify(reference.path, sha256=reference.sha256)
+        except ReferenceRasterPinError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(f"Reference raster matches the land-solution pin: {LAND_SOLUTION_REFERENCE_PIN.rationale}")
     print(
         f"Reference fingerprint: {reference_fingerprint.crs} "
         f"{reference_fingerprint.width}x{reference_fingerprint.height}"
@@ -210,7 +239,7 @@ def main() -> None:
             raise SystemExit(str(exc)) from exc
 
     layer_specs = build_layer_specs(manifest.layers_by_id)
-    species_specs = build_species_matrix_specs()
+    species_specs = build_species_matrix_specs(reference_grid.name)
     layer_entries: list[dict[str, Any]] = []
     file_entries = [file_entry(reference.path, artifact_dir, reference.sha256, reference.bytes)]
     sources_by_url = {reference_source_url: reference}
@@ -316,7 +345,7 @@ def main() -> None:
     ecosystem_inventory: dict[str, Any] = {}
     # These URLs are mutable publication targets, so refresh the small MEC bundle
     # on every build rather than silently pairing stale files with a new manifest.
-    for source_name, source_url in ECOSYSTEM_SOURCE_URLS.items():
+    for source_name, source_url in ECOSYSTEM_SOURCE_URLS_BY_GRID[reference_grid.name].items():
         suffix = {
             "raster": ".tif",
             "crosswalk": ".csv",
@@ -360,6 +389,7 @@ def main() -> None:
             "width": reference_fingerprint.width,
             "height": reference_fingerprint.height,
             "transform": list(reference_fingerprint.transform),
+            "pin": reference_raster_pin(args.reference_grid),
         },
         "aligned_sources": aligned_source_provenance(
             args.aligned_cache,
@@ -514,11 +544,18 @@ def off_manifest_url(layer_id: str) -> str:
     raise SystemExit(f"Metric catalog has no off-manifest URL for layer {layer_id!r}.")
 
 
-def build_species_matrix_specs() -> list[SpeciesMatrixSpec]:
+def build_species_matrix_specs(reference_grid_name: str) -> list[SpeciesMatrixSpec]:
+    """Resolve the species matrices published for one reference grid.
+
+    The builder regenerates the bitset from whatever it downloads, so a grid
+    mismatch here would silently discard the exact per-species range areas the
+    9377 matrices carry and emit a cell-count bitset instead.
+    """
+    url_for = SPECIES_MATRIX_URL_BUILDERS[reference_grid_name]
     return [
         SpeciesMatrixSpec(
             group=group,
-            url=f"{PUBLIC_BLOB_HOST}/inputs/features/species-sparse/species_{group}.smtx.gz",
+            url=url_for(group),
             metric_ids=metric_ids_for_species_group(group),
         )
         for group in SPECIES_MATRIX_GROUPS
@@ -597,6 +634,20 @@ def resolve_reference_source_url(
     if not layer or not layer.get("displayUrl"):
         raise SystemExit("Manifest layer ecosistemas is required as the custom AOI reference grid.")
     return str(layer["displayUrl"])
+
+
+def reference_raster_pin(reference_grid_name: str) -> dict[str, Any] | None:
+    """Record the pinned land domain so a built artifact declares its denominator."""
+    if reference_grid_name != "land-solution":
+        return None
+    pin = LAND_SOLUTION_REFERENCE_PIN
+    return {
+        "blob_path": pin.blob_path,
+        "sha256": pin.sha256,
+        "size_bytes": pin.size_bytes,
+        "valid_cell_count": pin.valid_cell_count,
+        "rationale": pin.rationale,
+    }
 
 
 def aligned_source_provenance(

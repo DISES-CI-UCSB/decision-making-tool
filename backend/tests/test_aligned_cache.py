@@ -19,6 +19,7 @@ from scripts.aligned_cache import (
 )
 from scripts.build_runtime_artifact import (
     ALIGNMENT_CLASS_BY_LAYER_ID,
+    LAND_SOLUTION_REFERENCE_PIN,
     build_layer_specs,
     parse_args,
 )
@@ -205,11 +206,10 @@ def test_ecosystem_layer_is_the_authoritative_iavh_raster() -> None:
     [
         ["build", "--reference-grid", "land-solution"],
         ["build", "--reference-grid", "land-solution", "--reference-raster", "solution.tif"],
-        ["build", "--reference-grid", "land-solution", "--aligned-cache", "cache"],
         ["build", "--reference-raster", "solution.tif"],
     ],
 )
-def test_land_solution_build_requires_a_reference_raster_and_aligned_cache(
+def test_land_solution_build_requires_an_aligned_cache(
     argv: list[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -217,6 +217,21 @@ def test_land_solution_build_requires_a_reference_raster_and_aligned_cache(
 
     with pytest.raises(SystemExit):
         parse_args()
+
+
+def test_land_solution_build_defaults_to_the_pinned_reference_raster(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The land domain denominator is pinned, so it needs no argument to be exact."""
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["build", "--reference-grid", "land-solution", "--aligned-cache", "cache"],
+    )
+
+    args = parse_args()
+
+    assert args.reference_raster == LAND_SOLUTION_REFERENCE_PIN.url
 
 
 def test_default_build_still_targets_the_ecosistemas_grid(monkeypatch: pytest.MonkeyPatch) -> None:
