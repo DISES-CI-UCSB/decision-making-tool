@@ -22,10 +22,16 @@ Two artifact types live here:
        [4 bytes] magic        = b"SMSP"  (Species Multi-SParse)
        [4 bytes] toc_length   (uint32 little-endian)
        [N bytes] toc          = JSON UTF-8: {grid: {...}, species: [
-                                  {name, iucn, class, offset, count}, ...]}
+                                  {name, iucn, class, offset, count,
+                                   area_km2?}, ...]}
        [body  ] concatenated per-species delta-encoded uint32 cell IDs.
                 ``offset`` is the byte offset into this body (after gzip
                 decompression); ``count`` is the number of uint32 cell IDs.
+
+``area_km2`` is optional and holds the true area of the species range, which
+is smaller than ``count`` times the cell area whenever cells are only
+partially covered. Builders that know the exact overlap record it; builders
+that only know presence omit it.
 
 The body of an ``.smtx.gz`` is the same as a binary ``.sparse.gz`` body,
 which keeps the build pipeline symmetric: per-species ``.sparse.gz`` files
@@ -351,6 +357,7 @@ class SpeciesMatrixEntry:
     csv_class: str
     cell_ids: np.ndarray
     metadata: SparseMetadata
+    area_km2: float | None = None
 
     def __post_init__(self) -> None:
         if self.cell_ids.dtype != np.uint32:
@@ -399,13 +406,16 @@ def encode_species_matrix(entries: list[SpeciesMatrixEntry]) -> bytes:
         deltas = _delta_encode_sorted(entry.cell_ids)
         chunk = deltas.tobytes()
         body_chunks.append(chunk)
-        toc_entries.append({
+        toc_entry: dict[str, Any] = {
             "name": entry.name,
             "iucn": entry.iucn,
             "class": entry.csv_class,
             "offset": cursor,
             "count": int(entry.cell_ids.size),
-        })
+        }
+        if entry.area_km2 is not None:
+            toc_entry["area_km2"] = float(entry.area_km2)
+        toc_entries.append(toc_entry)
         cursor += len(chunk)
 
     toc_payload = {"grid": grid, "species": toc_entries}
@@ -459,6 +469,7 @@ def decode_species_matrix_bytes(blob: bytes) -> DecodedSpeciesMatrix:
         csv_class = str(entry.get("class") or "")
         offset = int(entry["offset"])
         count = int(entry["count"])
+        area_km2 = entry.get("area_km2")
         chunk_end = offset + 4 * count
         if chunk_end > len(body):
             raise SparseFormatError(
@@ -488,6 +499,7 @@ def decode_species_matrix_bytes(blob: bytes) -> DecodedSpeciesMatrix:
                 csv_class=csv_class,
                 cell_ids=cell_ids,
                 metadata=entry_meta,
+                area_km2=None if area_km2 is None else float(area_km2),
             )
         )
 

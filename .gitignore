@@ -54,6 +54,9 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 !/data/**/*.py
 # Tracked Python script dependency files.
 !/data/scripts/**/requirements.txt
+# Reference-layer pipeline source is tracked; downloaded snapshots and outputs stay local.
+!/data/scripts/reference-layers/.gitignore
+/data/scripts/reference-layers/work/
 # Local virtualenvs created next to a tracked script (artifacts only).
 /data/scripts/**/.venv/
 # Metrics pipeline: track source + fixtures, ignore generated artifacts and raster cache.

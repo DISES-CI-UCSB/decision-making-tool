@@ -479,6 +479,33 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       );
     }
 
+    if (layer.dataRole === 'reference_layer') {
+      assert(
+        layer.roleInMetricCalculation === 'none',
+        `layers[${index}].roleInMetricCalculation must be none for reference_layer layers`,
+      );
+      assert(
+        layer.requiredForSolution === false,
+        `layers[${index}].requiredForSolution must be false for reference_layer layers`,
+      );
+      assert(
+        layer.selectableInFinder === false,
+        `layers[${index}].selectableInFinder must be false for reference_layer layers`,
+      );
+      assert(
+        layer.visibleInMapLayers === true,
+        `layers[${index}].visibleInMapLayers must be true for reference_layer layers`,
+      );
+      assert(
+        layer.compressedDataForLiveMetricsUrl === null,
+        `layers[${index}].compressedDataForLiveMetricsUrl must be null for reference_layer layers`,
+      );
+      assert(
+        Object.keys(layer.precomputedMetricUrls).length === 0,
+        `layers[${index}].precomputedMetricUrls must be empty for reference_layer layers`,
+      );
+    }
+
     if (LIVE_METRIC_CALCULATION_ROLES.includes(layer.roleInMetricCalculation)) {
       assert(
         typeof layer.compressedDataForLiveMetricsUrl === 'string' &&

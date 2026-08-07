@@ -5,7 +5,11 @@ import Point from '@arcgis/core/geometry/Point';
 import Polygon from '@arcgis/core/geometry/Polygon';
 import { PRODUCTION_SIRAP_BOUNDARY_SOURCE, type AOI, type AoiType } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
-import { AdminBoundaryService, type AdminBoundaryLayerKey } from './admin-boundary.service';
+import {
+  AdminBoundaryService,
+  COLOMBIA_OUTLINE_VISUAL_URL,
+  type AdminBoundaryLayerKey,
+} from './admin-boundary.service';
 
 describe('AdminBoundaryService', () => {
   let selectedAOI: ReturnType<typeof signal<AOI | null>>;
@@ -158,6 +162,13 @@ describe('AdminBoundaryService', () => {
         }),
       }),
     );
+  });
+
+  it('uses the immutable visual-only outline without changing AOI boundary sources', () => {
+    expect(COLOMBIA_OUTLINE_VISUAL_URL).toBe(
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/colombia_outline_visual/v0.1.0/colombia_outline_visual.geojson',
+    );
+    expect(PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname).not.toContain('colombia_outline_visual');
   });
 
   it('applies manifest preview colors to boundary renderers', () => {

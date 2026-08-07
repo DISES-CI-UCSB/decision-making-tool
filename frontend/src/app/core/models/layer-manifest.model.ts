@@ -124,6 +124,9 @@ export interface RuntimeLayerManifestLayer {
    */
   category: string;
   roleInMetricCalculation: RuntimeLayerManifestMetricRole;
+  requiredForSolution?: boolean;
+  selectableInFinder?: boolean;
+  visibleInMapLayers?: boolean;
   displayUrl?: string | null;
   displayCollectionUrl?: string | null;
   speciesManifestUrl?: string | null;

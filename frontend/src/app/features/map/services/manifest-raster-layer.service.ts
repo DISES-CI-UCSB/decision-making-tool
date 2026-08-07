@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import Extent from '@arcgis/core/geometry/Extent';
+import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
 import MediaLayer from '@arcgis/core/layers/MediaLayer';
 import ImageElement from '@arcgis/core/layers/support/ImageElement';
 import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
@@ -72,11 +73,49 @@ interface ManifestRasterLayerState {
 
 const DEFAULT_BBOX: [number, number, number, number] = [-79.0, -4.5, -66.0, 13.5];
 const RASTER_ALPHA = 255;
+const GEOJSON_FILL_ALPHA = 0.35;
+
+export function isGeoJsonDisplayUrl(displayUrl: string): boolean {
+  return /\.geojson(?:$|[?#])/i.test(displayUrl);
+}
+
+export function buildManifestGeoJsonRenderer(state: {
+  color: string;
+  borderColor?: string;
+  borderWidth?: number;
+}): Record<string, unknown> {
+  const color = hexToRgb(state.color) ?? [71, 85, 105];
+  const borderColor = hexToRgb(state.borderColor ?? state.color) ?? color;
+  return {
+    type: 'simple',
+    symbol: {
+      type: 'simple-fill',
+      style: 'solid',
+      color: [...color, GEOJSON_FILL_ALPHA],
+      outline: {
+        color: [...borderColor, 1],
+        width: state.borderWidth ?? 1,
+      },
+    },
+  };
+}
+
+function hexToRgb(hexColor: string): [number, number, number] | null {
+  const normalized = hexColor.trim().toLowerCase();
+  if (!/^#([0-9a-f]{6})$/.test(normalized)) {
+    return null;
+  }
+  const intValue = Number.parseInt(normalized.slice(1), 16);
+  return [(intValue >> 16) & 255, (intValue >> 8) & 255, intValue & 255];
+}
 
 @Injectable({ providedIn: 'root' })
 export class ManifestRasterLayerService {
   private map: InstanceType<typeof ArcGISMap> | null = null;
-  private readonly layersById = new Map<string, InstanceType<typeof MediaLayer>>();
+  private readonly layersById = new Map<
+    string,
+    InstanceType<typeof MediaLayer> | InstanceType<typeof GeoJSONLayer>
+  >();
   private readonly rasterByUrl = new Map<string, Promise<LoadedManifestRaster>>();
   private readonly latestStateByLayerId = new Map<string, ManifestRasterLayerState>();
   private readonly loadingLayerIds = new Set<string>();
@@ -162,6 +201,11 @@ export class ManifestRasterLayerService {
       return;
     }
 
+    if (isGeoJsonDisplayUrl(state.displayUrl)) {
+      this.syncGeoJsonLayer(layerId, state);
+      return;
+    }
+
     this.setLayerLoading(layerId, true);
     try {
       const raster = await this.loadRaster(state.displayUrl);
@@ -171,7 +215,12 @@ export class ManifestRasterLayerService {
       }
 
       const imageElement = this.createImageElement(raster, latestState);
-      const existingLayer = this.layersById.get(layerId);
+      let existingLayer = this.layersById.get(layerId);
+      if (existingLayer && !(existingLayer instanceof MediaLayer)) {
+        this.map.remove(existingLayer);
+        this.layersById.delete(layerId);
+        existingLayer = undefined;
+      }
 
       if (existingLayer) {
         const source = existingLayer.source;
@@ -200,6 +249,37 @@ export class ManifestRasterLayerService {
     } finally {
       this.setLayerLoading(layerId, false);
     }
+  }
+
+  private syncGeoJsonLayer(layerId: string, state: ManifestRasterLayerState): void {
+    if (!this.map) {
+      return;
+    }
+    const existingLayer = this.layersById.get(layerId);
+    if (existingLayer instanceof GeoJSONLayer && existingLayer.url === state.displayUrl) {
+      existingLayer.visible = state.visible;
+      existingLayer.opacity = state.opacity;
+      existingLayer.renderer = buildManifestGeoJsonRenderer(state) as never;
+      this.bumpRenderedLayerRevision();
+      return;
+    }
+    if (existingLayer) {
+      this.map.remove(existingLayer);
+    }
+
+    const layer = new GeoJSONLayer({
+      id: layerId,
+      title: layerId,
+      url: state.displayUrl,
+      visible: state.visible,
+      opacity: state.opacity,
+      listMode: 'hide',
+      popupEnabled: false,
+      renderer: buildManifestGeoJsonRenderer(state) as never,
+    });
+    this.map.add(layer);
+    this.layersById.set(layerId, layer);
+    this.bumpRenderedLayerRevision();
   }
 
   private bumpRenderedLayerRevision(): void {
@@ -410,12 +490,7 @@ export class ManifestRasterLayerService {
   }
 
   private hexToRgb(hexColor: string): [number, number, number] | null {
-    const normalized = hexColor.trim().toLowerCase();
-    if (!/^#([0-9a-f]{6})$/.test(normalized)) {
-      return null;
-    }
-    const intValue = Number.parseInt(normalized.slice(1), 16);
-    return [(intValue >> 16) & 255, (intValue >> 8) & 255, intValue & 255];
+    return hexToRgb(hexColor);
   }
 
   private resolveGradientMinMax(

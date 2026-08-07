@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T01:46:04.484Z",
+  "generatedAt": "2026-08-04T17:41:00.274Z",
   "whyThisReportExists": {
     "purpose": "Shows how Vercel Blob solution rasters and metadata files were converted into manifest.solutions.",
     "intendedAudience": "Developers and reviewers validating Solution Finder data readiness.",
@@ -15,7 +15,7 @@
     "includedSolutions": 0,
     "skippedMetadataFiles": 22,
     "unmatchedRasters": 248,
-    "publishedManifestSolutionsUsed": 108
+    "preservedExistingSolutions": 108
   },
   "included": [],
   "skipped": [
@@ -1372,12 +1372,7 @@
       "bytes": 805542
     }
   ],
-  "solutionSource": {
-    "strategy": "published_manifest",
-    "source": "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json",
-    "reason": "Preserved the solution catalog currently published in Vercel so generated layer updates do not replace the active solution set."
-  },
-  "publishedManifestSolutions": [
+  "preservedExistingSolutions": [
     {
       "id": "estr17_esp17_runap_com_res_iheh",
       "name": "ESTR17+Esp17+RUNAP+Com+Res_IHEH",

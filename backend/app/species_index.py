@@ -41,6 +41,7 @@ _install_metrics_pipeline_path()
 from raster_metrics import SolutionRaster  # noqa: E402
 from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata  # noqa: E402
 from sparse.species_bitset import (  # noqa: E402
+    FORMAT as BITSET_FORMAT,
     SpeciesBitsetMetadata,
     load_species_bitset_metadata,
 )
@@ -341,11 +342,20 @@ class RuntimeSpeciesBitsetIndex:
         records: list[SpeciesCoverageRecord] = []
         for species_index in np.flatnonzero(within_area > 0):
             entry = self.metadata_document.species[int(species_index)]
+            # Presence is recorded for any positive overlap, so summing whole
+            # cells overstates a range that only clips the cells it touches.
+            # Rescaling by the species' mean cell coverage puts these areas on
+            # the same scale as the national range they are reported against.
+            density = entry.area_per_occupied_cell_area
             range_area = entry.range_area_km2
-            within = float(within_area[species_index])
-            covered = float(covered_area[species_index])
-            pre_existing = float(pre_existing_area[species_index])
-            new = float(new_area[species_index])
+            # Each of these sums over a subset of the cells the next one out
+            # sums over, so only float rounding across differing accumulation
+            # orders can invert them. Holding the nesting keeps every reported
+            # percentage at or below 100.
+            within = min(float(within_area[species_index]) * density, range_area)
+            covered = min(float(covered_area[species_index]) * density, within)
+            pre_existing = min(float(pre_existing_area[species_index]) * density, within)
+            new = min(float(new_area[species_index]) * density, within)
             records.append(
                 SpeciesCoverageRecord(
                     id=species_dataset_id(entry.scientific_name),
@@ -380,7 +390,8 @@ class RuntimeSpeciesBitsetIndex:
     def metadata(self) -> dict[str, Any]:
         return {
             "status": "ready",
-            "format": "species-cell-bitset/v1",
+            "format": BITSET_FORMAT,
+            "range_area_source": self.metadata_document.range_area_source,
             "species_count": self.species_count,
             "cell_count": self.metadata_document.cell_count,
             "cell_reference_count": self.cell_reference_count,

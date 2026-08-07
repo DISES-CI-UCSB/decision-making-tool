@@ -5,39 +5,74 @@ import hashlib
 import json
 import shutil
 import sys
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = BACKEND_ROOT.parent
 METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
-if str(METRICS_PIPELINE) not in sys.path:
-    sys.path.insert(0, str(METRICS_PIPELINE))
+for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
+    if str(_import_root) not in sys.path:
+        sys.path.insert(0, str(_import_root))
 
 from blob_manifest import DEFAULT_MANIFEST_URL, fetch_manifest  # noqa: E402
 from metric_definitions import METRIC_CATALOG  # noqa: E402
 from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records  # noqa: E402
 from sparse.species_bitset import build_species_bitset  # noqa: E402
 
+from scripts.aligned_cache import (  # noqa: E402
+    AlignedCacheError,
+    AlignedRaster,
+    AlignedRasterCache,
+    read_fingerprint,
+    sha256_file,
+)
+from scripts.land_solution_inputs import (  # noqa: E402
+    ECOSYSTEM_BLOB_PATHS,
+    LAND_SOLUTION_REFERENCE_PIN,
+    ReferenceRasterPinError,
+    public_url,
+    species_matrix_blob_path,
+)
+
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_MATRIX_GROUPS = (*CLASS_BUCKETS, "threatened")
-ECOSYSTEM_SOURCE_URLS = {
-    "raster": (
-        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
-        "ecosistemas_IDEAM_MEC_2024.tif"
+ECOSYSTEM_LAYER_ID = "ecosistemas_IAVH_2024"
+
+# The MEC ecosystem bundle and the species matrices exist once per reference
+# grid. The EPSG:4326 objects the deployed backend rebuilds from stay exactly
+# where they are; the EPSG:9377 grid reads its own `land-solution-9377/` objects.
+ECOSYSTEM_SOURCE_URLS_BY_GRID = {
+    "ecosistemas": {
+        "raster": (
+            f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+            "ecosistemas_IDEAM_MEC_2024.tif"
+        ),
+        "crosswalk": (
+            f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+            "ecosistemas_IDs_IDEAM_MEC_2024.csv"
+        ),
+        "provenance": (
+            f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+            "ecosistemas_IDEAM_MEC_2024.provenance.json"
+        ),
+    },
+    "land-solution": {
+        name: public_url(blob_path) for name, blob_path in ECOSYSTEM_BLOB_PATHS.items()
+    },
+}
+
+SPECIES_MATRIX_URL_BUILDERS = {
+    "ecosistemas": lambda group: (
+        f"{PUBLIC_BLOB_HOST}/inputs/features/species-sparse/species_{group}.smtx.gz"
     ),
-    "crosswalk": (
-        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
-        "ecosistemas_IDs_IDEAM_MEC_2024.csv"
-    ),
-    "provenance": (
-        f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
-        "ecosistemas_IDEAM_MEC_2024.provenance.json"
-    ),
+    "land-solution": lambda group: public_url(species_matrix_blob_path(group)),
 }
 
 
@@ -48,6 +83,10 @@ class LayerSpec:
     kind: str
     rendering: dict[str, Any]
     metric_ids: tuple[str, ...]
+    # Alignment class from metrics_pipeline/raster_align.py `_LAYER_POLICIES`.
+    # It selects the resampling used to reproject the layer, so density layers
+    # must never be resolved through a nearest-neighbour cache entry.
+    alignment_class: str
 
 
 @dataclass(frozen=True)
@@ -55,6 +94,50 @@ class SpeciesMatrixSpec:
     group: str
     url: str
     metric_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ReferenceGrid:
+    name: str
+    expected_crs: str
+    summary: str
+
+
+# Mirrors `_LAYER_POLICIES` in metrics_pipeline/raster_align.py. Only the two
+# density layers use `average`; resampling them with nearest would corrupt
+# carbon totals. Layers sharing one categorical source (the coberturas and
+# runap aliases) must share a class so they resolve to one aligned file.
+ALIGNMENT_CLASS_BY_LAYER_ID = {
+    "ecosistemas_IAVH_2024": "categorical",
+    "paramos": "categorical",
+    "bosque_seco": "binary",
+    "wetlands": "categorical",
+    "mangroves": "binary",
+    "resguardos": "binary",
+    "comunidades": "binary",
+    "recarga_agua": "binary",
+    "coberturas_forest": "categorical",
+    "coberturas_agriculture": "categorical",
+    "coberturas_other": "categorical",
+    "runap_protegidas": "categorical",
+    "runap_parques": "categorical",
+    "biomasa": "fraction_or_density",
+    "carbono_organico": "fraction_or_density",
+}
+
+
+REFERENCE_GRIDS = {
+    "ecosistemas": ReferenceGrid(
+        name="ecosistemas",
+        expected_crs="EPSG:4326",
+        summary="Legacy WGS84 ecosystem grid from the layer manifest (1497x2069).",
+    ),
+    "land-solution": ReferenceGrid(
+        name="land-solution",
+        expected_crs="EPSG:9377",
+        summary="v0.2 land solution grid shared with the precomputed metrics (1353x1838, 1000 m).",
+    ),
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,7 +151,39 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Build into a versioned releases directory without activating it.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--reference-grid",
+        choices=sorted(REFERENCE_GRIDS),
+        default="ecosistemas",
+        help="Which grid the custom AOI is rasterized on.",
+    )
+    parser.add_argument(
+        "--reference-raster",
+        default=None,
+        help=(
+            "URL or local path defining the land-solution reference grid. Defaults "
+            "to the pinned aligned MEC composite and must match that pin either way."
+        ),
+    )
+    parser.add_argument(
+        "--aligned-cache",
+        type=Path,
+        default=None,
+        help=(
+            "Metrics pipeline cache directory holding aligned/<key[:2]>/<key>.tif. "
+            "Required with --reference-grid land-solution, whose layers are never "
+            "reprojected here."
+        ),
+    )
+    args = parser.parse_args()
+    if args.reference_grid == "land-solution":
+        if not args.reference_raster:
+            args.reference_raster = LAND_SOLUTION_REFERENCE_PIN.url
+        if args.aligned_cache is None:
+            parser.error("--reference-grid land-solution requires --aligned-cache.")
+    elif args.reference_raster:
+        parser.error("--reference-raster only applies to --reference-grid land-solution.")
+    return args
 
 
 def main() -> None:
@@ -89,33 +204,72 @@ def main() -> None:
 
     manifest = fetch_manifest(args.manifest_url)
     solution = select_solution(manifest.national_solutions, args.solution_id)
-    reference_layer = manifest.layers_by_id.get("ecosistemas")
-    if not reference_layer or not reference_layer.get("displayUrl"):
-        raise SystemExit("Manifest layer ecosistemas is required as the custom AOI reference grid.")
-    print("Selected reference grid: ecosistemas")
+    reference_grid = REFERENCE_GRIDS[args.reference_grid]
+    reference_source_url = resolve_reference_source_url(args, manifest.layers_by_id)
+    print(f"Selected reference grid: {reference_grid.name} — {reference_grid.summary}")
     print(f"Sample solution recorded for provenance: {solution.get('id')} ({solution.get('name')})")
 
-    reference = download_source(
-        str(reference_layer["displayUrl"]),
-        sources_dir / "reference_grid_ecosistemas.tif",
+    reference = fetch_source(
+        reference_source_url,
+        sources_dir / f"reference_grid_{safe_filename(reference_grid.name)}.tif",
         force=args.force,
     )
+    reference_fingerprint = read_fingerprint(reference.path)
+    if reference_fingerprint.crs != reference_grid.expected_crs:
+        raise SystemExit(
+            f"Reference raster {reference_source_url} is {reference_fingerprint.crs}; "
+            f"reference grid {reference_grid.name} requires {reference_grid.expected_crs}."
+        )
+    if args.reference_grid == "land-solution":
+        try:
+            LAND_SOLUTION_REFERENCE_PIN.verify(reference.path, sha256=reference.sha256)
+        except ReferenceRasterPinError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(f"Reference raster matches the land-solution pin: {LAND_SOLUTION_REFERENCE_PIN.rationale}")
+    print(
+        f"Reference fingerprint: {reference_fingerprint.crs} "
+        f"{reference_fingerprint.width}x{reference_fingerprint.height}"
+    )
+
+    aligned_cache = None
+    if args.aligned_cache is not None:
+        try:
+            aligned_cache = AlignedRasterCache(args.aligned_cache)
+        except AlignedCacheError as exc:
+            raise SystemExit(str(exc)) from exc
 
     layer_specs = build_layer_specs(manifest.layers_by_id)
-    species_specs = build_species_matrix_specs()
+    species_specs = build_species_matrix_specs(reference_grid.name)
     layer_entries: list[dict[str, Any]] = []
     file_entries = [file_entry(reference.path, artifact_dir, reference.sha256, reference.bytes)]
-    downloaded_by_url = {str(reference_layer["displayUrl"]): reference}
+    sources_by_url = {reference_source_url: reference}
+    aligned_by_url: dict[str, AlignedRaster] = {}
+    layer_ids_by_url: dict[str, list[str]] = {}
 
     for spec in layer_specs:
-        cached = downloaded_by_url.get(spec.url)
+        layer_ids_by_url.setdefault(spec.url, []).append(spec.layer_id)
+        cached = sources_by_url.get(spec.url)
         if cached is None:
-            cached = download_source(
-                spec.url,
-                sources_dir / f"{safe_filename(spec.layer_id)}.tif",
-                force=args.force,
-            )
-            downloaded_by_url[spec.url] = cached
+            target = sources_dir / f"{safe_filename(spec.layer_id)}.tif"
+            if aligned_cache is None:
+                cached = download_source(spec.url, target, force=args.force)
+            else:
+                try:
+                    aligned = aligned_cache.lookup(
+                        spec.layer_id,
+                        source_url=spec.url,
+                        layer_class=spec.alignment_class,
+                        target=reference_fingerprint,
+                    )
+                except AlignedCacheError as exc:
+                    raise SystemExit(str(exc)) from exc
+                aligned_by_url[spec.url] = aligned
+                cached = copy_source(aligned.path, target)
+                print(
+                    f"Reused aligned {spec.layer_id} "
+                    f"({aligned.layer_class}/{aligned.resampling}) from {aligned.cache_key[:12]}"
+                )
+            sources_by_url[spec.url] = cached
             file_entries.append(file_entry(cached.path, artifact_dir, cached.sha256, cached.bytes))
 
         layer_entries.append(
@@ -191,7 +345,7 @@ def main() -> None:
     ecosystem_inventory: dict[str, Any] = {}
     # These URLs are mutable publication targets, so refresh the small MEC bundle
     # on every build rather than silently pairing stale files with a new manifest.
-    for source_name, source_url in ECOSYSTEM_SOURCE_URLS.items():
+    for source_name, source_url in ECOSYSTEM_SOURCE_URLS_BY_GRID[reference_grid.name].items():
         suffix = {
             "raster": ".tif",
             "crosswalk": ".csv",
@@ -221,12 +375,27 @@ def main() -> None:
         "source_manifest": {
             "url": manifest.url,
             "public_blob_host": manifest.public_blob_host,
-            "reference_grid_layer_id": "ecosistemas",
-            "reference_grid_url": reference_layer.get("displayUrl"),
+            "reference_grid_layer_id": reference_grid.name,
+            "reference_grid_url": reference_source_url,
             "sample_solution_id": solution.get("id"),
             "sample_solution_name": solution.get("name"),
             "purpose": "Runtime source rasters for live custom AOI metrics on the VM backend.",
         },
+        "reference_grid": {
+            "name": reference_grid.name,
+            "summary": reference_grid.summary,
+            "source": reference_source_url,
+            "crs": reference_fingerprint.crs,
+            "width": reference_fingerprint.width,
+            "height": reference_fingerprint.height,
+            "transform": list(reference_fingerprint.transform),
+            "pin": reference_raster_pin(args.reference_grid),
+        },
+        "aligned_sources": aligned_source_provenance(
+            args.aligned_cache,
+            aligned_by_url,
+            layer_ids_by_url,
+        ),
         "reference_raster_path": str(reference.path.relative_to(artifact_dir)),
         "reference_raster_checksum": {"algorithm": "sha256", "value": reference.sha256},
         "raster_layers": layer_entries,
@@ -260,9 +429,17 @@ def select_solution(solutions: list[dict[str, Any]], solution_id: str | None) ->
 
 
 def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec]:
-    specs: list[LayerSpec] = []
+    specs: list[LayerSpec] = [
+        LayerSpec(
+            ECOSYSTEM_LAYER_ID,
+            off_manifest_url(ECOSYSTEM_LAYER_ID),
+            "categorical",
+            {"valueType": "categorical"},
+            metric_ids_for_layer(ECOSYSTEM_LAYER_ID),
+            "categorical",
+        )
+    ]
     for layer_id in [
-        "ecosistemas",
         "paramos",
         "bosque_seco",
         "wetlands",
@@ -281,6 +458,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 kind="binary",
                 rendering=dict(layer.get("rendering") or {}),
                 metric_ids=metric_ids_for_layer(layer_id),
+                alignment_class=ALIGNMENT_CLASS_BY_LAYER_ID[layer_id],
             )
         )
 
@@ -292,6 +470,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "binary",
                 {"valueType": "binary", "selectedValue": 1},
                 metric_ids_for_layer("recarga_agua"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["recarga_agua"],
             ),
             LayerSpec(
                 "coberturas_forest",
@@ -299,6 +478,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "categorical",
                 {"valueType": "binary", "selectedValue": 1},
                 metric_ids_for_layer("coberturas_forest"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["coberturas_forest"],
             ),
             LayerSpec(
                 "coberturas_agriculture",
@@ -306,6 +486,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "categorical",
                 {"valueType": "binary", "selectedValue": 2},
                 metric_ids_for_layer("coberturas_agriculture"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["coberturas_agriculture"],
             ),
             LayerSpec(
                 "coberturas_other",
@@ -313,6 +494,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "categorical",
                 {"valueType": "binary", "selectedValues": [3, 4, 5]},
                 metric_ids_for_layer("coberturas_other"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["coberturas_other"],
             ),
             LayerSpec(
                 "runap_protegidas",
@@ -320,6 +502,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "categorical",
                 {},
                 metric_ids_for_layer("runap_protegidas"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["runap_protegidas"],
             ),
             LayerSpec(
                 "runap_parques",
@@ -327,6 +510,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "categorical",
                 {"valueType": "binary", "selectedValue": 3},
                 metric_ids_for_layer("runap_parques"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["runap_parques"],
             ),
             LayerSpec(
                 "biomasa",
@@ -334,6 +518,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "continuous",
                 {"valueType": "continuous"},
                 metric_ids_for_layer("biomasa"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["biomasa"],
             ),
             LayerSpec(
                 "carbono_organico",
@@ -341,6 +526,7 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
                 "continuous",
                 {"valueType": "continuous"},
                 metric_ids_for_layer("carbono_organico"),
+                ALIGNMENT_CLASS_BY_LAYER_ID["carbono_organico"],
             ),
         ]
     )
@@ -351,11 +537,25 @@ def metric_ids_for_layer(layer_id: str) -> tuple[str, ...]:
     return tuple(metric.metric_id for metric in METRIC_CATALOG if metric.layer_id == layer_id)
 
 
-def build_species_matrix_specs() -> list[SpeciesMatrixSpec]:
+def off_manifest_url(layer_id: str) -> str:
+    for metric in METRIC_CATALOG:
+        if metric.layer_id == layer_id and metric.off_manifest_url:
+            return str(metric.off_manifest_url)
+    raise SystemExit(f"Metric catalog has no off-manifest URL for layer {layer_id!r}.")
+
+
+def build_species_matrix_specs(reference_grid_name: str) -> list[SpeciesMatrixSpec]:
+    """Resolve the species matrices published for one reference grid.
+
+    The builder regenerates the bitset from whatever it downloads, so a grid
+    mismatch here would silently discard the exact per-species range areas the
+    9377 matrices carry and emit a cell-count bitset instead.
+    """
+    url_for = SPECIES_MATRIX_URL_BUILDERS[reference_grid_name]
     return [
         SpeciesMatrixSpec(
             group=group,
-            url=f"{PUBLIC_BLOB_HOST}/inputs/features/species-sparse/species_{group}.smtx.gz",
+            url=url_for(group),
             metric_ids=metric_ids_for_species_group(group),
         )
         for group in SPECIES_MATRIX_GROUPS
@@ -402,12 +602,76 @@ def download_source(url: str, target: Path, *, force: bool) -> DownloadedSource:
     return DownloadedSource(target, sha256_file(target), target.stat().st_size)
 
 
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def copy_source(source: Path, target: Path) -> DownloadedSource:
+    """Copy an already prepared raster into the artifact so it stays self-contained."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(f".{target.name}.part")
+    shutil.copyfile(source, tmp)
+    tmp.replace(target)
+    return DownloadedSource(target, sha256_file(target), target.stat().st_size)
+
+
+def fetch_source(location: str, target: Path, *, force: bool) -> DownloadedSource:
+    """Materialize a source given either an http(s) URL or a local path."""
+    parsed = urllib.parse.urlparse(location)
+    if parsed.scheme in {"http", "https"}:
+        return download_source(location, target, force=force)
+    source = Path(location).expanduser().resolve()
+    if not source.is_file():
+        raise SystemExit(f"Reference raster not found: {location}")
+    if target.exists() and not force:
+        return DownloadedSource(target, sha256_file(target), target.stat().st_size)
+    return copy_source(source, target)
+
+
+def resolve_reference_source_url(
+    args: argparse.Namespace,
+    layers_by_id: dict[str, dict[str, Any]],
+) -> str:
+    if args.reference_grid == "land-solution":
+        return str(args.reference_raster)
+    layer = layers_by_id.get("ecosistemas")
+    if not layer or not layer.get("displayUrl"):
+        raise SystemExit("Manifest layer ecosistemas is required as the custom AOI reference grid.")
+    return str(layer["displayUrl"])
+
+
+def reference_raster_pin(reference_grid_name: str) -> dict[str, Any] | None:
+    """Record the pinned land domain so a built artifact declares its denominator."""
+    if reference_grid_name != "land-solution":
+        return None
+    pin = LAND_SOLUTION_REFERENCE_PIN
+    return {
+        "blob_path": pin.blob_path,
+        "sha256": pin.sha256,
+        "size_bytes": pin.size_bytes,
+        "valid_cell_count": pin.valid_cell_count,
+        "rationale": pin.rationale,
+    }
+
+
+def aligned_source_provenance(
+    cache_dir: Path | None,
+    aligned_by_url: dict[str, AlignedRaster],
+    layer_ids_by_url: dict[str, list[str]],
+) -> dict[str, Any] | None:
+    if cache_dir is None:
+        return None
+    return {
+        "cache_dir": str(Path(cache_dir).resolve()),
+        "sources": [
+            {
+                "layer_ids": layer_ids_by_url[url],
+                "source_url": url,
+                "source_sha256": aligned.source_sha256,
+                "aligned_sha256": aligned.aligned_sha256,
+                "cache_key": aligned.cache_key,
+                "layer_class": aligned.layer_class,
+                "resampling": aligned.resampling,
+            }
+            for url, aligned in aligned_by_url.items()
+        ],
+    }
 
 
 def file_entry(path: Path, artifact_dir: Path, sha256: str, size_bytes: int) -> dict[str, Any]:
