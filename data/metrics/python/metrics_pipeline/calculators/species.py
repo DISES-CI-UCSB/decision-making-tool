@@ -48,17 +48,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 import numpy as np
-from species_data import CLASS_BUCKETS, SpeciesPoolSizes, SpeciesRecord
+from species_data import SpeciesPoolSizes, SpeciesRecord
 from species_target_policy import REFERENCE_THRESHOLDS, SpeciesTargetPolicy
+from species_taxonomy import BUCKET_LABELS as _GROUP_LABELS, CLASS_BUCKETS
 
 IUCN_STATUS_ORDER: tuple[str, ...] = ("CR", "EN", "VU", "NT", "LC", "DD", "other", "unknown")
-_GROUP_LABELS: dict[str, str] = {
-    "mammals": "Mammals",
-    "birds": "Birds",
-    "amphibians": "Amphibians",
-    "reptiles": "Reptiles",
-    "plants": "Plants",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -362,7 +356,7 @@ def filter_records_with_pool(records: Iterable[SpeciesRecord]) -> list[SpeciesRe
     The vast majority of CSV rows fall into one of the five buckets, so this
     is mostly a no-op safety filter.  If a future revision wants to broaden
     the pool, change ``CLASS_BUCKETS`` (and ``_CLASS_TO_BUCKET``) in
-    ``species_data`` rather than here.
+    ``species_taxonomy`` rather than here.
     """
     return [r for r in records if r.bucket is not None]
 

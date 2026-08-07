@@ -8,28 +8,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from species_taxonomy import BUCKET_LABELS as _GROUP_LABELS, class_bucket
+
 if TYPE_CHECKING:
     from species_data import SpeciesRecord
 
 IUCN_STATUS_ORDER: tuple[str, ...] = ("CR", "EN", "VU", "NT", "LC", "DD", "other", "unknown")
-
-_CLASS_TO_GROUP: dict[str, str] = {
-    "mammalia": "mammals",
-    "aves": "birds",
-    "amphibia": "amphibians",
-    "squamata": "reptiles",
-    "crocodylia": "reptiles",
-    "magnoliopsida": "plants",
-    "magnoliospida": "plants",
-}
-
-_GROUP_LABELS: dict[str, str] = {
-    "mammals": "Mammals",
-    "birds": "Birds",
-    "amphibians": "Amphibians",
-    "reptiles": "Reptiles",
-    "plants": "Plants",
-}
 
 
 @dataclass
@@ -63,7 +47,7 @@ class _GroupCount:
 
 def normalize_summary_class(class_name: str) -> str | None:
     """Map summary CSV taxonomic classes onto existing species bucket names."""
-    return _CLASS_TO_GROUP.get(class_name.strip().lower())
+    return class_bucket(class_name)
 
 
 def species_lookup_by_name(records: list[SpeciesRecord]) -> dict[str, SpeciesRecord]:

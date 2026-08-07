@@ -45,12 +45,14 @@ from solution_catalog import (
     validate_catalog_solution_ids,
 )
 from solution_input_signature import canonical_sha256
+from species_taxonomy import BUCKET_LABELS as SPECIES_GROUP_LABELS, class_bucket, normalize_class_name
 from summary_metadata import resolve_summary_csv_url
 
 GOALS_FORMAT = "conservation-goals-v1"
 GOALS_PROVENANCE_FORMAT = "conservation-goals-provenance-v1"
 GOALS_SUFFIX = ".goals.json"
-DEFAULT_GOALS_OUTPUT_DIR = Path("data/metrics/generated/goals")
+GENERATED_ROOT = Path("data/metrics/generated")
+DEFAULT_GOALS_OUTPUT_DIR = GENERATED_ROOT / "goals"
 DEFAULT_GOALS_BLOB_DIRECTORY = "metrics/goals"
 DEFAULT_LOCAL_MANIFEST = Path(
     "development-artifacts/layer-manifest/staging/nick-runs-2026-05-27-compact-metrics.json"
@@ -70,25 +72,25 @@ STRATEGIC_ECOSYSTEM_FEATURES = {
     "wetlands": "Wetlands",
 }
 
-SPECIES_GROUP_LABELS = {
-    "mammals": "Mammals",
-    "birds": "Birds",
-    "amphibians": "Amphibians",
-    "reptiles": "Reptiles",
-    "plants": "Plants",
-}
+#: Summary CSVs declare the feature type in ``feature_type`` (v0.2 exports) or in
+#: ``type`` (earlier exports). The first column present wins.
+FEATURE_TYPE_COLUMNS = ("feature_type", "type")
 
-CLASS_TO_GROUP = {
-    "mammalia": "mammals",
-    "aves": "birds",
-    "amphibia": "amphibians",
-    "squamata": "reptiles",
-    "crocodylia": "reptiles",
-    "magnoliopsida": "plants",
-    "magnoliospida": "plants",
+DECLARED_FEATURE_TYPES = {
+    "species": "species",
+    "ecosystem": "ecosystems",
+    "strategic ecosystem": "strategicEcosystems",
 }
 
 IUCN_STATUS_ORDER = ("CR", "EN", "VU", "NT", "LC", "DD", "other", "unknown")
+
+#: A land summary whose species rows exceed this share of unresolved taxon groups
+#: is rejected rather than published with a hollowed-out taxon rollup.
+MAX_UNRESOLVED_TAXON_FRACTION = 0.02
+
+
+class GoalsSchemaError(ValueError):
+    """Raised when a summary CSV cannot be classified under any known schema."""
 
 
 @dataclass
@@ -120,6 +122,7 @@ class GoalCount:
 class GoalSpeciesRecord:
     scientific_name: str
     csv_class: str
+    taxon_group: str | None
     iucn_status: str
     range_km2: float | None
     threatened: bool
@@ -154,7 +157,13 @@ def build_goals_document(
     species_lookup = {
         _normalize_species_name(record.scientific_name): record for record in species_records
     }
-    summary_rows = _read_summary_rows(summary_csv_path)
+    summary_columns, summary_rows = _read_summary_rows(summary_csv_path)
+    if domain != "marine" and _feature_type_column(summary_columns) is None:
+        raise GoalsSchemaError(
+            f"{summary_csv_path} declares no feature type column "
+            f"({' or '.join(FEATURE_TYPE_COLUMNS)}); refusing to classify "
+            f"{len(summary_rows)} land rows as 'other'"
+        )
 
     all_count = GoalCount()
     by_type: dict[str, GoalCount] = {
@@ -168,6 +177,8 @@ def build_goals_document(
     }
     species_iucn_counts = {status: GoalCount() for status in IUCN_STATUS_ORDER}
     raw_type_counts: Counter[str] = Counter()
+    raw_taxon_class_counts: Counter[str] = Counter()
+    unresolved_taxon_classes: Counter[str] = Counter()
 
     species_features: list[dict[str, Any]] = []
     strategic_features: list[dict[str, Any]] = []
@@ -179,7 +190,7 @@ def build_goals_document(
     for row in summary_rows:
         feature_type = _feature_type(row, domain)
         met = _parse_bool_or_none(row.get("met"))
-        raw_type_counts[_clean_text(row.get("type")) or "NA"] += 1
+        raw_type_counts[_declared_feature_type(row) or "NA"] += 1
         all_count.record(met)
         by_type[feature_type].record(met)
 
@@ -192,15 +203,18 @@ def build_goals_document(
             else:
                 iucn_status = _normalize_iucn_status(record.iucn_status)
 
-            taxon_group = _taxon_group(row.get("class"))
+            raw_taxon_class = _clean_text(row.get("class"))
+            raw_taxon_class_counts[raw_taxon_class or "NA"] += 1
+            taxon_class, taxon_group = _resolve_taxon(record, raw_taxon_class)
             if taxon_group is None:
                 ignored_species_row_count += 1
+                unresolved_taxon_classes[raw_taxon_class or "NA"] += 1
             else:
                 species_group_counts[taxon_group].record(met, iucn_status)
 
             species_iucn_counts[iucn_status].record(met)
             feature.update({
-                "taxonClass": _clean_text(row.get("class")) or None,
+                "taxonClass": taxon_class,
                 "taxonGroup": taxon_group,
                 "iucnStatus": iucn_status,
                 "rangeKm2": record.range_km2 if record is not None else None,
@@ -217,6 +231,18 @@ def build_goals_document(
             ecosystem_features.append(feature)
         else:
             other_features.append(feature)
+
+    if species_features and (
+        ignored_species_row_count / len(species_features) > MAX_UNRESOLVED_TAXON_FRACTION
+    ):
+        offenders = ", ".join(
+            f"{name} ({count})" for name, count in sorted(unresolved_taxon_classes.items())
+        )
+        raise GoalsSchemaError(
+            f"{summary_csv_path} leaves {ignored_species_row_count} of "
+            f"{len(species_features)} species rows without a taxon group, above the "
+            f"{MAX_UNRESOLVED_TAXON_FRACTION:.0%} tolerance; unresolved classes: {offenders}"
+        )
 
     generated = generated_at or _utc_now_iso()
     return {
@@ -260,6 +286,7 @@ def build_goals_document(
         },
         "diagnostics": {
             "rawTypeCounts": dict(sorted(raw_type_counts.items())),
+            "rawTaxonClassCounts": dict(sorted(raw_taxon_class_counts.items())),
             "rowCounts": {
                 "species": len(species_features),
                 "strategicEcosystems": len(strategic_features),
@@ -481,16 +508,34 @@ def expected_goals_public_url(
     )
 
 
-def _read_summary_rows(path: Path) -> list[dict[str, str]]:
+def _read_summary_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
     with path.open(newline="", encoding="utf-8-sig") as handle:
-        rows = list(csv.DictReader(handle))
+        reader = csv.DictReader(handle)
+        columns = list(reader.fieldnames or [])
+        rows = list(reader)
     if any(_clean_text(row.get("evaluated")) for row in rows):
-        return [
+        rows = [
             row
             for row in rows
             if _clean_text(row.get("evaluated")) == "prioritizr_model"
         ]
-    return rows
+    return columns, rows
+
+
+def _feature_type_column(columns: Any) -> str | None:
+    return next((column for column in FEATURE_TYPE_COLUMNS if column in columns), None)
+
+
+def _declared_feature_type(row: dict[str, str]) -> str:
+    """Read the feature type a summary row declares, whichever column carries it."""
+
+    column = _feature_type_column(row)
+    return _clean_text(row.get(column)) if column is not None else ""
+
+
+def _declared_feature_category(row: dict[str, str]) -> str | None:
+    declared = re.sub(r"[\s_]+", " ", _declared_feature_type(row).lower())
+    return DECLARED_FEATURE_TYPES.get(declared)
 
 
 def _base_feature(row: dict[str, str], *, feature_type: str, met: bool | None) -> dict[str, Any]:
@@ -519,19 +564,16 @@ def _feature_type(
     row: dict[str, str],
     domain: SolutionDomain = "land",
 ) -> str:
-    raw_type = _clean_text(row.get("type")).lower()
     feature_name = _clean_text(row.get("feature"))
-    feature_id = _normalize_feature_id(feature_name)
     if domain == "marine":
         if re.match(r"^manglar", feature_name, flags=re.IGNORECASE):
             return "strategicEcosystems"
         return "ecosystems"
-    if raw_type == "species":
-        return "species"
-    if feature_id in STRATEGIC_ECOSYSTEM_FEATURES:
+    declared = _declared_feature_category(row)
+    if declared is not None:
+        return declared
+    if _normalize_feature_id(feature_name) in STRATEGIC_ECOSYSTEM_FEATURES:
         return "strategicEcosystems"
-    if raw_type == "ecosystem":
-        return "ecosystems"
     return "other"
 
 
@@ -626,8 +668,21 @@ def _parse_relative_float(value: Any) -> float | None:
     return parsed
 
 
-def _taxon_group(value: Any) -> str | None:
-    return CLASS_TO_GROUP.get(_clean_text(value).lower())
+def _resolve_taxon(
+    record: GoalSpeciesRecord | None,
+    csv_class: str,
+) -> tuple[str | None, str | None]:
+    """Resolve a species row's taxonomic class and metric group.
+
+    The species catalog is authoritative. The summary CSV's ``class`` column is
+    solver output that has been observed to batch one class into
+    ``Magnoliopsida_1``/``Magnoliopsida_2``, so it is only consulted for rows
+    that have no catalog match.
+    """
+
+    if record is not None and record.taxon_group is not None:
+        return record.csv_class or None, record.taxon_group
+    return normalize_class_name(csv_class) or None, class_bucket(csv_class)
 
 
 def _normalize_iucn_status(value: str) -> str:
@@ -693,6 +748,7 @@ def load_goal_species_records(csv_path: Path) -> list[GoalSpeciesRecord]:
                 GoalSpeciesRecord(
                     scientific_name=name,
                     csv_class=cls,
+                    taxon_group=class_bucket(cls),
                     iucn_status=iucn,
                     range_km2=_parse_float(row.get("range_km2")),
                     threatened=iucn in THREATENED_IUCN_STATUSES,
@@ -809,13 +865,10 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.release_id:
         release_config = load_release_config(args.release_id)
-        args.goals_blob_directory = release_config.goals_directory
+        args.goals_blob_directory = release_config.goals_current_directory
         if args.output_dir == DEFAULT_GOALS_OUTPUT_DIR:
-            args.output_dir = (
-                Path("data/metrics/generated/releases")
-                / args.release_id
-                / "goals"
-            )
+            # The local tree mirrors the Blob prefix so both stay in one contract.
+            args.output_dir = GENERATED_ROOT / release_config.goals_current_directory
     output_dir = resolve_output_dir(repo_root, args.output_dir)
     cache_dir = resolve_output_dir(repo_root, args.cache_dir)
     manifest, manifest_source = _load_manifest_payload(args, repo_root)

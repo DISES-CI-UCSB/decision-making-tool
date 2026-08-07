@@ -2,9 +2,13 @@
   "defaultReleaseId": "sirap-polygon-v2-20260727",
   "prefixRoot": "releases",
   "goalsDirectory": "goals",
+  "goalsCurrentDirectory": "goals/v3",
   "regularVerboseDirectory": "regular/verbose",
   "regularCompactDirectory": "regular/compact",
   "mecV2Directory": "mec/v2",
+  "displayCogDirectory": "solutions",
+  "displayCogSuffix": ".epsg9377.cog.tif",
+  "displayCogDomains": ["land"],
   "sirapBoundaryPath": "inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
   "sirapMetadataPath": "metadata/siraps_merged_polygon_v2.metadata.json"
 }

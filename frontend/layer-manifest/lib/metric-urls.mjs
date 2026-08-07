@@ -48,7 +48,7 @@ export function createSolutionPrecomputedMetricUrls(
   const releaseId = options.releaseId ?? null;
   const releaseRoot = releaseId ? `${RELEASE_CONTRACT.prefixRoot}/${releaseId}` : null;
   const goalsDirectory = releaseRoot
-    ? `${releaseRoot}/${RELEASE_CONTRACT.goalsDirectory}`
+    ? `${releaseRoot}/${RELEASE_CONTRACT.goalsCurrentDirectory}`
     : SOLUTION_GOALS_BLOB_DIRECTORY;
   const compactDirectory = releaseRoot
     ? `${releaseRoot}/${RELEASE_CONTRACT.regularCompactDirectory}`

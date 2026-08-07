@@ -81,7 +81,10 @@ describe('metric URL construction', () => {
 
     assert.equal(releaseId, 'sirap-polygon-v2-20260727');
     assert.equal(result.mecByGeography, undefined);
-    assert.match(result.goals, new RegExp(`/releases/${releaseId}/goals/`));
+    assert.strictEqual(
+      result.goals,
+      `${BLOB_HOST}/releases/${releaseId}/goals/v3/land_solution.goals.json`,
+    );
     assert.match(result.cache, new RegExp(`/releases/${releaseId}/regular/verbose/`));
     assert.match(result.compactCache, new RegExp(`/releases/${releaseId}/regular/compact/`));
     for (const url of Object.values(result.mecV2ByGeography)) {

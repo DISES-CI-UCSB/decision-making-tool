@@ -388,7 +388,7 @@ def test_assembly_preserves_species_exception_in_all_catalog_bindings(tmp_path: 
     recomputed_goals = json.loads(
         (
             release_root
-            / "goals/cache/solution-024.goals.json"
+            / "goals/v2/cache/solution-024.goals.json"
         ).read_text(encoding="utf-8")
     )
     assert reused["solutionCatalogBinding"]["speciesException"] == species_exception

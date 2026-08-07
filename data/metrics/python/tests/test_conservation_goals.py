@@ -12,6 +12,7 @@ from conservation_goals import (
     DEFAULT_LOCAL_MANIFEST,
     DEFAULT_MANIFEST_URL,
     GOALS_FORMAT,
+    GoalsSchemaError,
     _goals_is_resumable,
     _goals_provenance,
     _load_manifest_payload,
@@ -21,15 +22,16 @@ from conservation_goals import (
 )
 from release_config import load_release_config
 from solution_catalog import load_solution_catalog
+from species_taxonomy import class_bucket
 
 
 @dataclass(frozen=True)
 class _SpeciesRecord:
     scientific_name: str
     csv_class: str
+    taxon_group: str | None
     iucn_status: str
     range_km2: float | None
-    bucket: str | None
     threatened: bool
 
 
@@ -37,9 +39,9 @@ def _record(name: str, cls: str, iucn: str, threatened: bool = False) -> _Specie
     return _SpeciesRecord(
         scientific_name=name,
         csv_class=cls,
+        taxon_group=class_bucket(cls),
         iucn_status=iucn,
         range_km2=123.4,
-        bucket=None,
         threatened=threatened,
     )
 
@@ -178,6 +180,135 @@ def test_build_goals_document_groups_species_and_ecosystems(tmp_path: Path):
     assert doc["source"]["solutionDomain"] == "land"
 
 
+LEGACY_SUMMARY_HEADER = (
+    "feature,met,total_amount,absolute_target,absolute_held,absolute_shortfall,"
+    "relative_target,relative_held,relative_shortfall,scenario,type,class"
+)
+
+RELEASE_SUMMARY_HEADER = (
+    "feature,met,total_amount,absolute_target,absolute_held,absolute_shortfall,"
+    "relative_target,relative_held,relative_shortfall,feature_type,class,"
+    "scenario,evaluated"
+)
+
+
+def _land_goals_document(tmp_path: Path, header: str, rows: list[str]) -> dict:
+    summary_csv = tmp_path / "summary.csv"
+    summary_csv.write_text("\n".join([header, *rows]) + "\n", encoding="utf-8")
+    return build_goals_document(
+        solution={"id": "demo_solution", "name": "Demo Solution"},
+        summary_csv_path=summary_csv,
+        species_records=[_record("Panthera onca", "Mammalia", "VU", threatened=True)],
+        summary_csv_url="https://example.com/demo_summary.csv",
+        generated_at="2026-08-07T00:00:00Z",
+    )
+
+
+def test_legacy_type_column_still_classifies_and_is_reported(tmp_path: Path):
+    doc = _land_goals_document(
+        tmp_path,
+        LEGACY_SUMMARY_HEADER,
+        [
+            "paramos,true,100,17,33,0,0.17,0.33,0,demo,NA,NA",
+            "Ecosystem A,true,200,34,40,0,0.17,0.20,0,demo,ecosystem,Ecosystem",
+            "Panthera onca,true,10,1.7,3,0,0.17,0.3,0,demo,species,Mammalia",
+        ],
+    )
+
+    assert doc["diagnostics"]["rowCounts"] == {
+        "species": 1,
+        "strategicEcosystems": 1,
+        "ecosystems": 1,
+        "other": 0,
+    }
+    assert doc["diagnostics"]["rawTypeCounts"] == {
+        "NA": 1,
+        "ecosystem": 1,
+        "species": 1,
+    }
+
+
+def test_renamed_feature_type_column_classifies_release_schema(tmp_path: Path):
+    doc = _land_goals_document(
+        tmp_path,
+        RELEASE_SUMMARY_HEADER,
+        [
+            "Hidrobioma Alto Caquetá,TRUE,143,24.3,60,0,0.17,0.41,0,ecosystem,NA,"
+            "demo,prioritizr_model",
+            "paramos,TRUE,100,17,33,0,0.17,0.33,0,strategic ecosystem,NA,"
+            "demo,prioritizr_model",
+            "humedales,TRUE,100,17,33,0,0.17,0.33,0,STRATEGIC_ECOSYSTEM,NA,"
+            "demo,prioritizr_model",
+            "Panthera onca,TRUE,10,1.7,3,0,0.17,0.3,0,species,Mammalia,"
+            "demo,prioritizr_model",
+            "carbono,TRUE,100,17,42,0,0.17,0.42,0,ecosystem service,NA,"
+            "demo,prioritizr_model",
+        ],
+    )
+
+    assert doc["diagnostics"]["rowCounts"] == {
+        "species": 1,
+        "strategicEcosystems": 2,
+        "ecosystems": 1,
+        "other": 1,
+    }
+    assert doc["diagnostics"]["rawTypeCounts"] == {
+        "STRATEGIC_ECOSYSTEM": 1,
+        "ecosystem": 1,
+        "ecosystem service": 1,
+        "species": 1,
+        "strategic ecosystem": 1,
+    }
+    assert doc["features"]["other"][0]["featureName"] == "carbono"
+    assert doc["rollups"]["species"]["byTaxa"]["mammals"]["totalSpeciesCount"] == 1
+    assert doc["rollups"]["species"]["byIucnStatus"]["VU"]["metSpeciesCount"] == 1
+
+
+def test_declared_ecosystem_outranks_strategic_name_lookup(tmp_path: Path):
+    doc = _land_goals_document(
+        tmp_path,
+        RELEASE_SUMMARY_HEADER,
+        [
+            "paramos,TRUE,100,17,33,0,0.17,0.33,0,ecosystem,NA,demo,prioritizr_model",
+        ],
+    )
+
+    assert doc["features"]["ecosystems"][0]["featureId"] == "paramos"
+    assert doc["features"]["strategicEcosystems"] == []
+
+
+def test_missing_declared_type_falls_back_to_strategic_name_lookup(tmp_path: Path):
+    doc = _land_goals_document(
+        tmp_path,
+        RELEASE_SUMMARY_HEADER,
+        [
+            "bosque_seco,TRUE,100,17,33,0,0.17,0.33,0,NA,NA,demo,prioritizr_model",
+            "Crocodylia,TRUE,60,10.2,11,0,0.17,0.18,0,NA,NA,demo,prioritizr_model",
+        ],
+    )
+
+    assert doc["features"]["strategicEcosystems"][0]["label"] == "Dry Forest"
+    assert doc["features"]["other"][0]["featureName"] == "Crocodylia"
+    assert doc["diagnostics"]["rawTypeCounts"] == {"NA": 2}
+
+
+def test_land_summary_without_any_feature_type_column_fails_closed(tmp_path: Path):
+    summary_csv = tmp_path / "typeless_summary.csv"
+    summary_csv.write_text(
+        "feature,met,relative_target,scenario\nparamos,TRUE,0.17,demo\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(GoalsSchemaError, match="no feature type column"):
+        build_goals_document(
+            solution={"id": "demo_solution", "name": "Demo Solution"},
+            summary_csv_path=summary_csv,
+            species_records=[],
+            summary_csv_url="https://example.com/demo_summary.csv",
+            generated_at="2026-08-07T00:00:00Z",
+        )
+
+
 def test_build_goals_document_classifies_marine_rows_without_type_column(
     tmp_path: Path,
 ):
@@ -239,6 +370,175 @@ def test_build_goals_document_classifies_marine_rows_without_type_column(
     )
     assert doc["features"]["ecosystems"][0]["evaluationSource"] == "prioritizr_model"
     assert doc["features"]["strategicEcosystems"] == []
+
+
+def _species_rows(*pairs: tuple[str, str]) -> list[str]:
+    return [
+        f"{name},TRUE,10,1.7,3,0,0.17,0.3,0,species,{cls},demo,prioritizr_model"
+        for name, cls in pairs
+    ]
+
+
+def test_batched_plant_classes_resolve_to_the_plants_group(tmp_path: Path):
+    summary_csv = tmp_path / "summary.csv"
+    summary_csv.write_text(
+        "\n".join([
+            RELEASE_SUMMARY_HEADER,
+            *_species_rows(
+                ("Abarema adenophora", "Magnoliopsida_1"),
+                ("Hyptis dilatata", "Magnoliopsida_2"),
+                ("Espeletia grandiflora", "Magnoliopsida"),
+            ),
+        ])
+        + "\n",
+        encoding="utf-8",
+    )
+
+    doc = build_goals_document(
+        solution={"id": "demo_solution", "name": "Demo Solution"},
+        summary_csv_path=summary_csv,
+        species_records=[
+            _record("Abarema adenophora", "Magnoliopsida", "LC"),
+            _record("Hyptis dilatata", "Magnoliopsida", "LC"),
+            _record("Espeletia grandiflora", "Magnoliopsida", "VU"),
+        ],
+        summary_csv_url="https://example.com/demo_summary.csv",
+        generated_at="2026-08-07T00:00:00Z",
+    )
+
+    assert doc["rollups"]["species"]["byTaxa"]["plants"]["totalSpeciesCount"] == 3
+    assert doc["rollups"]["species"]["ignoredSpeciesRowCount"] == 0
+    assert [feature["taxonGroup"] for feature in doc["features"]["species"]] == ["plants"] * 3
+    assert doc["diagnostics"]["rawTaxonClassCounts"] == {
+        "Magnoliopsida": 1,
+        "Magnoliopsida_1": 1,
+        "Magnoliopsida_2": 1,
+    }
+
+
+def test_authoritative_record_outranks_a_drifted_csv_class(tmp_path: Path):
+    summary_csv = tmp_path / "summary.csv"
+    summary_csv.write_text(
+        "\n".join([
+            RELEASE_SUMMARY_HEADER,
+            *_species_rows(("Panthera onca", "Magnoliopsida_2")),
+        ])
+        + "\n",
+        encoding="utf-8",
+    )
+
+    doc = build_goals_document(
+        solution={"id": "demo_solution", "name": "Demo Solution"},
+        summary_csv_path=summary_csv,
+        species_records=[_record("Panthera onca", "Mammalia", "VU", threatened=True)],
+        summary_csv_url="https://example.com/demo_summary.csv",
+        generated_at="2026-08-07T00:00:00Z",
+    )
+
+    feature = doc["features"]["species"][0]
+    assert feature["taxonGroup"] == "mammals"
+    assert feature["taxonClass"] == "Mammalia"
+    assert "plants" not in doc["rollups"]["species"]["byTaxa"]
+    assert doc["diagnostics"]["rawTaxonClassCounts"] == {"Magnoliopsida_2": 1}
+
+
+def test_unmatched_species_falls_back_to_the_normalized_csv_class(tmp_path: Path):
+    summary_csv = tmp_path / "summary.csv"
+    summary_csv.write_text(
+        "\n".join([
+            RELEASE_SUMMARY_HEADER,
+            *_species_rows(("Uncatalogued planta", "Magnoliopsida_1")),
+        ])
+        + "\n",
+        encoding="utf-8",
+    )
+
+    doc = build_goals_document(
+        solution={"id": "demo_solution", "name": "Demo Solution"},
+        summary_csv_path=summary_csv,
+        species_records=[],
+        summary_csv_url="https://example.com/demo_summary.csv",
+        generated_at="2026-08-07T00:00:00Z",
+    )
+
+    feature = doc["features"]["species"][0]
+    assert feature["taxonGroup"] == "plants"
+    assert feature["taxonClass"] == "Magnoliopsida"
+    assert doc["rollups"]["species"]["unmatchedSpeciesCount"] == 1
+    assert doc["rollups"]["species"]["ignoredSpeciesRowCount"] == 0
+
+
+def test_unknown_taxon_class_stays_unresolved_below_the_tolerance(tmp_path: Path):
+    known = [(f"Known plant {index}", "Magnoliopsida") for index in range(1, 100)]
+    summary_csv = tmp_path / "summary.csv"
+    summary_csv.write_text(
+        "\n".join([
+            RELEASE_SUMMARY_HEADER,
+            *_species_rows(*known, ("Mystery organism", "Xenarthra")),
+        ])
+        + "\n",
+        encoding="utf-8",
+    )
+
+    doc = build_goals_document(
+        solution={"id": "demo_solution", "name": "Demo Solution"},
+        summary_csv_path=summary_csv,
+        species_records=[_record(name, cls, "LC") for name, cls in known],
+        summary_csv_url="https://example.com/demo_summary.csv",
+        generated_at="2026-08-07T00:00:00Z",
+    )
+
+    unresolved = doc["features"]["species"][-1]
+    assert unresolved["taxonGroup"] is None
+    assert unresolved["taxonClass"] == "Xenarthra"
+    assert doc["rollups"]["species"]["ignoredSpeciesRowCount"] == 1
+    assert doc["rollups"]["species"]["byTaxa"]["plants"]["totalSpeciesCount"] == 99
+
+
+def test_widespread_unresolved_taxon_groups_fail_closed(tmp_path: Path):
+    summary_csv = tmp_path / "summary.csv"
+    summary_csv.write_text(
+        "\n".join([
+            RELEASE_SUMMARY_HEADER,
+            *_species_rows(
+                ("Panthera onca", "Mammalia"),
+                ("Mystery one", "Chunkedae_1"),
+                ("Mystery two", "Chunkedae_2"),
+            ),
+        ])
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(GoalsSchemaError, match="without a taxon group"):
+        build_goals_document(
+            solution={"id": "demo_solution", "name": "Demo Solution"},
+            summary_csv_path=summary_csv,
+            species_records=[_record("Panthera onca", "Mammalia", "VU")],
+            summary_csv_url="https://example.com/demo_summary.csv",
+            generated_at="2026-08-07T00:00:00Z",
+        )
+
+
+def test_marine_summary_is_unaffected_by_the_taxon_guard(tmp_path: Path):
+    summary_csv = tmp_path / "marine_summary.csv"
+    summary_csv.write_text(
+        "feature,met,relative_target,scenario,evaluated\n"
+        "Marine ecosystem 1,true,0.3,marine,prioritizr_model\n",
+        encoding="utf-8",
+    )
+
+    doc = build_goals_document(
+        solution={"id": "marine_demo", "name": "Marine Demo", "domain": "marine"},
+        summary_csv_path=summary_csv,
+        species_records=[],
+        summary_csv_url="https://example.com/marine_summary.csv",
+        generated_at="2026-08-07T00:00:00Z",
+    )
+
+    assert doc["diagnostics"]["rowCounts"]["ecosystems"] == 1
+    assert doc["diagnostics"]["rawTaxonClassCounts"] == {}
+    assert doc["rollups"]["species"]["ignoredSpeciesRowCount"] == 0
 
 
 def test_expected_goals_blob_path_uses_safe_solution_id():
@@ -330,8 +630,12 @@ def test_release_goals_resume_requires_exact_provenance(tmp_path: Path):
         solution_id="demo",
         expected_provenance={**provenance, "summaryCsvSha256": "d" * 64},
     )
-    release_directory = load_release_config("goals-release").goals_directory
+    release_config = load_release_config("goals-release")
     assert expected_goals_blob_path(
         "demo",
-        goals_blob_directory=release_directory,
+        goals_blob_directory=release_config.goals_directory,
     ) == "releases/goals-release/goals/demo.goals.json"
+    assert expected_goals_blob_path(
+        "demo",
+        goals_blob_directory=release_config.goals_current_directory,
+    ) == "releases/goals-release/goals/v3/demo.goals.json"

@@ -50,6 +50,7 @@ import numpy as np
 import rasterio
 
 from raster_metrics import RasterError, RasterFingerprint
+from species_taxonomy import CLASS_BUCKETS, class_bucket
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 SPECIES_BLOB_PREFIX = f"{PUBLIC_BLOB_HOST}/inputs/features/species"
@@ -73,18 +74,6 @@ _TARGET_TOKEN_PRIORITY: tuple[tuple[str, ...], ...] = (
 THREATENED_IUCN_STATUSES = frozenset({"CR", "EN", "VU"})
 
 EXCLUDED_CLASSES = frozenset({"Actinopteri"})
-
-# CSV class string → bucket key used by the richness metrics.
-_CLASS_TO_BUCKET: dict[str, str] = {
-    "Mammalia": "mammals",
-    "Aves": "birds",
-    "Amphibia": "amphibians",
-    "Squamata": "reptiles",
-    "Crocodylia": "reptiles",
-    "Magnoliopsida": "plants",
-}
-
-CLASS_BUCKETS: tuple[str, ...] = ("mammals", "birds", "amphibians", "reptiles", "plants")
 
 
 @dataclass(frozen=True)
@@ -218,7 +207,7 @@ def load_species_records(csv_path: Path) -> list[SpeciesRecord]:
                     csv_class=cls,
                     iucn_status=iucn,
                     range_km2=range_km2,
-                    bucket=_CLASS_TO_BUCKET.get(cls),
+                    bucket=class_bucket(cls),
                     threatened=iucn in THREATENED_IUCN_STATUSES,
                 )
             )

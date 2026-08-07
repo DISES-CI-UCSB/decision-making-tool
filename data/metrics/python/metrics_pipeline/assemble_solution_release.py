@@ -118,7 +118,7 @@ def _local_relative_path(
             suffix=COMPACT_CACHE_SUFFIX,
         )
     if component == "goals":
-        return Path("goals/cache") / solution_artifact_name(
+        return Path("goals/v2/cache") / solution_artifact_name(
             solution_id,
             suffix=GOALS_SUFFIX,
         )
@@ -145,7 +145,7 @@ def _blob_path(
     if component == "regularCompact":
         return f"{config.regular_compact_directory}/{safe_id}{COMPACT_CACHE_SUFFIX}"
     if component == "goals":
-        return f"{config.goals_directory}/{safe_id}{GOALS_SUFFIX}"
+        return f"{config.goals_current_directory}/{safe_id}{GOALS_SUFFIX}"
     if component == "mecV2" and geography_level is not None:
         return f"{config.mec_v2_directory}/{safe_id}/{geography_level}{MEC_COMPACT_SUFFIX}"
     raise SolutionCatalogError(f"unknown artifact component {component!r}.")

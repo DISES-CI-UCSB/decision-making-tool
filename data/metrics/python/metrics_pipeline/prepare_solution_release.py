@@ -13,9 +13,18 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import quote
 
+from release_config import load_release_config
 from species_exception import load_species_exception
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
+MEC_GEOGRAPHY_LEVELS = (
+    "national",
+    "departments",
+    "municipalities",
+    "siraps",
+    "runaps",
+    "omecs",
+)
 TARGET_DIMENSIONS = (
     "ecosystems",
     "strategicEcosystems",
@@ -253,23 +262,25 @@ def _url(pathname: str) -> str:
 
 
 def _metric_urls(solution_id: str, release_id: str, domain: str) -> dict[str, Any]:
-    root = f"{PUBLIC_BLOB_HOST}/releases/{release_id}"
+    config = load_release_config(release_id)
     urls: dict[str, Any] = {
-        "goals": f"{root}/goals/{solution_id}.goals.json",
-        "cache": f"{root}/regular/verbose/{solution_id}.metrics.json",
-        "compactCache": f"{root}/regular/compact/{solution_id}.metrics.compact.json",
+        "goals": f"{PUBLIC_BLOB_HOST}/{config.goals_current_directory}/{solution_id}.goals.json",
+        "cache": (
+            f"{PUBLIC_BLOB_HOST}/{config.regular_verbose_directory}/"
+            f"{solution_id}.metrics.json"
+        ),
+        "compactCache": (
+            f"{PUBLIC_BLOB_HOST}/{config.regular_compact_directory}/"
+            f"{solution_id}.metrics.compact.json"
+        ),
     }
     if domain == "land":
         urls["mecV2ByGeography"] = {
-            level: f"{root}/mec/v2/{solution_id}/{level}.mec.compact.json"
-            for level in (
-                "national",
-                "departments",
-                "municipalities",
-                "siraps",
-                "runaps",
-                "omecs",
+            level: (
+                f"{PUBLIC_BLOB_HOST}/{config.mec_v2_directory}/"
+                f"{solution_id}/{level}.mec.compact.json"
             )
+            for level in MEC_GEOGRAPHY_LEVELS
         }
     return urls
 

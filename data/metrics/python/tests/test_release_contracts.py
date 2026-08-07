@@ -7,6 +7,7 @@ import urllib.error
 import pytest
 import verify_artifacts
 
+from cli_utils import find_repo_root
 from compact_metrics import to_compact_document
 from metrics_contract import PROVENANCE_KEY, build_metrics_provenance, provenance_issues
 from release_config import load_release_config
@@ -20,8 +21,25 @@ def test_release_prefixes_are_immutable_and_overridable():
     assert default.release_id == "sirap-polygon-v2-20260727"
     assert default.regular_verbose_directory.endswith("/regular/verbose")
     assert default.regular_compact_directory.endswith("/regular/compact")
+    assert default.goals_directory.endswith("/goals")
+    assert default.goals_current_directory.endswith("/goals/v3")
     assert default.mec_v2_directory.endswith("/mec/v2")
     assert custom.regular_verbose_directory.startswith("releases/future-release-1/")
+
+
+def test_release_artifact_directories_match_the_javascript_contract():
+    """Python and the layer-manifest builders must resolve identical Blob prefixes."""
+
+    contract_path = find_repo_root() / "frontend/layer-manifest/release-contract.json"
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    config = load_release_config("parity-release-1")
+    root = f"{contract['prefixRoot']}/parity-release-1"
+
+    assert config.goals_directory == f"{root}/{contract['goalsDirectory']}"
+    assert config.goals_current_directory == f"{root}/{contract['goalsCurrentDirectory']}"
+    assert config.mec_v2_directory == f"{root}/{contract['mecV2Directory']}"
+    assert config.regular_verbose_directory == f"{root}/{contract['regularVerboseDirectory']}"
+    assert config.regular_compact_directory == f"{root}/{contract['regularCompactDirectory']}"
 
 
 def test_missing_release_contract_raises_file_not_found(tmp_path):
