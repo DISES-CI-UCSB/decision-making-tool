@@ -77,6 +77,24 @@ export function createSolutionPrecomputedMetricUrls(
   };
 }
 
+/**
+ * Display COGs are published beside each release's source rasters, so the URL is
+ * derived from the same basename rather than carried through preflight. Only the
+ * domains listed in the release contract publish one; everything else falls back
+ * to the plain display raster at runtime.
+ */
+export function createSolutionDisplayCogUrl(rasterFile, domain, { releaseId } = {}) {
+  if (!releaseId || !RELEASE_CONTRACT.displayCogDomains.includes(domain)) {
+    return null;
+  }
+  if (typeof rasterFile !== 'string' || !rasterFile.includes('.')) {
+    throw new Error(`cannot derive a display COG URL without a raster file name (${rasterFile})`);
+  }
+  const basename = rasterFile.slice(0, rasterFile.lastIndexOf('.'));
+  const directory = `${RELEASE_CONTRACT.prefixRoot}/${releaseId}/${RELEASE_CONTRACT.displayCogDirectory}/${domain}`;
+  return `${PUBLIC_BLOB_HOST}/${directory}/${basename}${RELEASE_CONTRACT.displayCogSuffix}`;
+}
+
 export function defaultReleaseId() {
   return RELEASE_CONTRACT.defaultReleaseId;
 }

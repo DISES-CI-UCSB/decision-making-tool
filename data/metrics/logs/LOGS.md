@@ -976,3 +976,58 @@ zero species goal features.
   publish gate passed all 172 documents, and it was right to, because the data
   is correct. The gap only becomes visible when the audit asks what the reader
   does with a status rather than whether the writer was allowed to emit it.
+
+## Display COG restoration for solutions-v0-2-0-20260805
+
+The release published no COGs, so all 168 land solutions fell back to the
+`MediaLayer` branch in `solution-layer.service.ts`, which paints the whole raster
+as one canvas image and goes visibly soft past native resolution. Production's
+previous release has `displayCogUrl` on 104 of 108 solutions, so this was a
+fidelity regression rather than a break.
+
+The profile was taken from a published production COG rather than invented:
+`LAYOUT=COG`, LZW, 512x512 blocks, Float32, NoData NaN, band description
+`layer`, and two overview levels at /2 and /4. That is exactly what
+`data/scripts/solutions-cog/cog_writer.py` already emits through the GDAL COG
+driver with `OVERVIEW_RESAMPLING=NEAREST`, so the existing writer was reused
+verbatim and only a release-scoped driver (`release_main.py`, `release_io.py`)
+and a verifier (`release_verify.py`) were added.
+
+The interesting call was reprojection. Production's COGs are EPSG:9377 while its
+plain display rasters are EPSG:4326, and the `.epsg9377.cog.tif` suffix records
+that a warp happened. It did, because `ImageryTileLayer` wants a projected
+reference and the sources were geographic. The new sources are already EPSG:9377
+at 1000 m, so **no reprojection was performed**. Warping would have resampled
+categorical selection values and, with `--target-aligned-pixels`, shifted pixel
+centres by up to 500 m to snap the grid, which buys nothing for a single display
+layer. The `.epsg9377` marker was kept for parity with production, but it now
+asserts the CRS rather than a warp; every entry records `warpRequired: false`.
+All 168 outputs are pixel-, transform-, and CRS-identical to their sources at
+full resolution, which is the strongest available statement that the tiled path
+cannot land anywhere the canvas path did not.
+
+Overview correctness was enforced rather than assumed. `assert_categorical_overviews`
+reads every overview level and fails if it contains a value absent from the
+full-resolution valid set. Across all 168 COGs the source values and both
+overview levels are exactly `{1, 2}`. The guard was proved non-vacuous by
+building the same raster with `AVERAGE` resampling, which immediately produced
+invented values such as 1.029 and 1.031 and tripped the check.
+
+- **Marine verdict:** the four marine solutions were left without COGs, matching
+  production, but the reason production lacks them is **incidental, not
+  deliberate**. `blob_manifest.py` selects `scope == "nacional"`, which
+  structurally excludes marine; the 104/4 split in production maps onto that
+  filter exactly. Marine rasters are the same CRS, dtype, NoData, and value set
+  as land, differing only in grid extent, and a local probe converted all four
+  cleanly through the same profile and guards. Generating them is therefore
+  safe, but it is outside this regression and was not published; the local probe
+  artifacts were discarded.
+- **Operational lessons:** the `.epsg9377` filename encodes an output property
+  that a reader can easily mistake for a processing step, and it stopped being a
+  reliable signal the moment the upstream CRS changed. Reusing the existing
+  `solution-source-upload-plan-v1` format let the proven uploader publish these
+  with no new upload code, and its `already-complete` count of 47 was not a
+  collision: every one landed on attempt two or later, because the post-upload
+  verification GET raced CDN propagation and the retry re-entered the idempotent
+  path and found its own bytes. A status count is only meaningful alongside the
+  attempt number that produced it.

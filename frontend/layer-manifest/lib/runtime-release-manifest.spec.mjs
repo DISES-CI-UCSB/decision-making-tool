@@ -188,4 +188,45 @@ describe('runtime release manifest compaction', () => {
       land.precomputedMetricUrls,
     );
   });
+
+  it('binds a release-scoped display COG per publishing domain', () => {
+    const land = solution('land-solution');
+    const marine = solution('marine-solution', 'marine');
+
+    const [compactLand, compactMarine] = [land, marine].map((entry) =>
+      compactRuntimeSolution(entry, { releaseId: RELEASE_ID }),
+    );
+
+    assert.strictEqual(
+      compactLand.displayCogUrl,
+      `${HOST}/releases/${RELEASE_ID}/solutions/land/land-solution.epsg9377.cog.tif`,
+    );
+    assert.strictEqual(
+      compactMarine.displayCogUrl,
+      `${HOST}/releases/${RELEASE_ID}/solutions/marine/marine-solution.epsg9377.cog.tif`,
+    );
+  });
+
+  it('leaves the display COG unbound for a domain that publishes none', () => {
+    const unpublished = solution('not-a-domain-solution', 'not-a-domain');
+
+    assert.strictEqual(
+      'displayCogUrl' in compactRuntimeSolution(unpublished, { releaseId: RELEASE_ID }),
+      false,
+    );
+  });
+
+  it('rebinds a stale preflight display COG onto the current release', () => {
+    const land = solution('land-solution');
+    land.displayCogUrl = `${HOST}/solutions/nacional/land-solution.epsg9377.cog.tif`;
+
+    assert.strictEqual(
+      compactRuntimeSolution(land, { releaseId: RELEASE_ID }).displayCogUrl,
+      `${HOST}/releases/${RELEASE_ID}/solutions/land/land-solution.epsg9377.cog.tif`,
+    );
+  });
+
+  it('leaves the display COG unbound when no release is supplied', () => {
+    assert.strictEqual('displayCogUrl' in compactRuntimeSolution(solution('land-solution')), false);
+  });
 });

@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import {
   createPrecomputedMetricUrls,
+  createSolutionDisplayCogUrl,
   createSolutionPrecomputedMetricUrls,
   defaultReleaseId,
   MEC_GEOGRAPHY_LEVELS,
@@ -90,5 +91,38 @@ describe('metric URL construction', () => {
     for (const url of Object.values(result.mecV2ByGeography)) {
       assert.match(url, new RegExp(`/releases/${releaseId}/mec/v2/`));
     }
+  });
+});
+
+describe('display COG URL construction', () => {
+  const releaseId = 'solutions-v0-2-0-20260805';
+
+  it('places the COG beside its source raster under the release prefix', () => {
+    assert.strictEqual(
+      createSolutionDisplayCogUrl('Eco17+Estr17+RUNAP_IHEH2022.tif', 'land', { releaseId }),
+      `${BLOB_HOST}/releases/${releaseId}/solutions/land/Eco17+Estr17+RUNAP_IHEH2022.epsg9377.cog.tif`,
+    );
+  });
+
+  it('places marine COGs under their own domain directory', () => {
+    assert.strictEqual(
+      createSolutionDisplayCogUrl('Ecos30+RUNAP_HHM.tif', 'marine', { releaseId }),
+      `${BLOB_HOST}/releases/${releaseId}/solutions/marine/Ecos30+RUNAP_HHM.epsg9377.cog.tif`,
+    );
+  });
+
+  it('returns null for domains that publish no display COG', () => {
+    assert.strictEqual(
+      createSolutionDisplayCogUrl('Ecos30+RUNAP_HHM.tif', 'not-a-domain', { releaseId }),
+      null,
+    );
+  });
+
+  it('returns null without a release because COGs are release-scoped', () => {
+    assert.strictEqual(createSolutionDisplayCogUrl('Eco17+RUNAP.tif', 'land', {}), null);
+  });
+
+  it('refuses to guess a basename when the raster file name is unusable', () => {
+    assert.throws(() => createSolutionDisplayCogUrl('no-extension', 'land', { releaseId }), /raster file name/);
   });
 });
