@@ -24,7 +24,7 @@ class _Response:
         return self._content.read(size)
 
 
-def test_remote_checksum_distinguishes_absent_and_existing_content(monkeypatch):
+def test_remote_checksum_reads_existing_content(monkeypatch):
     content = b"immutable"
     monkeypatch.setattr(
         publish.urllib.request,
@@ -35,7 +35,40 @@ def test_remote_checksum_distinguishes_absent_and_existing_content(monkeypatch):
         content
     ).hexdigest()
 
+
+def test_remote_checksum_retries_transient_failure_then_succeeds(monkeypatch):
+    content = b"immutable"
+    outcomes = iter(
+        [
+            urllib.error.URLError(ConnectionResetError("connection reset")),
+            urllib.error.URLError(TimeoutError("timed out")),
+            _Response(content),
+        ]
+    )
+    sleeps = []
+
+    def urlopen(*_args, **_kwargs):
+        outcome = next(outcomes)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(publish.urllib.request, "urlopen", urlopen)
+
+    assert publish._remote_sha256(
+        "https://example.test/artifact",
+        retry_base_seconds=0.25,
+        sleep=sleeps.append,
+    ) == hashlib.sha256(content).hexdigest()
+    assert sleeps == [0.25, 0.5]
+
+
+def test_remote_checksum_returns_absent_immediately_on_404(monkeypatch):
+    calls = []
+    sleeps = []
+
     def missing(*_args, **_kwargs):
+        calls.append(True)
         raise urllib.error.HTTPError(
             "https://example.test/missing",
             404,
@@ -45,7 +78,34 @@ def test_remote_checksum_distinguishes_absent_and_existing_content(monkeypatch):
         )
 
     monkeypatch.setattr(publish.urllib.request, "urlopen", missing)
-    assert publish._remote_sha256("https://example.test/missing") is None
+    assert publish._remote_sha256(
+        "https://example.test/missing",
+        sleep=sleeps.append,
+    ) is None
+    assert calls == [True]
+    assert sleeps == []
+
+
+def test_remote_checksum_fails_closed_after_transient_retry_exhaustion(monkeypatch):
+    calls = []
+    sleeps = []
+
+    def reset(*_args, **_kwargs):
+        calls.append(True)
+        raise ConnectionResetError("connection reset")
+
+    monkeypatch.setattr(publish.urllib.request, "urlopen", reset)
+
+    with pytest.raises(RuntimeError, match="after 3 attempts"):
+        publish._remote_sha256(
+            "https://example.test/artifact",
+            max_attempts=3,
+            retry_base_seconds=0.25,
+            sleep=sleeps.append,
+        )
+
+    assert calls == [True, True, True]
+    assert sleeps == [0.25, 0.5]
 
 
 def test_blob_put_never_uses_force(monkeypatch, tmp_path):

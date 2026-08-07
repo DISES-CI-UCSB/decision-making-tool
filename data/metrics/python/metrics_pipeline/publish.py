@@ -27,12 +27,13 @@ import json
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-import urllib.error
-import urllib.request
 
 from cli_utils import (
     BLOB_TOKEN_ENV_VAR,
@@ -42,7 +43,6 @@ from cli_utils import (
     find_repo_root,
     load_env_value,
     print_inspect_summary,
-    resolve_output_dir,
 )
 from validation.inspect_cache import inspect_publish_report
 
@@ -164,23 +164,44 @@ def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
     return extract_first_url(output)
 
 
-def _remote_sha256(url: str) -> str | None:
+def _remote_sha256(
+    url: str,
+    *,
+    max_attempts: int = 4,
+    retry_base_seconds: float = 0.5,
+    sleep: Callable[[float], None] = time.sleep,
+) -> str | None:
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be at least 1")
+    if retry_base_seconds < 0:
+        raise ValueError("retry_base_seconds must not be negative")
+
     request = urllib.request.Request(
         url,
         headers={"User-Agent": "dises-metrics-publisher/1"},
     )
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            digest = hashlib.sha256()
-            for chunk in iter(lambda: response.read(1024 * 1024), b""):
-                digest.update(chunk)
-            return digest.hexdigest()
-    except urllib.error.HTTPError as exc:
-        if exc.code == 404:
-            return None
-        raise RuntimeError(f"could not inspect existing blob {url}: HTTP {exc.code}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"could not inspect existing blob {url}: {exc}") from exc
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                digest = hashlib.sha256()
+                for chunk in iter(lambda: response.read(1024 * 1024), b""):
+                    digest.update(chunk)
+                return digest.hexdigest()
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                return None
+            raise RuntimeError(
+                f"could not inspect existing blob {url}: HTTP {exc.code}"
+            ) from exc
+        except (urllib.error.URLError, ConnectionError, TimeoutError) as exc:
+            if attempt == max_attempts:
+                raise RuntimeError(
+                    f"could not inspect existing blob {url} after "
+                    f"{max_attempts} attempts: {exc}"
+                ) from exc
+            sleep(retry_base_seconds * (2 ** (attempt - 1)))
+
+    raise AssertionError("remote inspection retry loop did not return or raise")
 
 
 def _print_publish_report(run: PublishRun, *, elapsed_seconds: float) -> None:
