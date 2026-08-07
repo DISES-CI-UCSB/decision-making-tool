@@ -1071,15 +1071,6 @@
   padding: 16px 16px 0;
 }
 
-.c2-kicker {
-  margin-bottom: 2px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: #2f7d3d;
-}
-
 /* Comparison panel: one green section title (all-caps header at .c2-title size). */
 #right-sidebar-comparison-kicker {
   margin: 0 0 4px;
@@ -1212,84 +1203,6 @@
 
 #right-sidebar-comparison-candidate-change-btn:hover {
   border-color: #64748b;
-}
-
-.c2-action-btn-wide {
-  align-self: flex-start;
-}
-
-.c2-picker-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #f8fafc;
-  padding: 12px;
-}
-
-.c2-picker-label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.c2-picker-select {
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  padding: 7px 10px;
-  font-size: 12px;
-  color: #334155;
-}
-
-.c2-picker-actions {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-
-.c2-picker-btn {
-  display: inline-flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  padding: 7px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.c2-picker-btn-primary {
-  border: 1px solid #2f7d3d;
-  background: #2f7d3d;
-  color: #fff;
-}
-
-.c2-picker-btn-primary:hover:not(:disabled) {
-  border-color: #1b5e27;
-  background: #1b5e27;
-}
-
-.c2-picker-btn-primary:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.c2-picker-btn-secondary {
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
-}
-
-.c2-picker-btn-secondary:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
 }
 
 .c2-empty-state {
