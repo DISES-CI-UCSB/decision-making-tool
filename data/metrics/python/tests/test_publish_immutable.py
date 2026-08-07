@@ -178,12 +178,13 @@ def _dry_run_report(tmp_path, *, declared_sha256: str):
     return artifact
 
 
-def _patch_dry_run(monkeypatch, tmp_path):
+def _patch_dry_run(monkeypatch, tmp_path, *, report=None):
     monkeypatch.setattr(
         publish,
         "_parse_args",
         lambda _argv: Namespace(
             output_dir=tmp_path,
+            report=report,
             solution_id=None,
             dry_run=True,
             skip_inspect=False,
@@ -222,6 +223,30 @@ def test_dry_run_rejects_remote_conflict_without_put(monkeypatch, tmp_path):
 
     assert publish.main([]) == 1
     assert put_calls == []
+
+
+def test_explicit_report_publishes_a_component_report(monkeypatch, tmp_path):
+    _dry_run_report(
+        tmp_path,
+        declared_sha256=hashlib.sha256(b"local-content").hexdigest(),
+    )
+    component_report = tmp_path / "goals" / "v2" / "goals-publish-report.json"
+    component_report.parent.mkdir(parents=True)
+    component_report.write_text(
+        (tmp_path / "publish-report.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (tmp_path / "publish-report.json").unlink()
+    _patch_dry_run(monkeypatch, tmp_path, report=component_report)
+    inspected_urls = []
+    monkeypatch.setattr(
+        publish,
+        "_remote_sha256",
+        lambda url: inspected_urls.append(url),
+    )
+
+    assert publish.main([]) == 0
+    assert inspected_urls == ["https://example.test/artifact.json"]
 
 
 def test_dry_run_validates_absent_remote_without_put(monkeypatch, tmp_path):

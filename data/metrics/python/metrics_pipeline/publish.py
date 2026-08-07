@@ -43,6 +43,7 @@ from cli_utils import (
     find_repo_root,
     load_env_value,
     print_inspect_summary,
+    resolve_output_dir,
 )
 from validation.inspect_cache import inspect_publish_report
 
@@ -88,6 +89,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=default_output_dir(),
         help="Directory containing publish-report.json and cache/ (default: data/metrics/generated/tier1).",
+    )
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help=(
+            "Publish report to read. Use for component reports such as "
+            "goals-publish-report.json (default: <output-dir>/publish-report.json)."
+        ),
     )
     parser.add_argument(
         "--solution-id",
@@ -236,7 +246,11 @@ def _print_publish_report(run: PublishRun, *, elapsed_seconds: float) -> None:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     repo_root = find_repo_root()
-    report_path = default_report_path(repo_root, args.output_dir)
+    report_path = (
+        resolve_output_dir(repo_root, args.report)
+        if args.report is not None
+        else default_report_path(repo_root, args.output_dir)
+    )
     solution_ids = set(args.solution_id) if args.solution_id else None
     started = time.time()
 
