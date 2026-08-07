@@ -1,11 +1,12 @@
 import type { MetricComparisonValue, MetricValue } from '@core/models';
 import {
+  displayableMetricValue,
   formatAreaValue,
   formatMetricDelta,
   formatMetricValue,
   formatNumber,
   isDisplayableMetricValue,
-  metricAvailabilityWarning,
+  metricAvailabilityNote,
 } from './metric-presentation.utils';
 
 describe('metric presentation utilities', () => {
@@ -72,10 +73,44 @@ describe('metric presentation utilities', () => {
     };
 
     expect(isDisplayableMetricValue(metric)).toBe(true);
+    expect(displayableMetricValue(metric)).toBe(27);
     expect(formatMetricValue(metric, options, '--')).toBe('27');
-    expect(metricAvailabilityWarning(metric)).toBe(
-      'Partial value: 2 approved species sources unavailable.',
-    );
+    expect(metricAvailabilityNote(metric)).toEqual({
+      key: 'analysis.common.partialSpeciesSources',
+      counts: { excluded: 2 },
+    });
+  });
+
+  it('reports the release species-exception coverage when the artifact carries catalog totals', () => {
+    const metric: MetricValue = {
+      ...buildMetric('species_groups_protected', 8_043, 'count'),
+      status: 'partial',
+      details: {
+        speciesException: { catalogTotal: 8_300, availableExpected: 8_298, excluded: 2 },
+      },
+    };
+
+    expect(metricAvailabilityNote(metric)).toEqual({
+      key: 'analysis.common.partialSpeciesCoverage',
+      counts: { available: 8_298, total: 8_300 },
+    });
+  });
+
+  it('withholds partial metrics that carry no value, and never notes complete metrics', () => {
+    const targetless: MetricValue = {
+      ...buildMetric('species_groups_protected', null, 'count'),
+      status: 'partial',
+    };
+    const marine: MetricValue = {
+      ...buildMetric('species_richness_mammals', null, 'count'),
+      status: 'not_applicable',
+    };
+    const complete = buildMetric('ecosystem_coverage', 327_030, 'km2');
+
+    expect(displayableMetricValue(targetless)).toBeNull();
+    expect(displayableMetricValue(marine)).toBeNull();
+    expect(metricAvailabilityNote(complete)).toBeNull();
+    expect(metricAvailabilityNote(marine)).toBeNull();
   });
 });
 

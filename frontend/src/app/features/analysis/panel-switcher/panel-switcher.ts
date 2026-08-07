@@ -104,7 +104,8 @@ import {
   formatPanelMetric,
   getMetricDisplayUnit,
   isDisplayableMetricValue,
-  metricAvailabilityWarning,
+  displayableMetricValue,
+  metricAvailabilityNote,
   type MetricFormatOptions,
 } from '../utils/metric-presentation.utils';
 import {
@@ -162,6 +163,8 @@ interface OverviewMetricDisplayEntry {
   value: string;
   fullValue: string | null;
   unit: string;
+  /** Localized caveat when the metric is `partial`; empty when the value is complete. */
+  partialNote: string;
   conditional: boolean;
   unavailable: boolean;
 }
@@ -233,6 +236,8 @@ interface AoiAlignedMetricDisplayEntry {
   value: string;
   fullValue: string | null;
   unit: string;
+  /** Localized caveat when the metric is `partial`; empty when the value is complete. */
+  partialNote: string;
 }
 
 interface ComparisonMetricDisplayEntry {
@@ -807,17 +812,16 @@ export class PanelSwitcherComponent {
 
   protected readonly aoiBiodiversityBars = computed<AoiBiodiversityBar[]>(() => {
     const metricsById = this.aoiMetricsById();
-    const hasCachedSpecies = this.aoiBiodiversityBaseCounts.some((item) => {
-      const metric = metricsById.get(this.aoiBiodiversityMetricIds[item.id]);
-      return metric?.status === 'ready' && metric.value !== null;
-    });
+    const hasCachedSpecies = this.aoiBiodiversityBaseCounts.some((item) =>
+      isDisplayableMetricValue(metricsById.get(this.aoiBiodiversityMetricIds[item.id])),
+    );
 
     if (hasCachedSpecies) {
-      return this.aoiBiodiversityBaseCounts.map((item) => {
-        const metric = metricsById.get(this.aoiBiodiversityMetricIds[item.id]);
-        const value = metric?.status === 'ready' && metric.value !== null ? metric.value : null;
-        return { id: item.id, label: this.localizedText(item.labelKey), count: value };
-      });
+      return this.aoiBiodiversityBaseCounts.map((item) => ({
+        id: item.id,
+        label: this.localizedText(item.labelKey),
+        count: displayableMetricValue(metricsById.get(this.aoiBiodiversityMetricIds[item.id])),
+      }));
     }
 
     if (this.isCustomAoiSelected()) {
@@ -847,6 +851,13 @@ export class PanelSwitcherComponent {
   protected readonly hasResolvedCustomAoiBiodiversityBars = computed(() =>
     this.aoiBiodiversityBars().some((entry) => entry.count !== null),
   );
+  protected readonly aoiSpeciesPartialNote = computed<string>(() => {
+    const metricsById = this.aoiMetricsById();
+    const displayedMetric = this.aoiBiodiversityBaseCounts
+      .map((item) => metricsById.get(this.aoiBiodiversityMetricIds[item.id]))
+      .find((metric) => isDisplayableMetricValue(metric));
+    return this.metricPartialNote(displayedMetric);
+  });
   protected readonly aoiBiodiversityMaxCount = computed<number>(() =>
     this.aoiBiodiversityBars().reduce((maxValue, item) => {
       if (item.count === null) {
@@ -1277,8 +1288,23 @@ export class PanelSwitcherComponent {
     return this.formatAreaValue(valueKm2);
   }
 
-  protected isMetricReady(metric: MetricValue): boolean {
-    return metric.status === 'ready' && metric.value !== null;
+  /**
+   * Localized caveat for a `partial` metric, empty for any other status. Every surface that renders
+   * a partial value routes through here so the value is never presented as complete.
+   */
+  protected metricPartialNote(metric: MetricValue | null | undefined): string {
+    const note = metricAvailabilityNote(metric);
+    if (!note) {
+      return '';
+    }
+
+    const counts = Object.fromEntries(
+      Object.entries(note.counts).map(([name, count]) => [
+        name,
+        this.formatNumber(count, 'full', 0, 0),
+      ]),
+    );
+    return this.translate.instant(note.key, counts);
   }
 
   protected isPositiveDelta(delta: number | null): boolean {
@@ -1290,19 +1316,13 @@ export class PanelSwitcherComponent {
   }
 
   protected getGoalsAchievedPercent(fallbackPercent: number): string {
-    const goalsMetric = this.findOverviewMetric('conservation_goals_met');
-    if (goalsMetric && this.isMetricReady(goalsMetric)) {
-      return this.formatNumber(goalsMetric.value ?? 0, this.metricNumberFormatMode(), 0, 1);
-    }
-
-    return this.formatNumber(fallbackPercent, this.metricNumberFormatMode(), 0, 1);
+    const goalsPercent = displayableMetricValue(this.findOverviewMetric('conservation_goals_met'));
+    return this.formatNumber(goalsPercent ?? fallbackPercent, this.metricNumberFormatMode(), 0, 1);
   }
 
   protected getGoalsAchievedBarWidth(fallbackPercent: number): number {
-    const goalsMetric = this.findOverviewMetric('conservation_goals_met');
-    const value =
-      goalsMetric && this.isMetricReady(goalsMetric) ? goalsMetric.value : fallbackPercent;
-    return Math.max(0, Math.min(100, value ?? 0));
+    const goalsPercent = displayableMetricValue(this.findOverviewMetric('conservation_goals_met'));
+    return Math.max(0, Math.min(100, goalsPercent ?? fallbackPercent));
   }
 
   protected formatGoalsCount(metCount: number, totalCount: number): string {
@@ -1383,7 +1403,7 @@ export class PanelSwitcherComponent {
     }
 
     const metric = this.findOverviewMetric(metricId);
-    if (!metric || !this.isMetricReady(metric)) {
+    if (!isDisplayableMetricValue(metric)) {
       return null;
     }
 
@@ -1958,22 +1978,12 @@ export class PanelSwitcherComponent {
   }
 
   protected getStrategicEcosystemPercent(metricId: string, dummyPercent: number): number {
-    const overlap = this.aoiMetricsById().get(metricId);
-    const candidateArea = this.aoiMetricsById().get('priority_area_in_region');
-    const percent = calculateOverlapPercent(
-      overlap?.status === 'ready' ? overlap.value : null,
-      candidateArea?.status === 'ready' ? candidateArea.value : null,
-    );
+    const percent = this.getAoiOverlapPercent(metricId);
     return percent ?? (this.fillDummyAoiMetrics() ? dummyPercent : 0);
   }
 
   protected getStrategicEcosystemPercentLabel(metricId: string, dummyPercent: number): string {
-    const overlap = this.aoiMetricsById().get(metricId);
-    const candidateArea = this.aoiMetricsById().get('priority_area_in_region');
-    const percent = calculateOverlapPercent(
-      overlap?.status === 'ready' ? overlap.value : null,
-      candidateArea?.status === 'ready' ? candidateArea.value : null,
-    );
+    const percent = this.getAoiOverlapPercent(metricId);
     if (percent !== null) {
       return this.appendUnit(this.formatNumber(percent, this.metricNumberFormatMode(), 0, 1), '%');
     }
@@ -2143,9 +2153,8 @@ export class PanelSwitcherComponent {
     return '--';
   }
 
-  protected hasReadyAoiMetric(metricId: string): boolean {
-    const metric = this.aoiMetricsById().get(metricId);
-    return metric?.status === 'ready' && metric.value !== null;
+  protected hasDisplayableAoiMetric(metricId: string): boolean {
+    return isDisplayableMetricValue(this.aoiMetricsById().get(metricId));
   }
 
   protected getAoiUnitFallback(value: number, unit: string): string {
@@ -2167,27 +2176,26 @@ export class PanelSwitcherComponent {
     if (!isDisplayableMetricValue(metric)) {
       return '--';
     }
-    return metricAvailabilityWarning(metric) ?? '';
+    return this.metricPartialNote(metric);
   }
 
   protected getAoiMetricPercent(metricId: string, fallbackWhenMissing = 0): number {
-    const metric = this.aoiMetricsById().get(metricId);
-    if (metric?.status === 'ready' && metric.value !== null) {
-      return Math.max(0, Math.min(100, metric.value));
+    const percent = displayableMetricValue(this.aoiMetricsById().get(metricId));
+    if (percent !== null) {
+      return Math.max(0, Math.min(100, percent));
     }
     return this.fillDummyAoiMetrics() ? fallbackWhenMissing : 0;
   }
 
   private getMarineCoveragePercent(metricId: string): number | null {
-    if (this.isCustomAoiSelected()) {
-      return null;
-    }
+    return this.isCustomAoiSelected() ? null : this.getAoiOverlapPercent(metricId);
+  }
 
-    const overlap = this.aoiMetricsById().get(metricId);
-    const priorityArea = this.aoiMetricsById().get('priority_area_in_region');
+  private getAoiOverlapPercent(metricId: string): number | null {
+    const metricsById = this.aoiMetricsById();
     return calculateOverlapPercent(
-      overlap?.status === 'ready' ? overlap.value : null,
-      priorityArea?.status === 'ready' ? priorityArea.value : null,
+      displayableMetricValue(metricsById.get(metricId)),
+      displayableMetricValue(metricsById.get('priority_area_in_region')),
     );
   }
 
@@ -2353,16 +2361,14 @@ export class PanelSwitcherComponent {
 
   private calculateAoiPriorityAreaPercent(): number | null {
     const selectedAoiAreaKm2 = this.resolveSelectedAoiAreaKm2();
-    const priorityArea = this.aoiMetricsById().get('priority_area_in_region');
-    if (
-      selectedAoiAreaKm2 === null ||
-      priorityArea?.status !== 'ready' ||
-      priorityArea.value === null
-    ) {
+    const priorityAreaKm2 = displayableMetricValue(
+      this.aoiMetricsById().get('priority_area_in_region'),
+    );
+    if (selectedAoiAreaKm2 === null || priorityAreaKm2 === null) {
       return null;
     }
 
-    const percent = (priorityArea.value / selectedAoiAreaKm2) * 100;
+    const percent = (priorityAreaKm2 / selectedAoiAreaKm2) * 100;
     return Math.max(0, Math.min(100, percent));
   }
 
@@ -2376,12 +2382,8 @@ export class PanelSwitcherComponent {
       return selectedAoiAreaKm2;
     }
 
-    const customArea = this.aoiMetricsById().get('area');
-    if (customArea?.status === 'ready' && customArea.value !== null && customArea.value > 0) {
-      return customArea.value;
-    }
-
-    return null;
+    const customAreaKm2 = displayableMetricValue(this.aoiMetricsById().get('area'));
+    return customAreaKm2 !== null && customAreaKm2 > 0 ? customAreaKm2 : null;
   }
 
   private resolveMecCandidateAreaKm2(): number | null {
@@ -2389,10 +2391,8 @@ export class PanelSwitcherComponent {
       return null;
     }
 
-    const metric = this.aoiMetricsById().get('priority_area_in_region');
-    return metric?.status === 'ready' && metric.value !== null && metric.value >= 0
-      ? metric.value
-      : null;
+    const areaKm2 = displayableMetricValue(this.aoiMetricsById().get('priority_area_in_region'));
+    return areaKm2 !== null && areaKm2 >= 0 ? areaKm2 : null;
   }
 
   private buildMecRequest(
@@ -2680,10 +2680,9 @@ export class PanelSwitcherComponent {
     context: string,
     section: string,
   ): MetricsCsvRow {
-    const value =
-      metric.status === 'ready' && metric.value !== null
-        ? this.formatMetricForPanel(metric, 'full')
-        : this.localizedText('analysis.common.valueUnavailable');
+    const value = isDisplayableMetricValue(metric)
+      ? this.formatMetricForPanel(metric, 'full')
+      : this.localizedText('analysis.common.valueUnavailable');
 
     return this.buildMetricsCsvRow({
       context,
@@ -3460,6 +3459,7 @@ export class PanelSwitcherComponent {
             value: '--',
             fullValue: null,
             unit: '--',
+            partialNote: '',
             conditional: true,
             unavailable: true,
           };
@@ -3468,7 +3468,7 @@ export class PanelSwitcherComponent {
         const realMetric = metric.realMetricId
           ? resolveOverviewMetric(metricsById, metric.realMetricId, planningDomain)
           : undefined;
-        const realValueAvailable = realMetric?.status === 'ready' && realMetric.value !== null;
+        const realValueAvailable = isDisplayableMetricValue(realMetric);
         const liveNationalContribution =
           metric.realMetricId === 'national_contribution'
             ? this.formatLiveNationalContribution()
@@ -3487,6 +3487,7 @@ export class PanelSwitcherComponent {
             value: liveNationalContribution,
             fullValue,
             unit: '',
+            partialNote: '',
             conditional: Boolean(metric.conditional),
             unavailable: false,
           };
@@ -3504,6 +3505,7 @@ export class PanelSwitcherComponent {
             value: this.formatOverviewMetricForPanel(realMetric),
             fullValue: this.formatOverviewMetricForPanel(realMetric, 'full'),
             unit: '',
+            partialNote: this.metricPartialNote(realMetric),
             conditional: Boolean(metric.conditional),
             unavailable: false,
           };
@@ -3521,6 +3523,7 @@ export class PanelSwitcherComponent {
             value: this.formatOverviewDummyValue(metric),
             fullValue: null,
             unit: this.localizedText(metric.dummyUnitKey ?? ''),
+            partialNote: '',
             conditional: Boolean(metric.conditional),
             unavailable: false,
           };
@@ -3537,6 +3540,7 @@ export class PanelSwitcherComponent {
           value: '--',
           fullValue: null,
           unit: '--',
+          partialNote: '',
           conditional: Boolean(metric.conditional),
           unavailable: true,
         };
@@ -3596,7 +3600,7 @@ export class PanelSwitcherComponent {
     return AOI_ALIGNED_METRIC_BLUEPRINTS.flatMap<AoiAlignedMetricDisplayEntry>((blueprint) => {
       const realMetric = blueprint.metricIds
         .map((metricId) => metricsById.get(metricId))
-        .find((metric): metric is MetricValue => Boolean(metric && this.isMetricReady(metric)));
+        .find((metric): metric is MetricValue => isDisplayableMetricValue(metric));
 
       if (realMetric) {
         const fullValue = this.formatMetricForPanel(realMetric, 'full');
@@ -3612,6 +3616,7 @@ export class PanelSwitcherComponent {
             value: compactValue,
             fullValue,
             unit: '',
+            partialNote: this.metricPartialNote(realMetric),
           },
         ];
       }
@@ -3627,6 +3632,7 @@ export class PanelSwitcherComponent {
             value: blueprint.dummyValue,
             fullValue: null,
             unit: this.localizedText(blueprint.dummyUnitKey ?? ''),
+            partialNote: '',
           },
         ];
       }
@@ -3785,10 +3791,8 @@ export class PanelSwitcherComponent {
 
   private isComparisonMetricReady(metric: MetricComparisonValue): boolean {
     return (
-      metric.baseline.status === 'ready' &&
-      metric.candidate.status === 'ready' &&
-      metric.baseline.value !== null &&
-      metric.candidate.value !== null &&
+      isDisplayableMetricValue(metric.baseline) &&
+      isDisplayableMetricValue(metric.candidate) &&
       metric.delta !== null
     );
   }

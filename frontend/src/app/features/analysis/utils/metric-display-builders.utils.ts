@@ -3,6 +3,7 @@ import type {
   MetricComparisonValue,
   MetricValue,
 } from '@core/models';
+import { isDisplayableMetricValue } from './metric-presentation.utils';
 
 export interface MetricSectionDefinition {
   id: string;
@@ -49,10 +50,7 @@ export function buildMetricComparisons(
     }
 
     const delta =
-      baseline.status === 'ready' &&
-      candidate.status === 'ready' &&
-      baseline.value !== null &&
-      candidate.value !== null
+      isDisplayableMetricValue(baseline) && isDisplayableMetricValue(candidate)
         ? Number((candidate.value - baseline.value).toFixed(2))
         : null;
 

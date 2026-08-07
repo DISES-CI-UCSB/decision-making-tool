@@ -39,18 +39,54 @@ export function isDisplayableMetricValue(
   );
 }
 
-export function metricAvailabilityWarning(metric: MetricValue): string | null {
-  if (metric.status !== 'partial') {
+/**
+ * Reads the metric's numeric value when it is displayable, otherwise null. Callers that need a
+ * number should use this instead of re-deriving displayability from `status`, so that `partial`
+ * metrics carrying real values stay visible everywhere.
+ */
+export function displayableMetricValue(metric: MetricValue | null | undefined): number | null {
+  return isDisplayableMetricValue(metric) ? metric.value : null;
+}
+
+/**
+ * Translation descriptor for the caveat shown alongside a `partial` metric. Counts are returned
+ * raw so the caller can apply its own locale-aware number formatting.
+ */
+export interface MetricAvailabilityNote {
+  key: string;
+  counts: Record<string, number>;
+}
+
+export function metricAvailabilityNote(
+  metric: MetricValue | null | undefined,
+): MetricAvailabilityNote | null {
+  if (!metric || metric.status !== 'partial') {
     return null;
   }
-  const speciesException = metric.details?.['speciesException'];
-  const excluded =
-    speciesException && typeof speciesException === 'object'
-      ? (speciesException as Record<string, unknown>)['excluded']
-      : null;
-  return typeof excluded === 'number'
-    ? `Partial value: ${excluded} approved species sources unavailable.`
-    : 'Partial value: approved source inputs are unavailable.';
+
+  const exception = asRecord(metric.details?.['speciesException']);
+  const available = readCount(exception?.['availableExpected']);
+  const total = readCount(exception?.['catalogTotal']);
+  if (available !== null && total !== null) {
+    return { key: 'analysis.common.partialSpeciesCoverage', counts: { available, total } };
+  }
+
+  const excluded = readCount(exception?.['excluded']);
+  if (excluded !== null) {
+    return { key: 'analysis.common.partialSpeciesSources', counts: { excluded } };
+  }
+
+  return { key: 'analysis.common.partialSources', counts: {} };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 export function formatMetricValue(

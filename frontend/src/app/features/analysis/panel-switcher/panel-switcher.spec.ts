@@ -1793,6 +1793,134 @@ describe('PanelSwitcherComponent', () => {
     appLocale.setLocale('en');
     expect(component.getGoalsAchievedPercent(49.1)).toBe('49.1');
   });
+
+  describe('release species exception (partial status, real values)', () => {
+    it('renders partial species values on the overview cards with a coverage caveat', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildPartialSpeciesMetricsDocument(solution.id)),
+      );
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.setRightSidebarMode('overview');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const groupsCard = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
+      );
+      const threatenedCard = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-row-metric-03-threatened-species-secured',
+      );
+
+      expect(groupsCard?.textContent).toContain('8K / 8.1K');
+      expect(
+        groupsCard
+          ?.querySelector(
+            '#right-sidebar-v3-overview-gain-value-metric-02-species-groups-protected',
+          )
+          ?.getAttribute('data-full-value'),
+      ).toBe('8,043 / 8,132');
+      expect(groupsCard?.textContent).not.toContain('--');
+      expect(threatenedCard?.textContent).toContain('193');
+      expect(threatenedCard?.textContent).not.toContain('--');
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-partial-note-metric-02-species-groups-protected',
+        )?.textContent,
+      ).toContain('analysis.common.partialSpeciesCoverage');
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-partial-note-metric-03-threatened-species-secured',
+        ),
+      ).not.toBeNull();
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-partial-note-metric-18-priority-area-total',
+        ),
+      ).toBeNull();
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-unavailable-help-metric-03-threatened-species-secured',
+        ),
+      ).toBeNull();
+    });
+
+    it('renders partial species-richness bars for a fixed department AOI', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildPartialSpeciesMetricsDocument(solution.id)),
+      );
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(buildMetaDepartmentAoi());
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('186');
+      expect(compiled.querySelector('#aoi-species-value-birds')?.textContent).toContain('1081');
+      expect(compiled.querySelector('#aoi-species-value-amphibians')?.textContent).toContain('61');
+      expect(compiled.querySelector('#aoi-species-value-reptiles')?.textContent).toContain('86');
+      expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('4726');
+      expect(compiled.querySelector('#aoi-species-chart')?.textContent).not.toContain('--');
+      expect(compiled.querySelector('#aoi-species-partial-note')?.textContent).toContain(
+        'analysis.common.partialSpeciesCoverage',
+      );
+    });
+
+    it('exports partial species values to CSV instead of "unavailable"', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildPartialSpeciesMetricsDocument(solution.id)),
+      );
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(buildMetaDepartmentAoi());
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as unknown as {
+        buildAoiMetricsCsvRows(): string[][];
+      };
+      const valueByMetricLabel = new Map(
+        component.buildAoiMetricsCsvRows().map((row) => [row[0], row[2]] as const),
+      );
+
+      expect(valueByMetricLabel.get('metrics.species_richness_mammals')).toBe('186');
+      expect(valueByMetricLabel.get('metrics.species_richness_plants')).toBe('4,726');
+      expect(valueByMetricLabel.get('metrics.threatened_species_count')).toBe('89');
+      expect([...valueByMetricLabel.values()]).not.toContain('analysis.common.valueUnavailable');
+    });
+
+    it('leaves valueless species metrics blank for targetless and marine solutions', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildValuelessSpeciesMetricsDocument(solution.id)),
+      );
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(buildMetaDepartmentAoi());
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
+      expect(compiled.querySelector('#aoi-species-partial-note')).toBeNull();
+    });
+  });
 });
 
 function buildTestSolution(): Solution {
@@ -2175,5 +2303,98 @@ function buildMetric(
     notes: null,
     labelKey: `metrics.${metricId}`,
     formatHint,
+  };
+}
+
+function buildMetaDepartmentAoi(): AOI {
+  return {
+    id: 'department:50',
+    name: 'Meta',
+    type: 'department',
+    geometryUrl: '/boundaries/departments.geojson',
+    areaKm2: 85_635,
+  };
+}
+
+/**
+ * Mirrors `solutions-v0-2-0-20260805`, where the signed species exception (8,298 of 8,300 species
+ * available upstream) marks every species metric `partial` while its value stays correct.
+ */
+const RELEASE_SPECIES_EXCEPTION = {
+  format: 'release-species-exception-binding-v1',
+  policyId: 'solutions-v0-2-0-20260805-upstream-source-missing-v1',
+  catalogTotal: 8_300,
+  availableExpected: 8_298,
+  excluded: 2,
+} as const;
+
+function buildPartialSpeciesMetric(
+  metricId: string,
+  value: number | null,
+  extraDetails: Record<string, unknown> = {},
+): MetricValue {
+  return {
+    metricId,
+    value,
+    unit: 'count',
+    status: 'partial',
+    source: 'cached-test',
+    notes: null,
+    labelKey: `metrics.${metricId}`,
+    formatHint: 'number',
+    details: { speciesException: RELEASE_SPECIES_EXCEPTION, ...extraDetails },
+  };
+}
+
+function buildPartialSpeciesMetricsDocument(solutionId: string): CachedSolutionMetricsDocument {
+  return {
+    solutionId,
+    generatedAt: '2026-08-05T00:00:00.000Z',
+    geographies: {
+      national: {
+        colombia: {
+          name: 'Colombia',
+          metrics: [
+            buildPartialSpeciesMetric('species_groups_protected', 8_043, {
+              summary: { metSpeciesCount: 8_043, totalSpeciesCount: 8_132 },
+            }),
+            buildPartialSpeciesMetric('threatened_species_secured', 193),
+          ],
+        },
+      },
+      departments: {
+        '50': {
+          name: 'Meta',
+          metrics: [
+            buildMetric('priority_area_in_region', 18_003, 'km²', 'number'),
+            buildPartialSpeciesMetric('species_richness_mammals', 186),
+            buildPartialSpeciesMetric('species_richness_birds', 1_081),
+            buildPartialSpeciesMetric('species_richness_amphibians', 61),
+            buildPartialSpeciesMetric('species_richness_reptiles', 86),
+            buildPartialSpeciesMetric('species_richness_plants', 4_726),
+            buildPartialSpeciesMetric('threatened_species_count', 89),
+          ],
+        },
+      },
+    },
+  };
+}
+
+function buildValuelessSpeciesMetricsDocument(solutionId: string): CachedSolutionMetricsDocument {
+  const document = buildPartialSpeciesMetricsDocument(solutionId);
+  const departmentScope = document.geographies.departments?.['50'];
+  return {
+    ...document,
+    geographies: {
+      ...document.geographies,
+      departments: {
+        '50': {
+          name: 'Meta',
+          metrics: (departmentScope?.metrics ?? []).map((metric) =>
+            metric.metricId.startsWith('species_richness_') ? { ...metric, value: null } : metric,
+          ),
+        },
+      },
+    },
   };
 }

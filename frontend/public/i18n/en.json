@@ -127,7 +127,10 @@
     },
     "common": {
       "valueUnavailable": "Unavailable",
-      "deltaUnavailable": "No delta"
+      "deltaUnavailable": "No delta",
+      "partialSpeciesCoverage": "Based on {{available}} of {{total}} catalogued species",
+      "partialSpeciesSources": "Partial value: {{excluded}} approved species sources unavailable",
+      "partialSources": "Partial value: some approved source inputs are unavailable"
     },
     "exports": {
       "downloadOverviewCsv": "DOWNLOAD OVERVIEW METRICS CSV",

@@ -621,6 +621,7 @@
                             [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
                             class="v3-metric-row"
                             [class.v3-metric-row-unavailable]="entry.unavailable"
+                            [class.flex-wrap]="!!entry.partialNote"
                           >
                             <div
                               [id]="'right-sidebar-v3-overview-gain-icon-shell-' + entry.id"
@@ -783,6 +784,14 @@
                                 </p>
                               }
                             </div>
+                            @if (entry.partialNote) {
+                              <p
+                                [id]="'right-sidebar-v3-overview-gain-partial-note-' + entry.id"
+                                class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                              >
+                                {{ entry.partialNote }}
+                              </p>
+                            }
                           </article>
                         }
                       </div>
@@ -839,6 +848,7 @@
                             [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
                             class="v3-metric-row"
                             [class.v3-metric-row-unavailable]="entry.unavailable"
+                            [class.flex-wrap]="!!entry.partialNote"
                           >
                             <div
                               [id]="'right-sidebar-v3-overview-cost-icon-shell-' + entry.id"
@@ -935,6 +945,14 @@
                                 </p>
                               }
                             </div>
+                            @if (entry.partialNote) {
+                              <p
+                                [id]="'right-sidebar-v3-overview-cost-partial-note-' + entry.id"
+                                class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                              >
+                                {{ entry.partialNote }}
+                              </p>
+                            }
                           </article>
                         }
                       </div>
@@ -1055,7 +1073,11 @@
                   </header>
                   <div id="aoi-overview-aligned-table" class="aoi-metric-table">
                     @for (entry of aoiAlignedMetricEntries(); track entry.id) {
-                      <div [id]="'aoi-overview-aligned-row-' + entry.id" class="aoi-metric-row">
+                      <div
+                        [id]="'aoi-overview-aligned-row-' + entry.id"
+                        class="aoi-metric-row"
+                        [class.flex-wrap]="!!entry.partialNote"
+                      >
                         <div
                           [id]="'aoi-overview-aligned-icon-shell-' + entry.id"
                           class="aoi-m-icon"
@@ -1097,6 +1119,14 @@
                             </div>
                           }
                         </div>
+                        @if (entry.partialNote) {
+                          <p
+                            [id]="'aoi-overview-aligned-partial-note-' + entry.id"
+                            class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                          >
+                            {{ entry.partialNote }}
+                          </p>
+                        }
                       </div>
                     }
                   </div>
@@ -1405,10 +1435,20 @@
                             </div>
                           }
                         }
+                        @if (aoiSpeciesPartialNote(); as speciesPartialNote) {
+                          <p
+                            id="aoi-species-partial-note"
+                            class="m-0 ml-19 w-full text-start text-[11px] leading-[1.3] text-slate-500"
+                          >
+                            {{ speciesPartialNote }}
+                          </p>
+                        }
                       }
                     </div>
 
-                    @if (!isCustomAoiSelected() || hasReadyAoiMetric('threatened_species_count')) {
+                    @if (
+                      !isCustomAoiSelected() || hasDisplayableAoiMetric('threatened_species_count')
+                    ) {
                       <div id="aoi-bio-stats" class="aoi-stat-grid">
                         <div id="aoi-stat-threatened" class="aoi-stat-card">
                           <p id="aoi-stat-threatened-label" class="aoi-stat-label">
@@ -1446,7 +1486,9 @@
                       </div>
                     }
 
-                    @if (!isCustomAoiSelected() || hasReadyAoiMetric('species_pct_of_national')) {
+                    @if (
+                      !isCustomAoiSelected() || hasDisplayableAoiMetric('species_pct_of_national')
+                    ) {
                       <div id="aoi-stat-national-species" class="aoi-stat-card">
                         <p id="aoi-stat-national-species-label" class="aoi-stat-label">
                           {{ 'analysis.aoi.stats.nationalSpeciesTotal' | translate }}
