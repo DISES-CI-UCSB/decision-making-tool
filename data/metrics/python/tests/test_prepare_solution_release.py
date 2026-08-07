@@ -11,6 +11,15 @@ from prepare_solution_release import (
     build_release,
     canonical_id,
     discover_sources,
+    structured_finder_inputs,
+)
+
+MARINE_HABITATS = (
+    "Cuenca en Talúd Baudó",
+    "Banco en Talúd Baudó",
+    "Fondos móviles de grano fino no carbonatados en Sanquianga",
+    "Manglares en Tumaco",
+    "Manglares en Magdalena",
 )
 
 
@@ -21,6 +30,47 @@ def _write_summary(path: Path, scenario: str) -> None:
         f"Ecosistemas,TRUE,0.3,0.4,0,ecosystem,NA,{scenario},prioritizr_model\n",
         encoding="utf-8",
     )
+
+
+def _write_marine_summary(path: Path, scenario: str, target: float = 0.3) -> None:
+    """Mirror a delivered marine summary CSV, which has no ``feature_type`` column."""
+    header = (
+        "feature,met,total_amount,absolute_target,absolute_held,absolute_shortfall,"
+        "relative_target,relative_held,relative_shortfall,scenario,evaluated"
+    )
+    rows = [
+        f"{feature},TRUE,100,30,40,0,{target},0.4,0,{scenario},prioritizr_model"
+        for feature in (*MARINE_HABITATS, "Manglares")
+    ]
+    rows.append(f"Arrecifes,TRUE,100,30,40,0,{target},0.4,0,{scenario},post-hoc")
+    path.write_text("\n".join([header, *rows]) + "\n", encoding="utf-8")
+
+
+def _write_marine_sidecar(
+    directory: Path,
+    solution_id: str,
+    *,
+    target_percent: int = 30,
+    **overrides: object,
+) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{solution_id}.json"
+    document: dict[str, object] = {
+        "id": solution_id,
+        "domain": "marine",
+        "scope": "marine",
+        "target_feature_set": "marine_ecosystems_and_mangroves",
+        "target_percent": target_percent,
+        "input_layer_ids": {
+            "features": ["FEAT_MARINE_ECOSYSTEMS", "FEAT_MANGROVES"],
+            "cost": "COST_HHM",
+            "includes": ["INCL_RUNAP"],
+            "excludes": [],
+        },
+    }
+    document.update(overrides)
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
 
 
 def test_discovery_is_top_level_only_and_preserves_original_basename(tmp_path: Path):
@@ -60,10 +110,12 @@ def test_release_outputs_pin_checksums_diff_and_upload_destinations(tmp_path: Pa
     land_raster.write_bytes(b"new-land")
     marine_raster.write_bytes(b"same-marine")
     _write_summary(land / "Eco30+RUNAP_IHEH2030_summary.csv", land_raster.stem)
-    _write_summary(
+    _write_marine_summary(
         marine / "Ecos30+Mang30+RUNAP_HHM_summary.csv",
         marine_raster.stem,
     )
+    marine_metadata = tmp_path / "marine-metadata"
+    _write_marine_sidecar(marine_metadata, "marine_ecos30_mang30_runap_hhm")
     baseline = {
         "format": "solution-catalog-v1",
         "catalogVersion": "0.1.0",
@@ -113,6 +165,7 @@ def test_release_outputs_pin_checksums_diff_and_upload_destinations(tmp_path: Pa
         catalog_version="0.2.0",
         expected_land=1,
         expected_marine=1,
+        marine_metadata_directory=marine_metadata,
     )
 
     assert result["catalog"]["solutions"][0]["solutionBasename"] == land_raster.name
@@ -137,3 +190,106 @@ def test_release_outputs_pin_checksums_diff_and_upload_destinations(tmp_path: Pa
     assert preflight["solutions"][0]["finderInputs"]["structuredTargets"][
         "ecosystems"
     ]
+
+
+def _marine_finder_inputs(
+    tmp_path: Path,
+    *,
+    target: float = 0.3,
+    sidecar: bool = True,
+    **sidecar_overrides: object,
+) -> dict:
+    solution_id = "marine_ecos30_mang30_runap_hhm"
+    summary = tmp_path / "Ecos30+Mang30+RUNAP_HHM_summary.csv"
+    _write_marine_summary(summary, "Ecos30+Mang30+RUNAP_HHM", target=target)
+    metadata = tmp_path / "marine-metadata"
+    metadata.mkdir(parents=True, exist_ok=True)
+    if sidecar:
+        _write_marine_sidecar(metadata, solution_id, **sidecar_overrides)
+    finder_inputs, _, _, _ = structured_finder_inputs(
+        summary,
+        solution_id=solution_id,
+        domain="marine",
+        marine_metadata_directory=metadata,
+    )
+    return finder_inputs
+
+
+def test_marine_finder_contract_comes_from_the_sidecar_without_feature_type(
+    tmp_path: Path,
+):
+    finder_inputs = _marine_finder_inputs(tmp_path)
+
+    assert finder_inputs["targetFeatureSet"] == "marine_ecosystems_and_mangroves"
+    assert finder_inputs["targetPercent"] == 30
+    assert finder_inputs["targetFeatureIds"] == ["marine_ecosystems", "mangroves"]
+
+
+def test_marine_summary_rows_without_feature_type_stay_in_structured_targets(
+    tmp_path: Path,
+):
+    targets = _marine_finder_inputs(tmp_path)["structuredTargets"]
+
+    # Every prioritizr habitat is kept; only the exact "Manglares" row is strategic.
+    assert [item["featureId"] for item in targets["strategicEcosystems"]] == [
+        "manglares"
+    ]
+    assert len(targets["ecosystems"]) == len(MARINE_HABITATS)
+    assert "manglares_en_tumaco" in {
+        item["featureId"] for item in targets["ecosystems"]
+    }
+    assert all(item["targetPercent"] == 30 for item in targets["ecosystems"])
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"sidecar": False}, "missing marine solution sidecar"),
+        ({"target_feature_set": "strategic_ecosystems"}, "target_feature_set"),
+        ({"target_percent": 40}, "target_percent must be one of"),
+        ({"input_layer_ids": {"features": []}}, "features must be"),
+        (
+            {"input_layer_ids": {"features": ["FEAT_PARAMOS"]}},
+            "unmapped feature layers",
+        ),
+    ],
+)
+def test_marine_finder_contract_fails_loudly_on_bad_sidecars(
+    tmp_path: Path,
+    kwargs: dict,
+    match: str,
+):
+    with pytest.raises(ReleasePreparationError, match=match):
+        _marine_finder_inputs(tmp_path, **kwargs)
+
+
+def test_marine_finder_contract_fails_loudly_on_unexpected_target_percent(
+    tmp_path: Path,
+):
+    with pytest.raises(ReleasePreparationError, match="do not match the sidecar"):
+        _marine_finder_inputs(tmp_path, target=0.45)
+
+
+def test_land_summaries_still_drop_rows_the_classifier_cannot_place(tmp_path: Path):
+    summary = tmp_path / "Eco30+RUNAP_IHEH2030_summary.csv"
+    summary.write_text(
+        "feature,met,relative_target,relative_held,relative_shortfall,"
+        "feature_type,class,scenario,evaluated\n"
+        "Ecosistemas,TRUE,0.3,0.4,0,ecosystem,NA,Eco30,prioritizr_model\n"
+        "Unlabelled feature,TRUE,0.3,0.4,0,,NA,Eco30,prioritizr_model\n",
+        encoding="utf-8",
+    )
+
+    finder_inputs, input_layer_ids, _, _ = structured_finder_inputs(
+        summary,
+        solution_id="eco30_runap_iheh2030",
+        domain="land",
+    )
+
+    assert finder_inputs["targetFeatureSet"] == "ecosystems"
+    assert finder_inputs["targetPercent"] == 30
+    assert input_layer_ids["features"] == ["ecosystems"]
+    assert [
+        item["featureId"]
+        for item in finder_inputs["structuredTargets"]["ecosystems"]
+    ] == ["ecosistemas"]

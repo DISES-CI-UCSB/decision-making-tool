@@ -13,6 +13,8 @@ const __dirname = path.dirname(__filename);
 const examplePath = path.resolve(__dirname, './manifest.example.json');
 const generatedManifestPath = path.resolve(__dirname, '..', LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH);
 const APPROVED_LOCAL_PUBLIC_PATH_PREFIXES = ['/assets/', '/data/'];
+export const MARINE_TARGET_FEATURE_SET = 'marine_ecosystems_and_mangroves';
+export const MARINE_TARGET_PERCENTS = [30, 50];
 
 async function exists(filePath) {
   try {
@@ -561,6 +563,7 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
         `${solution.id} must not advertise terrestrial MEC URLs`,
       );
       assertReleaseMetricUrls(solution, manifest.releaseId);
+      assertMarineFinderContract(solution);
     }
   }
 
@@ -607,6 +610,25 @@ function assertReleaseMetricUrl(value, releaseId, label) {
   assert(
     parsed.pathname.startsWith(`/releases/${releaseId}/`),
     `${label} must use exact release pathname prefix`,
+  );
+}
+
+/**
+ * The Solution Finder only offers marine solutions when these two fields carry the
+ * exact contract shape, so a nullable-string check is not enough to keep the
+ * "Explore selected solution" button reachable.
+ */
+function assertMarineFinderContract(solution) {
+  const finderInputs = solution.finderInputs ?? {};
+  assert(
+    finderInputs.targetFeatureSet === MARINE_TARGET_FEATURE_SET,
+    `${solution.id} finderInputs.targetFeatureSet must be ` +
+      `"${MARINE_TARGET_FEATURE_SET}", found ${JSON.stringify(finderInputs.targetFeatureSet)}`,
+  );
+  assert(
+    MARINE_TARGET_PERCENTS.includes(finderInputs.targetPercent),
+    `${solution.id} finderInputs.targetPercent must be one of ` +
+      `${MARINE_TARGET_PERCENTS.join(', ')}, found ${JSON.stringify(finderInputs.targetPercent)}`,
   );
 }
 

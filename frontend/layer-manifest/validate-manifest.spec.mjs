@@ -153,6 +153,45 @@ describe('catalog-driven release validation', () => {
   });
 });
 
+describe('marine finder contract validation', () => {
+  it('accepts the marine target feature set and both approved target percents', async () => {
+    for (const targetPercent of [30, 50]) {
+      const manifest = createMarineReleaseManifest({ targetPercent });
+
+      await assert.doesNotReject(
+        validateManifest(manifest, 'manifest.json', { catalog: createMarineReleaseCatalog() }),
+      );
+    }
+  });
+
+  it('rejects a marine solution whose targetFeatureSet regressed to the land fallback', async () => {
+    const manifest = createMarineReleaseManifest({ targetFeatureSet: 'strategic_ecosystems' });
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog: createMarineReleaseCatalog() }),
+      /finderInputs\.targetFeatureSet must be "marine_ecosystems_and_mangroves"/,
+    );
+  });
+
+  it('rejects a marine solution with a null targetPercent', async () => {
+    const manifest = createMarineReleaseManifest({ targetPercent: null });
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog: createMarineReleaseCatalog() }),
+      /finderInputs\.targetPercent must be one of 30, 50, found null/,
+    );
+  });
+
+  it('rejects a marine solution with an off-contract targetPercent', async () => {
+    const manifest = createMarineReleaseManifest({ targetPercent: 17 });
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog: createMarineReleaseCatalog() }),
+      /finderInputs\.targetPercent must be one of 30, 50, found 17/,
+    );
+  });
+});
+
 describe('runtime compact solution validation', () => {
   it('accepts explicit coverage omission when structured targets are retained', async () => {
     const manifest = createManifest();
@@ -291,6 +330,31 @@ function createReleaseManifest() {
   manifest.solutions[0].metadataUrl = `${BLOB_HOST}/solutions/demo.json`;
   manifest.solutions[0].rasterSha256 = 'a'.repeat(64);
   return manifest;
+}
+
+function createMarineReleaseManifest({
+  targetFeatureSet = 'marine_ecosystems_and_mangroves',
+  targetPercent = 30,
+} = {}) {
+  const manifest = createReleaseManifest();
+  const solution = manifest.solutions[0];
+  delete solution.precomputedMetricUrls.mecV2ByGeography;
+  solution.domain = 'marine';
+  solution.scope = 'marine';
+  solution.finderInputs.domain = 'marine';
+  solution.finderInputs.scope = 'marine';
+  solution.finderInputs.targetFeatureSet = targetFeatureSet;
+  solution.finderInputs.targetPercent = targetPercent;
+  solution.finderInputs.targetFeatureIds = ['marine_ecosystems', 'mangroves'];
+  return manifest;
+}
+
+function createMarineReleaseCatalog() {
+  const catalog = createReleaseCatalog();
+  catalog.expectedLandSolutionCount = 0;
+  catalog.expectedMarineSolutionCount = 1;
+  catalog.solutions[0].domain = 'marine';
+  return catalog;
 }
 
 function createReleaseCatalog() {

@@ -32,6 +32,16 @@ TARGET_DIMENSIONS = (
     "speciesRepresentation",
     "espRn",
 )
+STRATEGIC_ECOSYSTEM_FEATURE_IDS = frozenset(
+    {"paramos", "bosque_seco", "humedales", "wetlands", "manglares"}
+)
+MARINE_METADATA_DIRECTORY = Path(__file__).resolve().parents[3] / "solutions" / "marine"
+MARINE_TARGET_FEATURE_SET = "marine_ecosystems_and_mangroves"
+MARINE_TARGET_PERCENTS = frozenset({30, 50})
+MARINE_FEATURE_LAYER_IDS = {
+    "FEAT_MARINE_ECOSYSTEMS": "marine_ecosystems",
+    "FEAT_MANGROVES": "mangroves",
+}
 
 
 class ReleasePreparationError(ValueError):
@@ -115,24 +125,71 @@ def _boolean(value: Any) -> bool | None:
     return None
 
 
-def _dimension(row: dict[str, str], solution_id: str) -> str | None:
+def _dimension(row: dict[str, str], solution_id: str, domain: str) -> str | None:
     feature_type = str(row.get("feature_type") or "").lower()
     feature_id = _slug(row.get("feature"))
     if "species" in feature_type:
         return "espRn" if "_esprn_" in f"_{solution_id}_" else "speciesRepresentation"
     if "service" in feature_type or "servicio" in feature_type:
         return "ecosystemServices"
-    if "strategic" in feature_type or feature_id in {
-        "paramos",
-        "bosque_seco",
-        "humedales",
-        "wetlands",
-        "manglares",
-    }:
+    if "strategic" in feature_type or feature_id in STRATEGIC_ECOSYSTEM_FEATURE_IDS:
         return "strategicEcosystems"
     if "ecosystem" in feature_type or feature_id == "ecosistemas":
         return "ecosystems"
-    return None
+    # Marine summaries carry no feature_type column and name each habitat
+    # individually, so anything left unclassified is a marine ecosystem.
+    return "ecosystems" if domain == "marine" else None
+
+
+def marine_finder_contract(
+    solution_id: str,
+    metadata_directory: Path,
+) -> tuple[str, int, list[str]]:
+    """Read the authoritative marine finder contract from its JSON sidecar.
+
+    Marine summary CSVs cannot express the finder contract: they have no
+    ``feature_type`` column and name every habitat individually, so the target
+    feature set and target percent have to come from the delivered sidecar.
+    """
+    path = metadata_directory / f"{solution_id}.json"
+    if not path.is_file():
+        raise ReleasePreparationError(
+            f"missing marine solution sidecar for {solution_id!r}: {path}"
+        )
+    try:
+        sidecar = _load_json(path)
+    except json.JSONDecodeError as exc:
+        raise ReleasePreparationError(
+            f"marine solution sidecar is not readable JSON: {path} ({exc})"
+        ) from exc
+
+    target_set = sidecar.get("target_feature_set")
+    if target_set != MARINE_TARGET_FEATURE_SET:
+        raise ReleasePreparationError(
+            f"marine sidecar {path.name!r} target_feature_set must be "
+            f"{MARINE_TARGET_FEATURE_SET!r}, found {target_set!r}."
+        )
+    target_percent = sidecar.get("target_percent")
+    if target_percent not in MARINE_TARGET_PERCENTS:
+        raise ReleasePreparationError(
+            f"marine sidecar {path.name!r} target_percent must be one of "
+            f"{sorted(MARINE_TARGET_PERCENTS)}, found {target_percent!r}."
+        )
+    features = (sidecar.get("input_layer_ids") or {}).get("features")
+    if not isinstance(features, list) or not features:
+        raise ReleasePreparationError(
+            f"marine sidecar {path.name!r} input_layer_ids.features must be "
+            "a non-empty list."
+        )
+    unknown = [value for value in features if value not in MARINE_FEATURE_LAYER_IDS]
+    if unknown:
+        raise ReleasePreparationError(
+            f"marine sidecar {path.name!r} names unmapped feature layers: {unknown}."
+        )
+    feature_ids = list(
+        dict.fromkeys(MARINE_FEATURE_LAYER_IDS[value] for value in features)
+    )
+    return target_set, int(target_percent), feature_ids
 
 
 def structured_finder_inputs(
@@ -140,6 +197,7 @@ def structured_finder_inputs(
     *,
     solution_id: str,
     domain: str,
+    marine_metadata_directory: Path = MARINE_METADATA_DIRECTORY,
 ) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     with summary_path.open(encoding="utf-8-sig", newline="") as source:
         rows = list(csv.DictReader(source))
@@ -164,7 +222,7 @@ def structured_finder_inputs(
             "evaluated": str(row.get("evaluated") or "").strip() or None,
         }
         coverage.append(coverage_row)
-        dimension = _dimension(row, solution_id)
+        dimension = _dimension(row, solution_id, domain)
         if (
             dimension is not None
             and relative_target is not None
@@ -210,6 +268,27 @@ def structured_finder_inputs(
         )
         if dimensions[dimension]
     ]
+    if domain == "marine":
+        if "marine_ecosystems" not in feature_ids:
+            raise ReleasePreparationError(
+                f"marine summary classified no ecosystem targets: {summary_path}"
+            )
+        target_set, target_percent, feature_ids = marine_finder_contract(
+            solution_id,
+            marine_metadata_directory,
+        )
+        observed = {
+            item["targetPercent"]
+            for values in dimensions.values()
+            for item in values
+            if item["targetPercent"] is not None
+        }
+        if observed != {target_percent}:
+            raise ReleasePreparationError(
+                f"marine summary target percents {sorted(observed)} do not match the "
+                f"sidecar target_percent {target_percent} for {solution_id!r}: "
+                f"{summary_path}"
+            )
     tokens = set(solution_id.split("_"))
     input_layer_ids = {
         "features": list(dict.fromkeys(feature_ids)),
@@ -315,6 +394,7 @@ def build_release(
     expected_land: int,
     expected_marine: int,
     existing_blob_paths: Iterable[str] = (),
+    marine_metadata_directory: Path = MARINE_METADATA_DIRECTORY,
 ) -> dict[str, Any]:
     sources = discover_sources(land_directory, "land", expected_land)
     sources += discover_sources(marine_directory, "marine", expected_marine)
@@ -415,6 +495,7 @@ def build_release(
                 summary_path,
                 solution_id=solution_id,
                 domain=domain,
+                marine_metadata_directory=marine_metadata_directory,
             )
         )
         solution_entries.append(
@@ -558,6 +639,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-land", type=int, default=168)
     parser.add_argument("--expected-marine", type=int, default=4)
     parser.add_argument("--existing-blob-paths", type=Path, default=None)
+    parser.add_argument(
+        "--marine-metadata-directory",
+        type=Path,
+        default=MARINE_METADATA_DIRECTORY,
+    )
     return parser.parse_args()
 
 
@@ -581,6 +667,7 @@ def main() -> int:
             expected_land=args.expected_land,
             expected_marine=args.expected_marine,
             existing_blob_paths=existing,
+            marine_metadata_directory=args.marine_metadata_directory,
         )
     except (OSError, json.JSONDecodeError, ReleasePreparationError, ValueError) as exc:
         print(f"[prepare-solution-release] ERROR: {exc}", file=sys.stderr)
