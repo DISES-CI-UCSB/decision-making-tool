@@ -5,18 +5,34 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import time
+import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from cli_utils import find_repo_root
 from compact_metrics import to_verbose_document
 from metrics_contract import PROVENANCE_KEY, regular_artifact_completeness_issues
 from solution_domain import normalize_domain
 
+MIN_CACHE_MAX_AGE_SECONDS = 2_592_000
+
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _cache_max_age_seconds(cache_control: str) -> int | None:
+    for directive in cache_control.split(","):
+        name, separator, value = directive.strip().partition("=")
+        if separator and name.lower() == "max-age":
+            try:
+                return int(value)
+            except ValueError:
+                return None
+    return None
 
 
 def verify_entry(
@@ -73,18 +89,35 @@ def verify_entry(
             "sha256": result["remote"]["sha256"],
         }
         and content_type in {"application/json", "application/geo+json"}
-        and "max-age=31536000" in cache_control
+        and (_cache_max_age_seconds(cache_control) or 0)
+        >= MIN_CACHE_MAX_AGE_SECONDS
         and not contract_issues
     )
     return result
 
 
-def _fetch(url: str) -> tuple[bytes, dict[str, str]]:
+def _fetch(
+    url: str,
+    *,
+    max_attempts: int = 4,
+    retry_base_seconds: float = 0.5,
+    sleep: Callable[[float], None] = time.sleep,
+) -> tuple[bytes, dict[str, str]]:
     request = urllib.request.Request(
         url, headers={"User-Agent": "dises-artifact-verifier/1.0"}
     )
-    with urllib.request.urlopen(request, timeout=120) as response:
-        return response.read(), {key.lower(): value for key, value in response.headers.items()}
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                return response.read(), {
+                    key.lower(): value for key, value in response.headers.items()
+                }
+        except (urllib.error.URLError, ConnectionError, TimeoutError):
+            if attempt == max_attempts:
+                raise
+            sleep(retry_base_seconds * (2 ** (attempt - 1)))
+
+    raise AssertionError("artifact verification retry loop did not return or raise")
 
 
 def verify_report(
