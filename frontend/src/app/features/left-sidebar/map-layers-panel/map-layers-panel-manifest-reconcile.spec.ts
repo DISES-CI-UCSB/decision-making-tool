@@ -142,6 +142,68 @@ describe('reconcileMapLayersManifest', () => {
     });
   });
 
+  it('binds display-only GeoJSON references to existing sidebar categories', () => {
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('cultural_and_ethnic_territories', [
+          manifestRow('zonas_reserva_campesina_constituida', 'cultural_and_ethnic_territories', {
+            dataRole: 'reference_layer',
+            displayUrl: '/inputs/reference/zonas_reserva_campesina_constituida/layer.geojson',
+          }),
+        ]),
+        manifestGroup('ecosystems', [
+          manifestRow('ramsar', 'ecosystems', {
+            dataRole: 'reference_layer',
+            displayUrl: '/inputs/reference/ramsar/ramsar.geojson',
+          }),
+          manifestRow('biosphere_reserves', 'ecosystems', {
+            dataRole: 'reference_layer',
+            displayUrl: '/inputs/reference/biosphere_reserves/biosphere_reserves.geojson',
+          }),
+          manifestRow('reservas_forestales_ley_2_1959', 'ecosystems', {
+            dataRole: 'reference_layer',
+            displayUrl:
+              '/inputs/reference/reservas_forestales_ley_2_1959/reservas_forestales_ley_2_1959.geojson',
+          }),
+        ]),
+        manifestGroup('species_and_biodiversity', [
+          manifestRow('kba_aica', 'species_and_biodiversity', {
+            dataRole: 'reference_layer',
+            displayUrl: '/inputs/reference/kba_aica/kba_aica.geojson',
+          }),
+        ]),
+      ],
+      groups: [
+        group('group-cultural-ethnic', []),
+        group('group-ecosystems', []),
+        group('group-species-biodiversity', []),
+      ],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups.map(({ id, rows }) => [id, rows.map(({ id }) => id)])).toEqual([
+      ['group-cultural-ethnic', ['layer-zonas_reserva_campesina_constituida']],
+      [
+        'group-ecosystems',
+        ['layer-ramsar', 'layer-biosphere_reserves', 'layer-reservas_forestales_ley_2_1959'],
+      ],
+      ['group-species-biodiversity', ['layer-kba_aica']],
+    ]);
+    expect(result.groups.flatMap(({ rows }) => rows)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'layer-ramsar',
+          mapUnavailable: false,
+          mapSync: expect.objectContaining({
+            type: 'manifest-raster',
+            displayUrl: '/inputs/reference/ramsar/ramsar.geojson',
+          }),
+        }),
+      ]),
+    );
+  });
+
   it('maps management overlays while preserving comparison and fallback rows', () => {
     const overlays = [
       row({ id: BASELINE_SOLUTION_OVERLAY_ID }),

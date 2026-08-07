@@ -84,6 +84,9 @@ const DEFAULT_ADMIN_BOUNDARY_HEX = '#6b7280';
 const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [107, 114, 128, 235];
 const AOI_HOVER_COLOR: BoundaryStyle['color'] = [250, 204, 21, 255];
 const AOI_SELECTION_COLOR: BoundaryStyle['color'] = [249, 115, 22, 255];
+export const COLOMBIA_OUTLINE_VISUAL_URL =
+  `${PUBLIC_BLOB_HOST}/inputs/reference/colombia_outline_visual/` +
+  'v0.1.0/colombia_outline_visual.geojson';
 // Named view highlight used for hover. The layer view renders it from geometry it
 // has already tessellated, which avoids cloning large boundary polygons per move.
 const AOI_HOVER_HIGHLIGHT_NAME = 'aoi-hover';
@@ -159,7 +162,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
     selectable: false,
     type: 'department',
     sourceType: 'geojson',
-    url: '/data/boundaries/colombia-country-outline.geojson',
+    url: COLOMBIA_OUTLINE_VISUAL_URL,
     idFields: ['shapeISO', 'shapeID', 'OBJECTID'],
     nameFields: ['shapeName'],
     visible: true,

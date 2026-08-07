@@ -219,6 +219,15 @@
             "data_used_for_live_metric_calculation_and_precomputed_metric_lookup"
           ]
         },
+        "requiredForSolution": {
+          "type": "boolean"
+        },
+        "selectableInFinder": {
+          "type": "boolean"
+        },
+        "visibleInMapLayers": {
+          "type": "boolean"
+        },
         "displayUrl": {
           "$ref": "#/$defs/nullableString"
         },

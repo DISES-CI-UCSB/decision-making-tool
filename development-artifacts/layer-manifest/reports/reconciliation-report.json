@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T01:46:04.484Z",
+  "generatedAt": "2026-08-04T17:41:00.274Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -12,24 +12,27 @@
       "conflict",
       "recarga_agua_subterranea_moderado_alto"
     ],
+    "redistributionBlockedLayerIds": [
+      "kba_aica"
+    ],
     "speciesHandling": "Species rasters are represented as one collection pointer, not one layer per TIFF",
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
-    "csvRows": 26,
-    "includedRows": 23,
-    "generatedLayers": 23,
-    "blobInventoryEntries": 113,
+    "csvRows": 31,
+    "includedRows": 27,
+    "generatedLayers": 27,
+    "blobInventoryEntries": 123,
     "missingRequired": 2,
-    "extraAvailable": 99,
-    "includedRowMetadataGaps": 22,
-    "excludedRows": 3,
+    "extraAvailable": 105,
+    "includedRowMetadataGaps": 26,
+    "excludedRows": 4,
     "generatedSolutions": 0,
     "skippedSolutionMetadataFiles": 22,
     "unmatchedSolutionRasters": 248,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 0,
-    "renderingInferenceLowConfidence": 17
+    "renderingInferenceLowConfidence": 21
   },
   "missingRequired": [
     {
@@ -540,6 +543,36 @@
       "pathname": "inputs/includes/runap_protected_areas.tif",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_protected_areas.tif",
       "bytes": 12402308
+    },
+    {
+      "pathname": "inputs/reference/biosphere_reserves/v0.1.0/biosphere_reserves.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/biosphere_reserves/v0.1.0/biosphere_reserves.metadata.json",
+      "bytes": 2482
+    },
+    {
+      "pathname": "inputs/reference/colombia_outline_visual/v0.1.0/colombia_outline_visual.geojson",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/colombia_outline_visual/v0.1.0/colombia_outline_visual.geojson",
+      "bytes": 5233822
+    },
+    {
+      "pathname": "inputs/reference/colombia_outline_visual/v0.1.0/colombia_outline_visual.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/colombia_outline_visual/v0.1.0/colombia_outline_visual.metadata.json",
+      "bytes": 2327
+    },
+    {
+      "pathname": "inputs/reference/ramsar/v0.1.0/ramsar.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/ramsar/v0.1.0/ramsar.metadata.json",
+      "bytes": 2366
+    },
+    {
+      "pathname": "inputs/reference/reservas_forestales_ley_2_1959/v0.1.0/reservas_forestales_ley_2_1959.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/reservas_forestales_ley_2_1959/v0.1.0/reservas_forestales_ley_2_1959.metadata.json",
+      "bytes": 2649
+    },
+    {
+      "pathname": "inputs/reference/zonas_reserva_campesina_constituida/v0.1.0/zonas_reserva_campesina_constituida.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/zonas_reserva_campesina_constituida/v0.1.0/zonas_reserva_campesina_constituida.metadata.json",
+      "bytes": 2712
     }
   ],
   "includedRowMetadataGaps": [
@@ -736,6 +769,39 @@
         "source_license",
         "source_contact"
       ]
+    },
+    {
+      "layerId": "zonas_reserva_campesina_constituida",
+      "displayName": "Zonas de Reserva Campesina Constituida",
+      "missingFields": [
+        "source_created_date",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "ramsar",
+      "displayName": "Humedales RAMSAR",
+      "missingFields": [
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "biosphere_reserves",
+      "displayName": "Reservas de biosfera",
+      "missingFields": [
+        "source_license",
+        "source_contact"
+      ]
+    },
+    {
+      "layerId": "reservas_forestales_ley_2_1959",
+      "displayName": "Reservas Forestales de Ley 2da de 1959",
+      "missingFields": [
+        "source_created_date",
+        "source_license",
+        "source_contact"
+      ]
     }
   ],
   "categoryMappingSummary": {
@@ -752,10 +818,10 @@
   "renderingInferenceSummary": {
     "byStrategy": {
       "manual_override": 6,
-      "legacy_non_raster": 8,
+      "legacy_non_raster": 12,
       "fallback_after_uncertain_sampling": 9
     },
-    "lowConfidence": 17
+    "lowConfidence": 21
   },
   "excludedRows": [
     {
@@ -772,6 +838,11 @@
       "layerId": "climate_refugia",
       "displayName": "Velocidad del cambio climático",
       "reason": "in_use_now is not TRUE and layer is not metric-audit allowlisted"
+    },
+    {
+      "layerId": "kba_aica",
+      "displayName": "KBA y AICAS",
+      "reason": "public redistribution requires documented written permission"
     }
   ]
 }

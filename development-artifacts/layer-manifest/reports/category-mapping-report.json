@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T01:46:04.484Z",
+  "generatedAt": "2026-08-04T17:41:00.274Z",
   "whyThisReportExists": {
     "purpose": "Helps developers compare generated manifest categories against the current left-sidebar map layer groups.",
     "intendedAudience": "Developers and product reviewers working on sidebar category integration.",
@@ -78,7 +78,10 @@
         "bosque_seco",
         "mangroves",
         "ecosistemas",
-        "marine_ecosystems"
+        "marine_ecosystems",
+        "ramsar",
+        "biosphere_reserves",
+        "reservas_forestales_ley_2_1959"
       ],
       "frontendCategoryIds": [
         "group-ecosystems"
@@ -128,6 +131,27 @@
           "layerId": "marine_ecosystems",
           "spanishLabel": "Ecosistemas marinos",
           "dataRole": "feature_layer",
+          "frontendCategoryId": "group-ecosystems",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "ramsar",
+          "spanishLabel": "Humedales RAMSAR",
+          "dataRole": "reference_layer",
+          "frontendCategoryId": "group-ecosystems",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "biosphere_reserves",
+          "spanishLabel": "Reservas de biosfera",
+          "dataRole": "reference_layer",
+          "frontendCategoryId": "group-ecosystems",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "reservas_forestales_ley_2_1959",
+          "spanishLabel": "Reservas Forestales de Ley 2da de 1959",
+          "dataRole": "reference_layer",
           "frontendCategoryId": "group-ecosystems",
           "frontendCategoryTitle": null
         }
@@ -288,7 +312,8 @@
       "manifestSpanishLabel": "Territorios culturales y étnicos",
       "layerIds": [
         "comunidades",
-        "resguardos"
+        "resguardos",
+        "zonas_reserva_campesina_constituida"
       ],
       "frontendCategoryIds": [
         "group-cultural-ethnic"
@@ -310,6 +335,13 @@
           "layerId": "resguardos",
           "spanishLabel": "Resguardos Indígenas",
           "dataRole": "include_layer",
+          "frontendCategoryId": "group-cultural-ethnic",
+          "frontendCategoryTitle": null
+        },
+        {
+          "layerId": "zonas_reserva_campesina_constituida",
+          "spanishLabel": "Zonas de Reserva Campesina Constituida",
+          "dataRole": "reference_layer",
           "frontendCategoryId": "group-cultural-ethnic",
           "frontendCategoryTitle": null
         }

@@ -68,6 +68,7 @@ const BLOB_PREFIXES = [
   'inputs/features/species_richness/',
   'inputs/features/strategic/',
   'inputs/includes/',
+  'inputs/reference/',
 ];
 const COLLECTION_PREFIXES = ['inputs/features/species/'];
 const SOLUTION_BLOB_PREFIXES = ['solutions/'];
@@ -400,6 +401,11 @@ const proposedManifestCategories = {
 };
 
 const proposedLayerCategoryOverrides = {
+  zonas_reserva_campesina_constituida: 'cultural_and_ethnic_territories',
+  ramsar: 'ecosystems',
+  biosphere_reserves: 'ecosystems',
+  reservas_forestales_ley_2_1959: 'ecosystems',
+  kba_aica: 'species_and_biodiversity',
   marine_ecosystems: 'ecosystems',
   runap: 'management_figures',
   omecs: 'management_figures',
@@ -427,6 +433,7 @@ const tooltipOverrideByLayerId = {
 };
 
 const metricAuditLayerIds = new Set(['conflict', 'recarga_agua_subterranea_moderado_alto']);
+const redistributionBlockedLayerIds = new Set(['kba_aica']);
 
 const proposedCsvGroupCategoryIds = {
   biodiversidad: 'species_and_biodiversity',
@@ -597,9 +604,14 @@ function isDisplayCandidate(row) {
   return [...displayAssetFormats].some((format) => normalizedFormat.includes(format));
 }
 
-function shouldIncludeManifestRow(row) {
+export function shouldIncludeManifestRow(row) {
+  const layerId = toLayerId(row.layer_id);
+  if (redistributionBlockedLayerIds.has(layerId)) {
+    return false;
+  }
+
   return (
-    (isTrue(row.in_use_now) || metricAuditLayerIds.has(toLayerId(row.layer_id))) &&
+    (isTrue(row.in_use_now) || metricAuditLayerIds.has(layerId)) &&
     isDisplayCandidate(row)
   );
 }
@@ -1109,18 +1121,21 @@ async function createLayerEntry(row, blobByPath, existingManifestIndex) {
   const isCollection = blobPath?.endsWith('/');
   const matchedBlob = blobPath ? blobByPath.get(blobPath) : null;
   const remoteUrl = /^https?:\/\//i.test(row.storage_location) ? row.storage_location : '';
-  const discoveredDisplayReference = createDisplayReference({
-    row,
-    blobPath,
-    isCollection,
-    matchedBlob,
-    remoteUrl,
-  });
+  const dataRole = inferDataRole(row);
+  const discoveredDisplayReference =
+    dataRole === 'reference_layer' && blobPath
+      ? createDeterministicReferenceDisplayReference(blobPath)
+      : createDisplayReference({
+          row,
+          blobPath,
+          isCollection,
+          matchedBlob,
+          remoteUrl,
+        });
   const displayReference = preserveExistingDisplayReference(
     discoveredDisplayReference,
     existingLayer,
   );
-  const dataRole = inferDataRole(row);
   const roleInMetricCalculation = inferRoleInMetricCalculation(dataRole);
   const categoryId = inferProposedCategoryId(row);
   const { rendering, renderingInference } = await inferRenderingConfig({
@@ -1143,11 +1158,21 @@ async function createLayerEntry(row, blobByPath, existingManifestIndex) {
       dataRole,
       category: categoryId,
       roleInMetricCalculation,
+      ...(dataRole === 'reference_layer'
+        ? {
+            requiredForSolution: false,
+            selectableInFinder: false,
+            visibleInMapLayers: true,
+          }
+        : {}),
       ...toDisplayUrlFields(displayReference),
       ...(row.layer_id === 'species'
         ? { speciesManifestUrl: `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json` }
         : {}),
-      metadataUrl: `${PUBLIC_BLOB_HOST}/metadata/${id}.metadata.json`,
+      metadataUrl:
+        dataRole === 'reference_layer' && blobPath
+          ? createReferenceMetadataUrl(blobPath)
+          : `${PUBLIC_BLOB_HOST}/metadata/${id}.metadata.json`,
       compressedDataForLiveMetricsUrl: roleInMetricCalculation.includes('live_metric_calculation')
         ? `${PUBLIC_BLOB_HOST}/metrics/live/${id}.bin.gz`
         : null,
@@ -1163,6 +1188,20 @@ async function createLayerEntry(row, blobByPath, existingManifestIndex) {
       renderingInference,
     },
   };
+}
+
+export function createDeterministicReferenceDisplayReference(blobPath) {
+  return {
+    status: 'matched',
+    type: 'file',
+    url: `${PUBLIC_BLOB_HOST}/${blobPath}`,
+    blobPath,
+  };
+}
+
+export function createReferenceMetadataUrl(blobPath) {
+  const metadataPath = blobPath.replace(/\.geojson$/i, '.metadata.json');
+  return `${PUBLIC_BLOB_HOST}/${metadataPath}`;
 }
 
 export function preserveExistingDisplayReference(discoveredReference, existingLayer) {
@@ -1949,13 +1988,16 @@ function toDisplayUrlFields(displayReference) {
   };
 }
 
-function inferDataRole(row) {
+export function inferDataRole(row) {
   const layerId = row.layer_id.toLowerCase();
   const modelGroup = row.model_group.toLowerCase();
   const layerGroup = row.layer_group.toLowerCase();
 
   if (layerId === 'species') {
     return 'manifest_for_species_layers';
+  }
+  if (modelGroup.includes('referencia') || modelGroup.includes('reference')) {
+    return 'reference_layer';
   }
   if (modelGroup.includes('costo') || layerGroup.includes('costo')) {
     return 'cost_layer';
@@ -1974,7 +2016,10 @@ function inferDataRole(row) {
   return 'feature_layer';
 }
 
-function inferRoleInMetricCalculation(dataRole) {
+export function inferRoleInMetricCalculation(dataRole) {
+  if (dataRole === 'reference_layer') {
+    return 'none';
+  }
   if (dataRole === 'administrative_boundary') {
     return 'boundary_used_for_precomputed_metric_lookup';
   }
@@ -2172,13 +2217,18 @@ function buildReport({
 
   const excludedRows = allRows
     .filter((row) => !shouldIncludeManifestRow(row))
-    .map((row) => ({
-      layerId: row.layer_id,
-      displayName: splitMultilineLabel(row.layer_name)[0] || row.layer_name,
-      reason: isTrue(row.in_use_now)
-        ? 'row is not a display candidate'
-        : 'in_use_now is not TRUE and layer is not metric-audit allowlisted',
-    }));
+    .map((row) => {
+      const layerId = toLayerId(row.layer_id);
+      return {
+        layerId: row.layer_id,
+        displayName: splitMultilineLabel(row.layer_name)[0] || row.layer_name,
+        reason: redistributionBlockedLayerIds.has(layerId)
+          ? 'public redistribution requires documented written permission'
+          : isTrue(row.in_use_now)
+            ? 'row is not a display candidate'
+            : 'in_use_now is not TRUE and layer is not metric-audit allowlisted',
+      };
+    });
 
   const includedRowMetadataGaps = includedRows
     .map((row) => {
@@ -2225,6 +2275,7 @@ function buildReport({
       includedRows:
         'Rows with en_uso_actual / in_use_now set to TRUE, plus metric-audit allowlisted layers needed for finalized metrics review',
       metricAuditAllowlistedLayerIds: [...metricAuditLayerIds],
+      redistributionBlockedLayerIds: [...redistributionBlockedLayerIds],
       speciesHandling:
         'Species rasters are represented as one collection pointer, not one layer per TIFF',
       liveManifest:

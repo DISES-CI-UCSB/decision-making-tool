@@ -1,11 +1,59 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import {
+  createDeterministicReferenceDisplayReference,
+  createReferenceMetadataUrl,
   getCategoryPalette,
+  inferDataRole,
+  inferRoleInMetricCalculation,
   pickRenderingForLayer,
   preserveExistingDisplayReference,
   preserveReleaseLayerRendering,
+  shouldIncludeManifestRow,
 } from './generate-manifest.mjs';
+
+describe('display-only reference layers', () => {
+  it('assigns a non-metric reference role from the bilingual model group', () => {
+    const row = {
+      layer_id: 'ramsar',
+      model_group: 'referencia\nreference',
+      layer_group: 'Ecosistemas estratégicos',
+    };
+
+    assert.strictEqual(inferDataRole(row), 'reference_layer');
+    assert.strictEqual(inferRoleInMetricCalculation('reference_layer'), 'none');
+  });
+
+  it('builds a deterministic public GeoJSON URL before the asset exists', () => {
+    assert.deepStrictEqual(
+      createDeterministicReferenceDisplayReference('inputs/reference/ramsar/v0.1.0/ramsar.geojson'),
+      {
+        status: 'matched',
+        type: 'file',
+        url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/ramsar/v0.1.0/ramsar.geojson',
+        blobPath: 'inputs/reference/ramsar/v0.1.0/ramsar.geojson',
+      },
+    );
+  });
+
+  it('registers immutable pipeline provenance metadata beside the GeoJSON', () => {
+    assert.strictEqual(
+      createReferenceMetadataUrl('inputs/reference/ramsar/v0.1.0/ramsar.geojson'),
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/ramsar/v0.1.0/ramsar.metadata.json',
+    );
+  });
+
+  it('fails closed for KBA even if spreadsheet visibility is accidentally enabled', () => {
+    assert.strictEqual(
+      shouldIncludeManifestRow({
+        layer_id: 'kba_aica',
+        in_use_now: 'TRUE',
+        data_format: 'GeoJSON',
+      }),
+      false,
+    );
+  });
+});
 
 describe('preserveExistingDisplayReference', () => {
   it('keeps a published display URL when the legacy CSV path cannot be reconciled', () => {
