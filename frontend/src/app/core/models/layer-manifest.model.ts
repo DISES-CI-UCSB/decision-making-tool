@@ -83,6 +83,9 @@ export interface RuntimeLayerManifest {
   generatedAt: string;
   publicBlobHost: string;
   sourceCsv: string;
+  releaseId?: string;
+  catalogVersion?: string;
+  solutionDataProfile?: 'runtime-compact-v1';
   manualEdit?: RuntimeLayerManifestManualEdit;
   referenceData?: RuntimeLayerManifestReferenceData;
   categories: RuntimeLayerManifestCategory[];
@@ -222,6 +225,7 @@ export interface RuntimeSolutionManifestEntry {
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;
   summaryMetrics: RuntimeSolutionManifestSummaryMetrics;
+  /** Empty in runtime-compact-v1; full per-feature analysis remains in frozen source metadata. */
   coverage: RuntimeSolutionManifestCoverageRow[];
   rendering: RuntimeLayerManifestRenderingConfig;
 }

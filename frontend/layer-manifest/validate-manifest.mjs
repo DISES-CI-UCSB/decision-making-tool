@@ -194,6 +194,7 @@ const LIVE_METRIC_CALCULATION_ROLES = [
 const RENDER_VALUE_TYPES = ['binary', 'categorical', 'continuous'];
 const RENDER_MODES = ['mask', 'gradient', 'categorical'];
 const SOLUTION_DOMAINS = ['land', 'marine'];
+const SOLUTION_DATA_PROFILES = ['runtime-compact-v1'];
 const MEC_GEOGRAPHY_LEVELS = [
   'national',
   'departments',
@@ -273,6 +274,9 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       manifest.publicBlobHost === PUBLIC_BLOB_HOST,
       `release publicBlobHost must equal the configured Blob host "${PUBLIC_BLOB_HOST}"`,
     );
+  }
+  if ('solutionDataProfile' in manifest) {
+    assertOneOf(manifest.solutionDataProfile, SOLUTION_DATA_PROFILES, 'solutionDataProfile');
   }
   if ('manualEdit' in manifest && manifest.manualEdit !== undefined) {
     assert(
@@ -518,6 +522,16 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
 
   const solutionIds = manifest.solutions.map((solution, index) => {
     validateSolution(solution, index, remoteDisplayUrls, options);
+    if (manifest.solutionDataProfile === 'runtime-compact-v1') {
+      assert(
+        solution.coverage.length === 0,
+        `solutions[${index}].coverage must be empty for runtime-compact-v1`,
+      );
+      assert(
+        solution.finderInputs.structuredTargets,
+        `solutions[${index}].finderInputs.structuredTargets is required for runtime-compact-v1`,
+      );
+    }
     return solution.id;
   });
 
@@ -725,7 +739,10 @@ function validateSolutionSummaryMetrics(summaryMetrics, label) {
   assertNumberOrNull(summaryMetrics.nSelected, `${label}.nSelected`);
   assertNumberOrNull(summaryMetrics.totalCost, `${label}.totalCost`);
   assertNumberOrNull(summaryMetrics.pctTargetsMet, `${label}.pctTargetsMet`);
-  assertNumberOrNull(summaryMetrics.coverageRowCount, `${label}.coverageRowCount`);
+  assert(
+    Number.isSafeInteger(summaryMetrics.coverageRowCount) && summaryMetrics.coverageRowCount >= 0,
+    `${label}.coverageRowCount must be a non-negative integer`,
+  );
 }
 
 function validateSolutionCoverage(coverage, label) {

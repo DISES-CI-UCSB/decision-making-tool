@@ -7,7 +7,9 @@ export function selectManifestSolutions({
   registeredSolutionBlobPrefixes = [],
   releaseId = null,
 }) {
-  const preservedPublishedSolutions = publishedSolutions(publishedManifestIndex);
+  const preservedPublishedSolutions = releaseId
+    ? []
+    : publishedSolutions(publishedManifestIndex);
   const registeredGeneratedSolutions = generatedSolutions.filter((solution) =>
     registeredSolutionBlobPrefixes.some((prefix) => solution.blobPath?.startsWith(prefix)),
   );

@@ -153,6 +153,56 @@ describe('catalog-driven release validation', () => {
   });
 });
 
+describe('runtime compact solution validation', () => {
+  it('accepts explicit coverage omission when structured targets are retained', async () => {
+    const manifest = createManifest();
+    manifest.solutionDataProfile = 'runtime-compact-v1';
+    manifest.solutions[0].finderInputs.structuredTargets = createStructuredTargets();
+
+    await assert.doesNotReject(validateManifest(manifest, 'manifest.json'));
+  });
+
+  it('rejects compact solutions that omit structured target semantics', async () => {
+    const manifest = createManifest();
+    manifest.solutionDataProfile = 'runtime-compact-v1';
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /finderInputs\.structuredTargets is required for runtime-compact-v1/,
+    );
+  });
+
+  it('rejects compact-profile manifests that still embed analysis coverage', async () => {
+    const manifest = createManifest();
+    manifest.solutionDataProfile = 'runtime-compact-v1';
+    manifest.solutions[0].finderInputs.structuredTargets = createStructuredTargets();
+    manifest.solutions[0].coverage.push({
+      feature: 'species-a',
+      met: true,
+      relativeTarget: 0.225,
+      relativeHeld: 0.3,
+      relativeShortfall: 0,
+    });
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /coverage must be empty for runtime-compact-v1/,
+    );
+  });
+});
+
+function createStructuredTargets() {
+  return {
+    format: 'solution-target-metadata-v1',
+    sourceEvaluation: 'prioritizr_model',
+    ecosystems: [],
+    strategicEcosystems: [],
+    ecosystemServices: [],
+    speciesRepresentation: [],
+    espRn: [{ featureId: 'species-a', targetPercent: 22.5 }],
+  };
+}
+
 function createMecUrls(directory = 'mec') {
   return Object.fromEntries(
     ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'].map((level) => [

@@ -104,6 +104,25 @@ describe('solution preservation policy', () => {
     );
   });
 
+  it('uses the frozen catalog instead of published solutions for a release', () => {
+    const result = selectManifestSolutions({
+      publishedManifestIndex: { manifest: { solutions: [published] } },
+      generatedSolutions: [generated],
+      existingManifestIndex: null,
+      releaseId: 'solutions-v0-2-0-20260805',
+    });
+
+    assert.deepStrictEqual(
+      result.solutions.map(({ id }) => id),
+      ['generated'],
+    );
+    assert.strictEqual(result.preservedPublishedSolutions.length, 0);
+    assert.match(
+      result.solutions[0].precomputedMetricUrls.compactCache,
+      /releases\/solutions-v0-2-0-20260805\/regular\/compact\/generated\.metrics\.compact\.json$/,
+    );
+  });
+
   it('falls back to existing solutions only when no newer catalog exists', () => {
     const result = selectManifestSolutions({
       publishedManifestIndex: null,
