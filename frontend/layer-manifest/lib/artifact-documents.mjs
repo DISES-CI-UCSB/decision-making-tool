@@ -6,6 +6,14 @@ const CATALOG_SIGNATURE_PATTERN = /^metrics-catalog-v4:[0-9a-f]{64}$/;
 const SCOPE_STATE_FORMAT = 'solution-raster-scope-state-v1';
 const BOUNDARY_PROVENANCE_FORMAT = 'boundary-provenance-v1';
 const SOLUTION_CATALOG_BINDING_FORMAT = 'solution-catalog-binding-v1';
+/** Mirror of Python `catalog_binding()`, which artifacts must match exactly. */
+const SOLUTION_CATALOG_BINDING_KEYS = new Set([
+  'format',
+  'releaseId',
+  'catalogVersion',
+  'catalogSha256',
+  'speciesException',
+]);
 const BOUNDARY_RASTERIZATION = {
   boundaryInclusion: 'pixel-center',
   allTouched: false,
@@ -134,6 +142,12 @@ const TARGET_DEPENDENT_SPECIES_METRIC_IDS = new Set([
   'species_groups_protected',
   'threatened_species_secured',
 ]);
+/**
+ * Mirror of `applicable_domains` on every species-kind MetricDefinition in Python
+ * (data/metrics/python/metrics_pipeline/metric_definitions.py). Species ranges come from
+ * the terrestrial BioModelos package, so marine solutions must report not_applicable.
+ */
+const SPECIES_METRIC_APPLICABLE_DOMAINS = new Set(['land']);
 const TARGET_POLICY_SOURCE = 'manifest:finderInputs.structuredTargets';
 
 function assert(condition, message) {
@@ -158,7 +172,7 @@ function assertExactKeys(record, expected, label) {
   );
 }
 
-export function validateArtifactDocument(document, expected, label = 'artifact') {
+export function validateArtifactDocument(document, expected, label = 'artifact', options = {}) {
   assert(isRecord(document), `${label} must be a JSON object`);
   assert(
     document.solutionId === expected.solutionId,
@@ -166,7 +180,7 @@ export function validateArtifactDocument(document, expected, label = 'artifact')
   );
 
   if (document.format === 'metrics-compact-v1') {
-    validateCompactMetricsDocument(document, label, expected);
+    validateCompactMetricsDocument(document, label, expected, options);
     return;
   }
   if (document.format === 'conservation-goals-v1') {
@@ -225,14 +239,17 @@ export function validateCompactMetricsDocument(
   document,
   label = 'compact metrics',
   expected = undefined,
+  options = {},
 ) {
   const context = validateRegularDocumentProvenance(document, label, expected);
   assert(
     isSha256(document.metricsProvenanceSha256),
     `${label}.metricsProvenanceSha256 must be a SHA-256`,
   );
+  const hashableProvenance =
+    options.numberLiteralDocument?.metricsProvenance ?? document.metricsProvenance;
   assert(
-    document.metricsProvenanceSha256 === sha256Canonical(document.metricsProvenance),
+    document.metricsProvenanceSha256 === sha256Canonical(hashableProvenance),
     `${label}.metricsProvenanceSha256 must match metricsProvenance`,
   );
   assert(
@@ -534,10 +551,19 @@ function validateSpeciesTargetPolicy(policy, expected, label) {
 
 function validateSpeciesMetricPolicy(metrics, scope, context, label) {
   if (scope.scopeState?.classification === 'empty') return;
+  const solutionDomain = context.provenance.solutionDomain;
+  const speciesApply = SPECIES_METRIC_APPLICABLE_DOMAINS.has(solutionDomain);
   const policyKind = context.provenance.speciesTargetPolicy?.kind ?? 'scalar';
   const hasException = isRecord(context.provenance.generationConfig?.speciesException);
   for (const metric of metrics) {
     if (!SPECIES_METRIC_IDS.has(metric.metricId)) continue;
+    if (!speciesApply) {
+      assert(
+        metric.status === 'not_applicable',
+        `${label} ${metric.metricId} must be not_applicable for the ${solutionDomain} solution domain`,
+      );
+      continue;
+    }
     if (
       policyKind === 'dual_reference' &&
       TARGET_DEPENDENT_SPECIES_METRIC_IDS.has(metric.metricId)
@@ -634,6 +660,13 @@ function validateSolutionCatalogBinding(binding, label, expected) {
     binding.format === SOLUTION_CATALOG_BINDING_FORMAT,
     `${label}.solutionCatalogBinding.format is invalid`,
   );
+  const unknownBindingKeys = Object.keys(binding).filter(
+    (key) => !SOLUTION_CATALOG_BINDING_KEYS.has(key),
+  );
+  assert(
+    unknownBindingKeys.length === 0,
+    `${label}.solutionCatalogBinding has unknown keys: ${unknownBindingKeys.sort().join(', ')}`,
+  );
   assert(
     isNonEmptyString(binding.releaseId),
     `${label}.solutionCatalogBinding.releaseId is invalid`,
@@ -657,6 +690,13 @@ function validateSolutionCatalogBinding(binding, label, expected) {
         `${label}.solutionCatalogBinding.${field} must match release catalog provenance`,
       );
     }
+  }
+  if (expected?.catalogSpeciesException !== undefined) {
+    assert(
+      canonicalJson(binding.speciesException ?? null) ===
+        canonicalJson(expected.catalogSpeciesException ?? null),
+      `${label}.solutionCatalogBinding.speciesException must match the release catalog exception`,
+    );
   }
 }
 
@@ -972,10 +1012,35 @@ function recordsEqual(actual, expected) {
 }
 
 function sha256Canonical(value) {
-  return createHash('sha256').update(canonicalJson(value)).digest('hex');
+  return createHash('sha256').update(canonicalJson(value), 'utf-8').digest('hex');
 }
 
-function canonicalJson(value) {
+/**
+ * Carries a number exactly as the source document spelled it.
+ *
+ * Python distinguishes `0` from `0.0` and `json.dumps` preserves that in the canonical
+ * form it hashes, but `JSON.parse` collapses both to the JavaScript number `0`, which
+ * `JSON.stringify` renders as `0`. A digest Python embedded in an artifact is therefore
+ * only reproducible from the artifact's original number literals.
+ */
+class NumberLiteral {
+  constructor(literal) {
+    this.literal = literal;
+  }
+}
+
+export function parseWithNumberLiterals(sourceText) {
+  return JSON.parse(sourceText, (key, value, context) =>
+    typeof value === 'number' && context.source !== String(value)
+      ? new NumberLiteral(context.source)
+      : value,
+  );
+}
+
+export function canonicalJson(value) {
+  if (value instanceof NumberLiteral) {
+    return value.literal;
+  }
   if (Array.isArray(value)) {
     return `[${value.map(canonicalJson).join(',')}]`;
   }

@@ -3,6 +3,41 @@ import { createHash } from 'node:crypto';
 import { PUBLIC_BLOB_HOST } from '../../shared/runtime-manifest.constants.mjs';
 
 export const SOLUTION_CATALOG_FORMAT = 'solution-catalog-v1';
+export const SPECIES_EXCEPTION_BINDING_FORMAT = 'release-species-exception-binding-v1';
+export const SPECIES_EXCEPTION_POLICY_FORMAT = 'release-species-exception-v1';
+
+/**
+ * The catalog identity digest is defined by Python's `SolutionCatalog.to_dict()`
+ * (data/metrics/python/metrics_pipeline/solution_catalog.py), whose frozen dataclass
+ * keeps exactly these keys and drops everything else before hashing. Adding a key
+ * to the catalog contract therefore requires updating both runtimes together, so
+ * unknown keys are rejected rather than silently excluded from the digest.
+ */
+export const CATALOG_KEYS = new Set([
+  'format',
+  'catalogVersion',
+  'releaseId',
+  'expectedSolutionCount',
+  'expectedLandSolutionCount',
+  'expectedMarineSolutionCount',
+  'solutions',
+  'speciesException',
+]);
+export const SOLUTION_ENTRY_KEYS = new Set([
+  'solutionId',
+  'solutionBasename',
+  'domain',
+  'rasterSha256',
+]);
+export const SPECIES_EXCEPTION_KEYS = new Set([
+  'format',
+  'policyFormat',
+  'policyId',
+  'policySha256',
+  'catalogTotal',
+  'availableExpected',
+  'excluded',
+]);
 
 const RELEASE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SEMVER_PATTERN =
@@ -28,6 +63,43 @@ function assertCount(value, label) {
   assert(Number.isSafeInteger(value) && value >= 0, `${label} must be a non-negative integer`);
 }
 
+function assertKnownKeys(value, allowed, label) {
+  const unknown = Object.keys(value).filter((key) => !allowed.has(key));
+  assert(
+    unknown.length === 0,
+    `${label} contains unknown keys not covered by the catalog identity digest: ${unknown.sort().join(', ')}`,
+  );
+}
+
+function assertExactCount(value, expected, label) {
+  assert(value === expected, `${label} must be ${expected}`);
+}
+
+function validateSpeciesExceptionBinding(binding, label) {
+  assert(
+    binding && typeof binding === 'object' && !Array.isArray(binding),
+    `${label} must be an object`,
+  );
+  assertKnownKeys(binding, SPECIES_EXCEPTION_KEYS, label);
+  for (const key of SPECIES_EXCEPTION_KEYS) {
+    assert(key in binding, `${label}.${key} is required`);
+  }
+  assertExactCount(binding.format, SPECIES_EXCEPTION_BINDING_FORMAT, `${label}.format`);
+  assertExactCount(binding.policyFormat, SPECIES_EXCEPTION_POLICY_FORMAT, `${label}.policyFormat`);
+  assertNonEmptyString(binding.policyId, `${label}.policyId`);
+  assert(
+    typeof binding.policySha256 === 'string' && SHA256_PATTERN.test(binding.policySha256),
+    `${label}.policySha256 must be a lowercase SHA-256 hex digest`,
+  );
+  for (const key of ['catalogTotal', 'availableExpected', 'excluded']) {
+    assertCount(binding[key], `${label}.${key}`);
+  }
+  assert(
+    binding.availableExpected + binding.excluded === binding.catalogTotal,
+    `${label}.catalogTotal must equal availableExpected + excluded`,
+  );
+}
+
 function catalogCounts(catalog) {
   const total = catalog.expectedSolutionCount;
   const land = catalog.expectedLandSolutionCount;
@@ -51,6 +123,7 @@ export function validateSolutionCatalog(catalog) {
     catalog.format === SOLUTION_CATALOG_FORMAT,
     `catalog.format must be "${SOLUTION_CATALOG_FORMAT}"`,
   );
+  assertKnownKeys(catalog, CATALOG_KEYS, 'catalog');
   assertNonEmptyString(catalog.catalogVersion, 'catalog.catalogVersion');
   assert(
     SEMVER_PATTERN.test(catalog.catalogVersion),
@@ -77,6 +150,7 @@ export function validateSolutionCatalog(catalog) {
       solution && typeof solution === 'object' && !Array.isArray(solution),
       `${label} must be an object`,
     );
+    assertKnownKeys(solution, SOLUTION_ENTRY_KEYS, label);
     assertNonEmptyString(solution.solutionId, `${label}.solutionId`);
     assertNonEmptyString(solution.solutionBasename, `${label}.solutionBasename`);
     assert(
@@ -131,7 +205,19 @@ export function validateSolutionCatalog(catalog) {
     `catalog expectedMarineSolutionCount is ${counts.marine}, but solutions contains ${marineCount} marine entries`,
   );
 
+  if (hasSpeciesException(catalog)) {
+    validateSpeciesExceptionBinding(catalog.speciesException, 'catalog.speciesException');
+  }
+
   return catalog;
+}
+
+/**
+ * Python treats a missing and an explicitly null `speciesException` identically:
+ * `raw.get("speciesException")` yields None and `to_dict()` omits the key.
+ */
+function hasSpeciesException(catalog) {
+  return catalog.speciesException !== undefined && catalog.speciesException !== null;
 }
 
 export function validateManifestAgainstCatalog(manifest, catalog) {
@@ -215,9 +301,14 @@ export async function readSolutionCatalog(catalogPath) {
   return validateSolutionCatalog(catalog);
 }
 
-export function solutionCatalogSha256(catalog) {
+/**
+ * Mirror of Python `SolutionCatalog.to_dict()`. This projection, not the catalog file
+ * on disk, is the hashed identity document: Python rebuilds it from its dataclass, so
+ * JavaScript must project the same keys instead of hashing the parsed file wholesale.
+ */
+export function canonicalSolutionCatalogDocument(catalog) {
   validateSolutionCatalog(catalog);
-  const canonicalCatalog = {
+  const document = {
     format: SOLUTION_CATALOG_FORMAT,
     catalogVersion: catalog.catalogVersion,
     releaseId: catalog.releaseId,
@@ -231,7 +322,16 @@ export function solutionCatalogSha256(catalog) {
       rasterSha256: solution.rasterSha256,
     })),
   };
-  return createHash('sha256').update(canonicalJson(canonicalCatalog)).digest('hex');
+  if (hasSpeciesException(catalog)) {
+    document.speciesException = catalog.speciesException;
+  }
+  return document;
+}
+
+export function solutionCatalogSha256(catalog) {
+  return createHash('sha256')
+    .update(canonicalJson(canonicalSolutionCatalogDocument(catalog)), 'utf-8')
+    .digest('hex');
 }
 
 function solutionDomain(solution) {

@@ -1,9 +1,12 @@
 import { strict as assert } from 'node:assert';
+import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  canonicalJson,
+  parseWithNumberLiterals,
   validateArtifactDocument,
   validateCompactMetricsDocument,
   validateGoalsDocument,
@@ -298,6 +301,93 @@ describe('release artifact document validation', () => {
     );
   });
 });
+
+describe('species metric domain applicability', () => {
+  it('requires marine solutions to report species metrics as not_applicable', () => {
+    const marine = createSpeciesDocument('marine', 'not_applicable');
+    assert.doesNotThrow(() => validateVerboseMetricsDocument(marine));
+
+    const marineWithValue = createSpeciesDocument('marine', 'ready');
+    assert.throws(
+      () => validateVerboseMetricsDocument(marineWithValue),
+      /species_groups_protected must be not_applicable for the marine solution domain/,
+    );
+  });
+
+  it('still forbids not_applicable species metrics on land solutions', () => {
+    const land = createSpeciesDocument('land', 'not_applicable');
+    assert.throws(
+      () => validateVerboseMetricsDocument(land),
+      /species_groups_protected must not be not_applicable/,
+    );
+    assert.doesNotThrow(() =>
+      validateVerboseMetricsDocument(createSpeciesDocument('land', 'ready')),
+    );
+  });
+});
+
+describe('Python float literal canonicalization', () => {
+  it('reproduces a provenance digest Python computed over float-typed zeros', () => {
+    const provenance = structuredClone(COMPACT_FIXTURE.metricsProvenance);
+    provenance.generationConfig = {
+      ...provenance.generationConfig,
+      speciesAreaKm2: 0,
+      speciesCount: 0,
+    };
+    const document = {
+      ...compactFixture(),
+      metricsProvenance: provenance,
+    };
+    // Python would emit `0.0` for the float and `0` for the integer.
+    const sourceText = JSON.stringify(document).replace(
+      '"speciesAreaKm2":0',
+      '"speciesAreaKm2":0.0',
+    );
+    const numberLiteralDocument = parseWithNumberLiterals(sourceText);
+    document.metricsProvenanceSha256 = pythonStyleProvenanceSha256(sourceText);
+
+    assert.throws(
+      () => validateCompactMetricsDocument(document),
+      /must match metricsProvenance/,
+      'plain JSON.parse must not be able to reproduce the Python digest',
+    );
+    assert.doesNotThrow(() =>
+      validateCompactMetricsDocument(document, 'compact metrics', undefined, {
+        numberLiteralDocument,
+      }),
+    );
+  });
+
+  it('leaves digests unchanged when no number literal needs preserving', () => {
+    const document = compactFixture();
+    assert.doesNotThrow(() =>
+      validateCompactMetricsDocument(document, 'compact metrics', undefined, {
+        numberLiteralDocument: parseWithNumberLiterals(JSON.stringify(document)),
+      }),
+    );
+  });
+});
+
+function createSpeciesDocument(solutionDomain, speciesStatus) {
+  const document = createVerboseDocument();
+  document.metricsProvenance.solutionDomain = solutionDomain;
+  document.geographies = createGeographies(() => [
+    {
+      metricId: 'species_groups_protected',
+      value: speciesStatus === 'ready' ? 12 : null,
+      status: speciesStatus,
+      unit: 'count',
+      labelKey: 'metric.species_groups_protected',
+    },
+  ]);
+  return document;
+}
+
+/** Canonical SHA-256 of `metricsProvenance` the way Python's json.dumps would render it. */
+function pythonStyleProvenanceSha256(sourceText) {
+  const canonical = canonicalJson(parseWithNumberLiterals(sourceText).metricsProvenance);
+  return createHash('sha256').update(canonical, 'utf-8').digest('hex');
+}
 
 function createVerboseDocument() {
   return {

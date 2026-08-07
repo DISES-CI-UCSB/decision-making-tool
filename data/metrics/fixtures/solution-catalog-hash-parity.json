@@ -1,0 +1,196 @@
+{
+  "format": "solution-catalog-hash-parity-v1",
+  "description": "Cross-runtime parity fixture for the solution catalog identity digest. expectedSha256 values are produced by Python SolutionCatalog.sha256, which is authoritative because it is baked into published immutable release artifacts. Both data/metrics/python/tests/test_solution_catalog_hash_parity.py and frontend/layer-manifest/lib/solution-catalog-hash-parity.spec.mjs assert against these digests, so a canonicalization change in either runtime fails loudly.",
+  "contract": {
+    "catalogKeys": [
+      "catalogVersion",
+      "expectedLandSolutionCount",
+      "expectedMarineSolutionCount",
+      "expectedSolutionCount",
+      "format",
+      "releaseId",
+      "solutions",
+      "speciesException"
+    ],
+    "solutionEntryKeys": [
+      "domain",
+      "rasterSha256",
+      "solutionBasename",
+      "solutionId"
+    ],
+    "speciesExceptionKeys": [
+      "availableExpected",
+      "catalogTotal",
+      "excluded",
+      "format",
+      "policyFormat",
+      "policyId",
+      "policySha256"
+    ]
+  },
+  "cases": [
+    {
+      "name": "with-species-exception",
+      "description": "Catalog carrying the documented BioModelos species exception block.",
+      "expectedSha256": "13033f15f6e543644f986b6ff6cdc70453cf2c741ddac45feb2676400ab932dc",
+      "catalog": {
+        "format": "solution-catalog-v1",
+        "catalogVersion": "0.2.0",
+        "releaseId": "parity-fixture-release",
+        "expectedSolutionCount": 2,
+        "expectedLandSolutionCount": 1,
+        "expectedMarineSolutionCount": 1,
+        "solutions": [
+          {
+            "solutionId": "land_solution",
+            "solutionBasename": "land_solution.tif",
+            "domain": "land",
+            "rasterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "solutionId": "marine_solution",
+            "solutionBasename": "marine_solution.tif",
+            "domain": "marine",
+            "rasterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "speciesException": {
+          "format": "release-species-exception-binding-v1",
+          "policyFormat": "release-species-exception-v1",
+          "policyId": "solutions-v0-2-0-20260805-upstream-source-missing-v1",
+          "policySha256": "4b416592a9099d612889a33b6dd8567dfe25410316c6e97dfece819c8b23a977",
+          "catalogTotal": 8300,
+          "availableExpected": 8298,
+          "excluded": 2
+        }
+      }
+    },
+    {
+      "name": "without-species-exception",
+      "description": "Catalog with no speciesException key at all.",
+      "expectedSha256": "76b2f281b9ff7a260047fab9dcccb8e14f53fd56dd80a893cdc2310b6cd4ee75",
+      "catalog": {
+        "format": "solution-catalog-v1",
+        "catalogVersion": "0.2.0",
+        "releaseId": "parity-fixture-release",
+        "expectedSolutionCount": 2,
+        "expectedLandSolutionCount": 1,
+        "expectedMarineSolutionCount": 1,
+        "solutions": [
+          {
+            "solutionId": "land_solution",
+            "solutionBasename": "land_solution.tif",
+            "domain": "land",
+            "rasterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "solutionId": "marine_solution",
+            "solutionBasename": "marine_solution.tif",
+            "domain": "marine",
+            "rasterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null-species-exception",
+      "description": "Explicit null speciesException must hash identically to an absent one.",
+      "expectedSha256": "76b2f281b9ff7a260047fab9dcccb8e14f53fd56dd80a893cdc2310b6cd4ee75",
+      "catalog": {
+        "format": "solution-catalog-v1",
+        "catalogVersion": "0.2.0",
+        "releaseId": "parity-fixture-release",
+        "expectedSolutionCount": 2,
+        "expectedLandSolutionCount": 1,
+        "expectedMarineSolutionCount": 1,
+        "solutions": [
+          {
+            "solutionId": "land_solution",
+            "solutionBasename": "land_solution.tif",
+            "domain": "land",
+            "rasterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "solutionId": "marine_solution",
+            "solutionBasename": "marine_solution.tif",
+            "domain": "marine",
+            "rasterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "speciesException": null
+      }
+    },
+    {
+      "name": "unicode-strings",
+      "description": "Non-ASCII solution basenames and policy id (ensure_ascii=False parity).",
+      "expectedSha256": "1ee426fcefdbadea0c248fa20c2ef1903ebb261ec7ab316512d00b7f7ef19716",
+      "catalog": {
+        "format": "solution-catalog-v1",
+        "catalogVersion": "0.2.0",
+        "releaseId": "parity-fixture-release",
+        "expectedSolutionCount": 2,
+        "expectedLandSolutionCount": 1,
+        "expectedMarineSolutionCount": 1,
+        "solutions": [
+          {
+            "solutionId": "paramo_solution",
+            "solutionBasename": "páramo_conservación_ñu.tif",
+            "domain": "land",
+            "rasterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "solutionId": "zzz_marine",
+            "solutionBasename": "Región_Caribe_—_área_marina_🐟.tif",
+            "domain": "marine",
+            "rasterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "speciesException": {
+          "format": "release-species-exception-binding-v1",
+          "policyFormat": "release-species-exception-v1",
+          "policyId": "excepción-especies-ñ-🐆-v1",
+          "policySha256": "4b416592a9099d612889a33b6dd8567dfe25410316c6e97dfece819c8b23a977",
+          "catalogTotal": 8300,
+          "availableExpected": 8298,
+          "excluded": 2
+        }
+      }
+    },
+    {
+      "name": "reversed-key-insertion-order",
+      "description": "Reverse-ordered keys must hash identically to sorted insertion order.",
+      "expectedSha256": "13033f15f6e543644f986b6ff6cdc70453cf2c741ddac45feb2676400ab932dc",
+      "catalog": {
+        "speciesException": {
+          "policySha256": "4b416592a9099d612889a33b6dd8567dfe25410316c6e97dfece819c8b23a977",
+          "policyId": "solutions-v0-2-0-20260805-upstream-source-missing-v1",
+          "policyFormat": "release-species-exception-v1",
+          "format": "release-species-exception-binding-v1",
+          "excluded": 2,
+          "catalogTotal": 8300,
+          "availableExpected": 8298
+        },
+        "solutions": [
+          {
+            "solutionId": "land_solution",
+            "solutionBasename": "land_solution.tif",
+            "rasterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "domain": "land"
+          },
+          {
+            "solutionId": "marine_solution",
+            "solutionBasename": "marine_solution.tif",
+            "rasterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "domain": "marine"
+          }
+        ],
+        "releaseId": "parity-fixture-release",
+        "format": "solution-catalog-v1",
+        "expectedSolutionCount": 2,
+        "expectedMarineSolutionCount": 1,
+        "expectedLandSolutionCount": 1,
+        "catalogVersion": "0.2.0"
+      }
+    }
+  ]
+}

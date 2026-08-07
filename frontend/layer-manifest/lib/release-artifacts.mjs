@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateArtifactDocument } from './artifact-documents.mjs';
+import { parseWithNumberLiterals, validateArtifactDocument } from './artifact-documents.mjs';
 import { solutionCatalogSha256 } from './solution-catalog.mjs';
 
 export const ARTIFACT_VERIFICATION_FORMAT = 'metric-artifact-verification-v1';
@@ -51,7 +51,8 @@ export async function validatePublishSummaryArtifacts(verification, summary, lab
             createHash('sha256').update(artifactBytes).digest('hex'),
         `${entryLabel} current local bytes must match the verified inventory checksum`,
       );
-      const document = JSON.parse(artifactBytes.toString('utf-8'));
+      const artifactText = artifactBytes.toString('utf-8');
+      const document = JSON.parse(artifactText);
       const documentFormat = document.format ?? 'metrics-verbose-v1';
       assert(
         verificationEntry?.format === documentFormat,
@@ -76,9 +77,16 @@ export async function validatePublishSummaryArtifacts(verification, summary, lab
           releaseId: catalog?.releaseId,
           catalogVersion: catalog?.catalogVersion,
           catalogSha256,
+          catalogSpeciesException: catalog?.speciesException,
           speciesTargetPolicyEvidence: entry.speciesTargetPolicyEvidence,
         },
         entryLabel,
+        {
+          numberLiteralDocument:
+            documentFormat === 'metrics-compact-v1'
+              ? parseWithNumberLiterals(artifactText)
+              : undefined,
+        },
       );
     }),
   );
