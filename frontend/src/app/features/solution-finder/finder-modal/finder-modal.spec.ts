@@ -44,8 +44,8 @@ describe('FinderModalComponent', () => {
 
     expect(compiled.querySelector('#solution-finder-modal-targets-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2a-column')).not.toBeNull();
-    expect(compiled.querySelector('#solution-finder-modal-step2a-row-comunidades')).not.toBeNull();
-    expect(compiled.querySelector('#solution-finder-modal-step2a-row-resguardos')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-step2a-row-comunidades')).toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-step2a-row-resguardos')).toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2b-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-results-column')).toBeNull();
   });
@@ -108,6 +108,23 @@ describe('FinderModalComponent', () => {
     );
   });
 
+  it('renders ecosystem services as an available target option', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-step1-target-type-card-ecosystem-services',
+    );
+
+    expect(card?.getAttribute('role')).toBe('button');
+    expect(card?.getAttribute('aria-disabled')).toBe('false');
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-step1-target-type-missing-badge-ecosystem-services',
+      ),
+    ).toBeNull();
+  });
+
   it('restores remembered finder selections from app state', () => {
     const appState = TestBed.inject(AppStateService);
     appState.setFinderSelectionMemory({
@@ -130,7 +147,6 @@ describe('FinderModalComponent', () => {
       selectedTargetTypeIds: string[];
       targetLevelByType: Record<string, 17 | 30>;
       includeOmecs: boolean;
-      includeResguardos: boolean;
       selectedCostLayerId: string | null;
     };
 
@@ -138,7 +154,6 @@ describe('FinderModalComponent', () => {
     expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
     expect(component.targetLevelByType).toEqual({ ecosystems: 30 });
     expect(component.includeOmecs).toBe(true);
-    expect(component.includeResguardos).toBe(true);
     expect(component.selectedCostLayerId).toBe('human-footprint');
   });
 
@@ -326,16 +341,16 @@ describe('FinderModalComponent', () => {
         labelKey: 'solutionControls.finder.step2a.includeOmecsSourceLabel',
       },
       {
-        id: 'solution-finder-modal-step2a-row-comunidades-source-link',
-        labelKey: 'solutionControls.finder.step2a.includeComunidadesSourceLabel',
-      },
-      {
-        id: 'solution-finder-modal-step2a-row-resguardos-source-link',
-        labelKey: 'solutionControls.finder.step2a.includeResguardosSourceLabel',
-      },
-      {
         id: 'solution-finder-modal-step2a-always-runap-source-link',
         labelKey: 'solutionControls.finder.step2a.alwaysRunapSourceLabel',
+      },
+      {
+        id: 'solution-finder-modal-step1-target-type-source-link-ecosystem-services-0',
+        labelKey: 'solutionControls.finder.step1.ecosystemServicesCarbonSourceLabel',
+      },
+      {
+        id: 'solution-finder-modal-step1-target-type-source-link-ecosystem-services-1',
+        labelKey: 'solutionControls.finder.step1.ecosystemServicesWaterSourceLabel',
       },
     ];
 
@@ -542,71 +557,41 @@ describe('FinderModalComponent', () => {
     expect(component.selectedMatch?.solutionId).toBe('ecos30_runap_hf');
   });
 
-  it.each([
-    {
-      description: 'neither cultural territory layer',
-      includeComunidades: false,
-      includeResguardos: false,
-      expectedSolutionId: 'ecos30_runap_hf',
-    },
-    {
-      description: 'community councils for Black communities only',
-      includeComunidades: true,
-      includeResguardos: false,
-      expectedSolutionId: 'ecos30_runap_com_hf',
-    },
-    {
-      description: 'Indigenous reserves only',
-      includeComunidades: false,
-      includeResguardos: true,
-      expectedSolutionId: 'ecos30_runap_res_hf',
-    },
-    {
-      description: 'both cultural territory layers',
-      includeComunidades: true,
-      includeResguardos: true,
-      expectedSolutionId: 'ecos30_runap_com_res_hf',
-    },
-  ])(
-    'matches $description independently',
-    ({ includeComunidades, includeResguardos, expectedSolutionId }) => {
+  it.each([17, 30] as const)(
+    'matches the representable %i%% ecosystem-services release solution only for IHEH 2022',
+    (targetPercent) => {
       vi.useFakeTimers();
+      const structuredTargets = buildReleaseServiceTargets(targetPercent);
       catalog.getAll.mockReturnValue([
         buildSolution({
-          id: 'ecos30_runap_hf',
-          name: 'Ecos30+RUNAP_HF',
-          targetFeatureSet: 'ecosystems',
-          targetFeatureIds: ['ecosistemas'],
-          targetPercent: null,
-          costLayerId: 'human_footprint_2022',
+          id: `eco17_estr30_serv${targetPercent}_esprep${targetPercent}_runap_iheh2022`,
+          name: `Eco17+Estr30+Serv${targetPercent}+EspRep${targetPercent}+RUNAP_IHEH2022`,
+          targetFeatureSet: 'species',
+          targetFeatureIds: [
+            'ecosystems',
+            'strategic_ecosystems',
+            'species_representation',
+            'ecosystem_services',
+          ],
+          targetPercent: 17,
+          structuredTargets,
+          costLayerId: 'iheh_2022',
           includeLayerIds: ['runap'],
         }),
         buildSolution({
-          id: 'ecos30_runap_com_hf',
-          name: 'Ecos30+RUNAP+Com_HF',
-          targetFeatureSet: 'ecosystems',
-          targetFeatureIds: ['ecosistemas'],
-          targetPercent: null,
-          costLayerId: 'human_footprint_2022',
-          includeLayerIds: ['runap', 'comunidades'],
-        }),
-        buildSolution({
-          id: 'ecos30_runap_res_hf',
-          name: 'Ecos30+RUNAP+Res_HF',
-          targetFeatureSet: 'ecosystems',
-          targetFeatureIds: ['ecosistemas'],
-          targetPercent: null,
-          costLayerId: 'human_footprint_2022',
-          includeLayerIds: ['runap', 'resguardos'],
-        }),
-        buildSolution({
-          id: 'ecos30_runap_com_res_hf',
-          name: 'Ecos30+RUNAP+Com+Res_HF',
-          targetFeatureSet: 'ecosystems',
-          targetFeatureIds: ['ecosistemas'],
-          targetPercent: null,
-          costLayerId: 'human_footprint_2022',
-          includeLayerIds: ['runap', 'comunidades', 'resguardos'],
+          id: `eco17_estr30_serv${targetPercent}_esprep${targetPercent}_runap_iheh2030`,
+          name: `Eco17+Estr30+Serv${targetPercent}+EspRep${targetPercent}+RUNAP_IHEH2030`,
+          targetFeatureSet: 'species',
+          targetFeatureIds: [
+            'ecosystems',
+            'strategic_ecosystems',
+            'species_representation',
+            'ecosystem_services',
+          ],
+          targetPercent: 17,
+          structuredTargets,
+          costLayerId: 'iheh_2030',
+          includeLayerIds: ['runap'],
         }),
       ]);
       const fixture = TestBed.createComponent(FinderModalComponent);
@@ -614,23 +599,80 @@ describe('FinderModalComponent', () => {
         selectedTargetTypeIds: string[];
         targetLevelByType: Record<string, 17 | 30>;
         selectedCostLayerId: string;
-        includeComunidades: boolean;
-        includeResguardos: boolean;
         runMatching: () => void;
         matchResults: { solutionId: string }[];
       };
 
-      component.selectedTargetTypeIds = ['ecosystems'];
-      component.targetLevelByType = { ecosystems: 30 };
+      component.selectedTargetTypeIds = [
+        'ecosystems',
+        'strategic-ecosystems',
+        'species-richness',
+        'ecosystem-services',
+      ];
+      component.targetLevelByType = {
+        ecosystems: 17,
+        'strategic-ecosystems': 30,
+        'species-richness': targetPercent,
+        'ecosystem-services': targetPercent,
+      };
       component.selectedCostLayerId = 'human-footprint';
-      component.includeComunidades = includeComunidades;
-      component.includeResguardos = includeResguardos;
       component.runMatching();
       vi.advanceTimersByTime(350);
 
-      expect(component.matchResults.map((match) => match.solutionId)).toEqual([expectedSolutionId]);
+      expect(component.matchResults.map((match) => match.solutionId)).toEqual([
+        `eco17_estr30_serv${targetPercent}_esprep${targetPercent}_runap_iheh2022`,
+      ]);
     },
   );
+
+  it('excludes retired cultural-territory variants from finder matches', () => {
+    vi.useFakeTimers();
+    catalog.getAll.mockReturnValue([
+      buildSolution({
+        id: 'ecos30_runap_hf',
+        name: 'Ecos30+RUNAP_HF',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: null,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap'],
+      }),
+      buildSolution({
+        id: 'ecos30_runap_com_hf',
+        name: 'Ecos30+RUNAP+Com_HF',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: null,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap', 'comunidades'],
+      }),
+      buildSolution({
+        id: 'ecos30_runap_res_hf',
+        name: 'Ecos30+RUNAP+Res_HF',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: null,
+        costLayerId: 'human_footprint_2022',
+        includeLayerIds: ['runap', 'resguardos'],
+      }),
+    ]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      selectedCostLayerId: string;
+      runMatching: () => void;
+      matchResults: { solutionId: string }[];
+    };
+
+    component.selectedTargetTypeIds = ['ecosystems'];
+    component.targetLevelByType = { ecosystems: 30 };
+    component.selectedCostLayerId = 'human-footprint';
+    component.runMatching();
+    vi.advanceTimersByTime(350);
+
+    expect(component.matchResults.map((match) => match.solutionId)).toEqual(['ecos30_runap_hf']);
+  });
 
   it('matches net benefit solutions when the net benefit cost layer is selected', () => {
     vi.useFakeTimers();
@@ -923,6 +965,7 @@ function buildSolution(
     targetFeatureSet: string;
     targetFeatureIds: string[];
     targetPercent: number | null;
+    structuredTargets?: NonNullable<CatalogSolution['finderInputs']['structuredTargets']>;
     costLayerId: string;
     includeLayerIds: string[];
   },
@@ -952,6 +995,7 @@ function buildSolution(
       targetFeatureSet: overrides.targetFeatureSet,
       targetFeatureIds: overrides.targetFeatureIds,
       targetPercent: overrides.targetPercent ?? 30,
+      structuredTargets: overrides.structuredTargets,
       costLayerId: overrides.costLayerId,
       includeLayerIds: overrides.includeLayerIds,
       excludeLayerIds: [],
@@ -968,6 +1012,30 @@ function buildSolution(
     nSelected: 123,
     totalCost: 0,
     pctTargetsMet: 100,
+  };
+}
+
+function buildReleaseServiceTargets(targetPercent: 17 | 30) {
+  return {
+    format: 'solution-target-metadata-v1' as const,
+    sourceEvaluation: 'prioritizr_model' as const,
+    ecosystems: [{ featureId: 'helobioma_alto_caqueta', targetPercent: 17 }],
+    strategicEcosystems: [
+      { featureId: 'paramos', targetPercent: 30 },
+      { featureId: 'bosque_seco', targetPercent: 30 },
+      { featureId: 'wetlands', targetPercent: 30 },
+      { featureId: 'mangroves', targetPercent: 30 },
+    ],
+    ecosystemServices: [
+      { featureId: 'agua_dulce', targetPercent },
+      { featureId: 'carbono', targetPercent },
+    ],
+    speciesRepresentation: [
+      { featureId: 'species_1', targetPercent },
+      { featureId: 'hemiphractus_fasciatus', targetPercent: 0 },
+      { featureId: 'nymphargus_siren', targetPercent: 0 },
+    ],
+    espRn: [],
   };
 }
 

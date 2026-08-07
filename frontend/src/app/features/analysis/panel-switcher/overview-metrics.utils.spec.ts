@@ -2,8 +2,10 @@ import type { MetricValue } from '@core/models';
 import { describe, expect, it } from 'vitest';
 import type { MetricFormatOptions } from '../utils/metric-presentation.utils';
 import {
+  formatSpeciesReferenceValue,
   formatSpeciesGroupsProtectedValue,
   overviewMetricCandidateIds,
+  readSpeciesReferenceSummary,
   resolveOverviewMetric,
 } from './overview-metrics.utils';
 
@@ -50,6 +52,53 @@ describe('formatSpeciesGroupsProtectedValue', () => {
     });
 
     expect(formatSpeciesGroupsProtectedValue(metric, compactOptions)).toBe('7');
+  });
+});
+
+describe('species reference outcomes', () => {
+  it('formats and exposes the authoritative compact 17% and 30% summaries', () => {
+    const metric = buildMetric('species_groups_protected', 0, {
+      thresholdOutcomes: [
+        {
+          targetPercent: 17,
+          value: 7793,
+          details: {
+            summary: { metSpeciesCount: 7793, totalSpeciesCount: 8132 },
+            groups: {
+              birds: { label: 'Birds', metSpeciesCount: 1440, totalSpeciesCount: 1490 },
+            },
+          },
+        },
+        {
+          targetPercent: 30,
+          value: 1529,
+          details: {
+            summary: { metSpeciesCount: 1529, totalSpeciesCount: 8132 },
+            groups: {
+              birds: { label: 'Birds', metSpeciesCount: 313, totalSpeciesCount: 1490 },
+            },
+          },
+        },
+      ],
+    });
+    metric.value = null;
+    metric.status = 'partial';
+
+    expect(formatSpeciesReferenceValue(metric, compactOptions)).toBe('17%: 7.8K · 30%: 1.5K');
+    expect(readSpeciesReferenceSummary(metric)).toEqual({
+      reached17Count: 7793,
+      reached30Count: 1529,
+      totalCount: 8132,
+      groups: [
+        {
+          id: 'birds',
+          label: 'Birds',
+          reached17Count: 1440,
+          reached30Count: 313,
+          totalCount: 1490,
+        },
+      ],
+    });
   });
 });
 

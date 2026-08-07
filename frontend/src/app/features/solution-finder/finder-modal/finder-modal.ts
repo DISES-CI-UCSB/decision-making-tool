@@ -145,8 +145,18 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       id: 'ecosystem-services',
       labelKey: 'solutionControls.finder.step1.ecosystemServicesLabel',
       helpKey: 'solutionControls.finder.step1.ecosystemServicesHelp',
+      sourceLinks: [
+        {
+          labelKey: 'solutionControls.finder.step1.ecosystemServicesCarbonSourceLabel',
+          urlKey: 'solutionControls.finder.step1.ecosystemServicesCarbonSourceUrl',
+        },
+        {
+          labelKey: 'solutionControls.finder.step1.ecosystemServicesWaterSourceLabel',
+          urlKey: 'solutionControls.finder.step1.ecosystemServicesWaterSourceUrl',
+        },
+      ],
       isStrategic: false,
-      isAvailable: false,
+      isAvailable: true,
     },
   ];
 
@@ -204,8 +214,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   /** Step 2A (variable) */
   protected includeOmecs = false;
-  protected includeComunidades = false;
-  protected includeResguardos = false;
 
   /** Step 2B */
   protected selectedCostLayerId: CostLayerChoice | null = null;
@@ -358,24 +366,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     this.rememberCurrentSelections();
   }
 
-  protected toggleIncludeComunidades(): void {
-    if (!this.isStep2Unlocked()) {
-      return;
-    }
-    this.includeComunidades = !this.includeComunidades;
-    this.clearResultsIfNeeded();
-    this.rememberCurrentSelections();
-  }
-
-  protected toggleIncludeResguardos(): void {
-    if (!this.isStep2Unlocked()) {
-      return;
-    }
-    this.includeResguardos = !this.includeResguardos;
-    this.clearResultsIfNeeded();
-    this.rememberCurrentSelections();
-  }
-
   protected runMatching(): void {
     this.clearLoadingTimer();
 
@@ -467,8 +457,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     this.selectedTargetTypeIds = [];
     this.targetLevelByType = {};
     this.includeOmecs = false;
-    this.includeComunidades = false;
-    this.includeResguardos = false;
     this.selectedCostLayerId = null;
     this.matchResults = [];
     this.selectedMatchId = null;
@@ -508,17 +496,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     if (this.selectedDomain === 'marine') {
       return this.marineIncludeOmecs ? 1 : 0;
     }
-    let n = 0;
-    if (this.includeOmecs) {
-      n += 1;
-    }
-    if (this.includeComunidades) {
-      n += 1;
-    }
-    if (this.includeResguardos) {
-      n += 1;
-    }
-    return n;
+    return this.includeOmecs ? 1 : 0;
   }
 
   protected getTradeoffSelectionCount(): number {
@@ -595,8 +573,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     );
     this.targetLevelByType = this.toTargetLevelsByType(rememberedSelection.targetLevelByType);
     this.includeOmecs = rememberedSelection.includeOmecs;
-    this.includeComunidades = rememberedSelection.includeComunidades;
-    this.includeResguardos = rememberedSelection.includeResguardos;
     this.selectedCostLayerId = this.isCostLayerChoice(rememberedSelection.selectedCostLayerId)
       ? rememberedSelection.selectedCostLayerId
       : null;
@@ -613,8 +589,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       selectedTargetTypeIds: [...this.selectedTargetTypeIds],
       targetLevelByType: { ...this.targetLevelByType } as Record<string, 17 | 30>,
       includeOmecs: this.includeOmecs,
-      includeComunidades: this.includeComunidades,
-      includeResguardos: this.includeResguardos,
+      includeComunidades: false,
+      includeResguardos: false,
       selectedCostLayerId: this.selectedCostLayerId,
       marineTargetPercent: this.marineTargetPercent,
       marineIncludeOmecs: this.marineIncludeOmecs,
@@ -654,8 +630,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
     const includes = getSolutionIncludeFlags(solution);
     this.includeOmecs = includes.omecs;
-    this.includeComunidades = includes.comunidades;
-    this.includeResguardos = includes.resguardos;
 
     if (solutionCostMatchesChoice(solution, 'human-footprint')) {
       this.selectedCostLayerId = 'human-footprint';
@@ -724,11 +698,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       return false;
     }
 
-    if (includes.comunidades !== this.includeComunidades) {
-      return false;
-    }
-
-    if (includes.resguardos !== this.includeResguardos) {
+    if (includes.comunidades || includes.resguardos) {
       return false;
     }
 

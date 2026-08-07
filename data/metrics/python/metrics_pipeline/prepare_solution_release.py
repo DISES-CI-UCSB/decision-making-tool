@@ -354,6 +354,10 @@ def _metric_urls(solution_id: str, release_id: str, domain: str) -> dict[str, An
         ),
     }
     if domain == "land":
+        urls["strategicOutcomes"] = (
+            f"{PUBLIC_BLOB_HOST}/{config.regular_compact_directory}/"
+            "strategic-ecosystem-outcomes.json"
+        )
         urls["mecV2ByGeography"] = {
             level: (
                 f"{PUBLIC_BLOB_HOST}/{config.mec_v2_directory}/"

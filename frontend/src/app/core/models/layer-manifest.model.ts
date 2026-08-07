@@ -200,6 +200,8 @@ export interface RuntimeSolutionPrecomputedMetricUrls {
   compact?: string;
   cache?: string;
   goals?: string;
+  /** Release-wide post-hoc raster outcomes for the four strategic ecosystems. */
+  strategicOutcomes?: string;
   /** Legacy `mec-compact-v1` shards retained for older clients. */
   mecByGeography?: RuntimeSolutionMecGeographyUrls;
   /** Versioned `mec-compact-v2` shards used by current clients when published. */

@@ -441,6 +441,17 @@
                                 </span>
                               </span>
                             </div>
+                            @if (domain.methodLabelKey) {
+                              <p
+                                [id]="
+                                  'right-sidebar-v3-overview-goals-additional-domain-method-' +
+                                  domain.id
+                                "
+                                class="m-0 text-[10px] leading-4 text-slate-600"
+                              >
+                                {{ domain.methodLabelKey | translate }}
+                              </p>
+                            }
                             <div
                               [id]="
                                 'right-sidebar-v3-overview-goals-additional-domain-bar-' + domain.id
@@ -3476,9 +3487,95 @@
         </section>
       }
 
+      @if (
+        domain.featureType === 'species' && !domain.targeted && speciesReferenceGroups().length > 0
+      ) {
+        <section
+          id="conservation-goals-modal-species-reference-breakdown"
+          class="overflow-hidden rounded-md border border-slate-200 bg-white"
+        >
+          <h4
+            id="conservation-goals-modal-species-reference-title"
+            class="m-0 border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-900"
+          >
+            {{ 'analysis.overview.goalsWidget.modal.speciesReferenceBreakdown' | translate }}
+          </h4>
+          <div
+            id="conservation-goals-modal-species-reference-table-wrapper"
+            class="overflow-x-auto"
+          >
+            <table
+              id="conservation-goals-modal-species-reference-table"
+              class="w-full min-w-130 border-collapse text-left text-xs"
+            >
+              <thead id="conservation-goals-modal-species-reference-head">
+                <tr id="conservation-goals-modal-species-reference-heading-row">
+                  <th
+                    id="conservation-goals-modal-species-reference-heading-group"
+                    class="px-3 py-2"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.taxaGroup' | translate }}
+                  </th>
+                  <th id="conservation-goals-modal-species-reference-heading-17" class="px-3 py-2">
+                    {{ 'analysis.overview.goalsWidget.modal.reached17' | translate }}
+                  </th>
+                  <th id="conservation-goals-modal-species-reference-heading-30" class="px-3 py-2">
+                    {{ 'analysis.overview.goalsWidget.modal.reached30' | translate }}
+                  </th>
+                  <th
+                    id="conservation-goals-modal-species-reference-heading-total"
+                    class="px-3 py-2"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.featuresMeasured' | translate }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="conservation-goals-modal-species-reference-body">
+                @for (group of speciesReferenceGroups(); track group.id) {
+                  <tr
+                    [id]="'conservation-goals-modal-species-reference-row-' + group.id"
+                    class="border-t border-slate-100"
+                  >
+                    <td
+                      [id]="'conservation-goals-modal-species-reference-label-' + group.id"
+                      class="px-3 py-2 font-semibold"
+                    >
+                      {{ group.label }}
+                    </td>
+                    <td
+                      [id]="'conservation-goals-modal-species-reference-17-' + group.id"
+                      class="px-3 py-2 tabular-nums"
+                    >
+                      {{ formatGoalsFullCount(group.reached17Count, group.totalCount) }}
+                    </td>
+                    <td
+                      [id]="'conservation-goals-modal-species-reference-30-' + group.id"
+                      class="px-3 py-2 tabular-nums"
+                    >
+                      {{ formatGoalsFullCount(group.reached30Count, group.totalCount) }}
+                    </td>
+                    <td
+                      [id]="'conservation-goals-modal-species-reference-total-' + group.id"
+                      class="px-3 py-2 tabular-nums"
+                    >
+                      {{ group.totalCount }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
       <section
         id="conservation-goals-modal-browser"
         class="overflow-hidden rounded-md border border-slate-200 bg-white"
+        [class.hidden]="
+          domain.featureType === 'species' &&
+          !domain.targeted &&
+          speciesReferenceGroups().length > 0
+        "
       >
         <header
           id="conservation-goals-modal-browser-header"

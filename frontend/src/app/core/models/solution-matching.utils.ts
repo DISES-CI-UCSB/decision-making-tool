@@ -28,6 +28,21 @@ export interface SolutionIncludeFlags {
 }
 
 const STRATEGIC_TARGET_IDS = ['paramos', 'bosque-seco', 'wetlands', 'mangroves'];
+const HUMAN_FOOTPRINT_YEAR_PATTERN = /(?:iheh|human-footprint)-(2022|2030)(?:$|-)/;
+const SPECIES_REPRESENTATION_ZERO_TARGET_EXCEPTION_IDS = new Set([
+  'hemiphractus_fasciatus',
+  'nymphargus_siren',
+]);
+
+function isSpeciesRepresentationZeroTargetException(target: {
+  featureId: string;
+  targetPercent: number;
+}): boolean {
+  return (
+    target.targetPercent === 0 &&
+    SPECIES_REPRESENTATION_ZERO_TARGET_EXCEPTION_IDS.has(target.featureId)
+  );
+}
 
 export function normalizeSolutionToken(
   value: string,
@@ -96,7 +111,11 @@ export function getSolutionTargetLevel(
     ...(structured?.[dimension] ?? []),
     ...(targetType === 'species-richness' ? (structured?.espRn ?? []) : []),
   ];
-  const levels = [...new Set(targets.map((target) => target.targetPercent))];
+  const scalarTargets =
+    targetType === 'species-richness' && !structured?.espRn.length
+      ? targets.filter((target) => !isSpeciesRepresentationZeroTargetException(target))
+      : targets;
+  const levels = [...new Set(scalarTargets.map((target) => target.targetPercent))];
   if (levels.length === 1 && (levels[0] === 17 || levels[0] === 30)) {
     return levels[0];
   }
@@ -157,12 +176,20 @@ export function solutionCostMatchesChoice(
   solution: SolutionMatchingSource,
   choice: SolutionCostChoice,
 ): boolean {
-  const costIds = [
-    solution.finderInputs.costLayerId,
-    solution.inputLayerIds.cost,
-    solution.costLayer,
-    solution.id,
-  ]
+  const explicitCostIds = [solution.finderInputs.costLayerId, solution.inputLayerIds.cost]
+    .filter((id): id is string => Boolean(id))
+    .map((id) => normalizeSolutionToken(id));
+  const explicitHumanFootprintYears = explicitCostIds
+    .map(getHumanFootprintYear)
+    .filter((year): year is 2022 | 2030 => year !== null);
+
+  if (explicitHumanFootprintYears.length > 0) {
+    return (
+      choice === 'human-footprint' && explicitHumanFootprintYears.every((year) => year === 2022)
+    );
+  }
+
+  const costIds = [...explicitCostIds, solution.costLayer, solution.id]
     .filter((id): id is string => Boolean(id))
     .map((id) => normalizeSolutionToken(id));
 
@@ -173,8 +200,13 @@ export function costTokenMatchesChoice(costId: string, choice: SolutionCostChoic
   const normalizedCostId = normalizeSolutionToken(costId);
 
   switch (choice) {
-    case 'human-footprint':
+    case 'human-footprint': {
+      const humanFootprintYear = getHumanFootprintYear(normalizedCostId);
+      if (humanFootprintYear) {
+        return humanFootprintYear === 2022;
+      }
       return normalizedCostId.includes('human-footprint') || normalizedCostId.endsWith('-hf');
+    }
     case 'carbon-opportunity':
       return (
         normalizedCostId.includes('carbon') ||
@@ -188,7 +220,12 @@ export function costTokenMatchesChoice(costId: string, choice: SolutionCostChoic
 
 export function getSolutionCostLabel(solution: SolutionMatchingSource): string {
   const costLayerId = solution.finderInputs.costLayerId ?? solution.inputLayerIds.cost ?? '';
-  const normalizedCostId = costLayerId.toLowerCase();
+  const normalizedCostId = normalizeSolutionToken(costLayerId);
+  const humanFootprintYear = getHumanFootprintYear(normalizedCostId);
+
+  if (humanFootprintYear) {
+    return `Human Footprint ${humanFootprintYear}`;
+  }
 
   if (
     normalizedCostId.includes('carbon') ||
@@ -200,6 +237,11 @@ export function getSolutionCostLabel(solution: SolutionMatchingSource): string {
     return 'Net Benefit (Renta agropecuaria)';
   }
   return 'Human Footprint';
+}
+
+function getHumanFootprintYear(costId: string): 2022 | 2030 | null {
+  const year = normalizeSolutionToken(costId).match(HUMAN_FOOTPRINT_YEAR_PATTERN)?.[1];
+  return year === '2022' ? 2022 : year === '2030' ? 2030 : null;
 }
 
 export function isConflictCostSolution(solution: SolutionMatchingSource): boolean {

@@ -25,6 +25,7 @@ import {
   type Solution,
   type SolutionGoalsDocument,
   type CatalogSolution,
+  type StrategicEcosystemOutcomesDocument,
 } from '@core/models';
 import {
   getSolutionIncludeFlags,
@@ -49,6 +50,11 @@ import {
 } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
+import { StrategicEcosystemOutcomesLoaderService } from '@core/services/strategic-ecosystem-outcomes-loader.service';
+import {
+  strategicOutcomeRowsForSolution,
+  type StrategicEcosystemOutcomeRow,
+} from '@core/services/strategic-ecosystem-outcomes.utils';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FEATURE_FLAGS } from '@feature-flags';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
@@ -112,6 +118,7 @@ import {
   buildCustomMecData,
   buildDummyCoverageRows,
   buildMecCoverageRowsByView,
+  MEC_IAVH_FEATURE_COUNT,
   buildMecPreviewItems,
   calculateOverlapPercent,
   ECOSYSTEM_CLASSIFICATION_SUMMARY_URL,
@@ -128,7 +135,14 @@ import {
   type MecSortId,
   STRATEGIC_ECOSYSTEM_BARS,
 } from './aoi-ecosystems.utils';
-import { formatSpeciesGroupsProtectedValue, resolveOverviewMetric } from './overview-metrics.utils';
+import {
+  formatSpeciesGroupsProtectedValue,
+  formatSpeciesReferenceValue,
+  readSpeciesReferenceSummary,
+  resolveOverviewMetric,
+  type SpeciesReferenceGroupSummary,
+  type SpeciesReferenceSummary,
+} from './overview-metrics.utils';
 import { classifyOverviewTargetDomains } from './overview-target-domains.utils';
 import { CustomAoiSpeciesInventoryComponent } from '../custom-aoi-species-inventory/custom-aoi-species-inventory';
 
@@ -173,6 +187,7 @@ interface OverviewGoalsDomainEntry {
   id: string;
   featureType: GoalFeatureType;
   labelKey: string;
+  methodLabelKey?: string;
   /** True when this domain was part of the solution's target set (prioritizr optimized for it). */
   targeted: boolean;
   targetLabel: string;
@@ -419,6 +434,7 @@ export class PanelSwitcherComponent {
   private readonly http = inject(HttpClient, { optional: true });
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionGoals = inject(SolutionGoalsLoaderService);
+  private readonly strategicOutcomes = inject(StrategicEcosystemOutcomesLoaderService);
   private readonly mecMetrics = inject(MecMetricsLoaderService);
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
@@ -451,6 +467,9 @@ export class PanelSwitcherComponent {
   protected readonly overviewSections = signal<AnalysisMetricSectionFixture[]>([]);
   protected readonly cachedMetricsDocument = signal<CachedSolutionMetricsDocument | null>(null);
   protected readonly solutionGoalsDocument = signal<SolutionGoalsDocument | null>(null);
+  protected readonly strategicOutcomesDocument = signal<StrategicEcosystemOutcomesDocument | null>(
+    null,
+  );
   protected readonly isGoalsLoading = signal(false);
   protected readonly goalsLoadFailed = signal(false);
   protected readonly customAoiMetrics = signal<MetricValue[]>([]);
@@ -478,6 +497,19 @@ export class PanelSwitcherComponent {
   );
   protected readonly overviewGoalsTaxa = computed<OverviewGoalsTaxaEntry[]>(() =>
     this.buildOverviewGoalsTaxa(),
+  );
+  private readonly strategicOutcomeRows = computed<StrategicEcosystemOutcomeRow[]>(() =>
+    strategicOutcomeRowsForSolution(
+      this.strategicOutcomesDocument(),
+      this.resolveMetricsSolutionId(this.activeSolution()),
+    ),
+  );
+  protected readonly speciesReferenceSummary = computed<SpeciesReferenceSummary | null>(() => {
+    const metric = this.findOverviewMetric('species_groups_protected');
+    return metric ? readSpeciesReferenceSummary(metric) : null;
+  });
+  protected readonly speciesReferenceGroups = computed<SpeciesReferenceGroupSummary[]>(
+    () => this.speciesReferenceSummary()?.groups ?? [],
   );
   protected readonly goalsModalOpen = signal(false);
   protected readonly goalsModalDomainId = signal<string | null>(null);
@@ -530,6 +562,14 @@ export class PanelSwitcherComponent {
         const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
         return mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
       }
+    }
+    if (domain.featureType === 'strategicEcosystems') {
+      const target = domain.targeted
+        ? this.singleRelativeTarget(
+            document.targetContext.relativeTargetsByType['strategicEcosystems'],
+          )
+        : null;
+      return this.strategicOutcomeRows().map((row) => this.toStrategicOutcomeModalRow(row, target));
     }
 
     return document.features[domain.featureType].map((feature) => this.toGoalsModalRow(feature));
@@ -981,6 +1021,22 @@ export class PanelSwitcherComponent {
         this.solutionGoalsDocument.set(document);
       });
 
+    toObservable(this.activeSolution)
+      .pipe(
+        map((solution) => this.resolveMetricsSolutionId(solution)),
+        distinctUntilChanged(),
+        switchMap((solutionId) => {
+          if (!solutionId) {
+            return of<StrategicEcosystemOutcomesDocument | null>(null);
+          }
+          return this.strategicOutcomes.loadForSolution(solutionId);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((document) => {
+        this.strategicOutcomesDocument.set(document);
+      });
+
     const mecRequest = computed<MecRequest>(() =>
       this.buildMecRequest(this.activeSolution(), this.selectedAoi(), this.customAoiGeometry()),
     );
@@ -1425,20 +1481,54 @@ export class PanelSwitcherComponent {
     }
 
     const targetedDomains = classifyOverviewTargetDomains(document.targetContext);
+    const strategicTargeted = targetedDomains.has('strategicEcosystems');
+    const strategicRasterRows = this.strategicOutcomeRows();
+    const strategicRelativeTarget = this.singleRelativeTarget(
+      document.targetContext.relativeTargetsByType['strategicEcosystems'],
+    );
+    const strategicMetCount =
+      strategicRelativeTarget === null
+        ? 0
+        : strategicRasterRows.filter(
+            (row) => row.coverageFraction + Number.EPSILON >= strategicRelativeTarget,
+          ).length;
+    const strategicRasterCheckpoints = {
+      reached17Count: strategicRasterRows.filter((row) => row.reached17).length,
+      reached30Count: strategicRasterRows.filter((row) => row.reached30).length,
+    };
+    const speciesTargeted = targetedDomains.has('species');
+    const speciesReference = speciesTargeted ? null : this.speciesReferenceSummary();
+    const speciesTotalCount =
+      speciesReference?.totalCount ?? document.summary.byType.species.totalSpeciesCount;
+    const ecosystemSummary = document.summary.byType.ecosystems;
+    const ecosystemPctMet =
+      ecosystemSummary.metCount > 0
+        ? (ecosystemSummary.metCount / MEC_IAVH_FEATURE_COUNT) * 100
+        : ecosystemSummary.pctMet;
 
     const entries: OverviewGoalsDomainEntry[] = [
       {
         id: 'strategic-ecosystems',
         featureType: 'strategicEcosystems',
         labelKey: 'analysis.overview.goalsWidget.strategicEcosystems',
-        targeted: targetedDomains.has('strategicEcosystems'),
+        ...(strategicTargeted
+          ? {}
+          : {
+              methodLabelKey: 'analysis.overview.goalsWidget.strategicRasterDerivedMethod',
+            }),
+        targeted: strategicTargeted,
         targetLabel: this.formatGoalsRelativeTargetLabel(
           document.targetContext.relativeTargetsByType['strategicEcosystems'],
         ),
-        metCount: document.summary.byType.strategicEcosystems.metCount,
-        totalCount: document.summary.byType.strategicEcosystems.totalCount,
-        pctMet: document.summary.byType.strategicEcosystems.pctMet,
-        ...this.countRangeCoverageCheckpoints(document.features.strategicEcosystems),
+        metCount: strategicTargeted ? strategicMetCount : 0,
+        totalCount: strategicRasterRows.length,
+        pctMet:
+          strategicTargeted && strategicRasterRows.length > 0
+            ? (strategicMetCount / strategicRasterRows.length) * 100
+            : null,
+        ...(strategicTargeted
+          ? this.countRangeCoverageCheckpoints(document.features.strategicEcosystems)
+          : strategicRasterCheckpoints),
       },
       {
         id: 'ecosystems',
@@ -1448,23 +1538,31 @@ export class PanelSwitcherComponent {
         targetLabel: this.formatGoalsRelativeTargetLabel(
           document.targetContext.relativeTargetsByType['ecosystems'],
         ),
-        metCount: document.summary.byType.ecosystems.metCount,
-        totalCount: document.summary.byType.ecosystems.totalCount,
-        pctMet: document.summary.byType.ecosystems.pctMet,
+        metCount: ecosystemSummary.metCount,
+        totalCount: MEC_IAVH_FEATURE_COUNT,
+        pctMet: ecosystemPctMet,
         ...this.countRangeCoverageCheckpoints(document.features.ecosystems),
       },
       {
         id: 'species',
         featureType: 'species',
         labelKey: 'analysis.overview.goalsWidget.species',
-        targeted: targetedDomains.has('species'),
+        ...(speciesReference
+          ? { methodLabelKey: 'analysis.overview.goalsWidget.speciesReferenceMethod' }
+          : {}),
+        targeted: speciesTargeted,
         targetLabel: this.formatGoalsRelativeTargetLabel(
           document.targetContext.relativeTargetsByType['species'],
         ),
-        metCount: document.summary.byType.species.metSpeciesCount,
-        totalCount: document.summary.byType.species.totalSpeciesCount,
-        pctMet: document.summary.byType.species.pctMet,
-        ...this.countRangeCoverageCheckpoints(document.features.species),
+        metCount: speciesTargeted ? document.summary.byType.species.metSpeciesCount : 0,
+        totalCount: speciesTotalCount,
+        pctMet: speciesTargeted ? document.summary.byType.species.pctMet : null,
+        ...(speciesReference
+          ? {
+              reached17Count: speciesReference.reached17Count,
+              reached30Count: speciesReference.reached30Count,
+            }
+          : this.countRangeCoverageCheckpoints(document.features.species)),
       },
     ];
 
@@ -1516,6 +1614,11 @@ export class PanelSwitcherComponent {
     return this.localizedText('analysis.overview.goalsWidget.targetVariable');
   }
 
+  private singleRelativeTarget(targets: number[] | undefined): number | null {
+    const uniqueTargets = [...new Set((targets ?? []).filter(Number.isFinite))];
+    return uniqueTargets.length === 1 ? uniqueTargets[0] : null;
+  }
+
   private buildOverviewGoalsTaxa(): OverviewGoalsTaxaEntry[] {
     const document = this.solutionGoalsDocument();
     if (!document || !this.overviewGoalsDomains().some((entry) => entry.id === 'species')) {
@@ -1554,6 +1657,33 @@ export class PanelSwitcherComponent {
         (feature.relativeHeld ?? -1) >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17,
       reached30:
         (feature.relativeHeld ?? -1) >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_30,
+    };
+  }
+
+  private toStrategicOutcomeModalRow(
+    row: StrategicEcosystemOutcomeRow,
+    relativeTarget: number | null,
+  ): GoalsModalRow {
+    const area = this.appendUnit(
+      this.formatNumber(row.coveredAreaKm2, this.metricNumberFormatMode(), 0, 1),
+      'km²',
+    );
+    return {
+      id: row.featureId,
+      name: this.translate.instant(row.labelKey),
+      secondaryLabel: this.translate.instant(
+        'analysis.overview.goalsWidget.modal.rasterCoveredArea',
+        { area },
+      ),
+      taxonGroup: null,
+      iucnStatus: null,
+      met: relativeTarget === null ? null : row.coverageFraction + Number.EPSILON >= relativeTarget,
+      relativeTarget,
+      relativeHeld: row.coverageFraction,
+      preExistingRelativeHeld: null,
+      newRelativeHeld: null,
+      reached17: row.reached17,
+      reached30: row.reached30,
     };
   }
 
@@ -1704,6 +1834,12 @@ export class PanelSwitcherComponent {
       return domain.targeted
         ? 'analysis.overview.goalsWidget.modal.ecosystemTargetedDescription'
         : 'analysis.overview.goalsWidget.modal.ecosystemAdditionalDescription';
+    }
+    if (domain.featureType === 'strategicEcosystems' && !domain.targeted) {
+      return 'analysis.overview.goalsWidget.modal.strategicRasterAdditionalDescription';
+    }
+    if (domain.featureType === 'species' && !domain.targeted && this.speciesReferenceSummary()) {
+      return 'analysis.overview.goalsWidget.modal.speciesReferenceAdditionalDescription';
     }
     return domain.targeted
       ? 'analysis.overview.goalsWidget.modal.targetedDescription'
@@ -2341,6 +2477,10 @@ export class PanelSwitcherComponent {
     metric: MetricValue,
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
+    const referenceValue = formatSpeciesReferenceValue(metric, this.metricFormatOptions(mode));
+    if (referenceValue) {
+      return referenceValue;
+    }
     return metric.metricId === 'species_groups_protected'
       ? formatSpeciesGroupsProtectedValue(metric, this.metricFormatOptions(mode))
       : this.formatMetricForPanel(metric, mode);
@@ -3468,7 +3608,9 @@ export class PanelSwitcherComponent {
         const realMetric = metric.realMetricId
           ? resolveOverviewMetric(metricsById, metric.realMetricId, planningDomain)
           : undefined;
-        const realValueAvailable = isDisplayableMetricValue(realMetric);
+        const realValueAvailable =
+          isDisplayableMetricValue(realMetric) ||
+          Boolean(realMetric && readSpeciesReferenceSummary(realMetric));
         const liveNationalContribution =
           metric.realMetricId === 'national_contribution'
             ? this.formatLiveNationalContribution()

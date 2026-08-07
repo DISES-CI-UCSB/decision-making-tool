@@ -8,6 +8,7 @@ import pytest
 
 from prepare_solution_release import (
     ReleasePreparationError,
+    _metric_urls,
     build_release,
     canonical_id,
     discover_sources,
@@ -21,6 +22,24 @@ MARINE_HABITATS = (
     "Manglares en Tumaco",
     "Manglares en Magdalena",
 )
+
+
+def test_land_metric_urls_include_release_wide_strategic_outcomes():
+    urls = _metric_urls(
+        "eco17_runap_iheh2022",
+        "solutions-v0-2-0-20260805",
+        "land",
+    )
+
+    assert urls["strategicOutcomes"].endswith(
+        "/releases/solutions-v0-2-0-20260805/regular/compact/"
+        "strategic-ecosystem-outcomes.json"
+    )
+    assert "strategicOutcomes" not in _metric_urls(
+        "marine_ecos30_mang30_runap_hhm",
+        "solutions-v0-2-0-20260805",
+        "marine",
+    )
 
 
 def _write_summary(path: Path, scenario: str) -> None:

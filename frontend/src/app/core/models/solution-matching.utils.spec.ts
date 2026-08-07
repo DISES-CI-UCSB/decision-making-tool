@@ -54,6 +54,75 @@ describe('solution matching utils', () => {
     expect(inferSolutionTargetPercent(solution)).toBe(30);
   });
 
+  it.each([17, 30] as const)(
+    'resolves a %i%% species-representation target with the two release exceptions',
+    (targetPercent) => {
+      const speciesRepresentation = buildSpeciesRepresentationTargets(targetPercent);
+      const solution = buildSolution({
+        targetFeatureSet: 'species',
+        targetFeatureIds: ['species'],
+        targetPercent,
+        structuredTargets: {
+          format: 'solution-target-metadata-v1',
+          sourceEvaluation: 'prioritizr_model',
+          ecosystems: [],
+          strategicEcosystems: [],
+          ecosystemServices: [],
+          speciesRepresentation,
+          espRn: [],
+        },
+      });
+
+      expect(speciesRepresentation).toHaveLength(889);
+      expect(getSolutionTargetLevel(solution, 'species-richness')).toBe(targetPercent);
+    },
+  );
+
+  it('does not ignore unrecognized zero-percent species-representation rows', () => {
+    const solution = buildSolution({
+      targetFeatureSet: 'species',
+      targetFeatureIds: ['species'],
+      targetPercent: 17,
+      structuredTargets: {
+        format: 'solution-target-metadata-v1',
+        sourceEvaluation: 'prioritizr_model',
+        ecosystems: [],
+        strategicEcosystems: [],
+        ecosystemServices: [],
+        speciesRepresentation: [
+          { featureId: 'species_a', targetPercent: 17 },
+          { featureId: 'unexpected_zero_target', targetPercent: 0 },
+        ],
+        espRn: [],
+      },
+    });
+
+    expect(getSolutionTargetLevel(solution, 'species-richness')).toBeNull();
+  });
+
+  it('does not resolve heterogeneous EspRN targets to a scalar species level', () => {
+    const solution = buildSolution({
+      targetFeatureSet: 'esp_rn',
+      targetFeatureIds: ['species'],
+      targetPercent: null,
+      structuredTargets: {
+        format: 'solution-target-metadata-v1',
+        sourceEvaluation: 'prioritizr_model',
+        ecosystems: [],
+        strategicEcosystems: [],
+        ecosystemServices: [],
+        speciesRepresentation: [],
+        espRn: [
+          { featureId: 'species_a', targetPercent: 17 },
+          { featureId: 'species_b', targetPercent: 22.5 },
+          { featureId: 'species_c', targetPercent: 30 },
+        ],
+      },
+    });
+
+    expect(getSolutionTargetLevel(solution, 'species-richness')).toBeNull();
+  });
+
   it('returns no inferred target percentage when names contain no supported token', () => {
     const solution = buildSolution({ id: 'species_runap_hf', name: 'Species+RUNAP_HF' });
 
@@ -110,12 +179,26 @@ describe('solution matching utils', () => {
     expect(getSolutionCostLabel(netBenefit)).toBe('Human Footprint');
   });
 
+  it('matches IHEH 2022 explicitly without treating IHEH 2030 as the visible 2022 choice', () => {
+    const iheh2022 = buildSolution({ costLayerId: 'iheh_2022', inputCostId: 'iheh_2022' });
+    const iheh2030 = buildSolution({ costLayerId: 'iheh_2030', inputCostId: 'iheh_2030' });
+    iheh2022.costLayer = getSolutionCostLabel(iheh2022);
+    iheh2030.costLayer = getSolutionCostLabel(iheh2030);
+
+    expect(costTokenMatchesChoice('iheh_2022', 'human-footprint')).toBe(true);
+    expect(costTokenMatchesChoice('iheh_2030', 'human-footprint')).toBe(false);
+    expect(solutionCostMatchesChoice(iheh2022, 'human-footprint')).toBe(true);
+    expect(solutionCostMatchesChoice(iheh2030, 'human-footprint')).toBe(false);
+    expect(getSolutionCostLabel(iheh2022)).toBe('Human Footprint 2022');
+    expect(getSolutionCostLabel(iheh2030)).toBe('Human Footprint 2030');
+  });
+
   it('preserves catalog cost labels based on the primary manifest cost id', () => {
     expect(getSolutionCostLabel(buildSolution({ costLayerId: 'renta_agropecuaria' }))).toBe(
       'Net Benefit (Renta agropecuaria)',
     );
     expect(getSolutionCostLabel(buildSolution({ costLayerId: 'human_footprint_2022' }))).toBe(
-      'Human Footprint',
+      'Human Footprint 2022',
     );
   });
 
@@ -160,4 +243,15 @@ function buildSolution(
       excludes: [],
     },
   };
+}
+
+function buildSpeciesRepresentationTargets(targetPercent: 17 | 30) {
+  return [
+    ...Array.from({ length: 887 }, (_, index) => ({
+      featureId: `species_${index + 1}`,
+      targetPercent,
+    })),
+    { featureId: 'hemiphractus_fasciatus', targetPercent: 0 },
+    { featureId: 'nymphargus_siren', targetPercent: 0 },
+  ];
 }

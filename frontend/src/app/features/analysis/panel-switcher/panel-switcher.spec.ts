@@ -24,6 +24,7 @@ import type {
   MetricValue,
   Solution,
   SolutionGoalsDocument,
+  StrategicEcosystemOutcomesDocument,
 } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { MockDataService } from '@core/services/mock-data.service';
@@ -33,6 +34,7 @@ import {
 } from '@core/services/mec-metrics-loader.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
+import { StrategicEcosystemOutcomesLoaderService } from '@core/services/strategic-ecosystem-outcomes-loader.service';
 import { PanelSwitcherComponent } from './panel-switcher';
 
 describe('PanelSwitcherComponent', () => {
@@ -46,12 +48,14 @@ describe('PanelSwitcherComponent', () => {
   let mecMetricsLoaderSpy: Pick<MecMetricsLoaderService, 'loadMecMetrics'>;
   let httpClientSpy: { get: ReturnType<typeof vi.fn> };
   let goalsDocument: SolutionGoalsDocument | null;
+  let strategicOutcomesDocument: StrategicEcosystemOutcomesDocument | null;
 
   beforeEach(async () => {
     vi.spyOn(console, 'info').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockData = new MockDataService();
     goalsDocument = null;
+    strategicOutcomesDocument = null;
     apiServiceSpy = {
       getSolutionMetrics: vi.fn((solutionId: string) => {
         const flat = mockData.getSolutionMetrics(solutionId);
@@ -117,6 +121,10 @@ describe('PanelSwitcherComponent', () => {
         {
           provide: SolutionGoalsLoaderService,
           useValue: { loadGoals: vi.fn(() => of(goalsDocument)) },
+        },
+        {
+          provide: StrategicEcosystemOutcomesLoaderService,
+          useValue: { loadForSolution: vi.fn(() => of(strategicOutcomesDocument)) },
         },
         {
           provide: HttpClient,
@@ -1545,6 +1553,10 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
     ).not.toBeNull();
     expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-ecosystems')
+        ?.textContent,
+    ).toContain('1 / 429');
+    expect(
       compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
     ).not.toBeNull();
     expect(
@@ -1556,6 +1568,83 @@ describe('PanelSwitcherComponent', () => {
         ?.textContent,
     ).toContain('1');
     expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+  });
+
+  it('shows raster-derived strategic outcomes without changing solver target progress', async () => {
+    goalsDocument = buildGoalsDocument();
+    strategicOutcomesDocument = buildStrategicOutcomesDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-strategic-ecosystems',
+      ),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-count-17-strategic-ecosystems',
+      )?.textContent,
+    ).toContain('4');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-count-30-strategic-ecosystems',
+      )?.textContent,
+    ).toContain('2');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-method-strategic-ecosystems',
+      )?.textContent,
+    ).toContain('strategicRasterDerivedMethod');
+
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-strategic-ecosystems',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#conservation-goals-modal-description')?.textContent).toContain(
+      'strategicRasterAdditionalDescription',
+    );
+    expect(
+      compiled.querySelector('#conservation-goals-modal-measured-value')?.textContent,
+    ).toContain('4');
+  });
+
+  it('keeps targeted strategic progress on solver summary rows', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = 'strategic_ecosystems';
+    goalsDocument.targetContext.targetFeatureIds = ['strategic_ecosystems'];
+    strategicOutcomesDocument = buildStrategicOutcomesDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-strategic-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-strategic-ecosystems',
+      ),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-strategic-ecosystems')
+        ?.textContent,
+    ).toContain('2 / 4');
   });
 
   it('opens and filters the additional outcomes feature modal', async () => {
@@ -1795,6 +1884,56 @@ describe('PanelSwitcherComponent', () => {
   });
 
   describe('release species exception (partial status, real values)', () => {
+    it('shows targetless species reference outcomes and their aggregate breakdown', async () => {
+      const solution = buildTestSolution();
+      goalsDocument = buildGoalsDocument();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildTargetlessSpeciesMetricsDocument(solution.id)),
+      );
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.setRightSidebarMode('overview');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const compiled = fixture.nativeElement as HTMLElement;
+      const component = fixture.componentInstance as unknown as {
+        additionalOutcomeGoalsDomains: () => { id: string; totalCount: number }[];
+      };
+
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
+        )?.textContent,
+      ).toContain('17%: 7.8K · 30%: 1.5K');
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-row-metric-03-threatened-species-secured',
+        )?.textContent,
+      ).toContain('17%: 175 · 30%: 70');
+      expect(
+        component.additionalOutcomeGoalsDomains().find((domain) => domain.id === 'species')
+          ?.totalCount,
+      ).toBe(8132);
+
+      (
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+        ) as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      fixture.detectChanges();
+
+      expect(
+        compiled.querySelector('#conservation-goals-modal-species-reference-breakdown'),
+      ).not.toBeNull();
+      expect(
+        compiled.querySelector('#conservation-goals-modal-species-reference-17-birds')?.textContent,
+      ).toContain('1,440 / 1,490');
+    });
+
     it('renders partial species values on the overview cards with a coverage caveat', async () => {
       const solution = buildTestSolution();
       vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
@@ -2002,6 +2141,87 @@ function buildGoalsDocument(): SolutionGoalsDocument {
     },
     features: { species, strategicEcosystems, ecosystems, other: [] },
     diagnostics: { rawTypeCounts: {}, rowCounts: {} },
+  };
+}
+
+function buildStrategicOutcomesDocument(): StrategicEcosystemOutcomesDocument {
+  const features = {
+    paramos: buildStrategicDenominator(
+      'ecosystem_coverage_paramo',
+      'inputs/features/strategic/paramos.tif',
+      27401,
+    ),
+    wetlands: buildStrategicDenominator(
+      'ecosystem_coverage_wetlands',
+      'inputs/features/strategic/humedales.tif',
+      253986,
+    ),
+    bosque_seco: buildStrategicDenominator(
+      'ecosystem_coverage_dry_forest',
+      'inputs/features/strategic/bosque_seco.tif',
+      10135,
+    ),
+    mangroves: buildStrategicDenominator(
+      'mangrove_coverage',
+      'inputs/features/strategic/mangroves.tif',
+      2702,
+    ),
+  };
+  return {
+    format: 'strategic-ecosystem-outcomes-v1',
+    releaseId: 'solutions-v0-2-0-20260805',
+    generatedAt: '2026-08-07T00:00:00Z',
+    measurementMethod: 'post-hoc-raster-derived',
+    areaUnit: 'km2',
+    checkpointsPercent: [17, 30],
+    denominatorSpecSha256: 'a'.repeat(64),
+    sourceMetricsReportSha256: 'b'.repeat(64),
+    alignedGrid: {
+      crs: 'EPSG:9377',
+      width: 1353,
+      height: 1838,
+      pixelSizeMeters: 1000,
+      resampling: 'nearest',
+      targetGridSha256: 'c'.repeat(64),
+    },
+    featurePresenceValue: 1,
+    solutionSelectedValues: [1, 2],
+    features,
+    solutions: {
+      'test-solution': {
+        features: {
+          paramos: buildStrategicOutcome(14543, 27401),
+          wetlands: buildStrategicOutcome(50912, 253986),
+          bosque_seco: buildStrategicOutcome(3025, 10135),
+          mangroves: buildStrategicOutcome(1200, 2702),
+        },
+      },
+    },
+  };
+}
+
+function buildStrategicDenominator(metricId: string, sourcePath: string, areaKm2: number) {
+  return {
+    metricId,
+    sourcePath,
+    sourceSha256: 'd'.repeat(64),
+    alignedSha256: 'e'.repeat(64),
+    alignmentPolicySha256: 'f'.repeat(64),
+    totalAlignedFeatureValue1Cells: areaKm2,
+    totalAlignedFeatureValue1AreaKm2: areaKm2,
+  };
+}
+
+function buildStrategicOutcome(coveredAreaKm2: number, denominatorKm2: number) {
+  const coverageFraction = coveredAreaKm2 / denominatorKm2;
+  return {
+    coveredAreaKm2,
+    coverageFraction,
+    coveragePercent: coverageFraction * 100,
+    checkpoints: {
+      '17': coverageFraction >= 0.17,
+      '30': coverageFraction >= 0.3,
+    },
   };
 }
 
@@ -2374,6 +2594,51 @@ function buildPartialSpeciesMetricsDocument(solutionId: string): CachedSolutionM
             buildPartialSpeciesMetric('species_richness_plants', 4_726),
             buildPartialSpeciesMetric('threatened_species_count', 89),
           ],
+        },
+      },
+    },
+  };
+}
+
+function buildTargetlessSpeciesMetricsDocument(solutionId: string): CachedSolutionMetricsDocument {
+  const speciesGroups = buildPartialSpeciesMetric('species_groups_protected', null, {
+    thresholdOutcomes: [
+      {
+        targetPercent: 17,
+        value: 7793,
+        details: {
+          summary: { metSpeciesCount: 7793, totalSpeciesCount: 8132 },
+          groups: {
+            birds: { label: 'Birds', metSpeciesCount: 1440, totalSpeciesCount: 1490 },
+          },
+        },
+      },
+      {
+        targetPercent: 30,
+        value: 1529,
+        details: {
+          summary: { metSpeciesCount: 1529, totalSpeciesCount: 8132 },
+          groups: {
+            birds: { label: 'Birds', metSpeciesCount: 313, totalSpeciesCount: 1490 },
+          },
+        },
+      },
+    ],
+  });
+  const threatened = buildPartialSpeciesMetric('threatened_species_secured', null, {
+    thresholdOutcomes: [
+      { targetPercent: 17, value: 175 },
+      { targetPercent: 30, value: 70 },
+    ],
+  });
+  return {
+    solutionId,
+    generatedAt: '2026-08-05T00:00:00.000Z',
+    geographies: {
+      national: {
+        colombia: {
+          name: 'Colombia',
+          metrics: [speciesGroups, threatened],
         },
       },
     },

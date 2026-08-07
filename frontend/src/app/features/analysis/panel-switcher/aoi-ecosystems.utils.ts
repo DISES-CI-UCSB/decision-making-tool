@@ -111,6 +111,9 @@ export const STRATEGIC_ECOSYSTEM_BARS: readonly StrategicEcosystemBar[] = [
   },
 ];
 
+/** The 430 authoritative raster biome IDs collapse to 429 unique conservation-feature labels. */
+export const MEC_IAVH_FEATURE_COUNT = 429;
+
 export const MEC_BREAKDOWNS: readonly MecBreakdownConfig[] = [
   {
     id: 'family',
@@ -175,7 +178,7 @@ export const MEC_BREAKDOWNS: readonly MecBreakdownConfig[] = [
   {
     id: 'iavh',
     view: 'biomeRegion',
-    count: 430,
+    count: MEC_IAVH_FEATURE_COUNT,
     labelKey: 'analysis.aoi.mec.levels.iavh',
     pluralLabelKey: 'analysis.aoi.mec.levels.iavhPlural',
     mode: 'bars',

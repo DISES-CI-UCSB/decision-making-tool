@@ -13,11 +13,16 @@ import {
   calculateOverlapPercent,
   isWholeMetricCompatibleSirapAoi,
   isMecViewAvailable,
+  MEC_IAVH_FEATURE_COUNT,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
 } from './aoi-ecosystems.utils';
 
 describe('AOI ecosystems utilities', () => {
+  it('locks the MEC metric inventory to 429 unique biome-region features', () => {
+    expect(MEC_IAVH_FEATURE_COUNT).toBe(429);
+  });
+
   it('calculates strategic overlap against candidate area and clamps the result', () => {
     expect(calculateOverlapPercent(2, 10)).toBe(20);
     expect(calculateOverlapPercent(15, 10)).toBe(100);
