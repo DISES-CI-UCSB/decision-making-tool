@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 import rasterio
 from rasterio.transform import from_origin
+from rasterio.warp import transform_geom
 
 from app import artifacts as artifacts_module
 from app.artifacts import RuntimeArtifact, RuntimeRasterLayer, RuntimeSpeciesMatrix, load_runtime_artifact
@@ -17,18 +18,33 @@ from app.species_index import SpeciesIndexLoadError, load_runtime_species_index
 from sparse.format import SparseMetadata, SpeciesMatrixEntry, encode_species_matrix
 
 
-POLYGON_LEFT_COLUMN = {
-    "type": "Polygon",
-    "coordinates": [
-        [
-            [0.0, 0.0],
-            [1000.0, 0.0],
-            [1000.0, 2000.0],
-            [0.0, 2000.0],
-            [0.0, 0.0],
-        ]
-    ],
-}
+FIXTURE_GRID_CRS = "EPSG:3857"
+
+
+def wgs84_box(min_x: float, min_y: float, max_x: float, max_y: float) -> dict:
+    """Express a fixture-grid box as the WGS84 GeoJSON the API actually receives."""
+    ring = [
+        [min_x, min_y],
+        [max_x, min_y],
+        [max_x, max_y],
+        [min_x, max_y],
+        [min_x, min_y],
+    ]
+    projected = transform_geom(
+        FIXTURE_GRID_CRS,
+        "EPSG:4326",
+        {"type": "Polygon", "coordinates": [ring]},
+    )
+    # transform_geom returns tuples; the API only ever sees JSON arrays.
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            [[float(x), float(y)] for x, y in projected["coordinates"][0]]
+        ],
+    }
+
+
+POLYGON_LEFT_COLUMN = wgs84_box(0.0, 0.0, 1000.0, 2000.0)
 
 
 def write_tif(path: Path, data: np.ndarray, *, nodata: float | int | None = None) -> Path:
@@ -40,7 +56,7 @@ def write_tif(path: Path, data: np.ndarray, *, nodata: float | int | None = None
         height=data.shape[0],
         count=1,
         dtype=data.dtype,
-        crs="EPSG:3857",
+        crs=FIXTURE_GRID_CRS,
         transform=from_origin(0.0, 2000.0, 1000.0, 1000.0),
         nodata=nodata,
     ) as dataset:
@@ -88,8 +104,10 @@ def raster_artifact(tmp_path: Path) -> RuntimeArtifact:
 
 def write_species_matrix(
     path: Path,
-    entries: list[tuple[str, str, str, list[int]]],
+    entries: list[tuple[str, str, str, list[int]]]
+    | list[tuple[str, str, str, list[int], float | None]],
 ) -> Path:
+    """Write a fixture bundle. Entries may append an exact range area in km²."""
     metadata = SparseMetadata(
         width=2,
         height=2,
@@ -103,10 +121,10 @@ def write_species_matrix(
     )
     matrix_entries = [
         SpeciesMatrixEntry(
-            name=name,
-            iucn=iucn,
-            csv_class=csv_class,
-            cell_ids=np.asarray(cell_ids, dtype=np.uint32),
+            name=entry[0],
+            iucn=entry[1],
+            csv_class=entry[2],
+            cell_ids=np.asarray(entry[3], dtype=np.uint32),
             metadata=SparseMetadata(
                 width=metadata.width,
                 height=metadata.height,
@@ -116,10 +134,11 @@ def write_species_matrix(
                 y_scale=metadata.y_scale,
                 nodata=metadata.nodata,
                 crs=metadata.crs,
-                count=len(cell_ids),
+                count=len(entry[3]),
             ),
+            area_km2=entry[4] if len(entry) > 4 else None,
         )
-        for name, iucn, csv_class, cell_ids in entries
+        for entry in entries
     ]
     path.write_bytes(encode_species_matrix(matrix_entries))
     return path

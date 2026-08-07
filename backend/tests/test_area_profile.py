@@ -37,6 +37,9 @@ from tests.test_raster_polygon_metrics import (
     raster_artifact,
     raster_artifact_with_species,
     streaming_raster_artifact_with_species,
+    wgs84_box,
+    write_species_matrix,
+    write_tif,
 )
 
 
@@ -171,6 +174,51 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     assert bird.solution_covered_in_aoi_pct == pytest.approx(0.0)
 
 
+def test_coverage_of_a_partially_covered_range_reports_true_area_and_never_exceeds_it(
+    tmp_path: Path,
+) -> None:
+    """A thin range spread over four barely-touched cells, inside an AOI that
+    contains all of it. Counting whole cells would report 4 km² of a 0.44 km²
+    range, which is 909% of the species' national range."""
+    from app.metric_adapters import build_custom_aoi_raster
+
+    matrix = write_species_matrix(
+        tmp_path / "species_birds.smtx.gz",
+        [("Coastal wader", "LC", "Aves", [0, 1, 2, 3], 0.44)],
+    )
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset({"birds": matrix}, data_path, metadata_path)
+    index = load_runtime_species_bitset_index(data_path, metadata_path)
+
+    reference = raster_artifact(tmp_path).reference_raster_path
+    solution_path = write_tif(
+        tmp_path / "solution.tif",
+        np.array([[1, 1], [0, 0]], dtype=np.uint8),
+        nodata=255,
+    )
+
+    def coverage(geometry: dict) -> object:
+        records = index.detailed_coverage_records(
+            build_custom_aoi_raster(reference, geometry),
+            read_solution_raster(solution_path),
+        )
+        return records[0]
+
+    whole_grid = coverage(wgs84_box(0.0, 0.0, 2000.0, 2000.0))
+    assert whole_grid.range_area_km2 == pytest.approx(0.44)
+    assert whole_grid.range_in_aoi_area_km2 == pytest.approx(0.44)
+    assert whole_grid.range_in_aoi_pct == pytest.approx(100.0)
+    assert whole_grid.range_in_aoi_pct <= 100.0
+    assert whole_grid.solution_covered_in_aoi_pct <= 100.0
+
+    left_column = coverage(POLYGON_LEFT_COLUMN)
+    assert left_column.range_in_aoi_area_km2 == pytest.approx(0.22)
+    assert left_column.range_in_aoi_pct == pytest.approx(50.0)
+    assert left_column.solution_covered_in_aoi_area_km2 == pytest.approx(0.11)
+    assert left_column.solution_covered_in_aoi_pct == pytest.approx(50.0)
+
+
 def test_species_profile_uses_five_bundles_and_never_threatened_union(tmp_path: Path) -> None:
     sections, selection, status = calculate_custom_area_profile(
         raster_artifact_with_species(tmp_path),
@@ -195,18 +243,7 @@ def test_species_profile_uses_five_bundles_and_never_threatened_union(tmp_path: 
 
 
 def test_profile_reports_zero_cells_instead_of_empty_biodiversity(tmp_path: Path) -> None:
-    outside = {
-        "type": "Polygon",
-        "coordinates": [
-            [
-                [3000.0, 3000.0],
-                [4000.0, 3000.0],
-                [4000.0, 4000.0],
-                [3000.0, 4000.0],
-                [3000.0, 3000.0],
-            ]
-        ],
-    }
+    outside = wgs84_box(3000.0, 3000.0, 4000.0, 4000.0)
     sections, selection, status = calculate_custom_area_profile(
         raster_artifact_with_species(tmp_path),
         outside,

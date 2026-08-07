@@ -10,8 +10,6 @@ from pathlib import Path
 from typing import Any, Sequence
 
 import numpy as np
-from affine import Affine
-from rasterio.features import geometry_mask
 
 from .artifacts import RuntimeRasterLayer, RuntimeSpeciesMatrix
 
@@ -39,6 +37,7 @@ def _install_metrics_pipeline_path() -> Path:
 
 METRICS_PIPELINE_PATH = _install_metrics_pipeline_path()
 
+from boundaries.boundary_mask import DEFAULT_BOUNDARY_CRS, rasterize_boundary  # noqa: E402
 from calculators import area as calc_area  # noqa: E402
 from calculators import carbon as calc_carbon  # noqa: E402
 from calculators import ecosystem_coverage as calc_ecosystem  # noqa: E402
@@ -77,7 +76,6 @@ METRIC_DEFINITIONS_BY_ID: dict[str, MetricDefinition] = {
 KNOWN_METRIC_IDS = frozenset(METRIC_DEFINITIONS_BY_ID)
 
 _OVERLAP_CALCULATORS = {
-    "ecosistemas": calc_ecosystem.ecosystem_total_km2,
     "paramos": calc_ecosystem.paramo_km2,
     "bosque_seco": calc_ecosystem.dry_forest_km2,
     "wetlands": calc_ecosystem.wetlands_km2,
@@ -87,6 +85,12 @@ _OVERLAP_CALCULATORS = {
     "runap_protegidas": calc_protected.runap_overlap_km2,
     "recarga_agua": calc_water.water_recharge_overlap_km2,
     "coberturas_agriculture": calc_land_cover.agricultural_area_km2,
+}
+
+# Marine categorical layers are deliberately absent: this artifact serves the
+# Colombia land grid only.
+_CATEGORICAL_OVERLAP_CALCULATORS = {
+    "ecosistemas_IAVH_2024": calc_ecosystem.ecosystem_total_km2,
 }
 
 _OVERLAP_PERCENT_CALCULATORS = {
@@ -136,6 +140,10 @@ IMPLEMENTED_RASTER_METRIC_IDS = tuple(
         "weighted_sum",
         "weighted_percent_of_national",
     }
+    or (
+        metric.kind == "categorical_overlap_area"
+        and metric.layer_id in _CATEGORICAL_OVERLAP_CALCULATORS
+    )
     or metric.metric_id in {
         *_SPECIES_GROUP_METRIC_IDS,
         _SPECIES_PCT_METRIC_ID,
@@ -230,15 +238,19 @@ def metric_ids_for_request(metrics: list[str] | None, *, raster_artifact: bool) 
     return deduped
 
 
-def build_custom_aoi_raster(reference_raster_path: Path, geometry: dict[str, Any]) -> SolutionRaster:
+def build_custom_aoi_raster(
+    reference_raster_path: Path,
+    geometry: dict[str, Any],
+    *,
+    source_crs: Any = DEFAULT_BOUNDARY_CRS,
+) -> SolutionRaster:
+    """Rasterize a drawn AOI onto the reference grid, reprojecting when needed.
+
+    Delegates to the metrics pipeline's boundary rasterizer so precomputed
+    boundary metrics and live custom-AOI metrics discretize identically.
+    """
     base = read_reference_raster(reference_raster_path)
-    selected = geometry_mask(
-        [geometry],
-        out_shape=base.valid_mask.shape,
-        transform=Affine(*base.fingerprint.transform),
-        invert=True,
-        all_touched=False,
-    )
+    selected = rasterize_boundary(geometry, base.fingerprint, source_crs=source_crs)
     selected &= base.valid_mask
     return replace(
         base,
@@ -329,6 +341,15 @@ def calculate_raster_metrics_for_aoi(
                 used_layers.add(layer_id)
                 metrics[metric_id] = _calculate_weighted_metric(definition, raster, values)
                 continue
+            if definition.kind == "categorical_overlap_area":
+                values = _layer_values(layer, raster, value_cache)
+                used_layers.add(layer_id)
+                metrics[metric_id] = _calculate_categorical_overlap_metric(
+                    definition,
+                    raster,
+                    values,
+                )
+                continue
         except (RasterError, OSError, ValueError) as exc:
             metrics[metric_id] = None
             unavailable.append({"metric_id": metric_id, "reason": f"calculation_failed:{exc}"})
@@ -389,6 +410,18 @@ def _calculate_overlap_metric(
     if calc_fn is None:
         raise ValueError(f"No overlap calculator registered for {layer_id}.")
     return calc_fn(raster, mask)
+
+
+def _calculate_categorical_overlap_metric(
+    definition: MetricDefinition,
+    raster: SolutionRaster,
+    values: np.ndarray,
+) -> float | None:
+    layer_id = definition.layer_id or ""
+    calc_fn = _CATEGORICAL_OVERLAP_CALCULATORS.get(layer_id)
+    if calc_fn is None:
+        raise ValueError(f"No categorical overlap calculator registered for {layer_id}.")
+    return calc_fn(raster, values)
 
 
 def _calculate_weighted_metric(

@@ -3,6 +3,16 @@
 Each grid cell owns one fixed-width bit row. Bit ``n`` indicates that species
 ``n`` has modeled range in that cell. The layout supports fast AOI queries
 without loading the species-major sparse matrices at runtime.
+
+Two areas are recorded per species and they are not interchangeable.
+``range_cell_area_km2`` totals the whole cells the species occupies, which is
+the only quantity a presence bitset can reconstruct at query time.
+``range_area_km2`` is the true range area, taken from the source matrix when
+it carries one. Presence is emitted for any positive overlap, so a range that
+threads through partially covered cells occupies far more cell area than it
+truly covers; reporting the cell total as the range would overstate small
+ranges badly. Runtime callers scale cell-derived AOI areas by the ratio of the
+two so that everything they report shares the true-area scale.
 """
 
 from __future__ import annotations
@@ -21,9 +31,12 @@ from rasterio.crs import CRS
 from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata
 
 
-FORMAT = "species-cell-bitset/v1"
+FORMAT = "species-cell-bitset/v2"
 BIT_ORDER = "little"
 EARTH_RADIUS_KM = 6371.0088
+
+RANGE_AREA_SOURCE_EXACT = "matrix-exact-area"
+RANGE_AREA_SOURCE_CELL_COUNT = "cell-count"
 
 
 @dataclass(frozen=True)
@@ -33,7 +46,15 @@ class SpeciesBitsetEntry:
     iucn_status: str
     csv_class: str
     range_cell_count: int
+    range_cell_area_km2: float
     range_area_km2: float
+
+    @property
+    def area_per_occupied_cell_area(self) -> float:
+        """True range area as a fraction of the cell area it is spread across."""
+        if self.range_cell_area_km2 <= 0:
+            return 0.0
+        return self.range_area_km2 / self.range_cell_area_km2
 
 
 @dataclass(frozen=True)
@@ -41,6 +62,7 @@ class SpeciesBitsetMetadata:
     grid: SparseMetadata
     species: tuple[SpeciesBitsetEntry, ...]
     bytes_per_cell: int
+    range_area_source: str
 
     @property
     def species_count(self) -> int:
@@ -63,6 +85,7 @@ class SpeciesBitsetMetadata:
             "data_file": data_filename,
             "species_count": self.species_count,
             "bytes_per_cell": self.bytes_per_cell,
+            "range_area_source": self.range_area_source,
             "grid": grid,
             "species": [
                 {
@@ -71,6 +94,7 @@ class SpeciesBitsetMetadata:
                     "iucn_status": entry.iucn_status,
                     "class": entry.csv_class,
                     "range_cell_count": entry.range_cell_count,
+                    "range_cell_area_km2": entry.range_cell_area_km2,
                     "range_area_km2": entry.range_area_km2,
                 }
                 for entry in self.species
@@ -93,6 +117,84 @@ def build_species_bitset(
 ) -> SpeciesBitsetMetadata:
     """Build a deterministic cell-major bitset from five taxonomic bundles."""
 
+    headers, grid, bytes_per_cell = _read_matrix_set(matrix_paths)
+    range_area_source = _range_area_source(headers)
+    cell_count = grid.width * grid.height
+    data_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    data_tmp = data_path.with_name(f".{data_path.name}.tmp")
+    metadata_tmp = metadata_path.with_name(f".{metadata_path.name}.tmp")
+
+    bitset = np.memmap(
+        data_tmp,
+        dtype=np.uint8,
+        mode="w+",
+        shape=(cell_count, bytes_per_cell),
+    )
+    bitset[:] = 0
+    entries: list[SpeciesBitsetEntry] = []
+
+    try:
+        for species_index, (cell_ids, entry) in enumerate(_iter_species_entries(headers, grid)):
+            bitset[cell_ids, species_index // 8] |= np.uint8(1 << (species_index % 8))
+            entries.append(entry)
+
+        bitset.flush()
+        metadata = SpeciesBitsetMetadata(
+            grid=grid,
+            species=tuple(entries),
+            bytes_per_cell=bytes_per_cell,
+            range_area_source=range_area_source,
+        )
+        _write_metadata(metadata_tmp, metadata, data_path.name)
+    except Exception:
+        del bitset
+        data_tmp.unlink(missing_ok=True)
+        metadata_tmp.unlink(missing_ok=True)
+        raise
+
+    del bitset
+    data_tmp.replace(data_path)
+    metadata_tmp.replace(metadata_path)
+    return metadata
+
+
+def rebuild_species_bitset_metadata(
+    matrix_paths: dict[str, Path],
+    data_path: Path,
+    metadata_path: Path,
+) -> SpeciesBitsetMetadata:
+    """Rewrite the sidecar metadata against a bit plane that is already correct.
+
+    Presence bits are a function of the cell IDs alone, so a change confined to
+    the metadata does not justify rewriting a multi-gigabyte data file. The
+    shape implied by the matrices is checked against the existing file so a bit
+    plane built from a different species set cannot be adopted by mistake.
+    """
+
+    headers, grid, bytes_per_cell = _read_matrix_set(matrix_paths)
+    range_area_source = _range_area_source(headers)
+    metadata = SpeciesBitsetMetadata(
+        grid=grid,
+        species=tuple(entry for _, entry in _iter_species_entries(headers, grid)),
+        bytes_per_cell=bytes_per_cell,
+        range_area_source=range_area_source,
+    )
+    if data_path.stat().st_size != metadata.expected_data_bytes:
+        raise SparseFormatError(
+            f"species bitset {data_path.name} holds {data_path.stat().st_size} bytes but "
+            f"the matrices imply {metadata.expected_data_bytes}"
+        )
+
+    metadata_tmp = metadata_path.with_name(f".{metadata_path.name}.tmp")
+    _write_metadata(metadata_tmp, metadata, data_path.name)
+    metadata_tmp.replace(metadata_path)
+    return metadata
+
+
+def _read_matrix_set(
+    matrix_paths: dict[str, Path],
+) -> tuple[tuple[_MatrixHeader, ...], SparseMetadata, int]:
     if not matrix_paths:
         raise SparseFormatError("species bitset requires at least one matrix")
 
@@ -108,73 +210,70 @@ def build_species_bitset(
             )
 
     species_count = sum(len(header.species) for header in headers)
-    bytes_per_cell = math.ceil(species_count / 8)
+    return headers, grid, math.ceil(species_count / 8)
+
+
+def _iter_species_entries(
+    headers: tuple[_MatrixHeader, ...],
+    grid: SparseMetadata,
+) -> Iterator[tuple[np.ndarray, SpeciesBitsetEntry]]:
     cell_count = grid.width * grid.height
-    data_path.parent.mkdir(parents=True, exist_ok=True)
-    metadata_path.parent.mkdir(parents=True, exist_ok=True)
-    data_tmp = data_path.with_name(f".{data_path.name}.tmp")
-    metadata_tmp = metadata_path.with_name(f".{metadata_path.name}.tmp")
-
-    bitset = np.memmap(
-        data_tmp,
-        dtype=np.uint8,
-        mode="w+",
-        shape=(cell_count, bytes_per_cell),
-    )
-    bitset[:] = 0
     row_areas = pixel_area_km2_per_row(grid)
-    entries: list[SpeciesBitsetEntry] = []
-
-    try:
-        species_index = 0
-        for header in headers:
-            for toc_entry, cell_ids in _iter_matrix_species(header):
-                if cell_ids.size and int(cell_ids[-1]) >= cell_count:
-                    raise SparseFormatError(
-                        f"species {toc_entry['name']!r} contains a cell outside its grid"
-                    )
-                byte_index = species_index // 8
-                bit_mask = np.uint8(1 << (species_index % 8))
-                bitset[cell_ids, byte_index] |= bit_mask
-                rows = cell_ids // grid.width
-                range_area_km2 = float(row_areas[rows].sum())
-                entries.append(
-                    SpeciesBitsetEntry(
-                        scientific_name=str(toc_entry["name"]),
-                        group=header.group,
-                        iucn_status=str(toc_entry.get("iucn") or ""),
-                        csv_class=str(toc_entry.get("class") or ""),
-                        range_cell_count=int(cell_ids.size),
-                        range_area_km2=range_area_km2,
-                    )
+    for header in headers:
+        for toc_entry, cell_ids in _iter_matrix_species(header):
+            if cell_ids.size and int(cell_ids[-1]) >= cell_count:
+                raise SparseFormatError(
+                    f"species {toc_entry['name']!r} contains a cell outside its grid"
                 )
-                species_index += 1
-
-        bitset.flush()
-        metadata = SpeciesBitsetMetadata(
-            grid=grid,
-            species=tuple(entries),
-            bytes_per_cell=bytes_per_cell,
-        )
-        metadata_tmp.write_text(
-            json.dumps(
-                metadata.to_json(data_filename=data_path.name),
-                indent=2,
-                ensure_ascii=False,
+            range_cell_area_km2 = float(row_areas[cell_ids // grid.width].sum())
+            exact_area_km2 = toc_entry.get("area_km2")
+            yield cell_ids, SpeciesBitsetEntry(
+                scientific_name=str(toc_entry["name"]),
+                group=header.group,
+                iucn_status=str(toc_entry.get("iucn") or ""),
+                csv_class=str(toc_entry.get("class") or ""),
+                range_cell_count=int(cell_ids.size),
+                range_cell_area_km2=range_cell_area_km2,
+                range_area_km2=(
+                    range_cell_area_km2 if exact_area_km2 is None else float(exact_area_km2)
+                ),
             )
-            + "\n",
-            encoding="utf-8",
-        )
-    except Exception:
-        del bitset
-        data_tmp.unlink(missing_ok=True)
-        metadata_tmp.unlink(missing_ok=True)
-        raise
 
-    del bitset
-    data_tmp.replace(data_path)
-    metadata_tmp.replace(metadata_path)
-    return metadata
+
+def _range_area_source(headers: tuple[_MatrixHeader, ...]) -> str:
+    """Decide whether the bundles carry exact areas, refusing a partial set."""
+    declared = sum(
+        1
+        for header in headers
+        for entry in header.species
+        if entry.get("area_km2") is not None
+    )
+    total = sum(len(header.species) for header in headers)
+    if declared == 0:
+        return RANGE_AREA_SOURCE_CELL_COUNT
+    if declared != total:
+        raise SparseFormatError(
+            f"{declared} of {total} species declare an exact range area; refusing to "
+            "mix exact and cell-derived areas"
+        )
+    return RANGE_AREA_SOURCE_EXACT
+
+
+def _write_metadata(
+    path: Path,
+    metadata: SpeciesBitsetMetadata,
+    data_filename: str,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            metadata.to_json(data_filename=data_filename),
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def load_species_bitset_metadata(path: Path) -> SpeciesBitsetMetadata:
@@ -194,6 +293,7 @@ def load_species_bitset_metadata(path: Path) -> SpeciesBitsetMetadata:
                 iucn_status=str(entry.get("iucn_status") or ""),
                 csv_class=str(entry.get("class") or ""),
                 range_cell_count=int(entry["range_cell_count"]),
+                range_cell_area_km2=float(entry["range_cell_area_km2"]),
                 range_area_km2=float(entry["range_area_km2"]),
             )
             for entry in raw["species"]
@@ -202,6 +302,7 @@ def load_species_bitset_metadata(path: Path) -> SpeciesBitsetMetadata:
             grid=grid,
             species=species,
             bytes_per_cell=int(raw["bytes_per_cell"]),
+            range_area_source=str(raw["range_area_source"]),
         )
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         if isinstance(exc, SparseFormatError):
