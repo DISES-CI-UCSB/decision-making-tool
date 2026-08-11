@@ -57,9 +57,15 @@ function runtimeSolutionDomain(solution) {
   );
 }
 
-export function compactRuntimeSolution(solution, { releaseId = null } = {}) {
+export function compactRuntimeSolution(
+  solution,
+  { releaseId = null, speciesGoalsInventory = null, speciesGoalsBaseUrl = undefined } = {},
+) {
   assert(solution && typeof solution === 'object', 'runtime solution source must be an object');
-  assert(Array.isArray(solution.coverage), `${solution.id ?? 'solution'} coverage must be an array`);
+  assert(
+    Array.isArray(solution.coverage),
+    `${solution.id ?? 'solution'} coverage must be an array`,
+  );
   assert(
     solution.finderInputs?.structuredTargets,
     `${solution.id ?? 'solution'} must include structuredTargets before runtime compaction`,
@@ -75,7 +81,7 @@ export function compactRuntimeSolution(solution, { releaseId = null } = {}) {
       solution.id,
       solution.precomputedMetricUrls ?? {},
       domain,
-      { releaseId },
+      { releaseId, speciesGoalsInventory, speciesGoalsBaseUrl },
     );
     const displayCogUrl = createSolutionDisplayCogUrl(solution.rasterFile, domain, { releaseId });
     if (displayCogUrl) {
@@ -87,7 +93,13 @@ export function compactRuntimeSolution(solution, { releaseId = null } = {}) {
   return compact;
 }
 
-export function buildRuntimeReleaseManifest({ baseManifest, preflightManifest, catalog }) {
+export function buildRuntimeReleaseManifest({
+  baseManifest,
+  preflightManifest,
+  catalog,
+  speciesGoalsInventory = null,
+  speciesGoalsBaseUrl = undefined,
+}) {
   assert(baseManifest && typeof baseManifest === 'object', 'base manifest must be an object');
   assert(
     preflightManifest && typeof preflightManifest === 'object',
@@ -95,12 +107,27 @@ export function buildRuntimeReleaseManifest({ baseManifest, preflightManifest, c
   );
   assert(Array.isArray(baseManifest.categories), 'base manifest categories must be an array');
   assert(Array.isArray(baseManifest.layers), 'base manifest layers must be an array');
-  assert(Array.isArray(preflightManifest.solutions), 'preflight manifest solutions must be an array');
+  assert(
+    Array.isArray(preflightManifest.solutions),
+    'preflight manifest solutions must be an array',
+  );
 
   validateManifestAgainstCatalog(preflightManifest, catalog);
 
+  if (
+    speciesGoalsInventory !== null &&
+    (speciesGoalsInventory?.format !== 'species-goals-release-inventory-index-v1' ||
+      speciesGoalsInventory.releaseId !== catalog.releaseId ||
+      typeof speciesGoalsInventory.solutions !== 'object')
+  ) {
+    throw new Error('species goals release inventory is invalid or stale');
+  }
   const solutions = preflightManifest.solutions.map((solution) =>
-    compactRuntimeSolution(solution, { releaseId: catalog.releaseId }),
+    compactRuntimeSolution(solution, {
+      releaseId: catalog.releaseId,
+      speciesGoalsInventory: speciesGoalsInventory?.solutions?.[solution.id] ?? null,
+      speciesGoalsBaseUrl,
+    }),
   );
   const manifest = {
     version: baseManifest.version,

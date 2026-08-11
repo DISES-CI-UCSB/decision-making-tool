@@ -1,4 +1,4 @@
-import type { MetricValue } from '@core/models';
+import type { GoalFeatureRow, MetricValue } from '@core/models';
 import {
   formatNumber,
   formatPanelMetric,
@@ -53,6 +53,28 @@ export interface SpeciesReferenceSummary {
   reached30Count: number;
   totalCount: number | null;
   groups: SpeciesReferenceGroupSummary[];
+}
+
+export interface EcosystemGoalsOverview {
+  metCount: number;
+  totalCount: number;
+  pctMet: number | null;
+  reached17Count: number;
+  reached30Count: number;
+}
+
+export function summarizeEcosystemGoals(
+  features: readonly GoalFeatureRow[],
+): EcosystemGoalsOverview {
+  const metCount = features.filter((feature) => feature.met === true).length;
+  const totalCount = features.length;
+  return {
+    metCount,
+    totalCount,
+    pctMet: totalCount > 0 ? (metCount / totalCount) * 100 : null,
+    reached17Count: countFeaturesAtCoverage(features, 0.17),
+    reached30Count: countFeaturesAtCoverage(features, 0.3),
+  };
 }
 
 export function readSpeciesReferenceSummary(metric: MetricValue): SpeciesReferenceSummary | null {
@@ -149,6 +171,12 @@ function readReferenceGroups(raw17: unknown, raw30: unknown): SpeciesReferenceGr
 
 function isFiniteCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function countFeaturesAtCoverage(features: readonly GoalFeatureRow[], threshold: number): number {
+  return features.filter(
+    (feature) => feature.relativeHeld !== null && feature.relativeHeld >= threshold,
+  ).length;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {

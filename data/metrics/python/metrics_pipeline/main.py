@@ -75,6 +75,7 @@ from calculator_registry import (
 from calculators import area as calc_area
 from calculators.species import (
     SpeciesAccumulator,
+    SpeciesDetailSink,
     SpeciesScopeMetrics,
 )
 from local_io import (
@@ -180,7 +181,20 @@ from species_exception import (
     SpeciesExceptionPolicy,
     load_species_exception,
 )
+from species_goals import (
+    GEOGRAPHY_LEVELS as SPECIES_GOALS_GEOGRAPHY_LEVELS,
+    SpeciesGoalsPipeline,
+    build_catalog as build_species_goals_catalog,
+    canonical_sha256 as species_goals_sha256,
+    catalog_path as species_goals_catalog_path,
+    compact_partition_path as species_goals_partition_path,
+    partition_is_resumable as species_goals_partition_is_resumable,
+    species_id as species_goals_id,
+    write_catalog as write_species_goals_catalog,
+    write_release_inventory as write_species_goals_release_inventory,
+)
 from species_overlap import (
+    SPECIES_POLICY,
     SPECIES_OVERLAP_ALGORITHM_VERSION,
     SpeciesOverlapResult,
     read_species_overlap,
@@ -466,6 +480,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Apply one catalog-bound, versioned release species exception contract. "
             "Arbitrary species skipping is not supported."
+        ),
+    )
+    parser.add_argument(
+        "--species-goals-output-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Write resumable species-goals-catalog-v1 and per-geography "
+            "species-goals-compact-v1 artifacts locally."
         ),
     )
     args = parser.parse_args(argv)
@@ -2233,6 +2256,58 @@ def _compute_species_metric(
 # ---------------------------------------------------------------------------
 
 
+def _species_goals_provenance(
+    *,
+    release_id: str,
+    species_csv_sha256: str,
+    species_exception_source_sha256: str | None,
+    species_exception_binding: dict[str, Any] | None,
+    alignment_provenance: dict[str, Any],
+    solution_raster_sha256: str,
+    target_policy: SpeciesTargetPolicy,
+    boundary_provenance_sha256: str,
+    catalog_sha256: str,
+) -> dict[str, Any]:
+    return {
+        "releaseId": release_id,
+        "speciesCsvSha256": species_csv_sha256,
+        "exceptionSourceSha256": species_exception_source_sha256,
+        "exceptionPolicySha256": (
+            species_exception_binding.get("policySha256")
+            if species_exception_binding is not None
+            else None
+        ),
+        "exceptionBindingSha256": (
+            species_goals_sha256(species_exception_binding)
+            if species_exception_binding is not None
+            else None
+        ),
+        "exactOverlapAlgorithmVersion": SPECIES_OVERLAP_ALGORITHM_VERSION,
+        "exactOverlapPolicySha256": species_goals_sha256(SPECIES_POLICY.__dict__),
+        "targetGridSha256": alignment_provenance["targetGridSha256"],
+        "speciesAlignmentInventorySha256": alignment_provenance["sha256"],
+        "solutionRasterSha256": solution_raster_sha256,
+        "targetPolicySha256": species_goals_sha256(
+            {
+                "kind": target_policy.kind,
+                "scalarTargetPercent": target_policy.scalar_target_pct,
+                "targetsBySpecies": target_policy.targets_by_species,
+                "provenance": target_policy.provenance,
+            }
+        ),
+        "boundaryProvenanceSha256": boundary_provenance_sha256,
+        "catalogSha256": catalog_sha256,
+    }
+
+
+def _species_exception_source_sha256(
+    species_exception: SpeciesExceptionPolicy | None,
+) -> str | None:
+    if species_exception is None:
+        return None
+    return hashlib.sha256(species_exception.source_path.read_bytes()).hexdigest()
+
+
 def _process_species_for_solution(
     raster: SolutionRaster,
     solution: dict[str, Any],
@@ -2243,6 +2318,7 @@ def _process_species_for_solution(
     force_download: bool,
     alignment_cache: RasterAlignmentCache,
     target_policy: SpeciesTargetPolicy,
+    detail_sink: SpeciesDetailSink | None = None,
 ) -> SpeciesAccumulator:
     """Read every species range raster once and accumulate counts across scopes.
 
@@ -2267,10 +2343,13 @@ def _process_species_for_solution(
         pool_sizes=pool_sizes,
         target_policy=target_policy,
         species_expected=len(species_records),
+        detail_sink=detail_sink,
     )
     accumulator.init_sub(sub_sizes)
 
     selected_flat = raster.selected_mask.ravel()
+    pre_existing_flat = raster.pre_existing_mask.ravel()
+    new_prioritizr_flat = raster.new_prioritizr_mask.ravel()
 
     # Cache flat boundary-id arrays for direct dict access in the inner loop.
     bid_flats = {level: g.flat for level, g in boundary_grids.items()}
@@ -2308,40 +2387,58 @@ def _process_species_for_solution(
         range_areas_m2 = overlap.areas_m2
         total_range_area_m2 = float(range_areas_m2.sum(dtype=np.float64))
         if range_indices.size == 0:
+            accumulator.record_species_national(sp, 0.0, 0.0)
             continue
 
         accumulator.species_with_range += 1
 
         selected_at_range = selected_flat[range_indices]
+        pre_existing_at_range = pre_existing_flat[range_indices]
+        new_prioritizr_at_range = new_prioritizr_flat[range_indices]
         selected_range_area_m2 = float(
             range_areas_m2[selected_at_range].sum(dtype=np.float64)
+        )
+        pre_existing_range_area_m2 = float(
+            range_areas_m2[pre_existing_at_range].sum(dtype=np.float64)
+        )
+        new_prioritizr_range_area_m2 = float(
+            range_areas_m2[new_prioritizr_at_range].sum(dtype=np.float64)
         )
 
         accumulator.record_species_national(
             sp,
             selected_range_area_m2,
             total_range_area_m2,
+            pre_existing_range_area_m2=pre_existing_range_area_m2,
+            new_prioritizr_range_area_m2=new_prioritizr_range_area_m2,
         )
 
-        if selected_range_area_m2 <= 0 and (
-            target_policy.kind == "scalar"
-            or (
-                target_policy.kind == "per_species"
-                and target_policy.target_for(sp.scientific_name) is None
-            )
+        if (
+            selected_range_area_m2 <= 0
+            and detail_sink is None
+            and target_policy.kind == "per_species"
+            and target_policy.target_for(sp.scientific_name) is None
         ):
             continue
 
         selected_range_indices = range_indices[selected_at_range]
         selected_range_areas_m2 = range_areas_m2[selected_at_range]
+        pre_existing_range_indices = range_indices[pre_existing_at_range]
+        pre_existing_range_areas_m2 = range_areas_m2[pre_existing_at_range]
+        new_prioritizr_range_indices = range_indices[new_prioritizr_at_range]
+        new_prioritizr_range_areas_m2 = range_areas_m2[new_prioritizr_at_range]
 
         for level, bid_arr in bid_flats.items():
             bids_at_range = bid_arr[range_indices]
             bids_at_selected = bid_arr[selected_range_indices]
+            bids_at_pre_existing = bid_arr[pre_existing_range_indices]
+            bids_at_new_prioritizr = bid_arr[new_prioritizr_range_indices]
 
             n_levels = boundary_grids[level].num_boundaries
             mask_total = bids_at_range >= 0
             mask_sel = bids_at_selected >= 0
+            mask_pre_existing = bids_at_pre_existing >= 0
+            mask_new_prioritizr = bids_at_new_prioritizr >= 0
             total_per = np.bincount(
                 bids_at_range[mask_total]
                 if mask_total.any()
@@ -2362,7 +2459,32 @@ def _process_species_for_solution(
                 if mask_sel.any()
                 else np.zeros(n_levels, dtype=np.float64)
             )
-            accumulator.record_species_sub_level(sp, level, sel_per, total_per)
+            pre_existing_per = (
+                np.bincount(
+                    bids_at_pre_existing[mask_pre_existing],
+                    weights=pre_existing_range_areas_m2[mask_pre_existing],
+                    minlength=n_levels,
+                )
+                if mask_pre_existing.any()
+                else np.zeros(n_levels, dtype=np.float64)
+            )
+            new_prioritizr_per = (
+                np.bincount(
+                    bids_at_new_prioritizr[mask_new_prioritizr],
+                    weights=new_prioritizr_range_areas_m2[mask_new_prioritizr],
+                    minlength=n_levels,
+                )
+                if mask_new_prioritizr.any()
+                else np.zeros(n_levels, dtype=np.float64)
+            )
+            accumulator.record_species_sub_level(
+                sp,
+                level,
+                sel_per,
+                total_per,
+                pre_existing_per_boundary=pre_existing_per,
+                new_prioritizr_per_boundary=new_prioritizr_per,
+            )
 
     elapsed = time.time() - started
     print(
@@ -2740,6 +2862,7 @@ def _process_solution(
     skip_species: bool = False,
     skip_species_boundary_levels: set[str] | None = None,
     species_csv_url: str = SPECIES_CSV_URL,
+    species_csv_sha256: str | None = None,
     cache_blob_directory: str = CACHE_BLOB_DIRECTORY,
     release_id: str | None = None,
     solution_input_signature: dict[str, str] | None = None,
@@ -2748,7 +2871,11 @@ def _process_solution(
     alignment_cache: RasterAlignmentCache | None = None,
     alignment_provenance: dict[str, Any] | None = None,
     species_exception_binding: dict[str, Any] | None = None,
+    species_exception_source_sha256: str | None = None,
     species_target_policy: SpeciesTargetPolicy | None = None,
+    species_detail_sink: SpeciesDetailSink | None = None,
+    species_goals_catalog: dict[str, Any] | None = None,
+    species_goals_output_dir: Path | None = None,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
@@ -2796,6 +2923,22 @@ def _process_solution(
                 boundary_mask_cache,
             )
 
+    provenance = build_metrics_provenance(
+        domain,
+        national_only=national_only,
+        skip_species=skip_species,
+        skip_species_boundary_levels=skip_species_boundary_levels or set(),
+        species_csv_url=species_csv_url,
+        release_id=release_id,
+        alignment_provenance=alignment_provenance,
+        species_exception_binding=species_exception_binding,
+        species_target_policy=(
+            species_target_policy.provenance
+            if species_target_policy is not None
+            else None
+        ),
+    )
+
     # --- Species pass: compute counters across all scopes for this solution ---
     species_accumulator: SpeciesAccumulator | None = None
     if domain == "land" and not skip_species and species_records and species_pool_sizes:
@@ -2818,6 +2961,56 @@ def _process_solution(
                 f"[tier1-metrics]   species fan-out levels: {active_levels or ['national only']} "
                 f"(skipped: {sorted(skipped_levels)})"
             )
+        if species_goals_catalog is not None and species_goals_output_dir is not None:
+            if species_detail_sink is not None:
+                raise ValueError(
+                    "species_detail_sink and species goals output cannot both be configured"
+                )
+            if (
+                release_id is None
+                or species_csv_sha256 is None
+                or alignment_provenance is None
+            ):
+                raise ValueError(
+                    "species goals require release, CSV, and alignment provenance"
+                )
+            species_goals_provenance = _species_goals_provenance(
+                release_id=release_id,
+                species_csv_sha256=species_csv_sha256,
+                species_exception_source_sha256=species_exception_source_sha256,
+                species_exception_binding=species_exception_binding,
+                alignment_provenance=alignment_provenance,
+                solution_raster_sha256=download.sha256,
+                target_policy=species_target_policy,
+                boundary_provenance_sha256=provenance["boundaryProvenance"]["sha256"],
+                catalog_sha256=species_goals_catalog["catalogSha256"],
+            )
+            expected_levels = {
+                "national",
+                *species_boundary_grids.keys(),
+            }
+            active_levels = {
+                level
+                for level in expected_levels
+                if not species_goals_partition_is_resumable(
+                    species_goals_partition_path(
+                        species_goals_output_dir, solution_id, level
+                    ),
+                    catalog=species_goals_catalog,
+                    expected_solution_id=solution_id,
+                    expected_level=level,
+                    expected_catalog_sha256=species_goals_catalog["catalogSha256"],
+                    expected_provenance=species_goals_provenance,
+                )
+            }
+            species_detail_sink = SpeciesGoalsPipeline(
+                species_goals_catalog,
+                solution_id=solution_id,
+                target_policy=species_target_policy,
+                provenance=species_goals_provenance,
+                spool_dir=species_goals_output_dir / ".spool",
+                active_levels=active_levels,
+            )
         species_accumulator = _process_species_for_solution(
             raster=raster,
             solution=solution,
@@ -2828,6 +3021,7 @@ def _process_solution(
             force_download=force_download,
             alignment_cache=alignment_cache,
             target_policy=species_target_policy,
+            detail_sink=species_detail_sink,
         )
 
     # --- National level ---
@@ -2992,21 +3186,29 @@ def _process_solution(
             print(f"[tier1-metrics]   {geo_level}: {len(level_out)} features processed")
 
     generated_at = _utc_now_iso()
-    provenance = build_metrics_provenance(
-        domain,
-        national_only=national_only,
-        skip_species=skip_species,
-        skip_species_boundary_levels=skip_species_boundary_levels or set(),
-        species_csv_url=species_csv_url,
-        release_id=release_id,
-        alignment_provenance=alignment_provenance,
-        species_exception_binding=species_exception_binding,
-        species_target_policy=(
-            species_target_policy.provenance
-            if species_target_policy is not None
-            else None
-        ),
-    )
+    if isinstance(species_detail_sink, SpeciesGoalsPipeline):
+        species_detail_sink.write_partition_streaming(
+            species_goals_partition_path(
+                species_goals_output_dir, solution_id, "national"
+            ),
+            geography_level="national",
+            scope_catalog=[["colombia", "Colombia"]],
+            generated_at=generated_at,
+        )
+        for level, features in boundaries_by_level.items():
+            if level not in species_accumulator.sub:
+                continue
+            species_detail_sink.write_partition_streaming(
+                species_goals_partition_path(
+                    species_goals_output_dir, solution_id, level
+                ),
+                geography_level=level,
+                scope_catalog=[
+                    [feature.boundary_id, feature.name] for feature in features
+                ],
+                generated_at=generated_at,
+            )
+        species_detail_sink.close()
     species_completeness = {
         "catalogTotal": (
             species_exception_binding["catalogTotal"]
@@ -3314,6 +3516,7 @@ def main(argv: list[str] | None = None) -> int:
     catalog_species_records: list[SpeciesRecord] | None = None
     species_records: list[SpeciesRecord] | None = None
     species_pool_sizes: SpeciesPoolSizes | None = None
+    species_goals_catalog: dict[str, Any] | None = None
     if (
         any(solution_domain(solution) == "land" for solution in selected_solutions)
         and not args.skip_species
@@ -3335,6 +3538,75 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"[tier1-metrics] ERROR: species preflight failed ({exc}); "
                 "no solutions were processed.",
+                file=sys.stderr,
+            )
+            return 2
+    if args.species_goals_output_dir is not None:
+        if (
+            args.skip_species
+            or catalog_species_records is None
+            or species_csv_download is None
+            or args.release_id is None
+        ):
+            print(
+                "[tier1-metrics] ERROR: --species-goals-output-dir requires "
+                "--release-id and the species pass.",
+                file=sys.stderr,
+            )
+            return 2
+        excluded_filenames = (
+            set(species_exception.excluded_filenames)
+            if species_exception is not None
+            else set()
+        )
+        unavailable_ids = {
+            species_goals_id(record)
+            for record in catalog_species_records
+            if record.blob_filename in excluded_filenames
+        }
+        species_goals_catalog = build_species_goals_catalog(
+            catalog_species_records,
+            unavailable_species_ids=unavailable_ids,
+            provenance={
+                "releaseId": args.release_id,
+                "speciesCsvSha256": species_csv_download.sha256,
+                "exceptionSourceSha256": (
+                    _species_exception_source_sha256(species_exception)
+                ),
+                "exceptionPolicySha256": (
+                    species_exception.binding.get("policySha256")
+                    if species_exception is not None
+                    else None
+                ),
+                "exceptionBindingSha256": (
+                    species_goals_sha256(species_exception.binding)
+                    if species_exception is not None
+                    else None
+                ),
+                "inventory": {
+                    "catalogTotal": len(catalog_species_records),
+                    "unavailable": len(unavailable_ids),
+                    "zeroRange": sum(
+                        record.range_km2 == 0
+                        and species_goals_id(record) not in unavailable_ids
+                        for record in catalog_species_records
+                    ),
+                },
+            },
+        )
+        try:
+            _, resumed = write_species_goals_catalog(
+                species_goals_catalog_path(args.species_goals_output_dir),
+                species_goals_catalog,
+            )
+            print(
+                "[tier1-metrics] species goals catalog: "
+                f"{'resumed' if resumed else 'written'} "
+                f"({len(catalog_species_records):,} species)"
+            )
+        except (OSError, ValueError) as exc:
+            print(
+                f"[tier1-metrics] ERROR: species goals catalog failed: {exc}",
                 file=sys.stderr,
             )
             return 2
@@ -3595,7 +3867,58 @@ def main(argv: list[str] | None = None) -> int:
                     str(solution.get("id"))
                 ),
             )
-            if resume_entry is None:
+            if (
+                resume_entry is not None
+                and args.species_goals_output_dir is not None
+                and solution_domain(solution) == "land"
+                and species_goals_catalog is not None
+                and species_csv_download is not None
+            ):
+                solution_id = str(solution.get("id"))
+                regular_provenance = expected_provenance_by_id[solution_id]
+                target_policy = species_target_policies[solution_id]
+                sidecar_provenance = _species_goals_provenance(
+                    release_id=args.release_id,
+                    species_csv_sha256=species_csv_download.sha256,
+                    species_exception_source_sha256=(
+                        _species_exception_source_sha256(species_exception)
+                    ),
+                    species_exception_binding=(
+                        species_exception.binding
+                        if species_exception is not None
+                        else None
+                    ),
+                    alignment_provenance=regular_provenance["inputAlignment"],
+                    solution_raster_sha256=solution_checksums[solution_id],
+                    target_policy=target_policy,
+                    boundary_provenance_sha256=regular_provenance[
+                        "boundaryProvenance"
+                    ]["sha256"],
+                    catalog_sha256=species_goals_catalog["catalogSha256"],
+                )
+                expected_levels = (
+                    {"national"}
+                    if args.national_only
+                    else set(SPECIES_GOALS_GEOGRAPHY_LEVELS)
+                    - set(args.skip_species_boundary_level)
+                )
+                if not all(
+                    species_goals_partition_is_resumable(
+                        species_goals_partition_path(
+                            args.species_goals_output_dir, solution_id, level
+                        ),
+                        catalog=species_goals_catalog,
+                        expected_solution_id=solution_id,
+                        expected_level=level,
+                        expected_catalog_sha256=species_goals_catalog[
+                            "catalogSha256"
+                        ],
+                        expected_provenance=sidecar_provenance,
+                    )
+                    for level in expected_levels
+                ):
+                    resume_entry = None
+            if resume_entry is None and args.species_goals_output_dir is None:
                 solution_id = str(solution.get("id"))
                 domain = solution_domain(solution)
                 species_exception_binding = (
@@ -3715,6 +4038,11 @@ def main(argv: list[str] | None = None) -> int:
                     skip_species=args.skip_species,
                     skip_species_boundary_levels=set(args.skip_species_boundary_level),
                     species_csv_url=args.species_csv_url,
+                    species_csv_sha256=(
+                        species_csv_download.sha256
+                        if species_csv_download is not None
+                        else None
+                    ),
                     cache_blob_directory=args.cache_blob_directory,
                     release_id=args.release_id,
                     solution_input_signature=solution_input_signatures[solution_id],
@@ -3731,7 +4059,14 @@ def main(argv: list[str] | None = None) -> int:
                         and solution_domain(solution) == "land"
                         else None
                     ),
+                    species_exception_source_sha256=(
+                        _species_exception_source_sha256(species_exception)
+                        if solution_domain(solution) == "land"
+                        else None
+                    ),
                     species_target_policy=species_target_policies.get(solution_id),
+                    species_goals_catalog=species_goals_catalog,
+                    species_goals_output_dir=args.species_goals_output_dir,
                 )
             )
         except Exception as exc:  # noqa: BLE001 - batch runner records per-solution failures
@@ -3747,6 +4082,45 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[tier1-metrics]   FAILED: {exc}", file=sys.stderr)
 
     geo_levels = sorted({lvl for e in entries for lvl in e.get("geographyLevels", [])})
+    if (
+        args.species_goals_output_dir is not None
+        and species_goals_catalog is not None
+        and species_csv_download is not None
+        and args.release_id is not None
+    ):
+        expected_sidecar_provenance = {}
+        for solution in solutions:
+            solution_id = str(solution.get("id"))
+            if solution_domain(solution) != "land":
+                continue
+            regular_provenance = expected_provenance_by_id[solution_id]
+            expected_sidecar_provenance[solution_id] = _species_goals_provenance(
+                release_id=args.release_id,
+                species_csv_sha256=species_csv_download.sha256,
+                species_exception_source_sha256=(
+                    _species_exception_source_sha256(species_exception)
+                ),
+                species_exception_binding=(
+                    species_exception.binding if species_exception is not None else None
+                ),
+                alignment_provenance=regular_provenance["inputAlignment"],
+                solution_raster_sha256=solution_checksums[solution_id],
+                target_policy=species_target_policies[solution_id],
+                boundary_provenance_sha256=regular_provenance[
+                    "boundaryProvenance"
+                ]["sha256"],
+                catalog_sha256=species_goals_catalog["catalogSha256"],
+            )
+        species_goals_inventory = write_species_goals_release_inventory(
+            args.species_goals_output_dir,
+            release_id=args.release_id,
+            catalog=species_goals_catalog,
+            expected_provenance_by_solution=expected_sidecar_provenance,
+        )
+        print(
+            "[tier1-metrics] species goals release inventory: "
+            f"{len(species_goals_inventory['solutions'])} fully validated solution(s)"
+        )
     report = {
         "generatedAt": _utc_now_iso(),
         "manifestUrl": args.manifest_url,

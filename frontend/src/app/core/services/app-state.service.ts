@@ -26,10 +26,16 @@ export interface FinderSelectionMemory {
   selectedSirapRegion: string | null;
   selectedTargetTypeIds: string[];
   targetLevelByType: Record<string, 17 | 30>;
+  speciesTargetMethod?:
+    | 'representation-17'
+    | 'representation-30'
+    | 'national-responsibility'
+    | null;
   includeOmecs: boolean;
   includeComunidades: boolean;
   includeResguardos: boolean;
   selectedCostLayerId: string | null;
+  humanFootprintYear?: 2022 | 2030;
   marineTargetPercent: 30 | 50;
   marineIncludeOmecs: boolean;
 }

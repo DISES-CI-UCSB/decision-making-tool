@@ -276,7 +276,14 @@
                             <button
                               [id]="'right-sidebar-v3-overview-goals-domain-view-' + domain.id"
                               type="button"
-                              class="mt-0.5 flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                              class="mt-0.5 flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              [disabled]="isGoalsBreakdownDisabled(domain.id)"
+                              [attr.title]="
+                                isGoalsBreakdownDisabled(domain.id)
+                                  ? ('analysis.overview.goalsWidget.modal.customSpeciesUnavailable'
+                                    | translate)
+                                  : null
+                              "
                               (click)="openGoalsModal(domain.id)"
                             >
                               <span
@@ -501,7 +508,14 @@
                                 domain.id
                               "
                               type="button"
-                              class="mt-0.5 flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                              class="mt-0.5 flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              [disabled]="isGoalsBreakdownDisabled(domain.id)"
+                              [attr.title]="
+                                isGoalsBreakdownDisabled(domain.id)
+                                  ? ('analysis.overview.goalsWidget.modal.customSpeciesUnavailable'
+                                    | translate)
+                                  : null
+                              "
                               (click)="openGoalsModal(domain.id)"
                             >
                               <span
@@ -1520,15 +1534,24 @@
                       </div>
                     }
 
-                    @if (showCustomAoiSpeciesInventory()) {
+                    @if (showAoiSpeciesInventory()) {
                       <button
                         id="aoi-biodiversity-open-species-inventory-button"
                         type="button"
-                        class="aoi-mec-open-modal aoi-biodiversity-open-species-inventory min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+                        class="aoi-mec-open-modal aoi-biodiversity-open-species-inventory min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-haspopup="dialog"
-                        aria-controls="custom-aoi-species-inventory-modal"
-                        [attr.aria-expanded]="speciesInventoryModalOpen()"
-                        (click)="openCustomAoiSpeciesInventory()"
+                        aria-controls="conservation-goals-modal"
+                        [attr.aria-expanded]="
+                          goalsModalOpen() && goalsModalDomain()?.featureType === 'species'
+                        "
+                        [disabled]="isCustomAoiSelected()"
+                        [attr.title]="
+                          isCustomAoiSelected()
+                            ? ('analysis.overview.goalsWidget.modal.customSpeciesUnavailable'
+                              | translate)
+                            : null
+                        "
+                        (click)="openAoiSpeciesInventory()"
                       >
                         <span id="aoi-biodiversity-open-species-inventory-copy">
                           <strong id="aoi-biodiversity-open-species-inventory-label">
@@ -1545,14 +1568,6 @@
                           >→</span
                         >
                       </button>
-                      <app-custom-aoi-species-inventory
-                        id="aoi-biodiversity-species-inventory"
-                        [geometry]="customAoiGeometry()"
-                        [newCoverageColor]="mecAdditionalColor()"
-                        [preExistingCoverageColor]="mecExistingColor()"
-                        [solutionId]="activeSolutionId()"
-                        (modalOpenChange)="speciesInventoryModalOpen.set($event)"
-                      />
                     }
 
                     @if (fillDummyAoiMetrics() && !isCustomAoiSelected()) {
@@ -3571,15 +3586,57 @@
       <section
         id="conservation-goals-modal-browser"
         class="overflow-hidden rounded-md border border-slate-200 bg-white"
-        [class.hidden]="
-          domain.featureType === 'species' &&
-          !domain.targeted &&
-          speciesReferenceGroups().length > 0
-        "
       >
+        @if (domain.featureType === 'species' && goalsModalSpeciesLoading()) {
+          <div
+            id="conservation-goals-modal-species-loading"
+            class="grid min-h-48 content-center gap-3 bg-slate-50 p-6"
+            role="status"
+            aria-live="polite"
+          >
+            <div
+              id="conservation-goals-modal-species-loading-line-primary"
+              class="h-4 w-48 animate-pulse rounded bg-slate-200 motion-reduce:animate-none"
+              aria-hidden="true"
+            ></div>
+            <div
+              id="conservation-goals-modal-species-loading-line-secondary"
+              class="h-3 w-72 max-w-full animate-pulse rounded bg-slate-200 motion-reduce:animate-none"
+              aria-hidden="true"
+            ></div>
+            <p
+              id="conservation-goals-modal-species-loading-copy"
+              class="m-0 text-sm text-slate-600"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.speciesLoading' | translate }}
+            </p>
+          </div>
+        } @else if (domain.featureType === 'species' && goalsModalSpeciesLoadFailed()) {
+          <div
+            id="conservation-goals-modal-species-error"
+            class="flex min-h-48 flex-col items-center justify-center gap-3 bg-amber-50 p-6 text-center text-sm text-amber-950"
+            role="alert"
+          >
+            <p id="conservation-goals-modal-species-error-copy" class="m-0">
+              {{ 'analysis.overview.goalsWidget.modal.speciesLoadError' | translate }}
+            </p>
+            <button
+              id="conservation-goals-modal-species-retry-button"
+              type="button"
+              class="rounded-md border border-amber-300 bg-white px-3 py-2 font-semibold hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+              (click)="retryGoalsModalSpecies()"
+            >
+              {{ 'analysis.overview.goalsWidget.modal.retry' | translate }}
+            </button>
+          </div>
+        }
         <header
           id="conservation-goals-modal-browser-header"
           class="grid gap-3 border-b border-slate-200 bg-slate-50 p-3"
+          [class.hidden]="
+            domain.featureType === 'species' &&
+            (goalsModalSpeciesLoading() || goalsModalSpeciesLoadFailed())
+          "
         >
           <div
             id="conservation-goals-modal-browser-heading"
@@ -3719,7 +3776,11 @@
         </header>
 
         @if (domain.featureType === 'species') {
-          <div id="conservation-goals-modal-virtual-table-scroll-wrapper" class="overflow-x-auto">
+          <div
+            id="conservation-goals-modal-virtual-table-scroll-wrapper"
+            class="overflow-x-auto"
+            [class.hidden]="goalsModalSpeciesLoading() || goalsModalSpeciesLoadFailed()"
+          >
             <div
               id="conservation-goals-modal-virtual-table"
               class="min-w-180 text-left text-xs"

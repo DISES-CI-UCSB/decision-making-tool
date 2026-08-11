@@ -163,7 +163,7 @@ export interface RuntimeSolutionTargetEntry {
 
 export interface RuntimeSolutionStructuredTargets {
   format: 'solution-target-metadata-v1';
-  sourceEvaluation: 'prioritizr_model' | 'legacy-single-ecosystem';
+  sourceEvaluation: 'prioritizr_model' | 'final_summary_csv' | 'legacy-single-ecosystem';
   ecosystems: RuntimeSolutionTargetEntry[];
   strategicEcosystems: RuntimeSolutionTargetEntry[];
   ecosystemServices: RuntimeSolutionTargetEntry[];
@@ -209,6 +209,12 @@ export interface RuntimeSolutionPrecomputedMetricUrls {
   mecByGeography?: RuntimeSolutionMecGeographyUrls;
   /** Versioned `mec-compact-v2` shards used by current clients when published. */
   mecV2ByGeography?: RuntimeSolutionMecGeographyUrls;
+  /** Shared immutable identity/taxonomy catalog for species coverage rows. */
+  speciesGoalsCatalog?: string;
+  /** Shared release-wide configured-species target maps keyed by solution. */
+  speciesGoalsTargetOverlay?: string;
+  /** Per-solution national/predefined-AOI species coverage shards. */
+  speciesGoalsByGeography?: RuntimeSolutionMecGeographyUrls;
   [key: string]: string | RuntimeSolutionMecGeographyUrls | undefined;
 }
 

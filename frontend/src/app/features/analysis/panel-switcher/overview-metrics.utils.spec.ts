@@ -1,4 +1,4 @@
-import type { MetricValue } from '@core/models';
+import type { GoalFeatureRow, MetricValue } from '@core/models';
 import { describe, expect, it } from 'vitest';
 import type { MetricFormatOptions } from '../utils/metric-presentation.utils';
 import {
@@ -7,6 +7,7 @@ import {
   overviewMetricCandidateIds,
   readSpeciesReferenceSummary,
   resolveOverviewMetric,
+  summarizeEcosystemGoals,
 } from './overview-metrics.utils';
 
 const compactOptions: MetricFormatOptions = {
@@ -102,6 +103,22 @@ describe('species reference outcomes', () => {
   });
 });
 
+describe('summarizeEcosystemGoals', () => {
+  it('uses one goals feature universe for target and checkpoint counts', () => {
+    const features = Array.from({ length: 417 }, (_, index) =>
+      buildGoalFeature(index, index < 194 ? 0.3 : 0.17),
+    );
+
+    expect(summarizeEcosystemGoals(features)).toEqual({
+      metCount: 417,
+      totalCount: 417,
+      pctMet: 100,
+      reached17Count: 417,
+      reached30Count: 194,
+    });
+  });
+});
+
 describe('resolveOverviewMetric', () => {
   const landMangroves = buildMetric('mangrove_coverage', 12);
   const marineMangroves = buildMetric('marine_mangrove_coverage', 34);
@@ -138,5 +155,22 @@ function buildMetric(
     labelKey: `metrics.${metricId}`,
     formatHint: 'number',
     details,
+  };
+}
+
+function buildGoalFeature(index: number, relativeHeld: number): GoalFeatureRow {
+  return {
+    featureId: `ecosystem-${index}`,
+    featureName: `Ecosystem ${index}`,
+    featureType: 'ecosystems',
+    met: true,
+    totalAmount: 100,
+    absoluteTarget: 17,
+    absoluteHeld: relativeHeld * 100,
+    absoluteShortfall: 0,
+    relativeTarget: 0.17,
+    relativeHeld,
+    relativeShortfall: 0,
+    scenario: 'test',
   };
 }

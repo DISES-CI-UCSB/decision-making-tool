@@ -11,6 +11,11 @@ export type SolutionTargetType =
 
 export type SolutionCostChoice = 'human-footprint' | 'carbon-opportunity';
 export type SolutionTargetLevel = 17 | 30;
+export type HumanFootprintYear = 2022 | 2030;
+export type SpeciesTargetMethod =
+  | 'representation-17'
+  | 'representation-30'
+  | 'national-responsibility';
 
 export interface SolutionMatchingSource {
   id: string;
@@ -138,6 +143,18 @@ export function getSolutionTargetLevel(
   return manifestLevel === 17 || manifestLevel === 30 ? manifestLevel : null;
 }
 
+export function getSolutionSpeciesTargetMethod(
+  solution: SolutionMatchingSource,
+): SpeciesTargetMethod | null {
+  const structured = solution.finderInputs.structuredTargets;
+  if (structured?.espRn.length) {
+    return 'national-responsibility';
+  }
+
+  const level = getSolutionTargetLevel(solution, 'species-richness');
+  return level === 17 ? 'representation-17' : level === 30 ? 'representation-30' : null;
+}
+
 export function inferSolutionTargetPercent(solution: SolutionMatchingSource): number {
   const ecosystemTargets = solution.finderInputs.structuredTargets?.ecosystems ?? [];
   const structuredLevels = [...new Set(ecosystemTargets.map((target) => target.targetPercent))];
@@ -239,9 +256,22 @@ export function getSolutionCostLabel(solution: SolutionMatchingSource): string {
   return 'Human Footprint';
 }
 
-function getHumanFootprintYear(costId: string): 2022 | 2030 | null {
+export function getHumanFootprintYear(costId: string): HumanFootprintYear | null {
   const year = normalizeSolutionToken(costId).match(HUMAN_FOOTPRINT_YEAR_PATTERN)?.[1];
   return year === '2022' ? 2022 : year === '2030' ? 2030 : null;
+}
+
+export function getSolutionHumanFootprintYear(
+  solution: SolutionMatchingSource,
+): HumanFootprintYear | null {
+  const explicitCostIds = [solution.finderInputs.costLayerId, solution.inputLayerIds.cost].filter(
+    (id): id is string => Boolean(id),
+  );
+  const years = explicitCostIds
+    .map(getHumanFootprintYear)
+    .filter((year): year is HumanFootprintYear => year !== null);
+
+  return years.length > 0 && years.every((year) => year === years[0]) ? years[0] : null;
 }
 
 export function isConflictCostSolution(solution: SolutionMatchingSource): boolean {

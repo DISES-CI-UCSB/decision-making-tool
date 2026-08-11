@@ -264,6 +264,73 @@ def test_renamed_feature_type_column_classifies_release_schema(tmp_path: Path):
     assert doc["rollups"]["species"]["byIucnStatus"]["VU"]["metSpeciesCount"] == 1
 
 
+def test_all_supported_land_rows_join_the_final_goal_universe(tmp_path: Path):
+    doc = _land_goals_document(
+        tmp_path,
+        RELEASE_SUMMARY_HEADER,
+        [
+            "Ecosystem solver,TRUE,100,17,20,0,0.17,0.20,0,ecosystem,NA,"
+            "demo,prioritizr_model",
+            "Ecosystem pre-existing,TRUE,100,17,35,0,0.17,0.35,0,ecosystem,NA,"
+            "demo,post-hoc",
+            "Ecosystem unknown,NA,100,17,NA,NA,0.17,NA,NA,ecosystem,NA,"
+            "demo,post-hoc",
+            "Panthera onca,TRUE,10,0,3,0,0,0.3,0,species,Mammalia,"
+            "demo,post-hoc",
+            "Ara macao,NA,10,1.7,NA,NA,0.17,NA,NA,species,Aves,"
+            "demo,post-hoc",
+        ],
+    )
+
+    ecosystems = doc["features"]["ecosystems"]
+    assert [feature["featureName"] for feature in ecosystems] == [
+        "Ecosystem solver",
+        "Ecosystem pre-existing",
+        "Ecosystem unknown",
+    ]
+    assert [feature["evaluationSource"] for feature in ecosystems] == [
+        "prioritizr_model",
+        "post-hoc",
+        "post-hoc",
+    ]
+    assert doc["summary"]["byType"]["ecosystems"] == {
+        "metCount": 2,
+        "totalCount": 3,
+        "pctMet": 66.6667,
+    }
+    assert doc["summary"]["byType"]["species"] == {
+        "metSpeciesCount": 1,
+        "totalSpeciesCount": 2,
+        "pctMet": 50.0,
+    }
+    assert doc["features"]["species"][0]["relativeTarget"] == 0
+    assert doc["features"]["species"][1]["met"] is None
+    assert doc["rollups"]["species"]["byTaxa"]["birds"]["totalSpeciesCount"] == 1
+    assert doc["rollups"]["species"]["byIucnStatus"]["unknown"]["totalSpeciesCount"] == 1
+    assert doc["features"]["ecosystems"][2]["met"] is None
+    assert doc["source"]["summaryCsvRows"] == 5
+    assert doc["diagnostics"]["sourceRowCount"] == 5
+    assert doc["diagnostics"]["evaluationSourceCounts"] == {
+        "post-hoc": 4,
+        "prioritizr_model": 1,
+    }
+    assert doc["diagnostics"]["excludedEvaluationSourceCounts"] == {}
+
+
+def test_land_summary_rejects_unsupported_evaluation_provenance(tmp_path: Path):
+    with pytest.raises(GoalsSchemaError, match=r"unsupported.*NA \(1\).*manual \(1\)"):
+        _land_goals_document(
+            tmp_path,
+            RELEASE_SUMMARY_HEADER,
+            [
+                "Panthera onca,TRUE,10,1.7,3,0,0.17,0.3,0,species,Mammalia,"
+                "demo,prioritizr_model",
+                "Species manual,TRUE,10,1.7,3,0,0.17,0.3,0,species,Aves,demo,manual",
+                "Species blank,NA,10,1.7,NA,NA,0.17,NA,NA,species,Aves,demo,NA",
+            ],
+        )
+
+
 def test_declared_ecosystem_outranks_strategic_name_lookup(tmp_path: Path):
     doc = _land_goals_document(
         tmp_path,
@@ -638,4 +705,4 @@ def test_release_goals_resume_requires_exact_provenance(tmp_path: Path):
     assert expected_goals_blob_path(
         "demo",
         goals_blob_directory=release_config.goals_current_directory,
-    ) == "releases/goals-release/goals/v3/demo.goals.json"
+    ) == "releases/goals-release/goals/v4/demo.goals.json"

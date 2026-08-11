@@ -197,6 +197,7 @@ describe('runtime compact solution validation', () => {
     const manifest = createManifest();
     manifest.solutionDataProfile = 'runtime-compact-v1';
     manifest.solutions[0].finderInputs.structuredTargets = createStructuredTargets();
+    manifest.solutions[0].finderInputs.structuredTargets.sourceEvaluation = 'final_summary_csv';
 
     await assert.doesNotReject(validateManifest(manifest, 'manifest.json'));
   });

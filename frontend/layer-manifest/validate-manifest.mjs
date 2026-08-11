@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const examplePath = path.resolve(__dirname, './manifest.example.json');
 const generatedManifestPath = path.resolve(__dirname, '..', LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH);
-const APPROVED_LOCAL_PUBLIC_PATH_PREFIXES = ['/assets/', '/data/'];
+const APPROVED_LOCAL_PUBLIC_PATH_PREFIXES = ['/assets/', '/data/', '/releases/'];
 export const MARINE_TARGET_FEATURE_SET = 'marine_ecosystems_and_mangroves';
 export const MARINE_TARGET_PERCENTS = [30, 50];
 
@@ -128,7 +128,11 @@ function assertSolutionPrecomputedMetricUrls(value, label, solution) {
 
   for (const [key, urlOrMap] of Object.entries(value)) {
     assertString(key, `${label} key`);
-    if (key === 'mecByGeography' || key === 'mecV2ByGeography') {
+    if (
+      key === 'mecByGeography' ||
+      key === 'mecV2ByGeography' ||
+      key === 'speciesGoalsByGeography'
+    ) {
       assertMecGeographyUrls(urlOrMap, `${label}.${key}`);
       const domain =
         solution.domain === 'marine' ||
@@ -741,7 +745,7 @@ function validateStructuredTargets(targets, label) {
   );
   assertOneOf(
     targets.sourceEvaluation,
-    ['prioritizr_model', 'legacy-single-ecosystem'],
+    ['prioritizr_model', 'final_summary_csv', 'legacy-single-ecosystem'],
     `${label}.sourceEvaluation`,
   );
   for (const dimension of [

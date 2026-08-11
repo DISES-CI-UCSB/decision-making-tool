@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   TranslateNoOpLoader,
@@ -10,11 +11,16 @@ import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import { FinderModalComponent } from './finder-modal';
 
 describe('FinderModalComponent', () => {
-  let catalog: { getAll: ReturnType<typeof vi.fn>; getById: ReturnType<typeof vi.fn> };
+  let catalog: {
+    solutions: ReturnType<typeof signal<CatalogSolution[]>>;
+    getAll: ReturnType<typeof vi.fn>;
+    getById: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     localStorage.clear();
     catalog = {
+      solutions: signal<CatalogSolution[]>([]),
       getAll: vi.fn(() => []),
       getById: vi.fn(() => null),
     };
@@ -108,7 +114,7 @@ describe('FinderModalComponent', () => {
     );
   });
 
-  it('renders ecosystem services as an available target option', () => {
+  it('renders ecosystem services disabled until Species is selected', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
 
@@ -116,13 +122,11 @@ describe('FinderModalComponent', () => {
       '#solution-finder-modal-step1-target-type-card-ecosystem-services',
     );
 
-    expect(card?.getAttribute('role')).toBe('button');
-    expect(card?.getAttribute('aria-disabled')).toBe('false');
-    expect(
-      fixture.nativeElement.querySelector(
-        '#solution-finder-modal-step1-target-type-missing-badge-ecosystem-services',
-      ),
-    ).toBeNull();
+    expect(card?.getAttribute('role')).toBeNull();
+    expect(card?.getAttribute('aria-disabled')).toBe('true');
+    expect(card?.getAttribute('aria-describedby')).toContain(
+      'solution-finder-modal-step1-target-type-prerequisite-ecosystem-services',
+    );
   });
 
   it('restores remembered finder selections from app state', () => {
@@ -182,11 +186,11 @@ describe('FinderModalComponent', () => {
     component.resetSelections();
 
     expect(appState.finderSelectionMemory$()).toBeNull();
-    expect(component.selectedTargetTypeIds).toEqual([]);
-    expect(component.selectedCostLayerId).toBeNull();
+    expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
+    expect(component.selectedCostLayerId).toBe('human-footprint');
   });
 
-  it('toggles the selected Step 2 cost layer off when clicked again', () => {
+  it('keeps Human Footprint selected because the cost basis is mandatory', () => {
     catalog.getAll.mockReturnValue([
       buildSolution({
         id: 'ecos30_runap_hf',
@@ -213,7 +217,76 @@ describe('FinderModalComponent', () => {
     expect(component.selectedCostLayerId).toBe('human-footprint');
 
     component.selectCostLayer('human-footprint');
-    expect(component.selectedCostLayerId).toBeNull();
+    expect(component.selectedCostLayerId).toBe('human-footprint');
+  });
+
+  it('matches the valid default state and enables Explore on open', () => {
+    vi.useFakeTimers();
+    const baseline = buildSolution({
+      id: 'eco17_runap_iheh2022',
+      name: 'Eco17+RUNAP_IHEH2022',
+      targetFeatureSet: 'ecosystems',
+      targetFeatureIds: ['ecosistemas'],
+      targetPercent: 17,
+      costLayerId: 'iheh_2022',
+      includeLayerIds: ['runap'],
+    });
+    const fixture = TestBed.createComponent(FinderModalComponent);
+
+    fixture.detectChanges();
+    catalog.getAll.mockReturnValue([baseline]);
+    catalog.solutions.set([baseline]);
+    fixture.detectChanges();
+    vi.advanceTimersByTime(350);
+    fixture.componentRef.changeDetectorRef.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-apply-button')?.disabled,
+    ).toBe(false);
+  });
+
+  it('updates the exact match when switching HF year and OMEC', () => {
+    vi.useFakeTimers();
+    catalog.getAll.mockReturnValue(
+      ([2022, 2030] as const).flatMap((year) =>
+        [false, true].map((includeOmecs) =>
+          buildSolution({
+            id: `eco17-${year}-${includeOmecs ? 'omec' : 'no-omec'}`,
+            name: `Eco17 ${year}`,
+            targetFeatureSet: 'ecosystems',
+            targetFeatureIds: ['ecosistemas'],
+            targetPercent: 17,
+            costLayerId: `iheh_${year}`,
+            includeLayerIds: includeOmecs ? ['runap', 'omecs'] : ['runap'],
+          }),
+        ),
+      ),
+    );
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    vi.advanceTimersByTime(350);
+
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-step2b-human-footprint-year-2030',
+      ) as HTMLButtonElement
+    ).click();
+    vi.advanceTimersByTime(350);
+    expect(
+      (fixture.componentInstance as unknown as { selectedMatch: { solutionId: string } })
+        .selectedMatch.solutionId,
+    ).toBe('eco17-2030-no-omec');
+
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-step2a-row-omec-toggle',
+      ) as HTMLButtonElement
+    ).click();
+    vi.advanceTimersByTime(350);
+    expect(
+      (fixture.componentInstance as unknown as { selectedMatch: { solutionId: string } })
+        .selectedMatch.solutionId,
+    ).toBe('eco17-2030-omec');
   });
 
   it('renders and searches saved custom-labeled scenarios', () => {
@@ -492,13 +565,14 @@ describe('FinderModalComponent', () => {
     };
     const solutionAppliedSpy = vi.spyOn(fixture.componentInstance.solutionApplied, 'emit');
     component.mode = 'comparison-candidate';
+    fixture.detectChanges();
     component.selectedMatch = {
       id: 'solution-ecos30-runap-hf',
       solutionId: 'ecos30_runap_hf',
     };
     component.selectedMatchId = 'solution-ecos30-runap-hf';
     component.matchState = 'ready';
-    fixture.detectChanges();
+    fixture.componentRef.changeDetectorRef.detectChanges();
 
     component.applySelectedSolution();
 
@@ -615,6 +689,8 @@ describe('FinderModalComponent', () => {
         'species-richness': targetPercent,
         'ecosystem-services': targetPercent,
       };
+      (component as unknown as { speciesTargetMethod: string }).speciesTargetMethod =
+        targetPercent === 17 ? 'representation-17' : 'representation-30';
       component.selectedCostLayerId = 'human-footprint';
       component.runMatching();
       vi.advanceTimersByTime(350);
@@ -674,7 +750,7 @@ describe('FinderModalComponent', () => {
     expect(component.matchResults.map((match) => match.solutionId)).toEqual(['ecos30_runap_hf']);
   });
 
-  it('matches net benefit solutions when the net benefit cost layer is selected', () => {
+  it('does not expose retired net-benefit solutions through the required HF selection', () => {
     vi.useFakeTimers();
     catalog.getAll.mockReturnValue([
       buildSolution({
@@ -707,11 +783,11 @@ describe('FinderModalComponent', () => {
 
     component.selectedTargetTypeIds = ['ecosystems'];
     component.targetLevelByType = { ecosystems: 30 };
-    component.selectedCostLayerId = 'carbon-opportunity';
+    component.selectedCostLayerId = 'human-footprint';
     component.runMatching();
     vi.advanceTimersByTime(350);
 
-    expect(component.matchResults.map((match) => match.solutionId)).toEqual(['ecos30_runap_co']);
+    expect(component.matchResults.map((match) => match.solutionId)).toEqual(['ecos30_runap_hf']);
   });
 
   it('does not match conflict-cost solutions from stale selections', () => {
@@ -956,7 +1032,279 @@ describe('FinderModalComponent', () => {
     expect(reopened.marineTargetPercent).toBe(50);
     expect(reopened.marineIncludeOmecs).toBe(true);
   });
+
+  it('enforces prerequisites and cascade-clears descendants', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      speciesTargetMethod: string | null;
+      isTargetTypeAvailable: (id: string) => boolean;
+      toggleTargetType: (id: string) => void;
+      selectSpeciesTargetMethod: (method: string) => void;
+      selectTargetLevel: (id: string, level: 17 | 30) => void;
+    };
+
+    expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
+    expect(component.isTargetTypeAvailable('species-richness')).toBe(false);
+    expect(component.isTargetTypeAvailable('ecosystem-services')).toBe(false);
+
+    component.toggleTargetType('strategic-ecosystems');
+    component.selectTargetLevel('strategic-ecosystems', 30);
+    expect(component.isTargetTypeAvailable('species-richness')).toBe(true);
+    component.toggleTargetType('species-richness');
+    component.selectSpeciesTargetMethod('national-responsibility');
+    expect(component.isTargetTypeAvailable('ecosystem-services')).toBe(true);
+    component.toggleTargetType('ecosystem-services');
+    component.selectTargetLevel('ecosystem-services', 17);
+
+    component.toggleTargetType('strategic-ecosystems');
+
+    expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
+    expect(component.speciesTargetMethod).toBeNull();
+    expect(component.targetLevelByType).toEqual({ ecosystems: 17 });
+  });
+
+  it('normalizes invalid remembered land state to mandatory safe defaults', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.setFinderSelectionMemory({
+      planningDomain: 'land',
+      selectedScope: 'sirap',
+      selectedSirapRegion: 'caribe',
+      selectedTargetTypeIds: ['species-richness', 'ecosystem-services'],
+      targetLevelByType: { 'ecosystem-services': 30 },
+      speciesTargetMethod: null,
+      includeOmecs: true,
+      includeComunidades: false,
+      includeResguardos: false,
+      selectedCostLayerId: null,
+      humanFootprintYear: 999 as 2022,
+      marineTargetPercent: 30,
+      marineIncludeOmecs: false,
+    });
+
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedScope: string;
+      selectedSirapRegion: string | null;
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      humanFootprintYear: number;
+      selectedCostLayerId: string;
+    };
+
+    expect(component.selectedScope).toBe('nacional');
+    expect(component.selectedSirapRegion).toBeNull();
+    expect(component.selectedTargetTypeIds).toEqual(['ecosystems']);
+    expect(component.targetLevelByType).toEqual({ ecosystems: 17 });
+    expect(component.humanFootprintYear).toBe(2022);
+    expect(component.selectedCostLayerId).toBe('human-footprint');
+  });
+
+  it('renders mandatory Ecosystems and explicit required Human Footprint years', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector('#solution-finder-modal-step1-ecosystems-required-badge'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#solution-finder-modal-step2b-human-footprint-year-2022'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#solution-finder-modal-step2b-human-footprint-year-2030'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#solution-finder-modal-step2b-option-hf-unavailable-badge'),
+    ).toBeNull();
+    expect(
+      compiled
+        .querySelector('#solution-finder-modal-step2b-option-human-footprint-card')
+        ?.classList.contains('opacity-60'),
+    ).toBe(false);
+    expect(
+      (
+        compiled.querySelector(
+          '#solution-finder-modal-step2b-human-footprint-year-2022',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    expect(
+      (
+        compiled.querySelector(
+          '#solution-finder-modal-step2b-human-footprint-year-2030',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    expect(
+      compiled.querySelector('#solution-finder-modal-step2b-option-carbon-card')?.classList,
+    ).toContain('hidden');
+  });
+
+  it('maps all 42 target configurations × 2 HF years × 2 OMEC states exactly once', () => {
+    const configurations = buildLandTargetConfigurations();
+    const solutions = buildExhaustiveLandCatalog(configurations);
+    catalog.getAll.mockReturnValue(solutions);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedDomain: 'land';
+      selectedScope: 'nacional';
+      selectedTargetTypeIds: string[];
+      targetLevelByType: Record<string, 17 | 30>;
+      speciesTargetMethod: string | null;
+      humanFootprintYear: 2022 | 2030;
+      includeOmecs: boolean;
+      solutionMatchesSelection: (solution: CatalogSolution) => boolean;
+    };
+
+    expect(configurations).toHaveLength(42);
+    expect(solutions).toHaveLength(168);
+
+    let selectableStateCount = 0;
+    for (const configuration of configurations) {
+      for (const humanFootprintYear of [2022, 2030] as const) {
+        for (const includeOmecs of [false, true]) {
+          component.selectedDomain = 'land';
+          component.selectedScope = 'nacional';
+          component.selectedTargetTypeIds = selectedTypesForConfiguration(configuration);
+          component.targetLevelByType = levelsForConfiguration(configuration);
+          component.speciesTargetMethod = configuration.speciesMethod;
+          component.humanFootprintYear = humanFootprintYear;
+          component.includeOmecs = includeOmecs;
+
+          const matches = solutions.filter((solution) =>
+            component.solutionMatchesSelection(solution),
+          );
+          expect(
+            matches,
+            JSON.stringify({ configuration, humanFootprintYear, includeOmecs }),
+          ).toHaveLength(1);
+          selectableStateCount += 1;
+        }
+      }
+    }
+
+    expect(selectableStateCount).toBe(168);
+  });
 });
+
+interface LandTargetConfiguration {
+  ecosystems: 17 | 30;
+  strategicEcosystems: 17 | 30 | null;
+  speciesMethod: 'representation-17' | 'representation-30' | 'national-responsibility' | null;
+  ecosystemServices: 17 | 30 | null;
+}
+
+function buildLandTargetConfigurations(): LandTargetConfiguration[] {
+  const configurations: LandTargetConfiguration[] = [];
+  for (const ecosystems of [17, 30] as const) {
+    configurations.push({
+      ecosystems,
+      strategicEcosystems: null,
+      speciesMethod: null,
+      ecosystemServices: null,
+    });
+    for (const strategicEcosystems of [17, 30] as const) {
+      configurations.push({
+        ecosystems,
+        strategicEcosystems,
+        speciesMethod: null,
+        ecosystemServices: null,
+      });
+      for (const speciesMethod of [
+        'representation-17',
+        'representation-30',
+        'national-responsibility',
+      ] as const) {
+        for (const ecosystemServices of [null, 17, 30] as const) {
+          configurations.push({
+            ecosystems,
+            strategicEcosystems,
+            speciesMethod,
+            ecosystemServices,
+          });
+        }
+      }
+    }
+  }
+  return configurations;
+}
+
+function buildExhaustiveLandCatalog(configurations: LandTargetConfiguration[]): CatalogSolution[] {
+  return configurations.flatMap((configuration, configurationIndex) =>
+    ([2022, 2030] as const).flatMap((humanFootprintYear) =>
+      [false, true].map((includeOmecs) =>
+        buildSolution({
+          id: `land-${configurationIndex}-${humanFootprintYear}-${includeOmecs ? 'omec' : 'no-omec'}`,
+          name: `Land ${configurationIndex} ${humanFootprintYear}`,
+          targetFeatureSet: 'release-targets',
+          targetFeatureIds: [],
+          targetPercent: configuration.ecosystems,
+          structuredTargets: {
+            format: 'solution-target-metadata-v1',
+            sourceEvaluation: 'prioritizr_model',
+            ecosystems: [{ featureId: 'ecosystem', targetPercent: configuration.ecosystems }],
+            strategicEcosystems:
+              configuration.strategicEcosystems === null
+                ? []
+                : [
+                    {
+                      featureId: 'strategic-ecosystem',
+                      targetPercent: configuration.strategicEcosystems,
+                    },
+                  ],
+            ecosystemServices:
+              configuration.ecosystemServices === null
+                ? []
+                : [
+                    {
+                      featureId: 'ecosystem-service',
+                      targetPercent: configuration.ecosystemServices,
+                    },
+                  ],
+            speciesRepresentation:
+              configuration.speciesMethod === 'representation-17'
+                ? [{ featureId: 'species', targetPercent: 17 }]
+                : configuration.speciesMethod === 'representation-30'
+                  ? [{ featureId: 'species', targetPercent: 30 }]
+                  : [],
+            espRn:
+              configuration.speciesMethod === 'national-responsibility'
+                ? [
+                    { featureId: 'species-a', targetPercent: 12 },
+                    { featureId: 'species-b', targetPercent: 27 },
+                  ]
+                : [],
+          },
+          costLayerId: `iheh_${humanFootprintYear}`,
+          includeLayerIds: includeOmecs ? ['runap', 'omecs'] : ['runap'],
+        }),
+      ),
+    ),
+  );
+}
+
+function selectedTypesForConfiguration(configuration: LandTargetConfiguration): string[] {
+  const selected = ['ecosystems'];
+  if (configuration.strategicEcosystems !== null) selected.push('strategic-ecosystems');
+  if (configuration.speciesMethod !== null) selected.push('species-richness');
+  if (configuration.ecosystemServices !== null) selected.push('ecosystem-services');
+  return selected;
+}
+
+function levelsForConfiguration(configuration: LandTargetConfiguration): Record<string, 17 | 30> {
+  const levels: Record<string, 17 | 30> = { ecosystems: configuration.ecosystems };
+  if (configuration.strategicEcosystems !== null) {
+    levels['strategic-ecosystems'] = configuration.strategicEcosystems;
+  }
+  if (configuration.speciesMethod === 'representation-17') levels['species-richness'] = 17;
+  if (configuration.speciesMethod === 'representation-30') levels['species-richness'] = 30;
+  if (configuration.ecosystemServices !== null) {
+    levels['ecosystem-services'] = configuration.ecosystemServices;
+  }
+  return levels;
+}
 
 function buildSolution(
   overrides: Pick<CatalogSolution, 'id' | 'name'> & {

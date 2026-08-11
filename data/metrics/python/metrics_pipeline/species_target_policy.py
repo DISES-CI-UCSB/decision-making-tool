@@ -18,6 +18,9 @@ TARGET_POLICY_SOURCE = "manifest:finderInputs.structuredTargets"
 REFERENCE_THRESHOLDS: tuple[float, float] = (17.0, 30.0)
 REFERENCE_THRESHOLD_DECISION = "approved:dual-reference-species-thresholds-v1"
 _STRUCTURED_TARGET_FORMAT = "solution-target-metadata-v1"
+_SUPPORTED_SPECIES_TARGET_SOURCES = frozenset(
+    {"prioritizr_model", "final_summary_csv"}
+)
 
 
 class SpeciesTargetPolicyError(ValueError):
@@ -156,14 +159,21 @@ def resolve_species_target_policy(
     target_feature_set = normalize_species_feature_id(
         str(finder_inputs.get("targetFeatureSet") or "")
     )
-    if per_species_entries:
-        if target_feature_set != "esp_rn":
+    source_evaluation = structured.get("sourceEvaluation")
+    explicit_entries = per_species_entries or (
+        scalar_entries if source_evaluation == "final_summary_csv" else []
+    )
+    if explicit_entries:
+        expected_feature_sets = (
+            {"esp_rn"} if per_species_entries else {"species", "species_representation"}
+        )
+        if target_feature_set not in expected_feature_sets:
             raise SpeciesTargetPolicyError(
-                "EspRN targets require finderInputs.targetFeatureSet='esp_rn'."
+                "structured per-species targets do not match finderInputs.targetFeatureSet."
             )
-        if structured.get("sourceEvaluation") != "prioritizr_model":
+        if source_evaluation not in _SUPPORTED_SPECIES_TARGET_SOURCES:
             raise SpeciesTargetPolicyError(
-                "EspRN targets require prioritizr_model source evaluation."
+                "per-species targets require a supported source evaluation."
             )
         if catalog_records is None or available_records is None:
             raise SpeciesTargetPolicyError(
@@ -177,7 +187,7 @@ def resolve_species_target_policy(
                     f"species catalog normalization collision for {feature_id!r}."
                 )
             catalog_by_id[feature_id] = record
-        target_ids = {entry["featureId"] for entry in per_species_entries}
+        target_ids = {entry["featureId"] for entry in explicit_entries}
         missing = sorted(target_ids - catalog_by_id.keys())
         if missing:
             raise SpeciesTargetPolicyError(
@@ -188,13 +198,16 @@ def resolve_species_target_policy(
             for record in available_records
         }
         canonical_entries = sorted(
-            per_species_entries, key=lambda entry: entry["featureId"]
+            explicit_entries, key=lambda entry: entry["featureId"]
         )
         provenance = {
             "format": TARGET_POLICY_FORMAT,
             "kind": "per_species",
             "source": TARGET_POLICY_SOURCE,
-            "structuredTargetDimension": "espRn",
+            "sourceEvaluation": source_evaluation,
+            "structuredTargetDimension": (
+                "espRn" if per_species_entries else "speciesRepresentation"
+            ),
             "structuredTargetCount": len(canonical_entries),
             "structuredTargetsSha256": _canonical_sha256(canonical_entries),
             "matchingInventory": {

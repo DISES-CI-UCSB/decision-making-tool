@@ -105,7 +105,11 @@
               aria-hidden="true"
             ></span>
           }
-          @if (!solutionId()) {
+          @if (precomputedCoverageRecords().length > 0) {
+            <p id="custom-aoi-species-coverage-precomputed-complete">
+              {{ 'analysis.aoi.customProfile.species.coverageComplete' | translate }}
+            </p>
+          } @else if (!solutionId()) {
             <p id="custom-aoi-species-coverage-no-solution">
               {{ 'analysis.aoi.customProfile.species.coverageNoSolution' | translate }}
             </p>

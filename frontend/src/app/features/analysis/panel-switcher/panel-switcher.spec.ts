@@ -18,6 +18,7 @@ import type {
   CustomAoiAreaProfileResponse,
   CustomPolygonMetricsGeometry,
   CustomPolygonMetricsResponse,
+  HydratedSpeciesGoalsRecord,
   MecCompactDocument,
   MecCompactV2Document,
   MetricComparisonValue,
@@ -34,6 +35,7 @@ import {
 } from '@core/services/mec-metrics-loader.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
+import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
 import { StrategicEcosystemOutcomesLoaderService } from '@core/services/strategic-ecosystem-outcomes-loader.service';
 import { PanelSwitcherComponent } from './panel-switcher';
 
@@ -46,6 +48,7 @@ describe('PanelSwitcherComponent', () => {
     'getSolutionMetrics' | 'getCustomPolygonMetrics' | 'getCustomAoiAreaProfile'
   >;
   let mecMetricsLoaderSpy: Pick<MecMetricsLoaderService, 'loadMecMetrics'>;
+  let speciesGoalsLoaderSpy: Pick<SpeciesGoalsLoaderService, 'load'>;
   let httpClientSpy: { get: ReturnType<typeof vi.fn> };
   let goalsDocument: SolutionGoalsDocument | null;
   let strategicOutcomesDocument: StrategicEcosystemOutcomesDocument | null;
@@ -98,6 +101,9 @@ describe('PanelSwitcherComponent', () => {
     mecMetricsLoaderSpy = {
       loadMecMetrics: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
     };
+    speciesGoalsLoaderSpy = {
+      load: vi.fn(() => of(buildHydratedSpeciesRecords(goalsDocument))),
+    };
     httpClientSpy = {
       get: vi.fn(() =>
         of({
@@ -118,6 +124,7 @@ describe('PanelSwitcherComponent', () => {
       providers: [
         { provide: ApiService, useValue: apiServiceSpy },
         { provide: MecMetricsLoaderService, useValue: mecMetricsLoaderSpy },
+        { provide: SpeciesGoalsLoaderService, useValue: speciesGoalsLoaderSpy },
         {
           provide: SolutionGoalsLoaderService,
           useValue: { loadGoals: vi.fn(() => of(goalsDocument)) },
@@ -172,7 +179,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-welcome-hero-card')).toBeNull();
   });
 
-  it('hosts the custom species inventory only inside the shared Biodiversity section', async () => {
+  it('keeps custom polygon species coverage explicitly disabled', async () => {
     vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
       of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
     );
@@ -183,27 +190,52 @@ describe('PanelSwitcherComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    const biodiversitySection = compiled.querySelector('#aoi-section-bio');
-    const inventory = compiled.querySelector('#aoi-biodiversity-species-inventory');
-
-    expect(inventory).not.toBeNull();
-    expect(biodiversitySection?.contains(inventory)).toBe(true);
+    expect(compiled.querySelector('#analysis-species-inventory')).toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-custom-area-profile')).toBeNull();
     expect(compiled.querySelector('#custom-aoi-area-profile')).toBeNull();
     const openButton = compiled.querySelector(
       '#aoi-biodiversity-open-species-inventory-button',
     ) as HTMLButtonElement;
     expect(openButton).not.toBeNull();
+    expect(openButton.disabled).toBe(true);
+    expect(openButton.title).toContain('customSpeciesUnavailable');
     openButton.click();
     fixture.detectChanges();
-    expect(openButton.getAttribute('aria-expanded')).toBe('true');
-    expect(compiled.querySelector('#custom-aoi-species-inventory-modal')).not.toBeNull();
+    expect(openButton.getAttribute('aria-expanded')).toBe('false');
+    expect(compiled.querySelector('#custom-aoi-species-inventory-modal')).toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-area-unit-toggle')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-general')).not.toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-download-metrics-csv-btn')).not.toBeNull();
   });
 
-  it('renders overview content for an active solution', () => {
+  it('normalizes prefixed municipality IDs before sidecar hydration', async () => {
+    const solution = mockData.getSolutionById('sol-001');
+    expect(solution).not.toBeNull();
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set({
+      ...solution!,
+      metadata: { ...solution!.metadata, domain: 'land' },
+    });
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      '#aoi-biodiversity-open-species-inventory-button',
+    ) as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      solution!.id,
+      'municipalities',
+      '11001',
+    );
+  });
+
+  it('renders overview content without a standalone species inventory control', () => {
     const solution = mockData.getSolutionById('sol-001');
     expect(solution).not.toBeNull();
 
@@ -215,6 +247,10 @@ describe('PanelSwitcherComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('#solution-overview-panel')).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-overview-open-species-inventory-button'),
+    ).toBeNull();
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
   it('disables AOI and comparison tabs when no solution is active', () => {
@@ -1555,7 +1591,12 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-ecosystems')
         ?.textContent,
-    ).toContain('1 / 429');
+    ).toContain('1 / 2');
+    expect(
+      compiled
+        .querySelector('#right-sidebar-v3-overview-goals-domain-bar-ecosystems')
+        ?.getAttribute('aria-label'),
+    ).toBe('50%');
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
     ).not.toBeNull();
@@ -1568,6 +1609,38 @@ describe('PanelSwitcherComponent', () => {
         ?.textContent,
     ).toContain('1');
     expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+  });
+
+  it('uses complete species rollups without filtering post-hoc provenance', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = 'species';
+    goalsDocument.targetContext.targetFeatureIds = ['species'];
+    goalsDocument.summary.byType.species = {
+      metSpeciesCount: 7_978,
+      totalSpeciesCount: 7_980,
+      pctMet: 99.9749,
+    };
+    goalsDocument.diagnostics.evaluationSourceCounts = {
+      prioritizr_model: 288,
+      'post-hoc': 7_692,
+    };
+    goalsDocument.features.species = goalsDocument.features.species.slice(0, 2);
+    goalsDocument.features.species[0].evaluationSource = 'prioritizr_model';
+    goalsDocument.features.species[1].evaluationSource = 'post-hoc';
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    const domains = (
+      fixture.componentInstance as unknown as {
+        buildOverviewGoalsDomains(): { id: string; metCount: number; totalCount: number }[];
+      }
+    ).buildOverviewGoalsDomains();
+    expect(domains.find((domain) => domain.id === 'species')).toEqual(
+      expect.objectContaining({ metCount: 7_978, totalCount: 7_980 }),
+    );
   });
 
   it('shows raster-derived strategic outcomes without changing solver target progress', async () => {
@@ -1668,6 +1741,11 @@ describe('PanelSwitcherComponent', () => {
 
     expect(compiled.querySelector('#conservation-goals-modal-preparing-status')).not.toBeNull();
     expect(compiled.querySelector('#conservation-goals-modal-virtual-table')).toBeNull();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'national',
+      'colombia',
+    );
 
     await new Promise((resolve) => setTimeout(resolve, 20));
     fixture.detectChanges();
@@ -1700,19 +1778,19 @@ describe('PanelSwitcherComponent', () => {
 
   it('bounds a large species breakdown with the virtual viewport', async () => {
     const document = buildGoalsDocument();
-    document.features.species = Array.from({ length: 250 }, (_, index) =>
-      buildGoalFeature(
-        `species-${index}`,
-        `Species ${index}`,
-        'species',
-        (index % 100) / 100,
-        index % 3 === 0,
-        'Birds',
-        'LC',
+    const baseRecord = buildHydratedSpeciesRecords(document)[0]!;
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of(
+        Array.from({ length: 8_300 }, (_, index) => ({
+          ...baseRecord,
+          id: `species-${index}`,
+          scientific_name: `Species ${index}`,
+          solution_covered_in_aoi_pct: index % 100,
+          met_17_percent: index % 100 >= 17,
+          met_30_percent: index % 100 >= 30,
+        })),
       ),
     );
-    document.summary.byType.species.totalSpeciesCount = 250;
-    document.rollups.species.totalSpeciesCount = 250;
     goalsDocument = document;
     appState.activeSolution$.set(buildTestSolution());
     appState.setRightSidebarMode('overview');
@@ -1735,9 +1813,125 @@ describe('PanelSwitcherComponent', () => {
       .componentInstance as CdkVirtualScrollViewport;
     const renderedRange = viewport.getRenderedRange();
 
-    expect(component.goalsModalRows()).toHaveLength(250);
-    expect(viewport.getDataLength()).toBe(250);
-    expect(renderedRange.end - renderedRange.start).toBeLessThan(250);
+    expect(component.goalsModalRows()).toHaveLength(8_300);
+    expect(viewport.getDataLength()).toBe(8_300);
+    expect(renderedRange.end - renderedRange.start).toBeLessThan(100);
+    expect(
+      fixture.nativeElement.querySelectorAll('[id^="conservation-goals-modal-row-"]').length,
+    ).toBeLessThan(100);
+  });
+
+  it('uses configured species targets as the targeted modal denominator', async () => {
+    const document = buildGoalsDocument();
+    document.targetContext.targetFeatureSet = 'species';
+    document.targetContext.targetFeatureIds = ['especies'];
+    const templates = buildHydratedSpeciesRecords(document);
+    const records = Array.from({ length: 8_300 }, (_, index) => ({
+      ...templates[index % templates.length],
+      id: `species-${index}`,
+      configured_target_percent: index < 8_001 ? 17 : null,
+      configured_target_met: index < 8_001 ? false : null,
+    }));
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(records));
+    goalsDocument = document;
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => unknown[];
+      goalsModalSummary: () => { totalCount: number; metCount: number; pctMet: number | null };
+    };
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#right-sidebar-v3-overview-goals-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(component.goalsModalRows()).toHaveLength(8_300);
+    expect(component.goalsModalSummary()).toMatchObject({
+      totalCount: 8_001,
+      metCount: 0,
+      pctMet: 0,
+    });
+  });
+
+  it.each([
+    ['department', buildMetaDepartmentAoi(), 'departments', '50'],
+    ['prefixed municipality', buildFixedMunicipalityAoi(), 'municipalities', '11001'],
+  ])('loads the selected %s species sidecar scope', async (_label, aoi, level, scopeId) => {
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI(aoi);
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(buildTestSolution().id, level, scopeId);
+  });
+
+  it('disables the species breakdown for a custom polygon without starting a runtime job', () => {
+    goalsDocument = buildGoalsDocument();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+    ) as HTMLButtonElement;
+
+    expect(button.disabled).toBe(true);
+    expect(button.title).toContain('customSpeciesUnavailable');
+    button.click();
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('#conservation-goals-modal')).toBeNull();
+  });
+
+  it('shows species loading and recoverable error states', async () => {
+    const request = new Subject<HydratedSpeciesGoalsRecord[] | null>();
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(request);
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#conservation-goals-modal-species-loading')).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-species-viewport')).toBeNull();
+
+    request.next(null);
+    fixture.detectChanges();
+    expect(compiled.querySelector('#conservation-goals-modal-species-error')).not.toBeNull();
+    (
+      compiled.querySelector('#conservation-goals-modal-species-retry-button') as HTMLButtonElement
+    ).click();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledTimes(2);
   });
 
   it('labels and switches the national ecosystem classification breakdown', async () => {
@@ -2094,6 +2288,7 @@ function buildGoalsDocument(): SolutionGoalsDocument {
     source: {
       summaryCsvUrl: null,
       summaryCsvRows: 6,
+      solutionDomain: 'land',
       speciesLookupUrl: '/species.csv',
     },
     targetContext: {
@@ -2264,6 +2459,35 @@ function buildTestGeometry(): CustomPolygonMetricsGeometry {
       ],
     ],
   };
+}
+
+function buildHydratedSpeciesRecords(
+  document: SolutionGoalsDocument | null,
+): HydratedSpeciesGoalsRecord[] {
+  return (document?.features.species ?? []).map((feature) => {
+    const coveragePercent = (feature.relativeHeld ?? 0) * 100;
+    return {
+      id: feature.featureId,
+      scientific_name: feature.label ?? feature.featureName,
+      group: feature.taxonGroup ?? 'other',
+      iucn_status: feature.iucnStatus ?? null,
+      range_area_km2: feature.totalAmount ?? 0,
+      range_in_aoi_area_km2: feature.totalAmount ?? 0,
+      range_in_aoi_pct: 100,
+      solution_covered_in_aoi_area_km2: feature.absoluteHeld ?? 0,
+      solution_covered_in_aoi_pct: coveragePercent,
+      pre_existing_covered_in_aoi_area_km2: 0,
+      pre_existing_covered_in_aoi_pct: 0,
+      new_covered_in_aoi_area_km2: feature.absoluteHeld ?? 0,
+      new_covered_in_aoi_pct: coveragePercent,
+      availability: 'available',
+      no_range_in_scope: false,
+      configured_target_percent: (feature.relativeTarget ?? 0) * 100,
+      met_17_percent: coveragePercent >= 17,
+      met_30_percent: coveragePercent >= 30,
+      configured_target_met: feature.met,
+    };
+  });
 }
 
 function buildCustomEcosystemProfileResponse(

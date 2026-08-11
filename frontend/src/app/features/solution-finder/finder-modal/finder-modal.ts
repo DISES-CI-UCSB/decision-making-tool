@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -11,16 +12,20 @@ import {
   Output,
   QueryList,
   ViewChildren,
+  effect,
   inject,
 } from '@angular/core';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import {
   getSolutionIncludeFlags,
+  getSolutionHumanFootprintYear,
+  getSolutionSpeciesTargetMethod,
   getSolutionTargetLevel,
   getSolutionTargetTypes,
   normalizeSolutionToken,
-  solutionCostMatchesChoice,
   type SolutionCostChoice,
+  type HumanFootprintYear,
+  type SpeciesTargetMethod,
   type SolutionTargetType,
 } from '@core/models/solution-matching.utils';
 import type {
@@ -92,7 +97,23 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
 })
 export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   private readonly appState = inject(AppStateService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly solutionCatalog = inject(SolutionCatalogService);
+  private initialized = false;
+
+  constructor() {
+    effect(() => {
+      const solutions = this.solutionCatalog.solutions();
+      if (this.initialized && solutions.length > 0) {
+        this.clearLoadingTimer();
+        this.loadingTimer = setTimeout(() => {
+          this.loadingTimer = null;
+          this.runMatching();
+          this.changeDetector.detectChanges();
+        });
+      }
+    });
+  }
   protected readonly targetTypeOptions: readonly TargetTypeOption[] = [
     {
       id: 'ecosystems',
@@ -209,14 +230,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   ];
 
   /** Step 1 */
-  protected selectedTargetTypeIds: FinderTargetType[] = [];
-  protected targetLevelByType: TargetLevelsByType = {};
+  protected selectedTargetTypeIds: FinderTargetType[] = ['ecosystems'];
+  protected targetLevelByType: TargetLevelsByType = { ecosystems: 17 };
+  protected speciesTargetMethod: SpeciesTargetMethod | null = null;
 
   /** Step 2A (variable) */
   protected includeOmecs = false;
 
   /** Step 2B */
-  protected selectedCostLayerId: CostLayerChoice | null = null;
+  protected selectedCostLayerId: CostLayerChoice | null = 'human-footprint';
+  protected humanFootprintYear: HumanFootprintYear = 2022;
 
   /** Marine draft */
   protected marineTargetPercent: MarineTargetPercent = 30;
@@ -236,6 +259,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   ngOnInit(): void {
     this.restoreRememberedSelections();
+    this.initialized = true;
   }
 
   ngOnDestroy(): void {
@@ -256,13 +280,20 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   protected toggleTargetType(type: FinderTargetType): void {
     const option = this.targetTypeOptions.find((item) => item.id === type);
-    if (!option || !option.isAvailable) {
+    if (!option || !this.isTargetTypeAvailable(type) || type === 'ecosystems') {
       return;
     }
     const currentIndex = this.selectedTargetTypeIds.indexOf(type);
     if (currentIndex >= 0) {
       this.selectedTargetTypeIds.splice(currentIndex, 1);
       delete this.targetLevelByType[type];
+      if (type === 'strategic-ecosystems') {
+        this.clearTargetType('species-richness');
+        this.clearTargetType('ecosystem-services');
+      } else if (type === 'species-richness') {
+        this.speciesTargetMethod = null;
+        this.clearTargetType('ecosystem-services');
+      }
     } else {
       this.selectedTargetTypeIds.push(type);
     }
@@ -300,6 +331,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       return;
     }
     this.targetLevelByType[type] = pct;
+    if (type === 'species-richness') {
+      this.speciesTargetMethod = pct === 17 ? 'representation-17' : 'representation-30';
+    }
     this.clearResultsIfNeeded();
     this.rememberCurrentSelections();
   }
@@ -308,8 +342,31 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     return this.targetLevelByType[type] ?? null;
   }
 
+  protected selectSpeciesTargetMethod(method: SpeciesTargetMethod): void {
+    if (!this.isTargetTypeSelected('species-richness')) {
+      return;
+    }
+    this.speciesTargetMethod = method;
+    if (method === 'national-responsibility') {
+      delete this.targetLevelByType['species-richness'];
+    } else {
+      this.targetLevelByType['species-richness'] = method === 'representation-17' ? 17 : 30;
+    }
+    this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
+  }
+
+  protected selectHumanFootprintYear(year: HumanFootprintYear): void {
+    this.humanFootprintYear = year;
+    this.selectedCostLayerId = 'human-footprint';
+    this.clearResultsIfNeeded();
+    this.rememberCurrentSelections();
+  }
+
   protected hasTargetLevel(type: FinderTargetType): boolean {
-    return this.targetLevelByType[type] !== undefined;
+    return type === 'species-richness'
+      ? this.speciesTargetMethod !== null
+      : this.targetLevelByType[type] !== undefined;
   }
 
   protected hasAnyTargetTypeSelected(): boolean {
@@ -343,16 +400,14 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   protected isCostLayerAvailable(id: CostLayerChoice): boolean {
-    return this.solutionCatalog
-      .getAll()
-      .some((solution) => solutionCostMatchesChoice(solution, id));
+    return id === 'human-footprint';
   }
 
   protected selectCostLayer(id: CostLayerChoice): void {
-    if (!this.isCostLayerAvailable(id)) {
+    if (id !== 'human-footprint' || !this.isCostLayerAvailable(id)) {
       return;
     }
-    this.selectedCostLayerId = this.selectedCostLayerId === id ? null : id;
+    this.selectedCostLayerId = id;
     this.clearResultsIfNeeded();
     this.rememberCurrentSelections();
   }
@@ -374,18 +429,17 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       return;
     }
 
+    this.matchResults = [];
+    this.selectedMatchId = null;
+    this.selectedMatch = null;
     this.matchState = 'loading';
-    this.loadingTimer = setTimeout(() => {
-      this.loadingTimer = null;
-      const filtered = this.solutionCatalog
-        .getAll()
-        .filter((solution) => this.solutionMatchesSelection(solution));
-      const matchedSolutions = this.selectedDomain === 'marine' ? filtered.slice(0, 1) : filtered;
-      this.matchResults = matchedSolutions.map((solution) => this.toSolutionMatch(solution));
-      this.selectedMatchId = this.matchResults[0]?.id ?? null;
-      this.selectedMatch = this.matchResults[0] ?? null;
-      this.matchState = 'ready';
-    }, 350);
+    const filtered = this.solutionCatalog
+      .getAll()
+      .filter((solution) => this.solutionMatchesSelection(solution));
+    this.matchResults = filtered.map((solution) => this.toSolutionMatch(solution));
+    this.selectedMatchId = this.matchResults.length === 1 ? this.matchResults[0].id : null;
+    this.selectedMatch = this.matchResults.length === 1 ? this.matchResults[0] : null;
+    this.matchState = 'ready';
   }
 
   protected selectScope(scope: 'nacional' | 'sirap'): void {
@@ -451,13 +505,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     this.marineTargetPercent = 30;
     this.marineIncludeOmecs = false;
     this.appState.clearFinderSelectionMemory();
+    this.runMatching();
   }
 
   private clearSelections(options: { remember: boolean }): void {
-    this.selectedTargetTypeIds = [];
-    this.targetLevelByType = {};
+    this.selectedTargetTypeIds = ['ecosystems'];
+    this.targetLevelByType = { ecosystems: 17 };
+    this.speciesTargetMethod = null;
     this.includeOmecs = false;
-    this.selectedCostLayerId = null;
+    this.selectedCostLayerId = 'human-footprint';
+    this.humanFootprintYear = 2022;
     this.matchResults = [];
     this.selectedMatchId = null;
     this.selectedMatch = null;
@@ -511,15 +568,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       return true;
     }
     return (
-      this.selectedTargetTypeIds.length > 0 &&
+      this.isTargetTypeSelected('ecosystems') &&
       this.areAllSelectedTargetsLeveled() &&
-      this.selectedCostLayerId !== null
+      this.selectedCostLayerId === 'human-footprint'
     );
   }
 
   protected canApplySolution(): boolean {
     return (
       this.matchState === 'ready' &&
+      this.matchResults.length === 1 &&
       this.selectedMatchId !== null &&
       !this.isSelectedMatchBaselineSolution()
     );
@@ -529,7 +587,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     if (this.selectedDomain === 'marine') {
       return true;
     }
-    return this.selectedTargetTypeIds.length > 0 && this.areAllSelectedTargetsLeveled();
+    return this.isTargetTypeSelected('ecosystems') && this.areAllSelectedTargetsLeveled();
   }
 
   protected isStep2Unlocked(): boolean {
@@ -572,13 +630,16 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       this.isFinderTargetType(id),
     );
     this.targetLevelByType = this.toTargetLevelsByType(rememberedSelection.targetLevelByType);
+    this.speciesTargetMethod = this.normalizeSpeciesTargetMethod(
+      rememberedSelection.speciesTargetMethod,
+      this.targetLevelByType['species-richness'],
+    );
     this.includeOmecs = rememberedSelection.includeOmecs;
-    this.selectedCostLayerId = this.isCostLayerChoice(rememberedSelection.selectedCostLayerId)
-      ? rememberedSelection.selectedCostLayerId
-      : null;
+    this.selectedCostLayerId = 'human-footprint';
+    this.humanFootprintYear = rememberedSelection.humanFootprintYear === 2030 ? 2030 : 2022;
     this.marineTargetPercent = rememberedSelection.marineTargetPercent;
     this.marineIncludeOmecs = rememberedSelection.marineIncludeOmecs;
-    this.runMatching();
+    this.normalizeLandSelection();
   }
 
   private rememberCurrentSelections(): void {
@@ -588,10 +649,12 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       selectedSirapRegion: this.selectedSirapRegion,
       selectedTargetTypeIds: [...this.selectedTargetTypeIds],
       targetLevelByType: { ...this.targetLevelByType } as Record<string, 17 | 30>,
+      speciesTargetMethod: this.speciesTargetMethod,
       includeOmecs: this.includeOmecs,
       includeComunidades: false,
       includeResguardos: false,
       selectedCostLayerId: this.selectedCostLayerId,
+      humanFootprintYear: this.humanFootprintYear,
       marineTargetPercent: this.marineTargetPercent,
       marineIncludeOmecs: this.marineIncludeOmecs,
     });
@@ -627,25 +690,71 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       },
       {},
     );
+    this.speciesTargetMethod = getSolutionSpeciesTargetMethod(solution);
 
     const includes = getSolutionIncludeFlags(solution);
     this.includeOmecs = includes.omecs;
 
-    if (solutionCostMatchesChoice(solution, 'human-footprint')) {
-      this.selectedCostLayerId = 'human-footprint';
-    } else if (solutionCostMatchesChoice(solution, 'carbon-opportunity')) {
-      this.selectedCostLayerId = 'carbon-opportunity';
-    } else {
-      this.selectedCostLayerId = null;
-    }
+    this.selectedCostLayerId = 'human-footprint';
+    this.humanFootprintYear = getSolutionHumanFootprintYear(solution) ?? 2022;
+    this.normalizeLandSelection();
   }
 
   private isFinderTargetType(value: string): value is FinderTargetType {
     return this.targetTypeOptions.some((option) => option.id === value);
   }
 
-  private isCostLayerChoice(value: string | null): value is CostLayerChoice {
-    return value === 'human-footprint' || value === 'carbon-opportunity';
+  private normalizeSpeciesTargetMethod(
+    method: FinderSelectionMemory['speciesTargetMethod'],
+    legacyLevel: 17 | 30 | undefined,
+  ): SpeciesTargetMethod | null {
+    if (
+      method === 'representation-17' ||
+      method === 'representation-30' ||
+      method === 'national-responsibility'
+    ) {
+      return method;
+    }
+    return legacyLevel === 17
+      ? 'representation-17'
+      : legacyLevel === 30
+        ? 'representation-30'
+        : null;
+  }
+
+  private normalizeLandSelection(): void {
+    this.selectedScope = 'nacional';
+    this.selectedSirapRegion = null;
+
+    if (!this.selectedTargetTypeIds.includes('ecosystems')) {
+      this.selectedTargetTypeIds.unshift('ecosystems');
+    }
+    if (this.targetLevelByType.ecosystems !== 17 && this.targetLevelByType.ecosystems !== 30) {
+      this.targetLevelByType.ecosystems = 17;
+    }
+
+    if (!this.selectedTargetTypeIds.includes('strategic-ecosystems')) {
+      this.clearTargetType('species-richness');
+      this.clearTargetType('ecosystem-services');
+    }
+    if (!this.selectedTargetTypeIds.includes('species-richness') || !this.speciesTargetMethod) {
+      this.clearTargetType('species-richness');
+      this.clearTargetType('ecosystem-services');
+    }
+    if (
+      this.selectedTargetTypeIds.includes('ecosystem-services') &&
+      !this.targetLevelByType['ecosystem-services']
+    ) {
+      this.clearTargetType('ecosystem-services');
+    }
+  }
+
+  private clearTargetType(type: FinderTargetType): void {
+    this.selectedTargetTypeIds = this.selectedTargetTypeIds.filter((id) => id !== type);
+    delete this.targetLevelByType[type];
+    if (type === 'species-richness') {
+      this.speciesTargetMethod = null;
+    }
   }
 
   private isSirapRegionId(value: string | null): value is SirapRegionId {
@@ -694,7 +803,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     }
 
     const includes = getSolutionIncludeFlags(solution);
-    if (includes.omecs !== this.includeOmecs) {
+    if (!includes.runap || includes.omecs !== this.includeOmecs) {
       return false;
     }
 
@@ -738,7 +847,18 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   protected isTargetTypeAvailable(id: FinderTargetType): boolean {
-    return this.targetTypeOptions.find((option) => option.id === id)?.isAvailable === true;
+    const isCatalogAvailable =
+      this.targetTypeOptions.find((option) => option.id === id)?.isAvailable === true;
+    if (!isCatalogAvailable) {
+      return false;
+    }
+    if (id === 'species-richness') {
+      return this.isTargetTypeSelected('strategic-ecosystems');
+    }
+    if (id === 'ecosystem-services') {
+      return this.isTargetTypeSelected('species-richness');
+    }
+    return true;
   }
 
   protected isStrategicOnlyTargetSelection(): boolean {
@@ -790,6 +910,9 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private solutionTargetLevelsMatchSelection(solution: CatalogSolution): boolean {
     return this.selectedTargetTypeIds.every((type) => {
+      if (type === 'species-richness') {
+        return getSolutionSpeciesTargetMethod(solution) === this.speciesTargetMethod;
+      }
       const selectedLevel = this.targetLevelByType[type];
       if (selectedLevel === undefined) {
         return false;
@@ -800,12 +923,7 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private solutionCostMatchesSelection(solution: CatalogSolution): boolean {
-    const selectedCostLayerId = this.selectedCostLayerId;
-    if (!selectedCostLayerId) {
-      return false;
-    }
-
-    return solutionCostMatchesChoice(solution, selectedCostLayerId);
+    return getSolutionHumanFootprintYear(solution) === this.humanFootprintYear;
   }
 
   private toSolutionMatch(solution: CatalogSolution): SolutionMatch {

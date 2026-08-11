@@ -24,10 +24,7 @@ describe('metric URL construction', () => {
 
   it('rejects solution IDs outside the canonical Python path contract', () => {
     for (const solutionId of ['Uppercase', 'unsafe.id', 'unsafe+id', 'unsafe/id', 'unsafe id']) {
-      assert.throws(
-        () => createSolutionPrecomputedMetricUrls(solutionId),
-        /unsafe solutionId/,
-      );
+      assert.throws(() => createSolutionPrecomputedMetricUrls(solutionId), /unsafe solutionId/);
     }
   });
 
@@ -84,13 +81,101 @@ describe('metric URL construction', () => {
     assert.equal(result.mecByGeography, undefined);
     assert.strictEqual(
       result.goals,
-      `${BLOB_HOST}/releases/${releaseId}/goals/v3/land_solution.goals.json`,
+      `${BLOB_HOST}/releases/${releaseId}/goals/v4/land_solution.goals.json`,
     );
     assert.match(result.cache, new RegExp(`/releases/${releaseId}/regular/verbose/`));
     assert.match(result.compactCache, new RegExp(`/releases/${releaseId}/regular/compact/`));
     for (const url of Object.values(result.mecV2ByGeography)) {
       assert.match(url, new RegExp(`/releases/${releaseId}/mec/v2/`));
     }
+  });
+
+  it('advertises species goals only when a release partition is ready', () => {
+    const releaseId = defaultReleaseId();
+    const result = createSolutionPrecomputedMetricUrls('land_solution', {}, 'land', {
+      releaseId,
+      speciesGoalsInventory: {
+        format: 'species-goals-release-inventory-v1',
+        validated: true,
+        solutionId: 'land_solution',
+        releaseId,
+        catalogValidated: true,
+        validatedGeographyLevels: MEC_GEOGRAPHY_LEVELS,
+      },
+    });
+
+    assert.match(
+      result.speciesGoalsCatalog,
+      new RegExp(`/releases/${releaseId}/species-goals/catalog/v1/catalog.json$`),
+    );
+    assert.ok(result.speciesGoalsCatalog.startsWith(BLOB_HOST));
+    assert.match(
+      result.speciesGoalsTargetOverlay,
+      new RegExp(
+        `/releases/${releaseId}/species-goals/targets/v1/species-target-overlays-v1.json$`,
+      ),
+    );
+    assert.deepStrictEqual(Object.keys(result.speciesGoalsByGeography), MEC_GEOGRAPHY_LEVELS);
+    for (const [level, url] of Object.entries(result.speciesGoalsByGeography)) {
+      assert.match(
+        url,
+        new RegExp(
+          `/releases/${releaseId}/species-goals/compact/v1/land_solution/${level}\\.species-goals\\.compact\\.json$`,
+        ),
+      );
+    }
+  });
+
+  it('uses origin-relative species URLs when building a local preview', () => {
+    const releaseId = defaultReleaseId();
+    const result = createSolutionPrecomputedMetricUrls('land_solution', {}, 'land', {
+      releaseId,
+      speciesGoalsBaseUrl: '',
+      speciesGoalsInventory: {
+        format: 'species-goals-release-inventory-v1',
+        validated: true,
+        solutionId: 'land_solution',
+        releaseId,
+        catalogValidated: true,
+        validatedGeographyLevels: MEC_GEOGRAPHY_LEVELS,
+      },
+    });
+
+    assert.strictEqual(
+      result.speciesGoalsCatalog,
+      `/releases/${releaseId}/species-goals/catalog/v1/catalog.json`,
+    );
+    assert.strictEqual(
+      result.speciesGoalsTargetOverlay,
+      `/releases/${releaseId}/species-goals/targets/v1/species-target-overlays-v1.json`,
+    );
+    assert.ok(
+      Object.values(result.speciesGoalsByGeography).every(
+        (url) => url.startsWith(`/releases/${releaseId}/`) && !url.includes('localhost'),
+      ),
+    );
+  });
+
+  it('strips stale species URLs unless the exact release inventory validates', () => {
+    const stale = {
+      speciesGoalsCatalog: 'https://example.com/stale-catalog.json',
+      speciesGoalsTargetOverlay: 'https://example.com/stale-targets.json',
+      speciesGoalsByGeography: { national: 'https://example.com/stale-national.json' },
+    };
+    const land = createSolutionPrecomputedMetricUrls('land_solution', stale, 'land', {
+      releaseId: defaultReleaseId(),
+      includeSpeciesGoals: true,
+    });
+    const marine = createSolutionPrecomputedMetricUrls('marine_solution', stale, 'marine', {
+      releaseId: defaultReleaseId(),
+    });
+
+    assert.strictEqual(land.speciesGoalsCatalog, undefined);
+    assert.strictEqual(land.speciesGoalsTargetOverlay, undefined);
+    assert.strictEqual(land.speciesGoalsByGeography, undefined);
+    assert.strictEqual(marine.speciesGoalsCatalog, undefined);
+    assert.strictEqual(marine.speciesGoalsTargetOverlay, undefined);
+    assert.strictEqual(marine.speciesGoalsByGeography, undefined);
   });
 });
 
@@ -123,6 +208,9 @@ describe('display COG URL construction', () => {
   });
 
   it('refuses to guess a basename when the raster file name is unusable', () => {
-    assert.throws(() => createSolutionDisplayCogUrl('no-extension', 'land', { releaseId }), /raster file name/);
+    assert.throws(
+      () => createSolutionDisplayCogUrl('no-extension', 'land', { releaseId }),
+      /raster file name/,
+    );
   });
 });

@@ -42,6 +42,7 @@ MARINE_FEATURE_LAYER_IDS = {
     "FEAT_MARINE_ECOSYSTEMS": "marine_ecosystems",
     "FEAT_MANGROVES": "mangroves",
 }
+LAND_FINAL_EVALUATION_SOURCES = frozenset({"prioritizr_model", "post-hoc"})
 
 
 class ReleasePreparationError(ValueError):
@@ -203,6 +204,21 @@ def structured_finder_inputs(
         rows = list(csv.DictReader(source))
     if not rows:
         raise ReleasePreparationError(f"summary CSV has no rows: {summary_path}")
+    has_evaluation_provenance = any(
+        str(row.get("evaluated") or "").strip() for row in rows
+    )
+    if domain == "land" and has_evaluation_provenance:
+        unsupported = sorted({
+            str(row.get("evaluated") or "").strip() or "NA"
+            for row in rows
+            if str(row.get("evaluated") or "").strip()
+            not in LAND_FINAL_EVALUATION_SOURCES
+        })
+        if unsupported:
+            raise ReleasePreparationError(
+                "land summary contains unsupported evaluated provenance "
+                f"{unsupported}: {summary_path}"
+            )
 
     coverage: list[dict[str, Any]] = []
     dimensions: dict[str, list[dict[str, Any]]] = {
@@ -223,19 +239,40 @@ def structured_finder_inputs(
         }
         coverage.append(coverage_row)
         dimension = _dimension(row, solution_id, domain)
-        if (
-            dimension is not None
-            and relative_target is not None
-            and coverage_row["evaluated"] == "prioritizr_model"
-        ):
+        include_target = (
+            coverage_row["evaluated"] == "prioritizr_model"
+            if domain == "marine"
+            else (
+                coverage_row["evaluated"] in LAND_FINAL_EVALUATION_SOURCES
+                if has_evaluation_provenance
+                else True
+            )
+        )
+        if dimension is not None and relative_target is not None and include_target:
             dimensions[dimension].append(
                 {
                     "featureId": _slug(coverage_row["feature"]),
-                    "targetPercent": round(relative_target * 100, 6),
+                    "targetPercent": round(
+                        relative_target * 100 if abs(relative_target) <= 1 else relative_target,
+                        6,
+                    ),
                 }
             )
-    for values in dimensions.values():
+    for dimension, values in dimensions.items():
         values.sort(key=lambda item: item["featureId"])
+        for previous, current in zip(values, values[1:]):
+            if previous["featureId"] != current["featureId"]:
+                continue
+            if previous["targetPercent"] != current["targetPercent"]:
+                raise ReleasePreparationError(
+                    f"{dimension} has conflicting targets for normalized feature "
+                    f"{current['featureId']!r}: {previous['targetPercent']} and "
+                    f"{current['targetPercent']}"
+                )
+            raise ReleasePreparationError(
+                f"{dimension} has duplicate normalized target "
+                f"{current['featureId']!r}"
+            )
 
     target_set = next(
         (
@@ -315,7 +352,9 @@ def structured_finder_inputs(
         "targetPercent": target_percent,
         "structuredTargets": {
             "format": "solution-target-metadata-v1",
-            "sourceEvaluation": "prioritizr_model",
+            "sourceEvaluation": (
+                "prioritizr_model" if domain == "marine" else "final_summary_csv"
+            ),
             **dimensions,
         },
         "costLayerId": input_layer_ids["cost"],

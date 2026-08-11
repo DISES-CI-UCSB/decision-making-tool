@@ -46,6 +46,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import Protocol
 
 import numpy as np
 from species_data import SpeciesPoolSizes, SpeciesRecord
@@ -53,6 +54,31 @@ from species_target_policy import REFERENCE_THRESHOLDS, SpeciesTargetPolicy
 from species_taxonomy import BUCKET_LABELS as _GROUP_LABELS, CLASS_BUCKETS
 
 IUCN_STATUS_ORDER: tuple[str, ...] = ("CR", "EN", "VU", "NT", "LC", "DD", "other", "unknown")
+
+
+class SpeciesDetailSink(Protocol):
+    """Optional exact-detail consumer updated in the accumulator's hot path."""
+
+    def record_national(
+        self,
+        species: SpeciesRecord,
+        selected_area_m2: float,
+        total_area_m2: float,
+        *,
+        pre_existing_area_m2: float = 0.0,
+        new_prioritizr_area_m2: float | None = None,
+    ) -> None: ...
+
+    def record_sub_level(
+        self,
+        species: SpeciesRecord,
+        level: str,
+        selected_per_boundary: np.ndarray,
+        total_per_boundary: np.ndarray,
+        *,
+        pre_existing_per_boundary: np.ndarray | None = None,
+        new_prioritizr_per_boundary: np.ndarray | None = None,
+    ) -> None: ...
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +153,7 @@ class SpeciesAccumulator:
     species_missing_tif: int = 0          # raster could not be loaded
     national: SpeciesScopeCounts = field(default_factory=SpeciesScopeCounts)
     sub: dict[str, list[SpeciesScopeCounts]] = field(default_factory=dict)
+    detail_sink: SpeciesDetailSink | None = None
     # ``sub[level][i]`` corresponds to boundary index ``i`` in the matching
     # ``BoundaryIdGrid.boundary_ids`` tuple.
 
@@ -144,7 +171,18 @@ class SpeciesAccumulator:
         sp: SpeciesRecord,
         selected_range_area_m2: float,
         total_range_area_m2: float,
+        *,
+        pre_existing_range_area_m2: float = 0.0,
+        new_prioritizr_range_area_m2: float | None = None,
     ) -> None:
+        if self.detail_sink is not None:
+            self.detail_sink.record_national(
+                sp,
+                selected_range_area_m2,
+                total_range_area_m2,
+                pre_existing_area_m2=pre_existing_range_area_m2,
+                new_prioritizr_area_m2=new_prioritizr_range_area_m2,
+            )
         target_pct = self._target_for(sp)
         target_is_applicable = target_pct is not None
         coverage_target_met = _species_coverage_target_met(
@@ -204,12 +242,24 @@ class SpeciesAccumulator:
         level: str,
         sel_per_boundary: np.ndarray,
         total_per_boundary: np.ndarray,
+        *,
+        pre_existing_per_boundary: np.ndarray | None = None,
+        new_prioritizr_per_boundary: np.ndarray | None = None,
     ) -> None:
         """Update sub-national counters for one (species, level) combination.
 
         Both arrays have length equal to the number of boundaries at this level
         and are precomputed via ``np.bincount`` over ``boundary_id`` arrays.
         """
+        if self.detail_sink is not None:
+            self.detail_sink.record_sub_level(
+                sp,
+                level,
+                sel_per_boundary,
+                total_per_boundary,
+                pre_existing_per_boundary=pre_existing_per_boundary,
+                new_prioritizr_per_boundary=new_prioritizr_per_boundary,
+            )
         scope_counts = self.sub[level]
         is_threatened = sp.threatened
         target = self._target_for(sp)

@@ -22,7 +22,7 @@ def test_release_prefixes_are_immutable_and_overridable():
     assert default.regular_verbose_directory.endswith("/regular/verbose")
     assert default.regular_compact_directory.endswith("/regular/compact")
     assert default.goals_directory.endswith("/goals")
-    assert default.goals_current_directory.endswith("/goals/v3")
+    assert default.goals_current_directory.endswith("/goals/v4")
     assert default.mec_v2_directory.endswith("/mec/v2")
     assert custom.regular_verbose_directory.startswith("releases/future-release-1/")
 

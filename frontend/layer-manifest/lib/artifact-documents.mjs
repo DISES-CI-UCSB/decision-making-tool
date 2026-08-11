@@ -535,7 +535,7 @@ function validateSpeciesTargetPolicy(policy, expected, label) {
   } else {
     assert(
       policy.structuredTargetCount > 0 &&
-        policy.structuredTargetDimension === 'espRn' &&
+        ['espRn', 'speciesRepresentation'].includes(policy.structuredTargetDimension) &&
         isRecord(policy.matchingInventory) &&
         policy.matchingInventory.matchedTargetCount === policy.structuredTargetCount,
       `${policyLabel} per-species matching inventory is invalid`,
@@ -814,6 +814,19 @@ export function validateGoalsDocument(document, label = 'goals') {
       feature.scenario === null || typeof feature.scenario === 'string',
       `${label}.features row ${index}.scenario must be a string or null`,
     );
+    if (feature.evaluationSource !== undefined) {
+      assert(
+        feature.evaluationSource === 'prioritizr_model' || feature.evaluationSource === 'post-hoc',
+        `${label}.features row ${index}.evaluationSource is invalid`,
+      );
+      assert(
+        feature.evaluationSource !== 'post-hoc' ||
+          (feature.featureType === 'ecosystems' &&
+            feature.met !== null &&
+            Number.isFinite(feature.relativeHeld)),
+        `${label}.features row ${index} post-hoc evaluation requires valid ecosystem coverage`,
+      );
+    }
   }
 }
 

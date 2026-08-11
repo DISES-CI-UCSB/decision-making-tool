@@ -136,10 +136,10 @@ describe('runtime release manifest compaction', () => {
       catalog,
     });
 
-    assert.deepStrictEqual(result.solutions.map(({ id }) => id), [
-      'land-solution',
-      'marine-solution',
-    ]);
+    assert.deepStrictEqual(
+      result.solutions.map(({ id }) => id),
+      ['land-solution', 'marine-solution'],
+    );
     assert.deepStrictEqual(result.categories, baseManifest.categories);
     assert.deepStrictEqual(result.layers, baseManifest.layers);
     assert.deepStrictEqual(result.referenceData, baseManifest.referenceData);
@@ -166,7 +166,7 @@ describe('runtime release manifest compaction', () => {
 
     assert.strictEqual(
       compactLand.precomputedMetricUrls.goals,
-      `${HOST}/releases/${RELEASE_ID}/goals/v3/land-solution.goals.json`,
+      `${HOST}/releases/${RELEASE_ID}/goals/v4/land-solution.goals.json`,
     );
     assert.strictEqual(
       compactLand.precomputedMetricUrls.cache,
@@ -174,9 +174,42 @@ describe('runtime release manifest compaction', () => {
     );
     assert.strictEqual(
       compactMarine.precomputedMetricUrls.goals,
-      `${HOST}/releases/${RELEASE_ID}/goals/v3/marine-solution.goals.json`,
+      `${HOST}/releases/${RELEASE_ID}/goals/v4/marine-solution.goals.json`,
     );
     assert.strictEqual(compactMarine.precomputedMetricUrls.mecV2ByGeography, undefined);
+  });
+
+  it('opts into species sidecars only from validated release inventory evidence', () => {
+    const land = solution('land-solution');
+    const speciesGoalsInventory = {
+      format: 'species-goals-release-inventory-v1',
+      validated: true,
+      solutionId: land.id,
+      releaseId: RELEASE_ID,
+      catalogValidated: true,
+      validatedGeographyLevels: [
+        'national',
+        'departments',
+        'municipalities',
+        'siraps',
+        'runaps',
+        'omecs',
+      ],
+    };
+
+    const compact = compactRuntimeSolution(land, {
+      releaseId: RELEASE_ID,
+      speciesGoalsInventory,
+    });
+
+    assert.match(
+      compact.precomputedMetricUrls.speciesGoalsCatalog,
+      /species-goals\/catalog\/v1\/catalog\.json$/,
+    );
+    assert.strictEqual(
+      Object.keys(compact.precomputedMetricUrls.speciesGoalsByGeography).length,
+      6,
+    );
   });
 
   it('leaves artifact URLs untouched when no release is supplied', () => {

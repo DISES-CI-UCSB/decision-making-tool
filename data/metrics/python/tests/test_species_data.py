@@ -22,6 +22,7 @@ def _structured_solution(
     feature_set: str | None,
     species_representation: list[dict] | None = None,
     esp_rn: list[dict] | None = None,
+    source_evaluation: str = "prioritizr_model",
 ) -> dict:
     return {
         "id": "demo",
@@ -30,7 +31,7 @@ def _structured_solution(
             "targetPercent": 17 if species_representation else None,
             "structuredTargets": {
                 "format": "solution-target-metadata-v1",
-                "sourceEvaluation": "prioritizr_model",
+                "sourceEvaluation": source_evaluation,
                 "ecosystems": [],
                 "strategicEcosystems": [],
                 "ecosystemServices": [],
@@ -131,6 +132,28 @@ def test_target_policy_classifies_scalar_per_species_and_dual_reference():
     assert dual_reference.provenance["decisionSource"] == (
         "approved:dual-reference-species-thresholds-v1"
     )
+
+
+def test_final_summary_species_representation_targets_only_listed_species():
+    records = [_record("Alpha beta"), _record("Gamma delta")]
+
+    policy = resolve_species_target_policy(
+        _structured_solution(
+            feature_set="species",
+            species_representation=[
+                {"featureId": "alpha_beta", "targetPercent": 0},
+            ],
+            source_evaluation="final_summary_csv",
+        ),
+        catalog_records=records,
+        available_records=records,
+    )
+
+    assert policy.kind == "per_species"
+    assert policy.target_for("Alpha beta") == 0
+    assert policy.target_for("Gamma delta") is None
+    assert policy.provenance["sourceEvaluation"] == "final_summary_csv"
+    assert policy.provenance["structuredTargetDimension"] == "speciesRepresentation"
 
 
 @pytest.mark.parametrize(

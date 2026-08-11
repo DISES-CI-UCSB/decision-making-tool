@@ -6,9 +6,12 @@ import type {
   CustomPolygonMetricsGeometry,
   DetailedSpeciesCoverageRecord,
   DetailedSpeciesJobResponse,
+  GeographyLevel,
+  HydratedSpeciesGoalsRecord,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
+import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
@@ -62,12 +65,15 @@ export function clampSpeciesBarPercent(value: number): number {
 export class CustomAoiSpeciesInventoryComponent {
   readonly geometry = input<CustomPolygonMetricsGeometry | null>(null);
   readonly solutionId = input<string | null>(null);
+  readonly geographyLevel = input<GeographyLevel | null>(null);
+  readonly scopeId = input<string | null>(null);
   readonly preExistingCoverageColor = input('#2563eb');
   readonly newCoverageColor = input('#16a34a');
   readonly modalOpenChange = output<boolean>();
 
   private readonly api = inject(ApiService);
   private readonly appLocale = inject(AppLocaleService);
+  private readonly speciesGoals = inject(SpeciesGoalsLoaderService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly inventoryRetry = new Subject<void>();
@@ -78,6 +84,7 @@ export class CustomAoiSpeciesInventoryComponent {
   protected readonly modalOpen = signal(false);
   protected readonly coverageState = signal<CoverageState>('idle');
   protected readonly coverageJob = signal<DetailedSpeciesJobResponse | null>(null);
+  protected readonly precomputedCoverageRecords = signal<HydratedSpeciesGoalsRecord[]>([]);
   protected readonly speciesSearch = signal('');
   protected readonly speciesGroup = signal('all');
   protected readonly speciesIucn = signal('all');
@@ -123,7 +130,10 @@ export class CustomAoiSpeciesInventoryComponent {
     );
   });
   protected readonly detailedCoverageBySpecies = computed(() => {
-    const records = this.coverageJob()?.result?.records ?? [];
+    const records =
+      this.precomputedCoverageRecords().length > 0
+        ? this.precomputedCoverageRecords()
+        : (this.coverageJob()?.result?.records ?? []);
     return new Map(records.map((record) => [record.id, record]));
   });
   protected readonly coverageViewBySpecies = computed(() => {
@@ -152,12 +162,43 @@ export class CustomAoiSpeciesInventoryComponent {
     const request = computed(() => ({
       geometry: this.geometry(),
       solutionId: this.solutionId(),
+      geographyLevel: this.geographyLevel(),
+      scopeId: this.scopeId(),
     }));
 
     toObservable(request)
       .pipe(
         tap(() => this.resetForContextChange()),
-        switchMap(({ geometry, solutionId }) => {
+        switchMap(({ geometry, solutionId, geographyLevel, scopeId }) => {
+          if (!geometry && (!solutionId || !geographyLevel || !scopeId)) {
+            return of<InventoryState>({ status: 'idle' });
+          }
+          if (!geometry && solutionId && geographyLevel && scopeId) {
+            return concat(
+              of<InventoryState>({ status: 'loading' }),
+              this.speciesGoals.load(solutionId, geographyLevel, scopeId).pipe(
+                map((records) => {
+                  if (records === null) {
+                    return { status: 'unavailable', data: null } satisfies InventoryState;
+                  }
+                  this.precomputedCoverageRecords.set(records);
+                  return {
+                    status: records.length > 0 ? 'complete' : 'empty',
+                    data: {
+                      status: records.length > 0 ? 'complete' : 'empty',
+                      records,
+                    },
+                  } satisfies InventoryState;
+                }),
+                catchError(() =>
+                  of<InventoryState>({
+                    status: 'failed',
+                    data: null,
+                  }),
+                ),
+              ),
+            );
+          }
           if (!geometry) {
             return of<InventoryState>({ status: 'idle' });
           }
@@ -193,7 +234,7 @@ export class CustomAoiSpeciesInventoryComponent {
   open(): void {
     this.modalOpen.set(true);
     this.modalOpenChange.emit(true);
-    if (this.coverageState() === 'idle') {
+    if (this.geometry() && this.coverageState() === 'idle') {
       this.startDetailedSpeciesCoverage();
     }
   }
@@ -283,11 +324,10 @@ export class CustomAoiSpeciesInventoryComponent {
   private resetForContextChange(): void {
     this.contextVersion += 1;
     this.cancelStaleCoverage();
-    this.modalOpen.set(false);
-    this.modalOpenChange.emit(false);
     this.speciesSearch.set('');
     this.speciesGroup.set('all');
     this.speciesIucn.set('all');
+    this.precomputedCoverageRecords.set([]);
   }
 
   private startDetailedSpeciesCoverage(forceRestart = false): void {

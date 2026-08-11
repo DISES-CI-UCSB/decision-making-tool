@@ -48,6 +48,28 @@ describe('release artifact verification', () => {
     );
   });
 
+  it('accepts one shared species target overlay URL across land solutions', () => {
+    const manifest = createManifest();
+    const overlayUrl =
+      'https://blob.example/releases/release-one/species-goals/targets/v1/overlay.json';
+    manifest.solutions[0].precomputedMetricUrls.speciesGoalsTargetOverlay = overlayUrl;
+    manifest.solutions.push({
+      id: 'land-two',
+      domain: 'land',
+      precomputedMetricUrls: {
+        goals: 'https://blob.example/releases/release-one/goals/land-two.json',
+        cache: 'https://blob.example/releases/release-one/regular/verbose/land-two.json',
+        compactCache: 'https://blob.example/releases/release-one/regular/compact/land-two.json',
+        speciesGoalsTargetOverlay: overlayUrl,
+      },
+    });
+    const urls = [...new Set([...expectedUrls(manifest), overlayUrl])];
+
+    assert.doesNotThrow(() =>
+      validateManifestArtifactCompleteness(manifest, [createVerification(urls)]),
+    );
+  });
+
   it('fails closed for unverified or checksum-mismatched publish summaries', () => {
     const failed = createVerification(['https://blob.example/artifact.json']);
     failed.ok = false;
@@ -229,6 +251,7 @@ function expectedUrls(manifest) {
       urls.cache,
       urls.compactCache,
       ...Object.values(urls.mecV2ByGeography ?? {}),
+      ...(urls.speciesGoalsTargetOverlay ? [urls.speciesGoalsTargetOverlay] : []),
     ];
   });
 }

@@ -515,7 +515,7 @@
         },
         "sourceEvaluation": {
           "type": "string",
-          "enum": ["prioritizr_model", "legacy-single-ecosystem"]
+          "enum": ["prioritizr_model", "final_summary_csv", "legacy-single-ecosystem"]
         },
         "ecosystems": {
           "$ref": "#/$defs/solutionTargetEntries"

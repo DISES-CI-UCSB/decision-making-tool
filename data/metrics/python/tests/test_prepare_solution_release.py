@@ -312,3 +312,60 @@ def test_land_summaries_still_drop_rows_the_classifier_cannot_place(tmp_path: Pa
         item["featureId"]
         for item in finder_inputs["structuredTargets"]["ecosystems"]
     ] == ["ecosistemas"]
+    assert (
+        finder_inputs["structuredTargets"]["sourceEvaluation"]
+        == "final_summary_csv"
+    )
+
+
+def test_land_structured_targets_include_post_hoc_zero_and_unknown_rows(
+    tmp_path: Path,
+):
+    summary = tmp_path / "EspRep17+RUNAP_summary.csv"
+    summary.write_text(
+        "feature,met,relative_target,relative_held,relative_shortfall,"
+        "feature_type,class,scenario,evaluated\n"
+        "Solver species,TRUE,0.17,0.2,0,species,Aves,EspRep,prioritizr_model\n"
+        "Precovered species,TRUE,0.17,0.5,0,species,Aves,EspRep,post-hoc\n"
+        "Zero range species,NA,0,NA,NA,species,Aves,EspRep,post-hoc\n",
+        encoding="utf-8",
+    )
+
+    finder_inputs, _, coverage, _ = structured_finder_inputs(
+        summary,
+        solution_id="esprep17_runap",
+        domain="land",
+    )
+
+    assert finder_inputs["structuredTargets"]["speciesRepresentation"] == [
+        {"featureId": "precovered_species", "targetPercent": 17.0},
+        {"featureId": "solver_species", "targetPercent": 17.0},
+        {"featureId": "zero_range_species", "targetPercent": 0.0},
+    ]
+    assert coverage[-1]["met"] is None
+
+
+@pytest.mark.parametrize(
+    ("second_target", "message"),
+    [(0.17, "duplicate normalized"), (0.3, "conflicting targets")],
+)
+def test_land_structured_targets_reject_normalized_duplicates(
+    tmp_path: Path,
+    second_target: float,
+    message: str,
+):
+    summary = tmp_path / "duplicate_summary.csv"
+    summary.write_text(
+        "feature,met,relative_target,relative_held,relative_shortfall,"
+        "feature_type,class,scenario,evaluated\n"
+        "Ara macao,TRUE,0.17,0.2,0,species,Aves,EspRep,prioritizr_model\n"
+        f"Ara-macao,TRUE,{second_target},0.3,0,species,Aves,EspRep,post-hoc\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ReleasePreparationError, match=message):
+        structured_finder_inputs(
+            summary,
+            solution_id="esprep17_runap",
+            domain="land",
+        )

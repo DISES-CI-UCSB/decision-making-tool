@@ -127,7 +127,14 @@ export function validateManifestArtifactCompleteness(manifest, verifications) {
   const expectedUrls = new Map();
   for (const solution of manifest.solutions) {
     for (const [role, url] of requiredArtifactUrls(solution)) {
-      assert(!expectedUrls.has(url), `manifest advertises duplicate artifact URL: ${url}`);
+      if (expectedUrls.has(url)) {
+        assert(
+          role === 'speciesGoalsTargetOverlay' &&
+            expectedUrls.get(url)?.endsWith(':speciesGoalsTargetOverlay'),
+          `manifest advertises duplicate artifact URL: ${url}`,
+        );
+        continue;
+      }
       expectedUrls.set(url, `${solution.id}:${role}`);
     }
   }
@@ -234,6 +241,15 @@ function requiredArtifactUrls(solution) {
   if (solution.domain === 'land') {
     for (const [level, url] of Object.entries(urls.mecV2ByGeography ?? {})) {
       required.push([`mecV2:${level}`, url]);
+    }
+    if (urls.speciesGoalsCatalog) {
+      required.push(['speciesGoalsCatalog', urls.speciesGoalsCatalog]);
+    }
+    if (urls.speciesGoalsTargetOverlay) {
+      required.push(['speciesGoalsTargetOverlay', urls.speciesGoalsTargetOverlay]);
+    }
+    for (const [level, url] of Object.entries(urls.speciesGoalsByGeography ?? {})) {
+      required.push([`speciesGoals:${level}`, url]);
     }
   }
   return required;

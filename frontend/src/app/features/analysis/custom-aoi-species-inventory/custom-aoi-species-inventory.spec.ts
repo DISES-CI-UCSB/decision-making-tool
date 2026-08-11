@@ -9,8 +9,10 @@ import type {
   CustomAoiAreaProfileResponse,
   CustomPolygonMetricsGeometry,
   DetailedSpeciesJobResponse,
+  HydratedSpeciesGoalsRecord,
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
+import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
 import { of, Subject } from 'rxjs';
 import {
   clampSpeciesBarPercent,
@@ -24,6 +26,7 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     getDetailedSpeciesCoverageJob: ReturnType<typeof vi.fn>;
     cancelDetailedSpeciesCoverageJob: ReturnType<typeof vi.fn>;
   };
+  let speciesGoals: { load: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     api = {
@@ -32,10 +35,14 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
       getDetailedSpeciesCoverageJob: vi.fn(() => of(job('running'))),
       cancelDetailedSpeciesCoverageJob: vi.fn(() => of(job('cancelled'))),
     };
+    speciesGoals = {
+      load: vi.fn(() => of([precomputedSpeciesRecord()])),
+    };
     await TestBed.configureTestingModule({
       imports: [CustomAoiSpeciesInventoryComponent],
       providers: [
         { provide: ApiService, useValue: api },
+        { provide: SpeciesGoalsLoaderService, useValue: speciesGoals },
         provideTranslateService({
           lang: 'en',
           fallbackLang: 'en',
@@ -97,6 +104,28 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-group-heading-row')?.classList,
     ).toContain('h-8');
+  });
+
+  it('loads predefined AOI sidecars without starting a custom runtime job', async () => {
+    const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
+    fixture.componentRef.setInput('geometry', null);
+    fixture.componentRef.setInput('solutionId', 'solution-1');
+    fixture.componentRef.setInput('geographyLevel', 'departments');
+    fixture.componentRef.setInput('scopeId', '05');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    expect(speciesGoals.load).toHaveBeenCalledWith('solution-1', 'departments', '05');
+    expect(api.getCustomAoiAreaProfile).not.toHaveBeenCalled();
+    expect(api.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '#custom-aoi-species-coverage-precomputed-complete',
+      ),
+    ).not.toBeNull();
   });
 
   it('labels coverage columns with their within-AOI scope', () => {
@@ -427,6 +456,30 @@ function speciesResponse(): CustomAoiAreaProfileResponse {
         ],
       },
     },
+  };
+}
+
+function precomputedSpeciesRecord(): HydratedSpeciesGoalsRecord {
+  return {
+    id: 'precomputed-1',
+    scientific_name: 'Tremarctos ornatus',
+    group: 'Mammals',
+    iucn_status: 'VU',
+    range_area_km2: 100,
+    range_in_aoi_area_km2: 10,
+    range_in_aoi_pct: 10,
+    solution_covered_in_aoi_area_km2: 5,
+    solution_covered_in_aoi_pct: 50,
+    pre_existing_covered_in_aoi_area_km2: 2,
+    pre_existing_covered_in_aoi_pct: 20,
+    new_covered_in_aoi_area_km2: 3,
+    new_covered_in_aoi_pct: 30,
+    availability: 'available',
+    no_range_in_scope: false,
+    configured_target_percent: 30,
+    met_17_percent: true,
+    met_30_percent: true,
+    configured_target_met: true,
   };
 }
 

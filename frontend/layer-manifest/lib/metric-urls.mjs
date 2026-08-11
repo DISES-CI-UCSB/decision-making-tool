@@ -42,6 +42,9 @@ export function createSolutionPrecomputedMetricUrls(
   const {
     mecByGeography: _existingMecByGeography,
     mecV2ByGeography: _existingMecV2ByGeography,
+    speciesGoalsCatalog: _existingSpeciesGoalsCatalog,
+    speciesGoalsByGeography: _existingSpeciesGoalsByGeography,
+    speciesGoalsTargetOverlay: _existingSpeciesGoalsTargetOverlay,
     ...preservedUrls
   } = existingUrls;
 
@@ -56,6 +59,16 @@ export function createSolutionPrecomputedMetricUrls(
   const mecV2Directory = releaseRoot
     ? `${releaseRoot}/${RELEASE_CONTRACT.mecV2Directory}`
     : SOLUTION_MEC_V2_CACHE_BLOB_DIRECTORY;
+  const speciesGoalsUrls =
+    releaseRoot &&
+    domain === 'land' &&
+    hasValidatedSpeciesGoalsInventory(options.speciesGoalsInventory, solutionId, releaseId)
+      ? createSpeciesGoalsUrls(
+          safeSolutionId,
+          releaseRoot,
+          options.speciesGoalsBaseUrl ?? PUBLIC_BLOB_HOST,
+        )
+      : null;
 
   return {
     ...preservedUrls,
@@ -72,9 +85,50 @@ export function createSolutionPrecomputedMetricUrls(
             ? { mecByGeography: createMecUrls(safeSolutionId, SOLUTION_MEC_CACHE_BLOB_DIRECTORY) }
             : {}),
           mecV2ByGeography: createMecUrls(safeSolutionId, mecV2Directory),
+          ...(speciesGoalsUrls ?? {}),
         }
       : {}),
   };
+}
+
+function hasValidatedSpeciesGoalsInventory(inventory, solutionId, releaseId) {
+  return (
+    inventory?.format === 'species-goals-release-inventory-v1' &&
+    inventory.validated === true &&
+    inventory.solutionId === solutionId &&
+    inventory.releaseId === releaseId &&
+    inventory.catalogValidated === true &&
+    Array.isArray(inventory.validatedGeographyLevels) &&
+    inventory.validatedGeographyLevels.length === MEC_GEOGRAPHY_LEVELS.length &&
+    MEC_GEOGRAPHY_LEVELS.every(
+      (level, index) => inventory.validatedGeographyLevels[index] === level,
+    )
+  );
+}
+
+export function createSpeciesGoalsUrls(safeSolutionId, releaseRoot, baseUrl = PUBLIC_BLOB_HOST) {
+  const catalogDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCatalogDirectory}`;
+  const compactDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCompactDirectory}`;
+  return {
+    speciesGoalsCatalog: artifactUrl(baseUrl, `${catalogDirectory}/catalog.json`),
+    speciesGoalsTargetOverlay: artifactUrl(
+      baseUrl,
+      `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsTargetOverlayPath}`,
+    ),
+    speciesGoalsByGeography: Object.fromEntries(
+      MEC_GEOGRAPHY_LEVELS.map((level) => [
+        level,
+        artifactUrl(
+          baseUrl,
+          `${compactDirectory}/${safeSolutionId}/${level}.species-goals.compact.json`,
+        ),
+      ]),
+    ),
+  };
+}
+
+function artifactUrl(baseUrl, pathname) {
+  return `${baseUrl.replace(/\/+$/, '')}/${pathname}`;
 }
 
 /**

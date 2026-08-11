@@ -87,6 +87,7 @@ IUCN_STATUS_ORDER = ("CR", "EN", "VU", "NT", "LC", "DD", "other", "unknown")
 #: A land summary whose species rows exceed this share of unresolved taxon groups
 #: is rejected rather than published with a hollowed-out taxon rollup.
 MAX_UNRESOLVED_TAXON_FRACTION = 0.02
+LAND_FINAL_EVALUATION_SOURCES = frozenset({"prioritizr_model", "post-hoc"})
 
 
 class GoalsSchemaError(ValueError):
@@ -157,13 +158,25 @@ def build_goals_document(
     species_lookup = {
         _normalize_species_name(record.scientific_name): record for record in species_records
     }
-    summary_columns, summary_rows = _read_summary_rows(summary_csv_path)
+    summary_columns, source_rows = _read_summary_rows(summary_csv_path)
     if domain != "marine" and _feature_type_column(summary_columns) is None:
         raise GoalsSchemaError(
             f"{summary_csv_path} declares no feature type column "
             f"({' or '.join(FEATURE_TYPE_COLUMNS)}); refusing to classify "
-            f"{len(summary_rows)} land rows as 'other'"
+            f"{len(source_rows)} land rows as 'other'"
         )
+    has_evaluation_provenance = any(
+        _clean_text(row.get("evaluated")) for row in source_rows
+    )
+    summary_rows = _select_goal_rows(source_rows, domain)
+    evaluation_source_counts = Counter(
+        _clean_text(row.get("evaluated")) or "NA" for row in summary_rows
+    )
+    excluded_evaluation_source_counts = Counter(
+        _clean_text(row.get("evaluated")) or "NA"
+        for row in source_rows
+        if has_evaluation_provenance and not _goal_row_is_selected(row, domain)
+    )
 
     all_count = GoalCount()
     by_type: dict[str, GoalCount] = {
@@ -287,6 +300,11 @@ def build_goals_document(
         "diagnostics": {
             "rawTypeCounts": dict(sorted(raw_type_counts.items())),
             "rawTaxonClassCounts": dict(sorted(raw_taxon_class_counts.items())),
+            "evaluationSourceCounts": dict(sorted(evaluation_source_counts.items())),
+            "excludedEvaluationSourceCounts": dict(
+                sorted(excluded_evaluation_source_counts.items())
+            ),
+            "sourceRowCount": len(source_rows),
             "rowCounts": {
                 "species": len(species_features),
                 "strategicEcosystems": len(strategic_features),
@@ -513,13 +531,68 @@ def _read_summary_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
         reader = csv.DictReader(handle)
         columns = list(reader.fieldnames or [])
         rows = list(reader)
-    if any(_clean_text(row.get("evaluated")) for row in rows):
-        rows = [
-            row
-            for row in rows
-            if _clean_text(row.get("evaluated")) == "prioritizr_model"
-        ]
     return columns, rows
+
+
+def _select_goal_rows(
+    rows: list[dict[str, str]],
+    domain: SolutionDomain,
+) -> list[dict[str, str]]:
+    """Select final configured goals while preserving legacy and marine semantics.
+
+    Provenance-aware land summaries are authoritative final-coverage exports:
+    both solver and post-hoc rows are configured goals, regardless of feature type
+    or whether held/met values are known. Marine exports retain their established
+    solver-only selection because their post-hoc rows do not share that contract.
+    """
+
+    if not any(_clean_text(row.get("evaluated")) for row in rows):
+        return rows
+    if domain != "marine":
+        unsupported = Counter(
+            _clean_text(row.get("evaluated")) or "NA"
+            for row in rows
+            if _clean_text(row.get("evaluated")) not in LAND_FINAL_EVALUATION_SOURCES
+        )
+        if unsupported:
+            values = ", ".join(
+                f"{source} ({count})" for source, count in sorted(unsupported.items())
+            )
+            raise GoalsSchemaError(
+                "land summary contains unsupported evaluated provenance: "
+                f"{values}; expected one of {sorted(LAND_FINAL_EVALUATION_SOURCES)}"
+            )
+        return rows
+
+    return [
+        row
+        for row in rows
+        if _goal_row_is_selected(row, domain)
+    ]
+
+
+def _goal_row_is_selected(
+    row: dict[str, str],
+    domain: SolutionDomain,
+) -> bool:
+    if domain != "marine":
+        return _clean_text(row.get("evaluated")) in LAND_FINAL_EVALUATION_SOURCES
+    return (
+        _clean_text(row.get("evaluated")) == "prioritizr_model"
+        or _is_valid_post_hoc_ecosystem_row(row, domain)
+    )
+
+
+def _is_valid_post_hoc_ecosystem_row(
+    row: dict[str, str],
+    domain: SolutionDomain,
+) -> bool:
+    return (
+        _clean_text(row.get("evaluated")) == "post-hoc"
+        and _feature_type(row, domain) == "ecosystems"
+        and _parse_bool_or_none(row.get("met")) is not None
+        and _parse_relative_float(row.get("relative_held")) is not None
+    )
 
 
 def _feature_type_column(columns: Any) -> str | None:

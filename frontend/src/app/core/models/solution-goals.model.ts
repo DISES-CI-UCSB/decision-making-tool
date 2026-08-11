@@ -71,6 +71,8 @@ export interface GoalFeatureRow {
   relativeHeld: number | null;
   relativeShortfall: number | null;
   scenario: string | null;
+  /** Whether final coverage came from solver evaluation or post-hoc pre-existing coverage. */
+  evaluationSource?: string;
   /** Friendly display label for strategic ecosystem features (e.g. "Páramos"). */
   label?: string;
   taxonClass?: string | null;
@@ -88,6 +90,7 @@ export interface SolutionGoalsDocument {
   source: {
     summaryCsvUrl: string | null;
     summaryCsvRows: number;
+    solutionDomain: 'land' | 'marine';
     speciesLookupUrl: string;
   };
   targetContext: SolutionGoalsTargetContext;
@@ -101,6 +104,9 @@ export interface SolutionGoalsDocument {
   };
   diagnostics: {
     rawTypeCounts: Record<string, number>;
+    evaluationSourceCounts?: Record<string, number>;
+    excludedEvaluationSourceCounts?: Record<string, number>;
+    sourceRowCount?: number;
     rowCounts: Record<string, number>;
   };
 }

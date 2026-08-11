@@ -1,7 +1,9 @@
 import {
   costTokenMatchesChoice,
   getSolutionCostLabel,
+  getSolutionHumanFootprintYear,
   getSolutionIncludeFlags,
+  getSolutionSpeciesTargetMethod,
   getSolutionTargetLevel,
   getSolutionTargetTypes,
   inferSolutionTargetPercent,
@@ -121,6 +123,7 @@ describe('solution matching utils', () => {
     });
 
     expect(getSolutionTargetLevel(solution, 'species-richness')).toBeNull();
+    expect(getSolutionSpeciesTargetMethod(solution)).toBe('national-responsibility');
   });
 
   it('returns no inferred target percentage when names contain no supported token', () => {
@@ -191,6 +194,8 @@ describe('solution matching utils', () => {
     expect(solutionCostMatchesChoice(iheh2030, 'human-footprint')).toBe(false);
     expect(getSolutionCostLabel(iheh2022)).toBe('Human Footprint 2022');
     expect(getSolutionCostLabel(iheh2030)).toBe('Human Footprint 2030');
+    expect(getSolutionHumanFootprintYear(iheh2022)).toBe(2022);
+    expect(getSolutionHumanFootprintYear(iheh2030)).toBe(2030);
   });
 
   it('preserves catalog cost labels based on the primary manifest cost id', () => {

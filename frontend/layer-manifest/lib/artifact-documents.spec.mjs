@@ -233,6 +233,23 @@ describe('release artifact document validation', () => {
       structuredTargetsSha256: '2'.repeat(64),
       matchingInventory: { matchedTargetCount: 1 },
     };
+    const finalSummaryPolicy = structuredClone(forgedHash);
+    finalSummaryPolicy.metricsProvenance.speciesTargetPolicy = {
+      ...forgedHash.metricsProvenance.speciesTargetPolicy,
+      sourceEvaluation: 'final_summary_csv',
+      structuredTargetDimension: 'speciesRepresentation',
+    };
+    for (const scopes of Object.values(finalSummaryPolicy.geographies)) {
+      for (const scope of Object.values(scopes)) {
+        scope.metrics[0].value = 1;
+      }
+    }
+    assert.doesNotThrow(() =>
+      validateVerboseMetricsDocument(finalSummaryPolicy, 'final-summary', {
+        speciesTargetPolicyEvidence:
+          finalSummaryPolicy.metricsProvenance.speciesTargetPolicy,
+      }),
+    );
     assert.throws(
       () =>
         validateVerboseMetricsDocument(forgedHash, 'per-species', {
@@ -264,6 +281,13 @@ describe('release artifact document validation', () => {
     const skeletal = createGoalsDocument();
     skeletal.features.species = [];
     assert.throws(() => validateGoalsDocument(skeletal), /feature count/);
+
+    const postHocSpecies = createGoalsDocument();
+    postHocSpecies.features.species[0].evaluationSource = 'post-hoc';
+    assert.throws(
+      () => validateGoalsDocument(postHocSpecies),
+      /post-hoc evaluation requires valid ecosystem coverage/,
+    );
   });
 
   it('requires populated, internally referenced MEC catalogs and rows', () => {
@@ -491,6 +515,7 @@ function createGoalsDocument() {
     relativeHeld: 0.4,
     relativeShortfall: 0,
     scenario: 'demo',
+    evaluationSource: 'prioritizr_model',
   };
   const count = { metCount: 1, totalCount: 1, pctMet: 100 };
   const speciesCount = { metSpeciesCount: 1, totalSpeciesCount: 1, pctMet: 100 };
