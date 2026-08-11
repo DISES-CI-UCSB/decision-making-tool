@@ -274,19 +274,20 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     },
   );
 
-  it('continues polling after close and preserves completed coverage on reopen', () => {
+  it('continues polling after Escape close and preserves completed coverage on reopen', () => {
     vi.useFakeTimers();
     api.getDetailedSpeciesCoverageJob.mockReturnValue(of(job('complete')));
     const fixture = createFixture('solution-1');
+    const modalOpenChange = vi.spyOn(fixture.componentInstance.modalOpenChange, 'emit');
     fixture.componentInstance.open();
     fixture.detectChanges();
 
-    (
-      fixture.componentInstance as unknown as {
-        close(): void;
-      }
-    ).close();
+    const dialog = (fixture.nativeElement as HTMLElement).querySelector(
+      '#custom-aoi-species-inventory-modal',
+    ) as HTMLDialogElement;
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
     fixture.detectChanges();
+    expect(modalOpenChange).toHaveBeenLastCalledWith(false);
     expect(api.cancelDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(1500);
@@ -385,23 +386,90 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
   });
 
-  it('cancels and clears stale coverage when geometry or solution changes', () => {
+  it('restarts open coverage for changed geometry and ignores the stale completion', () => {
+    const staleJob = new Subject<DetailedSpeciesJobResponse>();
+    const currentJob = new Subject<DetailedSpeciesJobResponse>();
+    api.createDetailedSpeciesCoverageJob
+      .mockReturnValueOnce(staleJob)
+      .mockReturnValueOnce(currentJob);
+    const fixture = createFixture('solution-1');
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    const nextGeometry = geometry(1);
+    fixture.componentRef.setInput('geometry', nextGeometry);
+    fixture.detectChanges();
+    expect(api.createDetailedSpeciesCoverageJob).toHaveBeenNthCalledWith(2, {
+      geometry: nextGeometry,
+      solution_id: 'solution-1',
+    });
+    expect(api.getCustomAoiAreaProfile).toHaveBeenLastCalledWith({
+      geometry: nextGeometry,
+      sections: ['species'],
+      solution_id: 'solution-1',
+    });
+
+    staleJob.next(job('complete'));
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
+    ).toBeNull();
+
+    currentJob.next(job('complete'));
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
+    ).not.toBeNull();
+  });
+
+  it('restarts open coverage for a changed solution and ignores the stale completion', () => {
+    const staleJob = new Subject<DetailedSpeciesJobResponse>();
+    const currentJob = new Subject<DetailedSpeciesJobResponse>();
+    api.createDetailedSpeciesCoverageJob
+      .mockReturnValueOnce(staleJob)
+      .mockReturnValueOnce(currentJob);
+    const fixture = createFixture('solution-1');
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('solutionId', 'solution-2');
+    fixture.detectChanges();
+    expect(api.createDetailedSpeciesCoverageJob).toHaveBeenNthCalledWith(2, {
+      geometry: geometry(0),
+      solution_id: 'solution-2',
+    });
+    expect(api.getCustomAoiAreaProfile).toHaveBeenLastCalledWith({
+      geometry: geometry(0),
+      sections: ['species'],
+      solution_id: 'solution-2',
+    });
+
+    staleJob.next(job('complete'));
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
+    ).toBeNull();
+
+    currentJob.next(job('complete'));
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
+    ).not.toBeNull();
+  });
+
+  it('cancels an active job before restarting an open changed context', () => {
+    api.createDetailedSpeciesCoverageJob
+      .mockReturnValueOnce(of(job('queued')))
+      .mockReturnValueOnce(of(job('complete')));
     const fixture = createFixture('solution-1');
     fixture.componentInstance.open();
     fixture.detectChanges();
 
     fixture.componentRef.setInput('geometry', geometry(1));
     fixture.detectChanges();
-    expect(api.cancelDetailedSpeciesCoverageJob).toHaveBeenCalledWith('job-1');
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-queued'),
-    ).toBeNull();
 
-    fixture.componentInstance.open();
-    fixture.detectChanges();
-    fixture.componentRef.setInput('solutionId', 'solution-2');
-    fixture.detectChanges();
-    expect(api.cancelDetailedSpeciesCoverageJob).toHaveBeenCalledTimes(2);
+    expect(api.cancelDetailedSpeciesCoverageJob).toHaveBeenCalledWith('job-1');
+    expect(api.createDetailedSpeciesCoverageJob).toHaveBeenCalledTimes(2);
   });
 
   function createFixture(solutionId: string | null) {

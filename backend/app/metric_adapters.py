@@ -290,7 +290,19 @@ def calculate_raster_metrics_for_aoi(
             metrics[metric_id] = calc_area.national_contribution_pct(raster)
             continue
         if definition.kind == "aoi_percent":
-            metrics[metric_id] = calc_area.national_contribution_pct(raster)
+            # The custom AOI is itself the selected area. Keep the raster's
+            # national valid mask intact for national_contribution, but use the
+            # AOI's valid in-domain selection as both numerator and denominator.
+            if raster.selected_cells == 0:
+                metrics[metric_id] = None
+                unavailable.append(
+                    {
+                        "metric_id": metric_id,
+                        "reason": "aoi_has_no_valid_cells",
+                    }
+                )
+            else:
+                metrics[metric_id] = 100.0
             continue
         if definition.kind in {"metadata_summary", "metadata_coverage"}:
             metrics[metric_id] = None
@@ -457,6 +469,9 @@ def _calculate_species_metric(
     pool_sizes: dict[str, Any],
     counts_cache: dict[str, int],
 ) -> tuple[float | int, set[str]]:
+    if definition.kind == "species_group_coverage":
+        raise SpeciesMetricUnavailable("requires_species_target_percent")
+
     if metric_id == _SPECIES_SECURED_METRIC_ID:
         raise SpeciesMetricUnavailable("requires_species_target_percent")
 

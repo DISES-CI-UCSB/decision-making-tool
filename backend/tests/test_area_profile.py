@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sqlite3
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -19,6 +21,7 @@ from app.artifacts import (
     _validate_ecosystem_grid_alignment,
 )
 from app.ecosystem_inventory import RuntimeEcosystemInventory, load_ecosystem_inventory
+from app.job_queue import DetailedSpeciesJobQueue
 from app.main import app
 from app import main as main_module
 from app.models import CustomAreaProfileRequest
@@ -577,3 +580,111 @@ def test_area_profile_endpoint_treats_geometry_failure_as_http_error(
 
     assert response.status_code == 422
     assert response.json()["detail"]["status"] == "invalid_request"
+
+
+def test_detailed_species_enqueue_storage_failure_returns_retryable_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailingQueue:
+        def unavailable_reason(self) -> None:
+            return None
+
+        def enqueue(self, payload):
+            raise sqlite3.OperationalError("storage unavailable")
+
+    state = ArtifactState(
+        required=True,
+        available=True,
+        manifest_path="test-manifest.json",
+        artifact_version="test-raster",
+        message="ready",
+    )
+    artifact = SimpleNamespace(
+        species_index=object(),
+        solution_registry=SimpleNamespace(entries={"solution-1": object()}),
+    )
+    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", FailingQueue())
+    monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", object)
+    monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
+    monkeypatch.setattr(main_module, "get_runtime_artifact", lambda settings: artifact)
+
+    response = TestClient(app).post(
+        "/area-profile/custom-polygon/species-coverage/jobs",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "solution_id": "solution-1",
+            "artifact_version": "test-raster",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "10"
+    assert response.json()["detail"]["status"] == "queue_storage_unavailable"
+
+
+def test_detailed_species_endpoint_reports_dead_worker_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    queue = DetailedSpeciesJobQueue(
+        tmp_path / "jobs.sqlite3",
+        lambda payload, _is_cancelled: payload,
+    )
+    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", queue)
+
+    response = TestClient(app).post(
+        "/area-profile/custom-polygon/species-coverage/jobs",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "solution_id": "solution-1",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "10"
+    assert response.json()["detail"]["status"] == "worker_unavailable"
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/area-profile/custom-polygon/species-coverage/jobs/job-1"),
+        ("DELETE", "/area-profile/custom-polygon/species-coverage/jobs/job-1"),
+        ("GET", "/ops/custom-polygon"),
+    ],
+)
+def test_detailed_species_read_routes_translate_storage_failures_to_503(
+    method: str,
+    path: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StorageFailingQueue:
+        def unavailable_reason(self) -> None:
+            return None
+
+        def get(self, job_id: str):
+            raise sqlite3.OperationalError("storage unavailable")
+
+        def cancel(self, job_id: str):
+            raise sqlite3.OperationalError("storage unavailable")
+
+        def metrics(self):
+            raise sqlite3.OperationalError("storage unavailable")
+
+    monkeypatch.setattr(
+        main_module,
+        "_DETAILED_SPECIES_QUEUE",
+        StorageFailingQueue(),
+    )
+    monkeypatch.setenv("DMT_OPS_TOKEN", "test-ops-token")
+    headers = (
+        {"X-DMT-Ops-Token": "test-ops-token"}
+        if path == "/ops/custom-polygon"
+        else {}
+    )
+
+    response = TestClient(app).request(method, path, headers=headers)
+
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "10"
+    assert response.json()["detail"]["status"] == "queue_storage_unavailable"

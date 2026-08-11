@@ -1540,15 +1540,22 @@
                         type="button"
                         class="aoi-mec-open-modal aoi-biodiversity-open-species-inventory min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-haspopup="dialog"
-                        aria-controls="conservation-goals-modal"
-                        [attr.aria-expanded]="
-                          goalsModalOpen() && goalsModalDomain()?.featureType === 'species'
+                        [attr.aria-controls]="
+                          selectedAoi()?.type === 'custom'
+                            ? 'custom-aoi-species-inventory-modal'
+                            : 'conservation-goals-modal'
                         "
-                        [disabled]="isCustomAoiSelected()"
-                        [attr.title]="
-                          isCustomAoiSelected()
-                            ? ('analysis.overview.goalsWidget.modal.customSpeciesUnavailable'
-                              | translate)
+                        [attr.aria-expanded]="
+                          selectedAoi()?.type === 'custom'
+                            ? customAoiSpeciesModalOpen()
+                            : goalsModalOpen() && goalsModalDomain()?.featureType === 'species'
+                        "
+                        [disabled]="
+                          selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
+                        "
+                        [attr.aria-describedby]="
+                          selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
+                            ? 'aoi-biodiversity-species-inventory-unavailable-help'
                             : null
                         "
                         (click)="openAoiSpeciesInventory()"
@@ -1568,6 +1575,16 @@
                           >→</span
                         >
                       </button>
+                      @if (
+                        selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
+                      ) {
+                        <p
+                          id="aoi-biodiversity-species-inventory-unavailable-help"
+                          class="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700"
+                        >
+                          {{ customAoiSpeciesInventoryUnavailableKey() | translate }}
+                        </p>
+                      }
                     }
 
                     @if (fillDummyAoiMetrics() && !isCustomAoiSelected()) {
@@ -4192,6 +4209,17 @@
     </div>
   }
 </app-modal-shell>
+
+@if (selectedAoi()?.type === 'custom') {
+  <app-custom-aoi-species-inventory
+    id="aoi-custom-species-inventory"
+    [geometry]="customAoiGeometry()"
+    [solutionId]="customAoiSpeciesSolutionId()"
+    [preExistingCoverageColor]="existingProtectedColor()"
+    [newCoverageColor]="solutionColor()"
+    (modalOpenChange)="customAoiSpeciesModalOpen.set($event)"
+  />
+}
 
 <app-modal-shell
   id="aoi-mec-classifications-modal-shell"

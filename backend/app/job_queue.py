@@ -2,21 +2,29 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import sqlite3
 import threading
 import time
 import uuid
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 
 TERMINAL_STATUSES = {"complete", "failed", "cancelled"}
 JobCalculator = Callable[[dict[str, Any], Callable[[], bool]], dict[str, Any]]
+StorageResult = TypeVar("StorageResult")
+LOGGER = logging.getLogger(__name__)
 
 
 class JobQueueFullError(RuntimeError):
+    pass
+
+
+class _WorkerStopping(BaseException):
     pass
 
 
@@ -41,13 +49,24 @@ class DetailedSpeciesJobQueue:
         calculator: JobCalculator,
         *,
         max_queued_jobs: int = 10,
+        storage_retry_initial_seconds: float = 0.1,
+        storage_retry_max_seconds: float = 5.0,
+        storage_failure_unhealthy_threshold: int = 3,
     ) -> None:
+        if storage_retry_initial_seconds <= 0 or storage_retry_max_seconds <= 0:
+            raise ValueError("Storage retry delays must be positive.")
+        if storage_failure_unhealthy_threshold < 1:
+            raise ValueError("Storage failure threshold must be at least one.")
         self.database_path = database_path
         self.calculator = calculator
         self.max_queued_jobs = max_queued_jobs
+        self.storage_retry_initial_seconds = storage_retry_initial_seconds
+        self.storage_retry_max_seconds = storage_retry_max_seconds
+        self.storage_failure_unhealthy_threshold = storage_failure_unhealthy_threshold
         self._condition = threading.Condition()
         self._stop = threading.Event()
         self._worker: threading.Thread | None = None
+        self._storage_healthy = True
 
     def start(self) -> None:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
@@ -82,6 +101,16 @@ class DetailedSpeciesJobQueue:
         if self._worker is not None:
             self._worker.join(timeout=5)
             self._worker = None
+
+    def is_available(self) -> bool:
+        return self.unavailable_reason() is None
+
+    def unavailable_reason(self) -> str | None:
+        if self._worker is None or not self._worker.is_alive():
+            return "worker_unavailable"
+        if not self._storage_healthy:
+            return "queue_storage_unavailable"
+        return None
 
     def enqueue(self, payload: dict[str, Any]) -> tuple[JobSnapshot, bool]:
         canonical_payload = json.dumps(
@@ -248,7 +277,7 @@ class DetailedSpeciesJobQueue:
                 """
             ).fetchone()["created_at"]
         return {
-            "worker_healthy": self._worker is not None and self._worker.is_alive(),
+            "worker_healthy": self.is_available(),
             "queue_depth": counts.get("queued", 0),
             "active_jobs": counts.get("running", 0),
             "completed_jobs": counts.get("complete", 0),
@@ -265,35 +294,113 @@ class DetailedSpeciesJobQueue:
 
     def _run(self) -> None:
         while not self._stop.is_set():
-            claimed = self._claim_next()
+            try:
+                claimed = self._retry_storage_operation(
+                    self._claim_next,
+                    "polling",
+                )
+            except _WorkerStopping:
+                return
             if claimed is None:
                 with self._condition:
                     self._condition.wait(timeout=1)
                 continue
             job_id, payload = claimed
-            started = time.perf_counter()
-            try:
-                result = self.calculator(
-                    payload,
+            self._process_claimed_job(job_id, payload)
+
+    def _process_claimed_job(
+        self,
+        job_id: str,
+        payload: dict[str, Any],
+    ) -> None:
+        started = time.perf_counter()
+        try:
+            result = self.calculator(
+                payload,
+                lambda: self._retry_storage_operation(
                     lambda: self._is_cancel_requested(job_id),
+                    "cancellation check",
+                ),
+            )
+            cancelled = self._retry_storage_operation(
+                lambda: self._is_cancel_requested(job_id),
+                "cancellation check",
+            )
+        except _WorkerStopping:
+            return
+        except Exception as exc:
+            try:
+                cancelled = self._retry_storage_operation(
+                    lambda: self._is_cancel_requested(job_id),
+                    "cancellation check",
                 )
-                if self._is_cancel_requested(job_id):
-                    self._finish_cancelled(job_id)
+                if cancelled:
+                    finish = partial(self._finish_cancelled, job_id)
                 else:
-                    self._finish_complete(
-                        job_id,
-                        result,
-                        (time.perf_counter() - started) * 1000,
-                    )
-            except Exception as exc:
-                if self._is_cancel_requested(job_id):
-                    self._finish_cancelled(job_id)
-                else:
-                    self._finish_failed(
+                    finish = partial(
+                        self._finish_failed,
                         job_id,
                         type(exc).__name__,
                         (time.perf_counter() - started) * 1000,
                     )
+            except _WorkerStopping:
+                return
+        else:
+            if cancelled:
+                finish = partial(self._finish_cancelled, job_id)
+            else:
+                finish = partial(
+                    self._finish_complete,
+                    job_id,
+                    result,
+                    (time.perf_counter() - started) * 1000,
+                )
+
+        try:
+            self._retry_storage_operation(finish, "job finalization")
+        except _WorkerStopping:
+            return
+
+    def _retry_storage_operation(
+        self,
+        operation: Callable[[], StorageResult],
+        operation_name: str,
+    ) -> StorageResult:
+        consecutive_failures = 0
+        retry_seconds = min(
+            self.storage_retry_initial_seconds,
+            self.storage_retry_max_seconds,
+        )
+        while not self._stop.is_set():
+            try:
+                result = operation()
+            except sqlite3.OperationalError:
+                consecutive_failures += 1
+                if (
+                    consecutive_failures
+                    >= self.storage_failure_unhealthy_threshold
+                ):
+                    self._storage_healthy = False
+                LOGGER.warning(
+                    "Detailed species queue %s failed; retrying in %.2fs",
+                    operation_name,
+                    retry_seconds,
+                    exc_info=True,
+                )
+                if self._wait_for_retry(retry_seconds):
+                    raise _WorkerStopping
+                retry_seconds = min(
+                    retry_seconds * 2,
+                    self.storage_retry_max_seconds,
+                )
+                continue
+
+            self._storage_healthy = True
+            return result
+        raise _WorkerStopping
+
+    def _wait_for_retry(self, retry_seconds: float) -> bool:
+        return self._stop.wait(retry_seconds)
 
     def _claim_next(self) -> tuple[str, dict[str, Any]] | None:
         with self._connect() as connection:

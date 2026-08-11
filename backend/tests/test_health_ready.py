@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app import main as main_module
 from tests.conftest import clear_artifact_env, use_tiny_artifact
+
+
+class QueueAvailability:
+    def __init__(self, reason: str | None = None) -> None:
+        self.reason = reason
+
+    def unavailable_reason(self) -> str | None:
+        return self.reason
 
 
 def test_health_returns_ok() -> None:
@@ -35,9 +46,17 @@ def test_custom_polygon_allows_localhost_origin() -> None:
     assert response.headers["access-control-allow-origin"] == "http://localhost:4301"
 
 
-def test_ready_allows_no_artifact_development_mode(tmp_path) -> None:
+def test_ready_allows_no_artifact_development_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     clear_artifact_env()
     os.environ["DMT_ARTIFACT_MANIFEST"] = str(tmp_path / "missing-manifest.json")
+    monkeypatch.setattr(
+        main_module,
+        "_DETAILED_SPECIES_QUEUE",
+        QueueAvailability(),
+    )
     client = TestClient(app)
 
     response = client.get("/ready")
@@ -66,8 +85,15 @@ def test_ready_fails_when_artifact_required_and_missing(tmp_path) -> None:
     assert detail["artifact_state"]["warmup_status"] == "failed"
 
 
-def test_ready_passes_when_required_tiny_artifact_loads() -> None:
+def test_ready_passes_when_required_tiny_artifact_loads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     use_tiny_artifact(required=True)
+    monkeypatch.setattr(
+        main_module,
+        "_DETAILED_SPECIES_QUEUE",
+        QueueAvailability(),
+    )
     client = TestClient(app)
 
     response = client.get("/ready")
@@ -83,3 +109,32 @@ def test_ready_passes_when_required_tiny_artifact_loads() -> None:
     assert artifact_state["warmup_ms"] is not None
     assert artifact_state["metadata"]["cell_count"] == 4
     assert artifact_state["metadata"]["valid_cell_count"] == 3
+
+
+@pytest.mark.parametrize(
+    "unavailable_reason",
+    ["worker_unavailable", "queue_storage_unavailable"],
+)
+def test_ready_recovers_when_detailed_species_worker_recovers(
+    unavailable_reason: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_artifact_env()
+    os.environ["DMT_ARTIFACT_MANIFEST"] = str(tmp_path / "missing-manifest.json")
+    queue = QueueAvailability(unavailable_reason)
+    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", queue)
+    client = TestClient(app)
+
+    unavailable = client.get("/ready")
+    queue.reason = None
+    recovered = client.get("/ready")
+
+    assert unavailable.status_code == 503
+    assert unavailable.headers["retry-after"] == "10"
+    assert (
+        unavailable.json()["detail"]["detailed_species_status"]
+        == unavailable_reason
+    )
+    assert recovered.status_code == 200
+    assert recovered.json()["status"] == "ready"
