@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   RUNTIME_COMPACT_SOLUTION_PROFILE,
   buildRuntimeReleaseManifest,
+  compactRuntimeLayer,
   compactRuntimeSolution,
 } from './runtime-release-manifest.mjs';
 
@@ -79,6 +80,31 @@ function solution(id, domain = 'land') {
 }
 
 describe('runtime release manifest compaction', () => {
+  it('removes unsupported layer metric URLs while retaining backed metadata', () => {
+    const backedMetadataUrl = `${HOST}/metadata/ecosistemas.metadata.json`;
+    const legacyLayer = {
+      id: 'ecosistemas',
+      roleInMetricCalculation: 'data_used_for_live_metric_calculation',
+      metadataUrl: backedMetadataUrl,
+      compressedDataForLiveMetricsUrl: `${HOST}/metrics/live/ecosistemas.bin.gz`,
+      precomputedMetricUrls: { national: `${HOST}/metrics/precomputed/ecosistemas/nacional.json` },
+    };
+
+    assert.deepStrictEqual(
+      compactRuntimeLayer(legacyLayer, { backedMetadataUrls: new Set([backedMetadataUrl]) }),
+      {
+        ...legacyLayer,
+        roleInMetricCalculation: 'none',
+        compressedDataForLiveMetricsUrl: null,
+        precomputedMetricUrls: {},
+      },
+    );
+    assert.strictEqual(
+      compactRuntimeLayer(legacyLayer, { backedMetadataUrls: new Set() }).metadataUrl,
+      null,
+    );
+  });
+
   it('omits analysis coverage while preserving heterogeneous EspRN targets exactly', () => {
     const source = solution('land-solution');
     const compact = compactRuntimeSolution(source);
@@ -141,7 +167,14 @@ describe('runtime release manifest compaction', () => {
       ['land-solution', 'marine-solution'],
     );
     assert.deepStrictEqual(result.categories, baseManifest.categories);
-    assert.deepStrictEqual(result.layers, baseManifest.layers);
+    assert.deepStrictEqual(result.layers, [
+      {
+        id: 'base-layer',
+        roleInMetricCalculation: 'none',
+        compressedDataForLiveMetricsUrl: null,
+        precomputedMetricUrls: {},
+      },
+    ]);
     assert.deepStrictEqual(result.referenceData, baseManifest.referenceData);
     assert.strictEqual(result.releaseId, RELEASE_ID);
     assert.strictEqual(result.catalogVersion, '0.2.0');

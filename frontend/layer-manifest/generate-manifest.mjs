@@ -8,7 +8,6 @@ import { parseBlobListOutput } from './lib/blob-cli-output.mjs';
 import { parseCsv, rowsToObjects, toCsv } from './lib/csv.mjs';
 import { toBlobPath, toLayerId } from './lib/layer-normalization.mjs';
 import {
-  createPrecomputedMetricUrls,
   createReleaseBoundaryUrls,
   createSolutionPrecomputedMetricUrls,
 } from './lib/metric-urls.mjs';
@@ -74,6 +73,7 @@ const BLOB_PREFIXES = [
   'inputs/features/strategic/',
   'inputs/includes/',
   'inputs/reference/',
+  'metadata/',
 ];
 const COLLECTION_PREFIXES = ['inputs/features/species/'];
 const SOLUTION_BLOB_PREFIXES = ['solutions/'];
@@ -1276,11 +1276,9 @@ async function createLayerEntry(row, blobByPath, existingManifestIndex) {
       metadataUrl:
         dataRole === 'reference_layer' && blobPath
           ? createReferenceMetadataUrl(blobPath)
-          : `${PUBLIC_BLOB_HOST}/metadata/${id}.metadata.json`,
-      compressedDataForLiveMetricsUrl: roleInMetricCalculation.includes('live_metric_calculation')
-        ? `${PUBLIC_BLOB_HOST}/metrics/live/${id}.bin.gz`
-        : null,
-      precomputedMetricUrls: createPrecomputedMetricUrls(id, roleInMetricCalculation),
+          : createBackedMetadataUrl(id, blobByPath),
+      compressedDataForLiveMetricsUrl: null,
+      precomputedMetricUrls: {},
       rendering,
       ...(styleOverride !== null ? { styleOverride } : {}),
     },
@@ -1306,6 +1304,11 @@ export function createDeterministicReferenceDisplayReference(blobPath) {
 export function createReferenceMetadataUrl(blobPath) {
   const metadataPath = blobPath.replace(/\.geojson$/i, '.metadata.json');
   return `${PUBLIC_BLOB_HOST}/${metadataPath}`;
+}
+
+export function createBackedMetadataUrl(layerId, blobByPath) {
+  const metadataPath = `metadata/${layerId}.metadata.json`;
+  return blobByPath.has(metadataPath) ? `${PUBLIC_BLOB_HOST}/${metadataPath}` : null;
 }
 
 export function preserveExistingDisplayReference(discoveredReference, existingLayer) {
@@ -2121,14 +2124,7 @@ export function inferDataRole(row) {
 }
 
 export function inferRoleInMetricCalculation(dataRole) {
-  if (dataRole === 'reference_layer') {
-    return 'none';
-  }
-  if (dataRole === 'administrative_boundary') {
-    return 'boundary_used_for_precomputed_metric_lookup';
-  }
-
-  return 'data_used_for_live_metric_calculation';
+  return 'none';
 }
 
 function inferProposedCategoryId(row) {

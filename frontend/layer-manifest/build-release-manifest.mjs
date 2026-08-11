@@ -36,6 +36,29 @@ async function readJson(filePath) {
   return JSON.parse(await fs.readFile(filePath, 'utf-8'));
 }
 
+export async function findReachableLayerMetadataUrls(layers, fetchImpl = fetch) {
+  const urls = [
+    ...new Set(
+      layers
+        .map((layer) => layer.metadataUrl)
+        .filter((url) => typeof url === 'string' && url.length > 0),
+    ),
+  ];
+  const reachableUrls = new Set();
+
+  for (const url of urls) {
+    let response = await fetchImpl(url, { method: 'HEAD', redirect: 'follow' });
+    if (response.status === 403 || response.status === 405) {
+      response = await fetchImpl(url, { method: 'GET', redirect: 'follow' });
+    }
+    if (response.ok) {
+      reachableUrls.add(url);
+    }
+  }
+
+  return reachableUrls;
+}
+
 export async function buildReleaseManifestFromFiles({
   baseManifestPath,
   preflightManifestPath,
@@ -49,12 +72,14 @@ export async function buildReleaseManifestFromFiles({
     readSolutionCatalog(catalogPath),
     speciesGoalsInventoryPath ? readJson(speciesGoalsInventoryPath) : null,
   ]);
+  const backedLayerMetadataUrls = await findReachableLayerMetadataUrls(baseManifest.layers);
   const manifest = buildRuntimeReleaseManifest({
     baseManifest,
     preflightManifest,
     catalog,
     speciesGoalsInventory,
     speciesGoalsBaseUrl: speciesGoalsBaseUrlForOutput(outputPath),
+    backedLayerMetadataUrls,
   });
   await validateManifest(manifest, outputPath, { catalog });
   await fs.mkdir(path.dirname(outputPath), { recursive: true });

@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import {
+  createBackedMetadataUrl,
   createDeterministicReferenceDisplayReference,
   createReferenceMetadataUrl,
   getCategoryPalette,
@@ -52,6 +53,25 @@ describe('display-only reference layers', () => {
       }),
       false,
     );
+  });
+});
+
+describe('optional layer sidecars', () => {
+  it('advertises metadata only when Blob inventory proves it exists', () => {
+    const metadataPath = 'metadata/ecosistemas.metadata.json';
+    const blobByPath = new Map([[metadataPath, { pathname: metadataPath }]]);
+
+    assert.strictEqual(
+      createBackedMetadataUrl('ecosistemas', blobByPath),
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/ecosistemas.metadata.json',
+    );
+    assert.strictEqual(createBackedMetadataUrl('missing_layer', blobByPath), null);
+  });
+
+  it('does not claim unsupported metric calculation for generated layers', () => {
+    for (const dataRole of ['feature_layer', 'cost_layer', 'administrative_boundary']) {
+      assert.strictEqual(inferRoleInMetricCalculation(dataRole), 'none');
+    }
   });
 });
 

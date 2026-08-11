@@ -151,6 +151,28 @@ describe('catalog-driven release validation', () => {
       /must use exact release pathname prefix/,
     );
   });
+
+  it('accepts release layers only when unsupported metric sidecars are absent', async () => {
+    const manifest = createReleaseManifest();
+    addReleaseLayer(manifest);
+
+    await assert.doesNotReject(
+      validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
+    );
+  });
+
+  it('rejects inherited layer-side metric claims in release manifests', async () => {
+    const manifest = createReleaseManifest();
+    addReleaseLayer(manifest);
+    manifest.layers[0].roleInMetricCalculation = 'data_used_for_live_metric_calculation';
+    manifest.layers[0].compressedDataForLiveMetricsUrl =
+      `${BLOB_HOST}/metrics/live/ecosistemas.bin.gz`;
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
+      /roleInMetricCalculation must be none because release manifests do not support layer-side metric calculation/,
+    );
+  });
 });
 
 describe('marine finder contract validation', () => {
@@ -331,6 +353,32 @@ function createReleaseManifest() {
   manifest.solutions[0].metadataUrl = `${BLOB_HOST}/solutions/demo.json`;
   manifest.solutions[0].rasterSha256 = 'a'.repeat(64);
   return manifest;
+}
+
+function addReleaseLayer(manifest) {
+  manifest.categories.push({
+    id: 'ecosystems',
+    spanishLabel: 'Ecosistemas',
+    layerIds: ['ecosistemas'],
+  });
+  manifest.layers.push({
+    id: 'ecosistemas',
+    spanishLabel: 'Ecosistemas',
+    englishLabel: 'Ecosystems',
+    description: 'Ecosystem layer',
+    tooltip: null,
+    dataRole: 'feature_layer',
+    category: 'ecosystems',
+    roleInMetricCalculation: 'none',
+    displayUrl: `${BLOB_HOST}/inputs/features/ecosystems/ecosistemas.tif`,
+    metadataUrl: `${BLOB_HOST}/metadata/ecosistemas.metadata.json`,
+    compressedDataForLiveMetricsUrl: null,
+    precomputedMetricUrls: {},
+    rendering: {
+      valueType: 'categorical',
+      renderMode: 'categorical',
+    },
+  });
 }
 
 function createMarineReleaseManifest({

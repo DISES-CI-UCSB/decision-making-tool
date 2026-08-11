@@ -193,10 +193,6 @@ const METRIC_CALCULATION_ROLES = [
   'data_used_for_live_metric_calculation_and_precomputed_metric_lookup',
 ];
 
-const LIVE_METRIC_CALCULATION_ROLES = [
-  'data_used_for_live_metric_calculation',
-  'data_used_for_live_metric_calculation_and_precomputed_metric_lookup',
-];
 const RENDER_VALUE_TYPES = ['binary', 'categorical', 'continuous'];
 const RENDER_MODES = ['mask', 'gradient', 'categorical'];
 const SOLUTION_DOMAINS = ['land', 'marine'];
@@ -477,9 +473,12 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
     }
 
     if (layer.dataRole === 'administrative_boundary') {
+      const expectedRole = manifest.releaseId
+        ? 'none'
+        : 'boundary_used_for_precomputed_metric_lookup';
       assert(
-        layer.roleInMetricCalculation === 'boundary_used_for_precomputed_metric_lookup',
-        `layers[${index}].roleInMetricCalculation must be boundary_used_for_precomputed_metric_lookup for administrative_boundary layers`,
+        layer.roleInMetricCalculation === expectedRole,
+        `layers[${index}].roleInMetricCalculation must be ${expectedRole} for administrative_boundary layers`,
       );
     }
 
@@ -510,11 +509,18 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       );
     }
 
-    if (LIVE_METRIC_CALCULATION_ROLES.includes(layer.roleInMetricCalculation)) {
+    if (manifest.releaseId) {
       assert(
-        typeof layer.compressedDataForLiveMetricsUrl === 'string' &&
-          layer.compressedDataForLiveMetricsUrl.trim().length > 0,
-        `layers[${index}].compressedDataForLiveMetricsUrl is required for live metric calculation layers`,
+        layer.roleInMetricCalculation === 'none',
+        `layers[${index}].roleInMetricCalculation must be none because release manifests do not support layer-side metric calculation`,
+      );
+      assert(
+        layer.compressedDataForLiveMetricsUrl === null,
+        `layers[${index}].compressedDataForLiveMetricsUrl must be null in release manifests`,
+      );
+      assert(
+        Object.keys(layer.precomputedMetricUrls).length === 0,
+        `layers[${index}].precomputedMetricUrls must be empty in release manifests`,
       );
     }
 

@@ -93,12 +93,28 @@ export function compactRuntimeSolution(
   return compact;
 }
 
+export function compactRuntimeLayer(layer, { backedMetadataUrls = null } = {}) {
+  const compact = structuredClone(layer);
+  compact.roleInMetricCalculation = 'none';
+  compact.compressedDataForLiveMetricsUrl = null;
+  compact.precomputedMetricUrls = {};
+  if (
+    backedMetadataUrls &&
+    compact.metadataUrl &&
+    !backedMetadataUrls.has(compact.metadataUrl)
+  ) {
+    compact.metadataUrl = null;
+  }
+  return compact;
+}
+
 export function buildRuntimeReleaseManifest({
   baseManifest,
   preflightManifest,
   catalog,
   speciesGoalsInventory = null,
   speciesGoalsBaseUrl = undefined,
+  backedLayerMetadataUrls = null,
 }) {
   assert(baseManifest && typeof baseManifest === 'object', 'base manifest must be an object');
   assert(
@@ -138,7 +154,9 @@ export function buildRuntimeReleaseManifest({
     catalogVersion: catalog.catalogVersion,
     solutionDataProfile: RUNTIME_COMPACT_SOLUTION_PROFILE,
     categories: structuredClone(baseManifest.categories),
-    layers: structuredClone(baseManifest.layers),
+    layers: baseManifest.layers.map((layer) =>
+      compactRuntimeLayer(layer, { backedMetadataUrls: backedLayerMetadataUrls }),
+    ),
     solutions,
     ...(baseManifest.referenceData
       ? { referenceData: structuredClone(baseManifest.referenceData) }
