@@ -1,5 +1,7 @@
 # Entrega técnica de autenticación y Blob Storage para Parques IT
 
+> **Nota:** El paquete completo de entrega técnica en español ahora vive en [`docs/handoffs/parques-it/spanish/`](./parques-it/spanish/README.md), que consolida y reemplaza el contenido de arquitectura y seguridad de este documento (ver [`architecture.md`](./parques-it/spanish/architecture.md) y [`cybersecurity.md`](./parques-it/spanish/cybersecurity.md)). Este archivo se conserva por su contexto de revisión original, pero no debe tratarse como la fuente actual.
+
 _Última actualización: 2026-05-21_  
 _Preparado para: Andre, revisión de ingeniería cloud de Parques IT_  
 _Alcance: flujo de Firebase Authentication y flujo de Vercel Blob Storage_
