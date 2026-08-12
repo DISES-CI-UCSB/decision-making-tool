@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T17:41:00.274Z",
+  "generatedAt": "2026-08-11T20:27:17.897Z",
   "whyThisReportExists": {
     "purpose": "Shows how Vercel Blob solution rasters and metadata files were converted into manifest.solutions.",
     "intendedAudience": "Developers and reviewers validating Solution Finder data readiness.",
@@ -15,7 +15,7 @@
     "includedSolutions": 0,
     "skippedMetadataFiles": 22,
     "unmatchedRasters": 248,
-    "preservedExistingSolutions": 108
+    "preservedExistingSolutions": 172
   },
   "included": [],
   "skipped": [
@@ -1374,760 +1374,1208 @@
   ],
   "preservedExistingSolutions": [
     {
-      "id": "estr17_esp17_runap_com_res_iheh",
-      "name": "ESTR17+Esp17+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr17_esprep17_runap_iheh2022",
+      "name": "Eco17+Estr17+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_esp17_runap_com_iheh",
-      "name": "ESTR17+Esp17+RUNAP+Com_IHEH",
+      "id": "eco17_estr17_esprep17_runap_iheh2030",
+      "name": "Eco17+Estr17+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "estr17_esp17_runap_omec_com_res_iheh",
-      "name": "ESTR17+Esp17+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr17_esprep17_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_esp17_runap_omec_com_iheh",
-      "name": "ESTR17+Esp17+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr17_esprep17_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "estr17_esp17_runap_omec_res_iheh",
-      "name": "ESTR17+Esp17+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr17_esprep30_runap_iheh2022",
+      "name": "Eco17+Estr17+EspRep30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_esp17_runap_omec_iheh",
-      "name": "ESTR17+Esp17+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr17_esprep30_runap_iheh2030",
+      "name": "Eco17+Estr17+EspRep30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "estr17_esp17_runap_res_iheh",
-      "name": "ESTR17+Esp17+RUNAP+Res_IHEH",
+      "id": "eco17_estr17_esprep30_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+EspRep30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_esp17_runap_iheh",
-      "name": "ESTR17+Esp17+RUNAP_IHEH",
+      "id": "eco17_estr17_esprep30_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+EspRep30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BEsp17%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "estr17_runap_com_res_iheh",
-      "name": "ESTR17+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr17_esprn_runap_iheh2022",
+      "name": "Eco17+Estr17+EspRN+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_runap_com_iheh",
-      "name": "ESTR17+RUNAP+Com_IHEH",
+      "id": "eco17_estr17_esprn_runap_iheh2030",
+      "name": "Eco17+Estr17+EspRN+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "estr17_runap_omec_com_res_iheh",
-      "name": "ESTR17+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr17_esprn_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+EspRN+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_runap_omec_com_iheh",
-      "name": "ESTR17+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr17_esprn_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+EspRN+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "estr17_runap_omec_res_iheh",
-      "name": "ESTR17+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr17_runap_iheh2022",
+      "name": "Eco17+Estr17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_runap_omec_iheh",
-      "name": "ESTR17+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr17_runap_iheh2030",
+      "name": "Eco17+Estr17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "estr17_runap_res_iheh",
-      "name": "ESTR17+RUNAP+Res_IHEH",
+      "id": "eco17_estr17_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "estr17_runap_iheh",
-      "name": "ESTR17+RUNAP_IHEH",
+      "id": "eco17_estr17_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR17%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "estr30_esp30_runap_com_res_iheh",
-      "name": "ESTR30+Esp30+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr17_serv17_esprep17_runap_iheh2022",
+      "name": "Eco17+Estr17+Serv17+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr30_esp30_runap_omec_com_res_iheh",
-      "name": "ESTR30+Esp30+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr17_serv17_esprep17_runap_iheh2030",
+      "name": "Eco17+Estr17+Serv17+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "estr30_esp30_runap_omec_com_iheh",
-      "name": "ESTR30+Esp30+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr17_serv17_esprep17_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "estr30_esp30_runap_omec_res_iheh",
-      "name": "ESTR30+Esp30+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr17_serv17_esprep17_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "estr30_esp30_runap_omec_iheh",
-      "name": "ESTR30+Esp30+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr17_serv17_esprep30_runap_iheh2022",
+      "name": "Eco17+Estr17+Serv17+EspRep30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr30_esp30_runap_res_iheh",
-      "name": "ESTR30+Esp30+RUNAP+Res_IHEH",
+      "id": "eco17_estr17_serv17_esprep30_runap_iheh2030",
+      "name": "Eco17+Estr17+Serv17+EspRep30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BEsp30%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "estr30_runap_com_res_iheh",
-      "name": "ESTR30+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr17_serv17_esprep30_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "estr30_runap_com_iheh",
-      "name": "ESTR30+RUNAP+Com_IHEH",
+      "id": "eco17_estr17_serv17_esprep30_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "estr30_runap_omec_com_res_iheh",
-      "name": "ESTR30+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr17_serv17_esprn_runap_iheh2022",
+      "name": "Eco17+Estr17+Serv17+EspRN+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr30_runap_omec_com_iheh",
-      "name": "ESTR30+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr17_serv17_esprn_runap_iheh2030",
+      "name": "Eco17+Estr17+Serv17+EspRN+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "estr30_runap_omec_res_iheh",
-      "name": "ESTR30+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr17_serv17_esprn_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "estr30_runap_omec_iheh",
-      "name": "ESTR30+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr17_serv17_esprn_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "estr30_runap_res_iheh",
-      "name": "ESTR30+RUNAP+Res_IHEH",
+      "id": "eco17_estr17_serv30_esprep17_runap_iheh2022",
+      "name": "Eco17+Estr17+Serv30+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "estr30_runap_iheh",
-      "name": "ESTR30+RUNAP_IHEH",
+      "id": "eco17_estr17_serv30_esprep17_runap_iheh2030",
+      "name": "Eco17+Estr17+Serv30+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/ESTR30%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_com_res_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr17_serv30_esprep17_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_com_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP+Com_IHEH",
+      "id": "eco17_estr17_serv30_esprep17_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_omec_com_res_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr17_serv30_esprep30_runap_iheh2022",
+      "name": "Eco17+Estr17+Serv30+EspRep30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_omec_com_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr17_serv30_esprep30_runap_iheh2030",
+      "name": "Eco17+Estr17+Serv30+EspRep30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_omec_res_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr17_serv30_esprep30_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_omec_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr17_serv30_esprep30_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_res_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP+Res_IHEH",
+      "id": "eco17_estr17_serv30_esprn_runap_iheh2022",
+      "name": "Eco17+Estr17+Serv30+EspRN+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_esp17_runap_iheh",
-      "name": "Ecos17+ESTR17+Esp17+RUNAP_IHEH",
+      "id": "eco17_estr17_serv30_esprn_runap_iheh2030",
+      "name": "Eco17+Estr17+Serv30+EspRN+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BEsp17%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_com_res_iheh",
-      "name": "Ecos17+ESTR17+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr17_serv30_esprn_runap_omec_iheh2022",
+      "name": "Eco17+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_com_iheh",
-      "name": "Ecos17+ESTR17+RUNAP+Com_IHEH",
+      "id": "eco17_estr17_serv30_esprn_runap_omec_iheh2030",
+      "name": "Eco17+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_omec_com_res_iheh",
-      "name": "Ecos17+ESTR17+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr30_esprep17_runap_iheh2022",
+      "name": "Eco17+Estr30+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_omec_com_iheh",
-      "name": "Ecos17+ESTR17+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr30_esprep17_runap_iheh2030",
+      "name": "Eco17+Estr30+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_omec_res_iheh",
-      "name": "Ecos17+ESTR17+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr30_esprep17_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_omec_iheh",
-      "name": "Ecos17+ESTR17+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr30_esprep17_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_res_iheh",
-      "name": "Ecos17+ESTR17+RUNAP+Res_IHEH",
+      "id": "eco17_estr30_esprep30_runap_iheh2022",
+      "name": "Eco17+Estr30+EspRep30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_estr17_runap_iheh",
-      "name": "Ecos17+ESTR17+RUNAP_IHEH",
+      "id": "eco17_estr30_esprep30_runap_iheh2030",
+      "name": "Eco17+Estr30+EspRep30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BESTR17%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_com_res_iheh",
-      "name": "Ecos17+Esp17+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr30_esprep30_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+EspRep30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_com_iheh",
-      "name": "Ecos17+Esp17+RUNAP+Com_IHEH",
+      "id": "eco17_estr30_esprep30_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+EspRep30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_omec_com_res_iheh",
-      "name": "Ecos17+Esp17+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr30_esprn_runap_iheh2022",
+      "name": "Eco17+Estr30+EspRN+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_omec_com_iheh",
-      "name": "Ecos17+Esp17+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr30_esprn_runap_iheh2030",
+      "name": "Eco17+Estr30+EspRN+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_omec_res_iheh",
-      "name": "Ecos17+Esp17+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr30_esprn_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+EspRN+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_omec_iheh",
-      "name": "Ecos17+Esp17+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr30_esprn_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+EspRN+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_res_iheh",
-      "name": "Ecos17+Esp17+RUNAP+Res_IHEH",
+      "id": "eco17_estr30_runap_iheh2022",
+      "name": "Eco17+Estr30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_esp17_runap_iheh",
-      "name": "Ecos17+Esp17+RUNAP_IHEH",
+      "id": "eco17_estr30_runap_iheh2030",
+      "name": "Eco17+Estr30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BEsp17%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_runap_com_res_iheh",
-      "name": "Ecos17+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr30_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_runap_com_iheh",
-      "name": "Ecos17+RUNAP+Com_IHEH",
+      "id": "eco17_estr30_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_runap_omec_com_res_iheh",
-      "name": "Ecos17+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr30_serv17_esprep17_runap_iheh2022",
+      "name": "Eco17+Estr30+Serv17+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_runap_omec_com_iheh",
-      "name": "Ecos17+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr30_serv17_esprep17_runap_iheh2030",
+      "name": "Eco17+Estr30+Serv17+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_runap_omec_res_iheh",
-      "name": "Ecos17+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr30_serv17_esprep17_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_runap_omec_iheh",
-      "name": "Ecos17+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr30_serv17_esprep17_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos17_runap_res_iheh",
-      "name": "Ecos17+RUNAP+Res_IHEH",
+      "id": "eco17_estr30_serv17_esprep30_runap_iheh2022",
+      "name": "Eco17+Estr30+Serv17+EspRep30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos17_runap_iheh",
-      "name": "Ecos17+RUNAP_IHEH",
+      "id": "eco17_estr30_serv17_esprep30_runap_iheh2030",
+      "name": "Eco17+Estr30+Serv17+EspRep30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos17%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_estr30_esp30_runap_com_res_iheh",
-      "name": "Ecos30+ESTR30+Esp30+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr30_serv17_esprep30_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_estr30_esp30_runap_omec_com_res_iheh",
-      "name": "Ecos30+ESTR30+Esp30+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr30_serv17_esprep30_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_estr30_esp30_runap_omec_com_iheh",
-      "name": "Ecos30+ESTR30+Esp30+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr30_serv17_esprn_runap_iheh2022",
+      "name": "Eco17+Estr30+Serv17+EspRN+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_estr30_esp30_runap_omec_res_iheh",
-      "name": "Ecos30+ESTR30+Esp30+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr30_serv17_esprn_runap_iheh2030",
+      "name": "Eco17+Estr30+Serv17+EspRN+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_estr30_esp30_runap_omec_iheh",
-      "name": "Ecos30+ESTR30+Esp30+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr30_serv17_esprn_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_estr30_esp30_runap_res_iheh",
-      "name": "Ecos30+ESTR30+Esp30+RUNAP+Res_IHEH",
+      "id": "eco17_estr30_serv17_esprn_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BEsp30%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_com_res_iheh",
-      "name": "Ecos30+ESTR30+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr30_serv30_esprep17_runap_iheh2022",
+      "name": "Eco17+Estr30+Serv30+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_com_iheh",
-      "name": "Ecos30+ESTR30+RUNAP+Com_IHEH",
+      "id": "eco17_estr30_serv30_esprep17_runap_iheh2030",
+      "name": "Eco17+Estr30+Serv30+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_omec_com_res_iheh",
-      "name": "Ecos30+ESTR30+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr30_serv30_esprep17_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_omec_com_iheh",
-      "name": "Ecos30+ESTR30+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr30_serv30_esprep17_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_omec_res_iheh",
-      "name": "Ecos30+ESTR30+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr30_serv30_esprep30_runap_iheh2022",
+      "name": "Eco17+Estr30+Serv30+EspRep30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_omec_iheh",
-      "name": "Ecos30+ESTR30+RUNAP+OMEC_IHEH",
+      "id": "eco17_estr30_serv30_esprep30_runap_iheh2030",
+      "name": "Eco17+Estr30+Serv30+EspRep30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_res_iheh",
-      "name": "Ecos30+ESTR30+RUNAP+Res_IHEH",
+      "id": "eco17_estr30_serv30_esprep30_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_estr30_runap_iheh",
-      "name": "Ecos30+ESTR30+RUNAP_IHEH",
+      "id": "eco17_estr30_serv30_esprep30_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BESTR30%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_esp30_runap_com_res_iheh",
-      "name": "Ecos30+Esp30+RUNAP+Com+Res_IHEH",
+      "id": "eco17_estr30_serv30_esprn_runap_iheh2022",
+      "name": "Eco17+Estr30+Serv30+EspRN+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_esp30_runap_omec_com_res_iheh",
-      "name": "Ecos30+Esp30+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco17_estr30_serv30_esprn_runap_iheh2030",
+      "name": "Eco17+Estr30+Serv30+EspRN+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_esp30_runap_omec_com_iheh",
-      "name": "Ecos30+Esp30+RUNAP+OMEC+Com_IHEH",
+      "id": "eco17_estr30_serv30_esprn_runap_omec_iheh2022",
+      "name": "Eco17+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_esp30_runap_omec_res_iheh",
-      "name": "Ecos30+Esp30+RUNAP+OMEC+Res_IHEH",
+      "id": "eco17_estr30_serv30_esprn_runap_omec_iheh2030",
+      "name": "Eco17+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_esp30_runap_omec_iheh",
-      "name": "Ecos30+Esp30+RUNAP+OMEC_IHEH",
+      "id": "eco17_runap_iheh2022",
+      "name": "Eco17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_esp30_runap_res_iheh",
-      "name": "Ecos30+Esp30+RUNAP+Res_IHEH",
+      "id": "eco17_runap_iheh2030",
+      "name": "Eco17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BEsp30%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_runap_com_res_iheh",
-      "name": "Ecos30+RUNAP+Com+Res_IHEH",
+      "id": "eco17_runap_omec_iheh2022",
+      "name": "Eco17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_runap_com_iheh",
-      "name": "Ecos30+RUNAP+Com_IHEH",
+      "id": "eco17_runap_omec_iheh2030",
+      "name": "Eco17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_runap_omec_com_res_iheh",
-      "name": "Ecos30+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco30_estr17_esprep17_runap_iheh2022",
+      "name": "Eco30+Estr17+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_runap_omec_com_iheh",
-      "name": "Ecos30+RUNAP+OMEC+Com_IHEH",
+      "id": "eco30_estr17_esprep17_runap_iheh2030",
+      "name": "Eco30+Estr17+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_runap_omec_res_iheh",
-      "name": "Ecos30+RUNAP+OMEC+Res_IHEH",
+      "id": "eco30_estr17_esprep17_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_runap_omec_iheh",
-      "name": "Ecos30+RUNAP+OMEC_IHEH",
+      "id": "eco30_estr17_esprep17_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "ecos30_runap_res_iheh",
-      "name": "Ecos30+RUNAP+Res_IHEH",
+      "id": "eco30_estr17_esprep30_runap_iheh2022",
+      "name": "Eco30+Estr17+EspRep30+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "ecos30_runap_iheh",
-      "name": "Ecos30+RUNAP_IHEH",
+      "id": "eco30_estr17_esprep30_runap_iheh2030",
+      "name": "Eco30+Estr17+EspRep30+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Ecos30%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "esp17_runap_com_res_iheh",
-      "name": "Esp17+RUNAP+Com+Res_IHEH",
+      "id": "eco30_estr17_esprep30_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+EspRep30+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "esp17_runap_com_iheh",
-      "name": "Esp17+RUNAP+Com_IHEH",
+      "id": "eco30_estr17_esprep30_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+EspRep30+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "esp17_runap_omec_com_res_iheh",
-      "name": "Esp17+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco30_estr17_esprn_runap_iheh2022",
+      "name": "Eco30+Estr17+EspRN+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "esp17_runap_omec_com_iheh",
-      "name": "Esp17+RUNAP+OMEC+Com_IHEH",
+      "id": "eco30_estr17_esprn_runap_iheh2030",
+      "name": "Eco30+Estr17+EspRN+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "esp17_runap_omec_res_iheh",
-      "name": "Esp17+RUNAP+OMEC+Res_IHEH",
+      "id": "eco30_estr17_esprn_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+EspRN+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "esp17_runap_omec_iheh",
-      "name": "Esp17+RUNAP+OMEC_IHEH",
+      "id": "eco30_estr17_esprn_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+EspRN+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "esp17_runap_res_iheh",
-      "name": "Esp17+RUNAP+Res_IHEH",
+      "id": "eco30_estr17_runap_iheh2022",
+      "name": "Eco30+Estr17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "esp17_runap_iheh",
-      "name": "Esp17+RUNAP_IHEH",
+      "id": "eco30_estr17_runap_iheh2030",
+      "name": "Eco30+Estr17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp17%2BRUNAP_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "esp30_runap_com_res_iheh",
-      "name": "Esp30+RUNAP+Com+Res_IHEH",
+      "id": "eco30_estr17_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "esp30_runap_omec_com_res_iheh",
-      "name": "Esp30+RUNAP+OMEC+Com+Res_IHEH",
+      "id": "eco30_estr17_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC%2BCom%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
-      "id": "esp30_runap_omec_com_iheh",
-      "name": "Esp30+RUNAP+OMEC+Com_IHEH",
+      "id": "eco30_estr17_serv17_esprep17_runap_iheh2022",
+      "name": "Eco30+Estr17+Serv17+EspRep17+RUNAP_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC%2BCom_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC%2BCom_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP_IHEH2022_summary.csv"
     },
     {
-      "id": "esp30_runap_omec_res_iheh",
-      "name": "Esp30+RUNAP+OMEC+Res_IHEH",
+      "id": "eco30_estr17_serv17_esprep17_runap_iheh2030",
+      "name": "Eco30+Estr17+Serv17+EspRep17+RUNAP_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP_IHEH2030_summary.csv"
     },
     {
-      "id": "esp30_runap_omec_iheh",
-      "name": "Esp30+RUNAP+OMEC_IHEH",
+      "id": "eco30_estr17_serv17_esprep17_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2022",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BOMEC_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
     },
     {
-      "id": "esp30_runap_res_iheh",
-      "name": "Esp30+RUNAP+Res_IHEH",
+      "id": "eco30_estr17_serv17_esprep17_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2030",
       "scope": "nacional",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BRes_IHEH.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/nick-runs/2026-05-27/Esp30%2BRUNAP%2BRes_IHEH_summary.csv"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprep30_runap_iheh2022",
+      "name": "Eco30+Estr17+Serv17+EspRep30+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprep30_runap_iheh2030",
+      "name": "Eco30+Estr17+Serv17+EspRep30+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprep30_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprep30_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprn_runap_iheh2022",
+      "name": "Eco30+Estr17+Serv17+EspRN+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprn_runap_iheh2030",
+      "name": "Eco30+Estr17+Serv17+EspRN+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprn_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv17_esprn_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv17+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep17_runap_iheh2022",
+      "name": "Eco30+Estr17+Serv30+EspRep17+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep17_runap_iheh2030",
+      "name": "Eco30+Estr17+Serv30+EspRep17+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep17_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep17_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep30_runap_iheh2022",
+      "name": "Eco30+Estr17+Serv30+EspRep30+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep30_runap_iheh2030",
+      "name": "Eco30+Estr17+Serv30+EspRep30+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep30_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprep30_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprn_runap_iheh2022",
+      "name": "Eco30+Estr17+Serv30+EspRN+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprn_runap_iheh2030",
+      "name": "Eco30+Estr17+Serv30+EspRN+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprn_runap_omec_iheh2022",
+      "name": "Eco30+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr17_serv30_esprn_runap_omec_iheh2030",
+      "name": "Eco30+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr17+Serv30+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep17_runap_iheh2022",
+      "name": "Eco30+Estr30+EspRep17+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep17_runap_iheh2030",
+      "name": "Eco30+Estr30+EspRep17+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep17_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+EspRep17+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep17_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+EspRep17+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep30_runap_iheh2022",
+      "name": "Eco30+Estr30+EspRep30+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep30_runap_iheh2030",
+      "name": "Eco30+Estr30+EspRep30+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep30_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+EspRep30+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprep30_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+EspRep30+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprn_runap_iheh2022",
+      "name": "Eco30+Estr30+EspRN+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprn_runap_iheh2030",
+      "name": "Eco30+Estr30+EspRN+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprn_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+EspRN+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_esprn_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+EspRN+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_runap_iheh2022",
+      "name": "Eco30+Estr30+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_runap_iheh2030",
+      "name": "Eco30+Estr30+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep17_runap_iheh2022",
+      "name": "Eco30+Estr30+Serv17+EspRep17+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep17_runap_iheh2030",
+      "name": "Eco30+Estr30+Serv17+EspRep17+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep17_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep17_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep30_runap_iheh2022",
+      "name": "Eco30+Estr30+Serv17+EspRep30+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep30_runap_iheh2030",
+      "name": "Eco30+Estr30+Serv17+EspRep30+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep30_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprep30_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprn_runap_iheh2022",
+      "name": "Eco30+Estr30+Serv17+EspRN+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprn_runap_iheh2030",
+      "name": "Eco30+Estr30+Serv17+EspRN+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprn_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv17_esprn_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv17+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep17_runap_iheh2022",
+      "name": "Eco30+Estr30+Serv30+EspRep17+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep17_runap_iheh2030",
+      "name": "Eco30+Estr30+Serv30+EspRep17+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep17_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep17_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep17+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep30_runap_iheh2022",
+      "name": "Eco30+Estr30+Serv30+EspRep30+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep30_runap_iheh2030",
+      "name": "Eco30+Estr30+Serv30+EspRep30+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep30_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprep30_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRep30+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprn_runap_iheh2022",
+      "name": "Eco30+Estr30+Serv30+EspRN+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprn_runap_iheh2030",
+      "name": "Eco30+Estr30+Serv30+EspRN+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprn_runap_omec_iheh2022",
+      "name": "Eco30+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_estr30_serv30_esprn_runap_omec_iheh2030",
+      "name": "Eco30+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+Estr30+Serv30+EspRN+RUNAP+OMEC_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_runap_iheh2022",
+      "name": "Eco30+RUNAP_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_runap_iheh2030",
+      "name": "Eco30+RUNAP_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP_IHEH2030_summary.csv"
+    },
+    {
+      "id": "eco30_runap_omec_iheh2022",
+      "name": "Eco30+RUNAP+OMEC_IHEH2022",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP+OMEC_IHEH2022.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP+OMEC_IHEH2022_summary.csv"
+    },
+    {
+      "id": "eco30_runap_omec_iheh2030",
+      "name": "Eco30+RUNAP+OMEC_IHEH2030",
+      "scope": "nacional",
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP+OMEC_IHEH2030.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco30+RUNAP+OMEC_IHEH2030_summary.csv"
     },
     {
       "id": "marine_ecos30_mang30_runap_hhm",
-      "name": "Marine 30% · RUNAP · HHM",
+      "name": "Ecos30+Mang30+RUNAP_HHM",
       "scope": "marine",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos30%2BMang30%2BRUNAP_HHM.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos30_mang30_runap_hhm.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos30+Mang30+RUNAP_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos30+Mang30+RUNAP_HHM_summary.csv"
     },
     {
       "id": "marine_ecos30_mang30_runap_omec_hhm",
-      "name": "Marine 30% · RUNAP · OMEC · HHM",
+      "name": "Ecos30+Mang30+RUNAP+OMEC_HHM",
       "scope": "marine",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos30%2BMang30%2BRUNAP%2BOMEC_HHM.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos30_mang30_runap_omec_hhm.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos30+Mang30+RUNAP+OMEC_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos30+Mang30+RUNAP+OMEC_HHM_summary.csv"
     },
     {
       "id": "marine_ecos50_mang50_runap_hhm",
-      "name": "Marine 50% · RUNAP · HHM",
+      "name": "Ecos50+Mang50+RUNAP_HHM",
       "scope": "marine",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos50%2BMang50%2BRUNAP_HHM.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos50_mang50_runap_hhm.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos50+Mang50+RUNAP_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos50+Mang50+RUNAP_HHM_summary.csv"
     },
     {
       "id": "marine_ecos50_mang50_runap_omec_hhm",
-      "name": "Marine 50% · RUNAP · OMEC · HHM",
+      "name": "Ecos50+Mang50+RUNAP+OMEC_HHM",
       "scope": "marine",
-      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/Ecos50%2BMang50%2BRUNAP%2BOMEC_HHM.tif",
-      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/solutions/marine/marine_ecos50_mang50_runap_omec_hhm.json"
+      "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos50+Mang50+RUNAP+OMEC_HHM.tif",
+      "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/marine/Ecos50+Mang50+RUNAP+OMEC_HHM_summary.csv"
     }
   ]
 }

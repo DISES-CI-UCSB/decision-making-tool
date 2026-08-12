@@ -17,6 +17,7 @@ import type { ViewHit } from '@arcgis/core/views/types';
 import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
 import {
   PRODUCTION_SIRAP_BOUNDARY_SOURCE,
+  UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE,
   type AoiType,
   type BoundaryGeometrySelection,
 } from '@core/models';
@@ -68,6 +69,7 @@ interface HoverHitTestRequest {
 export type AdminBoundaryLayerKey =
   | 'siraps'
   | 'siraps_territorial'
+  | 'siraps_territorial_updated'
   | 'siraps_thematic'
   | 'admin_country_outline'
   | 'admin_departments'
@@ -93,6 +95,11 @@ const AOI_HOVER_HIGHLIGHT_NAME = 'aoi-hover';
 const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, BoundaryStyle> = {
   siraps: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   siraps_territorial: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'solid' },
+  siraps_territorial_updated: {
+    color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
+    width: 1.25,
+    style: 'dot',
+  },
   siraps_thematic: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   admin_country_outline: {
     color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
@@ -225,6 +232,21 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
     minScale: 0,
     maxScale: 0,
   },
+  {
+    id: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.sourceId,
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    title: 'Territorial SIRAPs (updated, needs metric calculation)',
+    type: 'sirap',
+    selectable: false,
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    visible: false,
+    opacity: 0.95,
+    minScale: 0,
+    maxScale: 0,
+  },
 ];
 
 // Single enforcement point for SIRAP layer feature flags. Disabled layers are
@@ -232,6 +254,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
 const SIRAP_LAYER_ENABLED_BY_KEY: Partial<Record<AdminBoundaryLayerKey, boolean>> = {
   siraps: FEATURE_FLAGS.sirapLayers.combined,
   siraps_territorial: FEATURE_FLAGS.sirapLayers.territorial,
+  siraps_territorial_updated: FEATURE_FLAGS.sirapLayers.territorialUpdated,
   siraps_thematic: FEATURE_FLAGS.sirapLayers.thematic,
 };
 const ENABLED_BOUNDARY_CONFIGS = COLOMBIA_BOUNDARY_CONFIGS.filter(
@@ -265,6 +288,7 @@ export class AdminBoundaryService {
   private readonly defaultVisibilityByLayerKey: Record<AdminBoundaryLayerKey, boolean> = {
     siraps: false,
     siraps_territorial: false,
+    siraps_territorial_updated: false,
     siraps_thematic: false,
     admin_country_outline: true,
     admin_departments: false,
@@ -276,7 +300,11 @@ export class AdminBoundaryService {
   readonly layerVisibilityByType$ = computed<Record<AoiType, boolean>>(() => {
     const state = this.layerVisibilityByLayerKey$();
     return {
-      sirap: state.siraps || state.siraps_territorial || state.siraps_thematic,
+      sirap:
+        state.siraps ||
+        state.siraps_territorial ||
+        state.siraps_territorial_updated ||
+        state.siraps_thematic,
       department: state.admin_departments,
       municipality: state.admin_municipalities,
       omec: false,
@@ -561,7 +589,10 @@ export class AdminBoundaryService {
     screenX: number,
     screenY: number,
   ): Promise<void> {
-    const interactiveLayers = this.boundaryLayers.filter((layer) => layer.visible);
+    const interactiveLayers = this.boundaryLayers.filter((layer) => {
+      const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
+      return layer.visible && config?.selectable !== false;
+    });
     if (interactiveLayers.length === 0) {
       this.clearSelectionState();
       return;

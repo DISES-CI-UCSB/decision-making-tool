@@ -1,7 +1,5 @@
 import {
   isMecCompactV2Document,
-  METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES,
-  PRODUCTION_SIRAP_BOUNDARY_SOURCE,
   type AOI,
   type CustomAoiAreaProfileResponse,
   type CustomAoiEcosystemRecord,
@@ -11,7 +9,11 @@ import {
 } from '@core/models';
 import type { EcosystemClassificationView } from '@features/left-sidebar/map-layers-panel/map-layers-panel-ecosystem.config';
 
-import { extractRawAoiScopeId, normalizeScopeLabel } from '../utils/aoi-cached-metrics.utils';
+import {
+  extractRawAoiScopeId,
+  isMetricCompatibleAoiSource,
+  normalizeScopeLabel,
+} from '../utils/aoi-cached-metrics.utils';
 
 export type MecBreakdownId = 'family' | 'context' | 'broad' | 'detailed' | 'iavh';
 export type MecSortId =
@@ -417,18 +419,7 @@ export function resolveMecScopeSummary(
 }
 
 export function isWholeMetricCompatibleSirapAoi(aoi: AOI): boolean {
-  if (aoi.type !== 'sirap' || aoi.boundaryGeometrySelection !== 'whole-feature') {
-    return false;
-  }
-
-  return (
-    (aoi.boundarySourceLayerKey === PRODUCTION_SIRAP_BOUNDARY_SOURCE.layerKey &&
-      aoi.boundarySourceId === PRODUCTION_SIRAP_BOUNDARY_SOURCE.sourceId) ||
-    METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES.some(
-      (source) =>
-        source.layerKey === aoi.boundarySourceLayerKey && source.sourceId === aoi.boundarySourceId,
-    )
-  );
+  return aoi.type === 'sirap' && isMetricCompatibleAoiSource(aoi);
 }
 
 export function buildDummyCoverageRows(

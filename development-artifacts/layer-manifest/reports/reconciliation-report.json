@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T17:41:00.274Z",
+  "generatedAt": "2026-08-11T20:27:17.897Z",
   "whyThisReportExists": {
     "purpose": "Shows whether required CSV layers have matching display assets in Vercel Blob and highlights related manifest-generation gaps.",
     "intendedAudience": "Developers validating Blob Storage contents before wiring layers into the tool.",
@@ -19,20 +19,20 @@
     "liveManifest": "Generated to frontend/public/data/layer-manifest/manifest.json and ignored by git"
   },
   "counts": {
-    "csvRows": 31,
-    "includedRows": 27,
-    "generatedLayers": 27,
-    "blobInventoryEntries": 123,
+    "csvRows": 32,
+    "includedRows": 28,
+    "generatedLayers": 28,
+    "blobInventoryEntries": 137,
     "missingRequired": 2,
-    "extraAvailable": 105,
-    "includedRowMetadataGaps": 26,
+    "extraAvailable": 118,
+    "includedRowMetadataGaps": 27,
     "excludedRows": 4,
     "generatedSolutions": 0,
     "skippedSolutionMetadataFiles": 22,
     "unmatchedSolutionRasters": 248,
     "manifestCategoriesNeedingReview": 0,
     "frontendCategoriesWithoutManifestMapping": 0,
-    "renderingInferenceLowConfidence": 21
+    "renderingInferenceLowConfidence": 22
   },
   "missingRequired": [
     {
@@ -193,6 +193,16 @@
       "pathname": "inputs/boundaries/sirap/siraps_territorial.geojson",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_territorial.geojson",
       "bytes": 2471458
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/siraps_territorial_authoritative_v3.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_territorial_authoritative_v3.metadata.json",
+      "bytes": 485
+    },
+    {
+      "pathname": "inputs/boundaries/sirap/siraps_territorial_authoritative_v3.provenance.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_territorial_authoritative_v3.provenance.json",
+      "bytes": 1702
     },
     {
       "pathname": "inputs/boundaries/sirap/siraps_thematic.geojson",
@@ -410,6 +420,21 @@
       "bytes": 105690
     },
     {
+      "pathname": "inputs/features/ecosystems/land-solution-9377/ecosistemas_IDEAM_MEC_2024.provenance.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/land-solution-9377/ecosistemas_IDEAM_MEC_2024.provenance.json",
+      "bytes": 145199
+    },
+    {
+      "pathname": "inputs/features/ecosystems/land-solution-9377/ecosistemas_IDEAM_MEC_2024.tif",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/land-solution-9377/ecosistemas_IDEAM_MEC_2024.tif",
+      "bytes": 503836
+    },
+    {
+      "pathname": "inputs/features/ecosystems/land-solution-9377/ecosistemas_IDs_IDEAM_MEC_2024.csv",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/land-solution-9377/ecosistemas_IDs_IDEAM_MEC_2024.csv",
+      "bytes": 498326
+    },
+    {
       "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.sparse.gz",
       "bytes": 110336
@@ -573,6 +598,46 @@
       "pathname": "inputs/reference/zonas_reserva_campesina_constituida/v0.1.0/zonas_reserva_campesina_constituida.metadata.json",
       "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/zonas_reserva_campesina_constituida/v0.1.0/zonas_reserva_campesina_constituida.metadata.json",
       "bytes": 2712
+    },
+    {
+      "pathname": "metadata/ecosistemas.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/ecosistemas.metadata.json",
+      "bytes": 953
+    },
+    {
+      "pathname": "metadata/hhm.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/hhm.metadata.json",
+      "bytes": 921
+    },
+    {
+      "pathname": "metadata/marine_ecosystems.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/marine_ecosystems.metadata.json",
+      "bytes": 1505
+    },
+    {
+      "pathname": "metadata/siraps.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/siraps.metadata.json",
+      "bytes": 2044
+    },
+    {
+      "pathname": "metadata/siraps_merged_polygon_v2.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/siraps_merged_polygon_v2.metadata.json",
+      "bytes": 6607
+    },
+    {
+      "pathname": "metadata/siraps_territorial.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/siraps_territorial.metadata.json",
+      "bytes": 1951
+    },
+    {
+      "pathname": "metadata/siraps_territorial_updated.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/siraps_territorial_updated.metadata.json",
+      "bytes": 485
+    },
+    {
+      "pathname": "metadata/siraps_thematic.metadata.json",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/siraps_thematic.metadata.json",
+      "bytes": 1800
     }
   ],
   "includedRowMetadataGaps": [
@@ -709,6 +774,14 @@
       ]
     },
     {
+      "layerId": "siraps_territorial_updated",
+      "displayName": "SIRAP territoriales (actualizados, requieren cálculo de métricas)",
+      "missingFields": [
+        "source_created_date",
+        "source_license"
+      ]
+    },
+    {
       "layerId": "siraps_thematic",
       "displayName": "Thematic SIRAP additions",
       "missingFields": [
@@ -818,10 +891,10 @@
   "renderingInferenceSummary": {
     "byStrategy": {
       "manual_override": 6,
-      "legacy_non_raster": 12,
+      "legacy_non_raster": 13,
       "fallback_after_uncertain_sampling": 9
     },
-    "lowConfidence": 21
+    "lowConfidence": 22
   },
   "excludedRows": [
     {

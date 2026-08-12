@@ -18,6 +18,7 @@ climate_refugia,Velocidad del cambio climático,Climate Change Velocity,Costo,FA
 runap,Áreas protegidas (RUNAP 2023),Protected Areas (RUNAP 2023),Límite político o administrativo,TRUE,management_figures,Áreas de conservación,Conservation Areas,Conservation Areas,TRUE,,
 siraps,Combined SIRAP review layer,,Límite político o administrativo,TRUE,administrative_boundaries,Límites administrativos,Administrative Boundaries,Administrative Boundaries,TRUE,,
 siraps_territorial,Territorial SIRAPs,,Límite político o administrativo,TRUE,administrative_boundaries,Límites administrativos,Administrative Boundaries,Administrative Boundaries,TRUE,,
+siraps_territorial_updated,"SIRAP territoriales (actualizados, requieren cálculo de métricas)","Territorial SIRAPs (updated, needs metric calculation)",Límite político o administrativo,TRUE,administrative_boundaries,Límites administrativos,Administrative Boundaries,Administrative Boundaries,TRUE,,
 siraps_thematic,Thematic SIRAP additions,,Límite político o administrativo,TRUE,administrative_boundaries,Límites administrativos,Administrative Boundaries,Administrative Boundaries,TRUE,,
 omecs,OMECs (raster),,Límite político o administrativo,TRUE,management_figures,Áreas de conservación,Conservation Areas,Conservation Areas,TRUE,,
 comunidades,Comunidades Negras,Afro-Colombian Communities,Límite político o administrativo,TRUE,cultural_and_ethnic_territories,Territorios culturales y étnicos,Cultural & Ethnic Territories,Cultural & Ethnic Territories,TRUE,,

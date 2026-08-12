@@ -288,6 +288,7 @@ describe('reconcileMapLayersManifest', () => {
     const existingSirapRows = [
       ['siraps', 'boundary-siraps'],
       ['siraps_territorial', 'boundary-siraps_territorial'],
+      ['siraps_territorial_updated', 'boundary-siraps_territorial_updated'],
       ['siraps_thematic', 'boundary-siraps_thematic'],
     ].map(([boundaryLayerKey, id]) =>
       row({
@@ -295,7 +296,11 @@ describe('reconcileMapLayersManifest', () => {
         mapSync: {
           type: 'admin-boundary',
           boundaryType: 'sirap',
-          boundaryLayerKey: boundaryLayerKey as 'siraps' | 'siraps_territorial' | 'siraps_thematic',
+          boundaryLayerKey: boundaryLayerKey as
+            | 'siraps'
+            | 'siraps_territorial'
+            | 'siraps_territorial_updated'
+            | 'siraps_thematic',
         },
       }),
     );
@@ -305,6 +310,7 @@ describe('reconcileMapLayersManifest', () => {
         manifestGroup('administrative_boundaries', [
           manifestRow('siraps', 'administrative_boundaries'),
           manifestRow('siraps_territorial', 'administrative_boundaries'),
+          manifestRow('siraps_territorial_updated', 'administrative_boundaries'),
           manifestRow('siraps_thematic', 'administrative_boundaries'),
         ]),
       ],
@@ -313,9 +319,14 @@ describe('reconcileMapLayersManifest', () => {
       ports,
     });
 
-    expect(enabledSirapBoundaryLayerKeys()).toEqual(['siraps_territorial', 'siraps_thematic']);
+    expect(enabledSirapBoundaryLayerKeys()).toEqual([
+      'siraps_territorial',
+      'siraps_territorial_updated',
+      'siraps_thematic',
+    ]);
     expect(result.groups[0].rows.map((item) => item.id)).toEqual([
       'boundary-siraps_territorial',
+      'boundary-siraps_territorial_updated',
       'boundary-siraps_thematic',
     ]);
   });

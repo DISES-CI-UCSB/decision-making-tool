@@ -1244,7 +1244,12 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected hasBoundaryInfo(row: LayerControlRow): boolean {
     const key = row.mapSync?.type === 'admin-boundary' ? row.mapSync.boundaryLayerKey : null;
-    return key === 'siraps' || key === 'siraps_territorial' || key === 'siraps_thematic';
+    return (
+      key === 'siraps' ||
+      key === 'siraps_territorial' ||
+      key === 'siraps_territorial_updated' ||
+      key === 'siraps_thematic'
+    );
   }
 
   protected updateOverlayOpacity(rowId: string, opacityText: string): void {
@@ -4011,6 +4016,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const sirapNameKeys = {
       siraps: 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
       siraps_territorial: 'mapLayersPanel.boundaryNames.territorialSiraps',
+      siraps_territorial_updated: 'mapLayersPanel.boundaryNames.territorialSirapsUpdated',
       siraps_thematic: 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
     } as const;
     const sirapRows = enabledSirapBoundaryLayerKeys().map((layerKey) =>
@@ -4217,7 +4223,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       borderStyle:
         boundaryLayerKey === 'siraps'
           ? 'dashed'
-          : boundaryLayerKey === 'siraps_thematic'
+          : boundaryLayerKey === 'siraps_thematic' ||
+              boundaryLayerKey === 'siraps_territorial_updated'
             ? 'dotted'
             : 'solid',
       borderWidth:
@@ -4225,6 +4232,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           ? 1.6
           : boundaryLayerKey === 'siraps' ||
               boundaryLayerKey === 'siraps_territorial' ||
+              boundaryLayerKey === 'siraps_territorial_updated' ||
               boundaryLayerKey === 'siraps_thematic'
             ? 1.25
             : 1,
@@ -4374,6 +4382,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     const boundaryNameKeys: Record<string, string> = {
       'boundary-siraps': 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
       'boundary-siraps_territorial': 'mapLayersPanel.boundaryNames.territorialSiraps',
+      'boundary-siraps_territorial_updated':
+        'mapLayersPanel.boundaryNames.territorialSirapsUpdated',
       'boundary-siraps_thematic': 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
       'boundary-admin_country_outline': 'mapLayersPanel.boundaryNames.colombiaOutline',
       'boundary-admin_departments': 'mapLayersPanel.boundaryNames.departments',
@@ -4382,6 +4392,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     const boundaryNameFallbacks: Record<string, string> = {
       'boundary-siraps': 'SIRAP',
       'boundary-siraps_territorial': 'Territorial SIRAPs',
+      'boundary-siraps_territorial_updated':
+        'Territorial SIRAPs (updated, needs metric calculation)',
       'boundary-siraps_thematic': 'Thematic SIRAP additions',
       'boundary-admin_country_outline': 'Colombia Outline',
       'boundary-admin_departments': 'Departments',

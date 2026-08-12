@@ -209,6 +209,7 @@ const englishLabelOverrideByLayerId = {
   paramos: 'Páramos',
   siraps: 'SIRAP',
   siraps_territorial: 'Territorial SIRAPs',
+  siraps_territorial_updated: 'Territorial SIRAPs (updated, needs metric calculation)',
   siraps_thematic: 'Thematic SIRAP Additions',
   omecs: 'OMECs (raster)',
   marine_ecosystems: 'Marine Ecosystems',
@@ -428,6 +429,7 @@ const proposedLayerCategoryOverrides = {
   resguardos: 'cultural_and_ethnic_territories',
   siraps: 'administrative_boundaries',
   siraps_territorial: 'administrative_boundaries',
+  siraps_territorial_updated: 'administrative_boundaries',
   siraps_thematic: 'administrative_boundaries',
   admin_departments: 'administrative_boundaries',
   admin_municipalities: 'administrative_boundaries',
@@ -443,6 +445,8 @@ const tooltipOverrideByLayerId = {
   siraps: `SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term "límites" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.`,
   siraps_territorial:
     'Territorial SIRAPs are the broad regional conservation systems used as overarching SIRAP categories.',
+  siraps_territorial_updated:
+    'Authoritative Territorial SIRAP boundaries for view-only comparison. Selection and metrics are unavailable until this source is recalculated.',
   siraps_thematic:
     'Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs.',
 };
@@ -1217,7 +1221,7 @@ async function fetchSpeciesTaxa() {
   }
 }
 
-async function createLayerEntry(row, blobByPath, existingManifestIndex) {
+export async function createLayerEntry(row, blobByPath, existingManifestIndex) {
   const labels = splitMultilineLabel(row.layer_name);
   const id = toLayerId(row.layer_id);
   const existingLayer = existingManifestIndex?.layersById?.get(id) ?? null;

@@ -9,6 +9,14 @@ export const PRODUCTION_SIRAP_BOUNDARY_SOURCE = {
   featureCount: 10,
 } as const;
 
+export const UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE = {
+  layerKey: 'siraps_territorial_updated',
+  sourceId: 'aoi-siraps-territorial-updated-colombia',
+  pathname: 'inputs/boundaries/sirap/siraps_territorial_authoritative_v3.geojson',
+  sha256: '7826e6cc0c34eb69446bb410427d8023415d6886339b624a2c0a6b990000db5d',
+  featureCount: 6,
+} as const;
+
 export const METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES = [
   {
     layerKey: 'siraps_territorial',

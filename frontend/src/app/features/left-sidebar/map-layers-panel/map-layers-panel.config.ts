@@ -238,6 +238,10 @@ export const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
 > = {
   siraps: { boundaryType: 'sirap', boundaryLayerKey: 'siraps' },
   siraps_territorial: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_territorial' },
+  siraps_territorial_updated: {
+    boundaryType: 'sirap',
+    boundaryLayerKey: 'siraps_territorial_updated',
+  },
   siraps_thematic: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_thematic' },
   admin_country_outline: {
     boundaryType: 'department',
@@ -253,6 +257,8 @@ export function isAdminBoundaryLayerEnabled(layerKey: AdminBoundaryLayerKey): bo
       return FEATURE_FLAGS.sirapLayers.combined;
     case 'siraps_territorial':
       return FEATURE_FLAGS.sirapLayers.territorial;
+    case 'siraps_territorial_updated':
+      return FEATURE_FLAGS.sirapLayers.territorialUpdated;
     case 'siraps_thematic':
       return FEATURE_FLAGS.sirapLayers.thematic;
     default:
@@ -260,12 +266,16 @@ export function isAdminBoundaryLayerEnabled(layerKey: AdminBoundaryLayerKey): bo
   }
 }
 
-export type SirapBoundaryLayerKey = 'siraps' | 'siraps_territorial' | 'siraps_thematic';
+export type SirapBoundaryLayerKey =
+  | 'siraps'
+  | 'siraps_territorial'
+  | 'siraps_territorial_updated'
+  | 'siraps_thematic';
 
 export function enabledSirapBoundaryLayerKeys(): SirapBoundaryLayerKey[] {
-  return (['siraps', 'siraps_territorial', 'siraps_thematic'] as const).filter(
-    isAdminBoundaryLayerEnabled,
-  );
+  return (
+    ['siraps', 'siraps_territorial', 'siraps_territorial_updated', 'siraps_thematic'] as const
+  ).filter(isAdminBoundaryLayerEnabled);
 }
 
 export const COMPARISON_PRIORITY_OVERLAY_IDS = [
@@ -395,6 +405,7 @@ export const LEGEND_BOUNDARY_STYLES: Record<
 > = {
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
   siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
+  siraps_territorial_updated: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
   siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#475569' },
   admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },

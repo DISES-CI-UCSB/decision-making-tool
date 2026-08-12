@@ -1,4 +1,11 @@
-import type { AOI, CachedSolutionMetricsDocument, GeographyLevel, MetricValue } from '@core/models';
+import {
+  METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES,
+  PRODUCTION_SIRAP_BOUNDARY_SOURCE,
+  type AOI,
+  type CachedSolutionMetricsDocument,
+  type GeographyLevel,
+  type MetricValue,
+} from '@core/models';
 
 export function aoiTypeToGeographyLevel(type: AOI['type']): GeographyLevel | null {
   switch (type) {
@@ -21,7 +28,7 @@ export function resolveCachedAoiMetrics(
   document: CachedSolutionMetricsDocument | null,
   aoi: AOI,
 ): MetricValue[] {
-  if (!document) {
+  if (!document || !isMetricCompatibleAoiSource(aoi)) {
     return [];
   }
 
@@ -52,6 +59,24 @@ export function resolveCachedAoiMetrics(
   }
 
   return [];
+}
+
+export function isMetricCompatibleAoiSource(aoi: AOI): boolean {
+  if (aoi.type !== 'sirap') {
+    return true;
+  }
+  if (aoi.boundaryGeometrySelection !== 'whole-feature') {
+    return false;
+  }
+
+  return (
+    (aoi.boundarySourceLayerKey === PRODUCTION_SIRAP_BOUNDARY_SOURCE.layerKey &&
+      aoi.boundarySourceId === PRODUCTION_SIRAP_BOUNDARY_SOURCE.sourceId) ||
+    METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES.some(
+      (source) =>
+        source.layerKey === aoi.boundarySourceLayerKey && source.sourceId === aoi.boundarySourceId,
+    )
+  );
 }
 
 export function extractRawAoiScopeId(prefixedAoiId: string): string {

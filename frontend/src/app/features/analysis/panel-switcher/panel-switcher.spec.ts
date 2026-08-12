@@ -1265,25 +1265,86 @@ describe('PanelSwitcherComponent', () => {
   });
 
   it.each([
+    ['combined', 'siraps', 'aoi-siraps-combined-colombia'],
     ['territorial', 'siraps_territorial', 'aoi-siraps-territorial-colombia'],
     ['thematic', 'siraps_thematic', 'aoi-siraps-thematic-colombia'],
-  ])('loads metrics for a whole %s SIRAP source', (_, boundarySourceLayerKey, boundarySourceId) => {
-    appState.activeSolution$.set(buildTestSolution());
+  ])(
+    'loads cached and MEC metrics for a whole production %s SIRAP source',
+    async (_, boundarySourceLayerKey, boundarySourceId) => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(
+          buildCachedSirapMetricsDocument(solution.id, [
+            buildMetric('priority_area_in_region', 42, 'km²', 'number'),
+          ]),
+        ),
+      );
+      appState.activeSolution$.set(solution);
+      appState.selectAOI({
+        id: 'sirap:territorial_territorial_amazonia_3',
+        name: 'Territorial Amazonia',
+        type: 'sirap',
+        geometryUrl: '/inputs/boundaries/sirap/production.geojson',
+        boundarySourceLayerKey,
+        boundarySourceId,
+        boundaryGeometrySelection: 'whole-feature',
+      });
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as unknown as {
+        aoiMetrics(): MetricValue[];
+      };
+      expect(component.aoiMetrics().map((metric) => metric.value)).toContain(42);
+      expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith('test-solution', 'siraps');
+    },
+  );
+
+  it('blocks stale cached and MEC metrics for the updated territorial visual source', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedSirapMetricsDocument(solution.id, [
+          buildMetric('priority_area_in_region', 321, 'km²', 'number'),
+        ]),
+      ),
+    );
+    appState.activeSolution$.set(solution);
     appState.selectAOI({
-      id: 'sirap:_5',
-      name: 'Separate SIRAP source',
+      id: 'sirap:territorial_territorial_amazonia_3',
+      name: 'Territorial Amazonia',
       type: 'sirap',
-      geometryUrl: '/inputs/boundaries/sirap/separate.geojson',
-      boundarySourceLayerKey,
-      boundarySourceId,
+      geometryUrl: '/inputs/boundaries/sirap/siraps_territorial_authoritative_v3.geojson',
+      boundarySourceLayerKey: 'siraps_territorial_updated',
+      boundarySourceId: 'aoi-siraps-territorial-updated-colombia',
       boundaryGeometrySelection: 'whole-feature',
     });
     appState.setRightSidebarMode('aoi');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      aoiMetrics(): MetricValue[];
+      buildAoiMetricsCsvRows(): string[][];
+    };
+    const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith('test-solution', 'siraps');
+    expect(component.aoiMetrics()).toEqual([]);
+    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).not.toContain('321');
+    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('--');
+    expect(
+      component.buildAoiMetricsCsvRows().some((row) => row.some((cell) => cell.includes('321'))),
+    ).toBe(false);
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+    expect(compiled.querySelector('#aoi-mec-unavailable-title')?.textContent).toContain(
+      'analysis.aoi.mec.states.partialSirapTitle',
+    );
   });
 
   it('blocks legacy SIRAP selections without provenance', () => {
@@ -1879,6 +1940,55 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
 
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(buildTestSolution().id, level, scopeId);
+  });
+
+  it.each([
+    ['combined', 'siraps', 'aoi-siraps-combined-colombia'],
+    ['territorial', 'siraps_territorial', 'aoi-siraps-territorial-colombia'],
+    ['thematic', 'siraps_thematic', 'aoi-siraps-thematic-colombia'],
+  ])(
+    'loads the selected production %s SIRAP species sidecar',
+    (_label, boundarySourceLayerKey, boundarySourceId) => {
+      goalsDocument = buildGoalsDocument();
+      appState.activeSolution$.set(buildTestSolution());
+      appState.selectAOI(buildSirapAoi(boundarySourceLayerKey, boundarySourceId));
+      appState.setRightSidebarMode('overview');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      fixture.detectChanges();
+      (
+        fixture.nativeElement.querySelector(
+          '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+        ) as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+
+      expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+        buildTestSolution().id,
+        'siraps',
+        'territorial_territorial_amazonia_3',
+      );
+    },
+  );
+
+  it('does not request species goals for the updated visual-only SIRAP source', () => {
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI(
+      buildSirapAoi('siraps_territorial_updated', 'aoi-siraps-territorial-updated-colombia'),
+    );
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
   it('disables the species breakdown for a custom polygon without starting a runtime job', () => {
@@ -2732,6 +2842,25 @@ function buildCachedAoiMetricsDocument(
   };
 }
 
+function buildCachedSirapMetricsDocument(
+  solutionId: string,
+  metrics: MetricValue[],
+): CachedSolutionMetricsDocument {
+  return {
+    solutionId,
+    generatedAt: '2026-06-04T00:00:00.000Z',
+    geographies: {
+      national: { colombia: { metrics: [] } },
+      siraps: {
+        territorial_territorial_amazonia_3: {
+          name: 'Territorial Amazonia',
+          metrics,
+        },
+      },
+    },
+  };
+}
+
 function buildMetric(
   metricId: string,
   value: number,
@@ -2757,6 +2886,18 @@ function buildMetaDepartmentAoi(): AOI {
     type: 'department',
     geometryUrl: '/boundaries/departments.geojson',
     areaKm2: 85_635,
+  };
+}
+
+function buildSirapAoi(boundarySourceLayerKey: string, boundarySourceId: string): AOI {
+  return {
+    id: 'sirap:territorial_territorial_amazonia_3',
+    name: 'Territorial Amazonia',
+    type: 'sirap',
+    geometryUrl: '/inputs/boundaries/sirap/example.geojson',
+    boundarySourceLayerKey,
+    boundarySourceId,
+    boundaryGeometrySelection: 'whole-feature',
   };
 }
 

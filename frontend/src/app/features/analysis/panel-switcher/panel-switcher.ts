@@ -72,6 +72,7 @@ import {
 import {
   aoiTypeToGeographyLevel,
   extractRawAoiScopeId,
+  isMetricCompatibleAoiSource,
   resolveCachedAoiMetrics,
 } from '../utils/aoi-cached-metrics.utils';
 import {
@@ -1866,6 +1867,9 @@ export class PanelSwitcherComponent {
     const aoi = this.selectedAoi();
     if (!aoi) {
       return { geographyLevel: 'national', scopeId: 'colombia' };
+    }
+    if (!isMetricCompatibleAoiSource(aoi)) {
+      return null;
     }
     const geographyLevel = aoiTypeToGeographyLevel(aoi.type);
     return geographyLevel ? { geographyLevel, scopeId: extractRawAoiScopeId(aoi.id) } : null;

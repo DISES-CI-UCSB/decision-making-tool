@@ -16,6 +16,7 @@ const FLAGS = {
     sirapLayers: {
       combined: false,
       territorial: true,
+      territorialUpdated: true,
       thematic: true,
     },
   },
@@ -25,6 +26,7 @@ const FLAGS = {
     sirapLayers: {
       combined: false,
       territorial: true,
+      territorialUpdated: true,
       thematic: true,
     },
   },

@@ -150,6 +150,13 @@ describe('AOI ecosystems utilities', () => {
       boundarySourceLayerKey: 'siraps_thematic',
       boundarySourceId: 'aoi-siraps-thematic-colombia',
     };
+    const updatedTerritorialAoi: AOI = {
+      ...territorialAoi,
+      boundarySourceLayerKey: 'siraps_territorial_updated',
+      boundarySourceId: 'aoi-siraps-territorial-updated-colombia',
+      geometryUrl:
+        'https://example.com/inputs/boundaries/sirap/siraps_territorial_authoritative_v3.geojson',
+    };
     const legacyAoi: AOI = {
       id: mergedAoi.id,
       name: mergedAoi.name,
@@ -163,6 +170,7 @@ describe('AOI ecosystems utilities', () => {
     expect(isWholeMetricCompatibleSirapAoi(componentAoi)).toBe(false);
     expect(isWholeMetricCompatibleSirapAoi(territorialAoi)).toBe(true);
     expect(isWholeMetricCompatibleSirapAoi(thematicAoi)).toBe(true);
+    expect(isWholeMetricCompatibleSirapAoi(updatedTerritorialAoi)).toBe(false);
     expect(isWholeMetricCompatibleSirapAoi(legacyAoi)).toBe(false);
   });
 });
