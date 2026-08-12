@@ -163,10 +163,20 @@ describe('solution catalog contract', () => {
         {
           ...manifest,
           catalogVersion: '0.1.1',
-          solutionCatalogVersion: catalog.catalogVersion,
         },
         catalog,
       ),
+    );
+    assert.throws(
+      () =>
+        validateManifestAgainstCatalog(
+          {
+            ...manifest,
+            catalogVersion: '0.2.0',
+          },
+          catalog,
+        ),
+      /analysis-compatible/,
     );
     assert.throws(
       () =>

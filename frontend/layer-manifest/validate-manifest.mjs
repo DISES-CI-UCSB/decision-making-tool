@@ -268,9 +268,6 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       'releaseId must be lowercase and hyphenated',
     );
     assertString(manifest.catalogVersion, 'catalogVersion');
-    if ('solutionCatalogVersion' in manifest) {
-      assertString(manifest.solutionCatalogVersion, 'solutionCatalogVersion');
-    }
     assert(
       options.catalog,
       'release manifest validation requires an explicit --catalog <path> catalog',

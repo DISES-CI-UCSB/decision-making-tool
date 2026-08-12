@@ -7,7 +7,12 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadLocalEnv } from './load-local-env.mjs';
 import { publishManifestRevision, readLiveManifestIdentity } from './publish-manifest.mjs';
-import { createCatalogPatch, validateCatalogPatch } from './lib/catalog-patch.mjs';
+import {
+  createCatalogPatch,
+  createSingleVersionManifest,
+  validateCatalogPatch,
+  validateSingleVersionManifest,
+} from './lib/catalog-patch.mjs';
 import {
   appendCanonicalCsvRecord,
   prepareViewLayerRegistration,
@@ -87,7 +92,6 @@ export function catalogPatchSummary(liveManifest, candidate, addLayerIds, remove
     livePathname: RUNTIME_MANIFEST_BLOB_PATHNAME,
     catalogVersionFrom: liveManifest.catalogVersion,
     catalogVersionTo: candidate.catalogVersion,
-    solutionCatalogVersion: candidate.solutionCatalogVersion,
     releaseId: candidate.releaseId,
     addedLayers: addedLayers.map((layer) => ({
       id: layer.id,
@@ -124,7 +128,6 @@ async function run() {
       {
         pathname: liveIdentity.pathname,
         catalogVersion: liveManifest.catalogVersion,
-        solutionCatalogVersion: liveManifest.solutionCatalogVersion ?? liveManifest.catalogVersion,
         releaseId: liveManifest.releaseId,
         layerCount: liveManifest.layers.length,
         solutionCount: liveManifest.solutions.length,
@@ -133,26 +136,45 @@ async function run() {
     );
     return;
   }
-  if (!['publish-patch', 'add-view-layer'].includes(args.command)) {
+  if (!['publish-patch', 'add-view-layer', 'normalize-version'].includes(args.command)) {
     throw new Error(`unknown catalog command "${args.command}"`);
   }
 
+  const normalizesVersion = args.command === 'normalize-version';
   const registration = args.command === 'add-view-layer' ? await prepareRegistration(args) : null;
-  const generatedManifest = registration
-    ? { layers: [registration.layer] }
-    : await generateManifestSnapshot();
   const addLayerIds = registration ? [registration.layer.id] : args.addLayerIds;
-  const candidate = createCatalogPatch({
-    liveManifest,
-    generatedManifest,
-    addLayerIds,
-    removeLayerIds: args.removeLayerIds,
-  });
-  await validateCatalogPatch(liveManifest, candidate);
-  if (!registration) {
+  let candidate;
+  if (normalizesVersion) {
+    candidate = createSingleVersionManifest(liveManifest);
+    await validateSingleVersionManifest(liveManifest, candidate);
+  } else {
+    const generatedManifest = registration
+      ? { layers: [registration.layer] }
+      : await generateManifestSnapshot();
+    candidate = createCatalogPatch({
+      liveManifest,
+      generatedManifest,
+      addLayerIds,
+      removeLayerIds: args.removeLayerIds,
+    });
+    await validateCatalogPatch(liveManifest, candidate);
+  }
+  if (!registration && !normalizesVersion) {
     await assertPatchAssetsReachable(liveManifest, candidate, token);
   }
-  const summary = catalogPatchSummary(liveManifest, candidate, addLayerIds, args.removeLayerIds);
+  const summary = normalizesVersion
+    ? {
+        livePathname: RUNTIME_MANIFEST_BLOB_PATHNAME,
+        catalogVersionFrom: liveManifest.catalogVersion,
+        catalogVersionTo: candidate.catalogVersion,
+        releaseId: candidate.releaseId,
+        addedLayers: [],
+        removedLayerIds: [],
+        solutionCount: candidate.solutions.length,
+        solutionsChanged: false,
+        metricsRecalculationRequired: false,
+      }
+    : catalogPatchSummary(liveManifest, candidate, addLayerIds, args.removeLayerIds);
   if (registration) {
     summary.localFile = args.filePath;
     summary.uploads = [registration.geojsonPathname, registration.metadataPathname];
@@ -181,9 +203,7 @@ async function run() {
     dryRun: args.dryRun,
   });
   if (!args.dryRun) {
-    console.log(
-      `[catalog] published catalog ${candidate.catalogVersion}; solutions and metrics remain bound to ${candidate.solutionCatalogVersion}`,
-    );
+    console.log(`[catalog] published catalog ${candidate.catalogVersion}; metrics unchanged`);
   }
 }
 
@@ -359,9 +379,7 @@ function printValue(value, asJson) {
       ? `[catalog] catalog: ${value.catalogVersionFrom} -> ${value.catalogVersionTo}`
       : `[catalog] catalog: ${value.catalogVersion}`,
   );
-  console.log(
-    `[catalog] solution catalog: ${value.solutionCatalogVersion}; release: ${value.releaseId}`,
-  );
+  console.log(`[catalog] release: ${value.releaseId}`);
   if (value.addedLayers) {
     if (value.localFile) {
       console.log(`[catalog] local file: ${value.localFile}`);
@@ -390,6 +408,7 @@ function printUsage() {
   console.log(
     'npm run catalog -- add-view-layer --file <layer.geojson> [--layer-id <id>] --name-es <name> --name-en <name> --description <text> --category <id> --source-org <org> --source-url <url> [--dry-run|--yes]',
   );
+  console.log('npm run catalog -- normalize-version [--dry-run|--yes]');
 }
 
 const isCalledDirectly =

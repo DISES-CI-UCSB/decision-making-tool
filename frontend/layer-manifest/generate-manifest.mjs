@@ -2561,7 +2561,6 @@ async function main() {
       {
         releaseId,
         catalogVersion: releaseCatalog.catalogVersion,
-        solutionCatalogVersion: releaseCatalog.catalogVersion,
         solutions,
       },
       releaseCatalog,
@@ -2620,12 +2619,7 @@ async function main() {
     generatedAt: GENERATED_AT,
     publicBlobHost: PUBLIC_BLOB_HOST,
     ...(releaseId ? { releaseId } : {}),
-    ...(releaseCatalog
-      ? {
-          catalogVersion: releaseCatalog.catalogVersion,
-          solutionCatalogVersion: releaseCatalog.catalogVersion,
-        }
-      : {}),
+    ...(releaseCatalog ? { catalogVersion: releaseCatalog.catalogVersion } : {}),
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     categories,
     layers,

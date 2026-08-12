@@ -85,7 +85,6 @@ export interface RuntimeLayerManifest {
   sourceCsv: string;
   releaseId?: string;
   catalogVersion?: string;
-  solutionCatalogVersion?: string;
   solutionDataProfile?: 'runtime-compact-v1';
   manualEdit?: RuntimeLayerManifestManualEdit;
   referenceData?: RuntimeLayerManifestReferenceData;

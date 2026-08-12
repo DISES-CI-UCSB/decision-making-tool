@@ -148,7 +148,6 @@ export function buildRuntimeReleaseManifest({
     sourceCsv: baseManifest.sourceCsv,
     releaseId: catalog.releaseId,
     catalogVersion: catalog.catalogVersion,
-    solutionCatalogVersion: catalog.catalogVersion,
     solutionDataProfile: RUNTIME_COMPACT_SOLUTION_PROFILE,
     categories: structuredClone(baseManifest.categories),
     layers: baseManifest.layers.map((layer) =>

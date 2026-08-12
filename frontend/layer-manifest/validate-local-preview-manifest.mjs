@@ -29,10 +29,9 @@ export function validateLocalPreviewManifest(manifest) {
   ).length;
   const marineCount = solutions.length - landCount;
 
-  const solutionCatalogVersion = manifest.solutionCatalogVersion ?? manifest.catalogVersion;
   assert(
-    solutionCatalogVersion === '0.2.0',
-    `local preview manifest must use solution catalog 0.2.0; got ${solutionCatalogVersion ?? 'none'}`,
+    /^0\.2\.\d+$/.test(manifest.catalogVersion ?? ''),
+    `local preview manifest must use catalog version 0.2.x; got ${manifest.catalogVersion ?? 'none'}`,
   );
   assert(
     solutions.length === 172 && landCount === 168 && marineCount === 4,

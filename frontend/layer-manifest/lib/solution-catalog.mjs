@@ -46,6 +46,12 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 export const SAFE_SOLUTION_ID_PATTERN = /^[a-z0-9]+(?:[_-][a-z0-9]+)*$/;
 const DOMAINS = ['land', 'marine'];
 
+export function catalogAnalysisVersion(version) {
+  const match = SEMVER_PATTERN.exec(version ?? '');
+  assert(match, `catalogVersion must be valid SemVer; got "${version}"`);
+  return `${match[1]}.${match[2]}`;
+}
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -223,14 +229,14 @@ function hasSpeciesException(catalog) {
 export function validateManifestAgainstCatalog(manifest, catalog) {
   validateSolutionCatalog(catalog);
   const counts = catalogCounts(catalog);
-  const solutionCatalogVersion = manifest.solutionCatalogVersion ?? manifest.catalogVersion;
   assert(
     manifest.releaseId === catalog.releaseId,
     `manifest releaseId must match catalog releaseId "${catalog.releaseId}"`,
   );
   assert(
-    solutionCatalogVersion === catalog.catalogVersion,
-    `manifest solutionCatalogVersion must match catalog catalogVersion "${catalog.catalogVersion}"`,
+    catalogAnalysisVersion(manifest.catalogVersion) ===
+      catalogAnalysisVersion(catalog.catalogVersion),
+    `manifest catalogVersion must be analysis-compatible with catalog "${catalog.catalogVersion}"`,
   );
 
   const manifestIds = new Set(manifest.solutions.map((solution) => solution.id));

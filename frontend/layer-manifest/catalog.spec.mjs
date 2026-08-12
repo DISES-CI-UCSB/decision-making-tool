@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { catalogPatchSummary, parseCatalogArgs } from './catalog.mjs';
 import {
   createCatalogPatch,
+  createSingleVersionManifest,
   nextPatchVersion,
   validateCatalogPatch,
 } from './lib/catalog-patch.mjs';
@@ -102,14 +103,13 @@ describe('catalog-only patch tooling', () => {
     });
 
     assert.equal(candidate.catalogVersion, '0.2.1');
-    assert.equal(candidate.solutionCatalogVersion, '0.2.0');
+    assert.equal('solutionCatalogVersion' in candidate, false);
     assert.deepEqual(candidate.solutions, live.solutions);
     assert.deepEqual(candidate.categories[0].layerIds, ['existing', 'ramsar']);
     assert.deepEqual(catalogPatchSummary(live, candidate, ['ramsar'], []), {
       livePathname: 'manifest/manifest.json',
       catalogVersionFrom: '0.2.0',
       catalogVersionTo: '0.2.1',
-      solutionCatalogVersion: '0.2.0',
       releaseId: 'solutions-v0-2-0-20260805',
       addedLayers: [
         {
@@ -156,5 +156,18 @@ describe('catalog-only patch tooling', () => {
     });
     candidate.solutions[0].id = 'changed';
     await assert.rejects(() => validateCatalogPatch(live, candidate), /solutions changed/);
+  });
+
+  it('removes the legacy second catalog number without changing catalog content', () => {
+    const live = {
+      ...liveManifest(),
+      catalogVersion: '0.2.1',
+      solutionCatalogVersion: '0.2.0',
+    };
+    const candidate = createSingleVersionManifest(live, '2026-08-12T02:00:00Z');
+    assert.equal(candidate.catalogVersion, '0.2.1');
+    assert.equal('solutionCatalogVersion' in candidate, false);
+    assert.deepEqual(candidate.layers, live.layers);
+    assert.deepEqual(candidate.solutions, live.solutions);
   });
 });

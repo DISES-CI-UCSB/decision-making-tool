@@ -118,7 +118,7 @@ npm run generate:layer-manifest -- --catalog ../ruta/solution-catalog.json
 npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json
 ```
 
-El formato admitido es `solution-catalog-v1`. En el manifest de runtime, `catalogVersion` identifica cualquier cambio publicado del catálogo y `solutionCatalogVersion` identifica el catálogo de soluciones ligado a métricas. Una entrega completa inicia ambos con el mismo valor; un parche de capas solo visuales incrementa únicamente `catalogVersion`. Todas las URLs de métricas quedan bajo `releases/{releaseId}/`. La versión de `frontend/package.json` sigue siendo independiente.
+El formato admitido es `solution-catalog-v1`. `catalogVersion` es el único número de catálogo publicado: MAJOR o MINOR indican cambios de soluciones/métricas, mientras PATCH queda reservado para cambios de capas solo visuales sin recálculo. Los artefactos métricos son compatibles entre versiones con el mismo MAJOR.MINOR, y sus identidades criptográficas siguen validándose exactamente. Todas las URLs de métricas quedan bajo `releases/{releaseId}/`. La versión de `frontend/package.json` sigue siendo independiente.
 
 Para revisar o publicar un parche de capas de referencia ya registradas en el CSV y Blob:
 
@@ -264,7 +264,7 @@ npm run generate:layer-manifest -- --catalog ../path/solution-catalog.json
 npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json
 ```
 
-The supported solution format is `solution-catalog-v1`. In the runtime manifest, `catalogVersion` identifies every published catalog change, while `solutionCatalogVersion` identifies the metrics-bound solution catalog. A full release initializes both to the same value; a view-only layer patch increments only `catalogVersion`. Every release metric URL remains rooted under `releases/{releaseId}/`. The version in `frontend/package.json` remains independent.
+The supported solution format is `solution-catalog-v1`. `catalogVersion` is the only published catalog number: MAJOR or MINOR identifies solution/metric changes, while PATCH is reserved for view-only layer changes that require no recalculation. Metric artifacts remain compatible across versions sharing the same MAJOR.MINOR, while their cryptographic identities are still validated exactly. Every release metric URL remains rooted under `releases/{releaseId}/`. The version in `frontend/package.json` remains independent.
 
 To inspect or publish a patch containing reference layers already registered in the CSV and Blob:
 

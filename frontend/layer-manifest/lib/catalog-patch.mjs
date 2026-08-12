@@ -11,7 +11,6 @@ export function nextPatchVersion(version) {
 }
 
 export function solutionCatalogFromManifest(manifest) {
-  const catalogVersion = manifest.solutionCatalogVersion ?? manifest.catalogVersion;
   const solutions = manifest.solutions.map((solution) => ({
     solutionId: solution.id,
     solutionBasename: solution.rasterFile,
@@ -21,7 +20,7 @@ export function solutionCatalogFromManifest(manifest) {
   const landCount = solutions.filter((solution) => solution.domain === 'land').length;
   return {
     format: 'solution-catalog-v1',
-    catalogVersion,
+    catalogVersion: manifest.catalogVersion,
     releaseId: manifest.releaseId,
     expectedSolutionCount: solutions.length,
     expectedLandSolutionCount: landCount,
@@ -72,12 +71,12 @@ export function createCatalogPatch({
     addLayerToCategory(categories, layer);
   }
 
-  const solutionCatalogVersion = liveManifest.solutionCatalogVersion ?? liveManifest.catalogVersion;
+  const normalizedLiveManifest = structuredClone(liveManifest);
+  delete normalizedLiveManifest.solutionCatalogVersion;
   return {
-    ...structuredClone(liveManifest),
+    ...normalizedLiveManifest,
     generatedAt,
     catalogVersion: nextPatchVersion(liveManifest.catalogVersion),
-    solutionCatalogVersion,
     categories,
     layers: [
       ...liveManifest.layers
@@ -100,11 +99,7 @@ export async function validateCatalogPatch(
 ) {
   assert.equal(candidate.releaseId, liveManifest.releaseId, 'releaseId changed');
   assert.equal(candidate.version, liveManifest.version, 'manifest schema version changed');
-  assert.equal(
-    candidate.solutionCatalogVersion,
-    liveManifest.solutionCatalogVersion ?? liveManifest.catalogVersion,
-    'solutionCatalogVersion changed',
-  );
+  assert(!('solutionCatalogVersion' in candidate), 'manifest must use only catalogVersion');
   assert.deepEqual(candidate.solutions, liveManifest.solutions, 'solutions changed');
   assert.equal(
     candidate.catalogVersion,
@@ -138,7 +133,38 @@ export async function validateCatalogPatch(
     'category metadata changed',
   );
 
-  const catalog = solutionCatalogFromManifest(liveManifest);
+  const catalog = solutionCatalogFromManifest(candidate);
+  await validateManifest(candidate, manifestPath, { catalog });
+  return catalog;
+}
+
+export function createSingleVersionManifest(liveManifest, generatedAt = new Date().toISOString()) {
+  const candidate = structuredClone(liveManifest);
+  delete candidate.solutionCatalogVersion;
+  return {
+    ...candidate,
+    generatedAt,
+    manualEdit: {
+      editorName: 'catalog-patch-cli',
+      editedAt: generatedAt,
+      source: 'single-catalog-version-migration',
+    },
+  };
+}
+
+export async function validateSingleVersionManifest(
+  liveManifest,
+  candidate,
+  manifestPath = 'single-version-catalog',
+) {
+  assert(!('solutionCatalogVersion' in candidate), 'manifest must use only catalogVersion');
+  assert.equal(candidate.catalogVersion, liveManifest.catalogVersion, 'catalogVersion changed');
+  assert.deepEqual(
+    stableManifestContent(candidate),
+    stableManifestContent(liveManifest),
+    'single-version migration changed catalog content',
+  );
+  const catalog = solutionCatalogFromManifest(candidate);
   await validateManifest(candidate, manifestPath, { catalog });
   return catalog;
 }
@@ -172,4 +198,12 @@ function categoryMetadata(categories) {
       layerIds: [],
     })),
   }));
+}
+
+function stableManifestContent(manifest) {
+  const stable = structuredClone(manifest);
+  delete stable.generatedAt;
+  delete stable.manualEdit;
+  delete stable.solutionCatalogVersion;
+  return stable;
 }
