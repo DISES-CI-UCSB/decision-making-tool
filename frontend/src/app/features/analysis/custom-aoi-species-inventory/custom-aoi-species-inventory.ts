@@ -328,6 +328,9 @@ export class CustomAoiSpeciesInventoryComponent {
     this.speciesGroup.set('all');
     this.speciesIucn.set('all');
     this.precomputedCoverageRecords.set([]);
+    if (this.modalOpen()) {
+      this.startDetailedSpeciesCoverage();
+    }
   }
 
   private startDetailedSpeciesCoverage(forceRestart = false): void {

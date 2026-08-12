@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   resolveLayerLabel,
@@ -148,6 +148,7 @@ import {
   type SpeciesReferenceSummary,
 } from './overview-metrics.utils';
 import { classifyOverviewTargetDomains } from './overview-target-domains.utils';
+import { CustomAoiSpeciesInventoryComponent } from '../custom-aoi-species-inventory/custom-aoi-species-inventory';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type AoiSectionId =
@@ -362,11 +363,18 @@ const GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
 @Component({
   selector: 'app-panel-switcher',
   standalone: true,
-  imports: [TranslatePipe, NgTemplateOutlet, ModalShellComponent, ScrollingModule],
+  imports: [
+    TranslatePipe,
+    NgTemplateOutlet,
+    ModalShellComponent,
+    ScrollingModule,
+    CustomAoiSpeciesInventoryComponent,
+  ],
   templateUrl: './panel-switcher.html',
   styleUrl: './panel-switcher.scss',
 })
 export class PanelSwitcherComponent {
+  private readonly customAoiSpeciesInventory = viewChild(CustomAoiSpeciesInventoryComponent);
   protected readonly customAoiAreaProfileEnabled = FEATURE_FLAGS.customAoiAreaProfile;
   private readonly aoiSpeciesColorSlotByPalette: Record<ChartPaletteId, Record<string, number>> = {
     okabeIto: {
@@ -701,16 +709,40 @@ export class PanelSwitcherComponent {
   protected readonly activeSolutionId = computed(() =>
     this.resolveMetricsSolutionId(this.activeSolution()),
   );
+  protected readonly customAoiSpeciesSolutionId = computed(() =>
+    this.isMarineSolution() ? null : this.activeSolutionId(),
+  );
+  protected readonly customAoiSpeciesModalOpen = signal(false);
+  protected readonly canOpenCustomAoiSpeciesInventory = computed(
+    () =>
+      this.selectedAoi()?.type === 'custom' &&
+      this.customAoiGeometry() !== null &&
+      this.customAoiSpeciesSolutionId() !== null,
+  );
+  protected readonly customAoiSpeciesInventoryUnavailableKey = computed(() => {
+    if (this.isMarineSolution()) {
+      return 'analysis.aoi.customProfile.species.inventoryUnavailableMarine';
+    }
+    if (!this.customAoiGeometry()) {
+      return 'analysis.aoi.customProfile.species.inventoryUnavailableGeometry';
+    }
+    if (!this.activeSolutionId()) {
+      return 'analysis.aoi.customProfile.species.inventoryUnavailableSolution';
+    }
+    return null;
+  });
   protected readonly showAoiSpeciesInventory = computed(() => {
     const solution = this.activeSolution();
     const aoi = this.selectedAoi();
     const domain =
       this.findActiveCatalogSolution(solution)?.domain ?? solution?.metadata?.['domain'];
-    return (
-      Boolean(aoi) &&
-      (aoi?.type !== 'custom' || this.customAoiAreaProfileEnabled) &&
-      (!solution || domain === 'land')
-    );
+    if (!aoi) {
+      return false;
+    }
+    if (aoi.type === 'custom') {
+      return this.customAoiAreaProfileEnabled;
+    }
+    return !solution || domain === 'land';
   });
 
   protected readonly comparisonMetrics = computed(() => {
@@ -980,6 +1012,14 @@ export class PanelSwitcherComponent {
       this.stopCustomAoiSpeciesLoadingStages();
       this.cancelGoalsModalPreparation();
     });
+
+    toObservable(this.selectedAoi)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((aoi) => {
+        if (aoi?.type !== 'custom') {
+          this.customAoiSpeciesModalOpen.set(false);
+        }
+      });
 
     toObservable(this.activeSolution)
       .pipe(
@@ -2071,7 +2111,13 @@ export class PanelSwitcherComponent {
 
   protected openAoiSpeciesInventory(): void {
     const aoi = this.selectedAoi();
-    if (!aoi || aoi.type === 'custom') {
+    if (!aoi) {
+      return;
+    }
+    if (aoi.type === 'custom') {
+      if (this.canOpenCustomAoiSpeciesInventory()) {
+        this.customAoiSpeciesInventory()?.open();
+      }
       return;
     }
     this.openGoalsModal('species');

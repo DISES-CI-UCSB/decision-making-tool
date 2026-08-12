@@ -7,12 +7,21 @@ from pathlib import Path
 import numpy as np
 import pytest
 import rasterio
+from fastapi.testclient import TestClient
 from rasterio.transform import from_origin
 from rasterio.warp import transform_geom
 
 from app import artifacts as artifacts_module
-from app.artifacts import RuntimeArtifact, RuntimeRasterLayer, RuntimeSpeciesMatrix, load_runtime_artifact
+from app import main as main_module
+from app.artifacts import (
+    ArtifactState,
+    RuntimeArtifact,
+    RuntimeRasterLayer,
+    RuntimeSpeciesMatrix,
+    load_runtime_artifact,
+)
 from app.config import Settings
+from app.main import app
 from app.polygon_metrics import calculate_custom_polygon_metrics
 from app.species_index import SpeciesIndexLoadError, load_runtime_species_index
 from sparse.format import SparseMetadata, SpeciesMatrixEntry, encode_species_matrix
@@ -45,6 +54,8 @@ def wgs84_box(min_x: float, min_y: float, max_x: float, max_y: float) -> dict:
 
 
 POLYGON_LEFT_COLUMN = wgs84_box(0.0, 0.0, 1000.0, 2000.0)
+POLYGON_RIGHT_COLUMN = wgs84_box(1000.0, 0.0, 2000.0, 2000.0)
+POLYGON_OUTSIDE_GRID = wgs84_box(3000.0, 0.0, 4000.0, 1000.0)
 
 
 def write_tif(path: Path, data: np.ndarray, *, nodata: float | int | None = None) -> Path:
@@ -64,10 +75,10 @@ def write_tif(path: Path, data: np.ndarray, *, nodata: float | int | None = None
     return path
 
 
-def raster_artifact(tmp_path: Path) -> RuntimeArtifact:
+def raster_artifact(tmp_path: Path, *, coastal: bool = False) -> RuntimeArtifact:
     reference = write_tif(
         tmp_path / "reference.tif",
-        np.array([[1, 1], [1, 1]], dtype=np.uint8),
+        np.array([[1, 1], [1, 0 if coastal else 1]], dtype=np.uint8),
         nodata=0,
     )
     recharge = write_tif(
@@ -244,6 +255,75 @@ def test_raster_custom_polygon_returns_real_area_and_overlap_metrics(tmp_path: P
     assert metadata["matched_cell_count"] == 2
     assert metadata["processed_cell_count"] == 4
     assert metadata["metric_source"] == "colombia-raster-geometry-mask-v1"
+
+
+@pytest.mark.parametrize(
+    ("case", "coastal", "geometry", "expected_national_contribution"),
+    [
+        ("inland", False, POLYGON_LEFT_COLUMN, 50.0),
+        ("coastal", True, POLYGON_RIGHT_COLUMN, 100.0 / 3.0),
+    ],
+)
+def test_custom_polygon_api_reports_aoi_as_full_region(
+    case: str,
+    coastal: bool,
+    geometry: dict,
+    expected_national_contribution: float,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifact_dir = tmp_path / case
+    artifact_dir.mkdir()
+    artifact = raster_artifact(artifact_dir, coastal=coastal)
+    state = ArtifactState(
+        required=True,
+        available=True,
+        manifest_path="test-manifest.json",
+        artifact_version="test-raster",
+        message="ready",
+    )
+    monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
+    monkeypatch.setattr(main_module, "get_runtime_artifact", lambda settings: artifact)
+
+    response = TestClient(app).post(
+        "/metrics/custom-polygon",
+        json={
+            "geometry": geometry,
+            "metrics": [
+                "priority_area_pct_of_region",
+                "national_contribution",
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    metrics = response.json()["metrics"]
+    assert metrics["priority_area_pct_of_region"] == pytest.approx(100.0)
+    assert metrics["national_contribution"] == pytest.approx(
+        expected_national_contribution
+    )
+    assert metrics["national_contribution"] < metrics["priority_area_pct_of_region"]
+
+
+def test_custom_aoi_percent_is_unavailable_without_valid_in_domain_cells(
+    tmp_path: Path,
+) -> None:
+    metrics, metadata = calculate_custom_polygon_metrics(
+        raster_artifact(tmp_path),
+        POLYGON_OUTSIDE_GRID,
+        ["priority_area_pct_of_region", "national_contribution"],
+    )
+
+    assert metrics == {
+        "priority_area_pct_of_region": None,
+        "national_contribution": 0.0,
+    }
+    assert metadata["metric_coverage"]["unavailable"] == [
+        {
+            "metric_id": "priority_area_pct_of_region",
+            "reason": "aoi_has_no_valid_cells",
+        }
+    ]
 
 
 def test_raster_custom_polygon_uses_weighted_carbon_calculators(tmp_path: Path) -> None:
@@ -473,6 +553,24 @@ def test_raster_custom_polygon_reports_secured_species_as_unavailable(tmp_path: 
     assert metadata["metric_coverage"]["unavailable"] == [
         {
             "metric_id": "threatened_species_secured",
+            "reason": "requires_species_target_percent",
+        }
+    ]
+
+
+def test_raster_custom_polygon_reports_species_groups_as_target_dependent(
+    tmp_path: Path,
+) -> None:
+    metrics, metadata = calculate_custom_polygon_metrics(
+        raster_artifact_with_species(tmp_path),
+        POLYGON_LEFT_COLUMN,
+        ["species_groups_protected"],
+    )
+
+    assert metrics == {"species_groups_protected": None}
+    assert metadata["metric_coverage"]["unavailable"] == [
+        {
+            "metric_id": "species_groups_protected",
             "reason": "requires_species_target_percent",
         }
     ]

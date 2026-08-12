@@ -18,6 +18,7 @@ import type {
   CustomAoiAreaProfileResponse,
   CustomPolygonMetricsGeometry,
   CustomPolygonMetricsResponse,
+  DetailedSpeciesJobResponse,
   HydratedSpeciesGoalsRecord,
   MecCompactDocument,
   MecCompactV2Document,
@@ -45,7 +46,12 @@ describe('PanelSwitcherComponent', () => {
   let mockData: MockDataService;
   let apiServiceSpy: Pick<
     ApiService,
-    'getSolutionMetrics' | 'getCustomPolygonMetrics' | 'getCustomAoiAreaProfile'
+    | 'getSolutionMetrics'
+    | 'getCustomPolygonMetrics'
+    | 'getCustomAoiAreaProfile'
+    | 'createDetailedSpeciesCoverageJob'
+    | 'getDetailedSpeciesCoverageJob'
+    | 'cancelDetailedSpeciesCoverageJob'
   >;
   let mecMetricsLoaderSpy: Pick<MecMetricsLoaderService, 'loadMecMetrics'>;
   let speciesGoalsLoaderSpy: Pick<SpeciesGoalsLoaderService, 'load'>;
@@ -73,6 +79,9 @@ describe('PanelSwitcherComponent', () => {
         );
       }),
       getCustomPolygonMetrics: vi.fn(),
+      createDetailedSpeciesCoverageJob: vi.fn(() => of(buildDetailedSpeciesJob('complete'))),
+      getDetailedSpeciesCoverageJob: vi.fn(() => of(buildDetailedSpeciesJob('complete'))),
+      cancelDetailedSpeciesCoverageJob: vi.fn(() => of(buildDetailedSpeciesJob('cancelled'))),
       getCustomAoiAreaProfile: vi.fn((request) =>
         of({
           format: 'custom-aoi-area-profile-v1' as const,
@@ -179,11 +188,17 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-welcome-hero-card')).toBeNull();
   });
 
-  it('keeps custom polygon species coverage explicitly disabled', async () => {
+  it('opens detailed species coverage for a custom AOI with a land solution', async () => {
+    const solution = buildTestSolution();
+    const geometry = buildTestGeometry();
+    appState.activeSolution$.set({
+      ...solution,
+      metadata: { ...solution.metadata, domain: 'land' },
+    });
     vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
       of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
     );
-    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
     appState.setRightSidebarMode('aoi');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
@@ -197,15 +212,159 @@ describe('PanelSwitcherComponent', () => {
       '#aoi-biodiversity-open-species-inventory-button',
     ) as HTMLButtonElement;
     expect(openButton).not.toBeNull();
-    expect(openButton.disabled).toBe(true);
-    expect(openButton.title).toContain('customSpeciesUnavailable');
+    expect(openButton.disabled).toBe(false);
+    expect(openButton.getAttribute('aria-controls')).toBe('custom-aoi-species-inventory-modal');
     openButton.click();
     fixture.detectChanges();
-    expect(openButton.getAttribute('aria-expanded')).toBe('false');
-    expect(compiled.querySelector('#custom-aoi-species-inventory-modal')).toBeNull();
+    expect(openButton.getAttribute('aria-expanded')).toBe('true');
+    expect(compiled.querySelector('#custom-aoi-species-inventory-modal')).not.toBeNull();
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
+      geometry,
+      solution_id: solution.id,
+    });
     expect(compiled.querySelector('#aoi-dashboard-area-unit-toggle')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-general')).not.toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-download-metrics-csv-btn')).not.toBeNull();
+  });
+
+  it('resets custom modal state across custom, fixed, and custom AOI changes', async () => {
+    const solution = buildTestSolution();
+    appState.activeSolution$.set({
+      ...solution,
+      metadata: { ...solution.metadata, domain: 'land' },
+    });
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(
+      of(buildDetailedSpeciesJob('queued')),
+    );
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'First custom AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#aoi-biodiversity-open-species-inventory-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement
+        .querySelector('#aoi-biodiversity-open-species-inventory-button')
+        ?.getAttribute('aria-expanded'),
+    ).toBe('true');
+
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#custom-aoi-species-inventory-modal')).toBeNull();
+    expect(
+      fixture.nativeElement
+        .querySelector('#aoi-biodiversity-open-species-inventory-button')
+        ?.getAttribute('aria-expanded'),
+    ).toBe('false');
+    expect(apiServiceSpy.cancelDetailedSpeciesCoverageJob).toHaveBeenCalledWith(
+      'panel-species-job',
+    );
+
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Second custom AOI', areaKm2: 12 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#custom-aoi-species-inventory-modal')).toBeNull();
+    expect(
+      fixture.nativeElement
+        .querySelector('#aoi-biodiversity-open-species-inventory-button')
+        ?.getAttribute('aria-expanded'),
+    ).toBe('false');
+  });
+
+  it('keeps custom species coverage unavailable without a solution', async () => {
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      '#aoi-biodiversity-open-species-inventory-button',
+    ) as HTMLButtonElement;
+
+    expect(button.disabled).toBe(true);
+    expect(button.hasAttribute('title')).toBe(false);
+    expect(button.getAttribute('aria-describedby')).toBe(
+      'aoi-biodiversity-species-inventory-unavailable-help',
+    );
+    expect(
+      fixture.nativeElement.querySelector('#aoi-biodiversity-species-inventory-unavailable-help')
+        ?.textContent,
+    ).toContain('inventoryUnavailableSolution');
+    button.click();
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+  });
+
+  it('keeps custom species coverage unavailable without valid geometry', async () => {
+    const solution = buildTestSolution();
+    appState.activeSolution$.set({
+      ...solution,
+      metadata: { ...solution.metadata, domain: 'land' },
+    });
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.customAOIGeometry$.set(null);
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      '#aoi-biodiversity-open-species-inventory-button',
+    ) as HTMLButtonElement;
+
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-describedby')).toBe(
+      'aoi-biodiversity-species-inventory-unavailable-help',
+    );
+    expect(
+      fixture.nativeElement.querySelector('#aoi-biodiversity-species-inventory-unavailable-help')
+        ?.textContent,
+    ).toContain('inventoryUnavailableGeometry');
+    button.click();
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+  });
+
+  it('does not offer detailed custom species coverage for marine solutions', async () => {
+    const solution = buildTestSolution();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'marine',
+    } as CatalogSolution);
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Marine AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector(
+      '#aoi-biodiversity-open-species-inventory-button',
+    ) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-describedby')).toBe(
+      'aoi-biodiversity-species-inventory-unavailable-help',
+    );
+    expect(
+      fixture.nativeElement.querySelector('#aoi-biodiversity-species-inventory-unavailable-help')
+        ?.textContent,
+    ).toContain('inventoryUnavailableMarine');
+    button.click();
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
   });
 
   it('normalizes prefixed municipality IDs before sidecar hydration', async () => {
@@ -2373,6 +2532,29 @@ function buildTestSolution(): Solution {
     matchPercentage: 80,
     geometryUrl: '/geometry/test-solution.geojson',
     metrics: [],
+  };
+}
+
+function buildDetailedSpeciesJob(
+  status: DetailedSpeciesJobResponse['status'],
+): DetailedSpeciesJobResponse {
+  return {
+    job_id: 'panel-species-job',
+    status,
+    queue_position: null,
+    estimated_wait_seconds: null,
+    compute_ms: status === 'complete' ? 10 : null,
+    result:
+      status === 'complete'
+        ? {
+            artifact_version: 'test',
+            solution_id: 'test-solution',
+            solution_raster_checksum: 'checksum',
+            records: [],
+          }
+        : null,
+    error_code: null,
+    coalesced: false,
   };
 }
 

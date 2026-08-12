@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+import sqlite3
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Callable
@@ -96,6 +97,19 @@ def ready() -> ReadinessResponse:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=ReadinessResponse(status="not_ready", artifact_state=state).model_dump(),
+        )
+
+    unavailable_reason = _detailed_species_unavailable_reason()
+    if unavailable_reason is not None:
+        detail = ReadinessResponse(
+            status="not_ready",
+            artifact_state=state,
+        ).model_dump()
+        detail["detailed_species_status"] = unavailable_reason
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=detail,
+            headers={"Retry-After": "10"},
         )
 
     return ReadinessResponse(status="ready", artifact_state=state)
@@ -321,6 +335,10 @@ def create_detailed_species_job(
             },
             headers={"Retry-After": "10"},
         ) from exc
+    except sqlite3.OperationalError as exc:
+        raise _detailed_species_unavailable_exception(
+            "queue_storage_unavailable"
+        ) from exc
     if snapshot.status == "complete":
         response.status_code = status.HTTP_200_OK
     return _job_response(snapshot, coalesced=coalesced)
@@ -335,6 +353,10 @@ def get_detailed_species_job(job_id: str) -> DetailedSpeciesJobResponse:
         snapshot = _require_detailed_species_queue().get(job_id)
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
+    except sqlite3.OperationalError as exc:
+        raise _detailed_species_unavailable_exception(
+            "queue_storage_unavailable"
+        ) from exc
     return _job_response(snapshot)
 
 
@@ -347,6 +369,10 @@ def cancel_detailed_species_job(job_id: str) -> DetailedSpeciesJobResponse:
         snapshot = _require_detailed_species_queue().cancel(job_id)
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
+    except sqlite3.OperationalError as exc:
+        raise _detailed_species_unavailable_exception(
+            "queue_storage_unavailable"
+        ) from exc
     return _job_response(snapshot)
 
 
@@ -365,18 +391,41 @@ def custom_polygon_ops(
         or not secrets.compare_digest(ops_token, expected_token)
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return CustomPolygonOpsResponse(
-        **_require_detailed_species_queue().metrics()
-    )
+    try:
+        metrics = _require_detailed_species_queue().metrics()
+    except sqlite3.OperationalError as exc:
+        raise _detailed_species_unavailable_exception(
+            "queue_storage_unavailable"
+        ) from exc
+    return CustomPolygonOpsResponse(**metrics)
 
 
 def _require_detailed_species_queue() -> DetailedSpeciesJobQueue:
     if _DETAILED_SPECIES_QUEUE is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"status": "worker_unavailable"},
-        )
+        raise _detailed_species_unavailable_exception("worker_unavailable")
+    unavailable_reason = _DETAILED_SPECIES_QUEUE.unavailable_reason()
+    if unavailable_reason is not None:
+        raise _detailed_species_unavailable_exception(unavailable_reason)
     return _DETAILED_SPECIES_QUEUE
+
+
+def _detailed_species_unavailable_reason() -> str | None:
+    if _DETAILED_SPECIES_QUEUE is None:
+        return "worker_unavailable"
+    return _DETAILED_SPECIES_QUEUE.unavailable_reason()
+
+
+def _detailed_species_unavailable_exception(reason: str) -> HTTPException:
+    message = (
+        "Detailed species queue storage is temporarily unavailable."
+        if reason == "queue_storage_unavailable"
+        else "The detailed species worker is unavailable."
+    )
+    return HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={"status": reason, "message": message},
+        headers={"Retry-After": "10"},
+    )
 
 
 def _calculate_detailed_species_coverage(
