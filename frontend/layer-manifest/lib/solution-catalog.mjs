@@ -223,13 +223,14 @@ function hasSpeciesException(catalog) {
 export function validateManifestAgainstCatalog(manifest, catalog) {
   validateSolutionCatalog(catalog);
   const counts = catalogCounts(catalog);
+  const solutionCatalogVersion = manifest.solutionCatalogVersion ?? manifest.catalogVersion;
   assert(
     manifest.releaseId === catalog.releaseId,
     `manifest releaseId must match catalog releaseId "${catalog.releaseId}"`,
   );
   assert(
-    manifest.catalogVersion === catalog.catalogVersion,
-    `manifest catalogVersion must match catalog catalogVersion "${catalog.catalogVersion}"`,
+    solutionCatalogVersion === catalog.catalogVersion,
+    `manifest solutionCatalogVersion must match catalog catalogVersion "${catalog.catalogVersion}"`,
   );
 
   const manifestIds = new Set(manifest.solutions.map((solution) => solution.id));

@@ -118,20 +118,33 @@ npm run generate:layer-manifest -- --catalog ../ruta/solution-catalog.json
 npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json
 ```
 
-El formato admitido es `solution-catalog-v1`; `catalogVersion` usa SemVer y admite versiones pre-1.0 como `0.1.0`. Todas las URLs de métricas de una entrega quedan bajo `releases/{releaseId}/`. La versión `0.1.0` en `frontend/package.json` es la versión SemVer de la aplicación: es independiente de `catalogVersion` y de los contratos existentes de esquema/procedencia de métricas, y no debe usarse para invalidar cachés de métricas.
+El formato admitido es `solution-catalog-v1`. En el manifest de runtime, `catalogVersion` identifica cualquier cambio publicado del catálogo y `solutionCatalogVersion` identifica el catálogo de soluciones ligado a métricas. Una entrega completa inicia ambos con el mismo valor; un parche de capas solo visuales incrementa únicamente `catalogVersion`. Todas las URLs de métricas quedan bajo `releases/{releaseId}/`. La versión de `frontend/package.json` sigue siendo independiente.
+
+Para revisar o publicar un parche de capas de referencia ya registradas en el CSV y Blob:
+
+```bash
+npm run catalog -- status
+npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --dry-run
+npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --yes
+npm run catalog -- add-view-layer --file ../ruta/capa.geojson --dry-run
+```
+
+Sin `--yes`, el comando exige escribir `yes`; esto mantiene una confirmación humana y permite que agentes y CI usen la misma ruta no interactiva. El comando muestra las URLs exactas, incrementa solo PATCH, prueba que `solutions` no cambió, valida que las capas sean `reference_layer` sin métricas y comprueba que los assets sean accesibles. `--remove-layer-id` aplica la misma protección a eliminaciones futuras.
+
+`add-view-layer` acepta un GeoJSON final en EPSG:4326, solicita los metadatos bilingües y de procedencia faltantes, crea las rutas inmutables de Blob y agrega la fila canónica al CSV después de la confirmación. Para ejecución no interactiva, proporcionar `--layer-id`, `--name-es`, `--name-en`, `--description`, `--category`, `--source-org`, `--source-url` y `--yes`. Los shapefiles deben convertirse primero a GeoJSON; el comando los rechaza en vez de asumir silenciosamente un CRS.
 
 Previsualizar y promover una entrega:
 
 ```bash
 npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --dry-run
-npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --confirm-release <releaseId>
+npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --confirm-release <releaseId> --expected-live-sha256 <digest-del-dry-run>
 ```
 
 Cada `--artifact-inventory` debe ser una salida `metric-artifact-verification-v1` de `verify_artifacts.py`. Su `sourceReport` debe apuntar al resumen `publish-report.json` de Python; catálogo, URLs, tamaños y SHA-256 locales/remotos deben coincidir exactamente con el manifest. Antes de promover, el publicador también abre esos mismos archivos locales y exige geografías regulares completas, catálogos compactos referenciables, esquema y filas de features de goals, y catálogos/filas MEC v2 válidos. Como el inventario demuestra que el Blob remoto tiene el mismo SHA-256, esta validación estructural cubre exactamente los bytes publicados. Soluciones terrestres requieren regular verbose/compact, goals y seis artefactos MEC v2; soluciones marinas requieren regular verbose/compact y goals, sin MEC.
 
 El publicador conserva cada revisión (incluidos cambios solo de estilo) en `manifest/releases/{releaseId}/revisions/{sha256}.json`, archiva el puntero remoto actual y promueve la revisión mediante un `put` condicional con el ETag del destino activo. `--dry-run` ejecuta las mismas lecturas y comparaciones remotas, pero omite todas las escrituras. Para rollback, seleccionar un archivo con `--use`, proporcionar su catálogo histórico con `--catalog`, revisar con `--dry-run` y luego repetir con `--confirm-rollback`; los archivos sin identidad de entrega se rechazan.
 
-La operación mantiene el supuesto de un único capitán de entrega. Como defensa adicional, promoción y rollback vuelven a leer la identidad del manifest activo inmediatamente antes de reemplazarlo y usan el ETag del destino como precondición; si cambia, la operación falla y debe reiniciarse. Si el puntero todavía no existe, la creación falla salvo que se añada explícitamente `--confirm-create-first-pointer`; aun así debe existir un solo capitán.
+Las ramas de desarrollo no quedan bloqueadas durante un parche. Cada rama trabaja contra el catálogo activo. Solo la publicación se serializa: el comando vuelve a leer el manifest y usa su ETag; si otra rama publicó primero, falla sin sobrescribir, y la segunda rama debe regenerar su parche contra la nueva versión (por ejemplo, `0.2.1` pasa a `0.2.2`). Si el puntero todavía no existe, la creación falla salvo confirmación explícita.
 
 ## English
 
@@ -251,17 +264,30 @@ npm run generate:layer-manifest -- --catalog ../path/solution-catalog.json
 npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json
 ```
 
-The supported format is `solution-catalog-v1`; `catalogVersion` uses SemVer and supports pre-1.0 versions such as `0.1.0`. Every release metric URL is rooted under `releases/{releaseId}/`, so publishing the manifest atomically switches the complete release. The `0.1.0` version in `frontend/package.json` is application SemVer: it is independent from `catalogVersion` and existing metric schema/provenance contracts, and must not be used to invalidate metric caches.
+The supported solution format is `solution-catalog-v1`. In the runtime manifest, `catalogVersion` identifies every published catalog change, while `solutionCatalogVersion` identifies the metrics-bound solution catalog. A full release initializes both to the same value; a view-only layer patch increments only `catalogVersion`. Every release metric URL remains rooted under `releases/{releaseId}/`. The version in `frontend/package.json` remains independent.
+
+To inspect or publish a patch containing reference layers already registered in the CSV and Blob:
+
+```bash
+npm run catalog -- status
+npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --dry-run
+npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --yes
+npm run catalog -- add-view-layer --file ../path/layer.geojson --dry-run
+```
+
+Without `--yes`, the command requires a typed `yes`; agents and CI can use the same non-interactive path with `--yes`. The command prints exact asset URLs, increments PATCH only, proves that `solutions` is byte-identical, validates the no-metrics `reference_layer` contract, and checks asset reachability. `--remove-layer-id` applies the same safeguards to future removals.
+
+`add-view-layer` accepts a finalized EPSG:4326 GeoJSON, prompts for missing bilingual/provenance metadata, creates immutable Blob paths, and appends the canonical CSV row after confirmation. Non-interactive callers provide `--layer-id`, `--name-es`, `--name-en`, `--description`, `--category`, `--source-org`, `--source-url`, and `--yes`. Convert shapefiles to GeoJSON first; the command rejects them rather than silently guessing their CRS.
 
 Preview and promote a release:
 
 ```bash
 npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --dry-run
-npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --confirm-release <releaseId>
+npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --confirm-release <releaseId> --expected-live-sha256 <digest-from-dry-run>
 ```
 
 Each `--artifact-inventory` must be a `metric-artifact-verification-v1` output from `verify_artifacts.py`. Its `sourceReport` must reference the Python `publish-report.json`; catalog identity, URLs, byte counts, and local/remote SHA-256 values must exactly match the manifest. Before promotion, the publisher also opens those same local files and requires complete regular geographies, referentially valid compact catalogs, goals schema and feature rows, and valid MEC v2 catalogs/rows. Because the inventory proves that the remote Blob has the same SHA-256, this structural check covers the exact published bytes. Land solutions require regular verbose/compact, goals, and all six MEC v2 artifacts; marine solutions require regular verbose/compact and goals, with no MEC.
 
 The publisher preserves every revision (including style-only changes) at `manifest/releases/{releaseId}/revisions/{sha256}.json`, archives the current remote pointer, then promotes the revision with a destination-conditional `put` using the live ETag. `--dry-run` performs the same remote reads and comparisons but skips every write. For rollback, select an archive with `--use`, provide its historical catalog with `--catalog`, review with `--dry-run`, then repeat with `--confirm-rollback`; archives without release identity are rejected.
 
-Operations retain the single-release-captain assumption. Promotion and rollback re-read the live manifest immediately before replacement and use the destination ETag as a precondition; if it changed, the operation fails and must be restarted. If the pointer does not exist yet, creation fails unless `--confirm-create-first-pointer` is explicitly supplied, and a single captain is still required.
+Development branches are not blocked while a patch is prepared. Each branch works against the live catalog; only publication is serialized. The command re-reads the live manifest and uses its ETag as a precondition. If another branch publishes first, the second operation fails without overwriting and must regenerate against the new version (for example, `0.2.1` becomes `0.2.2`). First-pointer creation still requires explicit confirmation.

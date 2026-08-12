@@ -37,6 +37,19 @@ describe('release promotion tooling', () => {
     assert.match(args.catalogPath, /solution-catalog\.json$/);
     assert.equal(args.artifactInventoryPaths.length, 2);
     assert.equal(args.confirmReleaseId, null);
+    assert.equal(args.expectedLiveSha256, null);
+  });
+
+  it('binds confirmed publication to the dry-run live digest', () => {
+    const digest = 'a'.repeat(64);
+    const args = parsePublishArgs([
+      '--confirm-release',
+      'release-one',
+      '--expected-live-sha256',
+      digest,
+    ]);
+    assert.equal(args.confirmReleaseId, 'release-one');
+    assert.equal(args.expectedLiveSha256, digest);
   });
 
   it('creates a distinct immutable snapshot for each manifest revision', () => {

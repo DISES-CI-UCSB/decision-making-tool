@@ -23,6 +23,7 @@
     "publish:solution-cog-manifest": "node ./scripts/data-deploy/publish-solution-cog-manifest.mjs",
     "generate:layer-manifest": "node ./layer-manifest/generate-manifest.mjs --register-solution-prefix solutions/marine/ && node ./layer-manifest/sync-latest-manifest.mjs",
     "generate:release-layer-manifest": "node ./layer-manifest/build-release-manifest.mjs",
+    "catalog": "node ./layer-manifest/catalog.mjs",
     "sync:latest-layer-manifest": "node ./layer-manifest/sync-latest-manifest.mjs",
     "validate:layer-manifest": "node ./layer-manifest/validate-manifest.mjs",
     "validate:layer-manifest:example": "node ./layer-manifest/validate-manifest.mjs ./layer-manifest/manifest.example.json",

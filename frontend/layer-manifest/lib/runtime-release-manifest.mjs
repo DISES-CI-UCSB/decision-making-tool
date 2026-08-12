@@ -98,11 +98,7 @@ export function compactRuntimeLayer(layer, { backedMetadataUrls = null } = {}) {
   compact.roleInMetricCalculation = 'none';
   compact.compressedDataForLiveMetricsUrl = null;
   compact.precomputedMetricUrls = {};
-  if (
-    backedMetadataUrls &&
-    compact.metadataUrl &&
-    !backedMetadataUrls.has(compact.metadataUrl)
-  ) {
+  if (backedMetadataUrls && compact.metadataUrl && !backedMetadataUrls.has(compact.metadataUrl)) {
     compact.metadataUrl = null;
   }
   return compact;
@@ -152,6 +148,7 @@ export function buildRuntimeReleaseManifest({
     sourceCsv: baseManifest.sourceCsv,
     releaseId: catalog.releaseId,
     catalogVersion: catalog.catalogVersion,
+    solutionCatalogVersion: catalog.catalogVersion,
     solutionDataProfile: RUNTIME_COMPACT_SOLUTION_PROFILE,
     categories: structuredClone(baseManifest.categories),
     layers: baseManifest.layers.map((layer) =>

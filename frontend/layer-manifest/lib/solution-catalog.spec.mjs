@@ -124,10 +124,7 @@ describe('solution catalog contract', () => {
   });
 
   it('matches the canonical Python artifact-safe ID regex', () => {
-    assert.equal(
-      SAFE_SOLUTION_ID_PATTERN.source,
-      String.raw`^[a-z0-9]+(?:[_-][a-z0-9]+)*$`,
-    );
+    assert.equal(SAFE_SOLUTION_ID_PATTERN.source, String.raw`^[a-z0-9]+(?:[_-][a-z0-9]+)*$`);
     assert.doesNotThrow(() =>
       assertArtifactSafeSolutionIds(['fixture', 'fixture-land', 'fixture_land2']),
     );
@@ -161,6 +158,16 @@ describe('solution catalog contract', () => {
     };
 
     assert.doesNotThrow(() => validateManifestAgainstCatalog(manifest, catalog));
+    assert.doesNotThrow(() =>
+      validateManifestAgainstCatalog(
+        {
+          ...manifest,
+          catalogVersion: '0.1.1',
+          solutionCatalogVersion: catalog.catalogVersion,
+        },
+        catalog,
+      ),
+    );
     assert.throws(
       () =>
         validateManifestAgainstCatalog(

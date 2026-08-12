@@ -39,6 +39,7 @@ export function parseArgs(rawArgs) {
     catalogPath: null,
     artifactInventoryPaths: [],
     confirmReleaseId: null,
+    expectedLiveSha256: null,
     confirmCreateFirstPointer: false,
     dryRun: false,
     help: false,
@@ -88,6 +89,15 @@ export function parseArgs(rawArgs) {
       index += 1;
       continue;
     }
+    if (value === '--expected-live-sha256') {
+      const digest = rawArgs[index + 1];
+      if (!/^[a-f0-9]{64}$/.test(digest ?? '')) {
+        throw new Error('--expected-live-sha256 requires a lowercase SHA-256 digest');
+      }
+      args.expectedLiveSha256 = digest;
+      index += 1;
+      continue;
+    }
     if (value === '--confirm-create-first-pointer') {
       args.confirmCreateFirstPointer = true;
       continue;
@@ -106,7 +116,7 @@ function printUsage() {
     '  npm --prefix frontend run publish:layer-manifest -- --source <manifest> --catalog <catalog> --artifact-inventory <verification.json> [--artifact-inventory <verification.json> ...] --dry-run',
   );
   console.log(
-    '  npm --prefix frontend run publish:layer-manifest -- --source <manifest> --catalog <catalog> --artifact-inventory <verification.json> [--artifact-inventory <verification.json> ...] --confirm-release <releaseId>',
+    '  npm --prefix frontend run publish:layer-manifest -- --source <manifest> --catalog <catalog> --artifact-inventory <verification.json> [--artifact-inventory <verification.json> ...] --confirm-release <releaseId> --expected-live-sha256 <dry-run digest>',
   );
 }
 
@@ -126,7 +136,7 @@ async function listBlobByPrefix(token, prefix, limit = 10) {
   return parseBlobListOutput(`${stdout}\n${stderr}`);
 }
 
-async function putLiveManifest(token, contents, pathname, destinationEtag) {
+export async function putLiveManifest(token, contents, pathname, destinationEtag) {
   const { put } = await import('@vercel/blob');
   return put(pathname, contents, {
     ...createLiveWriteOptions(destinationEtag),
@@ -152,7 +162,7 @@ export function assertFirstPointerCreationConfirmed(currentManifest, confirmed) 
   }
 }
 
-async function putImmutableBlob(token, contents, pathnameToUpload) {
+export async function putImmutableBlob(token, contents, pathnameToUpload) {
   const { put } = await import('@vercel/blob');
   return put(pathnameToUpload, contents, {
     access: 'public',
@@ -163,7 +173,7 @@ async function putImmutableBlob(token, contents, pathnameToUpload) {
   });
 }
 
-function toArchivePathname(archivePrefix, timestampIso) {
+export function toArchivePathname(archivePrefix, timestampIso) {
   const safePrefix = archivePrefix.endsWith('/') ? archivePrefix : `${archivePrefix}/`;
   return `${safePrefix}manifest.${timestampIso.replace(/[:.]/g, '-')}.json`;
 }
@@ -181,21 +191,50 @@ export function toImmutableManifestPathname(releaseId, contents) {
 }
 
 export function assertLiveManifestUnchanged(expected, observed) {
-  const expectedIdentity = expected ? `${expected.pathname}:${expected.contentSha256}` : 'missing';
-  const observedIdentity = observed ? `${observed.pathname}:${observed.contentSha256}` : 'missing';
+  const useEtag = expected?.etag && observed?.etag;
+  const expectedIdentity = expected
+    ? `${expected.pathname}:${useEtag ? expected.etag : expected.contentSha256}`
+    : 'missing';
+  const observedIdentity = observed
+    ? `${observed.pathname}:${useEtag ? observed.etag : observed.contentSha256}`
+    : 'missing';
   if (expectedIdentity !== observedIdentity) {
     throw new Error('live manifest changed during promotion; retry from a fresh dry run');
   }
 }
 
-async function fetchBlobIdentity(blob) {
+async function fetchBlobIdentity(blob, token = null) {
   if (!blob) return null;
   const separator = blob.url.includes('?') ? '&' : '?';
-  const response = await fetch(`${blob.url}${separator}verify=${Date.now()}-${Math.random()}`, {
-    method: 'GET',
-    redirect: 'follow',
-    cache: 'no-store',
-  });
+  let response;
+  try {
+    response = await fetchWithRetry(
+      `${blob.url}${separator}verify=${Date.now()}-${Math.random()}`,
+      {
+        method: 'GET',
+        redirect: 'follow',
+        cache: 'no-store',
+      },
+    );
+  } catch (error) {
+    if (!token) throw error;
+    const { get } = await import('@vercel/blob');
+    const result = await get(blob.pathname, { access: 'public', token });
+    if (!result) {
+      throw new Error(`failed to read ${blob.pathname}: blob not found`);
+    }
+    const contents = await new Response(result.stream).text();
+    const etag = result.headers.get('etag');
+    if (!etag) {
+      throw new Error(`failed to obtain an ETag concurrency guard for ${blob.pathname}`);
+    }
+    return {
+      ...blob,
+      contents,
+      contentSha256: createManifestRevisionId(contents),
+      etag,
+    };
+  }
   if (!response.ok) {
     throw new Error(`failed to read ${blob.pathname}: HTTP ${response.status}`);
   }
@@ -212,34 +251,155 @@ async function fetchBlobIdentity(blob) {
   };
 }
 
-async function readLiveManifestIdentity(token, targetPathname) {
+async function fetchWithRetry(url, options, attempts = 10) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fetch(url, options);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      }
+    }
+  }
+  throw lastError;
+}
+
+export async function readLiveManifestIdentity(token, targetPathname) {
   const matches = await listBlobByPrefix(token, targetPathname, 5);
   const blob = matches.find((entry) => entry.pathname === targetPathname) ?? null;
-  return fetchBlobIdentity(blob);
+  if (!blob) return null;
+  const beforeDownload = await readLiveManifestHeadIdentity(token, targetPathname);
+  const identity = await fetchBlobIdentity(blob, token);
+  const afterDownload = await readLiveManifestHeadIdentity(token, targetPathname);
+  assertLiveManifestUnchanged(beforeDownload, afterDownload);
+  return {
+    ...identity,
+    etag: afterDownload.etag,
+    size: afterDownload.size,
+    uploadedAt: afterDownload.uploadedAt,
+  };
+}
+
+export async function readLiveManifestHeadIdentity(token, targetPathname) {
+  const { head } = await import('@vercel/blob');
+  try {
+    const blob = await head(targetPathname, { token });
+    return {
+      pathname: blob.pathname,
+      etag: blob.etag,
+      size: blob.size,
+      uploadedAt: blob.uploadedAt,
+    };
+  } catch (error) {
+    if (error?.name === 'BlobNotFoundError' || error?.status === 404 || error?.statusCode === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function inspectPromotionRemoteState(
-  { token, targetPathname, immutablePathname, sourceContents },
+  { token, targetPathname, immutablePathname, sourceContents, baselineLiveManifest = null },
   operations = {},
 ) {
   const readLive = operations.readLiveManifestIdentity ?? readLiveManifestIdentity;
+  const readLiveHead = operations.readLiveManifestHeadIdentity ?? readLiveManifestHeadIdentity;
   const listBlobs = operations.listBlobByPrefix ?? listBlobByPrefix;
   const fetchIdentity = operations.fetchBlobIdentity ?? fetchBlobIdentity;
-  const currentRemoteManifest = await readLive(token, targetPathname);
+  const currentRemoteManifest = baselineLiveManifest ?? (await readLive(token, targetPathname));
   const immutableMatches = await listBlobs(token, immutablePathname, 5);
   const immutableManifest =
     immutableMatches.find((blob) => blob.pathname === immutablePathname) ?? null;
   if (immutableManifest) {
-    const immutableIdentity = await fetchIdentity(immutableManifest);
+    const immutableIdentity = await fetchIdentity(immutableManifest, token);
     if (immutableIdentity.contents !== sourceContents) {
       throw new Error(
         `immutable release manifest already exists with different content: ${immutablePathname}`,
       );
     }
   }
-  const checkedLiveManifest = await readLive(token, targetPathname);
+  const checkedLiveManifest = baselineLiveManifest
+    ? await readLiveHead(token, targetPathname)
+    : await readLive(token, targetPathname);
   assertLiveManifestUnchanged(currentRemoteManifest, checkedLiveManifest);
   return { currentRemoteManifest, immutableManifest };
+}
+
+export async function publishManifestRevision({
+  token,
+  sourceContents,
+  releaseId,
+  targetPathname = DEFAULT_TARGET_PATHNAME,
+  archivePrefix = DEFAULT_ARCHIVE_PREFIX,
+  expectedLiveManifest = null,
+  dryRun = false,
+  confirmCreateFirstPointer = false,
+}) {
+  const immutablePathname = toImmutableManifestPathname(releaseId, sourceContents);
+  const { currentRemoteManifest, immutableManifest: existingImmutableManifest } =
+    await inspectPromotionRemoteState({
+      token,
+      targetPathname,
+      immutablePathname,
+      sourceContents,
+      baselineLiveManifest:
+        expectedLiveManifest?.contents && expectedLiveManifest?.etag ? expectedLiveManifest : null,
+    });
+  if (expectedLiveManifest) {
+    assertLiveManifestUnchanged(expectedLiveManifest, currentRemoteManifest);
+  }
+
+  let immutableManifest = existingImmutableManifest;
+  if (dryRun) {
+    if (!currentRemoteManifest) {
+      console.log(
+        '[publish:layer-manifest] dry run: live pointer is absent; creation requires one release captain and --confirm-create-first-pointer',
+      );
+    }
+    console.log(
+      `[publish:layer-manifest] dry run: remote checks passed; would preserve ${immutablePathname}, archive ${targetPathname}, and atomically promote the immutable revision`,
+    );
+    return { currentRemoteManifest, immutablePathname };
+  }
+  assertFirstPointerCreationConfirmed(currentRemoteManifest, confirmCreateFirstPointer);
+
+  if (immutableManifest) {
+    console.log(`[publish:layer-manifest] reusing immutable manifest ${immutablePathname}`);
+  } else {
+    immutableManifest = await putImmutableBlob(token, sourceContents, immutablePathname);
+    console.log(`[publish:layer-manifest] preserved immutable manifest ${immutablePathname}`);
+  }
+
+  if (currentRemoteManifest) {
+    const archivePathname = toArchivePathname(archivePrefix, new Date().toISOString());
+    const archivedManifest = await putImmutableBlob(
+      token,
+      currentRemoteManifest.contents,
+      archivePathname,
+    );
+    console.log(`[publish:layer-manifest] archived previous manifest to ${archivePathname}`);
+    if (archivedManifest.url) {
+      console.log(`[publish:layer-manifest] archive URL: ${archivedManifest.url}`);
+    }
+  } else {
+    console.log('[publish:layer-manifest] no previous remote manifest found to archive');
+  }
+
+  const liveImmediatelyBeforePromotion = await readLiveManifestHeadIdentity(token, targetPathname);
+  assertLiveManifestUnchanged(currentRemoteManifest, liveImmediatelyBeforePromotion);
+  const promotedManifest = await putLiveManifest(
+    token,
+    sourceContents,
+    targetPathname,
+    currentRemoteManifest?.etag,
+  );
+  console.log(`[publish:layer-manifest] atomically promoted release to ${targetPathname}`);
+  if (promotedManifest.url) {
+    console.log(`[publish:layer-manifest] manifest URL: ${promotedManifest.url}`);
+  }
+  return { currentRemoteManifest, immutablePathname, promotedManifest };
 }
 
 export async function main(rawArgs = process.argv.slice(2)) {
@@ -271,6 +431,11 @@ export async function main(rawArgs = process.argv.slice(2)) {
       `publishing release "${manifest.releaseId}" requires --confirm-release ${manifest.releaseId}`,
     );
   }
+  if (!args.dryRun && !args.expectedLiveSha256 && !args.confirmCreateFirstPointer) {
+    throw new Error(
+      'publishing requires --expected-live-sha256 from the immediately preceding dry run',
+    );
+  }
   console.log(
     `[publish:layer-manifest] validated release ${manifest.releaseId} (catalog ${manifest.catalogVersion})`,
   );
@@ -279,61 +444,25 @@ export async function main(rawArgs = process.argv.slice(2)) {
     throw new Error(`${BLOB_TOKEN_ENV_VAR} is required`);
   }
 
-  const immutablePathname = toImmutableManifestPathname(manifest.releaseId, sourceContents);
-  const { currentRemoteManifest, immutableManifest: existingImmutableManifest } =
-    await inspectPromotionRemoteState({
-      token,
-      targetPathname: args.targetPathname,
-      immutablePathname,
-      sourceContents,
-    });
-  let immutableManifest = existingImmutableManifest;
-  if (args.dryRun) {
-    if (!currentRemoteManifest) {
-      console.log(
-        '[publish:layer-manifest] dry run: live pointer is absent; creation requires one release captain and --confirm-create-first-pointer',
-      );
-    }
-    console.log(
-      `[publish:layer-manifest] dry run: remote checks passed; would preserve ${immutablePathname}, archive ${args.targetPathname}, and atomically promote the immutable revision`,
-    );
-    return;
-  }
-  assertFirstPointerCreationConfirmed(currentRemoteManifest, args.confirmCreateFirstPointer);
-
-  if (immutableManifest) {
-    console.log(`[publish:layer-manifest] reusing immutable manifest ${immutablePathname}`);
-  } else {
-    immutableManifest = await putImmutableBlob(token, sourceContents, immutablePathname);
-    console.log(`[publish:layer-manifest] preserved immutable manifest ${immutablePathname}`);
-  }
-
-  if (currentRemoteManifest) {
-    const archivePathname = toArchivePathname(args.archivePrefix, new Date().toISOString());
-    const archivedManifest = await putImmutableBlob(
-      token,
-      currentRemoteManifest.contents,
-      archivePathname,
-    );
-    console.log(`[publish:layer-manifest] archived previous manifest to ${archivePathname}`);
-    if (archivedManifest.url) {
-      console.log(`[publish:layer-manifest] archive URL: ${archivedManifest.url}`);
-    }
-  } else if (!currentRemoteManifest) {
-    console.log('[publish:layer-manifest] no previous remote manifest found to archive');
-  }
-
-  const liveImmediatelyBeforePromotion = await readLiveManifestIdentity(token, args.targetPathname);
-  assertLiveManifestUnchanged(currentRemoteManifest, liveImmediatelyBeforePromotion);
-  const promotedManifest = await putLiveManifest(
+  const result = await publishManifestRevision({
     token,
     sourceContents,
-    args.targetPathname,
-    currentRemoteManifest?.etag,
-  );
-  console.log(`[publish:layer-manifest] atomically promoted release to ${args.targetPathname}`);
-  if (promotedManifest.url) {
-    console.log(`[publish:layer-manifest] manifest URL: ${promotedManifest.url}`);
+    releaseId: manifest.releaseId,
+    targetPathname: args.targetPathname,
+    archivePrefix: args.archivePrefix,
+    expectedLiveManifest: args.expectedLiveSha256
+      ? {
+          pathname: args.targetPathname,
+          contentSha256: args.expectedLiveSha256,
+        }
+      : null,
+    dryRun: args.dryRun,
+    confirmCreateFirstPointer: args.confirmCreateFirstPointer,
+  });
+  if (args.dryRun && result.currentRemoteManifest) {
+    console.log(
+      `[publish:layer-manifest] confirm with --expected-live-sha256 ${result.currentRemoteManifest.contentSha256}`,
+    );
   }
 }
 

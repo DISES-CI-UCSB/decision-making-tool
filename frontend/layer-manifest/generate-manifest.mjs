@@ -117,6 +117,16 @@ function getCatalogPath(args) {
   return path.resolve(process.cwd(), value);
 }
 
+function getOutputPath(args) {
+  const index = args.indexOf('--output');
+  if (index < 0) return GENERATED_MANIFEST_PATH;
+  const value = args[index + 1];
+  if (!value || value.startsWith('--')) {
+    throw new Error('--output requires a manifest JSON path');
+  }
+  return path.resolve(process.cwd(), value);
+}
+
 /**
  * Curated per-category palette used to seed brand-new layers and categories.
  * `selectedColor` is the binary-mask default; `startColor`/`endColor` form the
@@ -629,10 +639,7 @@ export function shouldIncludeManifestRow(row) {
     return false;
   }
 
-  return (
-    (isTrue(row.in_use_now) || metricAuditLayerIds.has(layerId)) &&
-    isDisplayCandidate(row)
-  );
+  return (isTrue(row.in_use_now) || metricAuditLayerIds.has(layerId)) && isDisplayCandidate(row);
 }
 
 async function listBlobPrefix(prefix, limit = 1000) {
@@ -2477,6 +2484,8 @@ async function main() {
   const registeredSolutionBlobPrefixes = getRegisteredSolutionBlobPrefixes(cliArgs);
   const requestedReleaseId = getReleaseId(cliArgs);
   const catalogPath = getCatalogPath(cliArgs);
+  const outputPath = getOutputPath(cliArgs);
+  const writesReports = outputPath === GENERATED_MANIFEST_PATH;
   if (requestedReleaseId && !catalogPath) {
     throw new Error('release generation requires an explicit --catalog <path> catalog');
   }
@@ -2495,8 +2504,13 @@ async function main() {
   const solutionBlobInventory = await readSolutionBlobInventory();
   const blobByPath = new Map(blobInventory.map((blob) => [blob.pathname, blob]));
   const publishedManifestIndex = await loadPublishedManifest();
-  const localManifestIndex = await loadExistingManifest(GENERATED_MANIFEST_PATH);
-  const existingManifestIndex = publishedManifestIndex ?? localManifestIndex;
+  const outputManifestIndex = await loadExistingManifest(outputPath);
+  const canonicalLocalManifestIndex =
+    outputPath === GENERATED_MANIFEST_PATH
+      ? outputManifestIndex
+      : await loadExistingManifest(GENERATED_MANIFEST_PATH);
+  const existingManifestIndex =
+    publishedManifestIndex ?? outputManifestIndex ?? canonicalLocalManifestIndex;
   const speciesTaxa = await fetchSpeciesTaxa();
   const layerEntries = await Promise.all(
     includedRows.map((row) => createLayerEntry(row, blobByPath, existingManifestIndex)),
@@ -2547,6 +2561,7 @@ async function main() {
       {
         releaseId,
         catalogVersion: releaseCatalog.catalogVersion,
+        solutionCatalogVersion: releaseCatalog.catalogVersion,
         solutions,
       },
       releaseCatalog,
@@ -2605,7 +2620,12 @@ async function main() {
     generatedAt: GENERATED_AT,
     publicBlobHost: PUBLIC_BLOB_HOST,
     ...(releaseId ? { releaseId } : {}),
-    ...(releaseCatalog ? { catalogVersion: releaseCatalog.catalogVersion } : {}),
+    ...(releaseCatalog
+      ? {
+          catalogVersion: releaseCatalog.catalogVersion,
+          solutionCatalogVersion: releaseCatalog.catalogVersion,
+        }
+      : {}),
     sourceCsv: path.relative(repoRoot, REQUIRED_LAYERS_CSV),
     categories,
     layers,
@@ -2623,32 +2643,36 @@ async function main() {
   };
 
   const nextManifestJson = `${JSON.stringify(manifest, null, 2)}\n`;
-  const archivedManifestPath = await archiveExistingManifestIfChanged(nextManifestJson);
+  const archivedManifestPath = writesReports
+    ? await archiveExistingManifestIfChanged(nextManifestJson)
+    : null;
 
-  await writeJson(GENERATED_MANIFEST_PATH, manifest);
-  await writeJson(CATEGORY_MAPPING_REPORT_PATH, categoryMappingReport);
-  await writeJson(REPORT_PATH, report);
-  await writeJson(SOLUTION_RECONCILIATION_REPORT_PATH, solutionCatalogReport);
-  await writeText(CATEGORY_REVIEW_CSV_PATH, toCsv(createCategoryReviewRows(rows)));
+  await writeJson(outputPath, manifest);
+  if (writesReports) {
+    await writeJson(CATEGORY_MAPPING_REPORT_PATH, categoryMappingReport);
+    await writeJson(REPORT_PATH, report);
+    await writeJson(SOLUTION_RECONCILIATION_REPORT_PATH, solutionCatalogReport);
+    await writeText(CATEGORY_REVIEW_CSV_PATH, toCsv(createCategoryReviewRows(rows)));
+  }
 
-  console.log(
-    `[generate:layer-manifest] wrote ${path.relative(repoRoot, GENERATED_MANIFEST_PATH)}`,
-  );
+  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, outputPath)}`);
   if (archivedManifestPath) {
     console.log(
       `[generate:layer-manifest] archived ${path.relative(repoRoot, archivedManifestPath)}`,
     );
   }
-  console.log(
-    `[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH)}`,
-  );
-  console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, REPORT_PATH)}`);
-  console.log(
-    `[generate:layer-manifest] wrote ${path.relative(repoRoot, SOLUTION_RECONCILIATION_REPORT_PATH)}`,
-  );
-  console.log(
-    `[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_REVIEW_CSV_PATH)}`,
-  );
+  if (writesReports) {
+    console.log(
+      `[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_MAPPING_REPORT_PATH)}`,
+    );
+    console.log(`[generate:layer-manifest] wrote ${path.relative(repoRoot, REPORT_PATH)}`);
+    console.log(
+      `[generate:layer-manifest] wrote ${path.relative(repoRoot, SOLUTION_RECONCILIATION_REPORT_PATH)}`,
+    );
+    console.log(
+      `[generate:layer-manifest] wrote ${path.relative(repoRoot, CATEGORY_REVIEW_CSV_PATH)}`,
+    );
+  }
   console.log(
     `[generate:layer-manifest] ${layers.length} layer(s), ${solutions.length} solution(s), ${report.counts.missingRequired} missing required, ${report.counts.extraAvailable} extra available`,
   );
