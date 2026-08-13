@@ -50,6 +50,7 @@ export function createSolutionPrecomputedMetricUrls(
 
   const releaseId = options.releaseId ?? null;
   const releaseRoot = releaseId ? `${RELEASE_CONTRACT.prefixRoot}/${releaseId}` : null;
+  const releaseArtifactBaseUrl = options.releaseArtifactBaseUrl ?? PUBLIC_BLOB_HOST;
   const goalsDirectory = releaseRoot
     ? `${releaseRoot}/${RELEASE_CONTRACT.goalsCurrentDirectory}`
     : SOLUTION_GOALS_BLOB_DIRECTORY;
@@ -67,24 +68,38 @@ export function createSolutionPrecomputedMetricUrls(
           safeSolutionId,
           releaseRoot,
           options.speciesGoalsBaseUrl ?? PUBLIC_BLOB_HOST,
+          { includeTargetOverlay: options.includeSpeciesGoalsTargetOverlay !== false },
         )
       : null;
 
   return {
     ...preservedUrls,
-    goals: `${PUBLIC_BLOB_HOST}/${goalsDirectory}/${safeSolutionId}.goals.json`,
+    goals: artifactUrl(
+      releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
+      `${goalsDirectory}/${safeSolutionId}.goals.json`,
+    ),
     ...(releaseRoot
       ? {
-          cache: `${PUBLIC_BLOB_HOST}/${releaseRoot}/${RELEASE_CONTRACT.regularVerboseDirectory}/${safeSolutionId}.metrics.json`,
+          cache: artifactUrl(
+            releaseArtifactBaseUrl,
+            `${releaseRoot}/${RELEASE_CONTRACT.regularVerboseDirectory}/${safeSolutionId}.metrics.json`,
+          ),
         }
       : {}),
-    compactCache: `${PUBLIC_BLOB_HOST}/${compactDirectory}/${safeSolutionId}.metrics.compact.json`,
+    compactCache: artifactUrl(
+      releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
+      `${compactDirectory}/${safeSolutionId}.metrics.compact.json`,
+    ),
     ...(domain === 'land'
       ? {
           ...(!releaseRoot
             ? { mecByGeography: createMecUrls(safeSolutionId, SOLUTION_MEC_CACHE_BLOB_DIRECTORY) }
             : {}),
-          mecV2ByGeography: createMecUrls(safeSolutionId, mecV2Directory),
+          mecV2ByGeography: createMecUrls(
+            safeSolutionId,
+            mecV2Directory,
+            releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
+          ),
           ...(speciesGoalsUrls ?? {}),
         }
       : {}),
@@ -106,15 +121,24 @@ function hasValidatedSpeciesGoalsInventory(inventory, solutionId, releaseId) {
   );
 }
 
-export function createSpeciesGoalsUrls(safeSolutionId, releaseRoot, baseUrl = PUBLIC_BLOB_HOST) {
+export function createSpeciesGoalsUrls(
+  safeSolutionId,
+  releaseRoot,
+  baseUrl = PUBLIC_BLOB_HOST,
+  { includeTargetOverlay = true } = {},
+) {
   const catalogDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCatalogDirectory}`;
   const compactDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCompactDirectory}`;
   return {
     speciesGoalsCatalog: artifactUrl(baseUrl, `${catalogDirectory}/catalog.json`),
-    speciesGoalsTargetOverlay: artifactUrl(
-      baseUrl,
-      `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsTargetOverlayPath}`,
-    ),
+    ...(includeTargetOverlay
+      ? {
+          speciesGoalsTargetOverlay: artifactUrl(
+            baseUrl,
+            `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsTargetOverlayPath}`,
+          ),
+        }
+      : {}),
     speciesGoalsByGeography: Object.fromEntries(
       MEC_GEOGRAPHY_LEVELS.map((level) => [
         level,
@@ -161,11 +185,11 @@ export function createReleaseBoundaryUrls(releaseId) {
   };
 }
 
-function createMecUrls(safeSolutionId, directory) {
+function createMecUrls(safeSolutionId, directory, baseUrl = PUBLIC_BLOB_HOST) {
   return Object.fromEntries(
     MEC_GEOGRAPHY_LEVELS.map((level) => [
       level,
-      `${PUBLIC_BLOB_HOST}/${directory}/${safeSolutionId}/${level}.mec.compact.json`,
+      artifactUrl(baseUrl, `${directory}/${safeSolutionId}/${level}.mec.compact.json`),
     ]),
   );
 }

@@ -360,6 +360,9 @@
         "generatedAt": {
           "$ref": "#/$defs/nullableString"
         },
+        "capabilities": {
+          "$ref": "#/$defs/solutionCapabilities"
+        },
         "precomputedMetricUrls": {
           "$ref": "#/$defs/solutionPrecomputedMetricUrls",
           "default": {}
@@ -381,6 +384,15 @@
         },
         "rendering": {
           "$ref": "#/$defs/rendering"
+        }
+      }
+    },
+    "solutionCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "aoiCoverageMetrics": {
+          "const": "v2"
         }
       }
     },

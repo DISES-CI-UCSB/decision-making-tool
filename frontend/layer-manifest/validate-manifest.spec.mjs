@@ -5,6 +5,23 @@ import { validateManifest } from './validate-manifest.mjs';
 const BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
 
 describe('solution precomputedMetricUrls validation', () => {
+  it('accepts the versioned known-AOI coverage capability', async () => {
+    const manifest = createManifest();
+    manifest.solutions[0].capabilities = { aoiCoverageMetrics: 'v2' };
+
+    await assert.doesNotReject(validateManifest(manifest, 'manifest.json'));
+  });
+
+  it('rejects unknown known-AOI coverage capability versions', async () => {
+    const manifest = createManifest();
+    manifest.solutions[0].capabilities = { aoiCoverageMetrics: 'v3' };
+
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json'),
+      /capabilities\.aoiCoverageMetrics must be "v2"/,
+    );
+  });
+
   it('accepts an optional map of named URLs', async () => {
     const manifest = createManifest({
       goals: 'https://example.com/metrics/goals/demo.goals.json',
@@ -152,6 +169,31 @@ describe('catalog-driven release validation', () => {
     );
   });
 
+  it('allows release-scoped origin-relative metrics only for the selected preview solution', async () => {
+    const manifest = createReleaseManifest();
+    const urls = manifest.solutions[0].precomputedMetricUrls;
+    for (const [key, value] of Object.entries(urls)) {
+      urls[key] =
+        typeof value === 'string'
+          ? value.replace(BLOB_HOST, '')
+          : Object.fromEntries(
+              Object.entries(value).map(([level, url]) => [level, url.replace(BLOB_HOST, '')]),
+            );
+    }
+    const catalog = createReleaseCatalog();
+
+    await assert.doesNotReject(
+      validateManifest(manifest, 'manifest.json', {
+        catalog,
+        aoiCoveragePreviewSolutionId: 'demo_solution',
+      }),
+    );
+    await assert.rejects(
+      validateManifest(manifest, 'manifest.json', { catalog }),
+      /must use configured Blob origin/,
+    );
+  });
+
   it('accepts release layers only when unsupported metric sidecars are absent', async () => {
     const manifest = createReleaseManifest();
     addReleaseLayer(manifest);
@@ -165,8 +207,7 @@ describe('catalog-driven release validation', () => {
     const manifest = createReleaseManifest();
     addReleaseLayer(manifest);
     manifest.layers[0].roleInMetricCalculation = 'data_used_for_live_metric_calculation';
-    manifest.layers[0].compressedDataForLiveMetricsUrl =
-      `${BLOB_HOST}/metrics/live/ecosistemas.bin.gz`;
+    manifest.layers[0].compressedDataForLiveMetricsUrl = `${BLOB_HOST}/metrics/live/ecosistemas.bin.gz`;
 
     await assert.rejects(
       validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),

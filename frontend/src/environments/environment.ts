@@ -22,8 +22,11 @@ export const environment = {
     accessRequestNotificationEmail: '',
   },
   googleClientId: '',
-  manifestBlobUrl: '',
+  manifestBlobUrl: '/data/layer-manifest/manifest.json',
   blobAssetProxyPath: '',
+  solutionCapabilityOverrides: {
+    eco17_estr17_esprep17_runap_omec_iheh2030: { aoiCoverageMetrics: 'v2' },
+  },
   metricsApiBaseUrl: '/metrics-api',
   ENABLE_MANIFEST_EDITOR: true,
   // Keep the real Firebase auth flow active during local development by default.

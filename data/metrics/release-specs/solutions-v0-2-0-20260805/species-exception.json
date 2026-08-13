@@ -2,9 +2,9 @@
   "approval": {
     "approved": true,
     "approvedAt": "2026-08-05",
-    "context": "Project owner approved carrying exactly two upstream-missing species rasters in v0.2.0; no wildcard or arbitrary species skipping is authorized."
+    "context": "Project owner approved continuing exactly two upstream-missing species rasters through catalog v0.2.1; no wildcard or arbitrary species skipping is authorized."
   },
-  "catalogVersion": "0.2.0",
+  "catalogVersion": "0.2.1",
   "excludedSpecies": [
     {
       "filename": "Hypericum_strictum_10_MAXENT.tif",
@@ -45,7 +45,8 @@
   },
   "patchResolution": {
     "authoritativeChecksumsRequired": true,
-    "expectedPatchCatalogVersion": "0.2.1",
+    "authoritativeReceiptStatus": "not_received",
+    "continuationCatalogVersion": "0.2.1",
     "fallbackInvalidation": "all_species_derived_metrics_and_signatures",
     "invalidationScope": "affected_species_derived_metrics_and_signatures_when_safe",
     "required": true,

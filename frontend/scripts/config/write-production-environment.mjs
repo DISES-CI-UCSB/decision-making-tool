@@ -46,6 +46,7 @@ export const environment = {
   googleClientId: ${toTsString(readOptionalEnv('GOOGLE_CLIENT_ID'))},
   manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL'))},
   blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH'))},
+  solutionCapabilityOverrides: {},
   metricsApiBaseUrl: ${toTsString(readOptionalEnv('METRICS_API_BASE_URL') || '/metrics-api')},
   ENABLE_MANIFEST_EDITOR: ${readBooleanEnv('ENABLE_MANIFEST_EDITOR', false)},
   bypassLoginForDevelopment: false,

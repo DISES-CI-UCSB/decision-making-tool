@@ -178,6 +178,14 @@ export interface RuntimeSolutionManifestSummaryMetrics {
   coverageRowCount: number;
 }
 
+/**
+ * Optional, versioned UI contracts emitted per solution.
+ * `aoiCoverageMetrics: 'v2'` enables the richer known-AOI ecosystem/species columns.
+ */
+export interface RuntimeSolutionCapabilities {
+  aoiCoverageMetrics?: 'v2';
+}
+
 export interface RuntimeSolutionManifestCoverageRow {
   feature: string;
   met: boolean | null;
@@ -232,6 +240,7 @@ export interface RuntimeSolutionManifestEntry {
   metadataFile: string;
   blobPath: string;
   generatedAt: string | null;
+  capabilities?: RuntimeSolutionCapabilities;
   precomputedMetricUrls?: RuntimeSolutionPrecomputedMetricUrls;
   finderInputs: RuntimeSolutionManifestFinderInputs;
   inputLayerIds: RuntimeSolutionManifestInputLayerIds;

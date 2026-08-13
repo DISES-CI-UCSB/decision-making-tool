@@ -7,6 +7,7 @@ import { speciesGoalsBaseUrlForOutput } from './build-release-manifest.mjs';
 import {
   usesLocalPreviewManifest,
   validateLocalPreviewManifest,
+  validateLocalPreviewSpeciesCompletionFiles,
 } from './validate-local-preview-manifest.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,95 @@ describe('local preview manifest guard', () => {
     assert.strictEqual(
       speciesGoalsBaseUrlForOutput(path.resolve(__dirname, './release-manifest.json')),
       undefined,
+    );
+  });
+
+  it('accepts one locally backed capability preview while leaving other URLs production-bound', () => {
+    const levels = ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'];
+    const solutions = Array.from({ length: 168 }, (_, index) => ({
+      id: `land-${index}`,
+      domain: 'land',
+      precomputedMetricUrls: {
+        goals: `https://example.com/production/land-${index}.json`,
+      },
+    }));
+    solutions.push(
+      ...Array.from({ length: 4 }, (_, index) => ({
+        id: `marine-${index}`,
+        domain: 'marine',
+        precomputedMetricUrls: {},
+      })),
+    );
+    const selected = solutions[0];
+    selected.capabilities = { aoiCoverageMetrics: 'v2' };
+    selected.precomputedMetricUrls = {
+      goals: '/releases/release/goals/selected.goals.json',
+      cache: '/releases/release/regular/verbose/selected.metrics.json',
+      compactCache: '/releases/release/regular/compact/selected.metrics.compact.json',
+      mecV2ByGeography: Object.fromEntries(
+        levels.map((level) => [
+          level,
+          `/releases/release/mec/v2/selected/${level}.mec.compact.json`,
+        ]),
+      ),
+      speciesGoalsCatalog: '/releases/release/species-goals/catalog/v1/catalog.json',
+      speciesGoalsByGeography: Object.fromEntries(
+        levels.map((level) => [
+          level,
+          `/releases/release/species-goals/compact/v1/selected/${level}.json`,
+        ]),
+      ),
+    };
+
+    assert.deepEqual(
+      validateLocalPreviewManifest({
+        catalogVersion: '0.2.0',
+        solutions,
+      }),
+      { total: 172, land: 168, marine: 4 },
+    );
+  });
+
+  it('requires completion sidecars for every advertised local species artifact', async () => {
+    const levels = ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'];
+    const artifactUrls = [
+      '/releases/release/species-goals/catalog/v1/catalog.json',
+      ...levels.map((level) => `/releases/release/species-goals/compact/v1/selected/${level}.json`),
+    ];
+    const manifest = {
+      solutions: [
+        {
+          id: 'selected',
+          domain: 'land',
+          capabilities: { aoiCoverageMetrics: 'v2' },
+          precomputedMetricUrls: {
+            speciesGoalsCatalog: artifactUrls[0],
+            speciesGoalsByGeography: Object.fromEntries(
+              levels.map((level, index) => [level, artifactUrls[index + 1]]),
+            ),
+          },
+        },
+      ],
+    };
+    const observedPaths = [];
+
+    await validateLocalPreviewSpeciesCompletionFiles(manifest, {
+      root: '/preview-public',
+      access: async (candidate) => observedPaths.push(candidate),
+    });
+    assert.deepEqual(
+      observedPaths,
+      artifactUrls.map((url) => path.resolve('/preview-public', `${url.slice(1)}.complete.json`)),
+    );
+
+    await assert.rejects(
+      validateLocalPreviewSpeciesCompletionFiles(manifest, {
+        root: '/preview-public',
+        access: async (candidate) => {
+          if (candidate === observedPaths[1]) throw new Error('ENOENT');
+        },
+      }),
+      /missing completion sidecar.*national/,
     );
   });
 

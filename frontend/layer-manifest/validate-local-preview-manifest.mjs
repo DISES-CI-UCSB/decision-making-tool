@@ -5,6 +5,7 @@ import { LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH } from '../shared/runtime-manifest
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(__dirname, '..');
+const publicRoot = path.join(frontendRoot, 'public');
 const environmentPath = path.join(frontendRoot, 'src/environments/environment.ts');
 const manifestPath = path.join(frontendRoot, LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH);
 const localManifestPublicPath = `/${LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH.replace(/^public\//, '')}`;
@@ -42,26 +43,81 @@ export function validateLocalPreviewManifest(manifest) {
     'local preview manifest must not contain hard-coded localhost URLs',
   );
 
-  for (const solution of solutions.filter(
-    (entry) => (entry.domain ?? entry.finderInputs?.domain ?? 'land') === 'land',
-  )) {
+  const capabilityPreviewSolutions = solutions.filter(
+    (solution) => solution.capabilities?.aoiCoverageMetrics === 'v2',
+  );
+  assert(
+    capabilityPreviewSolutions.length <= 1,
+    'local preview manifest may enable AOI coverage v2 for only one solution',
+  );
+  const locallyBackedSolutions =
+    capabilityPreviewSolutions.length === 1
+      ? capabilityPreviewSolutions
+      : solutions.filter(
+          (entry) => (entry.domain ?? entry.finderInputs?.domain ?? 'land') === 'land',
+        );
+
+  for (const solution of locallyBackedSolutions) {
     const urls = solution.precomputedMetricUrls;
     assert(
       urls?.speciesGoalsCatalog?.startsWith('/releases/'),
       `${solution.id} species goals catalog must use an origin-relative release URL`,
     );
-    assert(
-      urls?.speciesGoalsTargetOverlay?.startsWith('/releases/'),
-      `${solution.id} species target overlay must use an origin-relative release URL`,
-    );
+    if (urls?.speciesGoalsTargetOverlay) {
+      assert(
+        urls.speciesGoalsTargetOverlay.startsWith('/releases/'),
+        `${solution.id} species target overlay must use an origin-relative release URL`,
+      );
+    }
     assert(
       Object.values(urls?.speciesGoalsByGeography ?? {}).length === 6 &&
         Object.values(urls.speciesGoalsByGeography).every((url) => url.startsWith('/releases/')),
       `${solution.id} species geography shards must use six origin-relative release URLs`,
     );
+    const metricUrls = Object.values(urls ?? {}).flatMap((value) =>
+      value && typeof value === 'object' ? Object.values(value) : [value],
+    );
+    assert(
+      metricUrls.every((url) => typeof url === 'string' && url.startsWith('/releases/')),
+      `${solution.id} preview metrics must use origin-relative release URLs`,
+    );
   }
 
   return { total: solutions.length, land: landCount, marine: marineCount };
+}
+
+export async function validateLocalPreviewSpeciesCompletionFiles(
+  manifest,
+  { root = publicRoot, access = fs.access } = {},
+) {
+  const capabilityPreviewSolutions = manifest.solutions.filter(
+    (solution) => solution.capabilities?.aoiCoverageMetrics === 'v2',
+  );
+  const locallyBackedSolutions =
+    capabilityPreviewSolutions.length === 1
+      ? capabilityPreviewSolutions
+      : manifest.solutions.filter(
+          (solution) => (solution.domain ?? solution.finderInputs?.domain ?? 'land') === 'land',
+        );
+  const artifactUrls = new Set(
+    locallyBackedSolutions.flatMap((solution) => {
+      const urls = solution.precomputedMetricUrls;
+      return [urls.speciesGoalsCatalog, ...Object.values(urls.speciesGoalsByGeography)];
+    }),
+  );
+
+  for (const artifactUrl of artifactUrls) {
+    const completionPath = path.resolve(root, `${artifactUrl.slice(1)}.complete.json`);
+    assert(
+      completionPath.startsWith(`${path.resolve(root)}${path.sep}`),
+      `local species completion path escapes public root: ${artifactUrl}`,
+    );
+    try {
+      await access(completionPath);
+    } catch {
+      throw new Error(`local species artifact is missing completion sidecar: ${artifactUrl}`);
+    }
+  }
 }
 
 async function main() {
@@ -73,6 +129,7 @@ async function main() {
 
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
   const counts = validateLocalPreviewManifest(manifest);
+  await validateLocalPreviewSpeciesCompletionFiles(manifest);
   console.log(
     `[validate:local-preview-manifest] passed (${counts.total} solutions: ${counts.land} land, ${counts.marine} marine)`,
   );

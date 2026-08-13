@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type {
   RuntimeLayerManifestLayer,
+  RuntimeSolutionCapabilities,
   RuntimeSolutionManifestEntry,
 } from '@core/models/layer-manifest.model';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
@@ -11,6 +12,7 @@ import {
   isConflictCostSolution,
 } from '@core/models/solution-matching.utils';
 import { LayerManifestService } from './layer-manifest.service';
+import { environment } from '../../../environments/environment';
 
 /**
  * Catalog of real prioritizr solutions from the generated layer manifest.
@@ -79,6 +81,9 @@ export class SolutionCatalogService {
       ? 'strategic ecosystems'
       : 'ecosystem types';
     const constraintLabel = constraints.length > 0 ? constraints.join(' + ') : 'no locked-in areas';
+    const localCapabilities = (
+      environment.solutionCapabilityOverrides as Record<string, RuntimeSolutionCapabilities>
+    )[solution.id];
 
     return {
       id: solution.id,
@@ -93,6 +98,7 @@ export class SolutionCatalogService {
       displayUrl: solution.displayUrl,
       displayCogUrl: solution.displayCogUrl ?? null,
       metadataUrl: solution.metadataUrl,
+      capabilities: localCapabilities ?? solution.capabilities,
       precomputedMetricUrls: solution.precomputedMetricUrls,
       rendering: solution.rendering,
       finderInputs: solution.finderInputs,

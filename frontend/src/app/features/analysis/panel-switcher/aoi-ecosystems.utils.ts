@@ -247,15 +247,27 @@ export function buildMecCoverageRows(
   document: MecCompactDocument,
   scopeIndex: number,
   view: MecViewId,
+  nationalDocument: MecCompactDocument | null = null,
 ): MecCoverageRow[] {
-  return buildMecCoverageRowsByView(document, scopeIndex).get(view) ?? [];
+  return buildMecCoverageRowsByView(document, scopeIndex, nationalDocument).get(view) ?? [];
 }
 
 export function buildMecCoverageRowsByView(
   document: MecCompactDocument,
   scopeIndex: number,
+  nationalDocument: MecCompactDocument | null = null,
 ): ReadonlyMap<MecViewId, MecCoverageRow[]> {
   const unsupportedViews = new Set(document.viewSupport.unsupported.map((item) => item.view));
+  const scopeAreaKm2 = isMecCompactV2Document(document)
+    ? (document.scopeStats[String(scopeIndex)]?.scopeAreaKm2 ?? null)
+    : null;
+  const nationalAreaByClassIndex =
+    isMecCompactV2Document(document) &&
+    nationalDocument &&
+    isMecCompactV2Document(nationalDocument) &&
+    nationalDocument.solutionId === document.solutionId
+      ? new Map(nationalDocument.rows.map((row) => [row[1], row[2]] as const))
+      : new Map<number, number>();
   const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
   document.viewCatalog.forEach(([view]) => {
     if (!unsupportedViews.has(view)) {
@@ -283,10 +295,21 @@ export function buildMecCoverageRowsByView(
     }
 
     const [, classId, label] = classification;
+    const solutionCoverageKm2 = preExistingCoverageKm2 + newPrioritizrCoverageKm2;
+    const nationalAreaKm2 = nationalAreaByClassIndex.get(classIndex);
     viewRows.push({
       id: slugify(classId),
       label,
       ecosystemAreaKm2,
+      ecosystemSharePercent:
+        scopeAreaKm2 !== null && scopeAreaKm2 > 0 ? (ecosystemAreaKm2 / scopeAreaKm2) * 100 : null,
+      nationalClassPercent:
+        nationalAreaKm2 !== undefined && nationalAreaKm2 > 0
+          ? (ecosystemAreaKm2 / nationalAreaKm2) * 100
+          : null,
+      solutionCoverageKm2,
+      solutionCoveragePercent:
+        ecosystemAreaKm2 > 0 ? (solutionCoverageKm2 / ecosystemAreaKm2) * 100 : null,
       preExistingCoverageKm2,
       newPrioritizrCoverageKm2,
       preExistingPercent:
@@ -344,7 +367,7 @@ export function buildCustomMecData(response: CustomAoiAreaProfileResponse): Cust
         .slice(0, 5)
         .map((record) => ({
           label: record.label,
-          percent: record.share_of_classified_pct,
+          percent: record.share_of_total_aoi_pct ?? null,
         })),
     );
   });
@@ -367,7 +390,7 @@ export function buildCustomMecCoverageRow(record: CustomAoiEcosystemRecord): Mec
     id: slugify(record.id),
     label: record.label,
     ecosystemAreaKm2: record.area_km2,
-    ecosystemSharePercent: record.share_of_classified_pct,
+    ecosystemSharePercent: record.share_of_total_aoi_pct ?? null,
     nationalClassPercent: record.share_of_national_class_pct,
     solutionCoverageKm2: record.solution_covered_area_km2,
     solutionCoveragePercent: record.solution_covered_pct_of_aoi,

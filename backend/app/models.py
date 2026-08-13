@@ -88,6 +88,7 @@ class EcosystemAreaProfileRecord(BaseModel):
     area_km2: float
     national_area_km2: float
     share_of_classified_pct: float | None
+    share_of_total_aoi_pct: float | None
     share_of_national_class_pct: float | None
     solution_covered_area_km2: float | None
     solution_covered_pct_of_aoi: float | None

@@ -123,15 +123,27 @@ def load_species_exception(
     resolution = raw.get("patchResolution")
     if not isinstance(approval, dict) or approval.get("approved") is not True:
         raise SpeciesExceptionError("species exception lacks explicit approval.")
-    if not isinstance(resolution, dict) or resolution != {
+    shared_resolution = {
         "authoritativeChecksumsRequired": True,
-        "expectedPatchCatalogVersion": "0.2.1",
         "fallbackInvalidation": "all_species_derived_metrics_and_signatures",
         "invalidationScope": "affected_species_derived_metrics_and_signatures_when_safe",
         "required": True,
         "timing": "first_subsequent_patch_release_after_authoritative_receipt",
         "wildcardSkipAllowed": False,
-    }:
+    }
+    expected_resolution = (
+        {
+            **shared_resolution,
+            "authoritativeReceiptStatus": "not_received",
+            "continuationCatalogVersion": "0.2.1",
+        }
+        if raw.get("catalogVersion") == "0.2.1"
+        else {
+            **shared_resolution,
+            "expectedPatchCatalogVersion": "0.2.1",
+        }
+    )
+    if not isinstance(resolution, dict) or resolution != expected_resolution:
         raise SpeciesExceptionError(
             "species exception lacks the fail-closed first-patch resolution policy."
         )

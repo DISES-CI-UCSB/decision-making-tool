@@ -282,11 +282,17 @@ describe('release artifact document validation', () => {
     skeletal.features.species = [];
     assert.throws(() => validateGoalsDocument(skeletal), /feature count/);
 
-    const postHocSpecies = createGoalsDocument();
-    postHocSpecies.features.species[0].evaluationSource = 'post-hoc';
+    const landPostHocSpecies = createGoalsDocument();
+    landPostHocSpecies.features.species[0].evaluationSource = 'post-hoc';
+    landPostHocSpecies.features.species[0].met = null;
+    landPostHocSpecies.features.species[0].relativeHeld = null;
+    assert.doesNotThrow(() => validateGoalsDocument(landPostHocSpecies));
+
+    const marinePostHocSpecies = structuredClone(landPostHocSpecies);
+    marinePostHocSpecies.source.solutionDomain = 'marine';
     assert.throws(
-      () => validateGoalsDocument(postHocSpecies),
-      /post-hoc evaluation requires valid ecosystem coverage/,
+      () => validateGoalsDocument(marinePostHocSpecies),
+      /marine post-hoc evaluation requires valid ecosystem coverage/,
     );
   });
 

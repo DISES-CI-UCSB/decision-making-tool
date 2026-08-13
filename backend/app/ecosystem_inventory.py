@@ -82,6 +82,7 @@ def build_ecosystem_inventory(
     raster: SolutionRaster,
     solution_raster: SolutionRaster | None = None,
 ) -> dict[str, Any]:
+    total_aoi_area_km2 = raster.selected_area_km2
     try:
         ecosystem_values, _ = read_mec_raster_values(
             inventory.raster_path,
@@ -160,6 +161,10 @@ def build_ecosystem_inventory(
                     (area_km2 / classified_area_km2) * 100.0
                     if classified_area_km2 > 0
                     else None
+                ),
+                "share_of_total_aoi_pct": _percentage(
+                    area_km2,
+                    total_aoi_area_km2,
                 ),
                 "share_of_national_class_pct": _percentage(
                     area_km2,

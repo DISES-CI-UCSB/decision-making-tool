@@ -78,7 +78,9 @@ export function parseEcosystemsSection(response: unknown): ParsedCustomAoiEcosys
       CUSTOM_AOI_ECOSYSTEM_VIEWS.map((view) => [
         view,
         Array.isArray(recordsByView.get(view))
-          ? (recordsByView.get(view) as unknown[]).filter(isEcosystemRecord)
+          ? (recordsByView.get(view) as unknown[])
+              .filter(isEcosystemRecord)
+              .map(normalizeEcosystemRecord)
           : [],
       ]),
     ) as Record<CustomAoiEcosystemView, CustomAoiEcosystemRecord[]>,
@@ -117,6 +119,8 @@ function isEcosystemRecord(value: unknown): value is CustomAoiEcosystemRecord {
     Number.isFinite(record.area_km2) &&
     Number.isFinite(record.national_area_km2) &&
     isNullableNumber(record.share_of_classified_pct) &&
+    (record.share_of_total_aoi_pct === undefined ||
+      isNullableNumber(record.share_of_total_aoi_pct)) &&
     isNullableNumber(record.share_of_national_class_pct) &&
     isNullableNumber(record.solution_covered_area_km2) &&
     isNullableNumber(record.solution_covered_pct_of_aoi) &&
@@ -125,6 +129,13 @@ function isEcosystemRecord(value: unknown): value is CustomAoiEcosystemRecord {
     isNullableNumber(record.new_covered_area_km2) &&
     isNullableNumber(record.new_covered_pct_of_aoi)
   );
+}
+
+function normalizeEcosystemRecord(record: CustomAoiEcosystemRecord): CustomAoiEcosystemRecord {
+  return {
+    ...record,
+    share_of_total_aoi_pct: record.share_of_total_aoi_pct ?? null,
+  };
 }
 
 function isNullableNumber(value: unknown): value is number | null {

@@ -77,20 +77,22 @@ def test_v010_policy_excludes_only_two_exact_metadata_records():
     }
 
 
-def test_v020_policy_carries_exact_exception_with_fail_closed_patch_resolution():
+def test_v021_policy_carries_exact_exception_with_fail_closed_continuation():
     policy = load_species_exception(
         V020_CONTRACT_PATH,
         release_id="solutions-v0-2-0-20260805",
-        catalog_version="0.2.0",
+        catalog_version="0.2.1",
     )
 
+    assert len(policy.filter_available(_records())) == 8298
     assert policy.excluded_filenames == (
         "Hypericum_strictum_10_MAXENT.tif",
         "Paradrymonia_ciliosa_10_MAXENT.tif",
     )
     assert policy.document["patchResolution"] == {
         "authoritativeChecksumsRequired": True,
-        "expectedPatchCatalogVersion": "0.2.1",
+        "authoritativeReceiptStatus": "not_received",
+        "continuationCatalogVersion": "0.2.1",
         "fallbackInvalidation": "all_species_derived_metrics_and_signatures",
         "invalidationScope": "affected_species_derived_metrics_and_signatures_when_safe",
         "required": True,

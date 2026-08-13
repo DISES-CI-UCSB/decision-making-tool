@@ -46,6 +46,7 @@ describe('custom AOI area profile parsing', () => {
                   area_km2: 2,
                   national_area_km2: 20,
                   share_of_classified_pct: 100,
+                  share_of_total_aoi_pct: 66.67,
                   share_of_national_class_pct: 10,
                   solution_covered_area_km2: null,
                   solution_covered_pct_of_aoi: null,
@@ -65,6 +66,44 @@ describe('custom AOI area profile parsing', () => {
     expect(section.views.detailedEcosystem).toEqual([]);
     expect(section.classifiedAreaKm2).toBe(2);
     expect(section.views.broadEcosystem[0].solution_covered_area_km2).toBeNull();
+    expect(section.views.broadEcosystem[0].share_of_classified_pct).toBe(100);
+    expect(section.views.broadEcosystem[0].share_of_total_aoi_pct).toBe(66.67);
+  });
+
+  it('keeps legacy rows but normalizes a missing total-AOI share to unavailable', () => {
+    const section = parseEcosystemsSection({
+      format: 'custom-aoi-area-profile-v1',
+      status: 'complete',
+      sections: {
+        ecosystems: {
+          status: 'complete',
+          canonical_summary_view: 'broadEcosystem',
+          classified_area_km2: 2,
+          views: {
+            broadEcosystem: [
+              {
+                id: 'forest',
+                label: 'Forest',
+                area_km2: 2,
+                national_area_km2: 20,
+                share_of_classified_pct: 100,
+                share_of_national_class_pct: 10,
+                solution_covered_area_km2: null,
+                solution_covered_pct_of_aoi: null,
+                pre_existing_covered_area_km2: null,
+                pre_existing_covered_pct_of_aoi: null,
+                new_covered_area_km2: null,
+                new_covered_pct_of_aoi: null,
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(section.views.broadEcosystem).toHaveLength(1);
+    expect(section.views.broadEcosystem[0].share_of_classified_pct).toBe(100);
+    expect(section.views.broadEcosystem[0].share_of_total_aoi_pct).toBeNull();
   });
 
   it('rejects responses with the wrong format', () => {

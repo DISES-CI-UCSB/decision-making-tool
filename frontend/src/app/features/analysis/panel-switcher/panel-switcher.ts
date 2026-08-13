@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   resolveLayerLabel,
@@ -60,9 +60,20 @@ import {
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FEATURE_FLAGS } from '@feature-flags';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
+import { TableHeaderTooltipComponent } from '@core/shared/table-header-tooltip/table-header-tooltip';
 import type { EcosystemClassificationView } from '@features/left-sidebar/map-layers-panel/map-layers-panel-ecosystem.config';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { catchError, concat, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
+import {
+  catchError,
+  concat,
+  distinctUntilChanged,
+  finalize,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+  tap,
+} from 'rxjs';
 import type { Observable } from 'rxjs';
 import {
   AOI_ECOSYSTEM_SEGMENTS,
@@ -234,6 +245,12 @@ interface GoalsModalRow {
   relativeHeld: number | null;
   preExistingRelativeHeld: number | null;
   newRelativeHeld: number | null;
+  rangeInAoiAreaKm2: number | null;
+  rangeInAoiPercent: number | null;
+  ecosystemAreaKm2: number | null;
+  solutionCoverageAreaKm2: number | null;
+  preExistingCoverageAreaKm2: number | null;
+  newCoverageAreaKm2: number | null;
   reached17: boolean;
   reached30: boolean;
 }
@@ -335,7 +352,12 @@ type MecPanelState =
   | { status: 'loading'; source?: 'custom' }
   | { status: 'error'; error: 'http' | 'invalid-document'; source?: 'custom' }
   | { status: 'scope-missing'; document: MecCompactDocument }
-  | { status: 'loaded'; document: MecCompactDocument; scopeIndex: number }
+  | {
+      status: 'loaded';
+      document: MecCompactDocument;
+      scopeIndex: number;
+      nationalDocument: MecCompactDocument | null;
+    }
   | { status: 'custom'; data: CustomMecData };
 type MecRequest =
   | { key: string; kind: 'unavailable'; reason: MecUnavailableReason }
@@ -359,6 +381,98 @@ const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
 const GOALS_MODAL_VIRTUAL_ROW_SIZE_PX = 57;
 const GOALS_MODAL_VIRTUAL_MIN_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 4;
 const GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
+const GOALS_MODAL_COVERAGE_METRICS = [
+  {
+    id: 'range-in-aoi',
+    areaKey: 'rangeInAoiAreaKm2',
+    percentKey: 'rangeInAoiPercent',
+  },
+  {
+    id: 'solution-coverage',
+    areaKey: 'solutionCoverageAreaKm2',
+    percentKey: 'relativeHeld',
+  },
+  {
+    id: 'pre-existing-coverage',
+    areaKey: 'preExistingCoverageAreaKm2',
+    percentKey: 'preExistingRelativeHeld',
+  },
+  {
+    id: 'new-coverage',
+    areaKey: 'newCoverageAreaKm2',
+    percentKey: 'newRelativeHeld',
+  },
+] as const;
+const GOALS_MODAL_NATIONAL_COVERAGE_METRICS = [
+  {
+    id: 'pre-existing-coverage',
+    areaKey: 'preExistingCoverageAreaKm2',
+    percentKey: 'preExistingRelativeHeld',
+  },
+  {
+    id: 'new-coverage',
+    areaKey: 'newCoverageAreaKm2',
+    percentKey: 'newRelativeHeld',
+  },
+] as const;
+const EXPANDED_MEC_COLUMN_HEADINGS = [
+  {
+    id: 'available',
+    labelKey: 'analysis.aoi.mec.modal.areaInsideAoi',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.areaInsideAoi',
+    align: 'center',
+  },
+  {
+    id: 'national-share',
+    labelKey: 'analysis.aoi.mec.modal.nationalExtentInsideAoi',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.nationalExtentInsideAoi',
+    align: 'center',
+  },
+  {
+    id: 'aoi-share',
+    labelKey: 'analysis.aoi.mec.modal.mappedAoiOccupied',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.mappedAoiOccupied',
+    align: 'center',
+  },
+  {
+    id: 'total-coverage',
+    labelKey: 'analysis.aoi.mec.modal.totalCoverage',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.totalCoverage',
+    align: 'center',
+  },
+  {
+    id: 'pre-existing-coverage',
+    labelKey: 'analysis.aoi.mec.modal.preExistingCoverage',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.preExistingCoverage',
+    align: 'center',
+  },
+  {
+    id: 'new-coverage',
+    labelKey: 'analysis.aoi.mec.modal.newCoverage',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.newCoverage',
+    align: 'end',
+  },
+] as const;
+const COMPACT_MEC_COLUMN_HEADINGS = [
+  {
+    id: 'category',
+    labelKey: 'analysis.aoi.mec.modal.category',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.category',
+    align: 'start',
+  },
+  {
+    id: 'available',
+    labelKey: 'analysis.aoi.mec.modal.availableArea',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.areaInsideAoi',
+    align: 'center',
+  },
+  {
+    id: 'coverage',
+    labelKey: 'analysis.aoi.mec.modal.solutionCoverage',
+    questionKey: 'analysis.aoi.mec.modal.columnQuestions.totalCoverage',
+    align: 'end',
+  },
+] as const;
 
 @Component({
   selector: 'app-panel-switcher',
@@ -367,6 +481,7 @@ const GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
     TranslatePipe,
     NgTemplateOutlet,
     ModalShellComponent,
+    TableHeaderTooltipComponent,
     ScrollingModule,
     CustomAoiSpeciesInventoryComponent,
   ],
@@ -374,7 +489,10 @@ const GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
   styleUrl: './panel-switcher.scss',
 })
 export class PanelSwitcherComponent {
-  private readonly customAoiSpeciesInventory = viewChild(CustomAoiSpeciesInventoryComponent);
+  private readonly customAoiSpeciesInventory = viewChild<CustomAoiSpeciesInventoryComponent>(
+    'customAoiSpeciesInventory',
+  );
+  protected readonly customAoiSpeciesInventoryRequested = signal(false);
   protected readonly customAoiAreaProfileEnabled = FEATURE_FLAGS.customAoiAreaProfile;
   private readonly aoiSpeciesColorSlotByPalette: Record<ChartPaletteId, Record<string, number>> = {
     okabeIto: {
@@ -534,12 +652,17 @@ export class PanelSwitcherComponent {
   protected readonly goalsModalVirtualRowSize = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX;
   protected readonly goalsModalVirtualMinBuffer = GOALS_MODAL_VIRTUAL_MIN_BUFFER_PX;
   protected readonly goalsModalVirtualMaxBuffer = GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX;
+  protected readonly goalsModalCoverageMetrics = GOALS_MODAL_COVERAGE_METRICS;
+  protected readonly goalsModalNationalCoverageMetrics = GOALS_MODAL_NATIONAL_COVERAGE_METRICS;
+  protected readonly expandedMecColumnHeadings = EXPANDED_MEC_COLUMN_HEADINGS;
+  protected readonly compactMecColumnHeadings = COMPACT_MEC_COLUMN_HEADINGS;
   private goalsModalEcosystemMecSolutionId: string | null = null;
   private goalsModalSpeciesRequestId = 0;
   protected readonly goalsModalDomain = computed<OverviewGoalsDomainEntry | null>(
     () =>
       this.overviewGoalsDomains().find((domain) => domain.id === this.goalsModalDomainId()) ?? null,
   );
+  protected readonly isNationalGoalsModal = computed(() => this.selectedAoi() === null);
   protected readonly goalsModalEcosystemBreakdown = computed<MecBreakdownConfig>(
     () =>
       this.mecBreakdowns.find((item) => item.id === this.goalsModalEcosystemBreakdownId()) ??
@@ -709,6 +832,14 @@ export class PanelSwitcherComponent {
   protected readonly activeSolutionId = computed(() =>
     this.resolveMetricsSolutionId(this.activeSolution()),
   );
+  protected readonly knownAoiCoverageMetricsV2 = computed(() => {
+    const aoi = this.selectedAoi();
+    const solutionId = this.activeSolutionId();
+    return (
+      Boolean(aoi && aoi.type !== 'custom' && solutionId) &&
+      this.solutionCatalog.getById(solutionId!)?.capabilities?.aoiCoverageMetrics === 'v2'
+    );
+  });
   protected readonly customAoiSpeciesSolutionId = computed(() =>
     this.isMarineSolution() ? null : this.activeSolutionId(),
   );
@@ -799,7 +930,7 @@ export class PanelSwitcherComponent {
     () => {
       const state = this.mecPanelState();
       if (state.status === 'loaded') {
-        return buildMecCoverageRowsByView(state.document, state.scopeIndex);
+        return buildMecCoverageRowsByView(state.document, state.scopeIndex, state.nationalDocument);
       }
       return state.status === 'custom'
         ? state.data.rowsByView
@@ -1008,6 +1139,17 @@ export class PanelSwitcherComponent {
   ];
 
   constructor() {
+    effect(() => {
+      if (!this.customAoiSpeciesInventoryRequested()) {
+        return;
+      }
+      const inventory = this.customAoiSpeciesInventory();
+      if (inventory) {
+        inventory.open();
+        this.customAoiSpeciesInventoryRequested.set(false);
+      }
+    });
+
     this.destroyRef.onDestroy(() => {
       this.stopCustomAoiSpeciesLoadingStages();
       this.cancelGoalsModalPreparation();
@@ -1017,6 +1159,7 @@ export class PanelSwitcherComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((aoi) => {
         if (aoi?.type !== 'custom') {
+          this.customAoiSpeciesInventoryRequested.set(false);
           this.customAoiSpeciesModalOpen.set(false);
         }
       });
@@ -1137,8 +1280,10 @@ export class PanelSwitcherComponent {
 
           return concat(
             of<MecPanelState>({ status: 'loading' }),
-            this.mecMetrics.loadMecMetrics(request.solutionId, request.geographyLevel).pipe(
-              map((result) => this.toMecPanelState(result, request.aoi)),
+            this.loadKnownAoiMecDocuments(request).pipe(
+              map(({ selected, national }) =>
+                this.toMecPanelState(selected, request.aoi, national),
+              ),
               catchError(() =>
                 of<MecPanelState>({
                   status: 'error',
@@ -1710,6 +1855,12 @@ export class PanelSwitcherComponent {
       relativeHeld: feature.relativeHeld,
       preExistingRelativeHeld: null,
       newRelativeHeld: null,
+      rangeInAoiAreaKm2: null,
+      rangeInAoiPercent: null,
+      ecosystemAreaKm2: null,
+      solutionCoverageAreaKm2: null,
+      preExistingCoverageAreaKm2: null,
+      newCoverageAreaKm2: null,
       reached17:
         (feature.relativeHeld ?? -1) >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17,
       reached30:
@@ -1721,17 +1872,10 @@ export class PanelSwitcherComponent {
     row: StrategicEcosystemOutcomeRow,
     relativeTarget: number | null,
   ): GoalsModalRow {
-    const area = this.appendUnit(
-      this.formatNumber(row.coveredAreaKm2, this.metricNumberFormatMode(), 0, 1),
-      'km²',
-    );
     return {
       id: row.featureId,
       name: this.translate.instant(row.labelKey),
-      secondaryLabel: this.translate.instant(
-        'analysis.overview.goalsWidget.modal.rasterCoveredArea',
-        { area },
-      ),
+      secondaryLabel: null,
       taxonGroup: null,
       iucnStatus: null,
       met: relativeTarget === null ? null : row.coverageFraction + Number.EPSILON >= relativeTarget,
@@ -1739,6 +1883,12 @@ export class PanelSwitcherComponent {
       relativeHeld: row.coverageFraction,
       preExistingRelativeHeld: null,
       newRelativeHeld: null,
+      rangeInAoiAreaKm2: null,
+      rangeInAoiPercent: null,
+      ecosystemAreaKm2: null,
+      solutionCoverageAreaKm2: row.coveredAreaKm2,
+      preExistingCoverageAreaKm2: null,
+      newCoverageAreaKm2: null,
       reached17: row.reached17,
       reached30: row.reached30,
     };
@@ -1767,6 +1917,12 @@ export class PanelSwitcherComponent {
       preExistingRelativeHeld:
         row.preExistingPercent === null ? null : row.preExistingPercent / 100,
       newRelativeHeld: row.newPrioritizrPercent === null ? null : row.newPrioritizrPercent / 100,
+      rangeInAoiAreaKm2: null,
+      rangeInAoiPercent: null,
+      ecosystemAreaKm2: row.ecosystemAreaKm2,
+      solutionCoverageAreaKm2: row.solutionCoverageKm2 ?? null,
+      preExistingCoverageAreaKm2: row.preExistingCoverageKm2,
+      newCoverageAreaKm2: row.newPrioritizrCoverageKm2,
       reached17:
         relativeHeld !== null &&
         relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17,
@@ -1928,6 +2084,12 @@ export class PanelSwitcherComponent {
       relativeHeld: record.solution_covered_in_aoi_pct / 100,
       preExistingRelativeHeld: record.pre_existing_covered_in_aoi_pct / 100,
       newRelativeHeld: record.new_covered_in_aoi_pct / 100,
+      rangeInAoiAreaKm2: record.range_in_aoi_area_km2,
+      rangeInAoiPercent: record.range_in_aoi_pct / 100,
+      ecosystemAreaKm2: null,
+      solutionCoverageAreaKm2: record.solution_covered_in_aoi_area_km2,
+      preExistingCoverageAreaKm2: record.pre_existing_covered_in_aoi_area_km2,
+      newCoverageAreaKm2: record.new_covered_in_aoi_area_km2,
       reached17: record.met_17_percent,
       reached30: record.met_30_percent,
     };
@@ -1960,7 +2122,9 @@ export class PanelSwitcherComponent {
       case 'ecosystems':
         return 'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle';
       case 'species':
-        return 'analysis.overview.goalsWidget.modal.speciesCoverageTitle';
+        return this.isNationalGoalsModal()
+          ? 'analysis.overview.goalsWidget.modal.nationalSpeciesTitle'
+          : 'analysis.overview.goalsWidget.modal.speciesCoverageTitle';
       default:
         return 'analysis.overview.goalsWidget.modal.title';
     }
@@ -2116,7 +2280,7 @@ export class PanelSwitcherComponent {
     }
     if (aoi.type === 'custom') {
       if (this.canOpenCustomAoiSpeciesInventory()) {
-        this.customAoiSpeciesInventory()?.open();
+        this.customAoiSpeciesInventoryRequested.set(true);
       }
       return;
     }
@@ -2135,9 +2299,24 @@ export class PanelSwitcherComponent {
     return this.mecPanelState().status === 'custom';
   }
 
+  protected isExpandedMecState(): boolean {
+    const state = this.mecPanelState();
+    return (
+      state.status === 'custom' ||
+      (this.knownAoiCoverageMetricsV2() &&
+        state.status === 'loaded' &&
+        isMecCompactV2Document(state.document) &&
+        Boolean(state.nationalDocument && isMecCompactV2Document(state.nationalDocument)))
+    );
+  }
+
   protected hasCustomMecCoverage(): boolean {
     const state = this.mecPanelState();
     return state.status === 'custom' && state.data.hasSolutionCoverage;
+  }
+
+  protected hasExpandedMecCoverage(): boolean {
+    return this.isCustomMecState() ? this.hasCustomMecCoverage() : this.isExpandedMecState();
   }
 
   protected supportsMecDrilldown(config = this.selectedMecBreakdown()): boolean {
@@ -2752,7 +2931,28 @@ export class PanelSwitcherComponent {
     };
   }
 
-  private toMecPanelState(result: MecMetricsLoadResult, aoi: AOI): MecPanelState {
+  private loadKnownAoiMecDocuments(request: Extract<MecRequest, { kind: 'load' }>): Observable<{
+    selected: MecMetricsLoadResult;
+    national: MecCompactDocument | null;
+  }> {
+    const selected = this.mecMetrics.loadMecMetrics(request.solutionId, request.geographyLevel);
+    if (!this.knownAoiCoverageMetricsV2()) {
+      return selected.pipe(map((result) => ({ selected: result, national: null })));
+    }
+
+    return forkJoin({
+      selected,
+      national: this.mecMetrics
+        .loadMecMetrics(request.solutionId, 'national')
+        .pipe(map((result) => (result.status === 'loaded' ? result.document : null))),
+    });
+  }
+
+  private toMecPanelState(
+    result: MecMetricsLoadResult,
+    aoi: AOI,
+    nationalDocument: MecCompactDocument | null,
+  ): MecPanelState {
     if (result.status === 'unavailable') {
       return { status: 'unavailable', reason: 'no-url' };
     }
@@ -2763,7 +2963,7 @@ export class PanelSwitcherComponent {
     const scopeIndex = resolveMecScopeIndex(result.document, aoi);
     return scopeIndex === null
       ? { status: 'scope-missing', document: result.document }
-      : { status: 'loaded', document: result.document, scopeIndex };
+      : { status: 'loaded', document: result.document, scopeIndex, nationalDocument };
   }
 
   private getRealMecCoverageRows(config: MecBreakdownConfig): MecCoverageRow[] {

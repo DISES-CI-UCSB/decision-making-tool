@@ -14,15 +14,17 @@ export function speciesGoalsBaseUrlForOutput(outputPath) {
   return path.resolve(outputPath) === localRuntimeManifestPath ? '' : undefined;
 }
 
-function parseArgs(args) {
+export function parseArgs(args) {
   const values = {};
+  const literalOptions = new Set(['aoi-coverage-preview-solution']);
   for (let index = 0; index < args.length; index += 2) {
     const option = args[index];
     const value = args[index + 1];
     if (!option?.startsWith('--') || !value || value.startsWith('--')) {
       throw new Error(`expected --option value pairs; received "${option ?? ''}"`);
     }
-    values[option.slice(2)] = path.resolve(process.cwd(), value);
+    const key = option.slice(2);
+    values[key] = literalOptions.has(key) ? value : path.resolve(process.cwd(), value);
   }
   for (const required of ['base-manifest', 'preflight-manifest', 'catalog', 'output']) {
     if (!values[required]) {
@@ -64,24 +66,45 @@ export async function buildReleaseManifestFromFiles({
   preflightManifestPath,
   catalogPath,
   outputPath,
+  releaseArtifactInventoryPath = null,
   speciesGoalsInventoryPath = null,
+  speciesGoalsCatalogPath = null,
+  aoiCoveragePreviewSolutionId = null,
 }) {
-  const [baseManifest, preflightManifest, catalog, speciesGoalsInventory] = await Promise.all([
+  const [
+    baseManifest,
+    preflightManifest,
+    catalog,
+    releaseArtifactInventory,
+    speciesGoalsInventory,
+    speciesGoalsCatalog,
+  ] = await Promise.all([
     readJson(baseManifestPath),
     readJson(preflightManifestPath),
     readSolutionCatalog(catalogPath),
+    releaseArtifactInventoryPath ? readJson(releaseArtifactInventoryPath) : null,
     speciesGoalsInventoryPath ? readJson(speciesGoalsInventoryPath) : null,
+    speciesGoalsCatalogPath ? readJson(speciesGoalsCatalogPath) : null,
   ]);
   const backedLayerMetadataUrls = await findReachableLayerMetadataUrls(baseManifest.layers);
+  const localArtifactBaseUrl =
+    aoiCoveragePreviewSolutionId === null ? undefined : speciesGoalsBaseUrlForOutput(outputPath);
   const manifest = buildRuntimeReleaseManifest({
     baseManifest,
     preflightManifest,
     catalog,
+    releaseArtifactInventory,
     speciesGoalsInventory,
-    speciesGoalsBaseUrl: speciesGoalsBaseUrlForOutput(outputPath),
+    speciesGoalsCatalog,
+    speciesGoalsBaseUrl: localArtifactBaseUrl,
+    releaseArtifactBaseUrl: localArtifactBaseUrl,
+    aoiCoveragePreviewSolutionId,
     backedLayerMetadataUrls,
   });
-  await validateManifest(manifest, outputPath, { catalog });
+  await validateManifest(manifest, outputPath, {
+    catalog,
+    aoiCoveragePreviewSolutionId,
+  });
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, `${JSON.stringify(manifest)}\n`, 'utf-8');
   return manifest;
@@ -95,7 +118,10 @@ async function main() {
     preflightManifestPath: args['preflight-manifest'],
     catalogPath: args.catalog,
     outputPath,
+    releaseArtifactInventoryPath: args['artifact-inventory'] ?? null,
     speciesGoalsInventoryPath: args['species-goals-inventory'] ?? null,
+    speciesGoalsCatalogPath: args['species-goals-catalog'] ?? null,
+    aoiCoveragePreviewSolutionId: args['aoi-coverage-preview-solution'] ?? null,
   });
   const bytes = (await fs.stat(outputPath)).size;
   const domainCounts = manifest.solutions.reduce((counts, solution) => {

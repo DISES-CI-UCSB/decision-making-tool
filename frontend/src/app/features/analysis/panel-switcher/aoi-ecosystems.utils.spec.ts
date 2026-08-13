@@ -61,6 +61,10 @@ describe('AOI ecosystems utilities', () => {
         id: 'broadecosystem-forest',
         label: 'Forest',
         ecosystemAreaKm2: 10,
+        ecosystemSharePercent: null,
+        nationalClassPercent: null,
+        solutionCoverageKm2: 4,
+        solutionCoveragePercent: 40,
         preExistingCoverageKm2: 0,
         newPrioritizrCoverageKm2: 4,
         preExistingPercent: 0,
@@ -94,6 +98,34 @@ describe('AOI ecosystems utilities', () => {
     });
   });
 
+  it('derives expanded known-AOI metrics from v2 scope and national partitions', () => {
+    const document = buildV2MecDocument();
+    const nationalDocument: MecCompactV2Document = {
+      ...buildV2MecDocument(),
+      geographyLevel: 'national',
+      scopeCatalog: [['colombia', 'Colombia']],
+      scopeStats: {
+        0: {
+          scopeAreaKm2: 200,
+          classifiedKm2: 160,
+          unclassifiedKm2: 40,
+          boundaryProvenanceRef: 'national',
+        },
+      },
+      rows: [[0, 0, 50, 10, 15]],
+    };
+
+    expect(buildMecCoverageRows(document, 0, 'broadEcosystem', nationalDocument)[0]).toMatchObject({
+      ecosystemAreaKm2: 10,
+      ecosystemSharePercent: 50,
+      nationalClassPercent: 20,
+      solutionCoverageKm2: 5,
+      solutionCoveragePercent: 50,
+      preExistingPercent: 20,
+      newPrioritizrPercent: 30,
+    });
+  });
+
   it('adapts live custom ecosystem composition and coverage without synthetic values', () => {
     const data = buildCustomMecData(buildCustomProfileResponse());
     const row = data.rowsByView.get('broadEcosystem')?.[0];
@@ -104,11 +136,11 @@ describe('AOI ecosystems utilities', () => {
       buildCustomMecData({ ...buildCustomProfileResponse(), solution_id: null })
         .hasSolutionCoverage,
     ).toBe(false);
-    expect(data.previewByView.get('broadEcosystem')).toEqual([{ label: 'Forest', percent: 80 }]);
+    expect(data.previewByView.get('broadEcosystem')).toEqual([{ label: 'Forest', percent: 66.67 }]);
     expect(row).toMatchObject({
       id: 'forest',
       ecosystemAreaKm2: 8,
-      ecosystemSharePercent: 80,
+      ecosystemSharePercent: 66.67,
       nationalClassPercent: 20,
       solutionCoverageKm2: 4,
       solutionCoveragePercent: 50,
@@ -120,6 +152,20 @@ describe('AOI ecosystems utilities', () => {
       classifiedKm2: 10,
       unclassifiedKm2: 2,
     });
+  });
+
+  it('does not mislabel classified share when a legacy custom response lacks total share', () => {
+    const response = buildCustomProfileResponse();
+    const record = response.sections.ecosystems?.views[0].records[0];
+    if (record) {
+      delete record.share_of_total_aoi_pct;
+    }
+
+    const data = buildCustomMecData(response);
+
+    expect(data.previewByView.get('broadEcosystem')).toEqual([{ label: 'Forest', percent: null }]);
+    expect(data.rowsByView.get('broadEcosystem')?.[0].ecosystemSharePercent).toBeNull();
+    expect(record?.share_of_classified_pct).toBe(80);
   });
 
   it('resolves SIRAPs by stable ID and accepts whole metric-compatible provenance', () => {
@@ -203,6 +249,7 @@ function buildCustomProfileResponse(): CustomAoiAreaProfileResponse {
                 area_km2: 8,
                 national_area_km2: 40,
                 share_of_classified_pct: 80,
+                share_of_total_aoi_pct: 66.67,
                 share_of_national_class_pct: 20,
                 solution_covered_area_km2: 4,
                 solution_covered_pct_of_aoi: 50,

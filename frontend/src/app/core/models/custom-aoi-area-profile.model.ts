@@ -36,7 +36,10 @@ export interface CustomAoiEcosystemRecord {
   label: string;
   area_km2: number;
   national_area_km2: number;
+  /** Retained for composition summaries that intentionally exclude unclassified AOI land. */
   share_of_classified_pct: number | null;
+  /** Optional only for compatibility with older v1 responses; consumers must not substitute classified share. */
+  share_of_total_aoi_pct?: number | null;
   share_of_national_class_pct: number | null;
   solution_covered_area_km2: number | null;
   solution_covered_pct_of_aoi: number | null;

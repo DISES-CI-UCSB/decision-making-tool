@@ -509,7 +509,12 @@ def test_class_shares_sum_to_classified_over_scope_share():
         boundary_provenance_ref="synthetic",
     )
     first_view_area = sum(row[2] for row in rows if row[1] < 8)
+    first_class_area = next(row[2] for row in rows if row[1] == 0)
 
+    # The total-AOI share contract uses the complete boundary area, including
+    # unclassified MEC cells. It must not use classifiedKm2 as its denominator.
+    assert first_class_area / stats["scopeAreaKm2"] == pytest.approx(0.5)
+    assert first_class_area / stats["classifiedKm2"] == pytest.approx(0.75)
     assert first_view_area / stats["scopeAreaKm2"] == pytest.approx(
         stats["classifiedKm2"] / stats["scopeAreaKm2"]
     )

@@ -59,12 +59,12 @@ describe('SpeciesGoalsLoaderService', () => {
 
   afterEach(() => http.verify());
 
-  it('hydrates validated predefined AOI artifacts', async () => {
+  it('hydrates validated Meta department scope 50 artifacts', async () => {
     const catalogText = JSON.stringify(catalog());
     const compactText = JSON.stringify(compact());
     const catalogSha256 = await sha256(catalogText);
     const compactSha256 = await sha256(compactText);
-    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '05'));
+    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
 
     http.expectOne(`${CATALOG_URL}.complete.json`).flush({
       format: 'species-goals-catalog-completion-v1',
@@ -96,7 +96,7 @@ describe('SpeciesGoalsLoaderService', () => {
   it('fails closed when an artifact checksum is tampered', async () => {
     const catalogText = JSON.stringify(catalog());
     const compactText = JSON.stringify(compact());
-    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '05'));
+    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
 
     http.expectOne(`${CATALOG_URL}.complete.json`).flush({
       format: 'species-goals-catalog-completion-v1',
@@ -121,7 +121,7 @@ describe('SpeciesGoalsLoaderService', () => {
   });
 
   it('rejects stale completion metadata before downloading large artifacts', async () => {
-    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '05'));
+    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
     http.expectOne(`${CATALOG_URL}.complete.json`).flush({
       format: 'species-goals-catalog-completion-v1',
       status: 'complete',
@@ -151,7 +151,7 @@ describe('SpeciesGoalsLoaderService', () => {
     const overlayText = await targetOverlayText();
     const catalogSha256 = await sha256(catalogText);
     const compactSha256 = await sha256(compactText);
-    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '05'));
+    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
 
     flushCompletions(catalogSha256, compactSha256);
     http.expectOne(CATALOG_URL).flush(catalogText);
@@ -166,7 +166,7 @@ describe('SpeciesGoalsLoaderService', () => {
       }),
     ]);
 
-    const cachedPromise = firstValueFrom(service.load('fixture', 'departments', '05'));
+    const cachedPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
     flushCompletions(catalogSha256, compactSha256);
     http.expectOne(CATALOG_URL).flush(catalogText);
     http.expectOne(COMPACT_URL).flush(compactText);
@@ -276,7 +276,7 @@ function compact(): SpeciesGoalsCompactDocument {
       boundaryProvenanceSha256: SHA,
       catalogSha256: SHA,
     },
-    scopeCatalog: [['05', 'Antioquia']],
+    scopeCatalog: [['50', 'Meta']],
     rowLayout: [
       'scopeIndex',
       'speciesIndex',

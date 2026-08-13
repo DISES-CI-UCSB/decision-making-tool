@@ -821,10 +821,11 @@ export function validateGoalsDocument(document, label = 'goals') {
       );
       assert(
         feature.evaluationSource !== 'post-hoc' ||
+          document.source.solutionDomain === 'land' ||
           (feature.featureType === 'ecosystems' &&
             feature.met !== null &&
             Number.isFinite(feature.relativeHeld)),
-        `${label}.features row ${index} post-hoc evaluation requires valid ecosystem coverage`,
+        `${label}.features row ${index} marine post-hoc evaluation requires valid ecosystem coverage`,
       );
     }
   }

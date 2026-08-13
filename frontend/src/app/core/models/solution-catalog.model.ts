@@ -1,5 +1,6 @@
 import type {
   RuntimeLayerManifestRenderingConfig,
+  RuntimeSolutionCapabilities,
   RuntimeSolutionManifestFinderInputs,
   RuntimeSolutionManifestInputLayerIds,
   RuntimeSolutionPrecomputedMetricUrls,
@@ -16,6 +17,7 @@ export interface CatalogSolution {
   displayUrl: string;
   displayCogUrl?: string | null;
   metadataUrl: string;
+  capabilities?: RuntimeSolutionCapabilities;
   precomputedMetricUrls?: RuntimeSolutionPrecomputedMetricUrls;
   rendering: RuntimeLayerManifestRenderingConfig;
   finderInputs: RuntimeSolutionManifestFinderInputs;

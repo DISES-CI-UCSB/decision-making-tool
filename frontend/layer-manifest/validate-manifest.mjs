@@ -587,10 +587,11 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
     const marine = manifest.solutions.filter((solution) => !land.includes(solution));
     for (const solution of land) {
       const urls = solution.precomputedMetricUrls ?? {};
-      assertRequiredReleaseMetricUrls(solution, manifest.releaseId);
+      const allowOriginRelative = options.aoiCoveragePreviewSolutionId === solution.id;
+      assertRequiredReleaseMetricUrls(solution, manifest.releaseId, allowOriginRelative);
       assert(!('mecByGeography' in urls), `${solution.id} must omit MEC v1 in release mode`);
       assertMecGeographyUrls(urls.mecV2ByGeography, `${solution.id}.mecV2ByGeography`);
-      assertReleaseMetricUrls(solution, manifest.releaseId);
+      assertReleaseMetricUrls(solution, manifest.releaseId, allowOriginRelative);
     }
     for (const solution of marine) {
       const urls = solution.precomputedMetricUrls ?? {};
@@ -617,33 +618,50 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
   };
 }
 
-function assertRequiredReleaseMetricUrls(solution, releaseId) {
+function assertRequiredReleaseMetricUrls(solution, releaseId, allowOriginRelative = false) {
   const urls = solution.precomputedMetricUrls ?? {};
   for (const key of ['goals', 'cache', 'compactCache']) {
-    assertReleaseMetricUrl(urls[key], releaseId, `${solution.id} precomputedMetricUrls.${key}`);
+    assertReleaseMetricUrl(
+      urls[key],
+      releaseId,
+      `${solution.id} precomputedMetricUrls.${key}`,
+      allowOriginRelative,
+    );
   }
 }
 
-function assertReleaseMetricUrls(solution, releaseId) {
+function assertReleaseMetricUrls(solution, releaseId, allowOriginRelative = false) {
   for (const [key, value] of Object.entries(solution.precomputedMetricUrls ?? {})) {
     const urls =
       value && typeof value === 'object' && !Array.isArray(value) ? Object.values(value) : [value];
     for (const url of urls) {
-      assertReleaseMetricUrl(url, releaseId, `${solution.id} precomputedMetricUrls.${key}`);
+      assertReleaseMetricUrl(
+        url,
+        releaseId,
+        `${solution.id} precomputedMetricUrls.${key}`,
+        allowOriginRelative,
+      );
     }
   }
 }
 
-function assertReleaseMetricUrl(value, releaseId, label) {
+function assertReleaseMetricUrl(value, releaseId, label, allowOriginRelative = false) {
   assert(typeof value === 'string', `${label} must be a URL`);
   let parsed;
   try {
-    parsed = new URL(value);
+    parsed = new URL(value, PUBLIC_BLOB_HOST);
   } catch {
     throw new Error(`${label} must be a valid URL`);
   }
   const expectedOrigin = new URL(PUBLIC_BLOB_HOST).origin;
-  assert(parsed.origin === expectedOrigin, `${label} must use configured Blob origin`);
+  const isOriginRelative = value.startsWith('/');
+  assert(
+    (allowOriginRelative && isOriginRelative) ||
+      (!isOriginRelative && parsed.origin === expectedOrigin),
+    `${label} must use configured Blob origin${
+      allowOriginRelative ? ' or an origin-relative preview URL' : ''
+    }`,
+  );
   assert(
     parsed.pathname.startsWith(`/releases/${releaseId}/`),
     `${label} must use exact release pathname prefix`,
@@ -698,6 +716,9 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
     );
   }
   assertNullableString(solution.generatedAt, `solutions[${index}].generatedAt`);
+  if ('capabilities' in solution && solution.capabilities !== undefined) {
+    validateSolutionCapabilities(solution.capabilities, `solutions[${index}].capabilities`);
+  }
   validateSolutionFinderInputs(solution.finderInputs, `solutions[${index}].finderInputs`);
   validateSolutionInputLayerIds(solution.inputLayerIds, `solutions[${index}].inputLayerIds`);
   validateSolutionSummaryMetrics(solution.summaryMetrics, `solutions[${index}].summaryMetrics`);
@@ -720,6 +741,21 @@ function validateSolution(solution, index, remoteDisplayUrls, options) {
       });
     }
     remoteDisplayUrls.push({ url: solution.metadataUrl, label: `solutions[${index}].metadataUrl` });
+  }
+}
+
+function validateSolutionCapabilities(capabilities, label) {
+  assert(
+    capabilities && typeof capabilities === 'object' && !Array.isArray(capabilities),
+    `${label} must be an object`,
+  );
+  const keys = Object.keys(capabilities);
+  assert(
+    keys.every((key) => key === 'aoiCoverageMetrics'),
+    `${label} contains an unsupported capability`,
+  );
+  if ('aoiCoverageMetrics' in capabilities) {
+    assert(capabilities.aoiCoverageMetrics === 'v2', `${label}.aoiCoverageMetrics must be "v2"`);
   }
 }
 

@@ -6,6 +6,8 @@ import {
   compactRuntimeLayer,
   compactRuntimeSolution,
 } from './runtime-release-manifest.mjs';
+import { solutionCatalogSha256 } from './solution-catalog.mjs';
+import { MEC_GEOGRAPHY_LEVELS } from './metric-urls.mjs';
 
 const HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
 const RELEASE_ID = 'solutions-v0-2-0-20260805';
@@ -79,6 +81,100 @@ function solution(id, domain = 'land') {
   };
 }
 
+function speciesGoalsInventoryEntry(id, levels = MEC_GEOGRAPHY_LEVELS) {
+  return {
+    format: 'species-goals-release-inventory-v1',
+    validated: true,
+    solutionId: id,
+    releaseId: RELEASE_ID,
+    catalogValidated: true,
+    validatedGeographyLevels: [...levels],
+  };
+}
+
+function releaseArtifactInventory(catalog) {
+  const artifacts = catalog.solutions.flatMap((solution) => [
+    ...['regularVerbose', 'regularCompact', 'goals'].map((component) => ({
+      component,
+      solutionId: solution.solutionId,
+      geographyLevel: null,
+      path: `${component}/${solution.solutionId}.json`,
+      blobPath: `releases/${RELEASE_ID}/${component}/${solution.solutionId}.json`,
+      sha256: 'c'.repeat(64),
+    })),
+    ...(solution.domain === 'land'
+      ? MEC_GEOGRAPHY_LEVELS.map((geographyLevel) => ({
+          component: 'mecV2',
+          solutionId: solution.solutionId,
+          geographyLevel,
+          path: `mec/v2/cache/${solution.solutionId}/${geographyLevel}.mec.compact.json`,
+          blobPath: `releases/${RELEASE_ID}/mec/v2/${solution.solutionId}/${geographyLevel}.mec.compact.json`,
+          sha256: 'c'.repeat(64),
+        }))
+      : []),
+  ]);
+  return {
+    format: 'solution-release-artifact-inventory-v1',
+    releaseId: RELEASE_ID,
+    catalogVersion: catalog.catalogVersion,
+    catalogSha256: solutionCatalogSha256(catalog),
+    artifactCount: artifacts.length,
+    artifacts,
+  };
+}
+
+function previewArtifactInventory(catalog, solutionId) {
+  const inventory = releaseArtifactInventory(catalog);
+  inventory.artifacts = inventory.artifacts.filter(
+    (artifact) => artifact.solutionId === solutionId,
+  );
+  inventory.artifactCount = inventory.artifacts.length;
+  return inventory;
+}
+
+function speciesGoalsCatalog() {
+  return {
+    format: 'species-goals-catalog-v1',
+    catalogSha256: 'd'.repeat(64),
+    provenance: { releaseId: RELEASE_ID },
+  };
+}
+
+function releaseFixture(entries) {
+  const orderedEntries = [...entries].sort((left, right) => left.id.localeCompare(right.id));
+  const catalog = {
+    format: 'solution-catalog-v1',
+    catalogVersion: '0.2.0',
+    releaseId: RELEASE_ID,
+    expectedSolutionCount: orderedEntries.length,
+    expectedLandSolutionCount: orderedEntries.filter((entry) => entry.domain === 'land').length,
+    expectedMarineSolutionCount: orderedEntries.filter((entry) => entry.domain === 'marine').length,
+    solutions: orderedEntries.map((entry) => ({
+      solutionId: entry.id,
+      solutionBasename: entry.rasterFile,
+      domain: entry.domain,
+      rasterSha256: entry.rasterSha256,
+    })),
+  };
+  return {
+    baseManifest: {
+      version: '0.2.0',
+      releaseId: RELEASE_ID,
+      catalogVersion: '0.2.0',
+      categories: [],
+      layers: [],
+      solutions: structuredClone(orderedEntries),
+    },
+    preflightManifest: {
+      releaseId: RELEASE_ID,
+      catalogVersion: '0.2.0',
+      generatedAt: '2026-08-05T00:00:00Z',
+      solutions: orderedEntries,
+    },
+    catalog,
+  };
+}
+
 describe('runtime release manifest compaction', () => {
   it('removes unsupported layer metric URLs while retaining backed metadata', () => {
     const backedMetadataUrl = `${HOST}/metadata/ecosistemas.metadata.json`;
@@ -107,6 +203,7 @@ describe('runtime release manifest compaction', () => {
 
   it('omits analysis coverage while preserving heterogeneous EspRN targets exactly', () => {
     const source = solution('land-solution');
+    source.capabilities = { aoiCoverageMetrics: 'v2' };
     const compact = compactRuntimeSolution(source);
 
     assert.deepStrictEqual(compact.coverage, []);
@@ -119,6 +216,7 @@ describe('runtime release manifest compaction', () => {
       [17, 22.5, 30],
     );
     assert.strictEqual(compact.summaryMetrics.coverageRowCount, 3);
+    assert.deepStrictEqual(compact.capabilities, { aoiCoverageMetrics: 'v2' });
     assert.strictEqual('sourceProvenance' in compact, false);
   });
 
@@ -179,6 +277,306 @@ describe('runtime release manifest compaction', () => {
     assert.strictEqual(result.releaseId, RELEASE_ID);
     assert.strictEqual(result.catalogVersion, '0.2.0');
     assert.strictEqual(result.solutionDataProfile, RUNTIME_COMPACT_SOLUTION_PROFILE);
+  });
+
+  it('emits AOI coverage v2 only from complete MEC and species evidence', () => {
+    const completeLand = solution('complete-land');
+    const incompleteLand = solution('incomplete-land');
+    const marine = solution('marine-solution', 'marine');
+    for (const entry of [completeLand, incompleteLand, marine]) {
+      entry.capabilities = { aoiCoverageMetrics: 'v2' };
+    }
+    const catalog = {
+      format: 'solution-catalog-v1',
+      catalogVersion: '0.2.0',
+      releaseId: RELEASE_ID,
+      expectedSolutionCount: 3,
+      expectedLandSolutionCount: 2,
+      expectedMarineSolutionCount: 1,
+      solutions: [completeLand, incompleteLand, marine]
+        .sort((left, right) => left.id.localeCompare(right.id))
+        .map((entry) => ({
+          solutionId: entry.id,
+          solutionBasename: entry.rasterFile,
+          domain: entry.domain,
+          rasterSha256: entry.rasterSha256,
+        })),
+    };
+    const orderedSolutions = catalog.solutions.map(({ solutionId }) =>
+      [completeLand, incompleteLand, marine].find((entry) => entry.id === solutionId),
+    );
+    const artifactInventory = releaseArtifactInventory(catalog);
+    const activeSpeciesGoalsCatalog = speciesGoalsCatalog();
+    const speciesGoalsInventory = {
+      format: 'species-goals-release-inventory-index-v1',
+      releaseId: RELEASE_ID,
+      catalogSha256: activeSpeciesGoalsCatalog.catalogSha256,
+      solutions: {
+        [completeLand.id]: speciesGoalsInventoryEntry(completeLand.id),
+        [incompleteLand.id]: speciesGoalsInventoryEntry(incompleteLand.id),
+        [marine.id]: speciesGoalsInventoryEntry(marine.id),
+      },
+    };
+
+    const result = buildRuntimeReleaseManifest({
+      baseManifest: {
+        version: '0.2.0',
+        categories: [],
+        layers: [],
+      },
+      preflightManifest: {
+        releaseId: RELEASE_ID,
+        catalogVersion: '0.2.0',
+        generatedAt: '2026-08-05T00:00:00Z',
+        solutions: orderedSolutions,
+      },
+      catalog,
+      releaseArtifactInventory: artifactInventory,
+      speciesGoalsInventory,
+      speciesGoalsCatalog: activeSpeciesGoalsCatalog,
+    });
+    const byId = Object.fromEntries(result.solutions.map((entry) => [entry.id, entry]));
+
+    assert.deepStrictEqual(byId[completeLand.id].capabilities, {
+      aoiCoverageMetrics: 'v2',
+    });
+    assert.deepStrictEqual(byId[incompleteLand.id].capabilities, {
+      aoiCoverageMetrics: 'v2',
+    });
+    assert.strictEqual(byId[marine.id].capabilities, undefined);
+
+    const productionSolutions = structuredClone(orderedSolutions);
+    for (const entry of productionSolutions) {
+      delete entry.capabilities;
+      entry.precomputedMetricUrls = {
+        goals: `${HOST}/releases/${RELEASE_ID}/production/${entry.id}.json`,
+      };
+    }
+    const previewSpeciesGoalsInventory = {
+      format: 'species-goals-release-inventory-index-v1',
+      releaseId: RELEASE_ID,
+      catalogSha256: activeSpeciesGoalsCatalog.catalogSha256,
+      solutions: {
+        [completeLand.id]: speciesGoalsInventoryEntry(completeLand.id),
+      },
+    };
+    const previewResult = buildRuntimeReleaseManifest({
+      baseManifest: {
+        version: '0.2.0',
+        releaseId: RELEASE_ID,
+        catalogVersion: '0.2.0',
+        categories: [],
+        layers: [],
+        solutions: productionSolutions,
+      },
+      preflightManifest: {
+        releaseId: RELEASE_ID,
+        catalogVersion: '0.2.0',
+        generatedAt: '2026-08-05T00:00:00Z',
+        solutions: orderedSolutions,
+      },
+      catalog,
+      releaseArtifactInventory: previewArtifactInventory(catalog, completeLand.id),
+      speciesGoalsInventory: previewSpeciesGoalsInventory,
+      speciesGoalsCatalog: activeSpeciesGoalsCatalog,
+      speciesGoalsBaseUrl: '',
+      releaseArtifactBaseUrl: '',
+      aoiCoveragePreviewSolutionId: completeLand.id,
+    });
+    const previewById = Object.fromEntries(
+      previewResult.solutions.map((entry) => [entry.id, entry]),
+    );
+    assert.deepStrictEqual(previewById[completeLand.id].capabilities, {
+      aoiCoverageMetrics: 'v2',
+    });
+    assert.strictEqual(previewById[incompleteLand.id].capabilities, undefined);
+    assert.strictEqual(previewById[marine.id].capabilities, undefined);
+    assert.ok(previewById[completeLand.id].precomputedMetricUrls.cache.startsWith('/releases/'));
+    assert.strictEqual(
+      previewById[completeLand.id].precomputedMetricUrls.speciesGoalsTargetOverlay,
+      undefined,
+    );
+    assert.deepStrictEqual(
+      previewById[incompleteLand.id],
+      productionSolutions.find((entry) => entry.id === incompleteLand.id),
+    );
+    assert.deepStrictEqual(
+      previewById[marine.id],
+      productionSolutions.find((entry) => entry.id === marine.id),
+    );
+
+    speciesGoalsInventory.solutions[completeLand.id].validatedGeographyLevels =
+      MEC_GEOGRAPHY_LEVELS.slice(0, -1);
+    const incompleteSpeciesResult = buildRuntimeReleaseManifest({
+      baseManifest: {
+        version: '0.2.0',
+        categories: [],
+        layers: [],
+      },
+      preflightManifest: {
+        releaseId: RELEASE_ID,
+        catalogVersion: '0.2.0',
+        generatedAt: '2026-08-05T00:00:00Z',
+        solutions: orderedSolutions,
+      },
+      catalog,
+      releaseArtifactInventory: artifactInventory,
+      speciesGoalsInventory,
+      speciesGoalsCatalog: activeSpeciesGoalsCatalog,
+    });
+    assert.strictEqual(
+      incompleteSpeciesResult.solutions.find((entry) => entry.id === completeLand.id).capabilities,
+      undefined,
+    );
+  });
+
+  it('leaves legacy releases unmarked without both inventories', () => {
+    const land = solution('land-solution');
+    land.capabilities = { aoiCoverageMetrics: 'v2' };
+    const catalog = {
+      format: 'solution-catalog-v1',
+      catalogVersion: '0.2.0',
+      releaseId: RELEASE_ID,
+      expectedSolutionCount: 1,
+      expectedLandSolutionCount: 1,
+      expectedMarineSolutionCount: 0,
+      solutions: [
+        {
+          solutionId: land.id,
+          solutionBasename: land.rasterFile,
+          domain: land.domain,
+          rasterSha256: land.rasterSha256,
+        },
+      ],
+    };
+
+    const result = buildRuntimeReleaseManifest({
+      baseManifest: { version: '0.2.0', categories: [], layers: [] },
+      preflightManifest: {
+        releaseId: RELEASE_ID,
+        catalogVersion: '0.2.0',
+        solutions: [land],
+      },
+      catalog,
+    });
+
+    assert.strictEqual(result.solutions[0].capabilities, undefined);
+  });
+
+  it('keeps production mode on complete canonical release inventory enforcement', () => {
+    const land = solution('land-solution');
+    const fixture = releaseFixture([land]);
+    const artifactInventory = releaseArtifactInventory(fixture.catalog);
+    artifactInventory.artifacts = artifactInventory.artifacts.filter(
+      (artifact) => artifact.geographyLevel !== 'omecs',
+    );
+    artifactInventory.artifactCount = artifactInventory.artifacts.length;
+    const activeSpeciesGoalsCatalog = speciesGoalsCatalog();
+
+    assert.throws(
+      () =>
+        buildRuntimeReleaseManifest({
+          ...fixture,
+          releaseArtifactInventory: artifactInventory,
+          speciesGoalsCatalog: activeSpeciesGoalsCatalog,
+          speciesGoalsInventory: {
+            format: 'species-goals-release-inventory-index-v1',
+            releaseId: RELEASE_ID,
+            catalogSha256: activeSpeciesGoalsCatalog.catalogSha256,
+            solutions: {
+              [land.id]: speciesGoalsInventoryEntry(land.id),
+            },
+          },
+        }),
+      /not the complete canonical catalog inventory/,
+    );
+  });
+
+  it('rejects a partial target-only preview inventory', () => {
+    const land = solution('land-solution');
+    const fixture = releaseFixture([land]);
+    const artifactInventory = previewArtifactInventory(fixture.catalog, land.id);
+    artifactInventory.artifacts = artifactInventory.artifacts.filter(
+      (artifact) => artifact.geographyLevel !== 'omecs',
+    );
+    artifactInventory.artifactCount = artifactInventory.artifacts.length;
+    const activeSpeciesGoalsCatalog = speciesGoalsCatalog();
+
+    assert.throws(
+      () =>
+        buildRuntimeReleaseManifest({
+          ...fixture,
+          releaseArtifactInventory: artifactInventory,
+          speciesGoalsCatalog: activeSpeciesGoalsCatalog,
+          speciesGoalsInventory: {
+            format: 'species-goals-release-inventory-index-v1',
+            releaseId: RELEASE_ID,
+            catalogSha256: activeSpeciesGoalsCatalog.catalogSha256,
+            solutions: {
+              [land.id]: speciesGoalsInventoryEntry(land.id),
+            },
+          },
+          aoiCoveragePreviewSolutionId: land.id,
+        }),
+      /not complete and target-only/,
+    );
+  });
+
+  it('rejects artifacts for another solution in target-only preview inventory', () => {
+    const selected = solution('selected-land');
+    const other = solution('other-land');
+    const fixture = releaseFixture([selected, other]);
+    const artifactInventory = previewArtifactInventory(fixture.catalog, selected.id);
+    artifactInventory.artifacts.push(
+      releaseArtifactInventory(fixture.catalog).artifacts.find(
+        (artifact) => artifact.solutionId === other.id && artifact.component === 'regularVerbose',
+      ),
+    );
+    artifactInventory.artifactCount = artifactInventory.artifacts.length;
+    const activeSpeciesGoalsCatalog = speciesGoalsCatalog();
+
+    assert.throws(
+      () =>
+        buildRuntimeReleaseManifest({
+          ...fixture,
+          releaseArtifactInventory: artifactInventory,
+          speciesGoalsCatalog: activeSpeciesGoalsCatalog,
+          speciesGoalsInventory: {
+            format: 'species-goals-release-inventory-index-v1',
+            releaseId: RELEASE_ID,
+            catalogSha256: activeSpeciesGoalsCatalog.catalogSha256,
+            solutions: {
+              [selected.id]: speciesGoalsInventoryEntry(selected.id),
+            },
+          },
+          aoiCoveragePreviewSolutionId: selected.id,
+        }),
+      /not complete and target-only/,
+    );
+  });
+
+  it('rejects species-goals evidence from a stale catalog hash', () => {
+    const land = solution('land-solution');
+    const fixture = releaseFixture([land]);
+    const activeSpeciesGoalsCatalog = speciesGoalsCatalog();
+
+    assert.throws(
+      () =>
+        buildRuntimeReleaseManifest({
+          ...fixture,
+          releaseArtifactInventory: releaseArtifactInventory(fixture.catalog),
+          speciesGoalsCatalog: activeSpeciesGoalsCatalog,
+          speciesGoalsInventory: {
+            format: 'species-goals-release-inventory-index-v1',
+            releaseId: RELEASE_ID,
+            catalogSha256: 'e'.repeat(64),
+            solutions: {
+              [land.id]: speciesGoalsInventoryEntry(land.id),
+            },
+          },
+        }),
+      /species goals release inventory is invalid or stale/,
+    );
   });
 
   it('rebinds stale preflight artifact URLs onto the current release contract', () => {

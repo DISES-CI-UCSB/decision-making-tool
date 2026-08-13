@@ -13,6 +13,7 @@ import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
+import { TableHeaderTooltipComponent } from '@core/shared/table-header-tooltip/table-header-tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
   catchError,
@@ -59,7 +60,7 @@ export function clampSpeciesBarPercent(value: number): number {
 @Component({
   selector: 'app-custom-aoi-species-inventory',
   standalone: true,
-  imports: [TranslatePipe, ModalShellComponent],
+  imports: [TranslatePipe, ModalShellComponent, TableHeaderTooltipComponent],
   templateUrl: './custom-aoi-species-inventory.html',
 })
 export class CustomAoiSpeciesInventoryComponent {

@@ -216,6 +216,8 @@ describe('PanelSwitcherComponent', () => {
     expect(openButton.getAttribute('aria-controls')).toBe('custom-aoi-species-inventory-modal');
     openButton.click();
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(openButton.getAttribute('aria-expanded')).toBe('true');
     expect(compiled.querySelector('#custom-aoi-species-inventory-modal')).not.toBeNull();
     expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
@@ -1039,6 +1041,50 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#aoi-mec-modal-coverage-values-broadecosystem-forest')?.textContent,
     ).toContain('0% + 40%');
+    expect(compiled.querySelector('#aoi-mec-modal-heading-national-share')).toBeNull();
+  });
+
+  it('gates expanded known-AOI ecosystem columns and loads the national v2 partition', async () => {
+    const solution = buildTestSolution();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      capabilities: { aoiCoverageMetrics: 'v2' },
+    } as CatalogSolution);
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockImplementation((_solutionId, level) => {
+      const document = buildV2MecDocument(solution.id);
+      if (level === 'national') {
+        document.geographyLevel = 'national';
+        document.scopeCatalog = [['colombia', 'Colombia']];
+        document.rows = [[0, 0, 50, 10, 15]];
+      }
+      return of({ status: 'loaded', document, format: 'mec-compact-v2' });
+    });
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'national');
+    expect(compiled.querySelector('#aoi-mec-modal-heading-national-share')).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-modal-national-share-broadecosystem-forest-measure')
+        ?.textContent,
+    ).toContain('20%');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-aoi-share-broadecosystem-forest-measure')?.textContent,
+    ).toContain('50%');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-total-coverage-broadecosystem-forest-measure')
+        ?.textContent,
+    ).toContain('40%');
   });
 
   it('renders real rows for all five MEC views even when dummy AOI metrics are enabled', async () => {
@@ -1912,6 +1958,16 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#conservation-goals-modal-measured-value')?.textContent,
     ).toContain('4');
+    expect(compiled.querySelector('#conservation-goals-modal-feature-secondary-0')).toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-coverage-area-0')?.textContent,
+    ).toContain('km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-heading-coverage')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.modal.nationalTotalCoverage');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-heading-coverage')?.textContent,
+    ).not.toContain('rangeCoverage');
   });
 
   it('keeps targeted strategic progress on solver summary rows', () => {
@@ -1976,9 +2032,33 @@ describe('PanelSwitcherComponent', () => {
     expect(component.goalsModalRows()).toHaveLength(3);
     expect(fixture.debugElement.query(By.directive(CdkVirtualScrollViewport))).not.toBeNull();
     expect(
-      compiled.querySelector('#conservation-goals-modal-virtual-heading-checkpoints'),
+      compiled.querySelector('#conservation-goals-modal-national-virtual-heading-checkpoints'),
     ).not.toBeNull();
-    expect(compiled.querySelector('#conservation-goals-modal-virtual-heading-target')).toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-national-virtual-heading-target'),
+    ).toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-title')?.textContent).toContain(
+      'analysis.overview.goalsWidget.modal.nationalSpeciesTitle',
+    );
+    expect(
+      compiled.querySelector('#conservation-goals-modal-national-virtual-heading-range'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-national-virtual-heading-coverage-group')
+        ?.textContent,
+    ).toContain('analysis.overview.goalsWidget.modal.solutionCoverageGroup');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-national-range-0')?.textContent,
+    ).toContain('km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-area-0')?.textContent,
+    ).toContain('km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-new-coverage-area-0')?.textContent,
+    ).toContain('km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-coverage-area-0')?.textContent,
+    ).toContain('km²');
 
     const filter = compiled.querySelector(
       '#conservation-goals-modal-filter-select',
@@ -1994,6 +2074,46 @@ describe('PanelSwitcherComponent', () => {
 
     expect(compiled.querySelector('#conservation-goals-modal-virtual-table')).toBeNull();
     expect(compiled.querySelector('#conservation-goals-modal-preparing-status')).toBeNull();
+  });
+
+  it('gates expanded known-AOI species metrics while preserving checkpoints', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      capabilities: { aoiCoverageMetrics: 'v2' },
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(
+      compiled.querySelector('#conservation-goals-modal-virtual-heading-rangeInAoi'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-virtual-heading-preExistingCoverage'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-range-in-aoi-percent-0')?.textContent,
+    ).toContain('100%');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-solution-coverage-area-0')?.textContent,
+    ).toContain('km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-virtual-heading-checkpoints'),
+    ).not.toBeNull();
   });
 
   it('bounds a large species breakdown with the virtual viewport', async () => {
@@ -2078,6 +2198,64 @@ describe('PanelSwitcherComponent', () => {
       metCount: 0,
       pctMet: 0,
     });
+    expect(
+      fixture.nativeElement.querySelector(
+        '#conservation-goals-modal-national-virtual-heading-target',
+      ),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '#conservation-goals-modal-national-virtual-heading-status',
+      ),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-coverage-bar-0'),
+    ).not.toBeNull();
+  });
+
+  it('renders true, false, and unavailable species target statuses distinctly', async () => {
+    const document = buildGoalsDocument();
+    document.targetContext.targetFeatureSet = 'species';
+    document.targetContext.targetFeatureIds = ['especies'];
+    const records = buildHydratedSpeciesRecords(document).map((record, index) => ({
+      ...record,
+      configured_target_percent: 17,
+      configured_target_met: [true, false, null][index] ?? null,
+    }));
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(records));
+    goalsDocument = document;
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#right-sidebar-v3-overview-goals-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const metBadge = compiled.querySelector('#conservation-goals-modal-status-badge-0');
+    const notMetBadge = compiled.querySelector('#conservation-goals-modal-status-badge-1');
+    const unavailableBadge = compiled.querySelector('#conservation-goals-modal-status-badge-2');
+
+    expect(metBadge?.textContent).toContain('analysis.overview.goalsWidget.modal.met');
+    expect(metBadge?.classList).toContain('bg-emerald-100');
+    expect(notMetBadge?.textContent).toContain('analysis.overview.goalsWidget.modal.notMet');
+    expect(notMetBadge?.classList).toContain('bg-amber-100');
+    expect(unavailableBadge?.textContent?.trim()).toBe('—');
+    expect(unavailableBadge?.textContent).not.toContain(
+      'analysis.overview.goalsWidget.modal.notMet',
+    );
+    expect(unavailableBadge?.classList).not.toContain('bg-amber-100');
+    expect(unavailableBadge?.classList).toContain('bg-slate-100');
+    expect(unavailableBadge?.getAttribute('aria-label')).toContain(
+      'analysis.overview.goalsWidget.modal.statusUnavailable',
+    );
   });
 
   it.each([
@@ -2209,8 +2387,8 @@ describe('PanelSwitcherComponent', () => {
     vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
       of({
         status: 'loaded',
-        document: buildFiveViewMecDocument(solution.id),
-        format: 'mec-compact-v1',
+        document: buildFiveViewV2MecDocument(solution.id),
+        format: 'mec-compact-v2',
       }),
     );
     appState.activeSolution$.set(solution);
@@ -2265,11 +2443,23 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-0')?.textContent,
     ).toContain('10');
     expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-area-0')?.textContent,
+    ).toContain('10 km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-area-0')?.textContent,
+    ).toContain('1 km²');
+    expect(
       compiled.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
     ).toContain('30');
     expect(
+      compiled.querySelector('#conservation-goals-modal-new-coverage-area-0')?.textContent,
+    ).toContain('3 km²');
+    expect(
       compiled.querySelector('#conservation-goals-modal-coverage-value-0')?.textContent,
     ).toContain('40');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-coverage-area-0')?.textContent,
+    ).toContain('4 km²');
   });
 
   it('shows loading and recoverable error states for national ecosystem classifications', async () => {
@@ -2812,6 +3002,7 @@ function buildCustomEcosystemProfileResponse(
                 area_km2: 8,
                 national_area_km2: 40,
                 share_of_classified_pct: 80,
+                share_of_total_aoi_pct: 80,
                 share_of_national_class_pct: 20,
                 solution_covered_area_km2: solutionId ? 4 : null,
                 solution_covered_pct_of_aoi: solutionId ? 50 : null,
@@ -2826,6 +3017,7 @@ function buildCustomEcosystemProfileResponse(
                 area_km2: 2,
                 national_area_km2: 20,
                 share_of_classified_pct: 20,
+                share_of_total_aoi_pct: 20,
                 share_of_national_class_pct: 10,
                 solution_covered_area_km2: solutionId ? 1 : null,
                 solution_covered_pct_of_aoi: solutionId ? 50 : null,
@@ -2967,6 +3159,35 @@ function buildFiveViewMecDocument(solutionId: string): MecCompactDocument {
       })),
       unsupported: [],
     },
+  };
+}
+
+function buildFiveViewV2MecDocument(solutionId: string): MecCompactV2Document {
+  const v1Document = buildFiveViewMecDocument(solutionId);
+  return {
+    ...buildV2MecDocument(solutionId, {
+      geographyLevel: 'national',
+      scopeId: 'colombia',
+      scopeName: 'Colombia',
+    }),
+    viewCatalog: v1Document.viewCatalog,
+    classCatalog: v1Document.classCatalog,
+    rows: v1Document.rows.map(
+      ([
+        scopeIndex,
+        classIndex,
+        ecosystemAreaKm2,
+        existingKm2,
+        newKm2,
+      ]): MecCompactV2Document['rows'][number] => [
+        scopeIndex,
+        classIndex,
+        ecosystemAreaKm2,
+        existingKm2,
+        newKm2,
+      ],
+    ),
+    viewSupport: v1Document.viewSupport,
   };
 }
 

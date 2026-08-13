@@ -24,7 +24,7 @@ from app.ecosystem_inventory import RuntimeEcosystemInventory, load_ecosystem_in
 from app.job_queue import DetailedSpeciesJobQueue
 from app.main import app
 from app import main as main_module
-from app.models import CustomAreaProfileRequest
+from app.models import CustomAreaProfileRequest, EcosystemAreaProfileSection
 from app.species_index import (
     load_runtime_species_bitset_index,
     normalize_species_name,
@@ -358,7 +358,7 @@ def test_ecosystem_profile_maps_all_five_views_and_present_classes(tmp_path: Pat
         transform=from_origin(0.0, 2000.0, 1000.0, 1000.0),
         nodata=0,
     ) as dataset:
-        dataset.write(np.array([[1, 2], [1, 0]], dtype=np.uint16), 1)
+        dataset.write(np.array([[1, 2], [0, 0]], dtype=np.uint16), 1)
 
     base = raster_artifact(tmp_path)
     inventory = RuntimeEcosystemInventory(
@@ -379,7 +379,7 @@ def test_ecosystem_profile_maps_all_five_views_and_present_classes(tmp_path: Pat
     assert status == "complete"
     assert ecosystem["status"] == "complete"
     assert ecosystem["canonical_summary_view"] == "broadEcosystem"
-    assert ecosystem["classified_area_km2"] == pytest.approx(2.0)
+    assert ecosystem["classified_area_km2"] == pytest.approx(1.0)
     assert [view["id"] for view in ecosystem["views"]] == [
         "biomeFamily",
         "broadBiomeContext",
@@ -393,21 +393,31 @@ def test_ecosystem_profile_maps_all_five_views_and_present_classes(tmp_path: Pat
         for view in ecosystem["views"]
     )
     assert all(
+        view["records"][0]["share_of_total_aoi_pct"] == pytest.approx(50.0)
+        for view in ecosystem["views"]
+    )
+    assert all(
         set(view["records"][0]) == {
             "id",
             "label",
             "area_km2",
-                "national_area_km2",
+            "national_area_km2",
             "share_of_classified_pct",
-                "share_of_national_class_pct",
-                "solution_covered_area_km2",
-                "solution_covered_pct_of_aoi",
-                "pre_existing_covered_area_km2",
-                "pre_existing_covered_pct_of_aoi",
-                "new_covered_area_km2",
-                "new_covered_pct_of_aoi",
+            "share_of_total_aoi_pct",
+            "share_of_national_class_pct",
+            "solution_covered_area_km2",
+            "solution_covered_pct_of_aoi",
+            "pre_existing_covered_area_km2",
+            "pre_existing_covered_pct_of_aoi",
+            "new_covered_area_km2",
+            "new_covered_pct_of_aoi",
         }
         for view in ecosystem["views"]
+    )
+    serialized = EcosystemAreaProfileSection.model_validate(ecosystem).model_dump()
+    assert all(
+        view["records"][0]["share_of_total_aoi_pct"] == pytest.approx(50.0)
+        for view in serialized["views"]
     )
 
 
