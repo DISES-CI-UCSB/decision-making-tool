@@ -214,9 +214,9 @@ describe('AOI ecosystems utilities', () => {
     expect(resolveMecScopeIndex(document, { ...mergedAoi, id: 'sirap:missing' })).toBeNull();
     expect(isWholeMetricCompatibleSirapAoi(mergedAoi)).toBe(true);
     expect(isWholeMetricCompatibleSirapAoi(componentAoi)).toBe(false);
-    expect(isWholeMetricCompatibleSirapAoi(territorialAoi)).toBe(true);
+    expect(isWholeMetricCompatibleSirapAoi(territorialAoi)).toBe(false);
     expect(isWholeMetricCompatibleSirapAoi(thematicAoi)).toBe(true);
-    expect(isWholeMetricCompatibleSirapAoi(updatedTerritorialAoi)).toBe(false);
+    expect(isWholeMetricCompatibleSirapAoi(updatedTerritorialAoi)).toBe(true);
     expect(isWholeMetricCompatibleSirapAoi(legacyAoi)).toBe(false);
   });
 });

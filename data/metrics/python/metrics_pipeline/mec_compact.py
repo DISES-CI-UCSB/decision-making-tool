@@ -597,9 +597,15 @@ def build_generation_signature(
     boundary_provenance: dict[str, dict[str, Any]],
     national_target: dict[str, Any],
     aligned_mec_identity: dict[str, str],
+    geography_level: str = "departments",
 ) -> dict[str, str]:
     """Return a deterministic signature for every input affecting an artifact."""
 
+    _validate_geography_level(geography_level)
+    boundary_level = "departments" if geography_level == "national" else geography_level
+    relevant_boundary_provenance = {
+        boundary_level: boundary_provenance[boundary_level]
+    }
     payload = {
         "signatureFormat": MEC_SIGNATURE_FORMAT,
         "generatorConfigVersion": MEC_GENERATOR_CONFIG_VERSION,
@@ -649,7 +655,7 @@ def build_generation_signature(
             "solutionRasterSha256": solution_raster_sha256,
         },
         "solutionGrid": _grid_payload(solution_grid),
-        "boundaryProvenance": boundary_provenance,
+        "boundaryProvenance": relevant_boundary_provenance,
         "nationalTarget": national_target,
     }
     return {
@@ -1429,6 +1435,10 @@ def build_mec_document(
     solution_catalog_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     _validate_geography_level(geography_level)
+    boundary_level = "departments" if geography_level == "national" else geography_level
+    relevant_boundary_provenance = {
+        boundary_level: boundary_provenance[boundary_level]
+    }
     scope_catalog: list[list[str]] = []
     scope_stats: dict[str, dict[str, Any]] = {}
     rows: list[list[Any]] = []
@@ -1519,7 +1529,7 @@ def build_mec_document(
             **_grid_payload(raster.fingerprint),
             "rasterization": RASTERIZATION_SEMANTICS,
         },
-        "boundaryProvenance": _portable_metadata(boundary_provenance),
+        "boundaryProvenance": _portable_metadata(relevant_boundary_provenance),
         "viewCatalog": taxonomy.view_catalog,
         "classCatalog": taxonomy.class_catalog,
         "tipoEcosistemaCatalog": list(taxonomy.tipo_ecosistema_catalog),
@@ -2497,24 +2507,28 @@ def main(argv: list[str] | None = None) -> int:
                 "targetGridSha256": aligned_mec.target_grid_sha256,
                 "policySha256": aligned_mec.policy_sha256,
             }
-            generation_signature = build_generation_signature(
-                taxonomy=taxonomy,
-                crosswalk_content=crosswalk_content,
-                crosswalk_source=crosswalk_source,
-                classification_summary=summary,
-                classification_summary_source=classification_summary_source,
-                provenance_source=provenance_source,
-                provenance_sha256=provenance_sha256,
-                manifest_url=args.manifest_url,
-                mec_raster_url=mec_raster_source,
-                mec_raster_sha256=mec_raster_sha256,
-                solution_url=str(solution["displayUrl"]),
-                solution_raster_sha256=solution_raster_sha256,
-                solution_grid=raster.fingerprint,
-                boundary_provenance=boundary_provenance,
-                national_target=national_targets[solution_id],
-                aligned_mec_identity=aligned_mec_identity,
-            )
+            generation_signatures = {
+                level: build_generation_signature(
+                    taxonomy=taxonomy,
+                    crosswalk_content=crosswalk_content,
+                    crosswalk_source=crosswalk_source,
+                    classification_summary=summary,
+                    classification_summary_source=classification_summary_source,
+                    provenance_source=provenance_source,
+                    provenance_sha256=provenance_sha256,
+                    manifest_url=args.manifest_url,
+                    mec_raster_url=mec_raster_source,
+                    mec_raster_sha256=mec_raster_sha256,
+                    solution_url=str(solution["displayUrl"]),
+                    solution_raster_sha256=solution_raster_sha256,
+                    solution_grid=raster.fingerprint,
+                    boundary_provenance=boundary_provenance,
+                    national_target=national_targets[solution_id],
+                    aligned_mec_identity=aligned_mec_identity,
+                    geography_level=level,
+                )
+                for level in levels
+            }
         except Exception as exc:
             setup_traceback = traceback.format_exc()
             for level in levels:
@@ -2540,7 +2554,7 @@ def main(argv: list[str] | None = None) -> int:
                 path,
                 solution_id=solution_id,
                 geography_level=level,
-                generation_signature=generation_signature,
+                generation_signature=generation_signatures[level],
                 aligned_mec_identity=aligned_mec_identity,
                 expected_catalog_binding=solution_catalog_binding,
             ):
@@ -2595,7 +2609,7 @@ def main(argv: list[str] | None = None) -> int:
                 observed_biome_ids=observed_biome_ids,
                 boundary_provenance=boundary_provenance,
                 national_target=national_targets[solution_id],
-                generation_signature=generation_signature,
+                generation_signature=generation_signatures[level],
                 aligned_mec_identity=aligned_mec_identity,
                 generated_at=generated_at,
                 solution_catalog_binding=solution_catalog_binding,

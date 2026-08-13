@@ -4391,9 +4391,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
     const boundaryNameFallbacks: Record<string, string> = {
       'boundary-siraps': 'SIRAP',
-      'boundary-siraps_territorial': 'Territorial SIRAPs',
-      'boundary-siraps_territorial_updated':
-        'Territorial SIRAPs (updated, needs metric calculation)',
+      'boundary-siraps_territorial': 'Territorial SIRAPs (outdated)',
+      'boundary-siraps_territorial_updated': 'Territorial SIRAPs (new)',
       'boundary-siraps_thematic': 'Thematic SIRAP additions',
       'boundary-admin_country_outline': 'Colombia Outline',
       'boundary-admin_departments': 'Departments',

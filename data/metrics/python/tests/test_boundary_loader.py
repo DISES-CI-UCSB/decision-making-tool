@@ -111,25 +111,35 @@ def test_pinned_igac_sources_match_exact_frontend_catalog_contract():
     )
 
 
-def test_pinned_sirap_source_is_polygon_only_version_two_contract():
+def test_pinned_sirap_source_is_authoritative_eight_scope_contract():
     siraps = BOUNDARY_SOURCE_SPECS["siraps"]
 
     assert siraps.url.endswith(
-        "/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson"
+        "/inputs/boundaries/sirap/siraps_authoritative_combined_v3.geojson"
     )
-    assert siraps.cache_filename == "siraps_merged_polygon_v2.2a44a7a4.geojson"
+    assert (
+        siraps.cache_filename
+        == "siraps_authoritative_combined_v3.1372ce88.geojson"
+    )
     assert siraps.expected_sha256 == (
-        "2a44a7a4726448959432924a11703250a444fe9e06be3324563e7b89d14912de"
+        "1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c"
     )
-    assert siraps.expected_feature_count == len(EXPECTED_SIRAP_CATALOG) == 10
+    assert siraps.expected_feature_count == len(EXPECTED_SIRAP_CATALOG) == 8
     assert siraps.allowed_geometry_types == ("Polygon", "MultiPolygon")
     assert boundary_catalog_sha256(list(EXPECTED_SIRAP_CATALOG)) == (
         siraps.expected_catalog_sha256
     )
+    assert not {
+        "territorial_territorial_caribe_9",
+        "territorial_territorial_pacifico_10",
+    } & {sirap_id for sirap_id, _ in EXPECTED_SIRAP_CATALOG}
     assert dict(siraps.representative_geometry_sha256) == {
         "territorial_territorial_amazonia_3": (
-            "b7927d0797463c7a35d02f38bf5c533cbd60a878b25389a607740cb7469ef2bb"
-        )
+            "11edc1b9ad65b870142f5dfd2c52694493007f973e8a8474aa58400c428919e8"
+        ),
+        "thematic_eje_cafetero_1": (
+            "5288a528a2b7dcc67151180376b902c3d993aebfbcbae15a7bc34eb75822899b"
+        ),
     }
 
 

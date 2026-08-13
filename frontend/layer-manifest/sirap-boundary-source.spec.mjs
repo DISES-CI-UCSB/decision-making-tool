@@ -7,12 +7,12 @@ import { parseCsv, rowsToObjects } from './lib/csv.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../..');
-const pathname = 'inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson';
+const pathname = 'inputs/boundaries/sirap/siraps_authoritative_combined_v3.geojson';
 const url = `https://aagibolq28slyfof.public.blob.vercel-storage.com/${pathname}`;
-const sha256 = '2a44a7a4726448959432924a11703250a444fe9e06be3324563e7b89d14912de';
+const sha256 = '1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c';
 
-describe('polygon-only SIRAP source contracts', () => {
-  it('pins the manifest-generator source row to the versioned URL', async () => {
+describe('authoritative SIRAP metric source contracts', () => {
+  it('leaves the manifest-generator source row on the current frontend boundary', async () => {
     const source = await readFile(
       path.join(
         repoRoot,
@@ -28,7 +28,10 @@ describe('polygon-only SIRAP source contracts', () => {
 
     assert.ok(siraps);
     assert.equal(siraps[filenameIndex], 'siraps_merged_polygon_v2.geojson');
-    assert.equal(siraps[storageLocationIndex], url);
+    assert.equal(
+      siraps[storageLocationIndex],
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+    );
   });
 
   it('keeps the registry URL, checksum, and feature count aligned', async () => {
@@ -42,7 +45,7 @@ describe('polygon-only SIRAP source contracts', () => {
     assert.ok(siraps);
     assert.equal(siraps.repo_path_or_url, url);
     assert.equal(siraps.sha256, sha256);
-    assert.equal(siraps.feature_count, '10');
+    assert.equal(siraps.feature_count, '8');
     assert.equal(siraps.id_field, 'sirap_id');
     assert.equal(siraps.name_field, 'sirap_name');
   });

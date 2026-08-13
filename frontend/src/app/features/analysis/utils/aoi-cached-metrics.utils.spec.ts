@@ -46,7 +46,7 @@ describe('AOI cached metrics utilities', () => {
 
   it.each([
     ['siraps', 'aoi-siraps-combined-colombia'],
-    ['siraps_territorial', 'aoi-siraps-territorial-colombia'],
+    ['siraps_territorial_updated', 'aoi-siraps-territorial-updated-colombia'],
     ['siraps_thematic', 'aoi-siraps-thematic-colombia'],
   ])('preserves cached SIRAP metrics for production source %s', (layerKey, sourceId) => {
     const aoi = buildSirapAoi(layerKey, sourceId);
@@ -56,11 +56,8 @@ describe('AOI cached metrics utilities', () => {
     expect(resolveCachedAoiMetrics(sirapDocument, aoi)).toEqual([bogotaMetric]);
   });
 
-  it('rejects cached SIRAP metrics from the updated visual-only source', () => {
-    const aoi = buildSirapAoi(
-      'siraps_territorial_updated',
-      'aoi-siraps-territorial-updated-colombia',
-    );
+  it('rejects cached SIRAP metrics from the outdated territorial source', () => {
+    const aoi = buildSirapAoi('siraps_territorial', 'aoi-siraps-territorial-colombia');
 
     expect(isMetricCompatibleAoiSource(aoi)).toBe(false);
     expect(resolveCachedAoiMetrics(buildSirapDocument(bogotaMetric), aoi)).toEqual([]);

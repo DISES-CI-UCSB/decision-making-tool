@@ -12,6 +12,6 @@
   "displayCogDirectory": "solutions",
   "displayCogSuffix": ".epsg9377.cog.tif",
   "displayCogDomains": ["land", "marine"],
-  "sirapBoundaryPath": "inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
-  "sirapMetadataPath": "metadata/siraps_merged_polygon_v2.metadata.json"
+  "sirapBoundaryPath": "inputs/boundaries/sirap/siraps_authoritative_combined_v3.geojson",
+  "sirapMetadataPath": "metadata/siraps_authoritative_combined_v3.metadata.json"
 }

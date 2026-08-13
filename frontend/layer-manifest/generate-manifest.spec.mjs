@@ -68,10 +68,14 @@ describe('optional layer sidecars', () => {
     assert.strictEqual(createBackedMetadataUrl('missing_layer', blobByPath), null);
   });
 
-  it('does not claim unsupported metric calculation for generated layers', () => {
-    for (const dataRole of ['feature_layer', 'cost_layer', 'administrative_boundary']) {
+  it('assigns precomputed lookup authority only to administrative boundaries', () => {
+    for (const dataRole of ['feature_layer', 'cost_layer']) {
       assert.strictEqual(inferRoleInMetricCalculation(dataRole), 'none');
     }
+    assert.strictEqual(
+      inferRoleInMetricCalculation('administrative_boundary'),
+      'boundary_used_for_precomputed_metric_lookup',
+    );
   });
 });
 

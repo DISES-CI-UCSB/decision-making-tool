@@ -19,8 +19,8 @@ export const UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE = {
 
 export const METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES = [
   {
-    layerKey: 'siraps_territorial',
-    sourceId: 'aoi-siraps-territorial-colombia',
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceId: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.sourceId,
   },
   {
     layerKey: 'siraps_thematic',

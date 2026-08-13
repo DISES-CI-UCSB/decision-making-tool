@@ -27,7 +27,7 @@ SCOPE_STATE_FORMAT = "solution-raster-scope-state-v1"
 EXPECTED_BOUNDARY_COUNTS = {
     "departments": 33,
     "municipalities": 1105,
-    "siraps": 10,
+    "siraps": 8,
     "runaps": 1879,
     "omecs": 614,
 }

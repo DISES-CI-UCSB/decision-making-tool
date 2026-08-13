@@ -205,8 +205,9 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: 'aoi-siraps-territorial-colombia',
     layerKey: 'siraps_territorial',
-    title: 'Colombia SIRAPs - Territorial',
+    title: 'Territorial SIRAPs (outdated)',
     type: 'sirap',
+    selectable: false,
     sourceType: 'geojson',
     url: `${PUBLIC_BLOB_HOST}/${PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname}`,
     idFields: ['sirap_id'],
@@ -235,9 +236,8 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.sourceId,
     layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
-    title: 'Territorial SIRAPs (updated, needs metric calculation)',
+    title: 'Territorial SIRAPs (new)',
     type: 'sirap',
-    selectable: false,
     sourceType: 'geojson',
     url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
     idFields: ['sirap_id'],

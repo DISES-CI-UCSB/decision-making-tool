@@ -127,9 +127,19 @@ EXPECTED_SIRAP_CATALOG: tuple[tuple[str, str], ...] = (
     ("territorial_territorial_caribe_6", "Territorial Caribe"),
     ("territorial_territorial_orinoquia_7", "Territorial Orinoquia"),
     ("territorial_territorial_pacifico_8", "Territorial Pacifico"),
-    ("territorial_territorial_caribe_9", "Territorial Caribe"),
-    ("territorial_territorial_pacifico_10", "Territorial Pacifico"),
 )
+EXPECTED_TERRITORIAL_SIRAP_SOURCE_CODES = {
+    "territorial_territorial_amazonia_3": "DTAM",
+    "territorial_territorial_andes_nororientales_4": "DTAN",
+    "territorial_territorial_andes_occidentales_5": "DTAO",
+    "territorial_territorial_caribe_6": "DTCA",
+    "territorial_territorial_orinoquia_7": "DTOR",
+    "territorial_territorial_pacifico_8": "DTPA",
+}
+EXPECTED_THEMATIC_SIRAP_IDS = {
+    "thematic_eje_cafetero_1",
+    "thematic_macizo_2",
+}
 
 
 BOUNDARY_SOURCE_SPECS: dict[str, BoundarySourceSpec] = {
@@ -173,21 +183,28 @@ BOUNDARY_SOURCE_SPECS: dict[str, BoundarySourceSpec] = {
     ),
     "siraps": BoundarySourceSpec(
         geo_level="siraps",
-        url=f"{PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson",
-        cache_filename="siraps_merged_polygon_v2.2a44a7a4.geojson",
-        expected_sha256="2a44a7a4726448959432924a11703250a444fe9e06be3324563e7b89d14912de",
+        url=(
+            f"{PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/"
+            "siraps_authoritative_combined_v3.geojson"
+        ),
+        cache_filename="siraps_authoritative_combined_v3.1372ce88.geojson",
+        expected_sha256="1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c",
         expected_crs="EPSG:4326",
         id_field="sirap_id",
         name_field="sirap_name",
-        expected_feature_count=10,
-        expected_catalog_sha256="ded62832b2d97b3d47ff20299bf9c9399abda79a45400927b0bf4062faf73864",
-        expected_geometry_collection_sha256="83d2003347811cc2aa7599abb535d029c68e8f680d136ca01a8877a7df717e8f",
-        feature_behavior="whole_merged_feature_only",
+        expected_feature_count=8,
+        expected_catalog_sha256="adc614dbf2ce94297b3b635e01a04a98d9f3ccf6727447e7b72d08f2144be5ba",
+        expected_geometry_collection_sha256="54d3a53363488dd304398fdcad2288b16c7333db978df14b340eded815ee5d12",
+        feature_behavior="authoritative_combined_feature",
         required_fields=("sirap_kind", "source_file"),
         representative_geometry_sha256=(
             (
                 "territorial_territorial_amazonia_3",
-                "b7927d0797463c7a35d02f38bf5c533cbd60a878b25389a607740cb7469ef2bb",
+                "11edc1b9ad65b870142f5dfd2c52694493007f973e8a8474aa58400c428919e8",
+            ),
+            (
+                "thematic_eje_cafetero_1",
+                "5288a528a2b7dcc67151180376b902c3d993aebfbcbae15a7bc34eb75822899b",
             ),
         ),
         allowed_geometry_types=("Polygon", "MultiPolygon"),
@@ -341,6 +358,32 @@ def _validate_source_behavior(
     spec: BoundarySourceSpec,
     features: list[BoundaryFeature],
 ) -> None:
+    if spec.feature_behavior == "authoritative_combined_feature":
+        for feature in features:
+            kind = feature.properties.get("sirap_kind")
+            if feature.boundary_id in EXPECTED_THEMATIC_SIRAP_IDS:
+                if (
+                    kind != "thematic"
+                    or feature.properties.get("source_file") != "siraps_merged.shp"
+                ):
+                    raise BoundaryLoadError(
+                        f"SIRAP {feature.boundary_id!r} is not a pinned thematic feature."
+                    )
+                continue
+            expected_code = EXPECTED_TERRITORIAL_SIRAP_SOURCE_CODES.get(
+                feature.boundary_id
+            )
+            if (
+                expected_code is None
+                or kind != "territorial"
+                or feature.properties.get("source_file") != "territorial_siraps.shp"
+                or feature.properties.get("source_code") != expected_code
+            ):
+                raise BoundaryLoadError(
+                    f"SIRAP {feature.boundary_id!r} is not an authoritative "
+                    "territorial feature."
+                )
+        return
     if spec.feature_behavior != "whole_merged_feature_only":
         return
     for feature in features:

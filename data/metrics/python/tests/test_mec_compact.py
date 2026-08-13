@@ -150,6 +150,8 @@ def _signature(
     ),
     solution_raster_sha256="c" * 64,
     boundary_fingerprint="boundary-test",
+    sirap_boundary_fingerprint="sirap-boundary-test",
+    geography_level="departments",
 ):
     summary = _summary()
     return build_generation_signature(
@@ -172,7 +174,8 @@ def _signature(
             crs="EPSG:32618",
         ),
         boundary_provenance={
-            "departments": {"sourceFingerprint": boundary_fingerprint}
+            "departments": {"sourceFingerprint": boundary_fingerprint},
+            "siraps": {"sourceFingerprint": sirap_boundary_fingerprint},
         },
         national_target={
             "applicability": "national-only",
@@ -185,6 +188,7 @@ def _signature(
             "targetGridSha256": "3" * 64,
             "policySha256": "4" * 64,
         },
+        geography_level=geography_level,
     )
 
 
@@ -623,7 +627,7 @@ def test_composite_document_marks_five_views_supported_and_retains_source_catalo
         solution_raster_sha256="c" * 64,
         observed_biome_ids={1, 2},
         boundary_provenance={
-            "national": {"sourceFingerprint": "boundary-test"}
+                "departments": {"sourceFingerprint": "boundary-test"}
         },
         national_target=resolve_national_target(
             {
@@ -654,6 +658,7 @@ def test_composite_document_marks_five_views_supported_and_retains_source_catalo
     assert "Bosque húmedo" in document["tipoEcosistemaCatalog"]
     assert len(document["sourceTupleCatalog"]) == 3
     assert len(document["rows"]) == len(taxonomy.classes)
+    assert set(document["boundaryProvenance"]) == {"departments"}
     assert any(row[2:] == [0.0, 0.0, 0.0] for row in document["rows"])
     assert document["nationalCoverageBenchmark"]["targetPercent"] == 30
     assert (
@@ -817,6 +822,20 @@ def test_generation_signature_covers_solution_and_boundary_fingerprints():
 
     assert baseline != _signature(solution_raster_sha256="d" * 64)
     assert baseline != _signature(boundary_fingerprint="replacement-boundary")
+
+
+def test_generation_signature_invalidates_only_affected_boundary_level():
+    departments = _signature(geography_level="departments")
+    siraps = _signature(geography_level="siraps")
+
+    assert departments == _signature(
+        geography_level="departments",
+        sirap_boundary_fingerprint="replacement-sirap",
+    )
+    assert siraps != _signature(
+        geography_level="siraps",
+        sirap_boundary_fingerprint="replacement-sirap",
+    )
 
 
 def test_generation_signature_invalidates_between_source_modes(tmp_path):

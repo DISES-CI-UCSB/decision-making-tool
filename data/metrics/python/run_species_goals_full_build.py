@@ -72,7 +72,7 @@ PUBLIC_RELEASE_ROOT = (
 EXPECTED_SCOPE_COUNTS = {
     "departments": 33,
     "municipalities": 1_105,
-    "siraps": 10,
+    "siraps": 8,
     "runaps": 1_879,
     "omecs": 614,
 }

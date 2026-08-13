@@ -42,12 +42,12 @@ const BOUNDARY_SOURCES = {
     featureCount: 1105,
   },
   siraps: {
-    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
-    sha256: '2a44a7a4726448959432924a11703250a444fe9e06be3324563e7b89d14912de',
-    catalogSha256: 'ded62832b2d97b3d47ff20299bf9c9399abda79a45400927b0bf4062faf73864',
-    geometryCollectionSha256: '83d2003347811cc2aa7599abb535d029c68e8f680d136ca01a8877a7df717e8f',
+    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_authoritative_combined_v3.geojson',
+    sha256: '1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c',
+    catalogSha256: 'adc614dbf2ce94297b3b635e01a04a98d9f3ccf6727447e7b72d08f2144be5ba',
+    geometryCollectionSha256: '54d3a53363488dd304398fdcad2288b16c7333db978df14b340eded815ee5d12',
     crs: 'EPSG:4326',
-    featureCount: 10,
+    featureCount: 8,
   },
   runaps: {
     url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',

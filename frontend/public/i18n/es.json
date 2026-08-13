@@ -1375,8 +1375,8 @@
     },
     "boundaryNames": {
       "combinedSirapReviewLayer": "SIRAP",
-      "territorialSiraps": "SIRAP territoriales",
-      "territorialSirapsUpdated": "SIRAP territoriales (actualizados, requieren cálculo de métricas)",
+      "territorialSiraps": "SIRAP territoriales (desactualizados)",
+      "territorialSirapsUpdated": "SIRAP territoriales (nuevos)",
       "thematicSirapAdditions": "Adiciones temáticas de SIRAP",
       "colombiaOutline": "Contorno de Colombia",
       "departments": "Departamentos",

@@ -1375,8 +1375,8 @@
     },
     "boundaryNames": {
       "combinedSirapReviewLayer": "SIRAP",
-      "territorialSiraps": "Territorial SIRAPs",
-      "territorialSirapsUpdated": "Territorial SIRAPs (updated, needs metric calculation)",
+      "territorialSiraps": "Territorial SIRAPs (outdated)",
+      "territorialSirapsUpdated": "Territorial SIRAPs (new)",
       "thematicSirapAdditions": "Thematic SIRAP additions",
       "colombiaOutline": "Colombia Outline",
       "departments": "Departments",

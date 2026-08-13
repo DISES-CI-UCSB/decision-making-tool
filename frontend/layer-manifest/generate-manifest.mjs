@@ -218,13 +218,17 @@ const DEFAULT_SOLUTION_RENDERING = {
 const englishLabelOverrideByLayerId = {
   paramos: 'Páramos',
   siraps: 'SIRAP',
-  siraps_territorial: 'Territorial SIRAPs',
-  siraps_territorial_updated: 'Territorial SIRAPs (updated, needs metric calculation)',
+  siraps_territorial: 'Territorial SIRAPs (outdated)',
+  siraps_territorial_updated: 'Territorial SIRAPs (new)',
   siraps_thematic: 'Thematic SIRAP Additions',
   omecs: 'OMECs (raster)',
   marine_ecosystems: 'Marine Ecosystems',
   admin_departments: 'Departments',
   admin_municipalities: 'Municipalities',
+};
+const spanishLabelOverrideByLayerId = {
+  siraps_territorial: 'SIRAP territoriales (desactualizados)',
+  siraps_territorial_updated: 'SIRAP territoriales (nuevos)',
 };
 
 /**
@@ -454,9 +458,9 @@ const proposedLayerCategoryOverrides = {
 const tooltipOverrideByLayerId = {
   siraps: `SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term "límites" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.`,
   siraps_territorial:
-    'Territorial SIRAPs are the broad regional conservation systems used as overarching SIRAP categories.',
+    'Outdated Territorial SIRAP boundaries retained as a view-only comparison layer.',
   siraps_territorial_updated:
-    'Authoritative Territorial SIRAP boundaries for view-only comparison. Selection and metrics are unavailable until this source is recalculated.',
+    'Authoritative six-feature Territorial SIRAP boundaries used for AOI selection and metric lookup.',
   siraps_thematic:
     'Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs.',
 };
@@ -1266,8 +1270,8 @@ export async function createLayerEntry(row, blobByPath, existingManifestIndex) {
   return {
     manifestLayer: {
       id,
-      spanishLabel: labels[0] || row.layer_name,
-      englishLabel: labels[1] || englishLabelOverrideByLayerId[id] || null,
+      spanishLabel: spanishLabelOverrideByLayerId[id] || labels[0] || row.layer_name,
+      englishLabel: englishLabelOverrideByLayerId[id] || labels[1] || null,
       description: row.layer_description,
       tooltip: tooltipOverrideByLayerId[id] ?? null,
       dataRole,
@@ -1285,7 +1289,7 @@ export async function createLayerEntry(row, blobByPath, existingManifestIndex) {
         ? { speciesManifestUrl: `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json` }
         : {}),
       metadataUrl:
-        dataRole === 'reference_layer' && blobPath
+        (dataRole === 'reference_layer' || id === 'siraps_territorial_updated') && blobPath
           ? createReferenceMetadataUrl(blobPath)
           : createBackedMetadataUrl(id, blobByPath),
       compressedDataForLiveMetricsUrl: null,
@@ -2114,6 +2118,12 @@ export function inferDataRole(row) {
   if (layerId === 'species') {
     return 'manifest_for_species_layers';
   }
+  if (layerId === 'siraps_territorial') {
+    return 'reference_layer';
+  }
+  if (layerId === 'siraps_territorial_updated') {
+    return 'administrative_boundary';
+  }
   if (modelGroup.includes('referencia') || modelGroup.includes('reference')) {
     return 'reference_layer';
   }
@@ -2135,7 +2145,9 @@ export function inferDataRole(row) {
 }
 
 export function inferRoleInMetricCalculation(dataRole) {
-  return 'none';
+  return dataRole === 'administrative_boundary'
+    ? 'boundary_used_for_precomputed_metric_lookup'
+    : 'none';
 }
 
 function inferProposedCategoryId(row) {

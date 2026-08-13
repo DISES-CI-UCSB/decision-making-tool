@@ -1471,7 +1471,7 @@ describe('PanelSwitcherComponent', () => {
 
   it.each([
     ['combined', 'siraps', 'aoi-siraps-combined-colombia'],
-    ['territorial', 'siraps_territorial', 'aoi-siraps-territorial-colombia'],
+    ['territorial', 'siraps_territorial_updated', 'aoi-siraps-territorial-updated-colombia'],
     ['thematic', 'siraps_thematic', 'aoi-siraps-thematic-colombia'],
   ])(
     'loads cached and MEC metrics for a whole production %s SIRAP source',
@@ -1509,7 +1509,7 @@ describe('PanelSwitcherComponent', () => {
     },
   );
 
-  it('blocks stale cached and MEC metrics for the updated territorial visual source', async () => {
+  it('blocks stale cached and MEC metrics for the outdated territorial source', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
       of(
@@ -1523,9 +1523,9 @@ describe('PanelSwitcherComponent', () => {
       id: 'sirap:territorial_territorial_amazonia_3',
       name: 'Territorial Amazonia',
       type: 'sirap',
-      geometryUrl: '/inputs/boundaries/sirap/siraps_territorial_authoritative_v3.geojson',
-      boundarySourceLayerKey: 'siraps_territorial_updated',
-      boundarySourceId: 'aoi-siraps-territorial-updated-colombia',
+      geometryUrl: '/inputs/boundaries/sirap/siraps_territorial.geojson',
+      boundarySourceLayerKey: 'siraps_territorial',
+      boundarySourceId: 'aoi-siraps-territorial-colombia',
       boundaryGeometrySelection: 'whole-feature',
     });
     appState.setRightSidebarMode('aoi');
@@ -2281,7 +2281,7 @@ describe('PanelSwitcherComponent', () => {
 
   it.each([
     ['combined', 'siraps', 'aoi-siraps-combined-colombia'],
-    ['territorial', 'siraps_territorial', 'aoi-siraps-territorial-colombia'],
+    ['territorial', 'siraps_territorial_updated', 'aoi-siraps-territorial-updated-colombia'],
     ['thematic', 'siraps_thematic', 'aoi-siraps-thematic-colombia'],
   ])(
     'loads the selected production %s SIRAP species sidecar',
@@ -2308,12 +2308,10 @@ describe('PanelSwitcherComponent', () => {
     },
   );
 
-  it('does not request species goals for the updated visual-only SIRAP source', () => {
+  it('does not request species goals for the outdated territorial SIRAP source', () => {
     goalsDocument = buildGoalsDocument();
     appState.activeSolution$.set(buildTestSolution());
-    appState.selectAOI(
-      buildSirapAoi('siraps_territorial_updated', 'aoi-siraps-territorial-updated-colombia'),
-    );
+    appState.selectAOI(buildSirapAoi('siraps_territorial', 'aoi-siraps-territorial-colombia'));
     appState.setRightSidebarMode('overview');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);

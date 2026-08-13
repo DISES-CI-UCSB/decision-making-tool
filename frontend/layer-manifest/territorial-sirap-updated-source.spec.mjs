@@ -15,7 +15,7 @@ const assetPath = path.join(repoRoot, 'data/boundaries/sirap', filename);
 const metadataPath = assetPath.replace(/\.geojson$/, '.metadata.json');
 const expectedSha256 = '7826e6cc0c34eb69446bb410427d8023415d6886339b624a2c0a6b990000db5d';
 
-describe('updated Territorial SIRAP visual source', () => {
+describe('authoritative Territorial SIRAP source', () => {
   it('contains the exact six-feature authoritative catalog', async () => {
     const raw = await readFile(assetPath);
     const collection = JSON.parse(raw);
@@ -47,10 +47,9 @@ describe('updated Territorial SIRAP visual source', () => {
     );
   });
 
-  it('registers a separate visual layer without changing production SIRAP rows', async () => {
+  it('preserves distinct old, authoritative, and thematic source rows', async () => {
     const { headers, rows } = await readSourceRows();
     const layerIdIndex = headers.findIndex((header) => header.includes('layer_id'));
-    const layerNameIndex = headers.findIndex((header) => header.includes('layer_name'));
     const filenameIndex = headers.findIndex((header) => header.includes('filename'));
     const byId = new Map(rows.map((row) => [row[layerIdIndex], row]));
 
@@ -58,41 +57,64 @@ describe('updated Territorial SIRAP visual source', () => {
     assert.equal(byId.get('siraps_territorial')?.[filenameIndex], 'siraps_territorial.geojson');
     assert.equal(byId.get('siraps_thematic')?.[filenameIndex], 'siraps_thematic.geojson');
     assert.equal(byId.get('siraps_territorial_updated')?.[filenameIndex], filename);
-    assert.match(
-      byId.get('siraps_territorial_updated')?.[layerNameIndex] ?? '',
-      /Territorial SIRAPs \(updated, needs metric calculation\)/,
-    );
   });
 
-  it('generates a non-metric reference layer in Administrative Boundaries', async () => {
+  it('demotes the old source and promotes the authoritative six-feature source', async () => {
     const { headers, rows } = await readSourceRows();
-    const sourceRow = sourceRowById(headers, rows, 'siraps_territorial_updated');
-    const { manifestLayer } = await createLayerEntry(sourceRow, new Map(), null);
+    const oldEntry = await createLayerEntry(
+      sourceRowById(headers, rows, 'siraps_territorial'),
+      new Map(),
+      null,
+    );
+    const authoritativeEntry = await createLayerEntry(
+      sourceRowById(headers, rows, 'siraps_territorial_updated'),
+      new Map(),
+      null,
+    );
     const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
     const adjacentMetadataUrl =
       'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_territorial_authoritative_v3.metadata.json';
 
     assert.deepEqual(
       {
-        dataRole: manifestLayer.dataRole,
-        category: manifestLayer.category,
-        roleInMetricCalculation: manifestLayer.roleInMetricCalculation,
-        requiredForSolution: manifestLayer.requiredForSolution,
-        selectableInFinder: manifestLayer.selectableInFinder,
-        visibleInMapLayers: manifestLayer.visibleInMapLayers,
-        metadataUrl: manifestLayer.metadataUrl,
+        englishLabel: oldEntry.manifestLayer.englishLabel,
+        spanishLabel: oldEntry.manifestLayer.spanishLabel,
+        dataRole: oldEntry.manifestLayer.dataRole,
+        roleInMetricCalculation: oldEntry.manifestLayer.roleInMetricCalculation,
+        requiredForSolution: oldEntry.manifestLayer.requiredForSolution,
+        selectableInFinder: oldEntry.manifestLayer.selectableInFinder,
+        visibleInMapLayers: oldEntry.manifestLayer.visibleInMapLayers,
       },
       {
+        englishLabel: 'Territorial SIRAPs (outdated)',
+        spanishLabel: 'SIRAP territoriales (desactualizados)',
         dataRole: 'reference_layer',
-        category: 'administrative_boundaries',
         roleInMetricCalculation: 'none',
         requiredForSolution: false,
         selectableInFinder: false,
         visibleInMapLayers: true,
+      },
+    );
+    assert.deepEqual(
+      {
+        englishLabel: authoritativeEntry.manifestLayer.englishLabel,
+        spanishLabel: authoritativeEntry.manifestLayer.spanishLabel,
+        dataRole: authoritativeEntry.manifestLayer.dataRole,
+        category: authoritativeEntry.manifestLayer.category,
+        roleInMetricCalculation: authoritativeEntry.manifestLayer.roleInMetricCalculation,
+        metadataUrl: authoritativeEntry.manifestLayer.metadataUrl,
+      },
+      {
+        englishLabel: 'Territorial SIRAPs (new)',
+        spanishLabel: 'SIRAP territoriales (nuevos)',
+        dataRole: 'administrative_boundary',
+        category: 'administrative_boundaries',
+        roleInMetricCalculation: 'boundary_used_for_precomputed_metric_lookup',
         metadataUrl: adjacentMetadataUrl,
       },
     );
-    assert.equal(metadata.metricCompatible, false);
+    assert.equal(metadata.featureCount, 6);
+    assert.equal(metadata.stableIdField, 'sirap_id');
     assert.equal(metadata.pathname, `inputs/boundaries/sirap/${filename}`);
   });
 });
