@@ -6,6 +6,20 @@ import { parseWithNumberLiterals, validateArtifactDocument } from './artifact-do
 import { solutionCatalogSha256 } from './solution-catalog.mjs';
 
 export const ARTIFACT_VERIFICATION_FORMAT = 'metric-artifact-verification-v1';
+const SUPPLEMENTAL_PUBLISH_REPORT_FORMAT = 'solution-release-supplemental-publish-report-v1';
+const SUPPLEMENTAL_ARTIFACT_FORMATS = new Set([
+  'species-goals-catalog-v1',
+  'species-goals-catalog-completion-v1',
+  'species-goals-compact-v1',
+  'species-goals-completion-v1',
+  'species-target-overlays-v1',
+  'strategic-ecosystem-outcomes-v1',
+]);
+const SHARED_ARTIFACT_ROLES = new Set([
+  'speciesGoalsCatalog',
+  'speciesGoalsTargetOverlay',
+  'strategicOutcomes',
+]);
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -58,6 +72,19 @@ export async function validatePublishSummaryArtifacts(verification, summary, lab
         verificationEntry?.format === documentFormat,
         `${entryLabel} verification format must match the artifact document`,
       );
+      assert(
+        entry.artifactSha256 === undefined ||
+          entry.artifactSha256 === verificationEntry.local.sha256,
+        `${entryLabel} publish summary checksum must match the verified artifact`,
+      );
+      if (SUPPLEMENTAL_ARTIFACT_FORMATS.has(documentFormat)) {
+        const artifactReleaseId = document.releaseId ?? document.provenance?.releaseId;
+        assert(
+          artifactReleaseId === catalog?.releaseId,
+          `${entryLabel} supplemental artifact must match the release identity`,
+        );
+        return;
+      }
       if (documentFormat === 'metrics-verbose-v1' || documentFormat === 'metrics-compact-v1') {
         assert(
           typeof entry.catalogSignature === 'string' && entry.catalogSignature.length > 0,
@@ -115,6 +142,16 @@ export function validatePublishSummary(summary, catalog, label) {
     !Array.isArray(summary.failures) || summary.failures.length === 0,
     `${label} must not contain failures`,
   );
+  if (summary.format === SUPPLEMENTAL_PUBLISH_REPORT_FORMAT) {
+    assert(
+      summary.complete === true &&
+        summary.releaseId === catalog.releaseId &&
+        summary.catalogVersion === catalog.catalogVersion &&
+        summary.artifactCount === summary.entries.length,
+      `${label} supplemental report must match the complete release identity`,
+    );
+    return;
+  }
   assert(
     summary.solutionCatalog?.releaseId === catalog.releaseId &&
       summary.solutionCatalog?.catalogVersion === catalog.catalogVersion &&
@@ -129,8 +166,7 @@ export function validateManifestArtifactCompleteness(manifest, verifications) {
     for (const [role, url] of requiredArtifactUrls(solution)) {
       if (expectedUrls.has(url)) {
         assert(
-          role === 'speciesGoalsTargetOverlay' &&
-            expectedUrls.get(url)?.endsWith(':speciesGoalsTargetOverlay'),
+          SHARED_ARTIFACT_ROLES.has(role) && expectedUrls.get(url)?.endsWith(`:${role}`),
           `manifest advertises duplicate artifact URL: ${url}`,
         );
         continue;
@@ -152,7 +188,9 @@ export function validateManifestArtifactCompleteness(manifest, verifications) {
   }
 
   const missing = [...expectedUrls.keys()].filter((url) => !verifiedUrls.has(url));
-  const unexpected = [...verifiedUrls.keys()].filter((url) => !expectedUrls.has(url));
+  const unexpected = [...verifiedUrls.keys()].filter(
+    (url) => !expectedUrls.has(url) && !isExpectedCompletionSidecar(url, expectedUrls),
+  );
   assert(
     missing.length === 0 && unexpected.length === 0,
     `verified artifact inventory differs from manifest (missing: ${missing.join(', ') || 'none'}; unexpected: ${unexpected.join(', ') || 'none'})`,
@@ -179,6 +217,7 @@ export function validateArtifactVerification(verification, label) {
         'metrics-compact-v1',
         'conservation-goals-v1',
         'mec-compact-v2',
+        ...SUPPLEMENTAL_ARTIFACT_FORMATS,
       ].includes(entry.format),
       `${entryLabel}.format must identify a supported release document`,
     );
@@ -248,9 +287,21 @@ function requiredArtifactUrls(solution) {
     if (urls.speciesGoalsTargetOverlay) {
       required.push(['speciesGoalsTargetOverlay', urls.speciesGoalsTargetOverlay]);
     }
+    if (urls.strategicOutcomes) {
+      required.push(['strategicOutcomes', urls.strategicOutcomes]);
+    }
     for (const [level, url] of Object.entries(urls.speciesGoalsByGeography ?? {})) {
       required.push([`speciesGoals:${level}`, url]);
     }
   }
   return required;
+}
+
+function isExpectedCompletionSidecar(url, expectedUrls) {
+  if (!url.endsWith('.complete.json')) return false;
+  const payloadUrl = url.slice(0, -'.complete.json'.length);
+  const expectedRole = expectedUrls.get(payloadUrl);
+  return (
+    expectedRole?.endsWith(':speciesGoalsCatalog') || expectedRole?.includes(':speciesGoals:')
+  );
 }

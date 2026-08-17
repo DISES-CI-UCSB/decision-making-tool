@@ -1,7 +1,10 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH } from '../shared/runtime-manifest.constants.mjs';
+import {
+  LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
+  PUBLIC_BLOB_HOST,
+} from '../shared/runtime-manifest.constants.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(__dirname, '..');
@@ -21,6 +24,13 @@ export function usesLocalPreviewManifest(environmentSource) {
   return new RegExp(`manifestBlobUrl:\\s*['"]${escapedPath}['"]`).test(environmentSource);
 }
 
+function isReleaseArtifactUrl(url) {
+  return (
+    typeof url === 'string' &&
+    (url.startsWith('/releases/') || url.startsWith(`${PUBLIC_BLOB_HOST}/releases/`))
+  );
+}
+
 export function validateLocalPreviewManifest(manifest) {
   const solutions = manifest?.solutions;
   assert(Array.isArray(solutions), 'local preview manifest must contain a solutions array');
@@ -31,8 +41,8 @@ export function validateLocalPreviewManifest(manifest) {
   const marineCount = solutions.length - landCount;
 
   assert(
-    /^0\.2\.\d+$/.test(manifest.catalogVersion ?? ''),
-    `local preview manifest must use catalog version 0.2.x; got ${manifest.catalogVersion ?? 'none'}`,
+    /^(?:0\.2|2\.2)\.\d+$/.test(manifest.catalogVersion ?? ''),
+    `local preview manifest must use catalog version 0.2.x or 2.2.x; got ${manifest.catalogVersion ?? 'none'}`,
   );
   assert(
     solutions.length === 172 && landCount === 168 && marineCount === 4,
@@ -47,8 +57,8 @@ export function validateLocalPreviewManifest(manifest) {
     (solution) => solution.capabilities?.aoiCoverageMetrics === 'v2',
   );
   assert(
-    capabilityPreviewSolutions.length <= 1,
-    'local preview manifest may enable AOI coverage v2 for only one solution',
+    [0, 1, landCount].includes(capabilityPreviewSolutions.length),
+    'local preview manifest must enable AOI coverage v2 for zero, one, or every land solution',
   );
   const locallyBackedSolutions =
     capabilityPreviewSolutions.length === 1
@@ -60,26 +70,26 @@ export function validateLocalPreviewManifest(manifest) {
   for (const solution of locallyBackedSolutions) {
     const urls = solution.precomputedMetricUrls;
     assert(
-      urls?.speciesGoalsCatalog?.startsWith('/releases/'),
-      `${solution.id} species goals catalog must use an origin-relative release URL`,
+      isReleaseArtifactUrl(urls?.speciesGoalsCatalog),
+      `${solution.id} species goals catalog must use a release-scoped URL`,
     );
     if (urls?.speciesGoalsTargetOverlay) {
       assert(
-        urls.speciesGoalsTargetOverlay.startsWith('/releases/'),
-        `${solution.id} species target overlay must use an origin-relative release URL`,
+        isReleaseArtifactUrl(urls.speciesGoalsTargetOverlay),
+        `${solution.id} species target overlay must use a release-scoped URL`,
       );
     }
     assert(
       Object.values(urls?.speciesGoalsByGeography ?? {}).length === 6 &&
-        Object.values(urls.speciesGoalsByGeography).every((url) => url.startsWith('/releases/')),
-      `${solution.id} species geography shards must use six origin-relative release URLs`,
+        Object.values(urls.speciesGoalsByGeography).every(isReleaseArtifactUrl),
+      `${solution.id} species geography shards must use six release-scoped URLs`,
     );
     const metricUrls = Object.values(urls ?? {}).flatMap((value) =>
       value && typeof value === 'object' ? Object.values(value) : [value],
     );
     assert(
-      metricUrls.every((url) => typeof url === 'string' && url.startsWith('/releases/')),
-      `${solution.id} preview metrics must use origin-relative release URLs`,
+      metricUrls.every(isReleaseArtifactUrl),
+      `${solution.id} preview metrics must use release-scoped URLs`,
     );
   }
 
@@ -100,10 +110,12 @@ export async function validateLocalPreviewSpeciesCompletionFiles(
           (solution) => (solution.domain ?? solution.finderInputs?.domain ?? 'land') === 'land',
         );
   const artifactUrls = new Set(
-    locallyBackedSolutions.flatMap((solution) => {
-      const urls = solution.precomputedMetricUrls;
-      return [urls.speciesGoalsCatalog, ...Object.values(urls.speciesGoalsByGeography)];
-    }),
+    locallyBackedSolutions
+      .flatMap((solution) => {
+        const urls = solution.precomputedMetricUrls;
+        return [urls.speciesGoalsCatalog, ...Object.values(urls.speciesGoalsByGeography)];
+      })
+      .filter((url) => url.startsWith('/releases/')),
   );
 
   for (const artifactUrl of artifactUrls) {

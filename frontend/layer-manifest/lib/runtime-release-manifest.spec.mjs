@@ -279,6 +279,75 @@ describe('runtime release manifest compaction', () => {
     assert.strictEqual(result.solutionDataProfile, RUNTIME_COMPACT_SOLUTION_PROFILE);
   });
 
+  it('applies authoritative Territorial SIRAP semantics without changing the thematic layer', () => {
+    const fixture = releaseFixture([solution('land-solution')]);
+    const thematicLayer = {
+      id: 'siraps_thematic',
+      englishLabel: 'Thematic SIRAP Additions',
+      description: 'Thematic SIRAP additions isolated for Eje Cafetero and Macizo.',
+      dataRole: 'administrative_boundary',
+      roleInMetricCalculation: 'none',
+    };
+    fixture.baseManifest.layers = [
+      {
+        id: 'siraps_territorial',
+        englishLabel: 'Territorial SIRAPs',
+        description: 'Broad territorial SIRAP / DT boundary polygons.',
+        dataRole: 'administrative_boundary',
+        roleInMetricCalculation: 'none',
+      },
+      {
+        id: 'siraps_territorial_updated',
+        englishLabel: 'Territorial SIRAPs (updated, needs metric calculation)',
+        description: 'Authoritative comparison layer; view-only until recalculation.',
+        dataRole: 'reference_layer',
+        roleInMetricCalculation: 'none',
+        requiredForSolution: false,
+        selectableInFinder: false,
+        visibleInMapLayers: true,
+      },
+      thematicLayer,
+    ];
+
+    const result = buildRuntimeReleaseManifest(fixture);
+    const oldTerritorial = result.layers.find(({ id }) => id === 'siraps_territorial');
+    const newTerritorial = result.layers.find(({ id }) => id === 'siraps_territorial_updated');
+    const thematic = result.layers.find(({ id }) => id === 'siraps_thematic');
+
+    assert.deepStrictEqual(
+      {
+        englishLabel: oldTerritorial.englishLabel,
+        description: oldTerritorial.description,
+        dataRole: oldTerritorial.dataRole,
+        roleInMetricCalculation: oldTerritorial.roleInMetricCalculation,
+        requiredForSolution: oldTerritorial.requiredForSolution,
+        selectableInFinder: oldTerritorial.selectableInFinder,
+        visibleInMapLayers: oldTerritorial.visibleInMapLayers,
+      },
+      {
+        englishLabel: 'Territorial SIRAPs (outdated)',
+        description:
+          'Outdated Territorial SIRAP boundaries retained as a view-only comparison layer.',
+        dataRole: 'reference_layer',
+        roleInMetricCalculation: 'none',
+        requiredForSolution: false,
+        selectableInFinder: false,
+        visibleInMapLayers: true,
+      },
+    );
+    assert.equal(newTerritorial.englishLabel, 'Territorial SIRAPs (new)');
+    assert.equal(newTerritorial.dataRole, 'administrative_boundary');
+    assert.equal(newTerritorial.selectableInFinder, undefined);
+    assert.equal(newTerritorial.roleInMetricCalculation, 'none');
+    assert.match(newTerritorial.description, /AOI selection and metric lookup/);
+    assert.doesNotMatch(newTerritorial.description, /view-only/i);
+    assert.deepStrictEqual(thematic, {
+      ...thematicLayer,
+      compressedDataForLiveMetricsUrl: null,
+      precomputedMetricUrls: {},
+    });
+  });
+
   it('emits AOI coverage v2 only from complete MEC and species evidence', () => {
     const completeLand = solution('complete-land');
     const incompleteLand = solution('incomplete-land');

@@ -10,7 +10,9 @@ from assemble_solution_release import (
     _document_has_usable_structure,
     _expected_keys,
     _local_relative_path,
+    _publish_entry,
     assemble_release,
+    rebuild_release_metadata,
     sha256_path,
 )
 from compact_metrics import to_compact_document, to_verbose_document
@@ -353,6 +355,98 @@ def test_assembles_realistic_168_reuse_and_24_recompute_release(tmp_path: Path):
     assert reused["metricsProvenance"]["releaseId"] == "phase-two"
     assert reused["metricsProvenance"]["reusedFromReleaseId"] == "phase-one"
     assert reused["solutionCatalogBinding"]["catalogSha256"] == catalog.sha256
+    publish_report = json.loads(
+        (release_root / "publish-report.json").read_text(encoding="utf-8")
+    )
+    regular_entries = [
+        item
+        for item in publish_report["entries"]
+        if item["component"] in {"regularVerbose", "regularCompact"}
+    ]
+    assert len(regular_entries) == 384
+    assert all(
+        item["catalogSignature"].startswith("metrics-catalog-v4:")
+        for item in regular_entries
+    )
+
+
+def test_publish_entry_extracts_marine_compact_catalog_signature(
+    tmp_path: Path,
+):
+    signature = "metrics-catalog-v4:" + "f" * 64
+    relative_path = Path("regular/compact/cache/marine.metrics.compact.json")
+    artifact_path = tmp_path / relative_path
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_text(
+        json.dumps(
+            {
+                "format": "metrics-compact-v1",
+                "solutionId": "marine",
+                "metricsProvenance": {
+                    "solutionDomain": "marine",
+                    "catalogSignature": signature,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    item = {
+        "component": "regularCompact",
+        "solutionId": "marine",
+        "geographyLevel": None,
+        "path": relative_path.as_posix(),
+        "blobPath": "releases/release/regular/compact/marine.metrics.compact.json",
+        "sha256": sha256_path(artifact_path),
+    }
+
+    entry = _publish_entry(item, release_root=tmp_path)
+
+    assert entry["catalogSignature"] == signature
+
+
+def test_metadata_only_rebuild_repairs_reports_without_changing_artifacts(
+    tmp_path: Path,
+):
+    catalog, plan, inventory_path, baseline_root, release_root = _prepare_release(
+        tmp_path,
+        count=25,
+    )
+    assemble_release(
+        catalog=catalog,
+        release_plan=plan,
+        baseline_inventory_path=inventory_path,
+        baseline_root=baseline_root,
+        release_root=release_root,
+    )
+    artifact_paths = [
+        release_root / item["path"]
+        for item in json.loads(
+            (release_root / "release-artifact-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )["artifacts"]
+    ]
+    checksums_before = {path: sha256_path(path) for path in artifact_paths}
+    report_path = release_root / "publish-report.json"
+    stale_report = json.loads(report_path.read_text(encoding="utf-8"))
+    for entry in stale_report["entries"]:
+        entry.pop("catalogSignature", None)
+    report_path.write_text(
+        json.dumps(stale_report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    rebuild_release_metadata(catalog=catalog, release_root=release_root)
+
+    repaired_report = json.loads(report_path.read_text(encoding="utf-8"))
+    regular_entries = [
+        item
+        for item in repaired_report["entries"]
+        if item["component"] in {"regularVerbose", "regularCompact"}
+    ]
+    assert len(regular_entries) == 50
+    assert all(item.get("catalogSignature") for item in regular_entries)
+    assert {path: sha256_path(path) for path in artifact_paths} == checksums_before
 
 
 def test_assembly_preserves_species_exception_in_all_catalog_bindings(tmp_path: Path):

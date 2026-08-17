@@ -70,6 +70,32 @@ describe('release artifact verification', () => {
     );
   });
 
+  it('accepts shared supplemental artifacts and their verified completion sidecars', () => {
+    const manifest = createManifest();
+    const catalogUrl =
+      'https://blob.example/releases/release-one/species-goals/catalog/v1/catalog.json';
+    const shardUrl =
+      'https://blob.example/releases/release-one/species-goals/compact/v1/land/national.json';
+    const outcomesUrl =
+      'https://blob.example/releases/release-one/regular/compact/strategic-outcomes.json';
+    for (const solution of manifest.solutions) {
+      solution.precomputedMetricUrls.speciesGoalsCatalog = catalogUrl;
+      solution.precomputedMetricUrls.strategicOutcomes = outcomesUrl;
+    }
+    manifest.solutions[0].precomputedMetricUrls.speciesGoalsByGeography = {
+      national: shardUrl,
+    };
+    const urls = [
+      ...new Set(expectedUrls(manifest)),
+      `${catalogUrl}.complete.json`,
+      `${shardUrl}.complete.json`,
+    ];
+
+    assert.doesNotThrow(() =>
+      validateManifestArtifactCompleteness(manifest, [createVerification(urls)]),
+    );
+  });
+
   it('fails closed for unverified or checksum-mismatched publish summaries', () => {
     const failed = createVerification(['https://blob.example/artifact.json']);
     failed.ok = false;
@@ -81,6 +107,10 @@ describe('release artifact verification', () => {
       () => validateArtifactVerification(mismatched, 'inventory'),
       /local and remote checksums must match/,
     );
+
+    const supplemental = createVerification(['https://blob.example/species-goals.json']);
+    supplemental.entries[0].format = 'species-goals-compact-v1';
+    assert.doesNotThrow(() => validateArtifactVerification(supplemental, 'inventory'));
   });
 
   it('binds each Python publish summary to the exact release catalog', () => {
@@ -99,6 +129,26 @@ describe('release artifact verification', () => {
     assert.throws(
       () => validatePublishSummary(summary, catalog, 'publish-report.json'),
       /must match the release catalog identity/,
+    );
+  });
+
+  it('binds supplemental publish summaries to the complete release identity', () => {
+    const catalog = createCatalog();
+    const summary = {
+      format: 'solution-release-supplemental-publish-report-v1',
+      releaseId: catalog.releaseId,
+      catalogVersion: catalog.catalogVersion,
+      artifactCount: 1,
+      complete: true,
+      entries: [{ solutionId: 'land' }],
+      failures: [],
+    };
+
+    assert.doesNotThrow(() => validatePublishSummary(summary, catalog, 'supplemental.json'));
+    summary.releaseId = 'other-release';
+    assert.throws(
+      () => validatePublishSummary(summary, catalog, 'supplemental.json'),
+      /must match the complete release identity/,
     );
   });
 
@@ -251,7 +301,10 @@ function expectedUrls(manifest) {
       urls.cache,
       urls.compactCache,
       ...Object.values(urls.mecV2ByGeography ?? {}),
+      ...(urls.speciesGoalsCatalog ? [urls.speciesGoalsCatalog] : []),
       ...(urls.speciesGoalsTargetOverlay ? [urls.speciesGoalsTargetOverlay] : []),
+      ...(urls.strategicOutcomes ? [urls.strategicOutcomes] : []),
+      ...Object.values(urls.speciesGoalsByGeography ?? {}),
     ];
   });
 }

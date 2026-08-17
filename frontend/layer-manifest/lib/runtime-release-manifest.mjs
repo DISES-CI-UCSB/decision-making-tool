@@ -3,6 +3,7 @@ import {
   createSolutionPrecomputedMetricUrls,
   MEC_GEOGRAPHY_LEVELS,
 } from './metric-urls.mjs';
+import { applyAuthoritativeLayerSemantics } from './authoritative-layer-semantics.mjs';
 import { solutionCatalogSha256, validateManifestAgainstCatalog } from './solution-catalog.mjs';
 
 export const RUNTIME_COMPACT_SOLUTION_PROFILE = 'runtime-compact-v1';
@@ -367,7 +368,9 @@ export function buildRuntimeReleaseManifest({
     solutionDataProfile: RUNTIME_COMPACT_SOLUTION_PROFILE,
     categories: structuredClone(baseManifest.categories),
     layers: baseManifest.layers.map((layer) =>
-      compactRuntimeLayer(layer, { backedMetadataUrls: backedLayerMetadataUrls }),
+      compactRuntimeLayer(applyAuthoritativeLayerSemantics(layer), {
+        backedMetadataUrls: backedLayerMetadataUrls,
+      }),
     ),
     solutions,
     ...(baseManifest.referenceData

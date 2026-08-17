@@ -1,0 +1,59 @@
+{
+  "approval": {
+    "approved": true,
+    "approvedAt": "2026-08-05",
+    "context": "Project owner approved continuing exactly two upstream-missing species rasters through catalog v2.2.0; no wildcard or arbitrary species skipping is authorized."
+  },
+  "catalogVersion": "2.2.0",
+  "excludedSpecies": [
+    {
+      "filename": "Hypericum_strictum_10_MAXENT.tif",
+      "metadata": {
+        "class": "Magnoliopsida",
+        "iucnStatus": "NA",
+        "rangeKm2": 33968.78813552595,
+        "rangeOmecKm2": 13941.338284803223,
+        "rangePctCountry": 2.97,
+        "rangePctOmec": 41.04,
+        "rangePctRunap": 36.67,
+        "rangeRunapKm2": 12455.867706131836
+      },
+      "metadataCsvRow": 5253,
+      "scientificName": "Hypericum strictum"
+    },
+    {
+      "filename": "Paradrymonia_ciliosa_10_MAXENT.tif",
+      "metadata": {
+        "class": "Magnoliopsida",
+        "iucnStatus": "NA",
+        "rangeKm2": 407368.6744619733,
+        "rangeOmecKm2": 137888.1285906762,
+        "rangePctCountry": 35.62,
+        "rangePctOmec": 33.85,
+        "rangePctRunap": 23.17,
+        "rangeRunapKm2": 94373.36616245875
+      },
+      "metadataCsvRow": 6467,
+      "scientificName": "Paradrymonia ciliosa"
+    }
+  ],
+  "format": "release-species-exception-v1",
+  "inventory": {
+    "availableExpected": 8298,
+    "catalogTotal": 8300,
+    "excluded": 2
+  },
+  "patchResolution": {
+    "authoritativeChecksumsRequired": true,
+    "authoritativeReceiptStatus": "not_received",
+    "continuationCatalogVersion": "2.2.0",
+    "fallbackInvalidation": "all_species_derived_metrics_and_signatures",
+    "invalidationScope": "affected_species_derived_metrics_and_signatures_when_safe",
+    "required": true,
+    "timing": "first_subsequent_patch_release_after_authoritative_receipt",
+    "wildcardSkipAllowed": false
+  },
+  "policyId": "solutions-v2-2-0-upstream-source-missing-v1",
+  "reason": "upstream_source_missing",
+  "releaseId": "solutions-v2-2-0"
+}

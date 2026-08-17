@@ -22,6 +22,12 @@ V020_CONTRACT_PATH = (
     / "solutions-v0-2-0-20260805"
     / "species-exception.json"
 )
+V220_CONTRACT_PATH = (
+    Path(__file__).parents[2]
+    / "release-specs"
+    / "solutions-v2-2-0"
+    / "species-exception.json"
+)
 
 
 def _records() -> list[SpeciesRecord]:
@@ -99,6 +105,22 @@ def test_v021_policy_carries_exact_exception_with_fail_closed_continuation():
         "timing": "first_subsequent_patch_release_after_authoritative_receipt",
         "wildcardSkipAllowed": False,
     }
+
+
+def test_v220_policy_carries_exact_exception_with_fail_closed_continuation():
+    policy = load_species_exception(
+        V220_CONTRACT_PATH,
+        release_id="solutions-v2-2-0",
+        catalog_version="2.2.0",
+    )
+
+    assert len(policy.filter_available(_records())) == 8298
+    assert policy.excluded_filenames == (
+        "Hypericum_strictum_10_MAXENT.tif",
+        "Paradrymonia_ciliosa_10_MAXENT.tif",
+    )
+    assert policy.document["patchResolution"]["continuationCatalogVersion"] == "2.2.0"
+    assert policy.document["patchResolution"]["wildcardSkipAllowed"] is False
 
 
 def test_species_exception_rejects_wildcard_patch_skip(tmp_path: Path):

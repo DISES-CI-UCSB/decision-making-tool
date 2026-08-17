@@ -4,6 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadLocalEnv } from './load-local-env.mjs';
+import { applyAuthoritativeLayerSemantics } from './lib/authoritative-layer-semantics.mjs';
 import { parseBlobListOutput } from './lib/blob-cli-output.mjs';
 import { parseCsv, rowsToObjects, toCsv } from './lib/csv.mjs';
 import { toBlobPath, toLayerId } from './lib/layer-normalization.mjs';
@@ -218,17 +219,11 @@ const DEFAULT_SOLUTION_RENDERING = {
 const englishLabelOverrideByLayerId = {
   paramos: 'Páramos',
   siraps: 'SIRAP',
-  siraps_territorial: 'Territorial SIRAPs (outdated)',
-  siraps_territorial_updated: 'Territorial SIRAPs (new)',
   siraps_thematic: 'Thematic SIRAP Additions',
   omecs: 'OMECs (raster)',
   marine_ecosystems: 'Marine Ecosystems',
   admin_departments: 'Departments',
   admin_municipalities: 'Municipalities',
-};
-const spanishLabelOverrideByLayerId = {
-  siraps_territorial: 'SIRAP territoriales (desactualizados)',
-  siraps_territorial_updated: 'SIRAP territoriales (nuevos)',
 };
 
 /**
@@ -457,10 +452,6 @@ const proposedLayerCategoryOverrides = {
 
 const tooltipOverrideByLayerId = {
   siraps: `SIRAP stands for Sistema Regional de Áreas Protegidas, Colombia's regional protected area system. This is the SIRAP boundaries layer, so the Spanish source term "límites" refers to the boundary lines shown on the map. The combined layer includes territorial SIRAP boundaries plus thematic additions such as Eje Cafetero and Macizo.`,
-  siraps_territorial:
-    'Outdated Territorial SIRAP boundaries retained as a view-only comparison layer.',
-  siraps_territorial_updated:
-    'Authoritative six-feature Territorial SIRAP boundaries used for AOI selection and metric lookup.',
   siraps_thematic:
     'Thematic SIRAPs are special additions, such as Eje Cafetero and Macizo, that may overlap territorial SIRAPs.',
 };
@@ -1267,36 +1258,38 @@ export async function createLayerEntry(row, blobByPath, existingManifestIndex) {
   });
   const styleOverride = existingLayer?.styleOverride ?? null;
 
+  const manifestLayer = applyAuthoritativeLayerSemantics({
+    id,
+    spanishLabel: labels[0] || row.layer_name,
+    englishLabel: englishLabelOverrideByLayerId[id] || labels[1] || null,
+    description: row.layer_description,
+    tooltip: tooltipOverrideByLayerId[id] ?? null,
+    dataRole,
+    category: categoryId,
+    roleInMetricCalculation,
+    ...(dataRole === 'reference_layer'
+      ? {
+          requiredForSolution: false,
+          selectableInFinder: false,
+          visibleInMapLayers: true,
+        }
+      : {}),
+    ...toDisplayUrlFields(displayReference),
+    ...(row.layer_id === 'species'
+      ? { speciesManifestUrl: `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json` }
+      : {}),
+    metadataUrl:
+      (dataRole === 'reference_layer' || id === 'siraps_territorial_updated') && blobPath
+        ? createReferenceMetadataUrl(blobPath)
+        : createBackedMetadataUrl(id, blobByPath),
+    compressedDataForLiveMetricsUrl: null,
+    precomputedMetricUrls: {},
+    rendering,
+    ...(styleOverride !== null ? { styleOverride } : {}),
+  });
+
   return {
-    manifestLayer: {
-      id,
-      spanishLabel: spanishLabelOverrideByLayerId[id] || labels[0] || row.layer_name,
-      englishLabel: englishLabelOverrideByLayerId[id] || labels[1] || null,
-      description: row.layer_description,
-      tooltip: tooltipOverrideByLayerId[id] ?? null,
-      dataRole,
-      category: categoryId,
-      roleInMetricCalculation,
-      ...(dataRole === 'reference_layer'
-        ? {
-            requiredForSolution: false,
-            selectableInFinder: false,
-            visibleInMapLayers: true,
-          }
-        : {}),
-      ...toDisplayUrlFields(displayReference),
-      ...(row.layer_id === 'species'
-        ? { speciesManifestUrl: `${PUBLIC_BLOB_HOST}/manifests/species.manifest.json` }
-        : {}),
-      metadataUrl:
-        (dataRole === 'reference_layer' || id === 'siraps_territorial_updated') && blobPath
-          ? createReferenceMetadataUrl(blobPath)
-          : createBackedMetadataUrl(id, blobByPath),
-      compressedDataForLiveMetricsUrl: null,
-      precomputedMetricUrls: {},
-      rendering,
-      ...(styleOverride !== null ? { styleOverride } : {}),
-    },
+    manifestLayer,
     reconciliation: {
       sourceLayerId: row.layer_id,
       displayName: labels[0] || row.layer_name,

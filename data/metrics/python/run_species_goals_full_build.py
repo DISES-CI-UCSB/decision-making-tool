@@ -1,4 +1,4 @@
-"""Build and validate all v0.2 land species-goals sidecars with three workers."""
+"""Build and validate release-bound land species-goals sidecars with three workers."""
 
 from __future__ import annotations
 
@@ -57,7 +57,15 @@ from species_target_policy import (  # noqa: E402
     resolve_species_target_policy,
 )
 
-RELEASE_ID = "solutions-v0-2-0-20260805"
+RELEASE_ID = os.environ.get(
+    "METRICS_SPECIES_GOALS_RELEASE_ID",
+    "solutions-v0-2-0-20260805",
+)
+CATALOG_VERSION = os.environ.get("METRICS_SPECIES_GOALS_CATALOG_VERSION", "0.2.0")
+SOURCE_RELEASE_ID = os.environ.get(
+    "METRICS_SPECIES_GOALS_SOURCE_RELEASE_ID",
+    RELEASE_ID,
+)
 WORKER_COUNT = 3
 MIN_FREE_DISK_GIB = 60.0
 MIN_FREE_MEMORY_PERCENT = 10
@@ -67,7 +75,8 @@ ALIGNMENT_INVENTORY_SHA256 = (
     "700cc948b8156f901f6a748bbc7ac1703c03eff2fd96a76221e3b5a541513193"
 )
 PUBLIC_RELEASE_ROOT = (
-    "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/" + RELEASE_ID
+    "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/"
+    + SOURCE_RELEASE_ID
 )
 EXPECTED_SCOPE_COUNTS = {
     "departments": 33,
@@ -242,6 +251,8 @@ def _target_policy(
     )
     published, _ = _published_document(solution_id, cache_dir)
     expected = published.get("metricsProvenance", {}).get("speciesTargetPolicy")
+    if isinstance(expected, dict) and "sourceEvaluation" not in expected:
+        expected = {**expected, "sourceEvaluation": "prioritizr_model"}
     if policy.provenance != expected:
         raise ValueError(f"{solution_id}: EspRN target provenance mismatch")
     return solution, policy
@@ -259,7 +270,9 @@ def _load_catalog_inputs(
 ) -> tuple[list[Any], list[Any], Any, set[str]]:
     records = load_species_records(species_csv)
     exception = load_species_exception(
-        exception_path, release_id=RELEASE_ID, catalog_version="0.2.0"
+        exception_path,
+        release_id=RELEASE_ID,
+        catalog_version=CATALOG_VERSION,
     )
     available = exception.filter_available(records)
     excluded = set(exception.excluded_filenames)
@@ -1116,6 +1129,9 @@ def _preflight(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--release-id", default=RELEASE_ID)
+    parser.add_argument("--catalog-version", default=CATALOG_VERSION)
+    parser.add_argument("--source-release-id", default=SOURCE_RELEASE_ID)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--cache-dir", type=Path, required=True)
     parser.add_argument("--release-cache", type=Path, required=True)
@@ -1132,7 +1148,19 @@ def _parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    global CATALOG_VERSION, PUBLIC_RELEASE_ROOT, RELEASE_ID, SOURCE_RELEASE_ID
+
     args = _parse_args()
+    RELEASE_ID = args.release_id
+    CATALOG_VERSION = args.catalog_version
+    SOURCE_RELEASE_ID = args.source_release_id
+    PUBLIC_RELEASE_ROOT = (
+        "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/"
+        + SOURCE_RELEASE_ID
+    )
+    os.environ["METRICS_SPECIES_GOALS_RELEASE_ID"] = RELEASE_ID
+    os.environ["METRICS_SPECIES_GOALS_CATALOG_VERSION"] = CATALOG_VERSION
+    os.environ["METRICS_SPECIES_GOALS_SOURCE_RELEASE_ID"] = SOURCE_RELEASE_ID
     started = time.monotonic()
     source_catalog = json.loads(args.solution_catalog.read_text(encoding="utf-8"))
     if (

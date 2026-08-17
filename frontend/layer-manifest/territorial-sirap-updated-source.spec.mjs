@@ -79,6 +79,7 @@ describe('authoritative Territorial SIRAP source', () => {
       {
         englishLabel: oldEntry.manifestLayer.englishLabel,
         spanishLabel: oldEntry.manifestLayer.spanishLabel,
+        description: oldEntry.manifestLayer.description,
         dataRole: oldEntry.manifestLayer.dataRole,
         roleInMetricCalculation: oldEntry.manifestLayer.roleInMetricCalculation,
         requiredForSolution: oldEntry.manifestLayer.requiredForSolution,
@@ -88,6 +89,8 @@ describe('authoritative Territorial SIRAP source', () => {
       {
         englishLabel: 'Territorial SIRAPs (outdated)',
         spanishLabel: 'SIRAP territoriales (desactualizados)',
+        description:
+          'Outdated Territorial SIRAP boundaries retained as a view-only comparison layer.',
         dataRole: 'reference_layer',
         roleInMetricCalculation: 'none',
         requiredForSolution: false,
@@ -99,6 +102,7 @@ describe('authoritative Territorial SIRAP source', () => {
       {
         englishLabel: authoritativeEntry.manifestLayer.englishLabel,
         spanishLabel: authoritativeEntry.manifestLayer.spanishLabel,
+        description: authoritativeEntry.manifestLayer.description,
         dataRole: authoritativeEntry.manifestLayer.dataRole,
         category: authoritativeEntry.manifestLayer.category,
         roleInMetricCalculation: authoritativeEntry.manifestLayer.roleInMetricCalculation,
@@ -107,6 +111,8 @@ describe('authoritative Territorial SIRAP source', () => {
       {
         englishLabel: 'Territorial SIRAPs (new)',
         spanishLabel: 'SIRAP territoriales (nuevos)',
+        description:
+          'Authoritative six-feature Territorial SIRAP boundaries used for AOI selection and metric lookup.',
         dataRole: 'administrative_boundary',
         category: 'administrative_boundaries',
         roleInMetricCalculation: 'boundary_used_for_precomputed_metric_lookup',

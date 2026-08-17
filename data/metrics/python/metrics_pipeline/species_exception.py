@@ -131,13 +131,17 @@ def load_species_exception(
         "timing": "first_subsequent_patch_release_after_authoritative_receipt",
         "wildcardSkipAllowed": False,
     }
+    is_continuation = (
+        isinstance(resolution, dict)
+        and "continuationCatalogVersion" in resolution
+    )
     expected_resolution = (
         {
             **shared_resolution,
             "authoritativeReceiptStatus": "not_received",
-            "continuationCatalogVersion": "0.2.1",
+            "continuationCatalogVersion": raw.get("catalogVersion"),
         }
-        if raw.get("catalogVersion") == "0.2.1"
+        if is_continuation
         else {
             **shared_resolution,
             "expectedPatchCatalogVersion": "0.2.1",

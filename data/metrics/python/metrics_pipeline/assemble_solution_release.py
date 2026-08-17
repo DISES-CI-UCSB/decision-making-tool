@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,7 @@ ARTIFACT_INVENTORY_FORMAT = "solution-release-artifact-inventory-v1"
 PUBLISH_SUMMARY_FORMAT = "solution-release-publish-summary-v1"
 COMPONENTS = ("regularVerbose", "regularCompact", "goals", "mecV2")
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
+CATALOG_SIGNATURE_PATTERN = re.compile(r"^metrics-catalog-v4:[0-9a-f]{64}$")
 
 
 def sha256_bytes(content: bytes) -> str:
@@ -349,6 +351,123 @@ def _write_immutable(path: Path, content: bytes) -> str:
     return checksum
 
 
+def _write_metadata(path: Path, content: bytes) -> str:
+    """Atomically replace local derived metadata without changing artifacts."""
+    checksum = sha256_bytes(content)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_bytes(content)
+    temporary.replace(path)
+    return checksum
+
+
+def _catalog_signature(path: Path, component: str) -> str | None:
+    if component not in {"regularVerbose", "regularCompact"}:
+        return None
+    document = json.loads(path.read_text(encoding="utf-8"))
+    provenance = document.get(PROVENANCE_KEY)
+    signature = (
+        provenance.get("catalogSignature")
+        if isinstance(provenance, dict)
+        else None
+    )
+    if not isinstance(signature, str) or not CATALOG_SIGNATURE_PATTERN.fullmatch(
+        signature
+    ):
+        raise SolutionCatalogError(
+            f"{component} artifact has an invalid catalogSignature: {path}"
+        )
+    return signature
+
+
+def _publish_entry(
+    item: dict[str, Any],
+    *,
+    release_root: Path,
+) -> dict[str, Any]:
+    artifact_path = release_root / item["path"]
+    signature = _catalog_signature(artifact_path, item["component"])
+    return {
+        "component": item["component"],
+        "solutionId": item["solutionId"],
+        "geographyLevel": item["geographyLevel"],
+        "cachePath": str(artifact_path.resolve()),
+        "expectedBlobPath": item["blobPath"],
+        "expectedPublicUrl": f"{PUBLIC_BLOB_HOST}/{item['blobPath']}",
+        "artifactSha256": item["sha256"],
+        **({"catalogSignature": signature} if signature is not None else {}),
+    }
+
+
+def rebuild_release_metadata(
+    *,
+    catalog: SolutionCatalog,
+    release_root: Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Rebuild reports from checksum-identical artifacts, without computation."""
+    inventory_path = release_root / "release-artifact-inventory.json"
+    raw_inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+    inventory_by_key = load_artifact_inventory(
+        inventory_path,
+        expected_release_id=catalog.release_id,
+        expected_catalog_sha256=catalog.sha256,
+    )
+    if raw_inventory.get("catalogVersion") != catalog.catalog_version:
+        raise SolutionCatalogError("release artifact inventory catalogVersion mismatch.")
+
+    artifacts: list[dict[str, Any]] = []
+    for component, solution_id, geography_level in _expected_keys(catalog):
+        key = (component, solution_id, geography_level)
+        item = inventory_by_key.get(key)
+        if item is None:
+            raise SolutionCatalogError(f"release artifact inventory is missing {key!r}.")
+        expected_path = _local_relative_path(
+            component,
+            solution_id,
+            geography_level,
+        ).as_posix()
+        expected_blob_path = _blob_path(
+            component,
+            solution_id,
+            geography_level,
+            release_id=catalog.release_id,
+        )
+        if (
+            item.get("path") != expected_path
+            or item.get("blobPath") != expected_blob_path
+        ):
+            raise SolutionCatalogError(
+                f"release artifact inventory path mismatch for {key!r}."
+            )
+        artifact_path = release_root / expected_path
+        if not artifact_path.is_file():
+            raise SolutionCatalogError(f"release artifact is missing: {artifact_path}")
+        content = artifact_path.read_bytes()
+        if (
+            sha256_bytes(content) != item.get("sha256")
+            or len(content) != item.get("bytes")
+        ):
+            raise SolutionCatalogError(
+                f"release artifact checksum mismatch: {artifact_path}"
+            )
+        _catalog_signature(artifact_path, component)
+        artifacts.append(item)
+
+    if len(inventory_by_key) != len(artifacts):
+        raise SolutionCatalogError("release artifact inventory contains unexpected entries.")
+
+    return _write_release_metadata(
+        catalog=catalog,
+        release_root=release_root,
+        artifacts=artifacts,
+        reused_count=sum(item.get("origin") == "reused" for item in artifacts),
+        recomputed_count=sum(
+            item.get("origin") == "recomputed" for item in artifacts
+        ),
+        write=_write_metadata,
+    )
+
+
 def _validate_recomputed_document(
     path: Path,
     *,
@@ -556,6 +675,25 @@ def assemble_release(
             }
         )
 
+    return _write_release_metadata(
+        catalog=catalog,
+        release_root=release_root,
+        artifacts=artifacts,
+        reused_count=reused_count,
+        recomputed_count=recomputed_count,
+        write=_write_immutable,
+    )
+
+
+def _write_release_metadata(
+    *,
+    catalog: SolutionCatalog,
+    release_root: Path,
+    artifacts: list[dict[str, Any]],
+    reused_count: int,
+    recomputed_count: int,
+    write,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     inventory = {
         "format": ARTIFACT_INVENTORY_FORMAT,
         "releaseId": catalog.release_id,
@@ -604,28 +742,20 @@ def assemble_release(
         "artifactCount": len(artifacts),
         "complete": summary["complete"],
         "entries": [
-            {
-                "component": item["component"],
-                "solutionId": item["solutionId"],
-                "geographyLevel": item["geographyLevel"],
-                "cachePath": str((release_root / item["path"]).resolve()),
-                "expectedBlobPath": item["blobPath"],
-                "expectedPublicUrl": f"{PUBLIC_BLOB_HOST}/{item['blobPath']}",
-                "artifactSha256": item["sha256"],
-            }
+            _publish_entry(item, release_root=release_root)
             for item in artifacts
         ],
         "failures": [],
     }
-    _write_immutable(
+    write(
         release_root / "release-artifact-inventory.json",
         inventory_content,
     )
-    _write_immutable(
+    write(
         release_root / "release-publish-summary.json",
         (json.dumps(summary, indent=2, sort_keys=True) + "\n").encode("utf-8"),
     )
-    _write_immutable(
+    write(
         release_root / "publish-report.json",
         (json.dumps(publish_report, indent=2, sort_keys=True) + "\n").encode("utf-8"),
     )
@@ -635,10 +765,15 @@ def assemble_release(
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
-    parser.add_argument("--release-plan", type=Path, required=True)
+    parser.add_argument("--release-plan", type=Path)
     parser.add_argument("--baseline-inventory", type=Path, default=None)
     parser.add_argument("--baseline-root", type=Path, default=None)
     parser.add_argument("--release-root", type=Path, default=None)
+    parser.add_argument(
+        "--metadata-only",
+        action="store_true",
+        help="Regenerate reports from checksum-identical existing artifacts.",
+    )
     return parser.parse_args(argv)
 
 
@@ -649,13 +784,23 @@ def main(argv: list[str] | None = None) -> int:
         release_root = args.release_root or (
             Path("data/metrics/generated/releases") / catalog.release_id
         )
-        _, summary = assemble_release(
-            catalog=catalog,
-            release_plan=args.release_plan,
-            baseline_inventory_path=args.baseline_inventory,
-            baseline_root=args.baseline_root,
-            release_root=release_root,
-        )
+        if args.metadata_only:
+            _, summary = rebuild_release_metadata(
+                catalog=catalog,
+                release_root=release_root,
+            )
+        else:
+            if args.release_plan is None:
+                raise SolutionCatalogError(
+                    "assembly requires --release-plan unless --metadata-only is used."
+                )
+            _, summary = assemble_release(
+                catalog=catalog,
+                release_plan=args.release_plan,
+                baseline_inventory_path=args.baseline_inventory,
+                baseline_root=args.baseline_root,
+                release_root=release_root,
+            )
     except (OSError, json.JSONDecodeError, SolutionCatalogError) as exc:
         print(f"[assemble-release] ERROR: {exc}", file=sys.stderr)
         return 2
