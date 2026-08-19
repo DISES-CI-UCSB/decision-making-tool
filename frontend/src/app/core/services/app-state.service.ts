@@ -6,6 +6,8 @@ import {
   type CustomPolygonMetricsGeometry,
   type LayerConfig,
   type RuntimeLayerManifestRenderingConfig,
+  SIRAP_REGION_IDS,
+  type SirapRegionId,
   type Solution,
   UserTier,
 } from '@core/models';
@@ -216,8 +218,12 @@ export class AppStateService {
   readonly solutionFinderModalOpen$ = signal(false);
   readonly solutionFinderContext$ = signal<SolutionFinderContext>('default');
   readonly finderSelectionMemory$ = signal<FinderSelectionMemory | null>(null);
+  readonly userIsSignedIn$ = signal(false);
   readonly userTier$ = signal<UserTier>(UserTier.Public);
   readonly userIsAdmin$ = signal(false);
+  readonly userIsSuperAdmin$ = signal(false);
+  readonly allowedSirapIds$ = signal<SirapRegionId[]>([]);
+  readonly administeredSirapIds$ = signal<SirapRegionId[]>([]);
   readonly mapExtent$ = signal<Extent | null>(null);
   readonly customAoiDrawRequest$ = signal(0);
   readonly customAoiDrawCancelRequest$ = signal(0);
@@ -233,6 +239,13 @@ export class AppStateService {
   readonly canAccessTier2 = computed(
     () => environment.bypassLoginForDevelopment || this.userTier$() >= UserTier.DecisionMaker,
   );
+  readonly accessibleSirapIds = computed<readonly SirapRegionId[]>(() => {
+    if (environment.bypassLoginForDevelopment || this.userIsSuperAdmin$()) {
+      return SIRAP_REGION_IDS;
+    }
+    return this.allowedSirapIds$();
+  });
+  readonly canAccessSirapScope = computed(() => this.accessibleSirapIds().length > 0);
 
   loadSolution(solution: Solution): void {
     this.activeSolution$.set(solution);

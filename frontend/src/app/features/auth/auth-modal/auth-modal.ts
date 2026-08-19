@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
+import { SIRAP_REGIONS, type SirapRegionId } from '@core/models';
 import {
   AuthRequestService,
   type EmailRequestPayload,
@@ -42,6 +43,7 @@ interface EmailRequestForm {
 interface PostGoogleForm {
   organization: string;
   reason: string;
+  requestedSirapIds: SirapRegionId[];
 }
 
 const SUBMIT_MIN_DELAY_MS = 300;
@@ -76,7 +78,12 @@ export class AuthModalComponent {
     organization: '',
     reason: '',
   });
-  protected readonly postGoogleForm = signal<PostGoogleForm>({ organization: '', reason: '' });
+  protected readonly postGoogleForm = signal<PostGoogleForm>({
+    organization: '',
+    reason: '',
+    requestedSirapIds: [],
+  });
+  protected readonly sirapRegions = SIRAP_REGIONS;
   protected readonly pendingGoogleProfile = signal<GoogleProfile | null>(null);
   protected readonly confirmedRequest = signal<StoredPendingRequest | null>(null);
 
@@ -161,7 +168,7 @@ export class AuthModalComponent {
       // treat the Google handshake as a new user and send them to the
       // post-Google completion form (the Request Access half of §5.2b).
       this.pendingGoogleProfile.set(profile);
-      this.postGoogleForm.set({ organization: '', reason: '' });
+      this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
       this.state.set('postGoogle');
     } finally {
       this.isSubmitting.set(false);
@@ -268,6 +275,7 @@ export class AuthModalComponent {
         password: form.password,
         organization: form.organization.trim() || undefined,
         reason: form.reason.trim() || undefined,
+        requestedSirapIds: [],
       };
       const startedAt = Date.now();
       const stored = await this.authRequest.submitEmailRequest(payload);
@@ -291,7 +299,7 @@ export class AuthModalComponent {
     try {
       const profile = await this.googleIdentity.signIn();
       this.pendingGoogleProfile.set(profile);
-      this.postGoogleForm.set({ organization: '', reason: '' });
+      this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
       this.state.set('postGoogle');
     } finally {
       this.isSubmitting.set(false);
@@ -305,12 +313,19 @@ export class AuthModalComponent {
     this.postGoogleForm.update((form) => ({ ...form, [field]: value }));
   }
 
+  protected togglePostGoogleSirap(sirapId: SirapRegionId): void {
+    this.postGoogleForm.update((form) => ({
+      ...form,
+      requestedSirapIds: this.toggleSirapId(form.requestedSirapIds, sirapId),
+    }));
+  }
+
   protected async submitPostGoogle(): Promise<void> {
     if (this.isSubmitting()) {
       return;
     }
     const profile = this.pendingGoogleProfile();
-    if (!profile) {
+    if (!profile || this.postGoogleForm().requestedSirapIds.length === 0) {
       return;
     }
     this.isSubmitting.set(true);
@@ -324,6 +339,7 @@ export class AuthModalComponent {
         googleAvatarInitials: profile.avatarInitials,
         organization: form.organization.trim() || undefined,
         reason: form.reason.trim() || undefined,
+        requestedSirapIds: form.requestedSirapIds,
       });
       await this.enforceMinDelay(startedAt);
       this.confirmedRequest.set(stored);
@@ -408,6 +424,7 @@ export class AuthModalComponent {
       fullName: name,
       email,
       password: 'unused-mock-pass',
+      requestedSirapIds: [],
     });
   }
 
@@ -429,8 +446,17 @@ export class AuthModalComponent {
       organization: '',
       reason: '',
     });
-    this.postGoogleForm.set({ organization: '', reason: '' });
+    this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
     this.pendingGoogleProfile.set(null);
     this.loginError.set(null);
+  }
+
+  private toggleSirapId(
+    selectedIds: readonly SirapRegionId[],
+    sirapId: SirapRegionId,
+  ): SirapRegionId[] {
+    return selectedIds.includes(sirapId)
+      ? selectedIds.filter((id) => id !== sirapId)
+      : [...selectedIds, sirapId];
   }
 }

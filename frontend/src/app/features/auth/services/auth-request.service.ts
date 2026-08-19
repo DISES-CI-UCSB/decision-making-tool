@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
-import { UserTier } from '@core/models';
+import { readSirapRegionIds, type SirapRegionId, UserTier } from '@core/models';
+import { SirapAccessService } from './sirap-access.service';
 import {
   addDoc,
   collection,
@@ -52,6 +53,7 @@ export interface EmailRequestPayload {
   password: string;
   organization?: string;
   reason?: string;
+  requestedSirapIds: SirapRegionId[];
 }
 
 export interface GoogleRequestPayload {
@@ -61,6 +63,7 @@ export interface GoogleRequestPayload {
   googleAvatarInitials: string;
   organization?: string;
   reason?: string;
+  requestedSirapIds: SirapRegionId[];
 }
 
 export interface StoredPendingRequest {
@@ -71,6 +74,7 @@ export interface StoredPendingRequest {
   submittedAt: number;
   organization?: string;
   reason?: string;
+  requestedSirapIds: SirapRegionId[];
 }
 
 export interface LoginAttemptPayload {
@@ -83,6 +87,7 @@ export interface LoginAttemptPayload {
 @Injectable({ providedIn: 'root' })
 export class AuthRequestService {
   private readonly firebase = inject(FirebaseClientService);
+  private readonly sirapAccess = inject(SirapAccessService);
 
   /** Reactive mirror of the persisted pending-request state. */
   readonly pendingRequest$ = signal<StoredPendingRequest | null>(this.readPendingRequest());
@@ -112,6 +117,7 @@ export class AuthRequestService {
       submittedAt: Date.now(),
       organization: payload.organization,
       reason: payload.reason,
+      requestedSirapIds: payload.requestedSirapIds,
     };
     this.writePendingRequest(pending);
     return pending;
@@ -143,6 +149,7 @@ export class AuthRequestService {
       submittedAt: Date.now(),
       organization: payload.organization,
       reason: payload.reason,
+      requestedSirapIds: payload.requestedSirapIds,
     };
     this.writePendingRequest(pending);
     return pending;
@@ -288,6 +295,7 @@ export class AuthRequestService {
       submittedAt,
       organization: payload.organization,
       reason: payload.reason,
+      requestedSirapIds: payload.requestedSirapIds,
     };
 
     await setDoc(
@@ -306,6 +314,13 @@ export class AuthRequestService {
         updatedAt: serverTimestamp(),
       },
       { merge: true },
+    );
+    await this.sirapAccess.submitRequestsForIdentity(
+      payload.uid,
+      payload.googleEmail,
+      payload.googleName,
+      payload.requestedSirapIds,
+      payload.reason,
     );
     await this.createAdminNotification(pending);
     this.writePendingRequest(pending);
@@ -330,6 +345,7 @@ export class AuthRequestService {
       submittedAt: this.readNumber(data, 'submittedAt') ?? Date.now(),
       organization: this.readOptionalString(data, 'organization'),
       reason: this.readOptionalString(data, 'reason'),
+      requestedSirapIds: [],
     };
     this.writePendingRequest(pending);
     return pending;
@@ -405,7 +421,11 @@ export class AuthRequestService {
       return null;
     }
     try {
-      return JSON.parse(raw) as StoredPendingRequest;
+      const parsed = JSON.parse(raw) as StoredPendingRequest;
+      return {
+        ...parsed,
+        requestedSirapIds: readSirapRegionIds(parsed.requestedSirapIds),
+      };
     } catch {
       return null;
     }

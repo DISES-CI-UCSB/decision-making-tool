@@ -56,7 +56,7 @@
     </div>
   </nav>
 
-  @if (selectedDomain === 'land' && showScopeBar() && false) {
+  @if (selectedDomain === 'land' && showScopeBar()) {
     <div
       id="solution-finder-modal-scope-bar"
       class="flex items-center gap-4 border-b border-slate-200 bg-white/80 px-6 py-2.5"
@@ -125,7 +125,7 @@
             <option id="solution-finder-modal-scope-bar-sirap-region-placeholder" value="">
               {{ 'solutionControls.finder.scopeBar.selectRegion' | translate }}
             </option>
-            @for (region of sirapRegions; track region.id) {
+            @for (region of accessibleSirapRegions(); track region.id) {
               <option
                 [id]="'solution-finder-modal-scope-bar-sirap-region-' + region.id"
                 [value]="region.id"
@@ -139,7 +139,7 @@
               id="solution-finder-modal-scope-bar-sirap-badge"
               class="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
             >
-              {{ 'solutionControls.finder.scopeBar.regionalBadge' | translate }}
+              Demo regional data
             </span>
           }
         </div>

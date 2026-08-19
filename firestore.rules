@@ -22,10 +22,70 @@ service cloud.firestore {
       return userData.status == 'active';
     }
 
-    function isActiveAdmin() {
+    function isSuperAdmin() {
       return signedIn()
         && isActiveUserData(currentUserData())
-        && (currentUserData().isAdmin == true || currentUserData().role == 'admin');
+        && (
+          currentUserData().get('isSuperAdmin', false) == true
+          || currentUserData().get('isAdmin', false) == true
+          || currentUserData().role == 'admin'
+        );
+    }
+
+    function isSirapId(value) {
+      return value in [
+        'caribe',
+        'pacifico',
+        'andes-occidentales',
+        'andes-nororientales',
+        'orinoquia',
+        'amazonia'
+      ];
+    }
+
+    function validSirapIdList(value) {
+      return value is list
+        && value.size() <= 6
+        && value.toSet().hasOnly([
+          'caribe',
+          'pacifico',
+          'andes-occidentales',
+          'andes-nororientales',
+          'orinoquia',
+          'amazonia'
+        ]);
+    }
+
+    function sirapIdsOrEmpty(data, field) {
+      return field in data && data[field] is list ? data[field] : [];
+    }
+
+    function administersSirap(sirapId) {
+      return signedIn()
+        && isActiveUserData(currentUserData())
+        && (
+          isSuperAdmin()
+          || (
+            currentUserData().administeredSirapIds is list
+            && sirapId in currentUserData().administeredSirapIds
+          )
+        );
+    }
+
+    function isSirapAdministrator() {
+      return signedIn()
+        && isActiveUserData(currentUserData())
+        && currentUserData().administeredSirapIds is list
+        && currentUserData().administeredSirapIds.size() > 0;
+    }
+
+    function hasOverlappingSirapAccess(userData) {
+      return isSirapAdministrator()
+        && userData.get('allowedSirapIds', []) is list
+        && userData.get('allowedSirapIds', [])
+          .toSet()
+          .intersection(currentUserData().administeredSirapIds.toSet())
+          .size() > 0;
     }
 
     function hasManifestStyleAccess() {
@@ -35,7 +95,7 @@ service cloud.firestore {
           (currentUserData().tier is int && currentUserData().tier >= 3)
           || currentUserData().role == 'science_publisher'
           || currentUserData().role == 'admin'
-          || currentUserData().isAdmin == true
+          || isSuperAdmin()
         );
     }
 
@@ -141,6 +201,9 @@ service cloud.firestore {
         'role',
         'tier',
         'isAdmin',
+        'isSuperAdmin',
+        'allowedSirapIds',
+        'administeredSirapIds',
         'createdAt',
         'updatedAt',
         'updatedBy'
@@ -157,9 +220,117 @@ service cloud.firestore {
         && request.resource.data.role in ['authorized_viewer', 'science_publisher', 'admin']
         && request.resource.data.tier in [1, 2, 3]
         && request.resource.data.isAdmin is bool
+        && (
+          !('isSuperAdmin' in request.resource.data)
+          || request.resource.data.isSuperAdmin is bool
+        )
+        && (
+          !('allowedSirapIds' in request.resource.data)
+          || validSirapIdList(request.resource.data.allowedSirapIds)
+        )
+        && (
+          !('administeredSirapIds' in request.resource.data)
+          || validSirapIdList(request.resource.data.administeredSirapIds)
+        )
         && isOptionalTimestamp(request.resource.data, 'createdAt')
         && request.resource.data.updatedAt == request.time
         && isOptionalString(request.resource.data, 'updatedBy');
+    }
+
+    function validSirapAdminUserUpdate() {
+      return isSirapAdministrator()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'allowedSirapIds',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && validSirapIdList(request.resource.data.allowedSirapIds)
+        && validSirapIdList(sirapIdsOrEmpty(resource.data, 'allowedSirapIds'))
+        && request.resource.data.allowedSirapIds
+          .toSet()
+          .difference(sirapIdsOrEmpty(resource.data, 'allowedSirapIds').toSet())
+          .hasOnly(currentUserData().administeredSirapIds)
+        && sirapIdsOrEmpty(resource.data, 'allowedSirapIds')
+          .toSet()
+          .difference(request.resource.data.allowedSirapIds.toSet())
+          .hasOnly(currentUserData().administeredSirapIds)
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function sirapAccessRequestFields() {
+      return [
+        'uid',
+        'email',
+        'displayName',
+        'sirapId',
+        'status',
+        'reason',
+        'requestedAt',
+        'updatedAt',
+        'decidedAt',
+        'decidedBy'
+      ];
+    }
+
+    function validOwnSirapAccessRequest(uid) {
+      return request.resource.data.keys().hasOnly(sirapAccessRequestFields())
+        && uid == request.auth.uid
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string
+        && isSirapId(request.resource.data.sirapId)
+        && request.resource.data.status == 'pending'
+        && isOptionalString(request.resource.data, 'reason')
+        && request.resource.data.requestedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && !('decidedAt' in request.resource.data)
+        && !('decidedBy' in request.resource.data);
+    }
+
+    function validOwnSirapRerequest() {
+      return signedIn()
+        && resource.data.uid == request.auth.uid
+        && resource.data.status in ['approved', 'denied']
+        && (
+          resource.data.status == 'denied'
+          || !(
+            resource.data.sirapId
+            in sirapIdsOrEmpty(currentUserData(), 'allowedSirapIds')
+          )
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'reason',
+          'requestedAt',
+          'updatedAt',
+          'decidedAt',
+          'decidedBy'
+        ])
+        && validOwnSirapAccessRequest(request.auth.uid);
+    }
+
+    function validSirapDecision() {
+      return administersSirap(resource.data.sirapId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'decidedAt',
+          'decidedBy',
+          'updatedAt'
+        ])
+        && (
+          (
+            resource.data.status == 'pending'
+            && request.resource.data.status in ['approved', 'denied']
+          )
+          || (
+            resource.data.status == 'approved'
+            && request.resource.data.status == 'denied'
+          )
+        )
+        && request.resource.data.decidedAt == request.time
+        && request.resource.data.decidedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
     }
 
     function manifestStyleRequestFields() {
@@ -215,25 +386,45 @@ service cloud.firestore {
     }
 
     match /accessRequests/{uid} {
-      allow get: if isSelf(uid) || isActiveAdmin();
-      allow list: if isActiveAdmin();
+      allow get: if isSelf(uid) || isSuperAdmin();
+      allow list: if isSuperAdmin();
       allow create: if isSelf(uid) && validPendingAccessRequest(uid);
       allow update: if (isSelf(uid) && validOwnAccessRequestUpdate(uid))
-        || (isActiveAdmin() && validAdminAccessRequestUpdate());
+        || (isSuperAdmin() && validAdminAccessRequestUpdate());
       allow delete: if false;
     }
 
     match /users/{uid} {
-      allow get: if isSelf(uid) || isActiveAdmin();
-      allow list: if isActiveAdmin();
-      allow create, update: if isActiveAdmin() && validUserRecord(uid);
+      allow get: if isSelf(uid)
+        || isSuperAdmin()
+        || hasOverlappingSirapAccess(resource.data);
+      allow list: if isSuperAdmin()
+        || hasOverlappingSirapAccess(resource.data);
+      allow create: if isSuperAdmin() && validUserRecord(uid);
+      allow update: if (isSuperAdmin() && validUserRecord(uid))
+        || validSirapAdminUserUpdate();
+      allow delete: if false;
+    }
+
+    match /sirapAccessRequests/{requestId} {
+      allow get: if (signedIn() && resource.data.uid == request.auth.uid)
+        || administersSirap(resource.data.sirapId);
+      allow list: if signedIn()
+        && (
+          resource.data.uid == request.auth.uid
+          || administersSirap(resource.data.sirapId)
+        );
+      allow create: if signedIn()
+        && validOwnSirapAccessRequest(request.resource.data.uid)
+        && requestId == request.auth.uid + '_' + request.resource.data.sirapId;
+      allow update: if validOwnSirapRerequest() || validSirapDecision();
       allow delete: if false;
     }
 
     match /manifestStyleRequests/{requestId} {
       allow create: if hasManifestStyleAccess() && validManifestStyleRequestCreate();
-      allow get, list: if isActiveAdmin();
-      allow update: if isActiveAdmin() && validManifestStyleRequestAdminUpdate();
+      allow get, list: if isSuperAdmin();
+      allow update: if isSuperAdmin() && validManifestStyleRequestAdminUpdate();
       allow delete: if false;
     }
 

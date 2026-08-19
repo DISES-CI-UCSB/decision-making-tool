@@ -83,73 +83,698 @@
           Loading pending requests...
         </div>
       } @else {
-        <section id="admin-access-panel-pending-section" class="space-y-4">
-          <div id="admin-access-panel-pending-heading-row">
-            <h3 id="admin-access-panel-pending-title" class="text-sm font-semibold text-slate-900">
-              Pending requests
+        @if (isSuperAdmin()) {
+          <section id="admin-access-panel-pending-section" class="space-y-4">
+            <div id="admin-access-panel-pending-heading-row">
+              <h3
+                id="admin-access-panel-pending-title"
+                class="text-base font-semibold text-slate-900"
+              >
+                Pending Firebase accounts
+              </h3>
+              <p id="admin-access-panel-pending-copy" class="mt-1 text-sm text-slate-500">
+                Review what the user requested, then choose the access that will actually be
+                granted.
+              </p>
+            </div>
+
+            @if (pendingRequests().length === 0) {
+              <section
+                id="admin-access-panel-empty-state"
+                class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
+              >
+                <h4
+                  id="admin-access-panel-empty-title"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  No pending accounts
+                </h4>
+                <p id="admin-access-panel-empty-copy" class="mt-1 text-sm text-slate-500">
+                  New Google access requests will appear here after users submit the request form.
+                </p>
+              </section>
+            } @else {
+              <section id="admin-access-panel-request-list" class="space-y-5">
+                @for (request of pendingRequests(); track request.uid) {
+                  <article
+                    [id]="'admin-access-panel-request-card-' + request.uid"
+                    class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                  >
+                    <header
+                      [id]="'admin-access-panel-request-header-' + request.uid"
+                      class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
+                    >
+                      <div
+                        [id]="'admin-access-panel-request-identity-' + request.uid"
+                        class="min-w-0"
+                      >
+                        <h4
+                          [id]="'admin-access-panel-request-name-' + request.uid"
+                          class="truncate text-lg font-semibold text-slate-950"
+                        >
+                          {{ request.displayName }}
+                        </h4>
+                        <p
+                          [id]="'admin-access-panel-request-email-' + request.uid"
+                          class="truncate text-sm text-slate-500"
+                        >
+                          {{ request.email }}
+                        </p>
+                      </div>
+                      <span
+                        [id]="'admin-access-panel-request-status-' + request.uid"
+                        class="w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800"
+                      >
+                        Pending account
+                      </span>
+                    </header>
+
+                    <div
+                      [id]="'admin-access-panel-request-review-' + request.uid"
+                      class="space-y-5 p-5"
+                    >
+                      <section
+                        [id]="'admin-access-panel-request-evidence-' + request.uid"
+                        class="rounded-xl border border-sky-200 bg-sky-50/60 p-4"
+                      >
+                        <h5
+                          [id]="'admin-access-panel-request-evidence-title-' + request.uid"
+                          class="text-sm font-semibold text-slate-900"
+                        >
+                          Requested by user
+                        </h5>
+                        @if (pendingSirapRequestsFor(request.uid).length === 0) {
+                          <p
+                            [id]="'admin-access-panel-request-evidence-empty-' + request.uid"
+                            class="mt-2 text-sm text-slate-500"
+                          >
+                            No SIRAP data access requested.
+                          </p>
+                        } @else {
+                          <div
+                            [id]="'admin-access-panel-request-evidence-chips-' + request.uid"
+                            class="mt-3 flex flex-wrap gap-2"
+                          >
+                            @for (
+                              sirapRequest of pendingSirapRequestsFor(request.uid);
+                              track sirapRequest.id
+                            ) {
+                              <span
+                                [id]="'admin-access-panel-request-evidence-chip-' + sirapRequest.id"
+                                class="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-900"
+                              >
+                                {{ sirapLabel(sirapRequest.sirapId) }}
+                              </span>
+                            }
+                          </div>
+                        }
+                      </section>
+
+                      <div
+                        [id]="'admin-access-panel-request-grant-regions-' + request.uid"
+                        class="grid gap-4 lg:grid-cols-2"
+                      >
+                        <fieldset
+                          [id]="'admin-access-panel-request-allowed-siraps-' + request.uid"
+                          class="rounded-xl border border-slate-200 p-4"
+                        >
+                          <legend
+                            [id]="'admin-access-panel-request-allowed-siraps-legend-' + request.uid"
+                            class="px-1 text-sm font-semibold text-slate-800"
+                          >
+                            Data access to grant
+                          </legend>
+                          <div
+                            [id]="
+                              'admin-access-panel-request-allowed-siraps-options-' + request.uid
+                            "
+                            class="mt-2 grid gap-2 sm:grid-cols-2"
+                          >
+                            @for (region of sirapRegions; track region.id) {
+                              <label
+                                [id]="
+                                  'admin-access-panel-request-allowed-sirap-label-' +
+                                  request.uid +
+                                  '-' +
+                                  region.id
+                                "
+                                class="flex items-center gap-2 text-xs text-slate-700"
+                              >
+                                <input
+                                  [id]="
+                                    'admin-access-panel-request-allowed-sirap-checkbox-' +
+                                    request.uid +
+                                    '-' +
+                                    region.id
+                                  "
+                                  type="checkbox"
+                                  class="h-4 w-4 rounded border-slate-300 text-sky-600"
+                                  [checked]="
+                                    requestGrantFor(request).allowedSirapIds.includes(region.id)
+                                  "
+                                  [disabled]="!!approvingUid()"
+                                  (change)="toggleRequestAllowedSirap(request, region.id)"
+                                />
+                                {{ region.label }}
+                              </label>
+                            }
+                          </div>
+                        </fieldset>
+
+                        <fieldset
+                          [id]="'admin-access-panel-request-administered-siraps-' + request.uid"
+                          class="rounded-xl border border-slate-200 p-4"
+                        >
+                          <legend
+                            [id]="
+                              'admin-access-panel-request-administered-siraps-legend-' + request.uid
+                            "
+                            class="px-1 text-sm font-semibold text-slate-800"
+                          >
+                            Regional administrator permissions
+                          </legend>
+                          <div
+                            [id]="
+                              'admin-access-panel-request-administered-siraps-options-' +
+                              request.uid
+                            "
+                            class="mt-2 grid gap-2 sm:grid-cols-2"
+                          >
+                            @for (region of sirapRegions; track region.id) {
+                              <label
+                                [id]="
+                                  'admin-access-panel-request-administered-sirap-label-' +
+                                  request.uid +
+                                  '-' +
+                                  region.id
+                                "
+                                class="flex items-center gap-2 text-xs text-slate-700"
+                              >
+                                <input
+                                  [id]="
+                                    'admin-access-panel-request-administered-sirap-checkbox-' +
+                                    request.uid +
+                                    '-' +
+                                    region.id
+                                  "
+                                  type="checkbox"
+                                  class="h-4 w-4 rounded border-slate-300 text-sky-600"
+                                  [checked]="
+                                    requestGrantFor(request).administeredSirapIds.includes(
+                                      region.id
+                                    )
+                                  "
+                                  [disabled]="!!approvingUid()"
+                                  (change)="toggleRequestAdministeredSirap(request, region.id)"
+                                />
+                                {{ region.label }}
+                              </label>
+                            }
+                          </div>
+                        </fieldset>
+                      </div>
+
+                      <fieldset
+                        [id]="'admin-access-panel-request-approval-settings-' + request.uid"
+                        class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <legend
+                          [id]="
+                            'admin-access-panel-request-approval-settings-legend-' + request.uid
+                          "
+                          class="px-1 text-sm font-semibold text-slate-800"
+                        >
+                          Approval settings
+                        </legend>
+                        <div
+                          [id]="
+                            'admin-access-panel-request-approval-settings-controls-' + request.uid
+                          "
+                          class="mt-2 grid gap-3 sm:grid-cols-[minmax(240px,1fr)_auto] sm:items-end"
+                        >
+                          <label
+                            [id]="'admin-access-panel-request-tier-label-' + request.uid"
+                            [attr.for]="'admin-access-panel-request-tier-select-' + request.uid"
+                            class="block text-xs font-semibold text-slate-600"
+                          >
+                            App tier
+                            <select
+                              [id]="'admin-access-panel-request-tier-select-' + request.uid"
+                              class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                              [value]="requestGrantFor(request).tier.toString()"
+                              [disabled]="!!approvingUid()"
+                              (change)="onRequestTierChange(request, $event)"
+                            >
+                              <option
+                                [id]="
+                                  'admin-access-panel-request-tier-option-approved-' + request.uid
+                                "
+                                value="2"
+                              >
+                                Tier 2 - Approved user
+                              </option>
+                              <option
+                                [id]="
+                                  'admin-access-panel-request-tier-option-manager-' + request.uid
+                                "
+                                value="3"
+                              >
+                                Tier 3 - Publisher / scientist
+                              </option>
+                            </select>
+                          </label>
+                          <label
+                            [id]="'admin-access-panel-request-admin-label-' + request.uid"
+                            class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
+                          >
+                            <input
+                              [id]="'admin-access-panel-request-admin-checkbox-' + request.uid"
+                              type="checkbox"
+                              class="h-4 w-4 rounded border-slate-300 text-slate-900"
+                              [checked]="requestGrantFor(request).isAdmin"
+                              [disabled]="!!approvingUid()"
+                              (change)="onRequestAdminChange(request, $event)"
+                            />
+                            Super admin
+                          </label>
+                        </div>
+                      </fieldset>
+
+                      <dl
+                        [id]="'admin-access-panel-request-meta-' + request.uid"
+                        class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3"
+                      >
+                        <div [id]="'admin-access-panel-request-org-' + request.uid">
+                          <dt
+                            [id]="'admin-access-panel-request-org-label-' + request.uid"
+                            class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+                          >
+                            Organization
+                          </dt>
+                          <dd
+                            [id]="'admin-access-panel-request-org-value-' + request.uid"
+                            class="mt-0.5 text-slate-700"
+                          >
+                            {{ formatOptional(request.organization) }}
+                          </dd>
+                        </div>
+                        <div [id]="'admin-access-panel-request-provider-' + request.uid">
+                          <dt
+                            [id]="'admin-access-panel-request-provider-label-' + request.uid"
+                            class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+                          >
+                            Provider
+                          </dt>
+                          <dd
+                            [id]="'admin-access-panel-request-provider-value-' + request.uid"
+                            class="mt-0.5 text-slate-700"
+                          >
+                            {{ request.provider }}
+                          </dd>
+                        </div>
+                        <div [id]="'admin-access-panel-request-time-' + request.uid">
+                          <dt
+                            [id]="'admin-access-panel-request-time-label-' + request.uid"
+                            class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+                          >
+                            Requested
+                          </dt>
+                          <dd
+                            [id]="'admin-access-panel-request-time-value-' + request.uid"
+                            class="mt-0.5 text-slate-700"
+                          >
+                            {{ formatRequestedAt(request) }}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+
+                    <footer
+                      [id]="'admin-access-panel-request-footer-' + request.uid"
+                      class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <p
+                        [id]="'admin-access-panel-request-grant-summary-' + request.uid"
+                        class="text-xs text-slate-600"
+                      >
+                        {{ grantSummary(request) }}
+                      </p>
+                      <button
+                        [id]="'admin-access-panel-approve-button-' + request.uid"
+                        type="button"
+                        class="inline-flex h-10 min-w-32 items-center justify-center self-end rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        [disabled]="!!approvingUid()"
+                        (click)="approveRequest(request)"
+                      >
+                        {{ approvingUid() === request.uid ? 'Approving…' : 'Approve account' }}
+                      </button>
+                    </footer>
+                  </article>
+                }
+              </section>
+            }
+          </section>
+        }
+
+        <section
+          id="admin-access-panel-sirap-requests-section"
+          class="mt-8 space-y-4 border-t border-slate-200 pt-6"
+        >
+          <div id="admin-access-panel-sirap-requests-heading">
+            <h3
+              id="admin-access-panel-sirap-requests-title"
+              class="text-sm font-semibold text-slate-900"
+            >
+              Pending SIRAP requests
             </h3>
-            <p id="admin-access-panel-pending-copy" class="mt-1 text-sm text-slate-500">
-              Choose each requester&apos;s app tier and whether they can manage access.
+            <p id="admin-access-panel-sirap-requests-copy" class="mt-1 text-sm text-slate-500">
+              Requests are grouped by user. Approve or deny each SIRAP independently.
             </p>
           </div>
 
-          @if (pendingRequests().length === 0) {
+          @if (sirapRequestGroups().length === 0) {
             <section
-              id="admin-access-panel-empty-state"
+              id="admin-access-panel-sirap-requests-empty"
               class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
             >
-              <h4 id="admin-access-panel-empty-title" class="text-sm font-semibold text-slate-900">
-                No pending requests
+              <h4
+                id="admin-access-panel-sirap-requests-empty-title"
+                class="text-sm font-semibold text-slate-900"
+              >
+                No pending SIRAP requests
               </h4>
-              <p id="admin-access-panel-empty-copy" class="mt-1 text-sm text-slate-500">
-                New Google access requests will appear here after users submit the request form.
-              </p>
             </section>
           } @else {
-            <section id="admin-access-panel-request-list" class="space-y-4">
-              @for (request of pendingRequests(); track request.uid) {
+            <section id="admin-access-panel-sirap-request-groups" class="space-y-4">
+              @for (group of sirapRequestGroups(); track group.uid) {
                 <article
-                  [id]="'admin-access-panel-request-card-' + request.uid"
+                  [id]="'admin-access-panel-sirap-user-card-' + group.uid"
+                  class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <header
+                    [id]="'admin-access-panel-sirap-user-header-' + group.uid"
+                    class="border-b border-slate-100 bg-slate-50 px-4 py-3"
+                  >
+                    <h4
+                      [id]="'admin-access-panel-sirap-user-name-' + group.uid"
+                      class="text-sm font-semibold text-slate-900"
+                    >
+                      {{ group.displayName }}
+                    </h4>
+                    <p
+                      [id]="'admin-access-panel-sirap-user-email-' + group.uid"
+                      class="text-xs text-slate-500"
+                    >
+                      {{ group.email }}
+                    </p>
+                  </header>
+                  <div
+                    [id]="'admin-access-panel-sirap-user-requests-' + group.uid"
+                    class="divide-y divide-slate-100"
+                  >
+                    @for (request of group.requests; track request.id) {
+                      <div
+                        [id]="'admin-access-panel-sirap-request-row-' + request.id"
+                        class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div [id]="'admin-access-panel-sirap-request-copy-' + request.id">
+                          <p
+                            [id]="'admin-access-panel-sirap-request-region-' + request.id"
+                            class="text-sm font-semibold text-slate-800"
+                          >
+                            {{ sirapLabel(request.sirapId) }}
+                          </p>
+                          <p
+                            [id]="'admin-access-panel-sirap-request-meta-' + request.id"
+                            class="mt-0.5 text-xs text-slate-500"
+                          >
+                            {{ formatSirapRequestedAt(request) }}
+                            @if (request.reason) {
+                              · {{ request.reason }}
+                            }
+                          </p>
+                        </div>
+                        <div
+                          [id]="'admin-access-panel-sirap-request-actions-' + request.id"
+                          class="flex gap-2"
+                        >
+                          <button
+                            [id]="'admin-access-panel-sirap-deny-button-' + request.id"
+                            type="button"
+                            class="min-h-9 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                            [disabled]="!!decidingSirapRequestId()"
+                            (click)="decideSirapRequest(request, 'denied')"
+                          >
+                            Deny
+                          </button>
+                          <button
+                            [id]="'admin-access-panel-sirap-approve-button-' + request.id"
+                            type="button"
+                            class="min-h-9 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                            [disabled]="!!decidingSirapRequestId()"
+                            (click)="decideSirapRequest(request, 'approved')"
+                          >
+                            {{ decidingSirapRequestId() === request.id ? 'Saving…' : 'Approve' }}
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </article>
+              }
+            </section>
+          }
+        </section>
+
+        <section
+          id="admin-access-panel-approved-sirap-section"
+          class="mt-8 space-y-4 border-t border-slate-200 pt-6"
+        >
+          <div id="admin-access-panel-approved-sirap-heading">
+            <h3
+              id="admin-access-panel-approved-sirap-title"
+              class="text-sm font-semibold text-slate-900"
+            >
+              Current SIRAP access
+            </h3>
+            <p id="admin-access-panel-approved-sirap-copy" class="mt-1 text-sm text-slate-500">
+              Revoke access one region at a time without deleting the user account.
+            </p>
+          </div>
+
+          @if (currentSirapAccessGroups().length === 0) {
+            <p
+              id="admin-access-panel-approved-sirap-empty"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-500"
+            >
+              No current SIRAP data grants in your administrative scope.
+            </p>
+          } @else {
+            <div id="admin-access-panel-approved-sirap-groups" class="space-y-3">
+              @for (group of currentSirapAccessGroups(); track group.user.uid) {
+                <article
+                  [id]="'admin-access-panel-current-sirap-user-' + group.user.uid"
                   class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
+                  <h4
+                    [id]="'admin-access-panel-current-sirap-user-name-' + group.user.uid"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ group.user.displayName }}
+                  </h4>
+                  <p
+                    [id]="'admin-access-panel-current-sirap-user-email-' + group.user.uid"
+                    class="text-xs text-slate-500"
+                  >
+                    {{ group.user.email }}
+                  </p>
                   <div
-                    [id]="'admin-access-panel-request-header-' + request.uid"
-                    class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+                    [id]="'admin-access-panel-current-sirap-rows-' + group.user.uid"
+                    class="mt-3 space-y-2"
+                  >
+                    @for (sirapId of group.allowedSirapIds; track sirapId) {
+                      <div
+                        [id]="
+                          'admin-access-panel-current-sirap-row-' + group.user.uid + '-' + sirapId
+                        "
+                        class="flex items-center justify-between gap-3 rounded-lg bg-emerald-50 px-3 py-2"
+                      >
+                        <span
+                          [id]="
+                            'admin-access-panel-current-sirap-region-' +
+                            group.user.uid +
+                            '-' +
+                            sirapId
+                          "
+                          class="text-xs font-semibold text-emerald-900"
+                        >
+                          {{ sirapLabel(sirapId) }}
+                        </span>
+                        <button
+                          [id]="
+                            'admin-access-panel-current-sirap-revoke-' +
+                            group.user.uid +
+                            '-' +
+                            sirapId
+                          "
+                          type="button"
+                          class="min-h-8 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                          [disabled]="!!decidingSirapRequestId()"
+                          (click)="revokeCurrentAccess(group.user, sirapId)"
+                        >
+                          {{
+                            decidingSirapRequestId() === group.user.uid + ':' + sirapId
+                              ? 'Revoking…'
+                              : 'Revoke'
+                          }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  @if (group.administeredSirapIds.length > 0) {
+                    <p
+                      [id]="'admin-access-panel-current-sirap-admin-summary-' + group.user.uid"
+                      class="mt-3 text-xs text-slate-500"
+                    >
+                      Administrator assignments:
+                      @for (
+                        sirapId of group.administeredSirapIds;
+                        track sirapId;
+                        let last = $last
+                      ) {
+                        <span
+                          [id]="
+                            'admin-access-panel-current-sirap-admin-region-' +
+                            group.user.uid +
+                            '-' +
+                            sirapId
+                          "
+                          >{{ sirapLabel(sirapId) }}{{ last ? '' : ', ' }}</span
+                        >
+                      }
+                    </p>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
+
+        @if (isSuperAdmin()) {
+          <section
+            id="admin-access-panel-users-section"
+            class="mt-8 border-t border-slate-200 pt-6"
+          >
+            <div
+              id="admin-access-panel-users-heading-row"
+              class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+            >
+              <div id="admin-access-panel-users-heading-copy">
+                <h3
+                  id="admin-access-panel-users-title"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  Active users management
+                </h3>
+                <p id="admin-access-panel-users-copy" class="mt-1 text-sm text-slate-500">
+                  Search existing users and update their tier or admin access.
+                </p>
+              </div>
+
+              <label
+                id="admin-access-panel-user-search-label"
+                for="admin-access-panel-user-search-input"
+                class="block text-xs font-semibold text-slate-600 sm:w-72"
+              >
+                Search users
+                <input
+                  id="admin-access-panel-user-search-input"
+                  type="search"
+                  class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                  placeholder="Name, email, role, tier"
+                  [value]="userSearchQuery()"
+                  (input)="onUserSearchChange($event)"
+                />
+              </label>
+            </div>
+
+            @if (activeUsers().length === 0) {
+              <section
+                id="admin-access-panel-users-empty-state"
+                class="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
+              >
+                <h4
+                  id="admin-access-panel-users-empty-title"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  No active users
+                </h4>
+                <p id="admin-access-panel-users-empty-copy" class="mt-1 text-sm text-slate-500">
+                  Approved users will appear here after their access requests are accepted.
+                </p>
+              </section>
+            } @else if (filteredUsers().length === 0) {
+              <section
+                id="admin-access-panel-users-no-results"
+                class="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
+              >
+                <h4
+                  id="admin-access-panel-users-no-results-title"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  No matching users
+                </h4>
+                <p
+                  id="admin-access-panel-users-no-results-copy"
+                  class="mt-1 text-sm text-slate-500"
+                >
+                  Try a different name, email, role, or tier.
+                </p>
+              </section>
+            } @else {
+              <section id="admin-access-panel-users-list" class="mt-4 space-y-3">
+                @for (user of filteredUsers(); track user.uid) {
+                  <article
+                    [id]="'admin-access-panel-user-card-' + user.uid"
+                    class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                   >
                     <div
-                      [id]="'admin-access-panel-request-identity-' + request.uid"
-                      class="min-w-0"
+                      [id]="'admin-access-panel-user-row-' + user.uid"
+                      class="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_minmax(240px,0.85fr)_auto_auto] lg:items-end"
                     >
-                      <h4
-                        [id]="'admin-access-panel-request-name-' + request.uid"
-                        class="truncate text-base font-semibold text-slate-900"
-                      >
-                        {{ request.displayName }}
-                      </h4>
-                      <p
-                        [id]="'admin-access-panel-request-email-' + request.uid"
-                        class="truncate text-sm text-slate-500"
-                      >
-                        {{ request.email }}
-                      </p>
-                    </div>
+                      <div [id]="'admin-access-panel-user-identity-' + user.uid" class="min-w-0">
+                        <h4
+                          [id]="'admin-access-panel-user-name-' + user.uid"
+                          class="truncate text-sm font-semibold text-slate-900"
+                        >
+                          {{ user.displayName }}
+                        </h4>
+                        <p
+                          [id]="'admin-access-panel-user-email-' + user.uid"
+                          class="truncate text-sm text-slate-500"
+                        >
+                          {{ user.email }}
+                        </p>
+                        <p
+                          [id]="'admin-access-panel-user-current-summary-' + user.uid"
+                          class="mt-1 text-xs text-slate-400"
+                        >
+                          Current: {{ tierLabel(user.tier) }} · {{ adminLabel(user.isAdmin) }}
+                        </p>
+                      </div>
 
-                    <div
-                      [id]="'admin-access-panel-request-controls-' + request.uid"
-                      class="grid gap-3 sm:grid-cols-[minmax(240px,1fr)_auto_auto] sm:items-end"
-                    >
                       <label
-                        [id]="'admin-access-panel-request-tier-label-' + request.uid"
-                        [attr.for]="'admin-access-panel-request-tier-select-' + request.uid"
+                        [id]="'admin-access-panel-user-tier-label-' + user.uid"
+                        [attr.for]="'admin-access-panel-user-tier-select-' + user.uid"
                         class="block text-xs font-semibold text-slate-600"
                       >
                         App tier
                         <select
-                          [id]="'admin-access-panel-request-tier-select-' + request.uid"
+                          [id]="'admin-access-panel-user-tier-select-' + user.uid"
                           class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                          [value]="requestGrantFor(request).tier.toString()"
-                          [disabled]="!!approvingUid()"
-                          (change)="onRequestTierChange(request, $event)"
+                          [value]="userGrantFor(user).tier.toString()"
+                          [disabled]="!!updatingUserUid()"
+                          (change)="onUserTierChange(user, $event)"
                         >
                           <option value="2">Tier 2 - Approved user</option>
                           <option value="3">Tier 3 - Publisher / scientist</option>
@@ -157,233 +782,138 @@
                       </label>
 
                       <label
-                        [id]="'admin-access-panel-request-admin-label-' + request.uid"
+                        [id]="'admin-access-panel-user-admin-label-' + user.uid"
                         class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
                       >
                         <input
-                          [id]="'admin-access-panel-request-admin-checkbox-' + request.uid"
+                          [id]="'admin-access-panel-user-admin-checkbox-' + user.uid"
                           type="checkbox"
                           class="h-4 w-4 rounded border-slate-300 text-slate-900"
-                          [checked]="requestGrantFor(request).isAdmin"
-                          [disabled]="!!approvingUid()"
-                          (change)="onRequestAdminChange(request, $event)"
+                          [checked]="userGrantFor(user).isAdmin"
+                          [disabled]="!!updatingUserUid()"
+                          (change)="onUserAdminChange(user, $event)"
                         />
-                        Admin
+                        Super admin
                       </label>
 
                       <button
-                        [id]="'admin-access-panel-approve-button-' + request.uid"
+                        [id]="'admin-access-panel-user-save-button-' + user.uid"
                         type="button"
-                        class="inline-flex h-10 min-w-24 shrink-0 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                        [disabled]="!!approvingUid()"
-                        (click)="approveRequest(request)"
+                        class="inline-flex h-10 min-w-20 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        [disabled]="!!updatingUserUid() || !hasUserChanges(user)"
+                        (click)="saveUserAccess(user)"
                       >
-                        @if (approvingUid() === request.uid) {
+                        @if (updatingUserUid() === user.uid) {
                           <span
-                            [id]="'admin-access-panel-approve-spinner-' + request.uid"
-                            class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                            [id]="'admin-access-panel-user-save-spinner-' + user.uid"
+                            class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
                             aria-hidden="true"
                           ></span>
-                          Approving...
+                          Saving...
                         } @else {
-                          Approve
+                          Save
                         }
                       </button>
                     </div>
-                  </div>
 
-                  <dl
-                    [id]="'admin-access-panel-request-meta-' + request.uid"
-                    class="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3"
-                  >
-                    <div [id]="'admin-access-panel-request-org-' + request.uid">
-                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Organization
-                      </dt>
-                      <dd class="mt-0.5 text-slate-700">
-                        {{ formatOptional(request.organization) }}
-                      </dd>
-                    </div>
-                    <div [id]="'admin-access-panel-request-provider-' + request.uid">
-                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Provider
-                      </dt>
-                      <dd class="mt-0.5 text-slate-700">{{ request.provider }}</dd>
-                    </div>
-                    <div [id]="'admin-access-panel-request-time-' + request.uid">
-                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Requested
-                      </dt>
-                      <dd class="mt-0.5 text-slate-700">{{ formatRequestedAt(request) }}</dd>
-                    </div>
                     <div
-                      [id]="'admin-access-panel-request-reason-' + request.uid"
-                      class="sm:col-span-2 lg:col-span-3"
+                      [id]="'admin-access-panel-user-sirap-permissions-' + user.uid"
+                      class="mt-4 grid gap-3 lg:grid-cols-2"
                     >
-                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Reason
-                      </dt>
-                      <dd class="mt-0.5 whitespace-pre-wrap text-slate-700">
-                        {{ formatOptional(request.reason) }}
-                      </dd>
+                      <fieldset
+                        [id]="'admin-access-panel-user-allowed-siraps-' + user.uid"
+                        class="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <legend
+                          [id]="'admin-access-panel-user-allowed-siraps-legend-' + user.uid"
+                          class="px-1 text-xs font-semibold text-slate-700"
+                        >
+                          Data access
+                        </legend>
+                        <div
+                          [id]="'admin-access-panel-user-allowed-siraps-options-' + user.uid"
+                          class="mt-2 grid gap-2 sm:grid-cols-2"
+                        >
+                          @for (region of sirapRegions; track region.id) {
+                            <label
+                              [id]="
+                                'admin-access-panel-user-allowed-sirap-label-' +
+                                user.uid +
+                                '-' +
+                                region.id
+                              "
+                              class="flex items-center gap-2 text-xs text-slate-700"
+                            >
+                              <input
+                                [id]="
+                                  'admin-access-panel-user-allowed-sirap-checkbox-' +
+                                  user.uid +
+                                  '-' +
+                                  region.id
+                                "
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-slate-300 text-sky-600"
+                                [checked]="userGrantFor(user).allowedSirapIds.includes(region.id)"
+                                [disabled]="!!updatingUserUid()"
+                                (change)="toggleUserAllowedSirap(user, region.id)"
+                              />
+                              {{ region.label }}
+                            </label>
+                          }
+                        </div>
+                      </fieldset>
+
+                      <fieldset
+                        [id]="'admin-access-panel-user-administered-siraps-' + user.uid"
+                        class="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <legend
+                          [id]="'admin-access-panel-user-administered-siraps-legend-' + user.uid"
+                          class="px-1 text-xs font-semibold text-slate-700"
+                        >
+                          Administrator assignments
+                        </legend>
+                        <div
+                          [id]="'admin-access-panel-user-administered-siraps-options-' + user.uid"
+                          class="mt-2 grid gap-2 sm:grid-cols-2"
+                        >
+                          @for (region of sirapRegions; track region.id) {
+                            <label
+                              [id]="
+                                'admin-access-panel-user-administered-sirap-label-' +
+                                user.uid +
+                                '-' +
+                                region.id
+                              "
+                              class="flex items-center gap-2 text-xs text-slate-700"
+                            >
+                              <input
+                                [id]="
+                                  'admin-access-panel-user-administered-sirap-checkbox-' +
+                                  user.uid +
+                                  '-' +
+                                  region.id
+                                "
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-slate-300 text-sky-600"
+                                [checked]="
+                                  userGrantFor(user).administeredSirapIds.includes(region.id)
+                                "
+                                [disabled]="!!updatingUserUid()"
+                                (change)="toggleUserAdministeredSirap(user, region.id)"
+                              />
+                              {{ region.label }}
+                            </label>
+                          }
+                        </div>
+                      </fieldset>
                     </div>
-                  </dl>
-                </article>
-              }
-            </section>
-          }
-        </section>
-
-        <section id="admin-access-panel-users-section" class="mt-8 border-t border-slate-200 pt-6">
-          <div
-            id="admin-access-panel-users-heading-row"
-            class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
-          >
-            <div id="admin-access-panel-users-heading-copy">
-              <h3 id="admin-access-panel-users-title" class="text-sm font-semibold text-slate-900">
-                Active users
-              </h3>
-              <p id="admin-access-panel-users-copy" class="mt-1 text-sm text-slate-500">
-                Search existing users and update their tier or admin access.
-              </p>
-            </div>
-
-            <label
-              id="admin-access-panel-user-search-label"
-              for="admin-access-panel-user-search-input"
-              class="block text-xs font-semibold text-slate-600 sm:w-72"
-            >
-              Search users
-              <input
-                id="admin-access-panel-user-search-input"
-                type="search"
-                class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                placeholder="Name, email, role, tier"
-                [value]="userSearchQuery()"
-                (input)="onUserSearchChange($event)"
-              />
-            </label>
-          </div>
-
-          @if (activeUsers().length === 0) {
-            <section
-              id="admin-access-panel-users-empty-state"
-              class="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
-            >
-              <h4
-                id="admin-access-panel-users-empty-title"
-                class="text-sm font-semibold text-slate-900"
-              >
-                No active users
-              </h4>
-              <p id="admin-access-panel-users-empty-copy" class="mt-1 text-sm text-slate-500">
-                Approved users will appear here after their access requests are accepted.
-              </p>
-            </section>
-          } @else if (filteredUsers().length === 0) {
-            <section
-              id="admin-access-panel-users-no-results"
-              class="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
-            >
-              <h4
-                id="admin-access-panel-users-no-results-title"
-                class="text-sm font-semibold text-slate-900"
-              >
-                No matching users
-              </h4>
-              <p id="admin-access-panel-users-no-results-copy" class="mt-1 text-sm text-slate-500">
-                Try a different name, email, role, or tier.
-              </p>
-            </section>
-          } @else {
-            <section id="admin-access-panel-users-list" class="mt-4 space-y-3">
-              @for (user of filteredUsers(); track user.uid) {
-                <article
-                  [id]="'admin-access-panel-user-card-' + user.uid"
-                  class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-                >
-                  <div
-                    [id]="'admin-access-panel-user-row-' + user.uid"
-                    class="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_minmax(240px,0.85fr)_auto_auto] lg:items-end"
-                  >
-                    <div [id]="'admin-access-panel-user-identity-' + user.uid" class="min-w-0">
-                      <h4
-                        [id]="'admin-access-panel-user-name-' + user.uid"
-                        class="truncate text-sm font-semibold text-slate-900"
-                      >
-                        {{ user.displayName }}
-                      </h4>
-                      <p
-                        [id]="'admin-access-panel-user-email-' + user.uid"
-                        class="truncate text-sm text-slate-500"
-                      >
-                        {{ user.email }}
-                      </p>
-                      <p
-                        [id]="'admin-access-panel-user-current-summary-' + user.uid"
-                        class="mt-1 text-xs text-slate-400"
-                      >
-                        Current: {{ tierLabel(user.tier) }} · {{ adminLabel(user.isAdmin) }}
-                      </p>
-                    </div>
-
-                    <label
-                      [id]="'admin-access-panel-user-tier-label-' + user.uid"
-                      [attr.for]="'admin-access-panel-user-tier-select-' + user.uid"
-                      class="block text-xs font-semibold text-slate-600"
-                    >
-                      App tier
-                      <select
-                        [id]="'admin-access-panel-user-tier-select-' + user.uid"
-                        class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                        [value]="userGrantFor(user).tier.toString()"
-                        [disabled]="!!updatingUserUid()"
-                        (change)="onUserTierChange(user, $event)"
-                      >
-                        <option value="2">Tier 2 - Approved user</option>
-                        <option value="3">Tier 3 - Publisher / scientist</option>
-                      </select>
-                    </label>
-
-                    <label
-                      [id]="'admin-access-panel-user-admin-label-' + user.uid"
-                      class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
-                    >
-                      <input
-                        [id]="'admin-access-panel-user-admin-checkbox-' + user.uid"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-slate-900"
-                        [checked]="userGrantFor(user).isAdmin"
-                        [disabled]="!!updatingUserUid()"
-                        (change)="onUserAdminChange(user, $event)"
-                      />
-                      Admin
-                    </label>
-
-                    <button
-                      [id]="'admin-access-panel-user-save-button-' + user.uid"
-                      type="button"
-                      class="inline-flex h-10 min-w-20 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                      [disabled]="!!updatingUserUid() || !hasUserChanges(user)"
-                      (click)="saveUserAccess(user)"
-                    >
-                      @if (updatingUserUid() === user.uid) {
-                        <span
-                          [id]="'admin-access-panel-user-save-spinner-' + user.uid"
-                          class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
-                          aria-hidden="true"
-                        ></span>
-                        Saving...
-                      } @else {
-                        Save
-                      }
-                    </button>
-                  </div>
-                </article>
-              }
-            </section>
-          }
-        </section>
+                  </article>
+                }
+              </section>
+            }
+          </section>
+        }
       }
     </main>
   </section>
