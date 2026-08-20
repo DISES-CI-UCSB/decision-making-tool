@@ -59,7 +59,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
           class="dev-tools-scroll-area pointer-events-auto fixed right-50 top-16 z-10020 flex max-h-[66vh] w-104 flex-col overflow-auto rounded-md border border-slate-200 bg-white/98 p-4 font-mono text-xs shadow-lg"
         >
           <h3 id="dev-tools-title" class="text-sm font-bold text-slate-800 mb-3">
-            Solution Dev Tools
+            Scenario Dev Tools
           </h3>
 
           <p
@@ -98,7 +98,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 class="rounded border border-red-300 bg-red-50 px-2 py-1 text-red-600 hover:bg-red-100"
                 (click)="clearSolution()"
               >
-                Clear map solution
+                Clear map scenario
               </button>
             </div>
 
@@ -185,13 +185,13 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 id="dev-tools-group-solution-finder-title"
                 class="text-[11px] font-semibold text-slate-700"
               >
-                Solution Finder
+                Scenario Finder
               </h4>
               <span
                 id="dev-tools-group-solution-finder-badge"
                 class="rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700"
               >
-                Solution Finder
+                Scenario Finder
               </span>
             </div>
 
@@ -200,7 +200,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 id="dev-tools-finder-original-solution-label"
                 for="dev-tools-finder-original-solution-select"
                 class="block text-slate-500 mb-1"
-                >Original solution</label
+                >Original scenario</label
               >
               <select
                 id="dev-tools-finder-original-solution-select"
@@ -231,7 +231,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 id="dev-tools-finder-comparison-solution-label"
                 for="dev-tools-finder-comparison-solution-select"
                 class="block text-slate-500 mb-1"
-                >Comparison solution</label
+                >Comparison scenario</label
               >
               <select
                 id="dev-tools-finder-comparison-solution-select"
@@ -266,7 +266,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                   id="dev-tools-select-solution-hover-label"
                   class="text-[11px] font-semibold text-slate-700"
                 >
-                  Select solution hover
+                  Select scenario hover
                 </p>
                 <p
                   id="dev-tools-select-solution-hover-hint"
@@ -290,7 +290,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
               <p id="dev-tools-finder-filename-toggle-label" class="text-[11px] text-slate-600">
-                Finder solution filenames
+                Finder scenario filenames
               </p>
               <button
                 id="dev-tools-finder-filename-toggle-btn"
@@ -317,7 +317,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                   id="dev-tools-finder-scope-bar-toggle-hint"
                   class="text-[10px] leading-4 text-slate-500"
                 >
-                  Shows solution-scope toggle above Steps 1–3.
+                  Shows scenario-scope toggle above Steps 1–3.
                 </p>
               </div>
               <button
@@ -498,14 +498,14 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                   id="dev-tools-overview-inputs-reminder-toggle-label"
                   class="text-[11px] font-semibold text-slate-700"
                 >
-                  Solution inputs reminder (i)
+                  Scenario inputs reminder (i)
                 </p>
                 <p
                   id="dev-tools-overview-inputs-reminder-toggle-hint"
                   class="text-[10px] leading-4 text-slate-500"
                 >
                   Info-icon + tooltip next to the overview title showing Target / Constraints /
-                  Trade-off. Off by default until real input data lands.
+                  Cost. Off by default until real input data lands.
                 </p>
               </div>
               <button
@@ -575,7 +575,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 id="dev-tools-candidate-solution-label"
                 for="dev-tools-candidate-solution-select"
                 class="block text-slate-500 mb-1"
-                >Load Candidate Solution</label
+                >Load Candidate Scenario</label
               >
               <select
                 id="dev-tools-candidate-solution-select"
@@ -606,7 +606,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               class="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2"
             >
               <p id="dev-tools-comparison-dummy-toggle-label" class="text-[11px] text-slate-600">
-                Fill missing solution comparison metrics
+                Fill missing scenario comparison metrics
               </p>
               <button
                 id="dev-tools-comparison-dummy-toggle-btn"
@@ -791,7 +791,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
             <!-- Solution Info -->
             <section id="dev-tools-solution-info" class="mb-3 border-t border-slate-200 pt-3">
               <h4 id="dev-tools-solution-info-title" class="font-bold text-slate-700 mb-1">
-                Solution
+                Scenario
               </h4>
               <dl id="dev-tools-solution-dl" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
                 <dt class="text-slate-400">ID</dt>
@@ -938,13 +938,13 @@ export class DevToolsPanelComponent {
   readonly catalogLoadMessage = computed(() => {
     const error = this.catalog.loadError();
     if (error) {
-      return `Solution catalog failed to load: ${error}`;
+      return `Scenario catalog failed to load: ${error}`;
     }
     if (this.catalog.isLoading()) {
-      return 'Loading manifest solutions...';
+      return 'Loading manifest scenarios...';
     }
     if (this.solutions().length === 0) {
-      return 'No manifest solutions are available.';
+      return 'No manifest scenarios are available.';
     }
     return null;
   });

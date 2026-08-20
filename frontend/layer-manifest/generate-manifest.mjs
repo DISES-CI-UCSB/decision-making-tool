@@ -206,8 +206,8 @@ const DEFAULT_SOLUTION_RENDERING = {
   renderMode: 'categorical',
   noDataValue: 255,
   classColors: [
-    { value: 1, color: '#16a34a', label: 'New coverage' },
-    { value: 2, color: '#2563eb', label: 'Existing protected areas' },
+    { value: 1, color: '#16a34a', label: 'Candidate conservation areas' },
+    { value: 2, color: '#2563eb', label: 'Existing conservation areas' },
   ],
 };
 
@@ -219,7 +219,8 @@ const DEFAULT_SOLUTION_RENDERING = {
 const englishLabelOverrideByLayerId = {
   paramos: 'Páramos',
   siraps: 'SIRAP',
-  siraps_thematic: 'Thematic SIRAP Additions',
+  siraps_thematic: 'Thematic SIRAPs',
+  zonas_reserva_campesina_constituida: 'Campesina Reserve Zones',
   omecs: 'OMECs (raster)',
   marine_ecosystems: 'Marine Ecosystems',
   admin_departments: 'Departments',
@@ -420,8 +421,8 @@ const proposedManifestCategories = {
   },
   solutions: {
     spanishLabel: 'Soluciones',
-    englishLabel: 'Solutions',
-    frontendGroup: 'Solutions',
+    englishLabel: 'Scenarios',
+    frontendGroup: 'Scenarios',
   },
 };
 
@@ -1082,7 +1083,7 @@ function createSolutionDescription({ name, finderInputs, inputLayerIds }) {
       ? `includes ${inputLayerIds.includes.join(', ')}`
       : 'no include layers';
   const costLabel = inputLayerIds.cost ? `${inputLayerIds.cost} cost` : 'no cost layer';
-  return `${name} solution for ${targetLabel}; ${includeLabel}; ${costLabel}.`;
+  return `${name} scenario for ${targetLabel}; ${includeLabel}; ${costLabel}.`;
 }
 
 function createCategories(rows, layerEntries, existingManifestIndex, speciesTaxa) {

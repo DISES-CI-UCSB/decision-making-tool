@@ -1160,8 +1160,6 @@
         "requiredBadge": "Obligatorio",
         "humanFootprintSourceLabel": "Fuente: metadatos de huella humana Humboldt",
         "humanFootprintSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/7d8f0aeb-8136-45a7-a469-f0016f618250",
-        "humanFootprintDefinitionToggle": "¿Qué significa esto?",
-        "humanFootprintDefinition": "En esta búsqueda, la huella humana se usa como una capa de costo o compromiso. Los valores más altos generalmente indican mayor presión humana por uso del suelo, infraestructura, tiempo de intervención o vulnerabilidad del ecosistema. Es una señal de presión, no una medida completa de la condición ecológica por sí sola.",
         "carbonOpportunityLabel": "Beneficio neto (renta agropecuaria)",
         "carbonOpportunityHelp": "Muestra el beneficio neto agropecuario potencial; los valores más altos indican un mayor costo de oportunidad para la conservación.",
         "carbonOpportunitySourceLabel": "Fuente: carpeta de datos compartidos Humboldt",

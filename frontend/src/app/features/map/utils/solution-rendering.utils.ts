@@ -42,12 +42,12 @@ export function solutionClassColors(
       {
         value: EXISTING_PROTECTED_VALUE,
         color: selectedSolutionColor,
-        label: 'Selected solution',
+        label: 'Selected scenario',
       },
       {
         value: NEW_COVERAGE_VALUE,
         color: selectedSolutionColor,
-        label: 'Selected solution',
+        label: 'Selected scenario',
       },
     ];
   }
@@ -64,7 +64,7 @@ export function solutionClassColors(
     {
       value: NEW_COVERAGE_VALUE,
       color: selectedSolutionColor,
-      label: newCoverageClass?.label ?? 'New coverage',
+      label: newCoverageClass?.label ?? 'Candidate conservation areas',
     },
   ];
 }
@@ -87,7 +87,7 @@ export function defaultSolutionClassColors(
     {
       value: NEW_COVERAGE_VALUE,
       color: newCoverageColorHex || DEFAULT_SINGLE_SOLUTION_HEX,
-      label: 'New coverage',
+      label: 'Candidate conservation areas',
     },
   ];
 }

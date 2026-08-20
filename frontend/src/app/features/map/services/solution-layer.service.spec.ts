@@ -230,7 +230,7 @@ describe('SolutionLayerService', () => {
     const classColors = solutionClassColors(loaded, '#ff0000');
 
     expect(classColors).toEqual([
-      { value: 2, color: '#2563eb', label: 'Included areas in solution (RUNAP)' },
+      { value: 2, color: '#2563eb', label: 'Existing conservation areas (RUNAP)' },
       { value: 1, color: '#ff0000', label: 'New coverage' },
     ]);
   });
@@ -242,7 +242,7 @@ describe('SolutionLayerService', () => {
     });
 
     expect(classColors).toEqual([
-      { value: 2, color: '#f97316', label: 'Included areas in solution (RUNAP)' },
+      { value: 2, color: '#f97316', label: 'Existing conservation areas (RUNAP)' },
       { value: 1, color: '#ff0000', label: 'New coverage' },
     ]);
   });
@@ -254,8 +254,8 @@ describe('SolutionLayerService', () => {
     });
 
     expect(classColors).toEqual([
-      { value: 2, color: '#ff0000', label: 'Selected solution' },
-      { value: 1, color: '#ff0000', label: 'Selected solution' },
+      { value: 2, color: '#ff0000', label: 'Selected scenario' },
+      { value: 1, color: '#ff0000', label: 'Selected scenario' },
     ]);
   });
 
@@ -266,8 +266,8 @@ describe('SolutionLayerService', () => {
     });
 
     expect(classColors).toEqual([
-      { value: 2, color: '#7c3aed', label: 'Selected solution' },
-      { value: 1, color: '#7c3aed', label: 'Selected solution' },
+      { value: 2, color: '#7c3aed', label: 'Selected scenario' },
+      { value: 1, color: '#7c3aed', label: 'Selected scenario' },
     ]);
   });
 

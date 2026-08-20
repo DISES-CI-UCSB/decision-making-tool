@@ -1,17 +1,12 @@
 import { CommonModule } from '@angular/common';
 import {
-  AfterViewInit,
   ChangeDetectorRef,
   Component,
-  ElementRef,
   EventEmitter,
-  HostListener,
   Input,
   OnDestroy,
   OnInit,
   Output,
-  QueryList,
-  ViewChildren,
   effect,
   inject,
 } from '@angular/core';
@@ -36,7 +31,7 @@ import type {
 } from '@core/services/app-state.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 type FinderMatchState = 'empty' | 'loading' | 'ready';
 
@@ -67,6 +62,8 @@ interface TargetTypeOption {
   id: FinderTargetType;
   labelKey: string;
   helpKey: string;
+  helpTooltipKey?: string;
+  helpTooltipToggleKey?: string;
   sourceLabelKey?: string;
   sourceUrlKey?: string;
   sourceLinks?: readonly SourceLinkOption[];
@@ -95,10 +92,11 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
   templateUrl: './finder-modal.html',
   styleUrl: './finder-modal.scss',
 })
-export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
+export class FinderModalComponent implements OnDestroy, OnInit {
   private readonly appState = inject(AppStateService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly solutionCatalog = inject(SolutionCatalogService);
+  private readonly translate = inject(TranslateService);
   private initialized = false;
 
   constructor() {
@@ -153,6 +151,8 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
       id: 'species-richness',
       labelKey: 'solutionControls.finder.step1.speciesRichnessLabel',
       helpKey: 'solutionControls.finder.step1.speciesRichnessHelp',
+      helpTooltipKey: 'solutionControls.finder.step1.speciesRichnessTechnicalHelp',
+      helpTooltipToggleKey: 'solutionControls.finder.step1.speciesRichnessTechnicalHelpToggle',
       sourceLinks: [
         {
           labelKey: 'solutionControls.finder.step1.speciesRichnessBioModelosSourceLabel',
@@ -245,17 +245,12 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
   protected marineTargetPercent: MarineTargetPercent = 30;
   protected marineIncludeOmecs = false;
 
-  @ViewChildren('finderColumnHeader')
-  private readonly columnHeaderRefs?: QueryList<ElementRef<HTMLElement>>;
-
   protected matchState: FinderMatchState = 'empty';
   protected matchResults: SolutionMatch[] = [];
   protected selectedMatchId: string | null = null;
   protected selectedMatch: SolutionMatch | null = null;
 
   private loadingTimer: ReturnType<typeof setTimeout> | null = null;
-  private columnHeaderResizeObserver: ResizeObserver | null = null;
-  private columnHeaderSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.restoreRememberedSelections();
@@ -264,18 +259,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   ngOnDestroy(): void {
     this.clearLoadingTimer();
-    this.clearColumnHeaderSyncTimer();
-    this.columnHeaderResizeObserver?.disconnect();
-  }
-
-  ngAfterViewInit(): void {
-    this.observeColumnHeaders();
-    this.scheduleColumnHeaderHeightSync();
-  }
-
-  @HostListener('window:resize')
-  protected onWindowResize(): void {
-    this.scheduleColumnHeaderHeightSync();
   }
 
   protected toggleTargetType(type: FinderTargetType): void {
@@ -311,7 +294,6 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     this.clearResults();
     this.rememberCurrentSelections();
     this.runMatching();
-    this.scheduleColumnHeaderHeightSync();
   }
 
   protected selectMarineTargetPercent(percent: MarineTargetPercent): void {
@@ -340,6 +322,22 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
 
   protected getTargetLevel(type: FinderTargetType): 17 | 30 | null {
     return this.targetLevelByType[type] ?? null;
+  }
+
+  protected getTargetCoverageQuestion(type: FinderTargetType): string {
+    if (this.translate.getCurrentLang() === 'es') {
+      return this.translate.instant('solutionControls.finder.step1.coverageLevelLabel');
+    }
+
+    const questions: Record<FinderTargetType, string> = {
+      ecosystems: 'What proportion of each type of ecosystem would you like to conserve?',
+      'strategic-ecosystems':
+        'What proportion of each strategic ecosystem would you like to conserve?',
+      'species-richness': 'What proportion of each species’ range would you like to conserve?',
+      'ecosystem-services':
+        'What proportion of Colombia’s carbon storage and high-potential groundwater recharge areas would you like to conserve?',
+    };
+    return questions[type];
   }
 
   protected selectSpeciesTargetMethod(method: SpeciesTargetMethod): void {
@@ -957,62 +955,5 @@ export class FinderModalComponent implements AfterViewInit, OnDestroy, OnInit {
     this.selectedMatchId = null;
     this.selectedMatch = null;
     this.matchState = 'empty';
-  }
-
-  private observeColumnHeaders(): void {
-    const headerElements = this.columnHeaderRefs?.toArray().map((ref) => ref.nativeElement) ?? [];
-    if (headerElements.length === 0 || typeof ResizeObserver === 'undefined') {
-      return;
-    }
-
-    this.columnHeaderResizeObserver?.disconnect();
-    this.columnHeaderResizeObserver = new ResizeObserver(() => {
-      this.scheduleColumnHeaderHeightSync();
-    });
-
-    for (const header of headerElements) {
-      this.columnHeaderResizeObserver.observe(header);
-    }
-  }
-
-  private scheduleColumnHeaderHeightSync(): void {
-    if (this.columnHeaderSyncTimer) {
-      return;
-    }
-
-    this.columnHeaderSyncTimer = setTimeout(() => {
-      this.columnHeaderSyncTimer = null;
-      this.syncColumnHeaderHeights();
-    });
-  }
-
-  private clearColumnHeaderSyncTimer(): void {
-    if (!this.columnHeaderSyncTimer) {
-      return;
-    }
-
-    clearTimeout(this.columnHeaderSyncTimer);
-    this.columnHeaderSyncTimer = null;
-  }
-
-  private syncColumnHeaderHeights(): void {
-    const headerElements = this.columnHeaderRefs?.toArray().map((ref) => ref.nativeElement) ?? [];
-    if (headerElements.length === 0) {
-      return;
-    }
-
-    for (const header of headerElements) {
-      header.style.height = 'auto';
-      header.style.minHeight = '0px';
-    }
-
-    const maxHeaderHeight = Math.ceil(
-      Math.max(...headerElements.map((header) => header.getBoundingClientRect().height)),
-    );
-
-    for (const header of headerElements) {
-      header.style.height = `${maxHeaderHeight}px`;
-      header.style.minHeight = `${maxHeaderHeight}px`;
-    }
   }
 }

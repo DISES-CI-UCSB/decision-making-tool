@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   createBackedMetadataUrl,
   createDeterministicReferenceDisplayReference,
+  createLayerEntry,
   createReferenceMetadataUrl,
   getCategoryPalette,
   inferDataRole,
@@ -53,6 +54,23 @@ describe('display-only reference layers', () => {
       }),
       false,
     );
+  });
+
+  it('uses the approved Campesina Reserve Zones runtime label', async () => {
+    const { manifestLayer } = await createLayerEntry(
+      {
+        layer_id: 'zonas_reserva_campesina_constituida',
+        layer_name: 'Zonas de Reserva Campesina Constituidas\nConstituted Peasant Reserve Zones',
+        model_group: 'referencia\nreference',
+        layer_group: 'Territorios culturales y étnicos',
+        layer_description: '',
+        storage_location: 'inputs/reference/',
+        filename: 'zonas_reserva_campesina_constituida.geojson',
+      },
+      new Map(),
+    );
+
+    assert.strictEqual(manifestLayer.englishLabel, 'Campesina Reserve Zones');
   });
 });
 

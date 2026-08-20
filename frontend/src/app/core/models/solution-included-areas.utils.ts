@@ -19,7 +19,7 @@ const INCLUDED_AREA_LABELS: Record<SolutionIncludedAreaKey, Record<LayerLocale, 
 };
 
 const LEGEND_PREFIX: Record<LayerLocale, string> = {
-  en: 'Included areas in solution',
+  en: 'Existing conservation areas',
   es: 'Áreas incluidas en la solución',
 };
 

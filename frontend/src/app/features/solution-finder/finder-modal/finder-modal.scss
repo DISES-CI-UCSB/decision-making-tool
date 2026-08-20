@@ -35,10 +35,6 @@
   }
 }
 
-.finder-step-intro {
-  min-height: 2.25rem;
-}
-
 .finder-step-heading {
   display: flex;
   flex-wrap: wrap;
@@ -221,6 +217,14 @@
 
 .finder-target-level-choice-cue-delayed {
   animation: finder-target-level-choice-pulse-secondary 2.4s ease-in-out infinite;
+}
+
+/* Sentence-case coverage questions in step 1 target-level panels. */
+.finder-target-coverage-question-label {
+  display: inline-block;
+  line-height: 1.375;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 /* Optical cap-height alignment against adjacent 17% / 30% buttons. */

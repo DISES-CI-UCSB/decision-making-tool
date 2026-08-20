@@ -1020,7 +1020,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         normalizeManifestRendering: (row) => this.normalizeManifestRendering(row),
         layerCountLabel: (count) => this.toLayerCountLabel(count),
         individualSpeciesName: () =>
-          this.localizedTextOrFallback('mapLayersPanel.individualSpecies', 'Individual species'),
+          this.localizedTextOrFallback(
+            'mapLayersPanel.individualSpecies',
+            'Individual species ranges',
+          ),
         speciesRichnessTaxonName: (definition) =>
           this.localizedTextOrFallback(
             `mapLayersPanel.taxaNames.${definition.taxonId}`,
@@ -3398,7 +3401,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: BASELINE_SOLUTION_OVERLAY_ID,
         name: this.localizedTextOrFallback(
           'mapLayersPanel.overlayNames.conservationSolution',
-          'Conservation Solution',
+          'Conservation Scenario',
         ),
         selected: true,
         visible: true,
@@ -4261,7 +4264,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             ...row,
             name: this.localizedTextOrFallback(
               'mapLayersPanel.overlayNames.conservationSolution',
-              'Conservation Solution',
+              'Conservation Scenario',
             ),
           };
         }
@@ -4317,7 +4320,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               ...row,
               name: this.localizedTextOrFallback(
                 'mapLayersPanel.individualSpecies',
-                'Individual species',
+                'Individual species ranges',
               ),
             };
           }
@@ -4393,7 +4396,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       'boundary-siraps': 'SIRAP',
       'boundary-siraps_territorial': 'Territorial SIRAPs (outdated)',
       'boundary-siraps_territorial_updated': 'Territorial SIRAPs (new)',
-      'boundary-siraps_thematic': 'Thematic SIRAP additions',
+      'boundary-siraps_thematic': 'Thematic SIRAPs',
       'boundary-admin_country_outline': 'Colombia Outline',
       'boundary-admin_departments': 'Departments',
       'boundary-admin_municipalities': 'Municipalities',

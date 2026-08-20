@@ -144,10 +144,10 @@ export class MockDataService {
       };
       const statusNotesMap: Partial<Record<Exclude<MetricReadinessStatus, 'ready'>, string>> = {
         derivation_needed: 'Requires derivation from dependent layers before release.',
-        blocked: 'Blocked due to missing source layer for this solution.',
+        blocked: 'Blocked due to missing source layer for this scenario.',
         pending: 'Pending source ingestion and quality checks.',
         not_applicable: 'Metric is not available at this geography scope.',
-        empty: 'Boundary does not intersect the solution raster extent.',
+        empty: 'Boundary does not intersect the scenario raster extent.',
       };
 
       return {

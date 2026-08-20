@@ -88,7 +88,7 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
   it('updates the administrative-boundary label before slow map reordering begins', async () => {
     expect(navigator.userAgent).toContain('Chrome');
     TestBed.inject(TranslateService).setTranslation('en', {
-      mapLayersPanel: { addButton: 'Add', addedButton: 'Added' },
+      mapLayersPanel: { addButton: 'Display', addedButton: 'Displayed' },
     });
     TestBed.inject(AppStateService).activeSolution$.set({
       id: 'test-solution',
@@ -110,7 +110,7 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
     fixture.detectChanges();
 
     const responseTime = (await labelUpdatedAt) - clickStartedAt;
-    expect(button.textContent?.trim()).toBe('Added');
+    expect(button.textContent?.trim()).toBe('Displayed');
     expect(button.getAttribute('aria-pressed')).toBe('true');
     expect(responseTime).toBeLessThan(MAX_LABEL_RESPONSE_MS);
     expect(solutionLayerReorder).not.toHaveBeenCalled();
@@ -124,8 +124,8 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
   it('filters the available catalog for a marine solution without clearing hidden selections', () => {
     TestBed.inject(TranslateService).setTranslation('en', {
       mapLayersPanel: {
-        addButton: 'Add',
-        addedButton: 'Added',
+        addButton: 'Display',
+        addedButton: 'Displayed',
         layerScopeLabel: 'Available layer types',
         layerScopeLand: 'Terrestrial',
         layerScopeMarine: 'Marine',
@@ -208,7 +208,7 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
 function observeAddedLabel(button: HTMLButtonElement): Promise<number> {
   return new Promise((resolve) => {
     const observer = new MutationObserver(() => {
-      if (button.textContent?.trim() !== 'Added') {
+      if (button.textContent?.trim() !== 'Displayed') {
         return;
       }
       observer.disconnect();

@@ -1,6 +1,6 @@
 export const UI_TEXT_TOKENS = {
   mapLegend: {
-    activeSolutionLabel: 'Active solution',
+    activeSolutionLabel: 'Active scenario',
     otherSelectedLayersLabel: 'Other selected layers',
   },
 } as const;
