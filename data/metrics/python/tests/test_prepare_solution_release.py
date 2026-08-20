@@ -181,7 +181,7 @@ def test_release_outputs_pin_checksums_diff_and_upload_destinations(tmp_path: Pa
         species_exception_path=contract,
         release_root=release_root,
         release_id="solutions-v0-2-0-20260805",
-        catalog_version="0.2.0",
+        catalog_version="0.2.1",
         expected_land=1,
         expected_marine=1,
         marine_metadata_directory=marine_metadata,

@@ -3189,10 +3189,13 @@
             {{ 'mapLayersPanel.ecosystemInfoModal.valuesIntro' | translate }}
           </p>
           <p
-            id="map-layers-ecosystem-info-modal-map-support-copy"
+            id="map-layers-ecosystem-info-modal-coverage-parity-copy"
             class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
           >
-            {{ 'mapLayersPanel.ecosystemInfoModal.mapSupportCopy' | translate }}
+            {{ 'mapLayersPanel.ecosystemInfoModal.coverageParityCopy' | translate }}
+            <span id="map-layers-ecosystem-info-modal-coverage-parity-detail" class="mt-1 block">
+              {{ 'mapLayersPanel.ecosystemInfoModal.coverageParityDetail' | translate }}
+            </span>
           </p>
           @if (ecosystemClassificationSummaryLoading()) {
             <p

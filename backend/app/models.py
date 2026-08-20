@@ -104,11 +104,21 @@ class EcosystemAreaProfileView(BaseModel):
     records: list[EcosystemAreaProfileRecord] = Field(default_factory=list)
 
 
+class MesaAoiCoverageRecord(BaseModel):
+    feature: str
+    total_in_aoi: float
+    held_in_aoi: float
+    coverage_within_aoi: float | None
+    contribution_to_national_coverage: float | None
+    contribution_to_national_target: float | None
+
+
 class EcosystemAreaProfileSection(BaseModel):
     status: AreaProfileSectionStatus
     canonical_summary_view: Literal["broadEcosystem"] = "broadEcosystem"
     classified_area_km2: float = 0.0
     views: list[EcosystemAreaProfileView] = Field(default_factory=list)
+    solution_coverage: list[MesaAoiCoverageRecord] = Field(default_factory=list)
     reason: str | None = None
 
 
@@ -152,6 +162,11 @@ class DetailedSpeciesCoverageRecord(BaseModel):
     pre_existing_covered_in_aoi_pct: float
     new_covered_in_aoi_area_km2: float
     new_covered_in_aoi_pct: float
+    total_in_aoi: float | None = None
+    held_in_aoi: float | None = None
+    coverage_within_aoi: float | None = None
+    contribution_to_national_coverage: float | None = None
+    contribution_to_national_target: float | None = None
 
 
 class DetailedSpeciesCoverageResult(BaseModel):

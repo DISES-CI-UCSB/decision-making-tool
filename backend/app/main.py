@@ -252,6 +252,7 @@ def custom_polygon_area_profile(
             request.geometry,
             request.sections,
             solution_raster,
+            request.solution_id,
         )
     except PolygonMetricError as exc:
         raise HTTPException(
@@ -457,6 +458,14 @@ def _calculate_detailed_species_coverage(
         aoi_raster,
         solution_raster,
         is_cancelled,
+        target_for_species=(
+            lambda scientific_name: artifact.mesa_coverage.species_target(
+                solution_id,
+                scientific_name,
+            )
+            if artifact.mesa_coverage is not None
+            else None
+        ),
     )
     if state.artifact_version is None:
         raise RuntimeError("artifact_version_required")

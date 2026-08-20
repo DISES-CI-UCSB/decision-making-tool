@@ -1,0 +1,80 @@
+{
+  "format": "coverage-parity-verification-v1",
+  "releaseId": "solutions-v3-0-0",
+  "verifiedAt": "2026-08-19",
+  "solutionId": "eco17_estr17_esprep17_runap_iheh2022",
+  "summarySha256": "7271b09d12ce448dca2ea7bfbef944bb694faab36003a05c659ddd75d07c555c",
+  "solutionSha256": "e886a24bf4dc1de77336e36d7abdf56ab2011bcc24bfe2f18aececdc943da6ef",
+  "domainCounts": {
+    "ecosystems": {
+      "expected": 417,
+      "actual": 417
+    },
+    "species": {
+      "expected": 7980,
+      "actual": 7980
+    }
+  },
+  "mismatchCount": 0,
+  "passed": true,
+  "nationalParityElapsedSeconds": 19.93,
+  "runtimeNotes": {
+    "cacheState": "local-prebuilt-sparse-bundles",
+    "hardware": "developer-mac",
+    "scope": "national-only",
+    "performancePromise": "none"
+  },
+  "performanceComparison": {
+    "scope": "one solution, national-only, same developer Mac, warm/prebuilt caches",
+    "oldPipelineWallSeconds": 401.6,
+    "oldSpeciesComputeSeconds": 149.6,
+    "newParityWallSeconds": 19.93,
+    "endToEndSpeedup": 20.15,
+    "computeSpeedupAgainstOldSpeciesPass": 7.51,
+    "endToEndTimeReductionPercent": 95.04,
+    "computeTimeReductionPercent": 86.68,
+    "caveat": "The old command also validates aligned inputs and computes unrelated regular metrics; the conservative compute comparison uses its logged species pass against the new ecosystem-plus-species parity run."
+  },
+  "allSolutionsParity": {
+    "solutionCount": 168,
+    "passedCount": 168,
+    "failedCount": 0,
+    "mismatchCount": 0,
+    "ecosystemRowsCompared": 70056,
+    "speciesRowsCompared": 1150104,
+    "totalRowsCompared": 1220160,
+    "workerCount": 3,
+    "elapsedSeconds": 1014.511,
+    "elapsedMinutes": 16.909,
+    "medianSpeciesSolutionSeconds": 20.6855,
+    "maximumSolutionSeconds": 29.048
+  },
+  "validation": {
+    "coverageKernelAndContractTests": {
+      "passed": 13,
+      "failed": 0
+    },
+    "backendTests": {
+      "passed": 113,
+      "failed": 0,
+      "warnings": 2
+    },
+    "frontendFastUnitTests": {
+      "passed": 409,
+      "failed": 0
+    },
+    "frontendBrowserTests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "frontendProductionBuild": {
+      "passed": true,
+      "existingBudgetWarnings": 2
+    },
+    "fullMetricsSuite": {
+      "passed": 539,
+      "skipped": 1,
+      "failed": 0
+    }
+  }
+}

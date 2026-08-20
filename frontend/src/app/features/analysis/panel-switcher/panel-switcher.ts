@@ -687,7 +687,9 @@ export class PanelSwitcherComponent {
       return [];
     }
 
-    if (domain.featureType === 'ecosystems') {
+    // Summary-goals rows are the canonical IAvH target universe. MEC remains
+    // supporting classification data until a Mesa-compatible sidecar is wired.
+    if (domain.featureType === 'ecosystems' && this.goalsModalEcosystemBreakdownId() !== 'iavh') {
       const mecRows = this.goalsModalEcosystemRowsByView().get(
         this.goalsModalEcosystemBreakdown().view,
       );
@@ -705,7 +707,9 @@ export class PanelSwitcherComponent {
       return this.strategicOutcomeRows().map((row) => this.toStrategicOutcomeModalRow(row, target));
     }
     if (domain.featureType === 'species') {
-      return this.goalsModalSpeciesRows();
+      return this.isNationalGoalsModal() && domain.targeted
+        ? document.features.species.map((feature) => this.toGoalsModalRow(feature))
+        : this.goalsModalSpeciesRows();
     }
 
     return document.features[domain.featureType].map((feature) => this.toGoalsModalRow(feature));
@@ -715,7 +719,11 @@ export class PanelSwitcherComponent {
     if (!domain) {
       return null;
     }
-    if (domain.featureType === 'species' && this.goalsModalSpeciesRows().length > 0) {
+    if (
+      domain.featureType === 'species' &&
+      !(this.isNationalGoalsModal() && domain.targeted) &&
+      this.goalsModalSpeciesRows().length > 0
+    ) {
       const rows = this.goalsModalSpeciesRows();
       const denominatorRows = domain.targeted
         ? rows.filter((row) => row.relativeTarget !== null)
@@ -732,22 +740,8 @@ export class PanelSwitcherComponent {
         reached30Count: rows.filter((row) => row.reached30).length,
       };
     }
-    if (
-      domain.featureType !== 'ecosystems' ||
-      !this.goalsModalEcosystemRowsByView().has(this.goalsModalEcosystemBreakdown().view)
-    ) {
-      return domain;
-    }
-
-    const rows = this.goalsModalSourceRows();
-    const metCount = rows.filter((row) => row.met === true).length;
-    return {
-      metCount,
-      totalCount: rows.length,
-      pctMet: rows.length > 0 ? (metCount / rows.length) * 100 : null,
-      reached17Count: rows.filter((row) => row.reached17).length,
-      reached30Count: rows.filter((row) => row.reached30).length,
-    };
+    // Classification browsing must not change the target-progress denominator.
+    return domain;
   });
   protected readonly goalsModalRows = computed<GoalsModalRow[]>(() => {
     const query = this.goalsModalSearchQuery().trim().toLocaleLowerCase(this.appLocale.locale());
@@ -1973,7 +1967,10 @@ export class PanelSwitcherComponent {
     this.scheduleGoalsModalContent();
     if (this.goalsModalDomain()?.featureType === 'ecosystems') {
       this.loadGoalsModalEcosystemMec();
-    } else if (this.goalsModalDomain()?.featureType === 'species') {
+    } else if (
+      this.goalsModalDomain()?.featureType === 'species' &&
+      !(this.isNationalGoalsModal() && this.goalsModalDomain()?.targeted)
+    ) {
       this.loadGoalsModalSpecies();
     }
   }

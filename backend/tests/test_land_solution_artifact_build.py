@@ -25,6 +25,7 @@ from affine import Affine
 from app.artifacts import load_runtime_artifact
 from app.config import Settings
 from blob_manifest import ResolvedManifest
+from coverage_parity_contract import load_coverage_parity_contract
 from mec_compact import COMPOSITE_PROVENANCE_FORMAT, COMPOSITE_TUPLE_FIELDS
 from scripts import build_runtime_artifact as builder
 from scripts.aligned_cache import (
@@ -43,6 +44,10 @@ from scripts.land_solution_inputs import (
 from sparse.format import SparseMetadata, SpeciesMatrixEntry, encode_species_matrix
 
 PUBLIC_BLOB_HOST = builder.PUBLIC_BLOB_HOST
+PARITY_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "data/metrics/release-specs/solutions-v3-0-0/coverage-parity-contract.json"
+)
 
 # Origin and 1000 m cells of the real v0.2 land solution grid, cropped to 3x2.
 LAND_GRID = Affine(1000.0, 0.0, 4331309.911856957, 0.0, -999.9999999999999, 2933186.9308051495)
@@ -217,9 +222,48 @@ def fake_manifest() -> ResolvedManifest:
                 "name": "Fixture land solution",
                 "displayUrl": f"{PUBLIC_BLOB_HOST}/solutions/fixture.tif",
                 "blobPath": "solutions/fixture.tif",
+                "coverage": [
+                    {
+                        "feature": "Forest",
+                        "type": "ecosystem",
+                        "class": None,
+                        "relativeTarget": 0.5,
+                        "evaluated": "post-hoc",
+                    },
+                    {
+                        "feature": "Fixture mammals",
+                        "type": "species",
+                        "class": "Mammalia",
+                        "relativeTarget": 0.5,
+                        "evaluated": "prioritizr_model",
+                    },
+                ],
             }
         ],
     )
+
+
+def test_v3_parity_contract_selects_mesa_runtime_inputs() -> None:
+    contract = load_coverage_parity_contract(PARITY_CONTRACT_PATH)
+
+    layers = builder.build_layer_specs({}, "land-solution", contract)
+    mesa_layer = next(
+        layer
+        for layer in layers
+        if layer.layer_id == builder.MESA_ECOSYSTEM_LAYER_ID
+    )
+    assert mesa_layer.url == contract.document["ecosystems"]["raster"]["url"]
+
+    matrices = builder.build_species_matrix_specs("land-solution", contract)
+    expected_urls = {
+        entry["group"]: entry["url"]
+        for entry in contract.document["species"]["runtimeBundles"]
+    }
+    assert {
+        matrix.group: matrix.url
+        for matrix in matrices
+        if matrix.group != "threatened"
+    } == expected_urls
 
 
 def publish_both_grids(sources: Path) -> tuple[dict[str, Path], Path]:
@@ -257,6 +301,12 @@ def publish_both_grids(sources: Path) -> tuple[dict[str, Path], Path]:
                 area_km2=area_km2,
             )
 
+    catalog = sources / "mesa-ecosystems.csv"
+    catalog.write_text(
+        "biome,biome_id\nForest,1\nWetland,2\n",
+        encoding="utf-8",
+    )
+    published[builder.MESA_ECOSYSTEM_CATALOG_URL] = catalog
     return published, land_bundle["raster"]
 
 
@@ -351,6 +401,11 @@ def test_land_solution_build_produces_a_loadable_artifact(
         assert state.metadata["species_index"]["status"] == "ready"
         assert state.metadata["species_index"]["range_area_source"] == "matrix-exact-area"
         assert artifact.ecosystem_inventory is not None
+        assert artifact.mesa_coverage is not None
+        assert artifact.mesa_coverage.species_target(
+            "eco17_estr17_esprep17_runap_iheh2022",
+            "Fixture mammals",
+        ) == pytest.approx(0.5)
         assert artifact.solution_registry is not None
     finally:
         artifact.close()
@@ -364,6 +419,10 @@ def test_land_solution_build_produces_a_loadable_artifact(
     assert [entry["source_url"] for entry in manifest["species_matrices"]] == [
         public_url(species_matrix_blob_path(group)) for group in builder.SPECIES_MATRIX_GROUPS
     ]
+    assert manifest["mesa_coverage"]["grid"] == "EPSG:9377"
+    assert manifest["mesa_coverage"]["ecosystems"]["raster_layer_id"] == (
+        builder.ECOSYSTEM_LAYER_ID
+    )
 
 
 def test_land_solution_pin_rejects_a_drifted_reference_raster(tmp_path: Path) -> None:

@@ -31,6 +31,11 @@ from .ecosystem_inventory import (
     RuntimeEcosystemInventory,
     load_ecosystem_inventory,
 )
+from .solution_coverage import (
+    RuntimeMesaCoverage,
+    SolutionCoverageError,
+    load_runtime_mesa_coverage,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,6 +83,7 @@ class RuntimeArtifact:
     species_index: RuntimeSpeciesIndex | RuntimeSpeciesBitsetIndex | None = None
     species_pool_sizes: dict[str, Any] = field(default_factory=dict)
     ecosystem_inventory: RuntimeEcosystemInventory | None = None
+    mesa_coverage: RuntimeMesaCoverage | None = None
     solution_registry: RuntimeSolutionRegistry | None = None
 
     def close(self) -> None:
@@ -473,6 +479,59 @@ def _load_ecosystem_inventory(
     }
 
 
+def _load_mesa_coverage(
+    manifest_path: Path,
+    manifest: dict[str, Any],
+    raster_layers: dict[str, RuntimeRasterLayer],
+) -> tuple[RuntimeMesaCoverage | None, dict[str, Any]]:
+    raw = manifest.get("mesa_coverage")
+    if raw is None:
+        return None, {"status": "not_configured"}
+    if not isinstance(raw, dict):
+        raise ArtifactValidationError("mesa_coverage must be an object when present.")
+
+    ecosystems = raw.get("ecosystems")
+    if not isinstance(ecosystems, dict):
+        raise ArtifactValidationError("mesa_coverage.ecosystems must be an object.")
+    layer_id = ecosystems.get("raster_layer_id")
+    layer = raster_layers.get(str(layer_id))
+    if layer is None:
+        raise ArtifactValidationError("Mesa ecosystem raster layer is not packaged.")
+
+    resolved: dict[str, Path] = {"raster": layer.path}
+    for key, entry in (
+        ("catalog", ecosystems.get("catalog")),
+        ("targets", raw.get("targets")),
+    ):
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            raise ArtifactValidationError(f"mesa_coverage.{key}.path is required.")
+        path = _relative_artifact_path(manifest_path, entry["path"])
+        if not path.is_file():
+            raise ArtifactValidationError(f"Mesa coverage {key} artifact is missing.")
+        _verify_checksum(path, entry.get("checksum"), f"Mesa coverage {key}")
+        resolved[key] = path
+
+    species_groups = raw.get("species_groups", [])
+    if not isinstance(species_groups, list) or not all(
+        isinstance(group, str) for group in species_groups
+    ):
+        raise ArtifactValidationError("mesa_coverage.species_groups must be strings.")
+    try:
+        coverage = load_runtime_mesa_coverage(
+            resolved["raster"],
+            resolved["catalog"],
+            resolved["targets"],
+            species_groups,
+        )
+    except SolutionCoverageError as exc:
+        raise ArtifactValidationError(str(exc)) from exc
+    return coverage, {
+        "status": "ready",
+        "solution_count": len(coverage.targets_by_solution),
+        "species_groups": list(coverage.species_groups),
+    }
+
+
 def _validate_ecosystem_grid_alignment(
     reference_path: Path,
     inventory: RuntimeEcosystemInventory,
@@ -600,6 +659,11 @@ def _load_raster_artifact(
                 resolved_reference,
                 ecosystem_inventory,
             )
+        mesa_coverage, mesa_coverage_metadata = _load_mesa_coverage(
+            manifest_path,
+            manifest,
+            layers,
+        )
     except Exception:
         if species_index is not None:
             species_index.close()
@@ -617,6 +681,7 @@ def _load_raster_artifact(
         "species_index": species_index_metadata,
         "species_pool_sizes": species_pool_sizes,
         "ecosystem_inventory": ecosystem_inventory_metadata,
+        "mesa_coverage": mesa_coverage_metadata,
         "solution_registry": solution_registry_metadata,
         "metric_coverage": manifest.get("metric_coverage", {}),
     }
@@ -628,6 +693,7 @@ def _load_raster_artifact(
         species_index=species_index,
         species_pool_sizes=species_pool_sizes,
         ecosystem_inventory=ecosystem_inventory,
+        mesa_coverage=mesa_coverage,
         solution_registry=solution_registry,
     )
     return artifact, metadata
