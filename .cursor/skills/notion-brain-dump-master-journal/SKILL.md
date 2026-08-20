@@ -1,61 +1,57 @@
 ---
 name: notion-brain-dump-master-journal
 description: >-
-  Captures an unstructured project brain dump into the Notion Master Project
-  Journal data source: creates a new row or updates an existing brain-dump row,
-  sets Project tag DISES, and writes AI summary, Next step, Verbal dump, page
-  body with Notion to-do blocks for high-level to-dos, and organized capture.
-  Use when the user says brain dump, verbal dump, ticket ideas dump, or wants
-  to log scattered notes into the DISES work journal.
+  Captures an unstructured brain dump into a Notion page the user specifies, or
+  into the DISES Master Project Journal when they explicitly ask to log there.
+  Use only when the user provides a Notion link, names a target page/database,
+  or clearly requests a Work Journal / brain-dump entry in Notion. Do not invoke
+  for a verbal dump with no Notion target.
 disable-model-invocation: false
 ---
 
-# Notion brain dump → Master Project Journal (DISES)
+# Notion brain dump (opt-in)
+
+**Do not run this skill** unless the user linked a Notion page, named where to write, or explicitly asked to add a brain dump to the DISES Work Journal / Master Project Journal.
+
+Follow [task-tracking.mdc](mdc:.cursor/rules/task-tracking.mdc).
 
 ## Targets (do not guess)
 
+If the user did **not** give a target, ask which Notion page to use — do not pick one automatically.
+
+When they **do** ask for the DISES journal (and no other target):
+
 - **Database (container):** [📝 Work Journal (DISES)](https://www.notion.so/80646effe80040f787ec85ac3660cd2c)
-- **Data source to create pages under:** `collection://187eecf1-5eb6-486f-91c8-a08cd2b30251` — title **Master Project Journal**
+- **Data source:** `collection://187eecf1-5eb6-486f-91c8-a08cd2b30251` — **Master Project Journal**
 - **Default filtered view (DISES):** [Work Journal (tagged DISES)](https://www.notion.so/80646effe80040f787ec85ac3660cd2c?v=9a528341de7a4f45aab57b1134e8fc44)
 
-Always **`notion-fetch`** the database or data source URL first if the schema or property names might have changed.
+Always **`notion-fetch`** the user's linked page or database first if the schema might have changed.
 
 Fetch MCP resource **`notion://docs/enhanced-markdown-spec`** before writing page body so syntax (especially to-dos) is correct.
 
 ## High-level to-dos (required in page body)
 
-- Place a **`## High-level to-dos`** section **above** **Organized capture**.
-- Use **Notion to-do blocks**, not numbered lists. In Notion-flavored Markdown each item is a line: `- [ ] **Label:** one to two sentences of concrete action or outcome.` All items unchecked unless the user marks something done.
-- One to-do per theme (merge only if the user explicitly combined themes). Keep each line scannable.
+- Place **`## High-level to-dos`** above **Organized capture**.
+- Use **Notion to-do blocks**: `- [ ] **Label:** one to two sentences.` All unchecked unless the user marked something done.
+- One to-do per theme unless the user combined themes.
 
-Example (pattern only):
-
-```markdown
-## High-level to-dos
-
-- [ ] **Net Benefit (agricultural rent):** Confirm in the manifest/renderer whether the raster is continuous vs binary and fix symbology so the map shows meaningful variation.
-- [ ] **Límites SIRAP:** Verify the layer against a trusted reference; if Vercel Blob hosts the canonical file, point the app at Blob.
-```
-
-Do **not** use `1.` / `2.` ordered lists for this section — Notion will not treat those as the to-do block type.
+Do **not** use `1.` / `2.` ordered lists for this section.
 
 ## Workflow
 
-1. **Clarify intent:** One-off new entry vs updating an existing brain-dump page (user may link a page or name it, e.g. “Random Ticket Ideas Brain Dump”).
-2. **Organize (high level):** Group bullets by theme (map layers, data, dashboard, infra, process). Keep implementation detail light unless the user provides it. Preserve nuance (risks, hypotheses) without over-committing to root cause.
-3. **Notion MCP:**
-   - **Create:** `notion-create-pages` with `parent`: `{ "type": "data_source_id", "data_source_id": "187eecf1-5eb6-486f-91c8-a08cd2b30251" }`.
-   - **Update:** `notion-update-page` on the existing page UUID with `command: "update_properties"` and/or `replace_content` / `update_content` as appropriate.
-4. **Properties (use exact names from fetch):**
-   - **Title:** Short imperative or descriptive title (e.g. `Brain dump: map layers & SIRAP (May 2026)`).
-   - **Entry type:** Usually `Verbal dump`; use `Planning note` if the user is mostly sequencing work.
-   - **Project tag:** Include **`DISES`**. For `multi_select`, use JSON array string form per MCP tool expectations (e.g. `[\"DISES\"]` when the tool expects a stringified array—follow the fetched SQLite hints).
-   - **Day:** Set `date:Day:start` to the journal date (user’s “today” from context), `date:Day:is_datetime`: `0`.
-   - **Verbal dump:** Paste or lightly clean the user’s raw dictation; keep their wording where it matters.
-   - **AI summary:** 2–4 sentences: themes + sharpest risks or decisions.
-   - **Next step:** One smallest concrete action (e.g. “Trace X in manifest and confirm raster type”).
-5. **Page body:** Do **not** duplicate the title as an H1. Use `replace_content` or `update_content` to add **High-level to-dos** (to-do blocks as above), then **Organized capture** with headings, **Suggested sequencing** if helpful, and **open questions** if any.
+1. **Confirm target:** User's Notion URL, named page, or explicit Work Journal request.
+2. **Organize:** Group by theme (map layers, data, dashboard, infra, process). Keep implementation detail light unless provided.
+3. **Notion MCP:** Create or update only on the confirmed target (`notion-create-pages`, `notion-update-page`, etc.).
+4. **Properties** (when using Work Journal — use exact names from fetch):
+   - **Title:** Short descriptive title (e.g. `Brain dump: map layers & SIRAP (May 2026)`).
+   - **Entry type:** Usually `Verbal dump`; `Planning note` if mostly sequencing.
+   - **Project tag:** **`DISES`** when applicable.
+   - **Day:** Journal date from user context.
+   - **Verbal dump:** User's raw dictation, lightly cleaned.
+   - **AI summary:** 2–4 sentences on themes + sharpest risks.
+   - **Next step:** One smallest concrete action.
+5. **Page body:** **High-level to-dos**, then **Organized capture**, optional **Suggested sequencing** and **open questions**.
 
 ## After saving
 
-Reply with the Notion page URL and a one-line reminder of what was captured.
+Reply with the Notion page URL and a one-line summary of what was captured.

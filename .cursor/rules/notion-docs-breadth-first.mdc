@@ -1,17 +1,17 @@
 ---
-description: Prefer breadth-first, low cognitive-load structure when writing or updating Notion specs/plans from this repo
+description: Prefer breadth-first structure when writing or updating a Notion page the user linked
 globs: "**/*.mdc,.cursor/rules/**"
 alwaysApply: false
 ---
 
 # Notion docs from Cursor
 
-Use when creating or updating Notion pages (especially specs, plans, wiring docs).
+**Only use this rule when** the user linked a Notion page or explicitly asked to write/update Notion content. Otherwise do not open or edit Notion.
 
 ## Goals
 
-- **Breadth-first, not depth-first**: optimize for the reader’s working memory, not a complete dump.
-- **Paste-ready tasks**: each task line should be copy-pasteable into a **single** new Cursor chat as the prompt spine (“see Notion for diagram/details”). When exporting to Notion, actionable rows must be **to-do blocks** (`- [ ]`), not fake numbered lists, so completion tracks in Notion.
+- **Breadth-first, not depth-first**: optimize for the reader's working memory, not a complete dump.
+- **Paste-ready tasks**: each task line should be copy-pasteable into a **single** new Cursor chat as the prompt spine ("see Notion for diagram/details"). When exporting to Notion, actionable rows must be **to-do blocks** (`- [ ]`), not fake numbered lists, so completion tracks in Notion.
 - **Story-like tickets**: top-level tasks should describe the **what / why / manually reviewable outcome**, not low-level implementation details. Put file paths, function names, and technical sequencing in the detailed toggle.
 - **Separate concerns**: short overview → flat task list → optional depth.
 
@@ -21,7 +21,7 @@ Use when creating or updating Notion pages (especially specs, plans, wiring docs
 2. **Quick task queue** — immediately under Overview:
    - Use **real Notion to-do blocks**: `- [ ] …` under **Cursor** vs **Me** (not plain numbered bullets unless items are **not** actionable).
    - Each item **one or two sentences**: first sentence states the product/story outcome; second sentence, if needed, says how the human reviewer can quickly verify it.
-   - Avoid implementation phrasing in this top queue (e.g. “edit file X, call API Y, add parser Z”) unless that is the user-facing deliverable.
+   - Avoid implementation phrasing in this top queue unless that is the user-facing deliverable.
    - Short note: copy one unchecked to-do into a new chat; open **Detailed checklist** for paths and sequencing.
 3. **Detailed checklist** (optional) — implementation bullets, file paths, phases:
    - Prefer a Notion **toggle** (`<details>` block in Notion-flavored Markdown) titled e.g. **Detailed checklist (optional depth)** so the default page surface stays shallow.
@@ -30,7 +30,7 @@ Use when creating or updating Notion pages (especially specs, plans, wiring docs
 
 - Leading with long phased sections before any skannable task list.
 - Deep nesting in the top half of the page.
-- Duplicating the same work under multiple labels unless one list is “queue” and the other is “reference.”
+- Duplicating the same work under multiple labels unless one list is "queue" and the other is "reference."
 
 ## Relation to chat responses
 

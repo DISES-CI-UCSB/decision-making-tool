@@ -1,0 +1,50 @@
+---
+description: Work-area scope tags and verbal-review conventions for Decision Making Tool
+alwaysApply: true
+---
+
+# Task context
+
+## Notion (opt-in only)
+
+Use Notion MCP **only** when the user:
+
+- Pastes a `notion.so` link or Notion page URL, or
+- Explicitly names a Notion page/database to open or update, or
+- Clearly asks to read from or write to Notion.
+
+**Otherwise:** do not search Notion, do not open the Work Journal, do not create Notion pages, and do not assume a task lives in Notion. Work from the user's message, repo files, and anything else they attach or @-mention.
+
+When the user **does** provide a Notion link, treat that page as the task spec for that chat unless they say otherwise.
+
+## Work areas (scope tags)
+
+Use these area names when scoping work — they map to feature branches, not ticket prefixes:
+
+| Area | Scope |
+|---|---|
+| `foundation` | Core scaffolding, services, layout |
+| `solution-finder` | Solution finder modal (selection, targets, includes/excludes) |
+| `left-sidebar` | Map layers panel, selected layers, layer controls |
+| `map-spatial` | ArcGIS map panel |
+| `analysis-dashboards` | Right sidebar, metrics, comparison |
+| `aoi-dashboard` | Area of Interest panel (right sidebar); often with `analysis-dashboards` |
+| `backend` | Server/API/data-pipeline — only when work is **not** the default Angular app stack |
+
+**Default stack:** Assume client/UI (Angular + map + sidebars) unless `backend` applies.
+
+## Verbal-review description template
+
+When capturing bugs, polish, or review notes (in chat or in a doc the user asked for), use this structure:
+
+1. **## Problem** — What is wrong or missing; why it matters (user impact).
+2. **## Location** — Where in the app and/or repo (panel, file, element id).
+3. **## Fix** — Intended direction; acceptance-style bullets if helpful.
+4. **## Design / open questions** (optional) — Product/design sign-off or tradeoffs before implementation.
+5. **## Related** — Links to related repo docs or pages the user provided.
+
+## When working on a task
+
+1. Use what the user gave you: message, Notion link (if any), file paths, screenshots.
+2. Note the work area / tags to understand scope and branch.
+3. Do not invent or fetch external task trackers unless the user points you at one.
