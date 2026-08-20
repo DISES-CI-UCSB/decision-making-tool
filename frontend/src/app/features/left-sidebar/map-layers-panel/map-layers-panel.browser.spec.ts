@@ -121,6 +121,47 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
     expect(adminBoundaryVisibilitySync).toHaveBeenCalledWith('admin_departments', true);
   });
 
+  it.each([
+    [
+      'en',
+      'Following the Mesa Nacional model, this report includes the 417 ecosystem classes represented on Colombia’s 1 km IHEH planning grid. Twelve classes from the 429-class catalog are omitted because they do not contain a valid planning-grid cell.',
+      'Three island classes fall outside the terrestrial grid, eight small classes contain no cell center, and one falls outside the valid IHEH footprint.',
+    ],
+    [
+      'es',
+      'Siguiendo el modelo de la Mesa Nacional, este informe incluye las 417 clases de ecosistemas representadas en la cuadrícula de planificación IHEH de 1 km de Colombia. Se omiten doce clases del catálogo de 429 porque no contienen una celda válida de la cuadrícula de planificación.',
+      'Tres clases insulares quedan fuera de la cuadrícula terrestre, ocho clases pequeñas no contienen ningún centro de celda y una queda fuera de la huella válida del IHEH.',
+    ],
+  ])('renders the approved ecosystem parity copy in %s', (language, copy, detail) => {
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation(language, {
+      mapLayersPanel: {
+        ecosystemInfoModal: {
+          coverageParityCopy: copy,
+          coverageParityDetail: detail,
+        },
+      },
+    });
+    translate.use(language);
+    const fixture = TestBed.createComponent(MapLayersPanelComponent);
+
+    (
+      fixture.componentInstance as unknown as {
+        openEcosystemInfoModal: () => void;
+      }
+    ).openEcosystemInfoModal();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('#map-layers-ecosystem-info-modal-coverage-parity-copy')
+        ?.textContent,
+    ).toContain(copy);
+    expect(
+      fixture.nativeElement.querySelector('#map-layers-ecosystem-info-modal-coverage-parity-detail')
+        ?.textContent,
+    ).toContain(detail);
+  });
+
   it('filters the available catalog for a marine solution without clearing hidden selections', () => {
     TestBed.inject(TranslateService).setTranslation('en', {
       mapLayersPanel: {

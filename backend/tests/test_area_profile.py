@@ -161,6 +161,7 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
         for record in cell_major.detailed_coverage_records(
             aoi,
             read_solution_raster(solution_path),
+            target_for_species=lambda _name: 0.5,
         )
     }
 
@@ -171,6 +172,11 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     assert mammal.solution_covered_in_aoi_pct == pytest.approx(100.0)
     assert mammal.pre_existing_covered_in_aoi_pct == pytest.approx(100.0)
     assert mammal.new_covered_in_aoi_pct == pytest.approx(0.0)
+    assert mammal.total_in_aoi == 1
+    assert mammal.held_in_aoi == 1
+    assert mammal.coverage_within_aoi == pytest.approx(1.0)
+    assert mammal.contribution_to_national_coverage == pytest.approx(0.5)
+    assert mammal.contribution_to_national_target == pytest.approx(1.0)
 
     bird = records["Present bird"]
     assert bird.range_in_aoi_pct == pytest.approx(100.0)

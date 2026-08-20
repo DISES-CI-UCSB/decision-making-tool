@@ -20,6 +20,10 @@ for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
         sys.path.insert(0, str(_import_root))
 
 from blob_manifest import DEFAULT_MANIFEST_URL, fetch_manifest  # noqa: E402
+from coverage_parity_contract import (  # noqa: E402
+    CoverageParityContract,
+    load_coverage_parity_contract,
+)
 from metric_definitions import METRIC_CATALOG  # noqa: E402
 from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records  # noqa: E402
 from sparse.species_bitset import build_species_bitset  # noqa: E402
@@ -44,6 +48,11 @@ DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_MATRIX_GROUPS = (*CLASS_BUCKETS, "threatened")
 ECOSYSTEM_LAYER_ID = "ecosistemas_IAVH_2024"
+MESA_ECOSYSTEM_LAYER_ID = "mesa_ecosistemas_IAVH_2024"
+MESA_ECOSYSTEM_CATALOG_URL = (
+    f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/"
+    "ecosistemas_IDs_IAVH_2024.csv"
+)
 
 # The MEC ecosystem bundle and the species matrices exist once per reference
 # grid. The EPSG:4326 objects the deployed backend rebuilds from stay exactly
@@ -145,6 +154,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--artifact-dir", type=Path, default=DEFAULT_ARTIFACT_DIR)
     parser.add_argument("--manifest-url", default=DEFAULT_MANIFEST_URL)
     parser.add_argument("--solution-id", default=None)
+    parser.add_argument("--coverage-parity-contract", type=Path, default=None)
     parser.add_argument("--force", action="store_true", help="Re-download source rasters.")
     parser.add_argument(
         "--immutable-release",
@@ -177,7 +187,7 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
     if args.reference_grid == "land-solution":
-        if not args.reference_raster:
+        if not args.reference_raster and args.coverage_parity_contract is None:
             args.reference_raster = LAND_SOLUTION_REFERENCE_PIN.url
         if args.aligned_cache is None:
             parser.error("--reference-grid land-solution requires --aligned-cache.")
@@ -188,6 +198,16 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    parity_contract_path = getattr(args, "coverage_parity_contract", None)
+    parity_contract = (
+        load_coverage_parity_contract(parity_contract_path)
+        if parity_contract_path is not None
+        else None
+    )
+    if parity_contract is not None:
+        if args.reference_grid != "land-solution":
+            raise SystemExit("Coverage parity runtime requires --reference-grid land-solution.")
+        args.reference_raster = parity_contract.document["grid"]["template"]["url"]
     artifact_root = args.artifact_dir.resolve()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     artifact_version = f"colombia-custom-aoi-v1-{now.replace(':', '').replace('-', '')}"
@@ -221,11 +241,23 @@ def main() -> None:
             f"reference grid {reference_grid.name} requires {reference_grid.expected_crs}."
         )
     if args.reference_grid == "land-solution":
-        try:
-            LAND_SOLUTION_REFERENCE_PIN.verify(reference.path, sha256=reference.sha256)
-        except ReferenceRasterPinError as exc:
-            raise SystemExit(str(exc)) from exc
-        print(f"Reference raster matches the land-solution pin: {LAND_SOLUTION_REFERENCE_PIN.rationale}")
+        if parity_contract is not None:
+            expected = parity_contract.document["grid"]["template"]["sha256"]
+            if reference.sha256 != expected:
+                raise SystemExit(
+                    "Mesa reference raster checksum mismatch: "
+                    f"expected {expected}, observed {reference.sha256}"
+                )
+            print("Reference raster matches the v3 Mesa coverage-parity contract.")
+        else:
+            try:
+                LAND_SOLUTION_REFERENCE_PIN.verify(reference.path, sha256=reference.sha256)
+            except ReferenceRasterPinError as exc:
+                raise SystemExit(str(exc)) from exc
+            print(
+                "Reference raster matches the land-solution pin: "
+                f"{LAND_SOLUTION_REFERENCE_PIN.rationale}"
+            )
     print(
         f"Reference fingerprint: {reference_fingerprint.crs} "
         f"{reference_fingerprint.width}x{reference_fingerprint.height}"
@@ -238,8 +270,15 @@ def main() -> None:
         except AlignedCacheError as exc:
             raise SystemExit(str(exc)) from exc
 
-    layer_specs = build_layer_specs(manifest.layers_by_id)
-    species_specs = build_species_matrix_specs(reference_grid.name)
+    layer_specs = build_layer_specs(
+        manifest.layers_by_id,
+        reference_grid.name,
+        parity_contract,
+    )
+    species_specs = build_species_matrix_specs(
+        reference_grid.name,
+        parity_contract,
+    )
     layer_entries: list[dict[str, Any]] = []
     file_entries = [file_entry(reference.path, artifact_dir, reference.sha256, reference.bytes)]
     sources_by_url = {reference_source_url: reference}
@@ -251,7 +290,7 @@ def main() -> None:
         cached = sources_by_url.get(spec.url)
         if cached is None:
             target = sources_dir / f"{safe_filename(spec.layer_id)}.tif"
-            if aligned_cache is None:
+            if aligned_cache is None or spec.layer_id == MESA_ECOSYSTEM_LAYER_ID:
                 cached = download_source(spec.url, target, force=args.force)
             else:
                 try:
@@ -271,6 +310,17 @@ def main() -> None:
                 )
             sources_by_url[spec.url] = cached
             file_entries.append(file_entry(cached.path, artifact_dir, cached.sha256, cached.bytes))
+        if spec.layer_id == MESA_ECOSYSTEM_LAYER_ID:
+            expected_sha256 = parity_contract.document["ecosystems"]["raster"]["sha256"]
+            if cached.sha256 != expected_sha256:
+                raise SystemExit(
+                    "Mesa ecosystem raster checksum does not match the parity contract."
+                )
+            mesa_fingerprint = read_fingerprint(cached.path)
+            if mesa_fingerprint != reference_fingerprint:
+                raise SystemExit(
+                    "Mesa ecosystem raster does not exactly match the v3 reference grid."
+                )
 
         layer_entries.append(
             {
@@ -293,6 +343,16 @@ def main() -> None:
             sources_dir / "species-sparse" / f"species_{safe_filename(spec.group)}.smtx.gz",
             force=args.force,
         )
+        if parity_contract is not None and spec.group != "threatened":
+            expected_bundle = next(
+                entry
+                for entry in parity_contract.document["species"]["runtimeBundles"]
+                if entry["group"] == spec.group
+            )
+            if cached.sha256 != expected_bundle["sha256"]:
+                raise SystemExit(
+                    f"Mesa species bundle checksum mismatch for {spec.group}."
+                )
         file_entries.append(file_entry(cached.path, artifact_dir, cached.sha256, cached.bytes))
         species_entries.append(
             {
@@ -364,6 +424,15 @@ def main() -> None:
             "size_bytes": cached.bytes,
         }
 
+    mesa_coverage = build_mesa_coverage_artifact(
+        reference_grid.name,
+        manifest.national_solutions,
+        artifact_dir,
+        sources_dir,
+        file_entries,
+        force=args.force,
+        parity_contract=parity_contract,
+    )
     aggregate_checksum = aggregate_file_checksum(file_entries)
     runtime_manifest = {
         "artifact_version": artifact_version,
@@ -403,6 +472,7 @@ def main() -> None:
         "species_bitset": species_bitset,
         "species_pool_sizes": species_pool_sizes,
         "ecosystem_inventory": ecosystem_inventory,
+        **({"mesa_coverage": mesa_coverage} if mesa_coverage is not None else {}),
         "solution_rasters": solution_rasters,
         "metric_coverage": metric_coverage(layer_specs, species_specs),
         "files": file_entries,
@@ -428,7 +498,11 @@ def select_solution(solutions: list[dict[str, Any]], solution_id: str | None) ->
     raise SystemExit(f"Solution id not found in manifest: {solution_id}")
 
 
-def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec]:
+def build_layer_specs(
+    layers_by_id: dict[str, dict[str, Any]],
+    reference_grid_name: str = "ecosistemas",
+    parity_contract: CoverageParityContract | None = None,
+) -> list[LayerSpec]:
     specs: list[LayerSpec] = [
         LayerSpec(
             ECOSYSTEM_LAYER_ID,
@@ -439,6 +513,17 @@ def build_layer_specs(layers_by_id: dict[str, dict[str, Any]]) -> list[LayerSpec
             "categorical",
         )
     ]
+    if parity_contract is not None and reference_grid_name == "land-solution":
+        specs.append(
+            LayerSpec(
+                MESA_ECOSYSTEM_LAYER_ID,
+                str(parity_contract.document["ecosystems"]["raster"]["url"]),
+                "categorical",
+                {"valueType": "categorical"},
+                (),
+                "categorical",
+            )
+        )
     for layer_id in [
         "paramos",
         "bosque_seco",
@@ -544,7 +629,10 @@ def off_manifest_url(layer_id: str) -> str:
     raise SystemExit(f"Metric catalog has no off-manifest URL for layer {layer_id!r}.")
 
 
-def build_species_matrix_specs(reference_grid_name: str) -> list[SpeciesMatrixSpec]:
+def build_species_matrix_specs(
+    reference_grid_name: str,
+    parity_contract: CoverageParityContract | None = None,
+) -> list[SpeciesMatrixSpec]:
     """Resolve the species matrices published for one reference grid.
 
     The builder regenerates the bitset from whatever it downloads, so a grid
@@ -552,6 +640,24 @@ def build_species_matrix_specs(reference_grid_name: str) -> list[SpeciesMatrixSp
     9377 matrices carry and emit a cell-count bitset instead.
     """
     url_for = SPECIES_MATRIX_URL_BUILDERS[reference_grid_name]
+    if parity_contract is not None and reference_grid_name == "land-solution":
+        bundles = parity_contract.document["species"]["runtimeBundles"]
+        specs = [
+            SpeciesMatrixSpec(
+                group=str(bundle["group"]),
+                url=str(bundle["url"]),
+                metric_ids=metric_ids_for_species_group(str(bundle["group"])),
+            )
+            for bundle in bundles
+        ]
+        specs.append(
+            SpeciesMatrixSpec(
+                group="threatened",
+                url=url_for("threatened"),
+                metric_ids=metric_ids_for_species_group("threatened"),
+            )
+        )
+        return specs
     return [
         SpeciesMatrixSpec(
             group=group,
@@ -579,6 +685,105 @@ def load_species_pool_sizes() -> dict[str, Any]:
         "total_non_fish": pool_sizes.total_non_fish,
         "threatened_total": pool_sizes.threatened_total,
         "by_bucket": dict(pool_sizes.by_bucket),
+    }
+
+
+def build_mesa_coverage_artifact(
+    reference_grid_name: str,
+    solutions: list[dict[str, Any]],
+    artifact_dir: Path,
+    sources_dir: Path,
+    file_entries: list[dict[str, Any]],
+    *,
+    force: bool,
+    parity_contract: CoverageParityContract | None = None,
+) -> dict[str, Any] | None:
+    """Package parity metadata only when v3 summary coverage is available."""
+
+    if reference_grid_name != "land-solution":
+        return None
+    targets = {
+        str(solution["id"]): [
+            {
+                "feature": str(row["feature"]),
+                "feature_type": str(row.get("type") or "").strip().lower(),
+                "class": row.get("class"),
+                "relative_target": float(row["relativeTarget"]),
+                "evaluated": row.get("evaluated"),
+            }
+            for row in solution.get("coverage", [])
+            if isinstance(row, dict)
+            and row.get("feature")
+            and row.get("relativeTarget") is not None
+            and str(row.get("type") or "").strip().lower()
+            in {"ecosystem", "species"}
+        ]
+        for solution in solutions
+        if isinstance(solution.get("coverage"), list)
+    }
+    targets = {
+        solution_id: rows
+        for solution_id, rows in targets.items()
+        if rows
+    }
+    if not targets:
+        return None
+
+    catalog_url = (
+        str(parity_contract.document["ecosystems"]["catalog"]["url"])
+        if parity_contract is not None
+        else MESA_ECOSYSTEM_CATALOG_URL
+    )
+    raster_layer_id = (
+        MESA_ECOSYSTEM_LAYER_ID
+        if parity_contract is not None
+        else ECOSYSTEM_LAYER_ID
+    )
+    catalog = download_source(
+        catalog_url,
+        sources_dir / "mesa-coverage" / "ecosistemas_IDs_IAVH_2024.csv",
+        force=force,
+    )
+    if (
+        parity_contract is not None
+        and catalog.sha256
+        != parity_contract.document["ecosystems"]["catalog"]["sha256"]
+    ):
+        raise SystemExit("Mesa ecosystem catalog checksum does not match the parity contract.")
+    file_entries.append(
+        file_entry(catalog.path, artifact_dir, catalog.sha256, catalog.bytes)
+    )
+    targets_path = sources_dir / "mesa-coverage" / "solution-targets.json"
+    write_json(
+        targets_path,
+        {
+            "format": "mesa-solution-targets-v1",
+            "solutions": targets,
+        },
+    )
+    targets_sha256 = sha256_file(targets_path)
+    targets_size = targets_path.stat().st_size
+    file_entries.append(
+        file_entry(targets_path, artifact_dir, targets_sha256, targets_size)
+    )
+    return {
+        "format": "mesa-runtime-coverage-v1",
+        "grid": "EPSG:9377",
+        "ecosystems": {
+            "raster_layer_id": raster_layer_id,
+            "catalog": {
+                "path": str(catalog.path.relative_to(artifact_dir)),
+                "source_url": catalog_url,
+                "checksum": {"algorithm": "sha256", "value": catalog.sha256},
+                "size_bytes": catalog.bytes,
+            },
+        },
+        "species_groups": list(CLASS_BUCKETS),
+        "targets": {
+            "path": str(targets_path.relative_to(artifact_dir)),
+            "checksum": {"algorithm": "sha256", "value": targets_sha256},
+            "size_bytes": targets_size,
+        },
     }
 
 

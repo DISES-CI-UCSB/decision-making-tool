@@ -7,6 +7,10 @@ from .ecosystem_inventory import EcosystemInventoryError, build_ecosystem_invent
 from .metric_adapters import build_custom_aoi_raster
 from .models import AreaProfileSectionName
 from .polygon_metrics import PolygonMetricError, validate_polygon_geometry
+from .solution_coverage import (
+    SolutionCoverageError,
+    calculate_ecosystem_aoi_coverage,
+)
 from .species_index import (
     RuntimeSpeciesBitsetIndex,
     SpeciesIndexQueryError,
@@ -27,6 +31,7 @@ def calculate_custom_area_profile(
     geometry: dict[str, Any],
     requested_sections: list[AreaProfileSectionName],
     solution_raster: SolutionRaster | None = None,
+    solution_id: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], str]:
     validate_polygon_geometry(geometry)
     if artifact.reference_raster_path is None:
@@ -76,9 +81,14 @@ def calculate_custom_area_profile(
                     artifact,
                     raster,
                     solution_raster,
+                    solution_id,
                 )
             )
-        except (SpeciesIndexQueryError, EcosystemInventoryError) as exc:
+        except (
+            SpeciesIndexQueryError,
+            EcosystemInventoryError,
+            SolutionCoverageError,
+        ) as exc:
             sections[section] = _failed_section(section, str(exc))
         except Exception as exc:
             sections[section] = _failed_section(section, f"{section}_query_failed:{exc}")
@@ -136,19 +146,66 @@ def _ecosystems_section(
     artifact: RuntimeArtifact,
     raster: SolutionRaster,
     solution_raster: SolutionRaster | None,
+    solution_id: str | None,
 ) -> dict[str, Any]:
-    if artifact.ecosystem_inventory is None:
-        return _unavailable_section("ecosystems", "ecosystem_artifact_not_packaged")
-    inventory = build_ecosystem_inventory(
-        artifact.ecosystem_inventory,
+    mesa_rows = _mesa_ecosystem_rows(
+        artifact,
         raster,
         solution_raster,
+        solution_id,
+    )
+    if artifact.ecosystem_inventory is None and not mesa_rows:
+        return _unavailable_section("ecosystems", "ecosystem_artifact_not_packaged")
+    inventory = (
+        build_ecosystem_inventory(
+            artifact.ecosystem_inventory,
+            raster,
+            solution_raster,
+        )
+        if artifact.ecosystem_inventory is not None
+        else {
+            "canonical_summary_view": "broadEcosystem",
+            "classified_area_km2": 0.0,
+            "views": [],
+        }
     )
     record_count = sum(len(view["records"]) for view in inventory["views"])
     return {
-        "status": "complete" if record_count else "empty",
+        "status": "complete" if record_count or mesa_rows else "empty",
         **inventory,
+        "solution_coverage": mesa_rows,
     }
+
+
+def _mesa_ecosystem_rows(
+    artifact: RuntimeArtifact,
+    raster: SolutionRaster,
+    solution_raster: SolutionRaster | None,
+    solution_id: str | None,
+) -> list[dict[str, Any]]:
+    if (
+        artifact.mesa_coverage is None
+        or solution_raster is None
+        or solution_id is None
+    ):
+        return []
+    rows = calculate_ecosystem_aoi_coverage(
+        artifact.mesa_coverage,
+        solution_id,
+        raster,
+        solution_raster,
+    )
+    return [
+        {
+            "feature": row.feature,
+            "total_in_aoi": row.total_amount_aoi,
+            "held_in_aoi": row.absolute_held_aoi,
+            "coverage_within_aoi": row.coverage_within_aoi,
+            "contribution_to_national_coverage": row.contribution_to_national_coverage,
+            "contribution_to_national_target": row.contribution_to_national_target,
+        }
+        for row in rows.values()
+    ]
 
 
 def _unavailable_section(section: str, reason: str) -> dict[str, Any]:

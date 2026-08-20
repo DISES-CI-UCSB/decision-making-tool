@@ -99,6 +99,38 @@
         }
       },
       "additionalProperties": false
+    },
+    "mesa_coverage": {
+      "type": "object",
+      "description": "Optional EPSG:9377 Mesa-compatible categorical ecosystem and summary-target bundle.",
+      "required": [
+        "format",
+        "grid",
+        "ecosystems",
+        "species_groups",
+        "targets"
+      ],
+      "properties": {
+        "format": {
+          "const": "mesa-runtime-coverage-v1"
+        },
+        "grid": {
+          "const": "EPSG:9377"
+        },
+        "ecosystems": {
+          "type": "object"
+        },
+        "species_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "targets": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

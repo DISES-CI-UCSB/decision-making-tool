@@ -1,0 +1,199 @@
+{
+  "format": "coverage-parity-contract-v1",
+  "releaseId": "solutions-v3-0-0",
+  "scientificAuthority": {
+    "description": "Scientist-supplied Mesa Nacional solution summary and prepared model inputs.",
+    "mesaRepositoryMutationAllowed": false,
+    "speciesUniversePolicy": "legacy-summary-7980",
+    "amphibianCorrectionStatus": "deferred-until-reviewed-summary"
+  },
+  "grid": {
+    "crs": "EPSG:9377",
+    "width": 1353,
+    "height": 1838,
+    "pixelSizeMeters": 1000,
+    "transform": [
+      1000.0,
+      0.0,
+      4331309.911856957,
+      0.0,
+      -999.9999999999999,
+      2933186.9308051495
+    ],
+    "validPlanningCellCount": 1130090,
+    "boundaryInclusion": "pixel-center",
+    "template": {
+      "logicalPath": "mesa/model_input_lyrs/template_terrestre.tif",
+      "sha256": "60c4f3be16b0c903abf63c072bbae408661b8de7bdc5c02528919276290828ea",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/template_terrestre-4WWWG3Y3cQaPYv5aycJJhXeGiwgTUL.tif"
+    }
+  },
+  "goldenMaster": {
+    "solutionId": "eco17_estr17_esprep17_runap_iheh2022",
+    "solutionBasename": "Eco17+Estr17+EspRep17+RUNAP_IHEH2022.tif",
+    "solutionSha256": "e886a24bf4dc1de77336e36d7abdf56ab2011bcc24bfe2f18aececdc943da6ef",
+    "summaryBasename": "Eco17+Estr17+EspRep17+RUNAP_IHEH2022_summary.csv",
+    "summarySha256": "7271b09d12ce448dca2ea7bfbef944bb694faab36003a05c659ddd75d07c555c",
+    "targetPercent": 17,
+    "includePolicy": "RUNAP",
+    "costPolicy": "IHEH2022",
+    "selectedValues": [
+      1,
+      2
+    ],
+    "newSelectedCellCount": 133340,
+    "lockedInCellCount": 194641
+  },
+  "ecosystems": {
+    "featureCount": 417,
+    "totalAmount": 1129487,
+    "solverFeatureCount": 261,
+    "postHocFeatureCount": 156,
+    "raster": {
+      "logicalPath": "mesa/model_input_lyrs/ecosistemas_IAVH_2024.tif",
+      "sha256": "2bf397acf3bf70c353c0c65ce10045c4ee7dd61f4bdf6958d4cd8780d8c5ec89",
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/ecosistemas_IAVH_2024-U7ZEyLLVt1Ra7ZqlHPaQ7043Yyidbg.tif"
+    },
+    "matrix": {
+      "logicalPath": "mesa/model_inputs/ecosistemas_IAVH_2024.rds",
+      "sha256": "6ce0fced1595af2bd2f31adacb7fe0d57a42cb9828b0a4067e4847736f2c85a4"
+    },
+    "catalog": {
+      "logicalPath": "mesa/model_input_lyrs/ecosistemas_IDs_IAVH_2024.csv",
+      "sha256": "6a2a00fd4285234d82842f10745417fd7515a2b7cd5d3b9f4ecaaa4cd3aa8786",
+      "taxonomyFeatureCount": 429,
+      "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/ecosistemas_IDs_IAVH_2024-OvVMElh2tNbwzoRVYh81Eujp9EjEpB.csv"
+    },
+    "filter": {
+      "logicalPath": "mesa/model_inputs/terrestrial_ecosys_filtered.csv",
+      "sha256": "8ca3f8273f4768444cfa9af64d3a603deabbe5a975642518594a9ac7af1222c9"
+    },
+    "runapMatrix": {
+      "logicalPath": "mesa/model_inputs/runap_terrestres.rds",
+      "sha256": "fbb577d04f1f83a552ad73a2d141abbd486e35caa8df78baeb4ff966c74a78df"
+    },
+    "strategicMatrix": {
+      "logicalPath": "mesa/model_inputs/ecosistemas_estrategicos_terrestres.rds",
+      "sha256": "ef3b1c12f9a8f7a5ccbadf886a20cf76f0ba66e8e8bbe8f3febc7de01469d8b1"
+    }
+  },
+  "species": {
+    "summaryFeatureCount": 7980,
+    "summaryMetCount": 7978,
+    "productionCatalogFeatureCount": 8300,
+    "missingSourceRasterCount": 2,
+    "runtimeBundles": [
+      {
+        "group": "amphibians",
+        "featureCount": 9,
+        "bytes": 9073,
+        "sha256": "fc6bb2fd5b310a0332975c4aaf3003a487e8c91d98bca8f7a8af94db9a6e9cfc",
+        "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/species/masked/amphibians.smtx-9XFhPFZwcD6HBuQGjXCgR9PHGfcspf.gz"
+      },
+      {
+        "group": "birds",
+        "featureCount": 1489,
+        "bytes": 28975550,
+        "sha256": "f555b87f96e029d4dbeda074b9a7930a280fff023e1dbc05d578e08ff4070cbc",
+        "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/species/masked/birds.smtx-fuVVa48n3bGyRKUGAZXzAgnxvneNDN.gz"
+      },
+      {
+        "group": "mammals",
+        "featureCount": 251,
+        "bytes": 5411058,
+        "sha256": "2a0eac432d925a9c968062d85e950483d6c081129c57289a1d8013206e38ec75",
+        "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/species/masked/mammals.smtx-jyDRmT4ITuMzfi3IOZQZ4wn2v2SlKm.gz"
+      },
+      {
+        "group": "plants",
+        "featureCount": 6092,
+        "bytes": 209969732,
+        "sha256": "a9c50eff73e3d0bc8d4a35d53ec88a375de7809873c7c707251ba827dbee5de2",
+        "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/species/masked/plants.smtx-xg5DPQ0kBm4TYVP6igdRJoqIGX2CRp.gz"
+      },
+      {
+        "group": "reptiles",
+        "featureCount": 139,
+        "bytes": 3695430,
+        "sha256": "c55f41de9c0a1d34fa59af24b9a14ccb6a26824d35f113dc86767d4e2f44dbd2",
+        "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/inputs/mesa/species/masked/reptiles.smtx-7bTNHaInvZVfCjD7oTjZfY75FzcNj7.gz"
+      }
+    ],
+    "matrixArtifacts": [
+      {
+        "group": "amphibians",
+        "logicalPath": "mesa/model_inputs/Amphibia.rds",
+        "featureCount": 158,
+        "sha256": "a479eafa2968a52eea4eec62949d07af6601921c7a33753c2fed84b23b3da680"
+      },
+      {
+        "group": "birds",
+        "logicalPath": "mesa/model_inputs/Aves.rds",
+        "featureCount": 1489,
+        "sha256": "fd1c3cfb916d801c539e62bb502de5b9ae4c8ac982fab3d91e1917fe2d6af2ae"
+      },
+      {
+        "group": "reptiles",
+        "logicalPath": "mesa/model_inputs/Crocodylia.rds",
+        "featureCount": 4,
+        "sha256": "da8d076df704d1cdff043cb15906da078d5f598310ca4fdb740357614246f1fb"
+      },
+      {
+        "group": "mammals",
+        "logicalPath": "mesa/model_inputs/Mammalia.rds",
+        "featureCount": 251,
+        "sha256": "21cf143fb325b9f2b71a1950fc6b47af5e4f945b46c0d9a06bf04bceae55114f"
+      },
+      {
+        "group": "reptiles",
+        "logicalPath": "mesa/model_inputs/Squamata.rds",
+        "featureCount": 135,
+        "sha256": "eab5efed95f43a0f0a8aba24caab40088e55ad035b4ef2f6ec5facbea58f3442"
+      },
+      {
+        "group": "plants",
+        "logicalPath": "mesa/model_inputs/Magnoliopsida_1.rds",
+        "featureCount": 2965,
+        "sha256": "839635c37e24ec31839da586b2af4762bfac1a5988ab7a0f18d3ca5a644b2ee9"
+      },
+      {
+        "group": "plants",
+        "logicalPath": "mesa/model_inputs/Magnoliopsida_2.rds",
+        "featureCount": 3127,
+        "sha256": "5c28f4013d1fe904a1cfc2c81eadf44019f85d36305630a9d27f36685b77369a"
+      }
+    ],
+    "filteredRepresentativeness": {
+      "logicalPath": "mesa/model_inputs/biomod_filtered_representatividad.rds",
+      "featureCount": 2158,
+      "sha256": "dbbc7145f43a4e55ecaabfbb8cc32809c517aa7a46e5c75a3755b8981c7a5fa3"
+    },
+    "filterTable": {
+      "logicalPath": "mesa/model_inputs/biomod_spp_filtered_representatividad.csv",
+      "rowCount": 4484,
+      "sha256": "ebc74609cdf01c3bf7e2ba3d6d481c2329f2486f3bb62755f7cbdc96cd4a6a3f"
+    }
+  },
+  "validation": {
+    "requiredDomains": [
+      "ecosystems",
+      "species"
+    ],
+    "requiredFields": [
+      "feature",
+      "met",
+      "total_amount",
+      "absolute_target",
+      "absolute_held",
+      "absolute_shortfall",
+      "relative_target",
+      "relative_held",
+      "relative_shortfall",
+      "feature_type",
+      "class",
+      "scenario",
+      "evaluated"
+    ],
+    "unexplainedMismatchLimit": 0
+  }
+}

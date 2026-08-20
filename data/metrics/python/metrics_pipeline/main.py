@@ -43,6 +43,7 @@ import argparse
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 import traceback
@@ -77,6 +78,10 @@ from calculators.species import (
     SpeciesAccumulator,
     SpeciesDetailSink,
     SpeciesScopeMetrics,
+)
+from coverage_parity_contract import (
+    CoverageParityContractError,
+    load_coverage_parity_contract,
 )
 from local_io import (
     CACHE_BLOB_DIRECTORY,
@@ -389,6 +394,25 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Process only entries marked recompute in a deterministic release plan.",
     )
     parser.add_argument(
+        "--coverage-parity-contract",
+        type=Path,
+        default=None,
+        help=(
+            "Validate and bind a Mesa-compatible coverage-parity contract. "
+            "The contract golden solution must be included in the selected batch."
+        ),
+    )
+    parser.add_argument("--coverage-parity-summary", type=Path, default=None)
+    parser.add_argument("--coverage-parity-template", type=Path, default=None)
+    parser.add_argument("--coverage-parity-ecosystem-raster", type=Path, default=None)
+    parser.add_argument("--coverage-parity-ecosystem-catalog", type=Path, default=None)
+    parser.add_argument(
+        "--coverage-parity-species-matrix",
+        type=Path,
+        action="append",
+        default=[],
+    )
+    parser.add_argument(
         "--domain",
         choices=("land", "marine"),
         default=None,
@@ -508,6 +532,20 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         args.solution_id is not None or args.limit is not None
     ):
         parser.error("--domain cannot be combined with --solution-id or --limit")
+    parity_inputs = (
+        args.coverage_parity_summary,
+        args.coverage_parity_template,
+        args.coverage_parity_ecosystem_raster,
+        args.coverage_parity_ecosystem_catalog,
+    )
+    if args.coverage_parity_contract is not None and (
+        any(value is None for value in parity_inputs)
+        or not args.coverage_parity_species_matrix
+    ):
+        parser.error(
+            "--coverage-parity-contract requires summary, template, ecosystem "
+            "raster/catalog, and at least one species matrix"
+        )
     return args
 
 
@@ -3347,6 +3385,53 @@ def _process_solution(
 # ---------------------------------------------------------------------------
 
 
+def _run_coverage_parity_gate(
+    args: argparse.Namespace,
+    *,
+    solution_path: Path,
+) -> None:
+    if args.coverage_parity_contract is None:
+        return
+    script = Path(__file__).resolve().parents[1] / "mesa_parity" / "main.py"
+    report = args.output_dir / "coverage-parity-report.json"
+    command = [
+        sys.executable,
+        str(script),
+        "--contract",
+        str(args.coverage_parity_contract),
+        "--summary",
+        str(args.coverage_parity_summary),
+        "--solution",
+        str(solution_path),
+        "--template",
+        str(args.coverage_parity_template),
+        "--ecosystem-raster",
+        str(args.coverage_parity_ecosystem_raster),
+        "--ecosystem-catalog",
+        str(args.coverage_parity_ecosystem_catalog),
+        "--report",
+        str(report),
+    ]
+    for matrix in args.coverage_parity_species_matrix:
+        command.extend(["--species-matrix", str(matrix)])
+    completed = subprocess.run(
+        command,
+        cwd=Path(__file__).resolve().parents[4],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if completed.stdout:
+        print(f"[tier1-metrics] coverage parity: {completed.stdout.strip()}")
+    if completed.returncode != 0:
+        if completed.stderr:
+            print(completed.stderr, file=sys.stderr)
+        raise ValueError(
+            f"coverage parity gate failed with exit code {completed.returncode}"
+        )
+    print(f"[tier1-metrics] coverage parity report -> {report}")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     catalog: SolutionCatalog | None = None
@@ -3487,6 +3572,29 @@ def main(argv: list[str] | None = None) -> int:
     except (ManifestError, SolutionCatalogError) as exc:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
         return 2
+
+    if args.coverage_parity_contract is not None:
+        try:
+            parity_contract = load_coverage_parity_contract(
+                args.coverage_parity_contract
+            )
+        except CoverageParityContractError as exc:
+            print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+            return 2
+        selected_ids = {str(solution.get("id")) for solution in selected_solutions}
+        if parity_contract.solution_id not in selected_ids:
+            print(
+                "[tier1-metrics] ERROR: coverage parity golden solution "
+                f"{parity_contract.solution_id!r} is not selected",
+                file=sys.stderr,
+            )
+            return 2
+        print(
+            "[tier1-metrics] coverage parity: "
+            f"{parity_contract.release_id} golden={parity_contract.solution_id} "
+            f"ecosystems={parity_contract.ecosystem_feature_count} "
+            f"species={parity_contract.species_feature_count}"
+        )
 
     print(
         f"[tier1-metrics] preflight: validating "
@@ -4080,6 +4188,19 @@ def main(argv: list[str] | None = None) -> int:
                 failure["validationIssues"] = exc.validation_issues
             failures.append(failure)
             print(f"[tier1-metrics]   FAILED: {exc}", file=sys.stderr)
+
+    if args.coverage_parity_contract is not None and not failures:
+        try:
+            parity_contract = load_coverage_parity_contract(
+                args.coverage_parity_contract
+            )
+            _run_coverage_parity_gate(
+                args,
+                solution_path=preflight_downloads[parity_contract.solution_id].path,
+            )
+        except (CoverageParityContractError, OSError, ValueError) as exc:
+            print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+            return 2
 
     geo_levels = sorted({lvl for e in entries for lvl in e.get("geographyLevels", [])})
     if (

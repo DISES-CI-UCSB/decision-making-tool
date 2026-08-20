@@ -39,6 +39,7 @@ def _install_metrics_pipeline_path() -> Path:
 _install_metrics_pipeline_path()
 
 from raster_metrics import SolutionRaster  # noqa: E402
+from mesa_coverage import mesa_aoi_coverage_row  # noqa: E402
 from sparse.format import SMSP_MAGIC, SparseFormatError, SparseMetadata  # noqa: E402
 from sparse.species_bitset import (  # noqa: E402
     FORMAT as BITSET_FORMAT,
@@ -78,6 +79,11 @@ class SpeciesCoverageRecord:
     pre_existing_covered_in_aoi_pct: float
     new_covered_in_aoi_area_km2: float
     new_covered_in_aoi_pct: float
+    total_in_aoi: float | None = None
+    held_in_aoi: float | None = None
+    coverage_within_aoi: float | None = None
+    contribution_to_national_coverage: float | None = None
+    contribution_to_national_target: float | None = None
 
 
 @dataclass(frozen=True)
@@ -274,6 +280,8 @@ class RuntimeSpeciesBitsetIndex:
         aoi_raster: SolutionRaster,
         solution_raster: SolutionRaster,
         is_cancelled: Callable[[], bool] | None = None,
+        *,
+        target_for_species: Callable[[str], float | None] | None = None,
     ) -> list[SpeciesCoverageRecord]:
         if not aoi_raster.fingerprint.matches(solution_raster.fingerprint):
             raise SpeciesIndexQueryError("solution_raster_grid_mismatch")
@@ -314,6 +322,7 @@ class RuntimeSpeciesBitsetIndex:
         new_selected = new_window.ravel()[selected_cell_ids]
 
         areas = np.zeros((4, self.species_count), dtype=np.float64)
+        cell_counts = np.zeros((2, self.species_count), dtype=np.float64)
 
         for start in range(0, selected_cell_ids.size, self.query_chunk_cells):
             if is_cancelled is not None and is_cancelled():
@@ -336,8 +345,14 @@ class RuntimeSpeciesBitsetIndex:
                 )
             )
             areas += coverage_weights @ presence
+            cell_counts[0] += presence.sum(axis=0, dtype=np.int64)
+            cell_counts[1] += (
+                solution_selected[start:end].astype(np.float64, copy=False)
+                @ presence
+            )
 
         within_area, covered_area, pre_existing_area, new_area = areas
+        within_cells, held_cells = cell_counts
 
         records: list[SpeciesCoverageRecord] = []
         for species_index in np.flatnonzero(within_area > 0):
@@ -356,6 +371,22 @@ class RuntimeSpeciesBitsetIndex:
             covered = min(float(covered_area[species_index]) * density, within)
             pre_existing = min(float(pre_existing_area[species_index]) * density, within)
             new = min(float(new_area[species_index]) * density, within)
+            target = (
+                target_for_species(entry.scientific_name)
+                if target_for_species is not None
+                else None
+            )
+            mesa_row = (
+                mesa_aoi_coverage_row(
+                    feature=entry.scientific_name,
+                    total_amount_aoi=float(within_cells[species_index]),
+                    absolute_held_aoi=float(held_cells[species_index]),
+                    national_total=float(entry.range_cell_count),
+                    national_target=target,
+                )
+                if target is not None
+                else None
+            )
             records.append(
                 SpeciesCoverageRecord(
                     id=species_dataset_id(entry.scientific_name),
@@ -371,6 +402,25 @@ class RuntimeSpeciesBitsetIndex:
                     pre_existing_covered_in_aoi_pct=_percentage(pre_existing, within),
                     new_covered_in_aoi_area_km2=new,
                     new_covered_in_aoi_pct=_percentage(new, within),
+                    total_in_aoi=(
+                        mesa_row.total_amount_aoi if mesa_row is not None else None
+                    ),
+                    held_in_aoi=(
+                        mesa_row.absolute_held_aoi if mesa_row is not None else None
+                    ),
+                    coverage_within_aoi=(
+                        mesa_row.coverage_within_aoi if mesa_row is not None else None
+                    ),
+                    contribution_to_national_coverage=(
+                        mesa_row.contribution_to_national_coverage
+                        if mesa_row is not None
+                        else None
+                    ),
+                    contribution_to_national_target=(
+                        mesa_row.contribution_to_national_target
+                        if mesa_row is not None
+                        else None
+                    ),
                 )
             )
         records.sort(

@@ -2161,7 +2161,7 @@ describe('PanelSwitcherComponent', () => {
     ).toBeLessThan(100);
   });
 
-  it('uses configured species targets as the targeted modal denominator', async () => {
+  it('uses summary species rows as the national targeted modal denominator', async () => {
     const document = buildGoalsDocument();
     document.targetContext.targetFeatureSet = 'species';
     document.targetContext.targetFeatureIds = ['especies'];
@@ -2192,12 +2192,13 @@ describe('PanelSwitcherComponent', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     fixture.detectChanges();
 
-    expect(component.goalsModalRows()).toHaveLength(8_300);
+    expect(component.goalsModalRows()).toHaveLength(3);
     expect(component.goalsModalSummary()).toMatchObject({
-      totalCount: 8_001,
+      totalCount: 3,
       metCount: 0,
       pctMet: 0,
     });
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
     expect(
       fixture.nativeElement.querySelector(
         '#conservation-goals-modal-national-virtual-heading-target',
@@ -2225,6 +2226,7 @@ describe('PanelSwitcherComponent', () => {
     vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(records));
     goalsDocument = document;
     appState.activeSolution$.set(buildTestSolution());
+    appState.selectAOI(buildFixedMunicipalityAoi());
     appState.setRightSidebarMode('overview');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
@@ -2382,10 +2384,13 @@ describe('PanelSwitcherComponent', () => {
   it('labels and switches the national ecosystem classification breakdown', async () => {
     const solution = buildTestSolution();
     goalsDocument = buildGoalsDocument();
+    const mecDocument = buildFiveViewV2MecDocument(solution.id);
+    mecDocument.classCatalog.push([4, 'biomeRegion:taxonomy-only', 'Taxonomy-only ecosystem']);
+    mecDocument.rows.push([0, mecDocument.classCatalog.length - 1, 0, 0, 0]);
     vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
       of({
         status: 'loaded',
-        document: buildFiveViewV2MecDocument(solution.id),
+        document: mecDocument,
         format: 'mec-compact-v2',
       }),
     );
@@ -2418,6 +2423,13 @@ describe('PanelSwitcherComponent', () => {
         .querySelector('#conservation-goals-modal-browser-title')
         ?.textContent?.replace(/\s+/g, ' '),
     ).toContain('analysis.aoi.mec.levels.iavh');
+    expect(compiled.querySelector('#conservation-goals-modal-met-value')?.textContent).toContain(
+      '1 / 2',
+    );
+    expect(
+      compiled.querySelector('#conservation-goals-modal-feature-name-0')?.textContent,
+    ).toContain('Andean forest');
+    expect(compiled.textContent).not.toContain('Taxonomy-only ecosystem');
 
     (
       compiled.querySelector('#conservation-goals-modal-ecosystem-level-broad') as HTMLButtonElement
@@ -2458,6 +2470,9 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#conservation-goals-modal-coverage-area-0')?.textContent,
     ).toContain('4 km²');
+    expect(compiled.querySelector('#conservation-goals-modal-met-value')?.textContent).toContain(
+      '1 / 2',
+    );
   });
 
   it('shows loading and recoverable error states for national ecosystem classifications', async () => {
