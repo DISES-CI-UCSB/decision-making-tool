@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "scripts": {
     "ng": "ng",
-    "start": "node ./layer-manifest/validate-local-preview-manifest.mjs && npm run sync:solutions && npm run sync:boundaries && ng serve --proxy-config proxy.conf.json",
+    "start": "node ./layer-manifest/sync-local-preview-manifest.mjs && node ./layer-manifest/validate-local-preview-manifest.mjs && npm run sync:solutions && npm run sync:boundaries && ng serve --proxy-config proxy.conf.json",
+    "sync:local-preview-manifest": "node ./layer-manifest/sync-local-preview-manifest.mjs",
     "build": "ng build",
     "build:production": "ng build --configuration production",
     "build:vercel": "node ./scripts/config/write-production-environment.mjs && npm run sync:solutions && npm run sync:boundaries && npm run validate:deploy-assets && ng build",
