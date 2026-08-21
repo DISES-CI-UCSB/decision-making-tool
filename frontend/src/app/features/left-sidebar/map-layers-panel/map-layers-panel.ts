@@ -1076,6 +1076,15 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (sirapBoundaryName) {
       return this.localizedTextOrFallback(sirapBoundaryName.key, sirapBoundaryName.fallback);
     }
+    if (manifestRow.id === 'zonas_reserva_campesina_constituida') {
+      if (this.activeLanguage() === 'es') {
+        return manifestRow.spanishLabel;
+      }
+      return this.localizedTextOrFallback(
+        'mapLayersPanel.layerNames.campesinaReserveZones',
+        'Campesina Reserve Zones',
+      );
+    }
     if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
       return this.localizedTextOrFallback(
         'mapLayersPanel.ecosystemsLayerName',

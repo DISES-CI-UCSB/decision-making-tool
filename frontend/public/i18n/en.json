@@ -1372,7 +1372,8 @@
       "costs": "Costs"
     },
     "layerNames": {
-      "marineHumanModification": "Marine human modification (HHM)"
+      "marineHumanModification": "Marine human modification (HHM)",
+      "campesinaReserveZones": "Campesina Reserve Zones"
     },
     "boundaryNames": {
       "combinedSirapReviewLayer": "SIRAP",
