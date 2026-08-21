@@ -374,6 +374,7 @@
       },
       "sections": {
         "conservationGains": "Conservation Summary",
+        "ecosystemServices": "Ecosystem Services",
         "costsAndTradeoffs": "Costs of Conservation"
       },
       "conditional": "Conditional",
