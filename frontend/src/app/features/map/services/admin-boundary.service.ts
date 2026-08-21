@@ -236,7 +236,7 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
   {
     id: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.sourceId,
     layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
-    title: 'Territorial SIRAPs (new)',
+    title: 'Territorial SIRAPs',
     type: 'sirap',
     sourceType: 'geojson',
     url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,

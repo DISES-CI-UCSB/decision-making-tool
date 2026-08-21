@@ -109,8 +109,8 @@ describe('authoritative Territorial SIRAP source', () => {
         metadataUrl: authoritativeEntry.manifestLayer.metadataUrl,
       },
       {
-        englishLabel: 'Territorial SIRAPs (new)',
-        spanishLabel: 'SIRAP territoriales (nuevos)',
+        englishLabel: 'Territorial SIRAPs',
+        spanishLabel: 'SIRAP territoriales',
         description:
           'Authoritative six-feature Territorial SIRAP boundaries used for AOI selection and metric lookup.',
         dataRole: 'administrative_boundary',

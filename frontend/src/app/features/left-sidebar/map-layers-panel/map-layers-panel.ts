@@ -1058,11 +1058,23 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
-    if (manifestRow.id === 'siraps') {
-      return this.localizedTextOrFallback(
-        'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
-        'SIRAP',
-      );
+    const sirapBoundaryNameKeys: Record<string, { key: string; fallback: string }> = {
+      siraps: {
+        key: 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
+        fallback: 'SIRAP',
+      },
+      siraps_territorial_updated: {
+        key: 'mapLayersPanel.boundaryNames.territorialSirapsUpdated',
+        fallback: 'Territorial SIRAPs',
+      },
+      siraps_thematic: {
+        key: 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
+        fallback: 'Thematic SIRAPs',
+      },
+    };
+    const sirapBoundaryName = sirapBoundaryNameKeys[manifestRow.id];
+    if (sirapBoundaryName) {
+      return this.localizedTextOrFallback(sirapBoundaryName.key, sirapBoundaryName.fallback);
     }
     if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
       return this.localizedTextOrFallback(
@@ -4405,7 +4417,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const boundaryNameFallbacks: Record<string, string> = {
       'boundary-siraps': 'SIRAP',
       'boundary-siraps_territorial': 'Territorial SIRAPs (outdated)',
-      'boundary-siraps_territorial_updated': 'Territorial SIRAPs (new)',
+      'boundary-siraps_territorial_updated': 'Territorial SIRAPs',
       'boundary-siraps_thematic': 'Thematic SIRAPs',
       'boundary-admin_country_outline': 'Colombia Outline',
       'boundary-admin_departments': 'Departments',

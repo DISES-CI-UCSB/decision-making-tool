@@ -320,12 +320,10 @@ describe('reconcileMapLayersManifest', () => {
     });
 
     expect(enabledSirapBoundaryLayerKeys()).toEqual([
-      'siraps_territorial',
       'siraps_territorial_updated',
       'siraps_thematic',
     ]);
     expect(result.groups[0].rows.map((item) => item.id)).toEqual([
-      'boundary-siraps_territorial',
       'boundary-siraps_territorial_updated',
       'boundary-siraps_thematic',
     ]);

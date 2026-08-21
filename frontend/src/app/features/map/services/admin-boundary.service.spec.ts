@@ -128,17 +128,6 @@ describe('AdminBoundaryService', () => {
         }),
       }),
     );
-    expect(boundaryRenderer(service, 'siraps_territorial')).toEqual(
-      expect.objectContaining({
-        symbol: expect.objectContaining({
-          outline: expect.objectContaining({
-            color: [107, 114, 128, 235],
-            style: 'solid',
-            width: 1.25,
-          }),
-        }),
-      }),
-    );
     expect(boundaryRenderer(service, 'siraps_territorial_updated')).toEqual(
       expect.objectContaining({
         symbol: expect.objectContaining({
@@ -548,36 +537,6 @@ describe('AdminBoundaryService', () => {
     });
   });
 
-  it('keeps the outdated territorial source view-only when its geometry is clicked', async () => {
-    const service = TestBed.inject(AdminBoundaryService);
-    const layer = {
-      id: 'aoi-siraps-territorial-colombia',
-      visible: true,
-    };
-    const view = {
-      hitTest: vi.fn(),
-      goTo: vi.fn().mockResolvedValue(undefined),
-    };
-    Object.assign(service as unknown as Record<string, unknown>, {
-      boundaryLayers: [layer],
-    });
-
-    await (
-      service as unknown as {
-        handleMapClick(
-          mapView: never,
-          mapPoint: Point,
-          screenX: number,
-          screenY: number,
-        ): Promise<void>;
-      }
-    ).handleMapClick(view as never, new Point({ x: 5, y: 5 }), 100, 100);
-
-    expect(view.hitTest).not.toHaveBeenCalled();
-    expect(view.goTo).not.toHaveBeenCalled();
-    expect(selectedAOI()).toBeNull();
-  });
-
   it('registers only feature-flag-enabled SIRAP boundary configurations', () => {
     const service = TestBed.inject(AdminBoundaryService);
     const configs = (
@@ -592,12 +551,6 @@ describe('AdminBoundaryService', () => {
     ).getConfigsForTarget('sirap');
 
     expect(configs).toEqual([
-      expect.objectContaining({
-        layerKey: 'siraps_territorial',
-        selectable: false,
-        url: expect.stringContaining(PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname),
-        definitionExpression: "sirap_kind = 'territorial'",
-      }),
       expect.objectContaining({
         layerKey: 'siraps_thematic',
         url: expect.stringContaining(PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname),
