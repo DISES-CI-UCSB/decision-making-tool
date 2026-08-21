@@ -3398,7 +3398,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: BASELINE_SOLUTION_OVERLAY_ID,
         name: this.localizedTextOrFallback(
           'mapLayersPanel.overlayNames.conservationSolution',
-          'Conservation Solution',
+          'Conservation Scenario',
         ),
         selected: true,
         visible: true,
@@ -4261,7 +4261,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             ...row,
             name: this.localizedTextOrFallback(
               'mapLayersPanel.overlayNames.conservationSolution',
-              'Conservation Solution',
+              'Conservation Scenario',
             ),
           };
         }

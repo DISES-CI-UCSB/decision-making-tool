@@ -134,7 +134,7 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
         aoi: {
           customProfile: {
             species: {
-              solutionCoverage: 'Total solution coverage (within AOI)',
+              solutionCoverage: 'Total scenario coverage (within AOI)',
               preExistingCoverage: 'Pre-existing coverage (within AOI)',
               newCoverage: 'New coverage (within AOI)',
             },
@@ -150,7 +150,7 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-solutionCoverage-heading-label')
         ?.textContent,
-    ).toContain('Total solution coverage (within AOI)');
+    ).toContain('Total scenario coverage (within AOI)');
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-preExistingCoverage-heading-label')
         ?.textContent,

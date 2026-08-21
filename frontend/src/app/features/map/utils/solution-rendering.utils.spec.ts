@@ -27,7 +27,7 @@ describe('solution rendering utilities', () => {
         showExistingProtectedCoverage: true,
       }),
     ).toEqual([
-      { value: 2, color: '#f97316', label: 'Included areas in solution (RUNAP)' },
+      { value: 2, color: '#f97316', label: 'Included areas in scenario (RUNAP)' },
       { value: 1, color: '#ff0000', label: 'New coverage' },
     ]);
   });
@@ -38,8 +38,8 @@ describe('solution rendering utilities', () => {
         showExistingProtectedCoverage: false,
       }),
     ).toEqual([
-      { value: 2, color: '#ff0000', label: 'Selected solution' },
-      { value: 1, color: '#ff0000', label: 'Selected solution' },
+      { value: 2, color: '#ff0000', label: 'Selected scenario' },
+      { value: 1, color: '#ff0000', label: 'Selected scenario' },
     ]);
   });
 

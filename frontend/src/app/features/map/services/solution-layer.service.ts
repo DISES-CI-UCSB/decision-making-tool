@@ -216,14 +216,14 @@ export class SolutionLayerService {
       this.baselineComparisonLayer = this.createLayerFromLoaded(
         baselineLoaded,
         BASELINE_LAYER_ID,
-        `Solution A: ${baselineLoaded.solution.name}`,
+        `Scenario A: ${baselineLoaded.solution.name}`,
         this.baselineColor$(),
         { collapseExistingProtectedCoverage: true },
       );
       this.candidateComparisonLayer = this.createLayerFromLoaded(
         candidateLoaded,
         CANDIDATE_LAYER_ID,
-        `Solution B: ${candidateLoaded.solution.name}`,
+        `Scenario B: ${candidateLoaded.solution.name}`,
         this.candidateColor$(),
         { collapseExistingProtectedCoverage: true },
       );

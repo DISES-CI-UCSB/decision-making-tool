@@ -19,8 +19,8 @@ const INCLUDED_AREA_LABELS: Record<SolutionIncludedAreaKey, Record<LayerLocale, 
 };
 
 const LEGEND_PREFIX: Record<LayerLocale, string> = {
-  en: 'Included areas in solution',
-  es: 'Áreas incluidas en la solución',
+  en: 'Included areas in scenario',
+  es: 'Áreas incluidas en el escenario',
 };
 
 export function getSolutionIncludedAreaKeys(solution: CatalogSolution): SolutionIncludedAreaKey[] {

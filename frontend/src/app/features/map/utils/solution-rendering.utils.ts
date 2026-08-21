@@ -42,12 +42,12 @@ export function solutionClassColors(
       {
         value: EXISTING_PROTECTED_VALUE,
         color: selectedSolutionColor,
-        label: 'Selected solution',
+        label: 'Selected scenario',
       },
       {
         value: NEW_COVERAGE_VALUE,
         color: selectedSolutionColor,
-        label: 'Selected solution',
+        label: 'Selected scenario',
       },
     ];
   }
