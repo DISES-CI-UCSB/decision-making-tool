@@ -92,19 +92,14 @@
                     [style.background-color]="solutionColor()"
                     style="opacity: 0.7"
                   ></span>
-                  {{
-                    (showExistingProtectedCoverage()
-                      ? 'mapLegend.newCoverage'
-                      : 'mapLegend.selected'
-                    )
-                      | translate
-                        : {
-                            pct: (showExistingProtectedCoverage()
-                              ? sol.rasterMeta.newCoveragePctOfCountry
-                              : sol.rasterMeta.selectedPct
-                            ).toFixed(1),
-                          }
-                  }}
+                  @if (showExistingProtectedCoverage()) {
+                    {{ newCoverageLegendLabel() }}
+                  } @else {
+                    {{
+                      'mapLegend.selected'
+                        | translate: { pct: sol.rasterMeta.selectedPct.toFixed(1) }
+                    }}
+                  }
                 </li>
               </ul>
             } @else if (comparisonMode() === 'threeColorOverlay') {

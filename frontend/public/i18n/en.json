@@ -67,7 +67,7 @@
     "solutionBFallback": "Scenario B",
     "selected": "Existing conservation areas ({{pct}}% of Colombia)",
     "includedAreasFallback": "Existing conservation areas",
-    "newCoverage": "candidate conservation areas.",
+    "newCoverage": "Candidate conservation areas",
     "aOnly": "A only: {{name}}",
     "bOnly": "B only: {{name}}",
     "overlap": "Overlap (A + B)",

@@ -74,6 +74,9 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
     }
     return getSolutionIncludedAreasLegendLabel(loaded.solution, this.appLocaleService.locale());
   });
+  readonly newCoverageLegendLabel = computed(() =>
+    this.localizedText('mapLegend.newCoverage', 'Candidate conservation areas'),
+  );
 
   readonly selectedLayerEntries = computed<MapLegendLayerEntry[]>(() =>
     this.appState.selectedLegendLayers$(),
