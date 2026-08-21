@@ -375,7 +375,7 @@
       "sections": {
         "conservationGains": "Resumen de conservación",
         "ecosystemServices": "Servicios ecosistémicos",
-        "costsAndTradeoffs": "Costos y compensaciones"
+        "costsAndTradeoffs": "Costos de conservación"
       },
       "conditional": "Condicional",
       "methodologyInfoLabel": "Metodología y fuente de la métrica",
