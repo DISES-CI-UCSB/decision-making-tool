@@ -67,7 +67,7 @@
     "solutionAFallback": "Scenario A",
     "solutionBFallback": "Scenario B",
     "selected": "Areas included in this scenario ({{pct}}% of Colombia)",
-    "includedAreasFallback": "Included areas in scenario",
+    "includedAreasFallback": "Existing conservation areas",
     "newCoverage": "New priority area added by this scenario ({{pct}}% of Colombia)",
     "aOnly": "A only: {{name}}",
     "bOnly": "B only: {{name}}",

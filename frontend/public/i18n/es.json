@@ -67,7 +67,7 @@
     "solutionAFallback": "Escenario A",
     "solutionBFallback": "Escenario B",
     "selected": "Áreas incluidas en este escenario ({{pct}}% de Colombia)",
-    "includedAreasFallback": "Áreas incluidas en el escenario",
+    "includedAreasFallback": "Áreas de conservación existentes",
     "newCoverage": "Nueva área prioritaria agregada por este escenario ({{pct}}% de Colombia)",
     "aOnly": "Solo A: {{name}}",
     "bOnly": "Solo B: {{name}}",

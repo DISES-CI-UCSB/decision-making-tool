@@ -70,7 +70,7 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly includedAreasLegendLabel = computed(() => {
     const loaded = this.loaded();
     if (!loaded) {
-      return this.localizedText('mapLegend.includedAreasFallback', 'Included areas in scenario');
+      return this.localizedText('mapLegend.includedAreasFallback', 'Existing conservation areas');
     }
     return getSolutionIncludedAreasLegendLabel(loaded.solution, this.appLocaleService.locale());
   });

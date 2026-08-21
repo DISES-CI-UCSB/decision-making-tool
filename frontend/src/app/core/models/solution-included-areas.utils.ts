@@ -19,8 +19,8 @@ const INCLUDED_AREA_LABELS: Record<SolutionIncludedAreaKey, Record<LayerLocale, 
 };
 
 const LEGEND_PREFIX: Record<LayerLocale, string> = {
-  en: 'Included areas in scenario',
-  es: 'Áreas incluidas en el escenario',
+  en: 'Existing conservation areas',
+  es: 'Áreas de conservación existentes',
 };
 
 export function getSolutionIncludedAreaKeys(solution: CatalogSolution): SolutionIncludedAreaKey[] {
@@ -67,8 +67,12 @@ export function getSolutionIncludedAreasLegendLabel(
   solution: CatalogSolution,
   locale: LayerLocale = 'en',
 ): string {
-  const labels = getSolutionIncludedAreaLabels(solution, locale);
+  const conservationAreaLabels = getSolutionIncludedAreaKeys(solution)
+    .filter((key): key is Exclude<SolutionIncludedAreaKey, 'afroIndigenous'> => key !== 'afroIndigenous')
+    .map((key) => INCLUDED_AREA_LABELS[key][locale]);
   const prefix = LEGEND_PREFIX[locale];
 
-  return labels.length > 0 ? `${prefix} (${labels.join(' + ')})` : prefix;
+  return conservationAreaLabels.length > 0
+    ? `${prefix} (${conservationAreaLabels.join(' + ')})`
+    : prefix;
 }
