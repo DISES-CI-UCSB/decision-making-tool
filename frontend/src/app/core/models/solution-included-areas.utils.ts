@@ -20,7 +20,7 @@ const INCLUDED_AREA_LABELS: Record<SolutionIncludedAreaKey, Record<LayerLocale, 
 
 const LEGEND_PREFIX: Record<LayerLocale, string> = {
   en: 'Existing conservation areas',
-  es: 'Áreas incluidas en la solución',
+  es: 'Áreas incluidas en el escenario',
 };
 
 export function getSolutionIncludedAreaKeys(solution: CatalogSolution): SolutionIncludedAreaKey[] {

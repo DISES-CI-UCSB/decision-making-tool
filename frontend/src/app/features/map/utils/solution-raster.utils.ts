@@ -116,13 +116,13 @@ export function calculateLiveSolutionMetrics(loaded: LoadedSolution): LiveSoluti
   const expectedLength = loaded.rasterMeta.width * loaded.rasterMeta.height;
   if (loaded.rasterData.length < expectedLength) {
     return unavailableSolutionMetrics(
-      'Solution raster does not contain the expected number of cells.',
+      'Scenario raster does not contain the expected number of cells.',
     );
   }
 
   const pixelAreaByRow = getPixelAreaKm2PerRow(loaded.rasterMeta);
   if (!pixelAreaByRow) {
-    return unavailableSolutionMetrics('Unable to derive pixel area from solution raster metadata.');
+    return unavailableSolutionMetrics('Unable to derive pixel area from scenario raster metadata.');
   }
 
   let selectedAreaKm2 = 0;
@@ -183,7 +183,7 @@ export function calculateLiveComparisonMetrics(
   const pixelAreaByRow = getPixelAreaKm2PerRow(baseline.rasterMeta);
   if (!pixelAreaByRow) {
     return unavailableComparisonMetrics(
-      'Unable to derive pixel area from solution raster metadata.',
+      'Unable to derive pixel area from scenario raster metadata.',
     );
   }
 
