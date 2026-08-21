@@ -2037,27 +2037,8 @@
                                             </p>
                                             <p
                                               [id]="'map-layers-species-latin-' + species.id"
-                                              class="inline-flex max-w-full items-center gap-1.5 truncate text-[10px] italic text-slate-600"
+                                              class="truncate text-[10px] italic text-slate-600"
                                             >
-                                              @if (scenarioLayerStatus(species); as status) {
-                                                <span
-                                                  [id]="
-                                                    'map-layers-species-scenario-status-dot-' +
-                                                    species.id
-                                                  "
-                                                  class="map-layers-scenario-status-dot"
-                                                  [class.map-layers-scenario-status-dot-considered]="
-                                                    status === 'considered'
-                                                  "
-                                                  [class.map-layers-scenario-status-dot-reference]="
-                                                    status === 'reference'
-                                                  "
-                                                  [attr.aria-label]="
-                                                    scenarioLayerStatusLabel(status)
-                                                  "
-                                                  [title]="scenarioLayerStatusLabel(status)"
-                                                ></span>
-                                              }
                                               {{ species.latin }}
                                             </p>
                                           </button>

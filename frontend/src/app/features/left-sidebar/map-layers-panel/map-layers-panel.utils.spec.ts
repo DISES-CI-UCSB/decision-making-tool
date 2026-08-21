@@ -9,6 +9,8 @@ import {
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
   reorderRowsById,
+  hasIndividualSpeciesScenarioTargets,
+  individualSpeciesCollectionScenarioStatus,
   scenarioLayerStatus,
   speciesMatchesSearch,
   taxonMatchesSearch,
@@ -135,6 +137,58 @@ describe('scenario status aliases', () => {
 
     expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe('reference');
     expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, false)).toBeNull();
+  });
+
+  it('returns no status for layers that cannot be considered in a scenario', () => {
+    const consideredIds = buildConsideredLayerIdSet(['runap']);
+
+    expect(scenarioLayerStatus('layer-species_richness', undefined, consideredIds, true)).toBeNull();
+    expect(
+      scenarioLayerStatus('layer-admin-departments', undefined, consideredIds, true),
+    ).toBeNull();
+    expect(scenarioLayerStatus('layer-carbon', undefined, consideredIds, true)).toBeNull();
+  });
+
+  it('returns scenario status for the individual species collection row', () => {
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['FEAT_TREMARCTOS_ORNATUS'],
+        },
+        true,
+      ),
+    ).toBe('considered');
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['species'],
+          structuredTargets: {
+            speciesRepresentation: [{ featureId: 'species' }],
+          },
+        },
+        true,
+      ),
+    ).toBe('reference');
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['FEAT_ECOSYSTEMS'],
+        },
+        true,
+      ),
+    ).toBe('reference');
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['FEAT_TREMARCTOS_ORNATUS'],
+        },
+        false,
+      ),
+    ).toBeNull();
+    expect(
+      scenarioLayerStatus('layer-species', 'species', buildConsideredLayerIdSet(['runap']), true),
+    ).toBe('reference');
+    expect(scenarioLayerStatus('species-tremarctos_ornatus', undefined, buildConsideredLayerIdSet(['runap']), true)).toBeNull();
   });
 });
 

@@ -62,6 +62,7 @@ import {
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
   reorderRowsById,
+  individualSpeciesCollectionScenarioStatus,
   scenarioLayerStatus,
   speciesMatchesSearch,
   taxonMatchesSearch,
@@ -787,6 +788,21 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected scenarioLayerStatus(row: LayerControlRow): ScenarioLayerStatus | null {
+    if (row.id === SPECIES_COLLECTION_ROW_ID) {
+      const catalogSolution = this.findActiveCatalogSolution(this.appState.activeSolution$());
+      if (!catalogSolution) {
+        return null;
+      }
+
+      return individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: catalogSolution.finderInputs.targetFeatureIds,
+          structuredTargets: catalogSolution.finderInputs.structuredTargets,
+        },
+        this.hasScenarioLayerStatus(),
+      );
+    }
+
     return scenarioLayerStatus(
       row.id,
       MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID[row.id],
@@ -824,13 +840,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       return this.scenarioLayerStatus({ ...taxon, id: richnessLayerId });
     }
 
-    if (!this.hasScenarioLayerStatus()) {
-      return null;
-    }
-
-    return taxon.species.some((species) => this.scenarioLayerStatus(species) === 'considered')
-      ? 'considered'
-      : 'reference';
+    return null;
   }
 
   private findActiveCatalogSolution(solution: Solution | null) {
