@@ -9,7 +9,6 @@ import {
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
   reorderRowsById,
-  hasIndividualSpeciesScenarioTargets,
   individualSpeciesCollectionScenarioStatus,
   scenarioLayerStatus,
   speciesMatchesSearch,
@@ -142,7 +141,9 @@ describe('scenario status aliases', () => {
   it('returns no status for layers that cannot be considered in a scenario', () => {
     const consideredIds = buildConsideredLayerIdSet(['runap']);
 
-    expect(scenarioLayerStatus('layer-species_richness', undefined, consideredIds, true)).toBeNull();
+    expect(
+      scenarioLayerStatus('layer-species_richness', undefined, consideredIds, true),
+    ).toBeNull();
     expect(
       scenarioLayerStatus('layer-admin-departments', undefined, consideredIds, true),
     ).toBeNull();
@@ -188,7 +189,14 @@ describe('scenario status aliases', () => {
     expect(
       scenarioLayerStatus('layer-species', 'species', buildConsideredLayerIdSet(['runap']), true),
     ).toBe('reference');
-    expect(scenarioLayerStatus('species-tremarctos_ornatus', undefined, buildConsideredLayerIdSet(['runap']), true)).toBeNull();
+    expect(
+      scenarioLayerStatus(
+        'species-tremarctos_ornatus',
+        undefined,
+        buildConsideredLayerIdSet(['runap']),
+        true,
+      ),
+    ).toBeNull();
   });
 });
 
