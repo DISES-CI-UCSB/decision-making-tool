@@ -184,7 +184,8 @@ BOUNDARY_SOURCE_SPECS: dict[str, BoundarySourceSpec] = {
     "siraps": BoundarySourceSpec(
         geo_level="siraps",
         url=(
-            f"{PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/"
+            f"{PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/v3/"
+            "sha256-1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c/"
             "siraps_authoritative_combined_v3.geojson"
         ),
         cache_filename="siraps_authoritative_combined_v3.1372ce88.geojson",

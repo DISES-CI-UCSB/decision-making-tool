@@ -11,6 +11,8 @@ from build_metric_authoritative import (
     DEFAULT_THEMATIC_SOURCE,
     DEPRECATED_TERRITORIAL_IDS,
     EXPECTED_IDS,
+    OUTPUT_PATHNAME,
+    OUTPUT_SHA256,
     SirapMetricBuildError,
     build_collection,
     build_documents,
@@ -42,7 +44,9 @@ def test_authoritative_metric_release_is_reproducible_and_exact():
     assert list(kinds.values()).count("thematic") == 2
     assert metadata["metricCompatible"] is True
     assert metadata["kindField"] == "sirap_kind"
-    assert metadata["sha256"] == hashlib.sha256(output_bytes).hexdigest()
+    assert metadata["sha256"] == hashlib.sha256(output_bytes).hexdigest() == OUTPUT_SHA256
+    assert metadata["pathname"] == OUTPUT_PATHNAME
+    assert f"/v3/sha256-{OUTPUT_SHA256}/" in metadata["url"]
     assert metadata["catalogSha256"] == canonical_sha256(
         sorted(provenance["validation"]["catalog"])
     )
