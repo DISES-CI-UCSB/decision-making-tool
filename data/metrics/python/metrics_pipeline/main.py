@@ -43,12 +43,15 @@ import argparse
 import hashlib
 import json
 import os
+import resource
 import subprocess
 import sys
 import time
 import traceback
 from collections import OrderedDict
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -63,9 +66,44 @@ from blob_manifest import (
     resolve_layer_display_url,
     solution_blob_basename,
 )
-from boundaries.boundary_id_grid import BoundaryIdGrid, BoundaryIdGridCache
-from boundaries.boundary_loader import BoundaryFeature, load_all_boundaries
-from boundaries.boundary_mask import BoundaryMaskCache
+from boundaries.boundary_id_grid import (
+    BoundaryIdGrid,
+    BoundaryIdGridCache,
+    boundary_collection_sha256,
+)
+from boundaries.boundary_loader import (
+    BOUNDARY_SOURCE_SPECS,
+    BoundaryFeature,
+    load_all_boundaries,
+)
+from boundaries.boundary_mask import BoundaryMaskCache, rasterize_boundary
+from boundaries.boundary_topology import (
+    GROUPED_BOUNDARY_FANOUT_ALGORITHM_VERSION,
+    AnyBoundaryIndex,
+    BoundaryTopologyCache,
+    aggregate_boundary_counts,
+    aggregate_boundary_weighted_sums,
+    aggregate_prepared_sparse_boundary_weighted_sums,
+    boundary_cell_counts,
+    boundary_fanout_identity,
+    prepare_sparse_boundary_weighted_channels,
+)
+from boundaries.boundary_weighted_fanout import (
+    NODATA_NORMALIZATION_POLICY,
+    WEIGHTED_BOUNDARY_FANOUT_ALGORITHM_VERSION,
+    WEIGHTED_LAYER_PREPARATION_ALGORITHM_VERSION,
+    WEIGHTED_METRIC_REGISTRY_POLICY_VERSION,
+    ImmutableWeightedLayerCache,
+    PreparedWeightedLayer,
+    WeightedFanoutResult,
+    WeightedLayerIdentity,
+    aggregate_selected_weighted_layers,
+    approved_weighted_specs,
+    assemble_weighted_metric_results,
+    canonical_nodata_value,
+    pixel_area_rows_sha256,
+    weighted_execution_identity,
+)
 from calculator_registry import (
     categorical_area_calculator,
     overlap_area_calculator,
@@ -74,6 +112,8 @@ from calculator_registry import (
     weighted_sum_calculator,
 )
 from calculators import area as calc_area
+from calculators import ecosystem_coverage as calc_ecosystem
+from calculators import marine_ecosystems as calc_marine
 from calculators.species import (
     SpeciesAccumulator,
     SpeciesDetailSink,
@@ -173,6 +213,19 @@ from solution_catalog import (
 )
 from solution_domain import SolutionDomain, solution_domain
 from solution_input_signature import build_solution_input_signature
+from sparse.layer_source import (
+    LAND_BINARY_LAYER_IDS,
+    IndexedBinaryLayerSource,
+    LayerSourceDiagnostic,
+    SparseLayerBinding,
+    SparseLayerIncompatibleError,
+    SparseLayerUnavailableError,
+    binary_selection_values,
+    choose_binary_mask,
+    layer_source_mode,
+    parse_source_nodata_pin,
+    validated_sparse_url,
+)
 from species_data import (
     SPECIES_CSV_URL,
     SpeciesPoolSizes,
@@ -188,22 +241,52 @@ from species_exception import (
 )
 from species_goals import (
     GEOGRAPHY_LEVELS as SPECIES_GOALS_GEOGRAPHY_LEVELS,
+)
+from species_goals import (
     SpeciesGoalsPipeline,
+)
+from species_goals import (
     build_catalog as build_species_goals_catalog,
+)
+from species_goals import (
     canonical_sha256 as species_goals_sha256,
+)
+from species_goals import (
     catalog_path as species_goals_catalog_path,
+)
+from species_goals import (
     compact_partition_path as species_goals_partition_path,
+)
+from species_goals import (
     partition_is_resumable as species_goals_partition_is_resumable,
+)
+from species_goals import (
     species_id as species_goals_id,
+)
+from species_goals import (
     write_catalog as write_species_goals_catalog,
+)
+from species_goals import (
     write_release_inventory as write_species_goals_release_inventory,
 )
 from species_overlap import (
-    SPECIES_POLICY,
     SPECIES_OVERLAP_ALGORITHM_VERSION,
+    SPECIES_POLICY,
     SpeciesOverlapResult,
     read_species_overlap,
 )
+from species_solution_batch import (
+    ExactOverlapInput,
+    SpeciesExecutionConfig,
+    SpeciesSolutionBatchError,
+    build_release_batch_binding,
+    category_mask_sha256,
+    discover_exact_overlap_inventory,
+    load_category_matrix,
+    process_exact_species_batch,
+    resolve_species_execution,
+)
+from species_solution_buffered import process_exact_species_batch_buffered
 from species_target_policy import (
     SpeciesTargetPolicy,
     SpeciesTargetPolicyError,
@@ -221,6 +304,262 @@ _OFF_MANIFEST_RENDERINGS: dict[str, dict] = off_manifest_layer_renderings()
 
 # How frequently to print species progress (every Nth species).
 _SPECIES_PROGRESS_INTERVAL = 1000
+_BOUNDARY_FANOUT_ENV = "METRICS_BOUNDARY_FANOUT"
+_WEIGHTED_BOUNDARY_FANOUT_ENV = "METRICS_WEIGHTED_BOUNDARY_FANOUT"
+_GROUPED_METRIC_KINDS = frozenset(
+    {
+        "selected_area",
+        "national_percent",
+        "aoi_percent",
+        "binary_overlap_area",
+        "binary_overlap_percent_of_selected",
+        "categorical_overlap_area",
+    }
+)
+_CATEGORICAL_CLASS_IDS = {
+    "ecosystem_coverage": calc_ecosystem.IAVH_ECOSYSTEM_CLASS_IDS,
+    "coral_reef_coverage": calc_marine.CORAL_REEF_CLASS_IDS,
+    "marine_mangrove_coverage": calc_marine.MARINE_MANGROVE_CLASS_IDS,
+    "seagrass_coverage": calc_marine.SEAGRASS_CLASS_IDS,
+}
+
+
+def _boundary_fanout_mode() -> str:
+    mode = os.environ.get(_BOUNDARY_FANOUT_ENV, "legacy").strip().lower()
+    try:
+        boundary_fanout_identity(mode)
+    except ValueError as exc:
+        raise ValueError(
+            f"{_BOUNDARY_FANOUT_ENV} must be 'legacy' or 'grouped'; got {mode!r}."
+        ) from exc
+    return mode
+
+
+def _weighted_boundary_fanout_mode() -> str:
+    mode = os.environ.get(_WEIGHTED_BOUNDARY_FANOUT_ENV, "scalar").strip().lower()
+    try:
+        weighted_execution_identity(mode)
+    except ValueError as exc:
+        raise ValueError(
+            f"{_WEIGHTED_BOUNDARY_FANOUT_ENV} must be 'scalar' or "
+            f"'grouped-weighted-v1'; got {mode!r}."
+        ) from exc
+    return mode
+
+
+def _peak_rss_mib() -> float:
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    bytes_used = peak if sys.platform == "darwin" else peak * 1024
+    return bytes_used / (1024 * 1024)
+
+
+@dataclass(frozen=True)
+class _GroupedBoundaryPrimitives:
+    boundary_grid_cells: np.ndarray
+    valid_cells: np.ndarray
+    selected_cells: np.ndarray
+    valid_area_km2: np.ndarray
+    selected_area_km2: np.ndarray
+    overlap_area_km2: dict[str, np.ndarray]
+    categorical_area_km2: dict[str, np.ndarray]
+
+
+@dataclass(frozen=True)
+class _SpeciesMicrobatchPlan:
+    ordinal: int
+    solutions: tuple[dict[str, Any], ...]
+    binding: dict[str, Any]
+    execution_by_solution: dict[str, dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class _PrecomputedSpeciesResult:
+    accumulator: SpeciesAccumulator
+    detail_sink: SpeciesDetailSink | None
+    runtime: dict[str, Any]
+
+
+def _close_species_goals_sink(
+    sink: SpeciesDetailSink | None,
+) -> Exception | None:
+    """Finalize one owned sidecar sink once without disrupting siblings."""
+
+    if getattr(sink, "closed", False) is True:
+        return None
+    close = getattr(sink, "close", None)
+    if close is None:
+        return None
+    try:
+        close()
+    except Exception as exc:  # noqa: BLE001 - cleanup must preserve primary failures
+        return exc
+    return None
+
+
+def _initialize_species_microbatch_members(
+    *,
+    ordered_ids: list[str],
+    target_policies: dict[str, SpeciesTargetPolicy],
+    pool_sizes: SpeciesPoolSizes,
+    species_expected: int,
+    sub_sizes: dict[str, int],
+    sink_factory: Callable[[str, SpeciesTargetPolicy], SpeciesDetailSink | None],
+) -> tuple[
+    list[SpeciesDetailSink | None],
+    list[SpeciesAccumulator | None],
+    dict[str, tuple[str, str]],
+]:
+    """Initialize each member independently and retain ordered placeholders."""
+
+    sinks: list[SpeciesDetailSink | None] = [None] * len(ordered_ids)
+    accumulators: list[SpeciesAccumulator | None] = [None] * len(ordered_ids)
+    failures: dict[str, tuple[str, str]] = {}
+    for solution_index, solution_id in enumerate(ordered_ids):
+        sink: SpeciesDetailSink | None = None
+        try:
+            target_policy = target_policies[solution_id]
+            sink = sink_factory(solution_id, target_policy)
+            sinks[solution_index] = sink
+            accumulator = SpeciesAccumulator(
+                target_pct=target_policy.scalar_target_pct,
+                pool_sizes=pool_sizes,
+                target_policy=target_policy,
+                species_expected=species_expected,
+                detail_sink=sink,
+            )
+            accumulator.init_sub(sub_sizes)
+            accumulators[solution_index] = accumulator
+        except Exception as exc:  # noqa: BLE001 - isolate one setup member
+            setup_traceback = traceback.format_exc()
+            close_error = _close_species_goals_sink(sink)
+            sinks[solution_index] = None
+            error = (
+                "Solution-specific species setup failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            if close_error is not None:
+                error += (
+                    "; cleanup also failed: "
+                    f"{type(close_error).__name__}: {close_error}"
+                )
+            failures[solution_id] = (error, setup_traceback)
+    return sinks, accumulators, failures
+
+
+def _species_records_component(
+    catalog_records: list[SpeciesRecord],
+    available_records: list[SpeciesRecord],
+    pool_sizes: SpeciesPoolSizes,
+) -> dict[str, Any]:
+    available_names = {record.scientific_name for record in available_records}
+    rows = [
+        {
+            "speciesId": species_goals_id(record),
+            "scientificName": record.scientific_name,
+            "csvClass": record.csv_class,
+            "bucket": record.bucket,
+            "threatened": record.threatened,
+            "iucnStatus": record.iucn_status,
+            "rangeKm2": record.range_km2,
+            "sourceUrl": record.blob_url,
+            "sourceFilename": record.blob_filename,
+            "poolMembership": {
+                "nonFish": True,
+                "bucket": record.bucket,
+                "threatened": record.threatened,
+                "available": record.scientific_name in available_names,
+            },
+        }
+        for record in catalog_records
+    ]
+    component = {
+        "format": "species-output-records-component-v1",
+        "catalogCount": len(catalog_records),
+        "availableCount": len(available_records),
+        "poolSizes": {
+            "totalNonFish": pool_sizes.total_non_fish,
+            "threatenedTotal": pool_sizes.threatened_total,
+            "byBucket": dict(sorted(pool_sizes.by_bucket.items())),
+        },
+        "rowsSha256": species_goals_sha256(rows),
+    }
+    component["sha256"] = species_goals_sha256(component)
+    return component
+
+
+def _boundary_batch_component(
+    boundaries_by_level: dict[str, list[BoundaryFeature]],
+    indexes: dict[str, AnyBoundaryIndex],
+) -> dict[str, Any]:
+    levels = {}
+    for level in sorted(indexes):
+        features = boundaries_by_level[level]
+        spec = BOUNDARY_SOURCE_SPECS[level]
+        levels[level] = {
+            "source": {
+                "url": spec.url,
+                "sha256": spec.expected_sha256,
+                "catalogSha256": spec.expected_catalog_sha256,
+                "geometryCollectionSha256": spec.expected_geometry_collection_sha256,
+                "crs": spec.expected_crs,
+            },
+            "featureCount": len(features),
+            "orderedGeometrySha256": species_goals_sha256(
+                [
+                    {
+                        "boundaryId": feature.boundary_id,
+                        "geometrySha256": feature.geometry_sha256,
+                    }
+                    for feature in features
+                ]
+            ),
+            "topology": {
+                "algorithmVersion": GROUPED_BOUNDARY_FANOUT_ALGORITHM_VERSION,
+                "totalClaims": indexes[level].total_claims,
+                "overlapPixels": indexes[level].overlap_pixels,
+                "maxMultiplicity": indexes[level].max_multiplicity,
+            },
+        }
+    component = {
+        "format": "species-boundary-component-v1",
+        "boundaryCollectionSha256": boundary_collection_sha256(boundaries_by_level),
+        "topologyAlgorithmVersion": GROUPED_BOUNDARY_FANOUT_ALGORITHM_VERSION,
+        "levels": levels,
+    }
+    component["sha256"] = species_goals_sha256(component)
+    return component
+
+
+def _independent_species_execution(
+    config: SpeciesExecutionConfig,
+) -> dict[str, Any]:
+    return {
+        **config.provenance(),
+        "batchOrdinal": None,
+        "orderedSolutionIds": None,
+        "bindingSha256": None,
+        "componentSha256s": None,
+        "resumePolicy": "solution-cache-only",
+    }
+
+
+def _validate_species_execution_run(
+    config: SpeciesExecutionConfig,
+    *,
+    cache_policy: str,
+    boundary_fanout_mode: str,
+) -> None:
+    if not config.is_microbatch:
+        return
+    if cache_policy != "recompute-all":
+        raise ValueError(
+            f"{config.effective_mode} requires --cache-policy recompute-all; "
+            "cache and candidate resume are disabled."
+        )
+    if boundary_fanout_mode != "grouped":
+        raise ValueError(
+            f"{config.effective_mode} requires {_BOUNDARY_FANOUT_ENV}=grouped."
+        )
 
 
 def _resolve_layer_url(manifest: ResolvedManifest, layer_id: str) -> str:
@@ -241,6 +580,34 @@ def _layer_rendering(manifest: ResolvedManifest, layer_id: str) -> dict:
     return _OFF_MANIFEST_RENDERINGS.get(layer_id, {})
 
 
+def _layer_sparse_binding(
+    manifest: ResolvedManifest,
+    layer_id: str,
+    source_url: str,
+) -> SparseLayerBinding:
+    """Read optional trusted sparse pins without deriving or fabricating them."""
+
+    layer = manifest.layers_by_id.get(layer_id, {})
+    sparse_config = layer.get("sparseSource")
+    if not isinstance(sparse_config, dict):
+        sparse_config = {}
+    binding_source_url = sparse_config.get("sourceUrl", source_url)
+    source_sha256 = sparse_config.get("sourceSha256", layer.get("sourceSha256"))
+    sparse_url = sparse_config.get("url", layer.get("sparseUrl"))
+    sparse_sha256 = sparse_config.get("sha256", layer.get("sparseSha256"))
+    has_source_nodata = "sourceNodata" in sparse_config
+    return SparseLayerBinding(
+        source_url=binding_source_url,
+        source_sha256=source_sha256,
+        sparse_url=sparse_url,
+        sparse_sha256=sparse_sha256,
+        expected_nodata=parse_source_nodata_pin(
+            sparse_config.get("sourceNodata")
+        ),
+        has_source_nodata=has_source_nodata,
+    )
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -251,10 +618,11 @@ def _utc_now_iso() -> str:
 
 
 class _LayerMaskCache:
-    """Caches layer TIF numpy masks in memory for the duration of one pipeline run.
+    """Caches dense layer masks in memory for the duration of one pipeline run.
 
-    Layer TIFs are the same grid as all solution rasters, so we only need to read
-    each one once. If the fingerprint changes between solutions, we clear and reload.
+    Eligible binary layers may load from a validated sparse sidecar, but this packet
+    still materializes the same dense numpy mask consumed by legacy calculators.
+    If the solution grid fingerprint changes, masks are cleared and reloaded.
     """
 
     def __init__(self, alignment_cache: RasterAlignmentCache | None = None) -> None:
@@ -264,6 +632,12 @@ class _LayerMaskCache:
             DEFAULT_CACHE_DIR
         )
         self._max_items = int(os.environ.get("METRICS_LAYER_LRU_MAX_ITEMS", "4"))
+        self._source_mode = layer_source_mode()
+        self._source_diagnostics: dict[str, LayerSourceDiagnostic] = {}
+
+    @property
+    def source_diagnostics(self) -> tuple[LayerSourceDiagnostic, ...]:
+        return tuple(self._source_diagnostics.values())
 
     def get(
         self,
@@ -273,29 +647,86 @@ class _LayerMaskCache:
         rendering: dict,
         cache_dir: Path,
         force: bool,
+        *,
+        allow_sparse: bool = False,
+        sparse_binding: SparseLayerBinding | None = None,
     ) -> np.ndarray:
         if self._last_fingerprint is not None and not self._last_fingerprint.matches(
             fingerprint
         ):
             self._masks.clear()
+            self._source_diagnostics.clear()
         self._last_fingerprint = fingerprint
+        use_sparse = allow_sparse and layer_id in LAND_BINARY_LAYER_IDS
+        cache_key = f"{layer_id}:{'sparse-enabled' if use_sparse else 'dense-only'}"
 
-        if layer_id not in self._masks:
-            dl = cached_download(url, cache_dir, force=force)
-            aligned = self._alignment_cache.align(
-                dl.path,
-                dl.sha256,
-                fingerprint,
-                policy_for_layer(layer_id),
-            )
-            self._masks[layer_id] = read_layer_mask(
-                aligned.path, fingerprint, rendering=rendering
-            )
+        if cache_key not in self._masks:
+            def load_dense() -> np.ndarray:
+                dl = cached_download(url, cache_dir, force=force)
+                aligned = self._alignment_cache.align(
+                    dl.path,
+                    dl.sha256,
+                    fingerprint,
+                    policy_for_layer(layer_id),
+                )
+                return read_layer_mask(
+                    aligned.path, fingerprint, rendering=rendering
+                )
+
+            def load_sparse() -> IndexedBinaryLayerSource:
+                expected_selected_values = binary_selection_values(rendering)
+                if sparse_binding is None:
+                    raise SparseLayerIncompatibleError(
+                        f"Layer {layer_id!r} lacks trusted sparse binding metadata."
+                    )
+                sparse_url = validated_sparse_url(sparse_binding)
+                try:
+                    sparse_download = cached_download(
+                        sparse_url,
+                        cache_dir,
+                        force=force,
+                    )
+                except (DownloadError, OSError) as exc:
+                    raise SparseLayerUnavailableError(
+                        f"Sparse sidecar for {layer_id!r} is unavailable: {exc}"
+                    ) from exc
+                return IndexedBinaryLayerSource.from_path(
+                    sparse_download.path,
+                    layer_id=layer_id,
+                    binding=sparse_binding,
+                    expected_fingerprint=fingerprint,
+                    expected_selected_values=expected_selected_values,
+                )
+
+            if use_sparse:
+                self._masks[cache_key] = choose_binary_mask(
+                    self._source_mode,
+                    layer_id=layer_id,
+                    sparse_loader=load_sparse,
+                    dense_loader=load_dense,
+                    record_diagnostic=lambda diagnostic: self._source_diagnostics.__setitem__(
+                        cache_key,
+                        diagnostic,
+                    ),
+                    warn_on_fallback=cache_key not in self._source_diagnostics,
+                )
+            else:
+                self._masks[cache_key] = load_dense()
+                self._source_diagnostics[cache_key] = LayerSourceDiagnostic(
+                    layer_id=layer_id,
+                    mode_requested=self._source_mode,
+                    source_chosen="dense",
+                    fallback_reason=(
+                        "Layer is not eligible for sparse binary source loading."
+                        if self._source_mode != "dense"
+                        else None
+                    ),
+                )
             while len(self._masks) > self._max_items:
                 self._masks.popitem(last=False)
         else:
-            self._masks.move_to_end(layer_id)
-        return self._masks[layer_id]
+            self._masks.move_to_end(cache_key)
+        return self._masks[cache_key]
 
 
 class _LayerValueCache:
@@ -308,6 +739,9 @@ class _LayerValueCache:
 
     def __init__(self, alignment_cache: RasterAlignmentCache | None = None) -> None:
         self._arrays: OrderedDict[str, np.ndarray] = OrderedDict()
+        self._alignments: dict[str, AlignmentResult] = {}
+        self._downloads: dict[str, CachedDownload] = {}
+        self._urls: dict[str, str] = {}
         self._last_fingerprint = None
         self._alignment_cache = alignment_cache or RasterAlignmentCache(
             DEFAULT_CACHE_DIR
@@ -326,6 +760,9 @@ class _LayerValueCache:
             fingerprint
         ):
             self._arrays.clear()
+            self._alignments.clear()
+            self._downloads.clear()
+            self._urls.clear()
         self._last_fingerprint = fingerprint
 
         if layer_id not in self._arrays:
@@ -335,13 +772,83 @@ class _LayerValueCache:
                 dl.sha256,
                 fingerprint,
                 policy_for_layer(layer_id),
+                source_url=url,
             )
-            self._arrays[layer_id] = read_layer_values(aligned.path, fingerprint)
+            values = read_layer_values(aligned.path, fingerprint)
+            values.flags.writeable = False
+            self._arrays[layer_id] = values
+            self._alignments[layer_id] = aligned
+            self._downloads[layer_id] = dl
+            self._urls[layer_id] = url
             while len(self._arrays) > self._max_items:
-                self._arrays.popitem(last=False)
+                evicted, _ = self._arrays.popitem(last=False)
+                self._alignments.pop(evicted, None)
+                self._downloads.pop(evicted, None)
+                self._urls.pop(evicted, None)
         else:
+            if self._urls[layer_id] != url:
+                raise AlignmentError(
+                    f"Numeric layer {layer_id!r} source URL drifted within one run."
+                )
             self._arrays.move_to_end(layer_id)
         return self._arrays[layer_id]
+
+    def get_prepared_weighted(
+        self,
+        layer_id: str,
+        url: str,
+        raster: SolutionRaster,
+        cache_dir: Path,
+        force: bool,
+        cache: ImmutableWeightedLayerCache,
+        *,
+        value_units: str,
+    ) -> tuple[PreparedWeightedLayer, bool]:
+        """Prepare one immutable identity-bound weighted layer."""
+
+        values = self.get(layer_id, url, raster.fingerprint, cache_dir, force)
+        aligned = self._alignments[layer_id]
+        download = self._downloads[layer_id]
+        identity = WeightedLayerIdentity(
+            layer_id=layer_id,
+            source_url=url,
+            source_sha256=download.sha256,
+            source_provenance_sha256=alignment_manifest_sha256(
+                {"url": url, "sha256": download.sha256}
+            ),
+            aligned_url=aligned.path.resolve().as_uri(),
+            aligned_sha256=aligned.aligned_sha256,
+            aligned_provenance_sha256=alignment_manifest_sha256(aligned.manifest),
+            target_grid_sha256=aligned.target_grid_sha256,
+            target_fingerprint_sha256=alignment_manifest_sha256(
+                asdict(raster.fingerprint)
+            ),
+            target_shape=raster.selected_mask.shape,
+            alignment_policy_sha256=aligned.policy_sha256,
+            nodata_value=canonical_nodata_value(np.nan),
+            nodata_interpretation_policy=(
+                "read-layer-values-declared-sentinel-to-nan-v1"
+            ),
+            normalization_policy=NODATA_NORMALIZATION_POLICY,
+            pixel_area_rows_sha256=pixel_area_rows_sha256(
+                raster.pixel_area_km2_per_row
+            ),
+            preparation_algorithm_version=(
+                WEIGHTED_LAYER_PREPARATION_ALGORITHM_VERSION
+            ),
+            weighted_fanout_algorithm_version=(
+                WEIGHTED_BOUNDARY_FANOUT_ALGORITHM_VERSION
+            ),
+            aligned_dtype="float64",
+            value_units=value_units,
+            metric_registry_policy_version=WEIGHTED_METRIC_REGISTRY_POLICY_VERSION,
+        )
+        return cache.get_or_prepare(
+            identity,
+            shape=raster.selected_mask.shape,
+            pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
+            loader=lambda: values,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -913,6 +1420,9 @@ def _resume_entry_for_existing_cache(
     expected_catalog_binding: dict[str, Any] | None = None,
     species_exception_binding: dict[str, Any] | None = None,
     species_target_policy: SpeciesTargetPolicy | None = None,
+    boundary_fanout_mode: str = "legacy",
+    weighted_boundary_fanout_mode: str = "scalar",
+    species_execution: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Return a publish-report entry for an existing valid cache file, if present."""
     solution_id = str(solution.get("id"))
@@ -942,6 +1452,9 @@ def _resume_entry_for_existing_cache(
         expected_catalog_binding=expected_catalog_binding,
         species_exception_binding=species_exception_binding,
         species_target_policy=species_target_policy,
+        boundary_fanout_mode=boundary_fanout_mode,
+        weighted_boundary_fanout_mode=weighted_boundary_fanout_mode,
+        species_execution=species_execution,
         log_stale_cache=True,
     )
 
@@ -964,6 +1477,9 @@ def _resume_entry_for_document(
     expected_catalog_binding: dict[str, Any] | None = None,
     species_exception_binding: dict[str, Any] | None = None,
     species_target_policy: SpeciesTargetPolicy | None = None,
+    boundary_fanout_mode: str = "legacy",
+    weighted_boundary_fanout_mode: str = "scalar",
+    species_execution: dict[str, Any] | None = None,
     log_stale_cache: bool = False,
 ) -> dict[str, Any] | None:
     """Validate a canonical cache document without reading or writing its path."""
@@ -1006,6 +1522,9 @@ def _resume_entry_for_document(
         skip_species_boundary_levels=skip_species_boundary_levels or set(),
         species_csv_url=species_csv_url,
         species_exception_binding=species_exception_binding,
+        boundary_fanout_mode=boundary_fanout_mode,
+        weighted_execution_mode=weighted_boundary_fanout_mode,
+        species_execution=species_execution,
     )
     contract_issues = provenance_issues(
         doc,
@@ -1077,6 +1596,16 @@ def _resume_entry_for_document(
         "solutionDomain": domain,
         "catalogSignature": doc[PROVENANCE_KEY]["catalogSignature"],
         "speciesTargetPolicyEvidence": doc[PROVENANCE_KEY].get("speciesTargetPolicy"),
+        "boundaryFanout": doc[PROVENANCE_KEY]["generationConfig"].get(
+            "boundaryFanout",
+            boundary_fanout_identity("legacy"),
+        ),
+        "weightedBoundaryExecution": doc[PROVENANCE_KEY]["generationConfig"][
+            "weightedBoundaryExecution"
+        ],
+        "speciesExecution": doc[PROVENANCE_KEY]["generationConfig"].get(
+            "speciesExecution"
+        ),
         "resumeSkipped": True,
         "elapsedSeconds": 0.0,
     }
@@ -1116,6 +1645,13 @@ def _candidate_binding(
         metrics_schema_version=metrics_provenance["schemaVersion"],
         catalog_signature=metrics_provenance["catalogSignature"],
         species_target_policy=metrics_provenance.get("speciesTargetPolicy"),
+        boundary_fanout=metrics_provenance["generationConfig"]["boundaryFanout"],
+        weighted_boundary_execution=metrics_provenance["generationConfig"][
+            "weightedBoundaryExecution"
+        ],
+        species_execution=metrics_provenance["generationConfig"].get(
+            "speciesExecution"
+        ),
     )
 
 
@@ -1172,6 +1708,9 @@ def _promote_resumable_candidate(
     species_csv_url: str,
     species_exception_binding: dict[str, Any] | None,
     species_target_policy: SpeciesTargetPolicy | None,
+    boundary_fanout_mode: str = "legacy",
+    weighted_boundary_fanout_mode: str = "scalar",
+    species_execution: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Revalidate a fully bound candidate and promote it without computation."""
 
@@ -1191,6 +1730,9 @@ def _promote_resumable_candidate(
         expected_catalog_binding=binding.catalog_binding,
         species_exception_binding=species_exception_binding,
         species_target_policy=species_target_policy,
+        boundary_fanout_mode=boundary_fanout_mode,
+        weighted_boundary_fanout_mode=weighted_boundary_fanout_mode,
+        species_execution=species_execution,
     )
     if existing_entry is not None:
         return existing_entry
@@ -1244,6 +1786,9 @@ def _promote_resumable_candidate(
         expected_catalog_binding=binding.catalog_binding,
         species_exception_binding=species_exception_binding,
         species_target_policy=species_target_policy,
+        boundary_fanout_mode=boundary_fanout_mode,
+        weighted_boundary_fanout_mode=weighted_boundary_fanout_mode,
+        species_execution=species_execution,
     )
     if entry is None:
         canonical_issue = "candidate failed canonical in-memory resume validation"
@@ -1913,6 +2458,8 @@ def _compute_overlap_download(
     layer_cache: _LayerMaskCache,
     cache_dir: Path,
     force_download: bool,
+    *,
+    allow_sparse: bool = False,
 ) -> tuple[dict[str, Any], np.ndarray | None]:
     """Download (or retrieve cached) layer mask, compute overlap, return (metric, mask)."""
     layer_id = definition.layer_id or ""
@@ -1936,6 +2483,8 @@ def _compute_overlap_download(
             rendering,
             cache_dir,
             force_download,
+            allow_sparse=allow_sparse,
+            sparse_binding=_layer_sparse_binding(manifest, layer_id, layer_url),
         )
     except (RasterError, OSError) as exc:
         return _metric_value(
@@ -2351,12 +2900,13 @@ def _process_species_for_solution(
     solution: dict[str, Any],
     species_records: list[SpeciesRecord],
     pool_sizes: SpeciesPoolSizes,
-    boundary_grids: dict[str, BoundaryIdGrid],
+    boundary_grids: dict[str, BoundaryIdGrid | AnyBoundaryIndex],
     cache_dir: Path,
     force_download: bool,
     alignment_cache: RasterAlignmentCache,
     target_policy: SpeciesTargetPolicy,
     detail_sink: SpeciesDetailSink | None = None,
+    runtime_stats: dict[str, Any] | None = None,
 ) -> SpeciesAccumulator:
     """Read every species range raster once and accumulate counts across scopes.
 
@@ -2367,9 +2917,9 @@ def _process_species_for_solution(
     - Index into the solution's selected mask and sum exact source-grid
       intersection area in selected target cells.
     - National counters are updated from positive area and weighted coverage.
-    - Sub-national counters are updated by indexing each level's
-      ``BoundaryIdGrid`` at the same range indices and using ``np.bincount``
-      to fan out per-boundary totals in one call.
+    - Sub-national counters use either the legacy first-owner grid or the
+      grouped exclusive/CSR topology. The grouped path indexes sparse range
+      cells directly and duplicates full weights to every overlapping owner.
 
     The target percent is resolved from structured manifest metadata with a
     legacy solution-token fallback. When None, target-dependent species metrics
@@ -2388,11 +2938,21 @@ def _process_species_for_solution(
     selected_flat = raster.selected_mask.ravel()
     pre_existing_flat = raster.pre_existing_mask.ravel()
     new_prioritizr_flat = raster.new_prioritizr_mask.ravel()
-
-    # Cache flat boundary-id arrays for direct dict access in the inner loop.
-    bid_flats = {level: g.flat for level, g in boundary_grids.items()}
+    has_grouped_levels = any(
+        not isinstance(boundary_index, BoundaryIdGrid)
+        for boundary_index in boundary_grids.values()
+    )
+    has_legacy_levels = any(
+        isinstance(boundary_index, BoundaryIdGrid)
+        for boundary_index in boundary_grids.values()
+    )
 
     started = time.time()
+    exact_read_seconds = 0.0
+    evaluation_seconds = 0.0
+    accumulator_seconds = 0.0
+    npz_bytes = 0
+    npz_opens = 0
     for idx, sp in enumerate(species_records, start=1):
         if idx % _SPECIES_PROGRESS_INTERVAL == 0:
             elapsed = time.time() - started
@@ -2411,7 +2971,11 @@ def _process_species_for_solution(
                 source_url=url,
                 authoritative_area_km2=sp.range_km2,
             )
+            exact_read_started = time.perf_counter()
             overlap = read_species_overlap(aligned.path, raster.fingerprint)
+            exact_read_seconds += time.perf_counter() - exact_read_started
+            npz_bytes += aligned.path.stat().st_size
+            npz_opens += 1
             accumulator.species_aligned += 1
             accumulator.species_processed += 1
         except (AlignmentError, DownloadError, RasterError, OSError, ValueError) as exc:
@@ -2421,11 +2985,20 @@ def _process_species_for_solution(
                 f"accepted for this solution: {exc}"
             ) from exc
 
+        evaluation_started = time.perf_counter()
+        accumulator_before = accumulator_seconds
         range_indices = overlap.flat_indices
         range_areas_m2 = overlap.areas_m2
         total_range_area_m2 = float(range_areas_m2.sum(dtype=np.float64))
         if range_indices.size == 0:
+            accumulation_started = time.perf_counter()
             accumulator.record_species_national(sp, 0.0, 0.0)
+            accumulator_seconds += time.perf_counter() - accumulation_started
+            evaluation_seconds += (
+                time.perf_counter()
+                - evaluation_started
+                - (accumulator_seconds - accumulator_before)
+            )
             continue
 
         accumulator.species_with_range += 1
@@ -2443,6 +3016,7 @@ def _process_species_for_solution(
             range_areas_m2[new_prioritizr_at_range].sum(dtype=np.float64)
         )
 
+        accumulation_started = time.perf_counter()
         accumulator.record_species_national(
             sp,
             selected_range_area_m2,
@@ -2450,6 +3024,7 @@ def _process_species_for_solution(
             pre_existing_range_area_m2=pre_existing_range_area_m2,
             new_prioritizr_range_area_m2=new_prioritizr_range_area_m2,
         )
+        accumulator_seconds += time.perf_counter() - accumulation_started
 
         if (
             selected_range_area_m2 <= 0
@@ -2457,22 +3032,59 @@ def _process_species_for_solution(
             and target_policy.kind == "per_species"
             and target_policy.target_for(sp.scientific_name) is None
         ):
+            evaluation_seconds += (
+                time.perf_counter()
+                - evaluation_started
+                - (accumulator_seconds - accumulator_before)
+            )
             continue
 
-        selected_range_indices = range_indices[selected_at_range]
-        selected_range_areas_m2 = range_areas_m2[selected_at_range]
-        pre_existing_range_indices = range_indices[pre_existing_at_range]
-        pre_existing_range_areas_m2 = range_areas_m2[pre_existing_at_range]
-        new_prioritizr_range_indices = range_indices[new_prioritizr_at_range]
-        new_prioritizr_range_areas_m2 = range_areas_m2[new_prioritizr_at_range]
+        prepared_grouped_channels = (
+            prepare_sparse_boundary_weighted_channels(
+                range_indices,
+                range_areas_m2,
+                selected=selected_at_range,
+                pre_existing=pre_existing_at_range,
+                new_prioritizr=new_prioritizr_at_range,
+                num_pixels=selected_flat.size,
+            )
+            if has_grouped_levels
+            else None
+        )
+        if has_legacy_levels:
+            selected_range_indices = range_indices[selected_at_range]
+            selected_range_areas_m2 = range_areas_m2[selected_at_range]
+            pre_existing_range_indices = range_indices[pre_existing_at_range]
+            pre_existing_range_areas_m2 = range_areas_m2[pre_existing_at_range]
+            new_prioritizr_range_indices = range_indices[new_prioritizr_at_range]
+            new_prioritizr_range_areas_m2 = range_areas_m2[new_prioritizr_at_range]
 
-        for level, bid_arr in bid_flats.items():
+        for level, boundary_index in boundary_grids.items():
+            if not isinstance(boundary_index, BoundaryIdGrid):
+                assert prepared_grouped_channels is not None
+                grouped_areas = aggregate_prepared_sparse_boundary_weighted_sums(
+                    boundary_index,
+                    prepared_grouped_channels,
+                )
+                accumulation_started = time.perf_counter()
+                accumulator.record_species_sub_level(
+                    sp,
+                    level,
+                    grouped_areas.selected,
+                    grouped_areas.total,
+                    pre_existing_per_boundary=grouped_areas.pre_existing,
+                    new_prioritizr_per_boundary=grouped_areas.new_prioritizr,
+                )
+                accumulator_seconds += time.perf_counter() - accumulation_started
+                continue
+
+            bid_arr = boundary_index.flat
             bids_at_range = bid_arr[range_indices]
             bids_at_selected = bid_arr[selected_range_indices]
             bids_at_pre_existing = bid_arr[pre_existing_range_indices]
             bids_at_new_prioritizr = bid_arr[new_prioritizr_range_indices]
 
-            n_levels = boundary_grids[level].num_boundaries
+            n_levels = boundary_index.num_boundaries
             mask_total = bids_at_range >= 0
             mask_sel = bids_at_selected >= 0
             mask_pre_existing = bids_at_pre_existing >= 0
@@ -2515,6 +3127,7 @@ def _process_species_for_solution(
                 if mask_new_prioritizr.any()
                 else np.zeros(n_levels, dtype=np.float64)
             )
+            accumulation_started = time.perf_counter()
             accumulator.record_species_sub_level(
                 sp,
                 level,
@@ -2523,6 +3136,12 @@ def _process_species_for_solution(
                 pre_existing_per_boundary=pre_existing_per,
                 new_prioritizr_per_boundary=new_prioritizr_per,
             )
+            accumulator_seconds += time.perf_counter() - accumulation_started
+        evaluation_seconds += (
+            time.perf_counter()
+            - evaluation_started
+            - (accumulator_seconds - accumulator_before)
+        )
 
     elapsed = time.time() - started
     print(
@@ -2543,6 +3162,18 @@ def _process_species_for_solution(
             f"processed={accumulator.species_processed}, "
             f"missing={accumulator.species_missing_tif}."
         )
+    if runtime_stats is not None:
+        runtime_stats.update(
+            {
+                "npzOpens": npz_opens,
+                "npzBytes": npz_bytes,
+                "phaseSeconds": {
+                    "exactRead": exact_read_seconds,
+                    "evaluation": evaluation_seconds,
+                    "accumulator": accumulator_seconds,
+                },
+            }
+        )
     return accumulator
 
 
@@ -2557,6 +3188,270 @@ def _metrics_for_domain(domain: SolutionDomain) -> tuple[MetricDefinition, ...]:
         for definition in computable_metrics()
         if domain in definition.applicable_domains
     )
+
+
+def _build_grouped_boundary_primitives(
+    raster: SolutionRaster,
+    indexes: dict[str, AnyBoundaryIndex],
+    definitions: tuple[MetricDefinition, ...],
+    layer_masks: dict[str, np.ndarray],
+    layer_values: dict[str, np.ndarray],
+) -> dict[str, _GroupedBoundaryPrimitives]:
+    """Aggregate migrated raster primitives once per level and layer."""
+
+    shape = raster.selected_mask.shape
+    area_weights = np.broadcast_to(
+        raster.pixel_area_km2_per_row[:, np.newaxis],
+        shape,
+    )
+    binary_layer_ids = {
+        definition.layer_id
+        for definition in definitions
+        if definition.layer_id
+        and definition.kind
+        in {"binary_overlap_area", "binary_overlap_percent_of_selected"}
+    }
+    categorical_definitions = tuple(
+        definition
+        for definition in definitions
+        if definition.kind == "categorical_overlap_area"
+    )
+    empty = np.zeros(shape, dtype=np.bool_)
+    grouped: dict[str, _GroupedBoundaryPrimitives] = {}
+
+    for level, index in indexes.items():
+        counts = aggregate_boundary_counts(
+            index,
+            total=raster.valid_mask,
+            selected=raster.selected_mask,
+            pre_existing=raster.pre_existing_mask,
+            new_prioritizr=raster.new_prioritizr_mask,
+        )
+        areas = aggregate_boundary_weighted_sums(
+            index,
+            area_weights,
+            total=raster.valid_mask,
+            selected=raster.selected_mask,
+            pre_existing=raster.pre_existing_mask,
+            new_prioritizr=raster.new_prioritizr_mask,
+        )
+
+        overlap_areas: dict[str, np.ndarray] = {}
+        for layer_id in binary_layer_ids:
+            active = raster.selected_mask & layer_masks[layer_id]
+            overlap_areas[layer_id] = aggregate_boundary_weighted_sums(
+                index,
+                area_weights,
+                total=active,
+                selected=empty,
+                pre_existing=empty,
+                new_prioritizr=empty,
+            ).total
+
+        categorical_areas: dict[str, np.ndarray] = {}
+        for definition in categorical_definitions:
+            class_ids = _CATEGORICAL_CLASS_IDS.get(definition.metric_id)
+            if class_ids is None:
+                continue
+            values = layer_values[definition.layer_id or ""]
+            active = (
+                raster.selected_mask
+                & np.isfinite(values)
+                & np.isin(values, tuple(class_ids))
+            )
+            categorical_areas[definition.metric_id] = (
+                aggregate_boundary_weighted_sums(
+                    index,
+                    area_weights,
+                    total=active,
+                    selected=empty,
+                    pre_existing=empty,
+                    new_prioritizr=empty,
+                ).total
+            )
+
+        grouped[level] = _GroupedBoundaryPrimitives(
+            boundary_grid_cells=boundary_cell_counts(index),
+            valid_cells=counts.total,
+            selected_cells=counts.selected,
+            valid_area_km2=areas.total,
+            selected_area_km2=areas.selected,
+            overlap_area_km2=overlap_areas,
+            categorical_area_km2=categorical_areas,
+        )
+    return grouped
+
+
+def _grouped_metric_overrides(
+    definitions: tuple[MetricDefinition, ...],
+    primitives: _GroupedBoundaryPrimitives,
+    boundary_index: int,
+    manifest: ResolvedManifest,
+) -> dict[str, dict[str, Any]]:
+    """Assemble existing metric payloads from grouped scalar primitives."""
+
+    selected_cells = int(primitives.selected_cells[boundary_index])
+    selected_area = float(primitives.selected_area_km2[boundary_index])
+    valid_area = float(primitives.valid_area_km2[boundary_index])
+    overrides: dict[str, dict[str, Any]] = {}
+
+    for definition in definitions:
+        if definition.kind not in _GROUPED_METRIC_KINDS:
+            continue
+        if definition.kind == "selected_area":
+            metric = _metric_value(
+                definition,
+                value=selected_area,
+                status="ready",
+                notes=(
+                    f"{selected_cells:,} selected cells (within boundary); "
+                    "area summed using per-row pixel area (km²/cell)."
+                ),
+                source="raster:solution",
+            )
+        elif definition.kind in {"national_percent", "aoi_percent"}:
+            if valid_area == 0.0:
+                metric = _metric_value(
+                    definition,
+                    value=None,
+                    status="blocked",
+                    notes="Raster has 0 valid area in this region.",
+                    source="raster:solution",
+                )
+            else:
+                metric = _metric_value(
+                    definition,
+                    value=(selected_area / valid_area) * 100.0,
+                    status="ready",
+                    notes=(
+                        "selectedArea / boundaryValidArea × 100 (boundary scope)."
+                        if definition.kind == "national_percent"
+                        else "selectedArea / boundaryValidArea × 100."
+                    ),
+                    source="raster:solution",
+                )
+        elif definition.kind in {
+            "binary_overlap_area",
+            "binary_overlap_percent_of_selected",
+        }:
+            layer_id = definition.layer_id or ""
+            area = float(primitives.overlap_area_km2[layer_id][boundary_index])
+            if definition.kind == "binary_overlap_percent_of_selected":
+                if overlap_percent_calculator(layer_id) is None:
+                    metric = _metric_value(
+                        definition,
+                        value=None,
+                        status="pending",
+                        notes=f"No percent calculator registered for layer '{layer_id}'.",
+                        source=f"raster:{layer_id}",
+                    )
+                elif selected_area == 0.0:
+                    metric = _metric_value(
+                        definition,
+                        value=None,
+                        status="blocked",
+                        notes="Selected area is zero; cannot compute percent.",
+                        source=f"raster:{layer_id}",
+                    )
+                else:
+                    metric = _metric_value(
+                        definition,
+                        value=(area / selected_area) * 100.0,
+                        status="ready",
+                        notes=f"(Selected ∩ '{layer_id}') / selected_area × 100.",
+                        source=f"raster:{layer_id}",
+                    )
+            elif overlap_area_calculator(layer_id) is None:
+                metric = _metric_value(
+                    definition,
+                    value=None,
+                    status="pending",
+                    notes=f"No calculator registered for layer '{layer_id}'.",
+                    source=f"raster:{layer_id}",
+                )
+            else:
+                rendering = _layer_rendering(manifest, layer_id)
+                value_type = str(rendering.get("valueType") or "unknown").lower()
+                present_rule = (
+                    f"cells equal to selectedValue={rendering.get('selectedValue', 1)}"
+                    if value_type == "binary"
+                    else "all valid (non-nodata) cells"
+                )
+                metric = _metric_value(
+                    definition,
+                    value=area,
+                    status="ready",
+                    notes=(
+                        f"Selected ∩ '{layer_id}' ({value_type}; "
+                        f"presence = {present_rule})."
+                    ),
+                    source=f"raster:{layer_id}",
+                )
+        else:
+            layer_id = definition.layer_id or ""
+            value = primitives.categorical_area_km2.get(definition.metric_id)
+            if categorical_area_calculator(definition.metric_id) is None or value is None:
+                metric = _metric_value(
+                    definition,
+                    value=None,
+                    status="pending",
+                    notes=f"No categorical calculator registered for '{definition.metric_id}'.",
+                    source=f"raster:{layer_id}",
+                )
+            else:
+                metric = _metric_value(
+                    definition,
+                    value=float(value[boundary_index]),
+                    status="ready",
+                    notes=(
+                        f"Selected ∩ configured categorical classes in '{layer_id}'; "
+                        "nodata and non-selected cells excluded."
+                    ),
+                    source=f"raster:{layer_id}",
+                )
+        overrides[definition.metric_id] = metric
+    return overrides
+
+
+def _weighted_metric_overrides(
+    definitions: tuple[MetricDefinition, ...],
+    *,
+    level: str,
+    boundary_index: int,
+    fanout: WeightedFanoutResult,
+    layers: dict[str, PreparedWeightedLayer],
+) -> dict[str, dict[str, Any]]:
+    """Assemble the existing payload contract from approved grouped sums."""
+
+    specs = approved_weighted_specs(definitions)
+    results = assemble_weighted_metric_results(
+        specs,
+        level=level,
+        boundary_index=boundary_index,
+        fanout=fanout,
+        layers=layers,
+    )
+    by_id = {definition.metric_id: definition for definition in definitions}
+    overrides: dict[str, dict[str, Any]] = {}
+    for spec in specs:
+        definition = by_id[spec.metric_id]
+        result = results[spec.metric_id]
+        notes = (
+            f"sum(pixel_value × pixel_area_km²) over selected finite cells of "
+            f"'{spec.layer_id}'."
+            if spec.kind == "weighted_sum"
+            else f"selectedWeightedSum / nationalWeightedSum × 100 ('{spec.layer_id}')."
+        )
+        if result.status == "blocked":
+            notes = "National weighted total is zero."
+        overrides[spec.metric_id] = _metric_value(
+            definition,
+            value=result.value,
+            status=result.status,
+            notes=notes,
+            source=f"raster:{spec.layer_id}",
+        )
+    return overrides
 
 
 def _wrong_domain_metric(
@@ -2589,6 +3484,8 @@ def _build_metrics(
     species_target_policy: SpeciesTargetPolicy | None = None,
     species_records: list[SpeciesRecord] | None = None,
     species_exception_binding: dict[str, Any] | None = None,
+    grouped_metric_overrides: dict[str, dict[str, Any]] | None = None,
+    scope_valid_cells: int | None = None,
 ) -> list[dict[str, Any]]:
     """Compute all computable Tier 1 metrics for one raster scope.
 
@@ -2603,7 +3500,10 @@ def _build_metrics(
     results: list[dict[str, Any]] = []
     domain = solution_domain(solution)
 
-    if subnational and raster.valid_cells == 0:
+    effective_valid_cells = (
+        raster.valid_cells if scope_valid_cells is None else scope_valid_cells
+    )
+    if subnational and effective_valid_cells == 0:
         return [
             _empty_boundary(defn)
             if domain in defn.applicable_domains
@@ -2614,6 +3514,10 @@ def _build_metrics(
     for defn in computable_metrics():
         if domain not in defn.applicable_domains:
             results.append(_wrong_domain_metric(defn, domain))
+            continue
+
+        if grouped_metric_overrides and defn.metric_id in grouped_metric_overrides:
+            results.append(grouped_metric_overrides[defn.metric_id])
             continue
 
         if is_species_metric_kind(defn.kind):
@@ -2697,7 +3601,13 @@ def _build_metrics(
                 )
             else:
                 metric, _ = _compute_overlap_download(
-                    defn, raster, manifest, layer_cache, cache_dir, force_download
+                    defn,
+                    raster,
+                    manifest,
+                    layer_cache,
+                    cache_dir,
+                    force_download,
+                    allow_sparse=domain == "land",
                 )
                 results.append(metric)
 
@@ -2817,10 +3727,11 @@ def _preload_layer_masks(
     force_download: bool,
     domain: SolutionDomain,
 ) -> dict[str, np.ndarray]:
-    """Load all mask-based layer TIFs into the in-memory cache and return a dict.
+    """Load all mask-based layers into the in-memory dense-mask cache.
 
     These masks are then passed directly to sub-national metric computation,
     avoiding repeated disk reads for each of the 1000+ boundary features.
+    Sparse grouped-boundary calculation is intentionally not implemented here.
     """
     # Determine which layer_ids are used by mask-based metric kinds.
     mask_kinds = frozenset(
@@ -2838,7 +3749,14 @@ def _preload_layer_masks(
             url = _resolve_layer_url(manifest, layer_id)
             rendering = _layer_rendering(manifest, layer_id)
             masks[layer_id] = layer_cache.get(
-                layer_id, url, raster.fingerprint, rendering, cache_dir, force_download
+                layer_id,
+                url,
+                raster.fingerprint,
+                rendering,
+                cache_dir,
+                force_download,
+                allow_sparse=domain == "land",
+                sparse_binding=_layer_sparse_binding(manifest, layer_id, url),
             )
         except (AlignmentError, ManifestError, RasterError, OSError) as exc:
             raise AlignmentError(
@@ -2914,11 +3832,31 @@ def _process_solution(
     species_detail_sink: SpeciesDetailSink | None = None,
     species_goals_catalog: dict[str, Any] | None = None,
     species_goals_output_dir: Path | None = None,
+    boundary_topology_cache: BoundaryTopologyCache | None = None,
+    boundary_fanout_mode: str | None = None,
+    weighted_boundary_fanout_mode: str | None = None,
+    weighted_layer_cache: ImmutableWeightedLayerCache | None = None,
+    species_execution: dict[str, Any] | None = None,
+    precomputed_species_accumulator: SpeciesAccumulator | None = None,
+    species_execution_runtime: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
     domain = solution_domain(solution)
     started = time.time()
+    usage_started = resource.getrusage(resource.RUSAGE_SELF)
+    phase_seconds: dict[str, float] = {}
+    fanout_mode = boundary_fanout_mode or _boundary_fanout_mode()
+    fanout_identity = boundary_fanout_identity(fanout_mode)
+    weighted_mode = (
+        weighted_boundary_fanout_mode or _weighted_boundary_fanout_mode()
+    )
+    weighted_identity = weighted_execution_identity(weighted_mode)
+    if weighted_mode == "grouped-weighted-v1" and fanout_mode != "grouped":
+        raise ValueError(
+            f"{_WEIGHTED_BOUNDARY_FANOUT_ENV}=grouped-weighted-v1 requires "
+            f"{_BOUNDARY_FANOUT_ENV}=grouped."
+        )
 
     download = raster_download or cached_download(
         _solution_raster_source_url(solution),
@@ -2948,18 +3886,53 @@ def _process_solution(
     if alignment_cache is None:
         alignment_cache = RasterAlignmentCache(cache_dir)
 
-    # --- Sub-national setup (rasterize boundaries + build boundary_id grids if needed) ---
+    # --- Sub-national setup ---
     boundary_grids: dict[str, BoundaryIdGrid] = {}
+    boundary_indexes: dict[str, AnyBoundaryIndex] = {}
+    topology_cache_hit = False
+    setup_started = time.time()
     if not national_only and boundaries_by_level:
-        print("[tier1-metrics]   rasterizing boundaries…")
-        boundary_mask_cache.precompute_all(boundaries_by_level, raster.fingerprint)
-        # Reuse boundary-id grids only among solutions with the same reference grid.
-        if boundary_grid_cache is not None:
-            boundary_grids = boundary_grid_cache.get(
+        if fanout_mode == "grouped":
+            topology_cache = boundary_topology_cache or BoundaryTopologyCache()
+            boundary_indexes, topology_cache_hit = topology_cache.get(
                 boundaries_by_level,
                 raster.fingerprint,
-                boundary_mask_cache,
             )
+            topology_bytes = sum(
+                index.estimated_bytes for index in boundary_indexes.values()
+            )
+            retained_bytes = 0
+            topology_peak = 0
+            for index in boundary_indexes.values():
+                topology_peak = max(
+                    topology_peak,
+                    retained_bytes + index.estimated_peak_build_bytes,
+                )
+                retained_bytes += index.estimated_bytes
+            auto_fallbacks = sorted(
+                level
+                for level, index in boundary_indexes.items()
+                if level not in {"siraps", "runaps", "omecs"}
+                and index.overlap_pixels > 0
+            )
+            print(
+                "[tier1-metrics]   boundary fan-out: grouped "
+                f"(cache={'hit' if topology_cache_hit else 'miss'}, "
+                f"index={topology_bytes / (1024 * 1024):.1f} MiB, "
+                f"estimated-build-peak={topology_peak / (1024 * 1024):.1f} MiB, "
+                f"auto-overlap-fallbacks={auto_fallbacks or 'none'})"
+            )
+        else:
+            print("[tier1-metrics]   rasterizing boundaries…")
+            boundary_mask_cache.precompute_all(boundaries_by_level, raster.fingerprint)
+            # Reuse boundary-id grids only among solutions with the same reference grid.
+            if boundary_grid_cache is not None:
+                boundary_grids = boundary_grid_cache.get(
+                    boundaries_by_level,
+                    raster.fingerprint,
+                    boundary_mask_cache,
+                )
+    phase_seconds["boundarySetup"] = time.time() - setup_started
 
     provenance = build_metrics_provenance(
         domain,
@@ -2975,11 +3948,30 @@ def _process_solution(
             if species_target_policy is not None
             else None
         ),
+        boundary_fanout_mode=fanout_mode,
+        weighted_execution_mode=weighted_mode,
+        species_execution=species_execution,
     )
 
     # --- Species pass: compute counters across all scopes for this solution ---
-    species_accumulator: SpeciesAccumulator | None = None
-    if domain == "land" and not skip_species and species_records and species_pool_sizes:
+    species_accumulator: SpeciesAccumulator | None = precomputed_species_accumulator
+    effective_species_runtime = (
+        {
+            **species_execution_runtime,
+            "phaseSeconds": dict(
+                species_execution_runtime.get("phaseSeconds", {})
+            ),
+        }
+        if species_execution_runtime is not None
+        else None
+    )
+    if (
+        species_accumulator is None
+        and domain == "land"
+        and not skip_species
+        and species_records
+        and species_pool_sizes
+    ):
         if species_target_policy is None:
             raise SpeciesTargetPolicyError(
                 f"solution {solution_id!r} has no resolved species target policy."
@@ -2988,9 +3980,12 @@ def _process_solution(
             f"[tier1-metrics]   running species pass over {len(species_records):,} records…"
         )
         skipped_levels = skip_species_boundary_levels or set()
+        active_boundary_fanouts: dict[str, BoundaryIdGrid | AnyBoundaryIndex] = (
+            boundary_indexes if fanout_mode == "grouped" else boundary_grids
+        )
         species_boundary_grids = {
             level: grid
-            for level, grid in (boundary_grids or {}).items()
+            for level, grid in active_boundary_fanouts.items()
             if level not in skipped_levels
         }
         if skipped_levels:
@@ -3049,6 +4044,9 @@ def _process_solution(
                 spool_dir=species_goals_output_dir / ".spool",
                 active_levels=active_levels,
             )
+        species_started = time.time()
+        usage_before = resource.getrusage(resource.RUSAGE_SELF)
+        effective_species_runtime = {}
         species_accumulator = _process_species_for_solution(
             raster=raster,
             solution=solution,
@@ -3060,6 +4058,22 @@ def _process_solution(
             alignment_cache=alignment_cache,
             target_policy=species_target_policy,
             detail_sink=species_detail_sink,
+            runtime_stats=effective_species_runtime,
+        )
+        phase_seconds["species"] = time.time() - species_started
+        usage_after = resource.getrusage(resource.RUSAGE_SELF)
+        effective_species_runtime.update(
+            {
+                "wallSeconds": phase_seconds["species"],
+                "userSeconds": usage_after.ru_utime - usage_before.ru_utime,
+                "systemSeconds": usage_after.ru_stime - usage_before.ru_stime,
+                "peakRssMiB": _peak_rss_mib(),
+                "solutionEquivalentSeconds": phase_seconds["species"],
+            }
+        )
+    elif species_accumulator is not None:
+        phase_seconds["species"] = float(
+            (effective_species_runtime or {}).get("solutionEquivalentSeconds", 0.0)
         )
 
     # --- National level ---
@@ -3109,16 +4123,18 @@ def _process_solution(
 
     # --- Sub-national levels ---
     if not national_only and boundaries_by_level:
-        # Preload all layer TIFs into memory once per solution.
+        definitions = _metrics_for_domain(domain)
+        # Preload dense masks once per solution. Eligible sparse sidecars only
+        # optimize validated source loading before dense mask materialization.
         mask_count = sum(
             1
-            for m in _metrics_for_domain(domain)
+            for m in definitions
             if m.layer_id
             and m.kind in ("binary_overlap_area", "binary_overlap_percent_of_selected")
         )
         value_count = sum(
             1
-            for m in _metrics_for_domain(domain)
+            for m in definitions
             if m.layer_id
             and m.kind
             in (
@@ -3130,6 +4146,7 @@ def _process_solution(
         print(
             f"[tier1-metrics]   preloading {mask_count} mask layer(s) + {value_count} value layer(s)…"
         )
+        layer_preparation_started = time.perf_counter()
         layer_masks = _preload_layer_masks(
             raster,
             manifest,
@@ -3146,36 +4163,134 @@ def _process_solution(
             force_download,
             domain,
         )
+        phase_seconds["layerPreparation"] = (
+            time.perf_counter() - layer_preparation_started
+        )
+        grouped_primitives: dict[str, _GroupedBoundaryPrimitives] = {}
+        if fanout_mode == "grouped":
+            grouped_started = time.time()
+            grouped_primitives = _build_grouped_boundary_primitives(
+                raster,
+                boundary_indexes,
+                definitions,
+                layer_masks,
+                layer_values,
+            )
+            phase_seconds["groupedAggregation"] = time.time() - grouped_started
+        has_weighted_metrics = any(
+            definition.kind in {"weighted_sum", "weighted_percent_of_national"}
+            for definition in definitions
+        )
+        weighted_fanout: WeightedFanoutResult | None = None
+        prepared_weighted_layers: dict[str, PreparedWeightedLayer] = {}
+        if weighted_mode == "grouped-weighted-v1" and has_weighted_metrics:
+            specs = approved_weighted_specs(definitions)
+            active_weighted_cache = (
+                weighted_layer_cache or ImmutableWeightedLayerCache()
+            )
+            weighted_prepare_started = time.perf_counter()
+            for layer_id in sorted({spec.layer_id for spec in specs}):
+                source_url = _resolve_layer_url(manifest, layer_id)
+                units = next(
+                    spec.unit
+                    for spec in specs
+                    if spec.layer_id == layer_id and spec.kind == "weighted_sum"
+                )
+                prepared, _ = value_cache.get_prepared_weighted(
+                    layer_id,
+                    source_url,
+                    raster,
+                    cache_dir,
+                    force_download,
+                    active_weighted_cache,
+                    value_units=units,
+                )
+                prepared_weighted_layers[layer_id] = prepared
+            phase_seconds["weightedLayerPreparation"] = (
+                time.perf_counter() - weighted_prepare_started
+            )
+            weighted_started = time.perf_counter()
+            weighted_fanout = aggregate_selected_weighted_layers(
+                boundary_indexes,
+                raster.selected_mask,
+                prepared_weighted_layers,
+            )
+            phase_seconds["weightedAggregation"] = (
+                time.perf_counter() - weighted_started
+            )
+        weighted_fallback = has_weighted_metrics and weighted_fanout is None
+        boundary_output_started = time.time()
 
         for geo_level, features in boundaries_by_level.items():
             level_out: dict[str, Any] = {}
-            grid = boundary_grids.get(geo_level) if boundary_grids else None
+            fanout = (
+                boundary_indexes.get(geo_level)
+                if fanout_mode == "grouped"
+                else boundary_grids.get(geo_level)
+            )
             counts_list = (
                 species_accumulator.sub.get(geo_level) if species_accumulator else None
             )
-            for feat in features:
-                px_mask = boundary_mask_cache.get(
-                    feat.geo_level,
-                    feat.boundary_id,
-                    feat.geometry,
-                    raster.fingerprint,
-                    source_crs=feat.source_crs,
-                    source_sha256=feat.source_sha256,
-                    geometry_sha256=feat.geometry_sha256,
-                )
-                masked = raster.with_boundary_mask(px_mask)
+            for boundary_index, feat in enumerate(features):
+                grouped_level = grouped_primitives.get(geo_level)
+                grouped_overrides: dict[str, dict[str, Any]] | None = None
+                if grouped_level is not None:
+                    scope_valid_cells = int(grouped_level.valid_cells[boundary_index])
+                    grouped_overrides = _grouped_metric_overrides(
+                        definitions,
+                        grouped_level,
+                        boundary_index,
+                        manifest,
+                    )
+                    if weighted_fanout is not None:
+                        grouped_overrides.update(
+                            _weighted_metric_overrides(
+                                definitions,
+                                level=geo_level,
+                                boundary_index=boundary_index,
+                                fanout=weighted_fanout,
+                                layers=prepared_weighted_layers,
+                            )
+                        )
+                    if weighted_fallback and scope_valid_cells > 0:
+                        px_mask = rasterize_boundary(
+                            feat.geometry,
+                            raster.fingerprint,
+                            source_crs=feat.source_crs,
+                        )
+                        scoped_raster = raster.with_boundary_mask(px_mask)
+                    else:
+                        scoped_raster = raster
+                    boundary_grid_cells = int(
+                        grouped_level.boundary_grid_cells[boundary_index]
+                    )
+                    selected_cells = int(grouped_level.selected_cells[boundary_index])
+                else:
+                    px_mask = boundary_mask_cache.get(
+                        feat.geo_level,
+                        feat.boundary_id,
+                        feat.geometry,
+                        raster.fingerprint,
+                        source_crs=feat.source_crs,
+                        source_sha256=feat.source_sha256,
+                        geometry_sha256=feat.geometry_sha256,
+                    )
+                    scoped_raster = raster.with_boundary_mask(px_mask)
+                    scope_valid_cells = scoped_raster.valid_cells
+                    selected_cells = scoped_raster.selected_cells
+                    boundary_grid_cells = boundary_mask_cache.cell_count(px_mask)
                 # Look up the precomputed species counts for this boundary, if any.
                 feat_species: SpeciesScopeMetrics | None = None
-                if grid is not None and counts_list is not None and species_pool_sizes:
+                if fanout is not None and counts_list is not None and species_pool_sizes:
                     try:
-                        bidx = grid.boundary_ids.index(feat.boundary_id)
+                        bidx = fanout.boundary_ids.index(feat.boundary_id)
                         feat_species = SpeciesScopeMetrics.from_counts(
                             counts_list[bidx], species_pool_sizes
                         )
                     except ValueError:
                         feat_species = None
                 metrics = _build_metrics(
-                    masked,
+                    scoped_raster,
                     solution,
                     manifest,
                     layer_cache,
@@ -3189,17 +4304,17 @@ def _process_solution(
                     species_target_policy=effective_target_policy,
                     species_records=species_records,
                     species_exception_binding=species_exception_binding,
+                    grouped_metric_overrides=grouped_overrides,
+                    scope_valid_cells=scope_valid_cells,
                 )
                 entry: dict[str, Any] = {
                     "name": feat.name,
                     "scopeState": build_scope_state(
                         geography_level=geo_level,
                         scope_id=feat.boundary_id,
-                        solution_valid_cell_count=masked.valid_cells,
-                        selected_cell_count=masked.selected_cells,
-                        boundary_grid_cell_count=boundary_mask_cache.cell_count(
-                            px_mask
-                        ),
+                        solution_valid_cell_count=scope_valid_cells,
+                        selected_cell_count=selected_cells,
+                        boundary_grid_cell_count=boundary_grid_cells,
                         target_grid_sha256=target_grid_sha256,
                         solution_raster_sha256=download.sha256,
                         solution_validity_mask_sha256=validity_mask_sha256,
@@ -3222,6 +4337,7 @@ def _process_solution(
                 level_out[feat.boundary_id] = entry
             geographies[geo_level] = level_out
             print(f"[tier1-metrics]   {geo_level}: {len(level_out)} features processed")
+        phase_seconds["boundaryOutput"] = time.time() - boundary_output_started
 
     generated_at = _utc_now_iso()
     if isinstance(species_detail_sink, SpeciesGoalsPipeline):
@@ -3321,6 +4437,7 @@ def _process_solution(
         solution_input_signature=solution_input_signature,
         metrics_provenance=provenance,
     )
+    output_started = time.time()
     cache_path = _finalize_solution_document(
         output_dir=output_dir,
         solution_id=solution_id,
@@ -3330,8 +4447,17 @@ def _process_solution(
         domain=domain,
         skip_species=skip_species,
     )
+    phase_seconds["output"] = time.time() - output_started
+    if effective_species_runtime is not None:
+        effective_species_runtime["phaseSeconds"]["output"] = phase_seconds["output"]
     print(f"[tier1-metrics]   cache → {cache_path}")
 
+    elapsed_seconds = time.time() - started
+    usage_finished = resource.getrusage(resource.RUSAGE_SELF)
+    print(
+        f"[tier1-metrics]   phases: {json.dumps({key: round(value, 2) for key, value in phase_seconds.items()}, sort_keys=True)}; "
+        f"peak-rss={_peak_rss_mib():.1f} MiB"
+    )
     return {
         "solutionId": solution_id,
         "solutionBasename": basename,
@@ -3376,7 +4502,45 @@ def _process_solution(
         "speciesMissingTif": species_accumulator.species_missing_tif
         if species_accumulator
         else 0,
-        "elapsedSeconds": round(time.time() - started, 2),
+        "elapsedSeconds": round(elapsed_seconds, 2),
+        "userSeconds": round(
+            usage_finished.ru_utime - usage_started.ru_utime,
+            6,
+        ),
+        "systemSeconds": round(
+            usage_finished.ru_stime - usage_started.ru_stime,
+            6,
+        ),
+        "peakRssMiB": round(_peak_rss_mib(), 1),
+        "boundaryFanout": {
+            **fanout_identity,
+            "topologyCacheHit": topology_cache_hit if fanout_mode == "grouped" else None,
+            "weightedFallback": weighted_fallback
+            if not national_only and boundaries_by_level
+            else False,
+            "phaseSeconds": {
+                key: round(value, 2) for key, value in phase_seconds.items()
+            },
+            "peakRssMiB": round(_peak_rss_mib(), 1),
+        },
+        "weightedBoundaryExecution": {
+            **weighted_identity,
+            "layerCacheHits": (
+                weighted_layer_cache.hits if weighted_layer_cache is not None else 0
+            ),
+            "layerCacheMisses": (
+                weighted_layer_cache.misses if weighted_layer_cache is not None else 0
+            ),
+            "layerCacheEntries": (
+                weighted_layer_cache.entry_count
+                if weighted_layer_cache is not None
+                else 0
+            ),
+        },
+        "speciesExecution": {
+            **(species_execution or {}),
+            "runtime": effective_species_runtime,
+        },
     }
 
 
@@ -3434,6 +4598,22 @@ def _run_coverage_parity_gate(
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    try:
+        fanout_mode = _boundary_fanout_mode()
+        weighted_fanout_mode = _weighted_boundary_fanout_mode()
+        species_execution_config = resolve_species_execution()
+    except ValueError as exc:
+        print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+        return 2
+    fanout_identity = boundary_fanout_identity(fanout_mode)
+    weighted_fanout_identity = weighted_execution_identity(weighted_fanout_mode)
+    if weighted_fanout_mode == "grouped-weighted-v1" and fanout_mode != "grouped":
+        print(
+            f"[tier1-metrics] ERROR: {_WEIGHTED_BOUNDARY_FANOUT_ENV}="
+            f"grouped-weighted-v1 requires {_BOUNDARY_FANOUT_ENV}=grouped.",
+            file=sys.stderr,
+        )
+        return 2
     catalog: SolutionCatalog | None = None
     species_exception: SpeciesExceptionPolicy | None = None
     release_plan_binding: dict[str, Any] | None = None
@@ -3485,6 +4665,15 @@ def main(argv: list[str] | None = None) -> int:
             except (OSError, SolutionCatalogError) as exc:
                 print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
                 return 2
+    try:
+        _validate_species_execution_run(
+            species_execution_config,
+            cache_policy=args.cache_policy,
+            boundary_fanout_mode=fanout_mode,
+        )
+    except ValueError as exc:
+        print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+        return 2
     if args.release_id:
         args.cache_blob_directory = load_release_config(
             args.release_id
@@ -3803,6 +4992,178 @@ def main(argv: list[str] | None = None) -> int:
         )
     print(f"[tier1-metrics] processing {len(solutions)} solution(s)")
 
+    layer_cache = _LayerMaskCache(alignment_cache)
+    value_cache = _LayerValueCache(alignment_cache)
+    weighted_layer_cache = ImmutableWeightedLayerCache()
+    boundary_mask_cache = BoundaryMaskCache()
+    boundary_grid_cache = BoundaryIdGridCache()
+    boundary_topology_cache = BoundaryTopologyCache()
+    boundaries_by_level: dict[str, list[BoundaryFeature]] = {}
+    boundary_errors: dict[str, str] = {}
+    species_execution_by_id = {
+        str(solution.get("id")): _independent_species_execution(
+            species_execution_config
+        )
+        for solution in solutions
+        if solution_domain(solution) == "land"
+    }
+    microbatch_plan_by_id: dict[str, _SpeciesMicrobatchPlan] = {}
+    microbatch_overlap_paths: list[ExactOverlapInput] | None = None
+    if (
+        species_execution_config.is_microbatch
+        and not args.skip_species
+        and species_records
+        and catalog_species_records
+        and species_pool_sizes
+    ):
+        if not args.national_only:
+            boundaries_by_level, boundary_errors = load_all_boundaries(args.cache_dir)
+            if boundary_errors or set(boundaries_by_level) != {
+                "departments",
+                "municipalities",
+                "siraps",
+                "runaps",
+                "omecs",
+            }:
+                print(
+                    f"[tier1-metrics] ERROR: {species_execution_config.effective_mode} "
+                    "requires every "
+                    f"pinned boundary source; failures={sorted(boundary_errors)}",
+                    file=sys.stderr,
+                )
+                return 2
+        reference_solution = next(
+            (
+                solution
+                for solution in solutions
+                if solution_domain(solution) == "land"
+            ),
+            None,
+        )
+        if reference_solution is not None:
+            reference_id = str(reference_solution.get("id"))
+            reference_raster = read_solution_raster(
+                preflight_downloads[reference_id].path
+            )
+            all_boundary_indexes = (
+                boundary_topology_cache.get(
+                    boundaries_by_level,
+                    reference_raster.fingerprint,
+                )[0]
+                if boundaries_by_level
+                else {}
+            )
+            boundary_indexes = {
+                level: index
+                for level, index in all_boundary_indexes.items()
+                if level not in set(args.skip_species_boundary_level)
+            }
+            microbatch_overlap_paths, exact_component = (
+                discover_exact_overlap_inventory(
+                    args.cache_dir,
+                    species_records,
+                    target_grid_sha256=grid_sha256(reference_raster.fingerprint),
+                )
+            )
+            records_component = _species_records_component(
+                catalog_species_records,
+                species_records,
+                species_pool_sizes,
+            )
+            boundary_component = _boundary_batch_component(
+                boundaries_by_level,
+                boundary_indexes,
+            )
+            active_levels = ["national", *sorted(boundary_indexes)]
+            land_solutions = [
+                solution
+                for solution in solutions
+                if solution_domain(solution) == "land"
+            ]
+            for batch_start in range(
+                0,
+                len(land_solutions),
+                species_execution_config.batch_size,
+            ):
+                batch_solutions = tuple(
+                    land_solutions[
+                        batch_start : batch_start
+                        + species_execution_config.batch_size
+                    ]
+                )
+                ordinal = batch_start // species_execution_config.batch_size
+                ordered_ids = [
+                    str(solution.get("id")) for solution in batch_solutions
+                ]
+                matrix = load_category_matrix(
+                    [preflight_downloads[solution_id].path for solution_id in ordered_ids]
+                )
+                category_hashes = [
+                    category_mask_sha256(matrix.values[:, index])
+                    for index in range(matrix.num_solutions)
+                ]
+                target_policy_hashes = [
+                    species_goals_sha256(
+                        {
+                            "kind": species_target_policies[solution_id].kind,
+                            "scalarTargetPercent": species_target_policies[
+                                solution_id
+                            ].scalar_target_pct,
+                            "targetsBySpecies": species_target_policies[
+                                solution_id
+                            ].targets_by_species,
+                            "provenance": species_target_policies[
+                                solution_id
+                            ].provenance,
+                        }
+                    )
+                    for solution_id in ordered_ids
+                ]
+                binding = build_release_batch_binding(
+                    ordered_solution_ids=ordered_ids,
+                    solution_raster_sha256s=[
+                        preflight_downloads[solution_id].sha256
+                        for solution_id in ordered_ids
+                    ],
+                    category_mask_sha256s=category_hashes,
+                    exact_overlap_inventory=exact_component,
+                    species_records_component=records_component,
+                    target_policy_sha256s=target_policy_hashes,
+                    boundary_component=boundary_component,
+                    active_geography_levels=active_levels,
+                    batch_ordinal=ordinal,
+                    configured_batch_size=species_execution_config.batch_size,
+                    algorithm_version=species_execution_config.algorithm_version,
+                )
+                execution_by_solution = {
+                    solution_id: {
+                        **species_execution_config.provenance(),
+                        "batchOrdinal": ordinal,
+                        "actualBatchSize": len(ordered_ids),
+                        "orderedSolutionIds": ordered_ids,
+                        "categoryMaskSha256": category_hash,
+                        "bindingSha256": binding["sha256"],
+                        "componentSha256s": binding["componentSha256s"],
+                        "resumePolicy": "disabled-recompute-all",
+                    }
+                    for solution_id, category_hash in zip(
+                        ordered_ids,
+                        category_hashes,
+                        strict=True,
+                    )
+                }
+                plan = _SpeciesMicrobatchPlan(
+                    ordinal=ordinal,
+                    solutions=batch_solutions,
+                    binding=binding,
+                    execution_by_solution=execution_by_solution,
+                )
+                for solution_id in ordered_ids:
+                    species_execution_by_id[solution_id] = execution_by_solution[
+                        solution_id
+                    ]
+                    microbatch_plan_by_id[solution_id] = plan
+
     if catalog is not None and args.release_id is not None:
         try:
             worker_identity = (
@@ -3878,6 +5239,11 @@ def main(argv: list[str] | None = None) -> int:
                     species_target_policies[solution_id].provenance
                     if solution_id in species_target_policies
                     else None
+                ),
+                boundary_fanout_mode=fanout_mode,
+                weighted_execution_mode=weighted_fanout_mode,
+                species_execution=species_execution_by_id.get(
+                    str(solution.get("id"))
                 ),
             )
             expected_provenance_by_id[solution_id] = expected_provenance
@@ -3974,6 +5340,8 @@ def main(argv: list[str] | None = None) -> int:
                 species_target_policy=species_target_policies.get(
                     str(solution.get("id"))
                 ),
+                boundary_fanout_mode=fanout_mode,
+                weighted_boundary_fanout_mode=weighted_fanout_mode,
             )
             if (
                 resume_entry is not None
@@ -4056,7 +5424,10 @@ def main(argv: list[str] | None = None) -> int:
                     species_csv_url=args.species_csv_url,
                     species_exception_binding=species_exception_binding,
                     species_target_policy=species_target_policies.get(solution_id),
-            )
+                    boundary_fanout_mode=fanout_mode,
+                    weighted_boundary_fanout_mode=weighted_fanout_mode,
+                    species_execution=species_execution_by_id.get(solution_id),
+                )
             if resume_entry is None:
                 pending_solutions.append(solution)
             else:
@@ -4068,9 +5439,7 @@ def main(argv: list[str] | None = None) -> int:
             )
 
     # --- Load boundary data ---
-    boundaries_by_level: dict[str, list[BoundaryFeature]] = {}
-    boundary_errors: dict[str, str] = {}
-    if pending_solutions and not args.national_only:
+    if pending_solutions and not args.national_only and not boundaries_by_level:
         boundaries_by_level, boundary_errors = load_all_boundaries(args.cache_dir)
         for level, feats in boundaries_by_level.items():
             print(f"[tier1-metrics] boundaries: {level} → {len(feats)} features")
@@ -4092,11 +5461,6 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 2
 
-    layer_cache = _LayerMaskCache(alignment_cache)
-    value_cache = _LayerValueCache(alignment_cache)
-    boundary_mask_cache = BoundaryMaskCache()
-    boundary_grid_cache = BoundaryIdGridCache()
-
     species_load_error: str | None = None
     has_pending_land = any(
         solution_domain(solution) == "land" for solution in pending_solutions
@@ -4116,6 +5480,183 @@ def main(argv: list[str] | None = None) -> int:
     deferred = sorted(deferred_metric_ids())
     entries: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
+    prepared_species_by_id: dict[str, _PrecomputedSpeciesResult] = {}
+    prepared_batch_ordinals: set[int] = set()
+    failed_microbatch_ids: dict[str, tuple[str, str]] = {}
+
+    def prepare_microbatch(plan: _SpeciesMicrobatchPlan) -> None:
+        if plan.ordinal in prepared_batch_ordinals:
+            return
+        prepared_batch_ordinals.add(plan.ordinal)
+        if (
+            microbatch_overlap_paths is None
+            or species_records is None
+            or species_pool_sizes is None
+        ):
+            raise SpeciesSolutionBatchError(
+                "Microbatch preflight did not preserve complete exact species inputs."
+            )
+        ordered_ids = [
+            str(solution.get("id")) for solution in plan.solutions
+        ]
+        matrix = load_category_matrix(
+            [preflight_downloads[solution_id].path for solution_id in ordered_ids]
+        )
+        indexes = (
+            boundary_topology_cache.get(
+                boundaries_by_level,
+                matrix.fingerprint,
+            )[0]
+            if boundaries_by_level
+            else {}
+        )
+        active_indexes = {
+            level: index
+            for level, index in indexes.items()
+            if level not in set(args.skip_species_boundary_level)
+        }
+        def build_sink(
+            solution_id: str,
+            target_policy: SpeciesTargetPolicy,
+        ) -> SpeciesDetailSink | None:
+            if (
+                species_goals_catalog is None
+                or args.species_goals_output_dir is None
+                or species_csv_download is None
+            ):
+                return None
+            regular_provenance = expected_provenance_by_id[solution_id]
+            return SpeciesGoalsPipeline(
+                species_goals_catalog,
+                solution_id=solution_id,
+                target_policy=target_policy,
+                provenance=_species_goals_provenance(
+                    release_id=args.release_id,
+                    species_csv_sha256=species_csv_download.sha256,
+                    species_exception_source_sha256=(
+                        _species_exception_source_sha256(species_exception)
+                    ),
+                    species_exception_binding=(
+                        species_exception.binding
+                        if species_exception is not None
+                        else None
+                    ),
+                    alignment_provenance=regular_provenance["inputAlignment"],
+                    solution_raster_sha256=solution_checksums[solution_id],
+                    target_policy=target_policy,
+                    boundary_provenance_sha256=regular_provenance[
+                        "boundaryProvenance"
+                    ]["sha256"],
+                    catalog_sha256=species_goals_catalog["catalogSha256"],
+                ),
+                spool_dir=args.species_goals_output_dir / ".spool",
+                active_levels={"national", *active_indexes},
+            )
+
+        sinks, accumulators, setup_failures = _initialize_species_microbatch_members(
+            ordered_ids=ordered_ids,
+            target_policies=species_target_policies,
+            pool_sizes=species_pool_sizes,
+            species_expected=len(species_records),
+            sub_sizes={
+                level: index.num_boundaries
+                for level, index in active_indexes.items()
+            },
+            sink_factory=build_sink,
+        )
+        failed_microbatch_ids.update(setup_failures)
+
+        started = time.perf_counter()
+        usage_before = resource.getrusage(resource.RUSAGE_SELF)
+        try:
+            processor = (
+                process_exact_species_batch_buffered
+                if species_execution_config.is_buffered_microbatch
+                else process_exact_species_batch
+            )
+            stats = processor(
+                species_records=species_records,
+                overlap_paths=microbatch_overlap_paths,
+                categories=matrix.values,
+                fingerprint=matrix.fingerprint,
+                boundary_indexes=active_indexes,
+                accumulators=accumulators,
+                binding=plan.binding,
+                checkpoint_interval=0,
+                checkpoint=None,
+            )
+        except Exception as exc:
+            for sink in sinks:
+                close_error = _close_species_goals_sink(sink)
+                if close_error is not None:
+                    exc.add_note(
+                        "Microbatch cleanup also failed: "
+                        f"{type(close_error).__name__}: {close_error}"
+                    )
+            raise
+        wall_seconds = time.perf_counter() - started
+        usage_after = resource.getrusage(resource.RUSAGE_SELF)
+        runtime = {
+            "batchOrdinal": plan.ordinal,
+            "wallSeconds": wall_seconds,
+            "userSeconds": usage_after.ru_utime - usage_before.ru_utime,
+            "systemSeconds": usage_after.ru_stime - usage_before.ru_stime,
+            "peakRssMiB": _peak_rss_mib(),
+            "npzOpens": stats.npz_opens,
+            "npzBytes": stats.npz_bytes,
+            "phaseSeconds": {
+                "exactRead": stats.exact_read_seconds,
+                "evaluation": stats.evaluation_seconds,
+                "accumulator": stats.accumulator_seconds,
+            },
+            "solutionEquivalentSeconds": wall_seconds / len(ordered_ids),
+            "solutionFailures": [
+                {
+                    "solutionId": ordered_ids[failure.solution_index],
+                    "speciesIndex": failure.species_index,
+                    "speciesName": failure.species_name,
+                    "errorType": failure.error_type,
+                    "error": failure.error,
+                }
+                for failure in stats.solution_failures
+            ],
+        }
+        failures_by_index = {
+            failure.solution_index: failure for failure in stats.solution_failures
+        }
+        for solution_index, (solution_id, accumulator, sink) in enumerate(
+            zip(
+            ordered_ids,
+            accumulators,
+            sinks,
+            strict=True,
+            )
+        ):
+            if accumulator is None:
+                continue
+            failure = failures_by_index.get(solution_index)
+            if failure is not None:
+                close_error = _close_species_goals_sink(sink)
+                close_suffix = (
+                    "; cleanup also failed: "
+                    f"{type(close_error).__name__}: {close_error}"
+                    if close_error is not None
+                    else ""
+                )
+                failed_microbatch_ids[solution_id] = (
+                    (
+                        "Solution-specific species accumulator/detail sink failed at "
+                        f"catalog index {failure.species_index} "
+                        f"({failure.species_name!r}): {failure.error}{close_suffix}"
+                    ),
+                    "Isolated solution-microbatch-v1 member failure.",
+                )
+                continue
+            prepared_species_by_id[solution_id] = _PrecomputedSpeciesResult(
+                accumulator=accumulator,
+                detail_sink=sink,
+                runtime=runtime,
+            )
 
     for index, solution in enumerate(solutions, start=1):
         solution_id = str(solution.get("id"))
@@ -4127,6 +5668,30 @@ def main(argv: list[str] | None = None) -> int:
             )
             entries.append(resume_entry)
             continue
+        plan = microbatch_plan_by_id.get(solution_id)
+        if plan is not None and plan.ordinal not in prepared_batch_ordinals:
+            try:
+                prepare_microbatch(plan)
+            except Exception as exc:  # noqa: BLE001 - bind one shared batch failure
+                batch_traceback = traceback.format_exc()
+                for member in plan.solutions:
+                    failed_microbatch_ids[str(member.get("id"))] = (
+                        str(exc),
+                        batch_traceback,
+                    )
+        if solution_id in failed_microbatch_ids:
+            error, batch_traceback = failed_microbatch_ids[solution_id]
+            failures.append(
+                {
+                    "solutionId": solution_id,
+                    "error": error,
+                    "traceback": batch_traceback,
+                    "speciesExecution": species_execution_by_id.get(solution_id),
+                }
+            )
+            print(f"[tier1-metrics]   FAILED: {error}", file=sys.stderr)
+            continue
+        precomputed_species = prepared_species_by_id.get(solution_id)
         try:
             entries.append(
                 _process_solution(
@@ -4143,6 +5708,10 @@ def main(argv: list[str] | None = None) -> int:
                     species_records=species_records,
                     species_pool_sizes=species_pool_sizes,
                     boundary_grid_cache=boundary_grid_cache,
+                    boundary_topology_cache=boundary_topology_cache,
+                    boundary_fanout_mode=fanout_mode,
+                    weighted_boundary_fanout_mode=weighted_fanout_mode,
+                    weighted_layer_cache=weighted_layer_cache,
                     skip_species=args.skip_species,
                     skip_species_boundary_levels=set(args.skip_species_boundary_level),
                     species_csv_url=args.species_csv_url,
@@ -4175,19 +5744,50 @@ def main(argv: list[str] | None = None) -> int:
                     species_target_policy=species_target_policies.get(solution_id),
                     species_goals_catalog=species_goals_catalog,
                     species_goals_output_dir=args.species_goals_output_dir,
+                    species_detail_sink=(
+                        precomputed_species.detail_sink
+                        if precomputed_species is not None
+                        else None
+                    ),
+                    species_execution=species_execution_by_id.get(solution_id),
+                    precomputed_species_accumulator=(
+                        precomputed_species.accumulator
+                        if precomputed_species is not None
+                        else None
+                    ),
+                    species_execution_runtime=(
+                        precomputed_species.runtime
+                        if precomputed_species is not None
+                        else None
+                    ),
                 )
             )
         except Exception as exc:  # noqa: BLE001 - batch runner records per-solution failures
+            cleanup_error = (
+                _close_species_goals_sink(precomputed_species.detail_sink)
+                if precomputed_species is not None
+                else None
+            )
             failure = {
                 "solutionId": solution_id,
-                "error": str(exc),
+                "error": (
+                    str(exc)
+                    if cleanup_error is None
+                    else (
+                        f"{exc}; cleanup also failed: "
+                        f"{type(cleanup_error).__name__}: {cleanup_error}"
+                    )
+                ),
                 "traceback": traceback.format_exc(),
+                "speciesExecution": species_execution_by_id.get(solution_id),
             }
             if isinstance(exc, MetricsCandidateValidationError):
                 failure["candidatePath"] = str(exc.candidate_path)
                 failure["validationIssues"] = exc.validation_issues
             failures.append(failure)
             print(f"[tier1-metrics]   FAILED: {exc}", file=sys.stderr)
+        finally:
+            prepared_species_by_id.pop(solution_id, None)
 
     if args.coverage_parity_contract is not None and not failures:
         try:
@@ -4287,6 +5887,35 @@ def main(argv: list[str] | None = None) -> int:
             else None
         ),
         "cachePolicy": args.cache_policy,
+        "boundaryFanout": fanout_identity,
+        "weightedBoundaryExecution": {
+            **weighted_fanout_identity,
+            "layerCacheHits": weighted_layer_cache.hits,
+            "layerCacheMisses": weighted_layer_cache.misses,
+            "layerCacheEntries": weighted_layer_cache.entry_count,
+            "layerCacheBytes": weighted_layer_cache.estimated_bytes,
+        },
+        "speciesExecution": {
+            **species_execution_config.provenance(),
+            "resumePolicy": (
+                "disabled-recompute-all"
+                if species_execution_config.is_microbatch
+                else "solution-cache-only"
+            ),
+            "batches": [
+                {
+                    "batchOrdinal": plan.ordinal,
+                    "orderedSolutionIds": [
+                        str(solution.get("id")) for solution in plan.solutions
+                    ],
+                    "bindingSha256": plan.binding["sha256"],
+                    "componentSha256s": plan.binding["componentSha256s"],
+                }
+                for plan in {
+                    plan.ordinal: plan for plan in microbatch_plan_by_id.values()
+                }.values()
+            ],
+        },
         "inputAlignment": alignment_provenance,
         "releasePlan": release_plan_binding,
         "solutionCatalog": (
@@ -4304,7 +5933,10 @@ def main(argv: list[str] | None = None) -> int:
             if catalog is not None
             else None
         ),
-        "resumeEnabled": args.cache_policy == "use-cache",
+        "resumeEnabled": (
+            args.cache_policy == "use-cache"
+            and not species_execution_config.is_microbatch
+        ),
         "entries": entries,
         "failures": failures,
     }

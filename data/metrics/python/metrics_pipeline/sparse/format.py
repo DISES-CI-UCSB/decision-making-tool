@@ -8,8 +8,9 @@ Two artifact types live here:
        [4 bytes] magic       = b"SMTX"  (0x53 0x4D 0x54 0x58)
        [1 byte ] layer_type  = 0 binary, 1 categorical, 2 continuous
        [2 bytes] metadata_length (uint16 little-endian)
-       [N bytes] metadata    = JSON UTF-8: {width, height, xOrigin, yOrigin,
-                                             xScale, yScale, nodata, crs, count}
+       [N bytes] metadata    = JSON UTF-8: grid geometry, nodata, count,
+                                             source identity/checksum, and
+                                             binary selection semantics
        [body  ] depending on layer_type:
                  binary      → uint32[] sorted delta-encoded cell indices
                  categorical → interleaved (uint32 delta, uint16 value)
@@ -47,6 +48,7 @@ from __future__ import annotations
 import gzip
 import io
 import json
+import math
 import struct
 from dataclasses import dataclass, field
 from typing import Any
@@ -83,7 +85,9 @@ class SparseMetadata:
     are taken straight off the source TIF so the decoder can place cell
     indices back into the source raster's coordinate system.
 
-    ``count`` is the number of occupied cells written into the body.
+    ``count`` is the number of occupied cells written into the body. New binary
+    sidecars also carry the full affine transform, source pathname/SHA-256, and
+    selected values so runtime acceptance can fail closed.
     """
 
     width: int
@@ -95,9 +99,13 @@ class SparseMetadata:
     nodata: float | int | None
     crs: str | None
     count: int
+    transform: tuple[float, float, float, float, float, float] | None = None
+    source_pathname: str | None = None
+    source_sha256: str | None = None
+    selected_values: tuple[int, ...] | None = None
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        payload = {
             "width": self.width,
             "height": self.height,
             "xOrigin": self.x_origin,
@@ -108,22 +116,80 @@ class SparseMetadata:
             "crs": self.crs,
             "count": self.count,
         }
+        if self.transform is not None:
+            payload["transform"] = list(self.transform)
+        if self.source_pathname is not None:
+            payload["sourcePathname"] = self.source_pathname
+        if self.source_sha256 is not None:
+            payload["sourceSha256"] = self.source_sha256
+        if self.selected_values is not None:
+            payload["selectedValues"] = list(self.selected_values)
+        return payload
 
     @classmethod
     def from_json(cls, payload: dict[str, Any]) -> "SparseMetadata":
+        if not isinstance(payload, dict):
+            raise SparseFormatError("invalid sparse metadata: expected a JSON object")
         try:
-            return cls(
-                width=int(payload["width"]),
-                height=int(payload["height"]),
-                x_origin=float(payload["xOrigin"]),
-                y_origin=float(payload["yOrigin"]),
-                x_scale=float(payload["xScale"]),
-                y_scale=float(payload["yScale"]),
-                nodata=payload.get("nodata"),
-                crs=payload.get("crs"),
-                count=int(payload["count"]),
+            raw_transform = payload.get("transform")
+            transform = None
+            if raw_transform is not None:
+                if not isinstance(raw_transform, list) or len(raw_transform) != 6:
+                    raise ValueError("transform must contain six coefficients")
+                transform = tuple(float(value) for value in raw_transform)
+            raw_selected_values = payload.get("selectedValues")
+            selected_values = (
+                None
+                if raw_selected_values is None
+                else tuple(int(value) for value in raw_selected_values)
             )
-        except (KeyError, TypeError, ValueError) as exc:
+            width = int(payload["width"])
+            height = int(payload["height"])
+            count = int(payload["count"])
+            grid_values = tuple(
+                float(payload[key])
+                for key in ("xOrigin", "yOrigin", "xScale", "yScale")
+            )
+            if width <= 0 or height <= 0 or count < 0:
+                raise ValueError("width/height must be positive and count non-negative")
+            if not all(math.isfinite(value) for value in grid_values):
+                raise ValueError("grid coordinates/scales must be finite")
+            if transform is not None and not all(
+                math.isfinite(value) for value in transform
+            ):
+                raise ValueError("transform coefficients must be finite")
+            nodata = payload.get("nodata")
+            if isinstance(nodata, bool) or (
+                nodata is not None and not isinstance(nodata, (int, float))
+            ):
+                raise TypeError("nodata must be numeric or null")
+            if nodata is not None and math.isinf(float(nodata)):
+                raise ValueError("nodata cannot be infinite")
+            crs = payload.get("crs")
+            source_pathname = payload.get("sourcePathname")
+            source_sha256 = payload.get("sourceSha256")
+            if crs is not None and not isinstance(crs, str):
+                raise TypeError("crs must be a string or null")
+            if source_pathname is not None and not isinstance(source_pathname, str):
+                raise TypeError("sourcePathname must be a string or null")
+            if source_sha256 is not None and not isinstance(source_sha256, str):
+                raise TypeError("sourceSha256 must be a string or null")
+            return cls(
+                width=width,
+                height=height,
+                x_origin=grid_values[0],
+                y_origin=grid_values[1],
+                x_scale=grid_values[2],
+                y_scale=grid_values[3],
+                nodata=nodata,
+                crs=crs,
+                count=count,
+                transform=transform,
+                source_pathname=source_pathname,
+                source_sha256=source_sha256,
+                selected_values=selected_values,
+            )
+        except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
             raise SparseFormatError(f"invalid sparse metadata: {exc}") from exc
 
 
@@ -241,7 +307,10 @@ def encode_sparse_artifact(artifact: SparseArtifact) -> bytes:
 
 def decode_sparse_bytes(blob: bytes) -> SparseArtifact:
     """Decode a ``.sparse.gz`` byte string back into a :class:`SparseArtifact`."""
-    raw = _gunzip_bytes(blob)
+    try:
+        raw = _gunzip_bytes(blob)
+    except (EOFError, OSError, OverflowError, TypeError, ValueError) as exc:
+        raise SparseFormatError(f"invalid sparse gzip bytes: {exc}") from exc
     return _decode_sparse_uncompressed(raw)
 
 
@@ -259,12 +328,26 @@ def _decode_sparse_uncompressed(raw: bytes) -> SparseArtifact:
         raise SparseFormatError("sparse artifact truncated (metadata)")
     try:
         metadata_json = json.loads(raw[7:body_offset].decode("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+    except (
+        json.JSONDecodeError,
+        OverflowError,
+        RecursionError,
+        UnicodeDecodeError,
+    ) as exc:
         raise SparseFormatError(f"invalid sparse metadata JSON: {exc}") from exc
+    if not isinstance(metadata_json, dict):
+        raise SparseFormatError("invalid sparse metadata: expected a JSON object")
     metadata = SparseMetadata.from_json(metadata_json)
 
     body = raw[body_offset:]
-    cell_ids, values = _decode_body(layer_type, body, expected_count=metadata.count)
+    try:
+        cell_ids, values = _decode_body(
+            layer_type,
+            body,
+            expected_count=metadata.count,
+        )
+    except (AttributeError, OverflowError, TypeError, ValueError) as exc:
+        raise SparseFormatError(f"invalid sparse body: {exc}") from exc
     return SparseArtifact(
         layer_type=layer_type,
         metadata=metadata,
@@ -523,6 +606,8 @@ def artifact_from_array(
     selected_value: int | None = None,
     selected_values: list[int] | None = None,
     drop_zero_for_continuous: bool = True,
+    source_pathname: str | None = None,
+    source_sha256: str | None = None,
 ) -> SparseArtifact:
     """Build a :class:`SparseArtifact` directly from a 2-D raster array.
 
@@ -594,6 +679,22 @@ def artifact_from_array(
         nodata=nodata,
         crs=metadata_grid.get("crs"),
         count=int(cell_ids.size),
+        transform=(
+            tuple(float(value) for value in metadata_grid["transform"])
+            if metadata_grid.get("transform") is not None
+            else None
+        ),
+        source_pathname=source_pathname,
+        source_sha256=source_sha256,
+        selected_values=(
+            tuple(sorted(int(value) for value in selected_values))
+            if selected_values is not None
+            else (
+                (1 if selected_value is None else int(selected_value),)
+                if layer_type == LAYER_TYPE_BINARY
+                else None
+            )
+        ),
     )
     return SparseArtifact(
         layer_type=layer_type,

@@ -1,11 +1,15 @@
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
 
 import numpy as np
 import pytest
-
 from calculators.species import SpeciesAccumulator
+from repair_species_goals_targets import (
+    load_summary_targets,
+    repair_compact_document,
+)
 from species_data import SpeciesPoolSizes, SpeciesRecord
 from species_goals import (
     FLAG_CONFIGURED_TARGET_MET,
@@ -25,10 +29,6 @@ from species_goals import (
     write_release_inventory,
 )
 from species_target_policy import SpeciesTargetPolicy
-from repair_species_goals_targets import (
-    load_summary_targets,
-    repair_compact_document,
-)
 
 SHA_A = "a" * 64
 SHA_B = "b" * 64
@@ -241,6 +241,79 @@ def test_accumulator_streams_exact_observations_to_pipeline(tmp_path: Path):
     )
     assert national["rows"][0][2:4] == [0.0001, 0.000025]
     assert departments["rows"][0][2:4] == [0.0001, 0.000025]
+
+
+def test_buffered_chunk_rolls_back_partial_executemany_and_replays_idempotently(
+    tmp_path: Path,
+):
+    records = [_species("First"), _species("Second")]
+    pipeline = _pipeline(_catalog(records), tmp_path)
+    connection = pipeline._connection
+
+    class PartialExecutemanyFailure:
+        def execute(self, *args, **kwargs):
+            return connection.execute(*args, **kwargs)
+
+        def executemany(self, statement, rows):
+            connection.execute(statement, rows[0])
+            raise sqlite3.OperationalError("injected partial executemany failure")
+
+        def __getattr__(self, name):
+            return getattr(connection, name)
+
+    pipeline._connection = PartialExecutemanyFailure()
+    chunk_args = (
+        records,
+        np.array([10.0, 20.0]),
+        np.array([100.0, 100.0]),
+        np.array([0.0, 0.0]),
+        np.array([10.0, 20.0]),
+        {},
+    )
+
+    with pytest.raises(sqlite3.OperationalError, match="injected partial"):
+        pipeline.record_species_chunk(*chunk_args)
+    assert connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0] == 0
+
+    pipeline._connection = connection
+    pipeline.record_species_chunk(*chunk_args)
+    pipeline.record_species_chunk(*chunk_args)
+    rows = connection.execute(
+        """
+        SELECT species_index, selected_area_m2
+        FROM observations
+        ORDER BY species_index
+        """
+    ).fetchall()
+    assert rows == [(0, 10.0), (1, 20.0)]
+
+
+def test_pipeline_post_close_cleanup_failure_is_not_retried(
+    monkeypatch,
+    tmp_path: Path,
+):
+    record = _species("Close once")
+    pipeline = _pipeline(_catalog([record]), tmp_path)
+    pipeline.record_national(record, 10.0, 100.0)
+    original_unlink = Path.unlink
+    unlink_calls = 0
+
+    def fail_spool_unlink(path, *args, **kwargs):
+        nonlocal unlink_calls
+        if path == pipeline.spool_path:
+            unlink_calls += 1
+            raise RuntimeError("injected post-close cleanup failure")
+        return original_unlink(path, *args, **kwargs)
+
+    with monkeypatch.context() as context:
+        context.setattr(Path, "unlink", fail_spool_unlink)
+        with pytest.raises(RuntimeError, match="post-close cleanup failure"):
+            pipeline.close()
+        pipeline.close()
+
+    assert pipeline.closed
+    assert unlink_calls == 1
+    original_unlink(pipeline.spool_path, missing_ok=True)
 
 
 def test_completed_partition_resumes_and_rejects_provenance_mismatch(tmp_path: Path):

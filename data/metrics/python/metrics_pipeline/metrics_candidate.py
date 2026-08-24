@@ -37,6 +37,9 @@ class CandidateBinding:
     metrics_schema_version: int
     catalog_signature: str
     species_target_policy: dict[str, Any] | None
+    boundary_fanout: dict[str, str]
+    weighted_boundary_execution: dict[str, Any] | None = None
+    species_execution: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -55,6 +58,9 @@ class CandidateBinding:
                 "schemaVersion": self.metrics_schema_version,
                 "catalogSignature": self.catalog_signature,
                 "speciesTargetPolicy": self.species_target_policy,
+                "boundaryFanout": self.boundary_fanout,
+                "weightedBoundaryExecution": self.weighted_boundary_execution,
+                "speciesExecution": self.species_execution,
             },
             "validationContractVersion": VALIDATION_CONTRACT_VERSION,
         }
@@ -273,9 +279,31 @@ def _payload_binding_issues(
         "catalogSignature": binding.catalog_signature,
         "releaseId": binding.release_id,
         "speciesTargetPolicy": binding.species_target_policy,
+        "boundaryFanout": binding.boundary_fanout,
+        "weightedBoundaryExecution": binding.weighted_boundary_execution,
+        "speciesExecution": binding.species_execution,
     }
+    generation_config = provenance.get("generationConfig")
     for key, expected in expected_provenance.items():
-        if provenance.get(key) != expected:
+        actual = (
+            generation_config.get(key)
+            if key
+            in {
+                "boundaryFanout",
+                "weightedBoundaryExecution",
+                "speciesExecution",
+            }
+            and isinstance(generation_config, dict)
+            else None
+            if key
+            in {
+                "boundaryFanout",
+                "weightedBoundaryExecution",
+                "speciesExecution",
+            }
+            else provenance.get(key)
+        )
+        if actual != expected:
             issues.append(f"candidate payload metrics provenance {key} mismatch")
     return issues
 

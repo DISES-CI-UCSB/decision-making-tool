@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import main as pipeline
 import pytest
 from blob_manifest import ResolvedManifest
+from helpers import TEST_RASTER_SHA256, scope_state
 from local_io import CachedDownload, DownloadError
 from metric_definitions import computable_metrics
 from metrics_contract import (
@@ -18,7 +19,7 @@ from metrics_contract import (
 )
 from raster_metrics import RasterFingerprint
 from solution_catalog import SolutionCatalog, SolutionCatalogEntry
-from helpers import TEST_RASTER_SHA256, scope_state
+from solution_input_signature import build_solution_input_signature
 
 
 def _solution(solution_id: str = "demo", *, domain: str = "land") -> dict:
@@ -117,12 +118,20 @@ def _write_cache(
     cache_path.write_text(json.dumps(document), encoding="utf-8")
 
 
-def _resume(output_dir: Path, solution: dict):
+def _resume(
+    output_dir: Path,
+    solution: dict,
+    *,
+    boundary_fanout_mode: str = "legacy",
+    weighted_boundary_fanout_mode: str = "scalar",
+):
     return pipeline._resume_entry_for_existing_cache(
         solution,
         _manifest(solution),
         output_dir,
         "metrics/cache",
+        boundary_fanout_mode=boundary_fanout_mode,
+        weighted_boundary_fanout_mode=weighted_boundary_fanout_mode,
     )
 
 
@@ -542,6 +551,117 @@ def test_resume_accepts_matching_catalog_signature(tmp_path: Path):
     assert entry is not None
     assert entry["resumeSkipped"] is True
     assert entry["solutionDomain"] == "land"
+    assert entry["boundaryFanout"] == pipeline.boundary_fanout_identity("legacy")
+
+
+def test_resume_never_reuses_cache_across_boundary_fanout_modes(tmp_path: Path):
+    solution = _solution()
+    _write_cache(
+        tmp_path,
+        solution,
+        build_metrics_provenance(
+            "land",
+            species_csv_url=pipeline.SPECIES_CSV_URL,
+            boundary_fanout_mode="legacy",
+        ),
+    )
+
+    assert _resume(tmp_path, solution, boundary_fanout_mode="legacy") is not None
+    assert _resume(tmp_path, solution, boundary_fanout_mode="grouped") is None
+
+
+@pytest.mark.parametrize(
+    ("cached_mode", "requested_mode"),
+    [
+        ("scalar", "grouped-weighted-v1"),
+        ("grouped-weighted-v1", "scalar"),
+    ],
+)
+def test_resume_rejects_cache_across_weighted_orchestration_modes(
+    tmp_path: Path,
+    cached_mode: str,
+    requested_mode: str,
+):
+    solution = _solution()
+    _write_cache(
+        tmp_path,
+        solution,
+        build_metrics_provenance(
+            "land",
+            species_csv_url=pipeline.SPECIES_CSV_URL,
+            boundary_fanout_mode="grouped",
+            weighted_execution_mode=cached_mode,
+        ),
+    )
+
+    assert (
+        _resume(
+            tmp_path,
+            solution,
+            boundary_fanout_mode="grouped",
+            weighted_boundary_fanout_mode=cached_mode,
+        )
+        is not None
+    )
+    assert (
+        _resume(
+            tmp_path,
+            solution,
+            boundary_fanout_mode="grouped",
+            weighted_boundary_fanout_mode=requested_mode,
+        )
+        is None
+    )
+
+
+def test_grouped_resume_fails_closed_without_fanout_identity(tmp_path: Path):
+    solution = _solution()
+    provenance = build_metrics_provenance(
+        "land",
+        species_csv_url=pipeline.SPECIES_CSV_URL,
+        boundary_fanout_mode="grouped",
+    )
+    del provenance["generationConfig"]["boundaryFanout"]
+    provenance["catalogSignature"] = catalog_signature(
+        "land",
+        provenance["generationConfig"],
+    )
+    _write_cache(tmp_path, solution, provenance)
+
+    assert _resume(tmp_path, solution, boundary_fanout_mode="grouped") is None
+
+
+def test_legacy_resume_accepts_pre_identity_provenance(tmp_path: Path):
+    solution = _solution()
+    provenance = build_metrics_provenance(
+        "land",
+        species_csv_url=pipeline.SPECIES_CSV_URL,
+        boundary_fanout_mode="legacy",
+    )
+    del provenance["generationConfig"]["boundaryFanout"]
+    _write_cache(tmp_path, solution, provenance)
+
+    assert _resume(tmp_path, solution, boundary_fanout_mode="legacy") is not None
+    assert _resume(tmp_path, solution, boundary_fanout_mode="grouped") is None
+
+
+def test_resume_rejects_stale_boundary_fanout_algorithm_version(tmp_path: Path):
+    solution = _solution()
+    provenance = build_metrics_provenance(
+        "land",
+        species_csv_url=pipeline.SPECIES_CSV_URL,
+        boundary_fanout_mode="grouped",
+    )
+    provenance["generationConfig"]["boundaryFanout"]["algorithmVersion"] = (
+        "boundary-fanout-exclusive-csr-four-channel-v0"
+    )
+    provenance["catalogSignature"] = catalog_signature(
+        "land",
+        provenance["generationConfig"],
+    )
+    _write_cache(tmp_path, solution, provenance)
+
+    assert _resume(tmp_path, solution, boundary_fanout_mode="grouped") is None
 
 
 def test_catalog_signature_is_deterministic_and_order_sensitive():
@@ -558,6 +678,52 @@ def test_catalog_signature_is_deterministic_and_order_sensitive():
         config,
         catalog=reversed(computable_metrics()),
     ) != catalog_signature("land", config)
+
+
+def test_boundary_fanout_identity_changes_catalog_and_solution_input_signatures():
+    solution = _solution()
+    entry = SolutionCatalogEntry(
+        solution_id=solution["id"],
+        solution_basename="demo.tif",
+        domain="land",
+        raster_sha256="a" * 64,
+    )
+    provenances = {
+        mode: build_metrics_provenance(
+            "land",
+            species_csv_url=pipeline.SPECIES_CSV_URL,
+            boundary_fanout_mode=mode,
+        )
+        for mode in ("legacy", "grouped")
+    }
+    signatures = {
+        mode: build_solution_input_signature(
+            solution=solution,
+            catalog_entry=entry,
+            manifest=_manifest(solution),
+            metrics_provenance=provenance,
+            source_identity={"solutionRaster": {"sha256": "a" * 64}},
+        )
+        for mode, provenance in provenances.items()
+    }
+
+    assert provenances["legacy"]["catalogSignature"] != (
+        provenances["grouped"]["catalogSignature"]
+    )
+    assert signatures["legacy"]["sha256"] != signatures["grouped"]["sha256"]
+    legacy_without_identity = json.loads(json.dumps(provenances["legacy"]))
+    del legacy_without_identity["generationConfig"]["boundaryFanout"]
+    assert catalog_signature(
+        "land",
+        legacy_without_identity["generationConfig"],
+    ) == provenances["legacy"]["catalogSignature"]
+    assert build_solution_input_signature(
+        solution=solution,
+        catalog_entry=entry,
+        manifest=_manifest(solution),
+        metrics_provenance=legacy_without_identity,
+        source_identity={"solutionRaster": {"sha256": "a" * 64}},
+    ) == signatures["legacy"]
 
 
 def test_resume_rejects_legacy_cache_without_signature(tmp_path: Path):

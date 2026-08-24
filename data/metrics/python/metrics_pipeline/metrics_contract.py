@@ -9,6 +9,8 @@ from collections.abc import Iterable
 from typing import Any
 
 from boundaries.boundary_loader import BOUNDARY_SOURCE_SPECS
+from boundaries.boundary_topology import boundary_fanout_identity
+from boundaries.boundary_weighted_fanout import weighted_execution_identity
 from metric_definitions import (
     MetricDefinition,
     computable_metrics,
@@ -16,6 +18,7 @@ from metric_definitions import (
 )
 from solution_domain import SolutionDomain, normalize_domain
 from species_overlap import SPECIES_OVERLAP_ALGORITHM_VERSION
+from species_solution_batch import resolve_species_execution
 
 # Bump this when output schema or calculation semantics change without a
 # corresponding MetricDefinition change. The catalog itself is hashed below.
@@ -239,11 +242,25 @@ def generation_config(
     skip_species_boundary_levels: Iterable[str] = (),
     species_csv_url: str | None = None,
     species_exception_binding: dict[str, Any] | None = None,
+    boundary_fanout_mode: str = "legacy",
+    weighted_execution_mode: str = "scalar",
+    species_execution: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return the normalized output-affecting options for one solution."""
 
-    config: dict[str, Any] = {"nationalOnly": bool(national_only)}
+    config: dict[str, Any] = {
+        "nationalOnly": bool(national_only),
+        "boundaryFanout": boundary_fanout_identity(boundary_fanout_mode),
+        "weightedBoundaryExecution": weighted_execution_identity(
+            weighted_execution_mode
+        ),
+    }
     if domain == "land":
+        config["speciesExecution"] = (
+            resolve_species_execution("independent").provenance()
+            if species_execution is None
+            else species_execution
+        )
         species_skipped = bool(skip_species)
         config["speciesSkipped"] = species_skipped
         config["speciesBoundaryLevelsSkipped"] = (
@@ -289,11 +306,12 @@ def catalog_signature(
     """Hash catalog order, applicability, output schema, domain, and run config."""
 
     definitions = tuple(computable_metrics() if catalog is None else catalog)
+    signature_config = signature_generation_config(config)
     payload = {
         "signatureVersion": CATALOG_SIGNATURE_VERSION,
         "schemaVersion": METRICS_SCHEMA_VERSION,
         "solutionDomain": domain,
-        "generationConfig": config,
+        "generationConfig": signature_config,
         "metricOutputFields": METRIC_OUTPUT_FIELDS,
         "validStatuses": VALID_METRIC_STATUSES,
         "catalog": [_definition_payload(definition) for definition in definitions],
@@ -308,6 +326,34 @@ def catalog_signature(
     return f"{CATALOG_SIGNATURE_VERSION}:{digest}"
 
 
+def signature_generation_config(config: dict[str, Any]) -> dict[str, Any]:
+    """Keep historical legacy signatures stable while binding grouped mode."""
+
+    fanout = config.get("boundaryFanout")
+    if (
+        isinstance(fanout, dict)
+        and fanout.get("requestedMode") == "legacy"
+        and fanout.get("effectiveMode") == "legacy"
+    ):
+        return {key: value for key, value in config.items() if key != "boundaryFanout"}
+    return config
+
+
+def _generation_configs_match(
+    actual: dict[str, Any],
+    expected: dict[str, Any],
+) -> bool:
+    if actual == expected:
+        return True
+    expected_fanout = expected.get("boundaryFanout")
+    return (
+        isinstance(expected_fanout, dict)
+        and expected_fanout.get("requestedMode") == "legacy"
+        and expected_fanout.get("effectiveMode") == "legacy"
+        and actual == signature_generation_config(expected)
+    )
+
+
 def build_metrics_provenance(
     domain: SolutionDomain,
     *,
@@ -319,6 +365,9 @@ def build_metrics_provenance(
     alignment_provenance: dict[str, Any] | None = None,
     species_exception_binding: dict[str, Any] | None = None,
     species_target_policy: dict[str, Any] | None = None,
+    boundary_fanout_mode: str = "legacy",
+    weighted_execution_mode: str = "scalar",
+    species_execution: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config = generation_config(
         domain,
@@ -327,6 +376,9 @@ def build_metrics_provenance(
         skip_species_boundary_levels=skip_species_boundary_levels,
         species_csv_url=species_csv_url,
         species_exception_binding=species_exception_binding,
+        boundary_fanout_mode=boundary_fanout_mode,
+        weighted_execution_mode=weighted_execution_mode,
+        species_execution=species_execution,
     )
     boundary_sources = {
         level: {
@@ -453,10 +505,56 @@ def provenance_issues(
     config = provenance.get("generationConfig")
     if not isinstance(config, dict):
         issues.append("missing or invalid generationConfig")
-    elif expected_config is not None and config != expected_config:
-        issues.append(
-            f"generation config mismatch: found {config!r}, expected {expected_config!r}"
-        )
+    else:
+        fanout = config.get("boundaryFanout")
+        if not isinstance(fanout, dict):
+            expected_fanout = (
+                expected_config.get("boundaryFanout")
+                if isinstance(expected_config, dict)
+                else None
+            )
+            if not (
+                expected_config is None
+                or (
+                    isinstance(expected_fanout, dict)
+                    and expected_fanout.get("requestedMode") == "legacy"
+                    and expected_fanout.get("effectiveMode") == "legacy"
+                )
+            ):
+                issues.append("missing or invalid boundaryFanout generation identity")
+        else:
+            try:
+                expected_fanout = boundary_fanout_identity(
+                    fanout.get("requestedMode"),
+                    effective_mode=fanout.get("effectiveMode"),
+                )
+            except (TypeError, ValueError):
+                expected_fanout = None
+            if fanout != expected_fanout:
+                issues.append("boundaryFanout generation identity is invalid")
+        weighted_execution = config.get("weightedBoundaryExecution")
+        if not isinstance(weighted_execution, dict):
+            issues.append(
+                "missing or invalid weightedBoundaryExecution generation identity"
+            )
+        else:
+            try:
+                expected_weighted_execution = weighted_execution_identity(
+                    weighted_execution.get("requestedMode")
+                )
+            except (TypeError, ValueError):
+                expected_weighted_execution = None
+            if weighted_execution != expected_weighted_execution:
+                issues.append(
+                    "weightedBoundaryExecution generation identity is invalid"
+                )
+        if (
+            expected_config is not None
+            and not _generation_configs_match(config, expected_config)
+        ):
+            issues.append(
+                f"generation config mismatch: found {config!r}, expected {expected_config!r}"
+            )
 
     signature = provenance.get("catalogSignature")
     if not isinstance(signature, str) or not signature:
@@ -584,6 +682,37 @@ def regular_artifact_completeness_issues(
         if isinstance(provenance, dict)
         else None
     )
+    if not isinstance(generation, dict):
+        issues.append("metricsProvenance.generationConfig is missing or invalid")
+    else:
+        fanout = generation.get("boundaryFanout")
+        if not isinstance(fanout, dict):
+            # Pre-identity artifacts are unambiguously legacy. Expected grouped
+            # resume/candidate validation still rejects them via exact context.
+            pass
+        else:
+            try:
+                expected_fanout = boundary_fanout_identity(
+                    fanout.get("requestedMode"),
+                    effective_mode=fanout.get("effectiveMode"),
+                )
+            except (TypeError, ValueError):
+                expected_fanout = None
+            if fanout != expected_fanout:
+                issues.append("generationConfig.boundaryFanout identity is stale")
+        weighted_execution = generation.get("weightedBoundaryExecution")
+        try:
+            expected_weighted_execution = weighted_execution_identity(
+                weighted_execution.get("requestedMode")
+                if isinstance(weighted_execution, dict)
+                else None
+            )
+        except (TypeError, ValueError):
+            expected_weighted_execution = None
+        if weighted_execution != expected_weighted_execution:
+            issues.append(
+                "generationConfig.weightedBoundaryExecution identity is stale"
+            )
     species_exception_binding = (
         generation.get("speciesException")
         if isinstance(generation, dict)

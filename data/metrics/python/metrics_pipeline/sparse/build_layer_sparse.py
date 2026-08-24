@@ -36,7 +36,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 # Add metrics_pipeline/ to sys.path so siblings-of-main (blob_manifest,
@@ -52,6 +52,8 @@ from blob_manifest import (  # noqa: E402
     fetch_manifest,
 )
 from local_io import cached_download  # noqa: E402
+from raster_align import RasterAlignmentCache, policy_for_layer  # noqa: E402
+from raster_metrics import RasterFingerprint, read_solution_raster  # noqa: E402
 
 from sparse.format import encode_sparse_artifact  # noqa: E402
 from sparse.layer_inputs import (  # noqa: E402
@@ -106,6 +108,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--local-output-dir", type=Path, default=DEFAULT_LOCAL_CACHE,
         help="Where to write generated .sparse.gz files locally.",
+    )
+    parser.add_argument(
+        "--reference-raster-url",
+        default=None,
+        help=(
+            "Align each source to this solution raster grid before encoding. "
+            "Required for sidecars consumed by the real metrics pipeline."
+        ),
     )
     parser.add_argument(
         "--only", nargs="+", default=None,
@@ -202,6 +212,8 @@ def _build_one(
     *,
     cache_dir: Path,
     local_output_dir: Path,
+    target_fingerprint: RasterFingerprint | None = None,
+    alignment_cache: RasterAlignmentCache | None = None,
 ) -> tuple[bytes, int, int]:
     """Encode a single layer's .sparse.gz, write locally, return (bytes, occupied, dst_size).
 
@@ -211,12 +223,29 @@ def _build_one(
     public_tif_url = public_url_for(layer.tif_pathname)
     download = cached_download(public_tif_url, cache_dir)
     local_tif: Path = download.path
+    encoding_path = local_tif
+    if target_fingerprint is not None:
+        cache = alignment_cache or RasterAlignmentCache(cache_dir)
+        encoding_path = cache.align(
+            local_tif,
+            download.sha256,
+            target_fingerprint,
+            policy_for_layer(layer.layer_id),
+        ).path
 
     artifact = encode_tif_to_artifact(
-        local_tif,
+        encoding_path,
         layer_type=parse_layer_type(layer.layer_type),
         selected_value=layer.selected_value,
         selected_values=list(layer.selected_values) if layer.selected_values else None,
+    )
+    artifact = replace(
+        artifact,
+        metadata=replace(
+            artifact.metadata,
+            source_pathname=layer.tif_pathname,
+            source_sha256=download.sha256,
+        ),
     )
     encoded = encode_sparse_artifact(artifact)
 
@@ -252,6 +281,17 @@ def main(argv: list[str] | None = None) -> int:
     if not inputs:
         print("[layer-sparse] no layers selected; exiting", file=sys.stderr)
         return 1
+
+    target_fingerprint: RasterFingerprint | None = None
+    alignment_cache: RasterAlignmentCache | None = None
+    if args.reference_raster_url:
+        reference = cached_download(args.reference_raster_url, args.cache_dir)
+        target_fingerprint = read_solution_raster(reference.path).fingerprint
+        alignment_cache = RasterAlignmentCache(args.cache_dir)
+        print(
+            "[layer-sparse] target grid: "
+            f"{target_fingerprint.width}x{target_fingerprint.height}"
+        )
 
     print(f"[layer-sparse] candidate layers: {len(inputs)}")
 
@@ -300,6 +340,8 @@ def main(argv: list[str] | None = None) -> int:
                 layer,
                 cache_dir=args.cache_dir,
                 local_output_dir=args.local_output_dir,
+                target_fingerprint=target_fingerprint,
+                alignment_cache=alignment_cache,
             )
         except Exception as exc:
             report.add(LayerBuildResult(layer=layer, status="error", error=str(exc)))
