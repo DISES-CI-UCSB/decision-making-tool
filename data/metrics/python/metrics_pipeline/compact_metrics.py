@@ -82,6 +82,14 @@ def _solution_ids_sha256(solution_ids: list[str] | tuple[str, ...]) -> str:
     ).hexdigest()
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _validated_solution_ids(value: Any, *, field: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not value:
         raise ValueError(f"{field} must be a non-empty JSON array")
@@ -713,6 +721,7 @@ def convert_publish_report(
         total_compact_bytes += compact_bytes
         entries.append({
             **entry,
+            "artifactSha256": _file_sha256(compact_path),
             "cachePath": str(compact_path.relative_to(repo_root)),
             "expectedBlobPath": expected_compact_blob_path(
                 solution_id,

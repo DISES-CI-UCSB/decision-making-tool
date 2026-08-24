@@ -53,7 +53,6 @@ from species_goals import (  # noqa: E402
 )
 from species_target_policy import (  # noqa: E402
     SpeciesTargetPolicy,
-    normalize_species_feature_id,
     resolve_species_target_policy,
 )
 
@@ -71,9 +70,6 @@ MIN_FREE_DISK_GIB = 60.0
 MIN_FREE_MEMORY_PERCENT = 10
 MAX_SYSTEMIC_FAILURES = 3
 TARGET_GRID_SHA256 = "d558d3f39028e9dc4f83d42fd720f3d45081e3fdcdd2b0d5f72ccb1b6352f23e"
-ALIGNMENT_INVENTORY_SHA256 = (
-    "700cc948b8156f901f6a748bbc7ac1703c03eff2fd96a76221e3b5a541513193"
-)
 PUBLIC_RELEASE_ROOT = (
     "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/"
     + SOURCE_RELEASE_ID
@@ -158,24 +154,7 @@ def _published_metrics_url(solution_id: str) -> str:
 
 
 def _goals_url(solution_id: str) -> str:
-    return f"{PUBLIC_RELEASE_ROOT}/goals/v3/{solution_id}.goals.json"
-
-
-def _targetless_solution(solution_id: str) -> dict[str, Any]:
-    return {
-        "id": solution_id,
-        "name": solution_id,
-        "finderInputs": {
-            "targetFeatureSet": "ecosystems",
-            "targetPercent": 17,
-            "structuredTargets": {
-                "format": "solution-target-metadata-v1",
-                "sourceEvaluation": "prioritizr_model",
-                "speciesRepresentation": [],
-                "espRn": [],
-            },
-        },
-    }
+    return f"{PUBLIC_RELEASE_ROOT}/goals/v4/{solution_id}.goals.json"
 
 
 def _published_document(
@@ -192,56 +171,27 @@ def _target_policy(
     cache_dir: Path,
     catalog_records: list[Any],
     available_records: list[Any],
-) -> tuple[dict[str, Any], SpeciesTargetPolicy]:
-    if "_esprep" in solution_id:
-        ecosystem_match = re.match(r"eco(17|30)_", solution_id)
-        if ecosystem_match is None:
-            raise ValueError(f"{solution_id}: scalar target lacks an Eco17/Eco30 token")
-        target = float(ecosystem_match.group(1))
-        return (
-            {"id": solution_id, "name": solution_id},
-            SpeciesTargetPolicy("scalar", target, {}, None),
-        )
-    if "_esprn_" not in solution_id:
-        solution = _targetless_solution(solution_id)
-        return (
-            solution,
-            resolve_species_target_policy(
-                solution,
-                catalog_records=catalog_records,
-                available_records=available_records,
-            ),
-        )
-
+) -> tuple[dict[str, Any], SpeciesTargetPolicy, str]:
     goals_download = cached_download(_goals_url(solution_id), cache_dir, force=False)
     goals = json.loads(goals_download.path.read_text(encoding="utf-8"))
     if goals.get("solutionId") != solution_id:
         raise ValueError(f"{solution_id}: goals solutionId is stale")
-    species_features = goals.get("features", {}).get("species")
-    if not isinstance(species_features, list) or not species_features:
-        raise ValueError(f"{solution_id}: EspRN goals contain no species targets")
-    entries = sorted(
-        (
-            {
-                "featureId": normalize_species_feature_id(feature["featureName"]),
-                "targetPercent": round(float(feature["relativeTarget"]) * 100, 6),
-            }
-            for feature in species_features
-        ),
-        key=lambda entry: entry["featureId"],
-    )
+    target_context = goals.get("targetContext")
+    if not isinstance(target_context, dict):
+        raise ValueError(f"{solution_id}: goals target context is missing")
+    structured_targets = target_context.get("structuredTargets")
+    if not isinstance(structured_targets, dict):
+        raise ValueError(f"{solution_id}: structured targets are missing")
+    source_evaluation = structured_targets.get("sourceEvaluation")
+    if source_evaluation != "final_summary_csv":
+        raise ValueError(f"{solution_id}: goals source evaluation is invalid")
     solution = {
         "id": solution_id,
         "name": solution_id,
         "finderInputs": {
-            "targetFeatureSet": "esp_rn",
-            "targetPercent": None,
-            "structuredTargets": {
-                "format": "solution-target-metadata-v1",
-                "sourceEvaluation": "prioritizr_model",
-                "speciesRepresentation": [],
-                "espRn": entries,
-            },
+            "targetFeatureSet": target_context.get("targetFeatureSet"),
+            "targetPercent": target_context.get("finderTargetPercent"),
+            "structuredTargets": structured_targets,
         },
     }
     policy = resolve_species_target_policy(
@@ -251,11 +201,13 @@ def _target_policy(
     )
     published, _ = _published_document(solution_id, cache_dir)
     expected = published.get("metricsProvenance", {}).get("speciesTargetPolicy")
-    if isinstance(expected, dict) and "sourceEvaluation" not in expected:
-        expected = {**expected, "sourceEvaluation": "prioritizr_model"}
     if policy.provenance != expected:
-        raise ValueError(f"{solution_id}: EspRN target provenance mismatch")
-    return solution, policy
+        raise ValueError(f"{solution_id}: target provenance mismatch")
+    alignment = published.get("metricsProvenance", {}).get("inputAlignment")
+    alignment_sha256 = alignment.get("sha256") if isinstance(alignment, dict) else None
+    if not isinstance(alignment_sha256, str) or len(alignment_sha256) != 64:
+        raise ValueError(f"{solution_id}: input alignment provenance is invalid")
+    return solution, policy, alignment_sha256
 
 
 class _TransientBoundaryMaskCache(BoundaryMaskCache):
@@ -328,6 +280,7 @@ def _compact_provenance(
     exception_path: Path,
     solution_sha256: str,
     target_policy: SpeciesTargetPolicy,
+    alignment_inventory_sha256: str,
 ) -> dict[str, Any]:
     return _species_goals_provenance(
         release_id=RELEASE_ID,
@@ -336,7 +289,7 @@ def _compact_provenance(
         species_exception_binding=exception.binding,
         alignment_provenance={
             "targetGridSha256": TARGET_GRID_SHA256,
-            "sha256": ALIGNMENT_INVENTORY_SHA256,
+            "sha256": alignment_inventory_sha256,
         },
         solution_raster_sha256=solution_sha256,
         target_policy=target_policy,
@@ -446,7 +399,7 @@ def _worker_build(
                     )
                     solution_started = time.monotonic()
                     try:
-                        solution, target_policy = _target_policy(
+                        solution, target_policy, alignment_inventory_sha256 = _target_policy(
                             solution_id, cache_dir, records, available
                         )
                         downloaded = cached_download(
@@ -466,6 +419,7 @@ def _worker_build(
                             exception_path=exception_path,
                             solution_sha256=downloaded.sha256,
                             target_policy=target_policy,
+                            alignment_inventory_sha256=alignment_inventory_sha256,
                         )
                         resumable = {
                             level: partition_is_resumable(
@@ -669,6 +623,7 @@ def _worker_validate(
     species_csv = Path(species_csv_text)
     exception_path = Path(exception_path_text)
     log_path = output_root / "logs" / f"validator-{worker_index}.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8", buffering=1) as log:
         with redirect_stdout(log), redirect_stderr(log):
             try:
@@ -703,7 +658,7 @@ def _worker_validate(
                     )
                     started = time.monotonic()
                     try:
-                        _, policy = _target_policy(
+                        _, policy, alignment_inventory_sha256 = _target_policy(
                             solution_id, cache_dir, records, available
                         )
                         provenance = _compact_provenance(
@@ -713,6 +668,7 @@ def _worker_validate(
                             exception_path=exception_path,
                             solution_sha256=entry["rasterSha256"],
                             target_policy=policy,
+                            alignment_inventory_sha256=alignment_inventory_sha256,
                         )
                         national = None
                         partition_evidence: dict[str, Any] = {}
@@ -1105,7 +1061,7 @@ def _preflight(
     policies = {"scalar17": 0, "scalar30": 0, "perSpecies": 0, "dualReference": 0}
     for entry in entries:
         solution_id = entry["solutionId"]
-        _, policy = _target_policy(solution_id, cache_dir, records, available)
+        _, policy, _ = _target_policy(solution_id, cache_dir, records, available)
         if policy.kind == "per_species":
             policies["perSpecies"] += 1
         elif policy.kind == "dual_reference":
@@ -1117,9 +1073,9 @@ def _preflight(
         else:
             raise ValueError(f"{solution_id}: unsupported scalar target")
     expected = {
-        "scalar17": 48,
-        "scalar30": 48,
-        "perSpecies": 48,
+        "scalar17": 0,
+        "scalar30": 0,
+        "perSpecies": 144,
         "dualReference": 24,
     }
     if policies != expected:
