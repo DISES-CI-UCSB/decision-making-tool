@@ -57,6 +57,7 @@ import {
   buildConsideredLayerIdSet,
   buildLegendCategories,
   buildLegendLayerEntry,
+  shouldIncludeInMasterLegend,
   computeSelectedLayerOrder,
   isLayerAvailableForScope,
   nameMatchesSearch,
@@ -3292,7 +3293,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const entryLookup = new Map<string, MapLegendLayerEntry>();
 
     for (const row of overlays) {
-      if (!row.selected || this.isSolutionLayerRow(row)) {
+      if (!this.shouldIncludeRowInMasterLegend(row)) {
         continue;
       }
       entryLookup.set(row.id, this.toMasterLegendLayerEntry(row));
@@ -3300,7 +3301,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     for (const group of groups) {
       for (const row of group.rows) {
-        if (!row.selected || this.isSolutionLayerRow(row)) {
+        if (!this.shouldIncludeRowInMasterLegend(row)) {
           continue;
         }
         entryLookup.set(row.id, this.toMasterLegendLayerEntry(row));
@@ -3308,11 +3309,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     for (const taxon of taxa) {
-      if (taxon.selected) {
+      if (taxon.selected && shouldIncludeInMasterLegend(taxon.mapSync)) {
         entryLookup.set(taxon.id, this.toMasterLegendLayerEntry(taxon));
       }
       for (const species of taxon.species) {
-        if (!species.selected) {
+        if (!species.selected || !shouldIncludeInMasterLegend(species.mapSync)) {
           continue;
         }
         entryLookup.set(species.id, this.toMasterLegendLayerEntry(species));
@@ -3394,6 +3395,10 @@ export class MapLayersPanelComponent implements OnDestroy {
       mapType === 'solution-candidate' ||
       mapType === 'solution-overlap'
     );
+  }
+
+  private shouldIncludeRowInMasterLegend(row: LayerControlRow): boolean {
+    return row.selected && !this.isSolutionLayerRow(row) && shouldIncludeInMasterLegend(row.mapSync);
   }
 
   private isComparisonSelectionActive(): boolean {
