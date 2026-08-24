@@ -404,6 +404,27 @@ service cloud.firestore {
       allow update: if (isSuperAdmin() && validUserRecord(uid))
         || validSirapAdminUserUpdate();
       allow delete: if false;
+
+      match /savedSolutionScenarios/{scenarioId} {
+        allow read: if isSelf(uid);
+        allow create, update: if isSelf(uid)
+          && isActiveUserData(currentUserData())
+          && request.resource.data.keys().hasOnly([
+            'id',
+            'solutionId',
+            'label',
+            'solutionName',
+            'updatedAt'
+          ])
+          && request.resource.data.id == scenarioId
+          && request.resource.data.solutionId is string
+          && request.resource.data.label is string
+          && request.resource.data.label.size() > 0
+          && request.resource.data.label.size() <= 80
+          && request.resource.data.solutionName is string
+          && request.resource.data.updatedAt is string;
+        allow delete: if isSelf(uid);
+      }
     }
 
     match /sirapAccessRequests/{requestId} {

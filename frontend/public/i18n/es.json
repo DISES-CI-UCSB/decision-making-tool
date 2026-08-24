@@ -1028,6 +1028,7 @@
         "searchLabel": "Buscar escenarios personalizados guardados",
         "searchPlaceholder": "Buscar escenarios guardados...",
         "clearSearch": "Limpiar búsqueda de escenarios guardados",
+        "remove": "Eliminar escenario guardado",
         "noResults": "Ningun escenario personalizada guardada coincide con esta búsqueda."
       },
       "domain": {
@@ -1241,6 +1242,7 @@
     "sessionLabelPlaceholder": "Nombra este escenario",
     "sessionLabelHelp": "Solo nombra esta sesión actual. No guarda un escenario reutilizable.",
     "saveLabel": "Guardar",
+    "saveScenario": "Guardar escenario",
     "cancelLabel": "Cancelar",
     "editLabel": "Editar nombre",
     "removeLabel": "Quitar nombre",

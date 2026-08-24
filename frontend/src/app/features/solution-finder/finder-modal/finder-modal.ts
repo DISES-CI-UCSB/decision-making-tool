@@ -31,6 +31,7 @@ import type {
   SolutionFinderContext,
 } from '@core/services/app-state.service';
 import { AppStateService } from '@core/services/app-state.service';
+import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
@@ -88,6 +89,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
 export class FinderModalComponent implements OnDestroy, OnInit {
   private readonly appState = inject(AppStateService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly savedSolutionScenariosService = inject(SavedSolutionScenariosService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly translate = inject(TranslateService);
   private initialized = false;
@@ -500,6 +502,15 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     this.selectedMatch = match;
     this.matchState = 'ready';
     this.rememberCurrentSelections();
+  }
+
+  protected async removeSavedSolutionScenario(
+    event: Event,
+    scenario: SavedSolutionScenario,
+  ): Promise<void> {
+    event.preventDefault();
+    event.stopPropagation();
+    await this.savedSolutionScenariosService.removeScenario(scenario.solutionId);
   }
 
   protected resetSelections(): void {

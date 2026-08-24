@@ -229,19 +229,33 @@
             class="flex min-w-0 gap-2 overflow-x-auto"
           >
             @for (scenario of filteredSavedSolutionScenarios(); track scenario.id) {
-              <button
+              <div
                 [id]="'solution-finder-modal-saved-scenario-' + scenario.id"
-                type="button"
-                class="w-48 shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-left transition hover:border-sky-300 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-                (click)="applySavedSolutionScenario(scenario)"
+                class="flex w-48 shrink-0 items-stretch overflow-hidden rounded-full border border-sky-200 bg-sky-50"
               >
-                <span
-                  [id]="'solution-finder-modal-saved-scenario-label-' + scenario.id"
-                  class="finder-saved-scenario-label-optical block overflow-x-clip overflow-y-visible text-ellipsis whitespace-nowrap text-xs font-extrabold text-slate-900"
+                <button
+                  [id]="'solution-finder-modal-saved-scenario-apply-' + scenario.id"
+                  type="button"
+                  class="min-w-0 flex-1 px-3 py-2 text-left transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                  (click)="applySavedSolutionScenario(scenario)"
                 >
-                  {{ scenario.label }}
-                </span>
-              </button>
+                  <span
+                    [id]="'solution-finder-modal-saved-scenario-label-' + scenario.id"
+                    class="finder-saved-scenario-label-optical block overflow-x-clip overflow-y-visible text-ellipsis whitespace-nowrap text-xs font-extrabold text-slate-900"
+                  >
+                    {{ scenario.label }}
+                  </span>
+                </button>
+                <button
+                  [id]="'solution-finder-modal-saved-scenario-remove-' + scenario.id"
+                  type="button"
+                  class="inline-flex w-8 shrink-0 items-center justify-center border-l border-sky-200 text-sm font-bold text-slate-500 transition hover:bg-sky-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                  [attr.aria-label]="'solutionControls.finder.savedScenarios.remove' | translate"
+                  (click)="removeSavedSolutionScenario($event, scenario)"
+                >
+                  ×
+                </button>
+              </div>
             } @empty {
               <p
                 id="solution-finder-modal-saved-scenarios-empty"

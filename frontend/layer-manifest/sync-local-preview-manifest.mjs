@@ -30,6 +30,7 @@ export async function syncLocalPreviewManifest({
   writeFile = fs.writeFile,
   mkdir = fs.mkdir,
   fetchManifest = fetchJson,
+  force = false,
 } = {}) {
   const resolvedEnvironmentSource =
     environmentSource ?? (await readFile(environmentPath, 'utf8'));
@@ -38,12 +39,14 @@ export async function syncLocalPreviewManifest({
     return { status: 'skipped', reason: 'remote_manifest' };
   }
 
-  try {
-    await access(manifestPath);
-    return { status: 'skipped', reason: 'already_present' };
-  } catch (error) {
-    if (error?.code !== 'ENOENT') {
-      throw error;
+  if (!force) {
+    try {
+      await access(manifestPath);
+      return { status: 'skipped', reason: 'already_present' };
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
     }
   }
 
@@ -57,10 +60,14 @@ export async function syncLocalPreviewManifest({
   return { status: 'synced', sourceUrl, manifestPath };
 }
 
+function parseForceFlag(argv = process.argv.slice(2)) {
+  return argv.includes('--force');
+}
+
 async function main() {
   await loadLocalEnv(frontendRoot);
 
-  const result = await syncLocalPreviewManifest();
+  const result = await syncLocalPreviewManifest({ force: parseForceFlag() });
   if (result.status === 'skipped' && result.reason === 'remote_manifest') {
     console.log('[sync:local-preview-manifest] skipped; development uses a remote manifest');
     return;

@@ -116,7 +116,7 @@ describe('AppStateService', () => {
     expect(service.rightSidebarMode$()).toBe('welcome');
   });
 
-  it('labels the active solution without changing catalog solution data', () => {
+  it('labels the active solution without saving a reusable scenario', () => {
     const solution: Solution = {
       id: 'solution-1',
       name: 'Demo Solution',
@@ -130,6 +130,16 @@ describe('AppStateService', () => {
 
     expect(service.activeSolution$()).toEqual(solution);
     expect(service.activeSolutionLabel$()).toBe('Regional workshop draft');
+    expect(service.savedSolutionScenarios$()).toEqual([]);
+  });
+
+  it('stores saved scenarios only when explicitly upserted', () => {
+    service.upsertSavedSolutionScenario({
+      solutionId: 'solution-1',
+      label: 'Regional workshop draft',
+      solutionName: 'Demo Solution',
+    });
+
     expect(service.savedSolutionScenarios$()[0]).toEqual(
       expect.objectContaining({
         solutionId: 'solution-1',
@@ -179,12 +189,7 @@ describe('AppStateService', () => {
     });
 
     expect(service.activeSolutionLabel$()).toBe('Regional workshop draft');
-    expect(service.savedSolutionScenarios$()[0]).toEqual(
-      expect.objectContaining({
-        solutionId: 'solution-1',
-        label: 'Regional workshop draft',
-      }),
-    );
+    expect(service.savedSolutionScenarios$()).toEqual([]);
   });
 
   it('tracks custom AOI geometry separately from fixed boundary selections', () => {

@@ -5,6 +5,8 @@
     "ng": "ng",
     "start": "node ./layer-manifest/sync-local-preview-manifest.mjs && node ./layer-manifest/validate-local-preview-manifest.mjs && npm run sync:solutions && npm run sync:boundaries && ng serve --proxy-config proxy.conf.json",
     "sync:local-preview-manifest": "node ./layer-manifest/sync-local-preview-manifest.mjs",
+    "sync:local-preview-manifest:force": "node ./layer-manifest/sync-local-preview-manifest.mjs --force",
+    "download:layer-manifest": "npm run sync:local-preview-manifest:force",
     "build": "ng build",
     "build:production": "ng build --configuration production",
     "build:vercel": "node ./scripts/config/write-production-environment.mjs && npm run sync:solutions && npm run sync:boundaries && npm run validate:deploy-assets && ng build",

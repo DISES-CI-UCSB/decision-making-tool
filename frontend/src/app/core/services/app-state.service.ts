@@ -124,8 +124,7 @@ export type SelectSolutionButtonHoverFxMode =
   | 'rainforestReveal';
 
 const SELECT_SOLUTION_HOVER_FX_STORAGE_KEY = 'eco-plan:dev:selectSolutionButtonHoverFx';
-const SAVED_SOLUTION_SCENARIOS_STORAGE_KEY = 'eco-plan:savedSolutionScenarios';
-const MAX_SAVED_SOLUTION_SCENARIOS = 12;
+export const MAX_SAVED_SOLUTION_SCENARIOS = 12;
 
 function readStoredSelectSolutionHoverFx(): SelectSolutionButtonHoverFxMode {
   if (typeof localStorage === 'undefined') {
@@ -141,29 +140,7 @@ function readStoredSelectSolutionHoverFx(): SelectSolutionButtonHoverFxMode {
   return 'professional';
 }
 
-function readStoredSavedSolutionScenarios(): SavedSolutionScenario[] {
-  if (typeof localStorage === 'undefined') {
-    return [];
-  }
-
-  const raw = localStorage.getItem(SAVED_SOLUTION_SCENARIOS_STORAGE_KEY);
-  if (!raw) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.filter(isSavedSolutionScenario).slice(0, MAX_SAVED_SOLUTION_SCENARIOS);
-  } catch {
-    return [];
-  }
-}
-
-function isSavedSolutionScenario(value: unknown): value is SavedSolutionScenario {
+export function isSavedSolutionScenario(value: unknown): value is SavedSolutionScenario {
   if (!value || typeof value !== 'object') {
     return false;
   }
@@ -184,9 +161,7 @@ function isSavedSolutionScenario(value: unknown): value is SavedSolutionScenario
 export class AppStateService {
   readonly activeSolution$ = signal<Solution | null>(null);
   readonly activeSolutionLabel$ = signal<string | null>(null);
-  readonly savedSolutionScenarios$ = signal<SavedSolutionScenario[]>(
-    readStoredSavedSolutionScenarios(),
-  );
+  readonly savedSolutionScenarios$ = signal<SavedSolutionScenario[]>([]);
   readonly selectedAOI$ = signal<AOI | null>(null);
   readonly customAOIGeometry$ = signal<CustomPolygonMetricsGeometry | null>(null);
   readonly visibleLayers$ = signal<LayerConfig[]>([]);
@@ -256,21 +231,11 @@ export class AppStateService {
   }
 
   labelActiveSolution(label: string | null): void {
-    const activeSolution = this.activeSolution$();
-    if (!activeSolution) {
+    if (!this.activeSolution$()) {
       return;
     }
 
     this.activeSolutionLabel$.set(label);
-    if (label) {
-      this.saveSolutionScenario({
-        solutionId: this.resolveSolutionId(activeSolution),
-        label,
-        solutionName: activeSolution.name,
-      });
-    } else {
-      this.removeSavedSolutionScenario(this.resolveSolutionId(activeSolution));
-    }
   }
 
   clearSolution(): void {
@@ -411,21 +376,24 @@ export class AppStateService {
 
   applySavedSolutionScenarioLabel(scenario: SavedSolutionScenario): void {
     this.activeSolutionLabel$.set(scenario.label);
-    this.saveSolutionScenario({
-      solutionId: scenario.solutionId,
-      label: scenario.label,
-      solutionName: scenario.solutionName,
-    });
   }
 
-  private saveSolutionScenario(input: {
+  setSavedSolutionScenarios(scenarios: SavedSolutionScenario[]): void {
+    this.savedSolutionScenarios$.set(scenarios.slice(0, MAX_SAVED_SOLUTION_SCENARIOS));
+  }
+
+  clearSavedSolutionScenarios(): void {
+    this.savedSolutionScenarios$.set([]);
+  }
+
+  upsertSavedSolutionScenario(input: {
     solutionId: string;
     label: string;
     solutionName: string;
-  }): void {
+  }): SavedSolutionScenario | null {
     const trimmedLabel = input.label.trim();
     if (!trimmedLabel) {
-      return;
+      return null;
     }
 
     const scenario: SavedSolutionScenario = {
@@ -442,23 +410,22 @@ export class AppStateService {
     ].slice(0, MAX_SAVED_SOLUTION_SCENARIOS);
 
     this.savedSolutionScenarios$.set(nextScenarios);
-    this.persistSavedSolutionScenarios(nextScenarios);
+    return scenario;
   }
 
-  private removeSavedSolutionScenario(solutionId: string): void {
+  removeSavedSolutionScenario(solutionId: string): void {
     const nextScenarios = this.savedSolutionScenarios$().filter(
       (item) => item.solutionId !== solutionId,
     );
     this.savedSolutionScenarios$.set(nextScenarios);
-    this.persistSavedSolutionScenarios(nextScenarios);
   }
 
-  private persistSavedSolutionScenarios(scenarios: SavedSolutionScenario[]): void {
-    if (typeof localStorage === 'undefined') {
-      return;
+  getActiveSolutionCatalogId(): string | null {
+    const activeSolution = this.activeSolution$();
+    if (!activeSolution) {
+      return null;
     }
-
-    localStorage.setItem(SAVED_SOLUTION_SCENARIOS_STORAGE_KEY, JSON.stringify(scenarios));
+    return this.resolveSolutionId(activeSolution);
   }
 
   private resolveSolutionId(solution: Solution): string {

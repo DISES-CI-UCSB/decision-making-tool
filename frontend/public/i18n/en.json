@@ -1028,6 +1028,7 @@
         "searchLabel": "Search saved custom scenarios",
         "searchPlaceholder": "Search saved scenarios...",
         "clearSearch": "Clear saved scenario search",
+        "remove": "Remove saved scenario",
         "noResults": "No saved custom scenarios match this search."
       },
       "domain": {
@@ -1243,6 +1244,7 @@
     "sessionLabelPlaceholder": "Name this scenario",
     "sessionLabelHelp": "Only names this current session. It does not save a reusable scenario.",
     "saveLabel": "Save",
+    "saveScenario": "Save scenario",
     "cancelLabel": "Cancel",
     "editLabel": "Edit name",
     "removeLabel": "Remove name",

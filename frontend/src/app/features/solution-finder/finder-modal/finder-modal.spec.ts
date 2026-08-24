@@ -386,7 +386,11 @@ describe('FinderModalComponent', () => {
       metrics: [],
       metadata: { solutionId: savedSolution.id },
     });
-    appState.labelActiveSolution('Coastal priority run');
+    appState.upsertSavedSolutionScenario({
+      solutionId: savedSolution.id,
+      label: 'Coastal priority run',
+      solutionName: savedSolution.name,
+    });
 
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
@@ -432,7 +436,11 @@ describe('FinderModalComponent', () => {
       metrics: [],
       metadata: { solutionId: savedSolution.id },
     });
-    appState.labelActiveSolution('Coastal priority run');
+    appState.upsertSavedSolutionScenario({
+      solutionId: savedSolution.id,
+      label: 'Coastal priority run',
+      solutionName: savedSolution.name,
+    });
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance as unknown as {
@@ -446,7 +454,7 @@ describe('FinderModalComponent', () => {
     const solutionAppliedSpy = vi.spyOn(fixture.componentInstance.solutionApplied, 'emit');
 
     const savedScenarioButton = fixture.nativeElement.querySelector(
-      '#solution-finder-modal-saved-scenario-saved-scenario-ecos30_runap_hf',
+      '#solution-finder-modal-saved-scenario-apply-saved-scenario-ecos30_runap_hf',
     ) as HTMLButtonElement;
     savedScenarioButton.click();
 
@@ -1041,7 +1049,11 @@ describe('FinderModalComponent', () => {
       metrics: [],
       metadata: { solutionId: savedSolution.id },
     });
-    appState.labelActiveSolution('Marine priority');
+    appState.upsertSavedSolutionScenario({
+      solutionId: savedSolution.id,
+      label: 'Marine priority',
+      solutionName: savedSolution.name,
+    });
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance as unknown as {
@@ -1053,7 +1065,7 @@ describe('FinderModalComponent', () => {
 
     (
       fixture.nativeElement.querySelector(
-        '#solution-finder-modal-saved-scenario-saved-scenario-marine-50-omec',
+        '#solution-finder-modal-saved-scenario-apply-saved-scenario-marine-50-omec',
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();

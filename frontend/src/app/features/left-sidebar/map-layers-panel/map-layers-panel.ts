@@ -36,6 +36,7 @@ import {
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
+import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import {
@@ -272,6 +273,7 @@ export class MapLayersPanelComponent implements OnDestroy {
   @Output() readonly solutionFinderRequested = new EventEmitter<void>();
 
   private readonly appState = inject(AppStateService);
+  private readonly savedSolutionScenariosService = inject(SavedSolutionScenariosService);
   private readonly adminBoundaryService = inject(AdminBoundaryService);
   private readonly manifestRasterLayerService = inject(ManifestRasterLayerService);
   private readonly destroyRef = inject(DestroyRef);
@@ -363,6 +365,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     { value: 'both', labelKey: 'mapLayersPanel.layerScopeBoth' },
   ];
   protected readonly activeSolutionLabel = this.appState.activeSolutionLabel$;
+  protected readonly userIsSignedIn = this.appState.userIsSignedIn$;
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeSolutionLabelDraft = signal('');
@@ -769,6 +772,27 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.appState.labelActiveSolution(null);
     this.activeSolutionLabelDraft.set('');
     this.activeSolutionLabelEditorOpen.set(false);
+  }
+
+  protected async saveActiveSolutionScenario(event?: Event): Promise<void> {
+    event?.preventDefault();
+
+    const activeSolution = this.appState.activeSolution$();
+    const solutionId = this.appState.getActiveSolutionCatalogId();
+    if (!activeSolution || !solutionId || !this.userIsSignedIn()) {
+      return;
+    }
+
+    const label = (this.activeSolutionLabel() ?? activeSolution.name).trim();
+    if (!label) {
+      return;
+    }
+
+    await this.savedSolutionScenariosService.saveScenario({
+      solutionId,
+      label,
+      solutionName: activeSolution.name,
+    });
   }
 
   protected toggleActiveSolutionBreakdown(): void {

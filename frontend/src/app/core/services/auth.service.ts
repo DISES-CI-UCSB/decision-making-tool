@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
+import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
 import { readSirapRegionIds, type SirapRegionId, UserTier } from '@core/models';
 import { type Unsubscribe, type User } from 'firebase/auth';
 import { type DocumentData } from 'firebase/firestore';
@@ -22,6 +23,7 @@ interface UserAccess {
 export class AuthService implements OnDestroy {
   private readonly appState = inject(AppStateService);
   private readonly firebase = inject(FirebaseClientService);
+  private readonly savedSolutionScenarios = inject(SavedSolutionScenariosService);
   private authStateUnsubscribe: Unsubscribe | null = null;
   private userAccessUnsubscribe: Unsubscribe | null = null;
   private explicitlyLoggedOut = false;
@@ -36,10 +38,12 @@ export class AuthService implements OnDestroy {
   ngOnDestroy(): void {
     this.authStateUnsubscribe?.();
     this.userAccessUnsubscribe?.();
+    this.savedSolutionScenarios.stopSync();
   }
 
   async logout(): Promise<void> {
     this.explicitlyLoggedOut = true;
+    this.savedSolutionScenarios.stopSync();
     await this.firebase.signOut();
     this.appState.userIsSignedIn$.set(false);
     this.appState.userTier$.set(UserTier.Public);
@@ -86,9 +90,12 @@ export class AuthService implements OnDestroy {
     this.userAccessUnsubscribe = null;
     this.appState.userIsSignedIn$.set(user !== null);
     if (!user) {
+      this.savedSolutionScenarios.stopSync();
       void this.syncTierFromFirebaseUser(null);
       return;
     }
+
+    this.savedSolutionScenarios.startSyncForUser(user.uid);
 
     this.explicitlyLoggedOut = false;
     this.userAccessUnsubscribe = this.firebase.subscribeToUserDocument(user.uid, (userData) => {

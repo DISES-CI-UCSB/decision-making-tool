@@ -14,16 +14,6 @@ describe('sync local preview manifest', () => {
     assert.deepEqual(result, { status: 'skipped', reason: 'remote_manifest' });
   });
 
-  it('skips when the local preview manifest already exists', async () => {
-    const result = await syncLocalPreviewManifest({
-      environmentSource:
-        "export const environment = { manifestBlobUrl: '/data/layer-manifest/manifest.json' };",
-      access: async () => undefined,
-    });
-
-    assert.deepEqual(result, { status: 'skipped', reason: 'already_present' });
-  });
-
   it('fetches and writes the local preview manifest when missing', async () => {
     const writes = [];
     const result = await syncLocalPreviewManifest({
@@ -46,5 +36,34 @@ describe('sync local preview manifest', () => {
     assert.equal(writes.length, 1);
     assert.match(writes[0].targetPath, /public\/data\/layer-manifest\/manifest\.json$/);
     assert.match(writes[0].contents, /"catalogVersion": "0.2.0"/);
+  });
+
+  it('skips when the local preview manifest already exists', async () => {
+    const result = await syncLocalPreviewManifest({
+      environmentSource:
+        "export const environment = { manifestBlobUrl: '/data/layer-manifest/manifest.json' };",
+      access: async () => undefined,
+    });
+
+    assert.deepEqual(result, { status: 'skipped', reason: 'already_present' });
+  });
+
+  it('overwrites the local preview manifest when force is enabled', async () => {
+    const writes = [];
+    const result = await syncLocalPreviewManifest({
+      environmentSource:
+        "export const environment = { manifestBlobUrl: '/data/layer-manifest/manifest.json' };",
+      access: async () => undefined,
+      writeFile: async (targetPath, contents) => {
+        writes.push({ targetPath, contents });
+      },
+      mkdir: async () => undefined,
+      fetchManifest: async () => ({ catalogVersion: '3.0.0', solutions: [] }),
+      force: true,
+    });
+
+    assert.equal(result.status, 'synced');
+    assert.equal(writes.length, 1);
+    assert.match(writes[0].contents, /"catalogVersion": "3.0.0"/);
   });
 });

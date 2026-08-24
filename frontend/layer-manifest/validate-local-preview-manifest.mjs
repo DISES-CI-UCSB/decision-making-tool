@@ -41,8 +41,8 @@ export function validateLocalPreviewManifest(manifest) {
   const marineCount = solutions.length - landCount;
 
   assert(
-    /^(?:0\.2|2\.2)\.\d+$/.test(manifest.catalogVersion ?? ''),
-    `local preview manifest must use catalog version 0.2.x or 2.2.x; got ${manifest.catalogVersion ?? 'none'}`,
+    /^(?:0\.2|2\.2|3\.0)\.\d+$/.test(manifest.catalogVersion ?? ''),
+    `local preview manifest must use catalog version 0.2.x, 2.2.x, or 3.0.x; got ${manifest.catalogVersion ?? 'none'}. Run "npm run download:layer-manifest" to refresh the local manifest.`,
   );
   assert(
     solutions.length === 172 && landCount === 168 && marineCount === 4,
