@@ -24,7 +24,7 @@ const NATIONAL_RASTERIZATION = {
   allTouched: false,
   referenceGrid: 'solution raster grid',
 };
-const BOUNDARY_SOURCES = {
+export const BOUNDARY_SOURCES = {
   departments: {
     url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/igac_departments_detailed.geojson',
     sha256: '88304394fdd315f7803a65730392cafe2d0defa7b73acc068ba51d1795d3ed64',
@@ -42,7 +42,7 @@ const BOUNDARY_SOURCES = {
     featureCount: 1105,
   },
   siraps: {
-    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/siraps_authoritative_combined_v3.geojson',
+    url: 'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/boundaries/sirap/v3/sha256-1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c/siraps_authoritative_combined_v3.geojson',
     sha256: '1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c',
     catalogSha256: 'adc614dbf2ce94297b3b635e01a04a98d9f3ccf6727447e7b72d08f2144be5ba',
     geometryCollectionSha256: '54d3a53363488dd304398fdcad2288b16c7333db978df14b340eded815ee5d12',

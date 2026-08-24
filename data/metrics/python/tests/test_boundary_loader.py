@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from pathlib import Path
 
 import pytest
 
@@ -115,7 +116,9 @@ def test_pinned_sirap_source_is_authoritative_eight_scope_contract():
     siraps = BOUNDARY_SOURCE_SPECS["siraps"]
 
     assert siraps.url.endswith(
-        "/inputs/boundaries/sirap/siraps_authoritative_combined_v3.geojson"
+        "/inputs/boundaries/sirap/v3/"
+        "sha256-1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c/"
+        "siraps_authoritative_combined_v3.geojson"
     )
     assert (
         siraps.cache_filename
@@ -141,6 +144,31 @@ def test_pinned_sirap_source_is_authoritative_eight_scope_contract():
             "5288a528a2b7dcc67151180376b902c3d993aebfbcbae15a7bc34eb75822899b"
         ),
     }
+
+
+def test_local_sirap_artifact_matches_every_pinned_validation_contract():
+    spec = BOUNDARY_SOURCE_SPECS["siraps"]
+    source_path = (
+        Path(__file__).resolve().parents[3]
+        / "boundaries/sirap/siraps_authoritative_combined_v3.geojson"
+    )
+
+    features = _load_geojson_source(source_path, spec)
+
+    assert [(feature.boundary_id, feature.name) for feature in features] == list(
+        EXPECTED_SIRAP_CATALOG
+    )
+    assert all(feature.source_crs == spec.expected_crs for feature in features)
+    assert all(feature.source_metadata is not None for feature in features)
+    metadata = features[0].source_metadata
+    assert metadata is not None
+    assert metadata.url == spec.url
+    assert metadata.sha256 == spec.expected_sha256
+    assert metadata.catalog_sha256 == spec.expected_catalog_sha256
+    assert (
+        metadata.geometry_collection_sha256
+        == spec.expected_geometry_collection_sha256
+    )
 
 
 def test_representative_geometry_fingerprints_are_pinned():

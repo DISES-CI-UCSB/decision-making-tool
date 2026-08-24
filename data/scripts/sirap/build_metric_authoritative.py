@@ -11,7 +11,9 @@ from typing import Any
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 OUTPUT_FILENAME = "siraps_authoritative_combined_v3.geojson"
-OUTPUT_PATHNAME = f"inputs/boundaries/sirap/{OUTPUT_FILENAME}"
+OUTPUT_SHA256 = "1372ce888f8c4c0f160da9c4ce553254542f160bb82bfd6a1da5730da4493e5c"
+OUTPUT_PREFIX = f"inputs/boundaries/sirap/v3/sha256-{OUTPUT_SHA256}"
+OUTPUT_PATHNAME = f"{OUTPUT_PREFIX}/{OUTPUT_FILENAME}"
 METADATA_PATHNAME = f"metadata/{OUTPUT_FILENAME.removesuffix('.geojson')}.metadata.json"
 DEFAULT_TERRITORIAL = (
     REPO_ROOT
@@ -227,6 +229,10 @@ def build_documents(
     collection = build_collection(territorial, thematic)
     output_bytes = serialize_json(collection)
     output_sha256 = hashlib.sha256(output_bytes).hexdigest()
+    if output_sha256 != OUTPUT_SHA256:
+        raise SirapMetricBuildError(
+            f"output checksum mismatch: expected {OUTPUT_SHA256}, got {output_sha256}"
+        )
     catalog = [
         [feature["properties"]["sirap_id"], feature["properties"]["sirap_name"]]
         for feature in collection["features"]

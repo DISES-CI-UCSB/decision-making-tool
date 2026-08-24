@@ -5,6 +5,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  BOUNDARY_SOURCES,
   canonicalJson,
   parseWithNumberLiterals,
   validateArtifactDocument,
@@ -19,7 +20,9 @@ const COMPACT_FIXTURE_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../../data/metrics/fixtures/release-compact-artifact-v1.json',
 );
-const COMPACT_FIXTURE = JSON.parse(await fs.readFile(COMPACT_FIXTURE_PATH, 'utf-8'));
+const COMPACT_FIXTURE = bindCurrentSirapSource(
+  JSON.parse(await fs.readFile(COMPACT_FIXTURE_PATH, 'utf-8')),
+);
 
 describe('release artifact document validation', () => {
   it('accepts complete regular verbose geography documents', () => {
@@ -50,9 +53,8 @@ describe('release artifact document validation', () => {
     assert.throws(() => validateVerboseMetricsDocument(unsupported), /require proven zero-support/);
   });
 
-  it('accepts the exact shared Python compact artifact bytes', async () => {
-    const fixtureBytes = await fs.readFile(COMPACT_FIXTURE_PATH);
-    const document = JSON.parse(fixtureBytes);
+  it('accepts the shared Python compact artifact with the current SIRAP source', () => {
+    const document = compactFixture();
     assert.doesNotThrow(() => validateCompactMetricsDocument(document));
     assert.doesNotThrow(() => validateArtifactDocument(document, { solutionId: 'fixture-land' }));
   });
@@ -267,11 +269,11 @@ describe('release artifact document validation', () => {
     delete missingGeographies.geographies.omecs;
     assert.throws(() => validateVerboseMetricsDocument(missingGeographies), /must contain exactly/);
 
-    const emptyMetrics = JSON.parse(await fs.readFile(COMPACT_FIXTURE_PATH, 'utf-8'));
+    const emptyMetrics = compactFixture();
     emptyMetrics.geographies.departments.fixture.metrics = [];
     assert.throws(() => validateCompactMetricsDocument(emptyMetrics), /must be non-empty/);
 
-    const incompleteMetrics = JSON.parse(await fs.readFile(COMPACT_FIXTURE_PATH, 'utf-8'));
+    const incompleteMetrics = compactFixture();
     incompleteMetrics.geographies.departments.fixture.metrics.pop();
     assert.throws(() => validateCompactMetricsDocument(incompleteMetrics), /metric IDs/);
   });
@@ -487,6 +489,21 @@ function createScopeState(level, scopeId, validCellCount) {
 
 function compactFixture() {
   return structuredClone(COMPACT_FIXTURE);
+}
+
+function bindCurrentSirapSource(document) {
+  const provenance = document.metricsProvenance;
+  provenance.boundaryProvenance.sources.siraps = {
+    ...provenance.boundaryProvenance.sources.siraps,
+    url: BOUNDARY_SOURCES.siraps.url,
+  };
+  provenance.boundaryProvenance.sha256 = sha256(provenance.boundaryProvenance.sources);
+  document.metricsProvenanceSha256 = sha256(provenance);
+  return document;
+}
+
+function sha256(value) {
+  return createHash('sha256').update(canonicalJson(value), 'utf-8').digest('hex');
 }
 
 function releaseExpectation() {

@@ -6,6 +6,10 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  BOUNDARY_SOURCES,
+  canonicalJson,
+} from './artifact-documents.mjs';
+import {
   readArtifactVerifications,
   validateArtifactVerification,
   validateManifestArtifactCompleteness,
@@ -201,12 +205,22 @@ describe('release artifact verification', () => {
     await fs.rm(directory, { recursive: true, force: true });
   });
 
-  it('promotes the exact shared Python compact artifact bytes', async () => {
+  it('promotes the shared Python compact artifact with the current SIRAP source', async () => {
     const fixturePath = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
       '../../../data/metrics/fixtures/release-compact-artifact-v1.json',
     );
-    const artifactBytes = await fs.readFile(fixturePath);
+    const artifact = JSON.parse(await fs.readFile(fixturePath, 'utf-8'));
+    artifact.metricsProvenance.boundaryProvenance.sources.siraps.url =
+      BOUNDARY_SOURCES.siraps.url;
+    artifact.metricsProvenance.boundaryProvenance.sha256 = canonicalSha256(
+      artifact.metricsProvenance.boundaryProvenance.sources,
+    );
+    artifact.metricsProvenanceSha256 = canonicalSha256(artifact.metricsProvenance);
+    const artifactBytes = Buffer.from(JSON.stringify(artifact));
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'manifest-artifact-'));
+    const currentFixturePath = path.join(directory, 'release-compact-artifact-v1.json');
+    await fs.writeFile(currentFixturePath, artifactBytes);
     const checksum = createHash('sha256').update(artifactBytes).digest('hex');
     const url = 'https://blob.example/releases/fixture-release/regular/compact/fixture-land.json';
     const verification = {
@@ -226,7 +240,7 @@ describe('release artifact verification', () => {
       entries: [
         {
           solutionId: 'fixture-land',
-          cachePath: fixturePath,
+          cachePath: currentFixturePath,
           expectedPublicUrl: url,
           catalogSignature:
             'metrics-catalog-v4:609762e9ce722d85eff74f703b1de69e9e98d6830b791a162c02151ec7d4fe43',
@@ -237,6 +251,7 @@ describe('release artifact verification', () => {
     await assert.doesNotReject(
       validatePublishSummaryArtifacts(verification, summary, 'shared compact fixture'),
     );
+    await fs.rm(directory, { recursive: true, force: true });
   });
 
   it('rejects legacy goalsPath-only entries during new release promotion', async () => {
@@ -346,4 +361,8 @@ function createCatalog() {
       },
     ],
   };
+}
+
+function canonicalSha256(value) {
+  return createHash('sha256').update(canonicalJson(value), 'utf-8').digest('hex');
 }
