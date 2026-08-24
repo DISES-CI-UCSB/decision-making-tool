@@ -49,6 +49,19 @@ export interface CustomAoiEcosystemRecord {
   new_covered_pct_of_aoi: number | null;
 }
 
+/**
+ * Mesa-compatible coverage values use planning-cell counts, not square kilometers.
+ * Ratio fields are decimal fractions (0–1) and remain nullable when their denominator is zero.
+ */
+export interface MesaAoiCoverageRecord {
+  feature: string;
+  total_in_aoi: number;
+  held_in_aoi: number;
+  coverage_within_aoi: number | null;
+  contribution_to_national_coverage: number | null;
+  contribution_to_national_target: number | null;
+}
+
 export type CustomAoiEcosystemView =
   | 'biomeFamily'
   | 'broadBiomeContext'
@@ -70,6 +83,8 @@ export interface CustomAoiEcosystemsSection {
     label: string;
     records: CustomAoiEcosystemRecord[];
   }[];
+  /** Optional only for compatibility with responses produced before Mesa/V3 remediation. */
+  solution_coverage?: MesaAoiCoverageRecord[];
   reason?: string | null;
 }
 
@@ -101,6 +116,16 @@ export interface DetailedSpeciesCoverageRecord extends CustomAoiSpeciesRecord {
   pre_existing_covered_in_aoi_pct: number;
   new_covered_in_aoi_area_km2: number;
   new_covered_in_aoi_pct: number;
+  /** Mesa planning-cell count within the AOI; optional for legacy precomputed sidecars. */
+  total_in_aoi?: number | null;
+  /** Mesa planning-cell count held by the active solution; optional for legacy sidecars. */
+  held_in_aoi?: number | null;
+  /** Decimal fraction of AOI cells for this feature held by the active solution. */
+  coverage_within_aoi?: number | null;
+  /** Decimal fraction of the feature's national total contributed by this AOI and solution. */
+  contribution_to_national_coverage?: number | null;
+  /** Decimal fraction of the national target contributed by this AOI and solution. */
+  contribution_to_national_target?: number | null;
 }
 
 export interface DetailedSpeciesCoverageResult {

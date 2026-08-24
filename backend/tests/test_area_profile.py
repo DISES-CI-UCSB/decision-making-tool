@@ -161,7 +161,9 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
         for record in cell_major.detailed_coverage_records(
             aoi,
             read_solution_raster(solution_path),
-            target_for_species=lambda _name: 0.5,
+            target_for_species=(
+                lambda name: 0.5 if name == "Present mammal" else None
+            ),
         )
     }
 
@@ -181,6 +183,11 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     bird = records["Present bird"]
     assert bird.range_in_aoi_pct == pytest.approx(100.0)
     assert bird.solution_covered_in_aoi_pct == pytest.approx(0.0)
+    assert bird.total_in_aoi == 1
+    assert bird.held_in_aoi == 0
+    assert bird.coverage_within_aoi == pytest.approx(0.0)
+    assert bird.contribution_to_national_coverage == pytest.approx(0.0)
+    assert bird.contribution_to_national_target is None
 
 
 def test_coverage_of_a_partially_covered_range_reports_true_area_and_never_exceeds_it(

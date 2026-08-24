@@ -3,16 +3,25 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
 from typing import Any
+from urllib.parse import urlparse
 
+import numpy as np
 import rasterio
 from pydantic import BaseModel, Field
 
 from .config import Settings
+from .coverage_target_validation import (
+    CoverageTargetValidationError,
+    MESA_V3_ECOSYSTEM_TARGET_COUNT,
+    MESA_V3_GOLDEN_SPECIES_TARGET_COUNT,
+    validate_coverage_targets,
+)
 from .solution_registry import (
     RasterFingerprint,
     RuntimeSolutionRegistry,
@@ -38,6 +47,7 @@ from .solution_coverage import (
 )
 
 LOGGER = logging.getLogger(__name__)
+SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 class ArtifactState(BaseModel):
@@ -108,7 +118,15 @@ REQUIRED_MANIFEST_FIELDS = {
 _RUNTIME_LOCK = Lock()
 _RUNTIME_ARTIFACT: RuntimeArtifact | None = None
 _RUNTIME_STATE: ArtifactState | None = None
-_RUNTIME_SETTINGS_KEY: tuple[str, bool, str, str] | None = None
+_RUNTIME_SETTINGS_KEY: tuple[
+    str,
+    bool,
+    str,
+    str,
+    bool,
+    str | None,
+    str | None,
+] | None = None
 
 
 def _close_runtime_artifact(artifact: RuntimeArtifact | None) -> None:
@@ -120,12 +138,17 @@ def _close_runtime_artifact(artifact: RuntimeArtifact | None) -> None:
         LOGGER.warning("Runtime artifact cleanup failed", exc_info=True)
 
 
-def _settings_key(settings: Settings) -> tuple[str, bool, str, str]:
+def _settings_key(
+    settings: Settings,
+) -> tuple[str, bool, str, str, bool, str | None, str | None]:
     return (
         str(settings.artifact_manifest_path),
         settings.artifact_required,
         settings.artifact_schema_version,
         str(settings.solution_cache_dir),
+        settings.mesa_coverage_required,
+        settings.expected_coverage_release_id,
+        settings.expected_coverage_contract_sha256,
     )
 
 
@@ -529,7 +552,169 @@ def _load_mesa_coverage(
         "status": "ready",
         "solution_count": len(coverage.targets_by_solution),
         "species_groups": list(coverage.species_groups),
+        "contract": raw.get("contract"),
     }
+
+
+def _validate_required_mesa_coverage(
+    settings: Settings,
+    manifest: dict[str, Any],
+    coverage: RuntimeMesaCoverage | None,
+    reference_fingerprint: RasterFingerprint,
+    reference_valid_cell_count: int,
+    species_index: RuntimeSpeciesIndex | RuntimeSpeciesBitsetIndex | None,
+) -> None:
+    if not settings.mesa_coverage_required:
+        return
+    if coverage is None:
+        raise ArtifactValidationError(
+            "Production runtime requires the V3 Mesa coverage bundle."
+        )
+    raw = manifest.get("mesa_coverage")
+    contract = raw.get("contract") if isinstance(raw, dict) else None
+    if not isinstance(contract, dict):
+        raise ArtifactValidationError(
+            "Production Mesa coverage must declare its parity contract."
+        )
+    if contract.get("format") != "coverage-parity-contract-v1":
+        raise ArtifactValidationError("Mesa coverage parity contract format is invalid.")
+    release_id = contract.get("release_id")
+    if (
+        settings.expected_coverage_release_id is not None
+        and release_id != settings.expected_coverage_release_id
+    ):
+        raise ArtifactValidationError(
+            "Mesa coverage release does not match DMT_EXPECTED_COVERAGE_RELEASE_ID."
+        )
+    if (
+        settings.expected_coverage_contract_sha256 is not None
+        and contract.get("sha256") != settings.expected_coverage_contract_sha256
+    ):
+        raise ArtifactValidationError(
+            "Mesa coverage contract does not match "
+            "DMT_EXPECTED_COVERAGE_CONTRACT_SHA256."
+        )
+    expected_ecosystems = MESA_V3_ECOSYSTEM_TARGET_COUNT
+    expected_species = MESA_V3_GOLDEN_SPECIES_TARGET_COUNT
+    if contract.get("ecosystem_feature_count") != expected_ecosystems:
+        raise ArtifactValidationError("Mesa ecosystem inventory must contain 417 rows.")
+    if contract.get("species_feature_count") != expected_species:
+        raise ArtifactValidationError("Mesa species inventory must contain 7,980 rows.")
+    golden_solution_id = contract.get("golden_master_solution_id")
+    if not isinstance(golden_solution_id, str) or not golden_solution_id:
+        raise ArtifactValidationError("Mesa golden-master solution identity is missing.")
+    if golden_solution_id not in coverage.targets_by_solution:
+        raise ArtifactValidationError(
+            "Mesa golden-master solution is not present in packaged targets."
+        )
+    if (
+        not isinstance(species_index, RuntimeSpeciesBitsetIndex)
+        or species_index.species_count != expected_species
+    ):
+        raise ArtifactValidationError(
+            "Runtime species bitset must contain the approved 7,980-species universe."
+        )
+
+    grid = contract.get("grid")
+    if not isinstance(grid, dict):
+        raise ArtifactValidationError("Mesa coverage parity grid fingerprint is missing.")
+    expected_transform = grid.get("transform")
+    if (
+        grid.get("crs") != reference_fingerprint.crs
+        or grid.get("width") != reference_fingerprint.width
+        or grid.get("height") != reference_fingerprint.height
+        or not isinstance(expected_transform, list)
+        or len(expected_transform) != len(reference_fingerprint.transform)
+        or any(
+            abs(float(expected) - actual) > 1e-6
+            for expected, actual in zip(
+                expected_transform,
+                reference_fingerprint.transform,
+            )
+        )
+    ):
+        raise ArtifactValidationError(
+            "Runtime reference raster does not match the Mesa parity grid fingerprint."
+        )
+    reference_checksum = manifest.get("reference_raster_checksum")
+    if (
+        not isinstance(reference_checksum, dict)
+        or reference_checksum.get("algorithm") != "sha256"
+        or grid.get("template_sha256") != reference_checksum.get("value")
+    ):
+        raise ArtifactValidationError(
+            "Runtime reference raster checksum does not match the Mesa parity contract."
+        )
+    contract_valid_cells = grid.get("valid_planning_cell_count")
+    reference_grid = manifest.get("reference_grid")
+    reference_pin = (
+        reference_grid.get("pin")
+        if isinstance(reference_grid, dict)
+        else None
+    )
+    manifest_valid_cells = (
+        reference_pin.get("valid_cell_count")
+        if isinstance(reference_pin, dict)
+        else None
+    )
+    if (
+        type(contract_valid_cells) is not int
+        or contract_valid_cells <= 0
+        or manifest_valid_cells != contract_valid_cells
+        or reference_valid_cell_count != contract_valid_cells
+    ):
+        raise ArtifactValidationError(
+            "Mesa valid planning-cell count does not match the reference metadata "
+            "and raster validity mask."
+        )
+
+    if set(coverage.source_bindings_by_solution) != set(
+        coverage.targets_by_solution
+    ):
+        raise ArtifactValidationError(
+            "Mesa target source bindings are incomplete."
+        )
+    for solution_id, targets in coverage.targets_by_solution.items():
+        try:
+            validated_targets = validate_coverage_targets(
+                [
+                    {
+                        "feature": target.feature,
+                        "feature_type": target.feature_type,
+                        "class": target.feature_class,
+                        "relative_target": target.relative_target,
+                        "evaluated": target.evaluated,
+                    }
+                    for target in targets
+                ],
+                solution_id=solution_id,
+                expected_ecosystem_count=expected_ecosystems,
+                expected_species_count=(
+                    expected_species if solution_id == golden_solution_id else None
+                ),
+            )
+        except CoverageTargetValidationError as exc:
+            raise ArtifactValidationError(
+                f"{solution_id} has invalid Mesa coverage targets: {exc}"
+            ) from exc
+        ecosystem_count = sum(
+            target.feature_type == "ecosystem" for target in validated_targets
+        )
+        species_count = sum(
+            target.feature_type == "species" for target in validated_targets
+        )
+        binding = coverage.source_bindings_by_solution[solution_id]
+        parsed_url = urlparse(binding.url or "")
+        if (
+            parsed_url.scheme != "https"
+            or not parsed_url.netloc
+            or SHA256_PATTERN.fullmatch(binding.sha256 or "") is None
+            or binding.ecosystem_feature_count != ecosystem_count
+            or binding.species_feature_count != species_count
+        ):
+            raise ArtifactValidationError(
+                f"{solution_id} has an invalid Mesa target source binding."
+            )
 
 
 def _validate_ecosystem_grid_alignment(
@@ -576,6 +761,10 @@ def _load_raster_artifact(
     try:
         with rasterio.open(resolved_reference) as dataset:
             transform = dataset.transform
+            reference_valid_cell_count = sum(
+                int(np.count_nonzero(dataset.read_masks(1, window=window)))
+                for _, window in dataset.block_windows(1)
+            )
             reference_fingerprint = RasterFingerprint(
                 width=dataset.width,
                 height=dataset.height,
@@ -595,6 +784,7 @@ def _load_raster_artifact(
                 "crs": str(dataset.crs) if dataset.crs else None,
                 "bounds": [dataset.bounds.left, dataset.bounds.bottom, dataset.bounds.right, dataset.bounds.top],
                 "nodata": dataset.nodata,
+                "valid_cell_count": reference_valid_cell_count,
             }
     except Exception as exc:
         raise ArtifactValidationError(f"Reference raster could not be opened: {exc}") from exc
@@ -663,6 +853,14 @@ def _load_raster_artifact(
             manifest_path,
             manifest,
             layers,
+        )
+        _validate_required_mesa_coverage(
+            settings,
+            manifest,
+            mesa_coverage,
+            reference_fingerprint,
+            reference_valid_cell_count,
+            species_index,
         )
     except Exception:
         if species_index is not None:

@@ -38,6 +38,7 @@ import { SolutionCatalogService } from '@core/services/solution-catalog.service'
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
 import { StrategicEcosystemOutcomesLoaderService } from '@core/services/strategic-ecosystem-outcomes-loader.service';
+import { MESA_IAVH_FEATURE_COUNT } from './aoi-ecosystems.utils';
 import { PanelSwitcherComponent } from './panel-switcher';
 
 describe('PanelSwitcherComponent', () => {
@@ -1180,7 +1181,7 @@ describe('PanelSwitcherComponent', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
         ?.textContent,
-    ).toContain('analysis.aoi.mec.states.custom.unavailableTitle');
+    ).toContain('analysis.aoi.mec.states.custom.failedTitle');
   });
 
   it('renders all custom ecosystem presence and coverage measures in one table', async () => {
@@ -1215,7 +1216,7 @@ describe('PanelSwitcherComponent', () => {
     expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
     expect(compiled.querySelector('#custom-aoi-profile-ecosystems')).toBeNull();
     expect(compiled.querySelector('#aoi-mec-bar-label-0')?.textContent).toContain('Andean forest');
-    expect(compiled.querySelector('#aoi-mec-bar-value-0')?.textContent).toContain('80%');
+    expect(compiled.querySelector('#aoi-mec-bar-value-0')?.textContent).toContain('50%');
 
     (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -1244,29 +1245,22 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-modal-heading-new-coverage')?.textContent).toContain(
       'analysis.aoi.mec.modal.newCoverage',
     );
-    expect(compiled.querySelector('#aoi-mec-modal-available-forest')?.textContent).toContain('8');
-    const percentageMeasures = [
-      ['national-share', '20%', '8 km²'],
-      ['aoi-share', '80%', '8 km²'],
-      ['total-coverage', '50%', '4 km²'],
-      ['pre-existing-coverage', '12,5%', '1 km²'],
-      ['new-coverage', '37,5%', '3 km²'],
-    ] as const;
-    for (const [metricId, expectedPercent, expectedArea] of percentageMeasures) {
-      const measureId = `aoi-mec-modal-${metricId}-forest`;
-      const measure = compiled.querySelector(`#${measureId}-measure`);
-      const bar = compiled.querySelector(`#${measureId}-bar`);
-
-      expect(measure?.textContent).toContain(expectedPercent);
-      expect(measure?.textContent).toContain(expectedArea);
-      expect(bar).not.toBeNull();
-      expect(bar?.getAttribute('aria-label')).toContain('Andean forest');
-      expect(bar?.getAttribute('aria-label')).toContain(expectedPercent);
-      expect(bar?.getAttribute('aria-label')).toContain(expectedArea);
-    }
     expect(
-      compiled.querySelector('#aoi-mec-classifications-modal-body')?.textContent,
-    ).not.toContain('--');
+      compiled.querySelector('#aoi-mec-modal-total-coverage-andean-forest-value')?.textContent,
+    ).toContain('50%');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-total-coverage-andean-forest-value')?.textContent,
+    ).toContain('analysis.aoi.mec.modal.mesaCellCount');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-total-coverage-andean-forest-bar'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-modal-pre-existing-coverage-andean-forest-bar'),
+    ).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-new-coverage-andean-forest-bar')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-table-caption')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesaTableCaption',
+    );
   });
 
   it('clamps custom ecosystem bar width without changing the displayed percentage', () => {
@@ -1357,9 +1351,9 @@ describe('PanelSwitcherComponent', () => {
     });
     expect(compiled.querySelector('#aoi-mec-modal-table')).toBe(table);
     expect(compiled.querySelector('#aoi-mec-modal-coverage-solution-guidance')).toBeNull();
-    expect(compiled.querySelector('#aoi-mec-modal-total-coverage-forest')?.textContent).toContain(
-      '50%',
-    );
+    expect(
+      compiled.querySelector('#aoi-mec-modal-total-coverage-andean-forest')?.textContent,
+    ).toContain('50%');
   });
 
   it.each([
@@ -3004,6 +2998,11 @@ function buildCustomEcosystemProfileResponse(
         status: 'complete',
         canonical_summary_view: 'broadEcosystem',
         classified_area_km2: 10,
+        ...(solutionId
+          ? {
+              solution_coverage: buildMesaEcosystemCoverageFixture(),
+            }
+          : {}),
         views: [
           {
             id: 'broadEcosystem',
@@ -3045,6 +3044,39 @@ function buildCustomEcosystemProfileResponse(
       },
     },
   };
+}
+
+function buildMesaEcosystemCoverageFixture() {
+  return Array.from({ length: MESA_IAVH_FEATURE_COUNT }, (_, index) => {
+    if (index === 0) {
+      return {
+        feature: 'Andean forest',
+        total_in_aoi: 8,
+        held_in_aoi: 4,
+        coverage_within_aoi: 0.5,
+        contribution_to_national_coverage: 0.1,
+        contribution_to_national_target: null,
+      };
+    }
+    if (index === 1) {
+      return {
+        feature: 'Savanna',
+        total_in_aoi: 2,
+        held_in_aoi: 1,
+        coverage_within_aoi: 0.5,
+        contribution_to_national_coverage: 0.05,
+        contribution_to_national_target: 0.2,
+      };
+    }
+    return {
+      feature: `Biome region ${index + 1}`,
+      total_in_aoi: 0,
+      held_in_aoi: 0,
+      coverage_within_aoi: null,
+      contribution_to_national_coverage: null,
+      contribution_to_national_target: null,
+    };
+  });
 }
 
 function buildFixedMunicipalityAoi(): AOI {

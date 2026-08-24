@@ -1,6 +1,7 @@
 import type {
   AOI,
   CustomAoiAreaProfileResponse,
+  MesaAoiCoverageRecord,
   MecCompactDocument,
   MecCompactV2Document,
 } from '@core/models';
@@ -14,6 +15,7 @@ import {
   isWholeMetricCompatibleSirapAoi,
   isMecViewAvailable,
   MEC_IAVH_FEATURE_COUNT,
+  MESA_IAVH_FEATURE_COUNT,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
 } from './aoi-ecosystems.utils';
@@ -21,6 +23,10 @@ import {
 describe('AOI ecosystems utilities', () => {
   it('locks the MEC metric inventory to 429 unique biome-region features', () => {
     expect(MEC_IAVH_FEATURE_COUNT).toBe(429);
+  });
+
+  it('locks active-solution Mesa coverage to the 417-row parity inventory', () => {
+    expect(MESA_IAVH_FEATURE_COUNT).toBe(417);
   });
 
   it('calculates strategic overlap against candidate area and clamps the result', () => {
@@ -126,26 +132,33 @@ describe('AOI ecosystems utilities', () => {
     });
   });
 
-  it('adapts live custom ecosystem composition and coverage without synthetic values', () => {
+  it('uses Mesa rows exclusively when a custom AOI has an active solution', () => {
     const data = buildCustomMecData(buildCustomProfileResponse());
-    const row = data.rowsByView.get('broadEcosystem')?.[0];
+    const row = data.rowsByView.get('biomeRegion')?.[0];
 
     expect(data.status).toBe('complete');
+    expect(data.mode).toBe('mesa-solution');
     expect(data.hasSolutionCoverage).toBe(true);
     expect(
       buildCustomMecData({ ...buildCustomProfileResponse(), solution_id: null })
         .hasSolutionCoverage,
     ).toBe(false);
-    expect(data.previewByView.get('broadEcosystem')).toEqual([{ label: 'Forest', percent: 66.67 }]);
+    expect(data.previewByView.get('biomeRegion')?.[0]).toEqual({ label: 'forest', percent: 25 });
+    expect([...data.rowsByView.keys()]).toEqual(['biomeRegion']);
+    expect(data.rowsByView.get('biomeRegion')).toHaveLength(MESA_IAVH_FEATURE_COUNT);
     expect(row).toMatchObject({
       id: 'forest',
-      ecosystemAreaKm2: 8,
-      ecosystemSharePercent: 66.67,
-      nationalClassPercent: 20,
-      solutionCoverageKm2: 4,
-      solutionCoveragePercent: 50,
-      preExistingCoverageKm2: 1,
-      newPrioritizrCoverageKm2: 3,
+      ecosystemAreaKm2: null,
+      ecosystemSharePercent: null,
+      nationalClassPercent: null,
+      solutionCoverageKm2: null,
+      solutionCoveragePercent: 25,
+      preExistingCoverageKm2: null,
+      newPrioritizrCoverageKm2: null,
+      mesaTotalInAoi: 8,
+      mesaHeldInAoi: 2,
+      contributionToNationalCoveragePercent: 5,
+      contributionToNationalTargetPercent: null,
     });
     expect(data.scopeSummary).toMatchObject({
       scopeAreaKm2: 12,
@@ -154,8 +167,112 @@ describe('AOI ecosystems utilities', () => {
     });
   });
 
+  it('preserves composition-only rows when no solution is active', () => {
+    const data = buildCustomMecData({ ...buildCustomProfileResponse(), solution_id: null });
+    const row = data.rowsByView.get('broadEcosystem')?.[0];
+
+    expect(data.mode).toBe('composition');
+    expect([...data.rowsByView.keys()]).toEqual(['broadEcosystem']);
+    expect(data.previewByView.get('broadEcosystem')).toEqual([{ label: 'Forest', percent: 66.67 }]);
+    expect(row).toMatchObject({
+      ecosystemAreaKm2: 8,
+      ecosystemSharePercent: 66.67,
+      solutionCoverageKm2: null,
+      solutionCoveragePercent: null,
+    });
+  });
+
+  it('does not fall back to legacy coverage when active Mesa rows are absent', () => {
+    const response = buildCustomProfileResponse();
+    delete response.sections.ecosystems?.solution_coverage;
+
+    expect(() => buildCustomMecData(response)).toThrowError(
+      'Missing Mesa solution coverage for active custom AOI solution',
+    );
+  });
+
+  it('rejects partial active-solution Mesa inventories', () => {
+    const response = buildCustomProfileResponse();
+    response.sections.ecosystems!.solution_coverage = buildMesaCoverageFixture().slice(0, -1);
+
+    expect(() => buildCustomMecData(response)).toThrowError(
+      'Invalid Mesa solution coverage: expected 417 rows, received 416',
+    );
+  });
+
+  it('rejects duplicate features in active-solution Mesa inventories', () => {
+    const response = buildCustomProfileResponse();
+    const records = buildMesaCoverageFixture();
+    records[records.length - 1] = { ...records[records.length - 1], feature: records[0].feature };
+    response.sections.ecosystems!.solution_coverage = records;
+
+    expect(() => buildCustomMecData(response)).toThrowError(
+      'Invalid Mesa solution coverage: duplicate feature "forest" at row 417',
+    );
+  });
+
+  it.each([
+    ['empty feature', { feature: '   ' }, 'has an empty feature'],
+    ['non-finite total', { total_in_aoi: Number.NaN }, 'has invalid total_in_aoi'],
+    ['negative held count', { held_in_aoi: -1 }, 'has invalid held_in_aoi'],
+    [
+      'held count above total',
+      { total_in_aoi: 1, held_in_aoi: 2 },
+      'held_in_aoi above total_in_aoi',
+    ],
+    ['out-of-range AOI coverage', { coverage_within_aoi: 1.01 }, 'invalid coverage_within_aoi'],
+    [
+      'non-finite national coverage',
+      { contribution_to_national_coverage: Number.POSITIVE_INFINITY },
+      'invalid contribution_to_national_coverage',
+    ],
+    [
+      'non-finite national target contribution',
+      { contribution_to_national_target: Number.NaN },
+      'invalid contribution_to_national_target',
+    ],
+  ])('rejects a malformed Mesa row with %s', (_case, replacement, expectedMessage) => {
+    const response = buildCustomProfileResponse();
+    const records = buildMesaCoverageFixture();
+    records[0] = { ...records[0], ...replacement };
+    response.sections.ecosystems!.solution_coverage = records;
+
+    expect(() => buildCustomMecData(response)).toThrowError(expectedMessage);
+  });
+
+  it('preserves null denominators and national target contributions above one', () => {
+    const response = buildCustomProfileResponse();
+    const records = buildMesaCoverageFixture();
+    records[0] = {
+      ...records[0],
+      coverage_within_aoi: null,
+      contribution_to_national_coverage: null,
+      contribution_to_national_target: null,
+    };
+    records[1] = { ...records[1], contribution_to_national_target: 1.4 };
+    response.sections.ecosystems!.solution_coverage = records;
+
+    const rows = buildCustomMecData(response).rowsByView.get('biomeRegion');
+
+    expect(rows?.[0]).toMatchObject({
+      solutionCoveragePercent: null,
+      contributionToNationalCoveragePercent: null,
+      contributionToNationalTargetPercent: null,
+    });
+    expect(rows?.[1].contributionToNationalTargetPercent).toBe(140);
+  });
+
+  it('does not fall back when the requested active solution is missing from the response', () => {
+    const response = { ...buildCustomProfileResponse(), solution_id: null };
+
+    expect(() => buildCustomMecData(response, 'test-solution')).toThrowError(
+      'Missing or mismatched solution id in custom AOI ecosystem response',
+    );
+  });
+
   it('does not mislabel classified share when a legacy custom response lacks total share', () => {
     const response = buildCustomProfileResponse();
+    response.solution_id = null;
     const record = response.sections.ecosystems?.views[0].records[0];
     if (record) {
       delete record.share_of_total_aoi_pct;
@@ -238,6 +355,7 @@ function buildCustomProfileResponse(): CustomAoiAreaProfileResponse {
         status: 'complete',
         canonical_summary_view: 'broadEcosystem',
         classified_area_km2: 10,
+        solution_coverage: buildMesaCoverageFixture(),
         views: [
           {
             id: 'broadEcosystem',
@@ -264,6 +382,17 @@ function buildCustomProfileResponse(): CustomAoiAreaProfileResponse {
       },
     },
   };
+}
+
+function buildMesaCoverageFixture(): MesaAoiCoverageRecord[] {
+  return Array.from({ length: MESA_IAVH_FEATURE_COUNT }, (_, index) => ({
+    feature: index === 0 ? 'forest' : `biome-region-${index + 1}`,
+    total_in_aoi: index === 0 ? 8 : 0,
+    held_in_aoi: index === 0 ? 2 : 0,
+    coverage_within_aoi: index === 0 ? 0.25 : null,
+    contribution_to_national_coverage: index === 0 ? 0.05 : null,
+    contribution_to_national_target: null,
+  }));
 }
 
 function buildAoi(id: string, name: string): AOI {

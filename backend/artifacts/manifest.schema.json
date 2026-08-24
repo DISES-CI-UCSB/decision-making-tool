@@ -117,6 +117,79 @@
         "grid": {
           "const": "EPSG:9377"
         },
+        "contract": {
+          "type": "object",
+          "required": [
+            "format",
+            "release_id",
+            "sha256",
+            "ecosystem_feature_count",
+            "species_feature_count",
+            "golden_master_solution_id",
+            "grid"
+          ],
+          "properties": {
+            "format": {
+              "const": "coverage-parity-contract-v1"
+            },
+            "release_id": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "ecosystem_feature_count": {
+              "const": 417
+            },
+            "species_feature_count": {
+              "const": 7980
+            },
+            "golden_master_solution_id": {
+              "type": "string"
+            },
+            "grid": {
+              "type": "object",
+              "required": [
+                "crs",
+                "width",
+                "height",
+                "transform",
+                "valid_planning_cell_count",
+                "template_sha256"
+              ],
+              "properties": {
+                "crs": {
+                  "const": "EPSG:9377"
+                },
+                "width": {
+                  "type": "integer"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "transform": {
+                  "type": "array",
+                  "minItems": 6,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "valid_planning_cell_count": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "template_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
         "ecosystems": {
           "type": "object"
         },

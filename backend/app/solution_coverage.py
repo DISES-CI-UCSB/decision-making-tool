@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import csv
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import rasterio
 
+from .coverage_target_validation import (
+    CoverageTargetValidationError,
+    normalize_feature_name,
+    validate_coverage_targets,
+)
 from mesa_coverage import (
     MesaAoiCoverageRow,
     MesaCoverageRow,
@@ -33,10 +36,19 @@ class CoverageTarget:
 
 
 @dataclass(frozen=True)
+class CoverageSourceBinding:
+    url: str | None
+    sha256: str | None
+    ecosystem_feature_count: int | None
+    species_feature_count: int | None
+
+
+@dataclass(frozen=True)
 class RuntimeMesaCoverage:
     ecosystem_raster_path: Path
     ecosystem_catalog_path: Path
     targets_by_solution: dict[str, tuple[CoverageTarget, ...]]
+    source_bindings_by_solution: dict[str, CoverageSourceBinding]
     species_groups: tuple[str, ...]
 
     def targets(self, solution_id: str, feature_type: str) -> tuple[CoverageTarget, ...]:
@@ -70,34 +82,73 @@ def load_runtime_mesa_coverage(
     raw_solutions = payload.get("solutions")
     if not isinstance(raw_solutions, dict):
         raise SolutionCoverageError("mesa_coverage_targets_solutions_invalid")
+    raw_bindings = payload.get("source_bindings", {})
+    if not isinstance(raw_bindings, dict):
+        raise SolutionCoverageError("mesa_coverage_source_bindings_invalid")
     targets_by_solution: dict[str, tuple[CoverageTarget, ...]] = {}
+    source_bindings_by_solution: dict[str, CoverageSourceBinding] = {}
     try:
         for solution_id, raw_targets in raw_solutions.items():
-            targets_by_solution[str(solution_id)] = tuple(
-                CoverageTarget(
-                    feature=str(raw["feature"]),
-                    feature_type=str(raw["feature_type"]).strip().lower(),
-                    feature_class=(
-                        str(raw["class"]).strip()
-                        if raw.get("class") is not None
-                        else None
-                    ),
-                    relative_target=float(raw["relative_target"]),
-                    evaluated=(
-                        str(raw["evaluated"]).strip()
-                        if raw.get("evaluated") is not None
-                        else None
-                    ),
-                )
-                for raw in raw_targets
+            if not isinstance(solution_id, str) or not solution_id:
+                raise TypeError("solution ids must be non-empty strings")
+            validated = validate_coverage_targets(
+                raw_targets,
+                solution_id=solution_id,
             )
-    except (KeyError, TypeError, ValueError) as exc:
+            targets_by_solution[solution_id] = tuple(
+                CoverageTarget(
+                    feature=row.feature,
+                    feature_type=row.feature_type,
+                    feature_class=row.feature_class,
+                    relative_target=row.relative_target,
+                    evaluated=row.evaluated,
+                )
+                for row in validated
+            )
+        for solution_id, raw in raw_bindings.items():
+            if not isinstance(solution_id, str) or solution_id not in targets_by_solution:
+                raise TypeError(f"{solution_id} source binding has no target inventory")
+            if not isinstance(raw, dict):
+                raise TypeError(f"{solution_id} source binding must be an object")
+            binding = CoverageSourceBinding(
+                url=raw.get("url") if isinstance(raw.get("url"), str) else None,
+                sha256=(
+                    raw.get("sha256")
+                    if isinstance(raw.get("sha256"), str)
+                    else None
+                ),
+                ecosystem_feature_count=(
+                    raw.get("ecosystem_feature_count")
+                    if type(raw.get("ecosystem_feature_count")) is int
+                    else None
+                ),
+                species_feature_count=(
+                    raw.get("species_feature_count")
+                    if type(raw.get("species_feature_count")) is int
+                    else None
+                ),
+            )
+            targets = targets_by_solution[solution_id]
+            ecosystem_count = sum(
+                target.feature_type == "ecosystem" for target in targets
+            )
+            species_count = sum(target.feature_type == "species" for target in targets)
+            if (
+                binding.ecosystem_feature_count != ecosystem_count
+                or binding.species_feature_count != species_count
+            ):
+                raise TypeError(
+                    f"{solution_id} source binding counts do not match validated targets"
+                )
+            source_bindings_by_solution[solution_id] = binding
+    except (CoverageTargetValidationError, KeyError, TypeError, ValueError) as exc:
         raise SolutionCoverageError(f"mesa_coverage_target_invalid:{exc}") from exc
 
     return RuntimeMesaCoverage(
         ecosystem_raster_path=ecosystem_raster_path,
         ecosystem_catalog_path=ecosystem_catalog_path,
         targets_by_solution=targets_by_solution,
+        source_bindings_by_solution=source_bindings_by_solution,
         species_groups=tuple(species_groups),
     )
 
@@ -147,10 +198,6 @@ def calculate_ecosystem_national_coverage(
         relative_targets=[target.relative_target for target in targets],
         evaluated=[target.evaluated for target in targets],
     )
-
-
-def normalize_feature_name(value: str) -> str:
-    return re.sub(r"\s+", " ", value.replace("_", " ").strip().casefold())
 
 
 def _read_ecosystem_catalog(path: Path) -> dict[str, int]:

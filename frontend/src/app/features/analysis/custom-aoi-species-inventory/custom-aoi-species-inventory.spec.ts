@@ -17,6 +17,7 @@ import { of, Subject } from 'rxjs';
 import {
   clampSpeciesBarPercent,
   CustomAoiSpeciesInventoryComponent,
+  mapMesaSpeciesCoverage,
 } from './custom-aoi-species-inventory';
 
 describe('CustomAoiSpeciesInventoryComponent', () => {
@@ -203,7 +204,7 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
     const expectedMetrics = [
       ['range-in-aoi', '10%', '10 km²'],
-      ['solution-coverage', '50%', '5 km²'],
+      ['solution-coverage', '50%', 'analysis.aoi.customProfile.species.mesaCellCount'],
       ['pre-existing', '20%', '2 km²'],
       ['new', '30%', '3 km²'],
     ] as const;
@@ -386,6 +387,25 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
   });
 
+  it('fails visibly instead of using legacy percentages when Mesa fields are absent', () => {
+    const legacyOnlyJob = job('complete');
+    delete legacyOnlyJob.result!.records[0].coverage_within_aoi;
+    api.createDetailedSpeciesCoverageJob.mockReturnValue(of(legacyOnlyJob));
+    const fixture = createFixture('solution-1');
+
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-failed'),
+    ).not.toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '#custom-aoi-species-solution-coverage-0',
+      ),
+    ).toBeNull();
+  });
+
   it('restarts open coverage for changed geometry and ignores the stale completion', () => {
     const staleJob = new Subject<DetailedSpeciesJobResponse>();
     const currentJob = new Subject<DetailedSpeciesJobResponse>();
@@ -450,7 +470,9 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
       (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
     ).toBeNull();
 
-    currentJob.next(job('complete'));
+    const currentSolutionJob = job('complete');
+    currentSolutionJob.result!.solution_id = 'solution-2';
+    currentJob.next(currentSolutionJob);
     fixture.detectChanges();
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
@@ -487,6 +509,30 @@ describe('clampSpeciesBarPercent', () => {
     expect(clampSpeciesBarPercent(42.5)).toBe(42.5);
     expect(clampSpeciesBarPercent(125)).toBe(100);
     expect(clampSpeciesBarPercent(Number.NaN)).toBe(0);
+  });
+});
+
+describe('mapMesaSpeciesCoverage', () => {
+  it('converts Mesa fractions to display percentages and preserves null targets', () => {
+    const record = job('complete').result!.records[0];
+    record.contribution_to_national_target = null;
+
+    expect(mapMesaSpeciesCoverage(record)).toEqual({
+      totalInAoi: 10,
+      heldInAoi: 5,
+      coverageWithinAoiPercent: 50,
+      contributionToNationalCoveragePercent: 5,
+      contributionToNationalTargetPercent: null,
+    });
+  });
+
+  it('rejects records that only contain legacy coverage fields', () => {
+    const record = job('complete').result!.records[0];
+    delete record.total_in_aoi;
+
+    expect(() => mapMesaSpeciesCoverage(record)).toThrowError(
+      'Missing Mesa coverage fields for species 1',
+    );
   });
 });
 
@@ -579,6 +625,11 @@ function job(status: DetailedSpeciesJobResponse['status']): DetailedSpeciesJobRe
                 pre_existing_covered_in_aoi_pct: 20,
                 new_covered_in_aoi_area_km2: 3,
                 new_covered_in_aoi_pct: 30,
+                total_in_aoi: 10,
+                held_in_aoi: 5,
+                coverage_within_aoi: 0.5,
+                contribution_to_national_coverage: 0.05,
+                contribution_to_national_target: 0.25,
               },
             ],
           }

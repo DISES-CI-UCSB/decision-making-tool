@@ -376,12 +376,15 @@ class RuntimeSpeciesBitsetIndex:
                 if target_for_species is not None
                 else None
             )
+            total_in_aoi = float(within_cells[species_index])
+            held_in_aoi = float(held_cells[species_index])
+            national_total = float(entry.range_cell_count)
             mesa_row = (
                 mesa_aoi_coverage_row(
                     feature=entry.scientific_name,
-                    total_amount_aoi=float(within_cells[species_index]),
-                    absolute_held_aoi=float(held_cells[species_index]),
-                    national_total=float(entry.range_cell_count),
+                    total_amount_aoi=total_in_aoi,
+                    absolute_held_aoi=held_in_aoi,
+                    national_total=national_total,
                     national_target=target,
                 )
                 if target is not None
@@ -402,19 +405,12 @@ class RuntimeSpeciesBitsetIndex:
                     pre_existing_covered_in_aoi_pct=_percentage(pre_existing, within),
                     new_covered_in_aoi_area_km2=new,
                     new_covered_in_aoi_pct=_percentage(new, within),
-                    total_in_aoi=(
-                        mesa_row.total_amount_aoi if mesa_row is not None else None
-                    ),
-                    held_in_aoi=(
-                        mesa_row.absolute_held_aoi if mesa_row is not None else None
-                    ),
-                    coverage_within_aoi=(
-                        mesa_row.coverage_within_aoi if mesa_row is not None else None
-                    ),
-                    contribution_to_national_coverage=(
-                        mesa_row.contribution_to_national_coverage
-                        if mesa_row is not None
-                        else None
+                    total_in_aoi=total_in_aoi,
+                    held_in_aoi=held_in_aoi,
+                    coverage_within_aoi=_ratio(held_in_aoi, total_in_aoi),
+                    contribution_to_national_coverage=_ratio(
+                        held_in_aoi,
+                        national_total,
                     ),
                     contribution_to_national_target=(
                         mesa_row.contribution_to_national_target
@@ -751,3 +747,9 @@ def _percentage(numerator: float, denominator: float) -> float:
     if denominator <= 0:
         return 0.0
     return (numerator / denominator) * 100.0
+
+
+def _ratio(numerator: float, denominator: float) -> float:
+    if denominator <= 0:
+        return 0.0
+    return numerator / denominator
