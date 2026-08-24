@@ -1,4 +1,6 @@
 import type { RuntimeLayerManifestRenderingConfig } from '@core/models';
+import type { MapSyncDescriptor } from './map-layers-panel-map-sync';
+import { MASTER_LEGEND_EXCLUDED_ADMIN_BOUNDARY_LAYER_KEYS } from './map-layers-panel.config';
 
 export type SelectedLayerDropPosition = 'before' | 'after';
 export type ScenarioLayerStatus = 'considered' | 'reference';
@@ -348,6 +350,13 @@ export function isLayerAvailableForScope(
   }
   const layerDomain = layerPlanningDomain(rowId, groupId);
   return layerDomain === 'context' || layerDomain === 'shared' || layerDomain === scope;
+}
+
+export function shouldIncludeInMasterLegend(mapSync: MapSyncDescriptor | undefined): boolean {
+  if (mapSync?.type !== 'admin-boundary') {
+    return true;
+  }
+  return !MASTER_LEGEND_EXCLUDED_ADMIN_BOUNDARY_LAYER_KEYS.has(mapSync.boundaryLayerKey);
 }
 
 export function buildLegendLayerEntry(input: LegendLayerInput): LegendLayerEntry {

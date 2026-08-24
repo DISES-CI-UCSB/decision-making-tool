@@ -1,6 +1,7 @@
 import {
   buildConsideredLayerIdSet,
   buildLegendLayerEntry,
+  shouldIncludeInMasterLegend,
   computeSelectedLayerOrder,
   groupParentChildRows,
   isLayerAvailableForScope,
@@ -234,6 +235,28 @@ describe('planning-domain layer filtering', () => {
     ).toBe(true);
     expect(
       isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'both'),
+    ).toBe(true);
+  });
+});
+
+describe('master legend inclusion', () => {
+  it('omits the Colombia country outline from the master legend', () => {
+    expect(
+      shouldIncludeInMasterLegend({
+        type: 'admin-boundary',
+        boundaryType: 'department',
+        boundaryLayerKey: 'admin_country_outline',
+      }),
+    ).toBe(false);
+  });
+
+  it('keeps other admin boundaries in the master legend', () => {
+    expect(
+      shouldIncludeInMasterLegend({
+        type: 'admin-boundary',
+        boundaryType: 'department',
+        boundaryLayerKey: 'admin_departments',
+      }),
     ).toBe(true);
   });
 });

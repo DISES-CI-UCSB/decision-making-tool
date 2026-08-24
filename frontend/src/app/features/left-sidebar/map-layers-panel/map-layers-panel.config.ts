@@ -411,3 +411,8 @@ export const LEGEND_BOUNDARY_STYLES: Record<
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
 };
+
+/** Context-only boundaries that stay on the map but are omitted from the master legend. */
+export const MASTER_LEGEND_EXCLUDED_ADMIN_BOUNDARY_LAYER_KEYS = new Set<AdminBoundaryLayerKey>([
+  'admin_country_outline',
+]);
