@@ -55,7 +55,13 @@ export interface MecCoverageRow {
   newPrioritizrPercent: number | null;
   mesaTotalInAoi?: number | null;
   mesaHeldInAoi?: number | null;
+  mesaNationalTotal?: number | null;
+  mesaClassifiedTotalInAoi?: number | null;
+  preExistingCellCountInAoi?: number | null;
+  newPrioritizrCellCountInAoi?: number | null;
   contributionToNationalCoveragePercent?: number | null;
+  preExistingContributionToNationalCoveragePercent?: number | null;
+  newPrioritizrContributionToNationalCoveragePercent?: number | null;
   contributionToNationalTargetPercent?: number | null;
 }
 
@@ -446,18 +452,28 @@ export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): Me
     id: slugify(record.feature),
     label: record.feature,
     ecosystemAreaKm2: null,
-    ecosystemSharePercent: null,
-    nationalClassPercent: null,
+    ecosystemSharePercent: fractionToPercent(record.share_of_classified_aoi),
+    nationalClassPercent: fractionToPercent(record.share_of_national_total),
     solutionCoverageKm2: null,
     solutionCoveragePercent: fractionToPercent(record.coverage_within_aoi),
     preExistingCoverageKm2: null,
     newPrioritizrCoverageKm2: null,
-    preExistingPercent: null,
-    newPrioritizrPercent: null,
+    preExistingPercent: fractionToPercent(record.pre_existing_coverage_within_aoi),
+    newPrioritizrPercent: fractionToPercent(record.new_prioritizr_coverage_within_aoi),
     mesaTotalInAoi: record.total_in_aoi,
     mesaHeldInAoi: record.held_in_aoi,
+    mesaNationalTotal: record.national_total,
+    mesaClassifiedTotalInAoi: record.classified_total_in_aoi,
+    preExistingCellCountInAoi: record.pre_existing_held_in_aoi,
+    newPrioritizrCellCountInAoi: record.new_prioritizr_held_in_aoi,
     contributionToNationalCoveragePercent: fractionToPercent(
       record.contribution_to_national_coverage,
+    ),
+    preExistingContributionToNationalCoveragePercent: fractionToPercent(
+      record.pre_existing_contribution_to_national_coverage,
+    ),
+    newPrioritizrContributionToNationalCoveragePercent: fractionToPercent(
+      record.new_prioritizr_contribution_to_national_coverage,
     ),
     contributionToNationalTargetPercent: fractionToPercent(record.contribution_to_national_target),
   };
@@ -473,12 +489,13 @@ function validateMesaSolutionCoverage(records: readonly unknown[]): MesaAoiCover
   const features = new Set<string>();
   return records.map((record, index) => {
     assertMesaSolutionCoverageRecord(record, index);
-    if (features.has(record.feature)) {
+    const normalizedFeature = normalizeMesaFeatureIdentity(record.feature);
+    if (features.has(normalizedFeature)) {
       throw new Error(
         `Invalid Mesa solution coverage: duplicate feature "${record.feature}" at row ${index + 1}`,
       );
     }
-    features.add(record.feature);
+    features.add(normalizedFeature);
     return record;
   });
 }
@@ -496,30 +513,185 @@ function assertMesaSolutionCoverageRecord(
   if (typeof candidate['feature'] !== 'string' || candidate['feature'].trim().length === 0) {
     throw new Error(`Invalid Mesa solution coverage: ${rowLabel} has an empty feature`);
   }
-  assertFiniteNonnegative(candidate['total_in_aoi'], rowLabel, 'total_in_aoi');
-  assertFiniteNonnegative(candidate['held_in_aoi'], rowLabel, 'held_in_aoi');
+  assertFiniteNonnegativeInteger(candidate['total_in_aoi'], rowLabel, 'total_in_aoi');
+  assertFiniteNonnegativeInteger(candidate['national_total'], rowLabel, 'national_total');
+  assertFiniteNonnegativeInteger(
+    candidate['classified_total_in_aoi'],
+    rowLabel,
+    'classified_total_in_aoi',
+  );
+  assertNullableFraction(
+    candidate['share_of_national_total'],
+    rowLabel,
+    'share_of_national_total',
+    true,
+  );
+  assertNullableFraction(
+    candidate['share_of_classified_aoi'],
+    rowLabel,
+    'share_of_classified_aoi',
+    true,
+  );
+  assertFiniteNonnegativeInteger(candidate['held_in_aoi'], rowLabel, 'held_in_aoi');
+  assertFiniteNonnegativeInteger(
+    candidate['pre_existing_held_in_aoi'],
+    rowLabel,
+    'pre_existing_held_in_aoi',
+  );
+  assertFiniteNonnegativeInteger(
+    candidate['new_prioritizr_held_in_aoi'],
+    rowLabel,
+    'new_prioritizr_held_in_aoi',
+  );
   if ((candidate['held_in_aoi'] as number) > (candidate['total_in_aoi'] as number)) {
     throw new Error(
       `Invalid Mesa solution coverage: ${rowLabel} has held_in_aoi above total_in_aoi`,
     );
   }
+  if ((candidate['total_in_aoi'] as number) > (candidate['national_total'] as number)) {
+    throw new Error(
+      `Invalid Mesa solution coverage: ${rowLabel} has total_in_aoi above national_total`,
+    );
+  }
+  if ((candidate['total_in_aoi'] as number) > (candidate['classified_total_in_aoi'] as number)) {
+    throw new Error(
+      `Invalid Mesa solution coverage: ${rowLabel} has total_in_aoi above classified_total_in_aoi`,
+    );
+  }
+  if (
+    (candidate['held_in_aoi'] as number) !==
+    (candidate['pre_existing_held_in_aoi'] as number) +
+      (candidate['new_prioritizr_held_in_aoi'] as number)
+  ) {
+    throw new Error(
+      `Invalid Mesa solution coverage: ${rowLabel} violates held = pre-existing + new`,
+    );
+  }
   assertNullableFraction(candidate['coverage_within_aoi'], rowLabel, 'coverage_within_aoi', true);
+  assertNullableFraction(
+    candidate['pre_existing_coverage_within_aoi'],
+    rowLabel,
+    'pre_existing_coverage_within_aoi',
+    true,
+  );
+  assertNullableFraction(
+    candidate['new_prioritizr_coverage_within_aoi'],
+    rowLabel,
+    'new_prioritizr_coverage_within_aoi',
+    true,
+  );
   assertNullableFraction(
     candidate['contribution_to_national_coverage'],
     rowLabel,
     'contribution_to_national_coverage',
   );
   assertNullableFraction(
+    candidate['pre_existing_contribution_to_national_coverage'],
+    rowLabel,
+    'pre_existing_contribution_to_national_coverage',
+    true,
+  );
+  assertNullableFraction(
+    candidate['new_prioritizr_contribution_to_national_coverage'],
+    rowLabel,
+    'new_prioritizr_contribution_to_national_coverage',
+    true,
+  );
+  assertNullableFraction(
     candidate['contribution_to_national_target'],
     rowLabel,
     'contribution_to_national_target',
   );
+  assertExactRatio(
+    candidate,
+    rowLabel,
+    'share_of_national_total',
+    'total_in_aoi',
+    'national_total',
+  );
+  assertExactRatio(
+    candidate,
+    rowLabel,
+    'share_of_classified_aoi',
+    'total_in_aoi',
+    'classified_total_in_aoi',
+  );
+  assertExactRatio(candidate, rowLabel, 'coverage_within_aoi', 'held_in_aoi', 'total_in_aoi');
+  assertExactRatio(
+    candidate,
+    rowLabel,
+    'pre_existing_coverage_within_aoi',
+    'pre_existing_held_in_aoi',
+    'total_in_aoi',
+  );
+  assertExactRatio(
+    candidate,
+    rowLabel,
+    'new_prioritizr_coverage_within_aoi',
+    'new_prioritizr_held_in_aoi',
+    'total_in_aoi',
+  );
+  assertExactRatio(
+    candidate,
+    rowLabel,
+    'contribution_to_national_coverage',
+    'held_in_aoi',
+    'national_total',
+  );
+  assertExactRatio(
+    candidate,
+    rowLabel,
+    'pre_existing_contribution_to_national_coverage',
+    'pre_existing_held_in_aoi',
+    'national_total',
+  );
+  assertExactRatio(
+    candidate,
+    rowLabel,
+    'new_prioritizr_contribution_to_national_coverage',
+    'new_prioritizr_held_in_aoi',
+    'national_total',
+  );
 }
 
-function assertFiniteNonnegative(value: unknown, rowLabel: string, field: string): void {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+function assertExactRatio(
+  candidate: Record<string, unknown>,
+  rowLabel: string,
+  ratioField: string,
+  numeratorField: string,
+  denominatorField: string,
+): void {
+  const value = candidate[ratioField] as number | null;
+  const numerator = candidate[numeratorField] as number;
+  const denominator = candidate[denominatorField] as number;
+  if (denominator === 0) {
+    if (value !== null) {
+      throw new Error(
+        `Invalid Mesa solution coverage: ${rowLabel} has non-null ${ratioField} with a zero denominator`,
+      );
+    }
+    return;
+  }
+  if (value === null || Math.abs(value - numerator / denominator) > 1e-12) {
     throw new Error(
-      `Invalid Mesa solution coverage: ${rowLabel} has invalid ${field}; expected a finite nonnegative number`,
+      `Invalid Mesa solution coverage: ${rowLabel} has ${ratioField} inconsistent with its denominator`,
+    );
+  }
+}
+
+function normalizeMesaFeatureIdentity(value: string): string {
+  return value.replaceAll('_', ' ').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+}
+
+function assertFiniteNonnegativeInteger(value: unknown, rowLabel: string, field: string): void {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    !Number.isInteger(value)
+  ) {
+    throw new Error(
+      `Invalid Mesa solution coverage: ${rowLabel} has invalid ${field}; expected a whole nonnegative planning-cell count`,
     );
   }
 }

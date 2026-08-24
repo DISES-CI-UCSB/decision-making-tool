@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from rasterio.warp import transform_geom
 
 from app import main as main_module
+from app.area_profile import _mesa_ecosystem_rows
 from app.artifacts import (
     ArtifactState,
     ArtifactValidationError,
@@ -21,6 +22,7 @@ from app.artifacts import (
 from app.config import Settings
 from app.main import app
 from app.metric_adapters import build_custom_aoi_raster
+from app.models import MesaAoiCoverageRecord
 from app.species_index import RuntimeSpeciesBitsetIndex
 from app.solution_coverage import (
     CoverageSourceBinding,
@@ -34,7 +36,6 @@ from app.solution_coverage import (
 from mesa_coverage import evaluate_categorical_aoi
 from raster_metrics import read_solution_raster
 from app.solution_registry import RasterFingerprint
-
 
 GRID = Affine(
     1000.0,
@@ -76,8 +77,16 @@ def _coverage_fixture(tmp_path: Path) -> tuple[RuntimeMesaCoverage, Path]:
         nodata=255,
     )
     catalog_path = tmp_path / "ecosystems.csv"
+    ecosystem_features = ["Forest", "Wetland"] + [
+        f"Ecosystem {index}" for index in range(3, 418)
+    ]
     catalog_path.write_text(
-        "biome,biome_id\nForest,1\nWetland,2\n",
+        "biome,biome_id\n"
+        + "\n".join(
+            f"{feature},{index}"
+            for index, feature in enumerate(ecosystem_features, start=1)
+        )
+        + "\n",
         encoding="utf-8",
     )
     targets_path = tmp_path / "targets.json"
@@ -88,26 +97,20 @@ def _coverage_fixture(tmp_path: Path) -> tuple[RuntimeMesaCoverage, Path]:
                 "solutions": {
                     SOLUTION_ID: [
                         {
-                            "feature": "Forest",
+                            "feature": feature,
                             "feature_type": "ecosystem",
                             "class": None,
                             "relative_target": 0.5,
                             "evaluated": "post-hoc",
-                        },
-                        {
-                            "feature": "Wetland",
-                            "feature_type": "ecosystem",
-                            "class": None,
-                            "relative_target": 0.5,
-                            "evaluated": "post-hoc",
-                        },
+                        }
+                        for feature in ecosystem_features
                     ]
                 },
                 "source_bindings": {
                     SOLUTION_ID: {
                         "url": "https://example.test/fixture-goals",
                         "sha256": "a" * 64,
-                        "ecosystem_feature_count": 2,
+                        "ecosystem_feature_count": 417,
                         "species_feature_count": 0,
                     }
                 },
@@ -135,13 +138,118 @@ def test_core_national_coverage_matches_mesa_cell_counts(tmp_path: Path) -> None
         read_solution_raster(solution_path),
     )
 
+    assert len(rows) == 417
     assert [
         (row.feature, row.total_amount, row.absolute_held, row.relative_held)
-        for row in rows
+        for row in rows[:2]
     ] == [
         ("Forest", 2.0, 2.0, 1.0),
         ("Wetland", 2.0, 0.0, 0.0),
     ]
+
+
+def test_species_target_lookup_normalizes_names_and_omits_missing_targets() -> None:
+    coverage = RuntimeMesaCoverage(
+        ecosystem_raster_path=Path("ecosystems.tif"),
+        ecosystem_catalog_path=Path("ecosystems.csv"),
+        targets_by_solution={
+            SOLUTION_ID: (
+                CoverageTarget(
+                    feature="Forest",
+                    feature_type="ecosystem",
+                    feature_class=None,
+                    relative_target=0.5,
+                    evaluated="post-hoc",
+                ),
+                CoverageTarget(
+                    feature="  ÁGUILA_Harpyja ",
+                    feature_type="species",
+                    feature_class="birds",
+                    relative_target=0.25,
+                    evaluated="post-hoc",
+                ),
+            )
+        },
+        source_bindings_by_solution={},
+        species_groups=("birds",),
+    )
+
+    targets = coverage.species_targets_by_normalized_name(SOLUTION_ID)
+
+    assert targets == {"águila harpyja": 0.25}
+    assert targets.get("águila harpyja") == coverage.species_target(
+        SOLUTION_ID,
+        " águila   HARPYJA ",
+    )
+    assert targets.get("species absent from solution") is None
+
+
+def test_species_target_lookup_rejects_duplicate_normalized_names() -> None:
+    duplicate = CoverageTarget(
+        feature="Species_one",
+        feature_type="species",
+        feature_class=None,
+        relative_target=0.5,
+        evaluated=None,
+    )
+    coverage = RuntimeMesaCoverage(
+        ecosystem_raster_path=Path("ecosystems.tif"),
+        ecosystem_catalog_path=Path("ecosystems.csv"),
+        targets_by_solution={
+            SOLUTION_ID: (
+                duplicate,
+                CoverageTarget(
+                    feature=" species  ONE ",
+                    feature_type="species",
+                    feature_class=None,
+                    relative_target=0.25,
+                    evaluated=None,
+                ),
+            )
+        },
+        source_bindings_by_solution={},
+        species_groups=("plants",),
+    )
+
+    with pytest.raises(
+        SolutionCoverageError,
+        match="mesa_species_target_duplicate:species one",
+    ):
+        coverage.species_targets_by_normalized_name(SOLUTION_ID)
+
+
+def test_species_target_lookup_cooperatively_cancels_during_build() -> None:
+    coverage = RuntimeMesaCoverage(
+        ecosystem_raster_path=Path("ecosystems.tif"),
+        ecosystem_catalog_path=Path("ecosystems.csv"),
+        targets_by_solution={
+            SOLUTION_ID: tuple(
+                CoverageTarget(
+                    feature=f"Species {index}",
+                    feature_type="species",
+                    feature_class=None,
+                    relative_target=0.5,
+                    evaluated=None,
+                )
+                for index in range(600)
+            )
+        },
+        source_bindings_by_solution={},
+        species_groups=("plants",),
+    )
+    cancellation_checks = 0
+
+    def is_cancelled() -> bool:
+        nonlocal cancellation_checks
+        cancellation_checks += 1
+        return cancellation_checks == 2
+
+    with pytest.raises(SolutionCoverageError, match="species_coverage_cancelled"):
+        coverage.species_targets_by_normalized_name(
+            SOLUTION_ID,
+            is_cancelled=is_cancelled,
+        )
+    assert cancellation_checks == 2
 
 
 @pytest.mark.parametrize(
@@ -230,11 +338,20 @@ def test_boundary_coverage_preserves_both_denominators() -> None:
         feature_ids=[1, 2],
         feature_names=["Forest", "Wetland"],
         national_targets=[0.5, 0.5],
+        pre_existing_mask=np.array([[True, False], [False, False]]),
+        new_prioritizr_mask=np.array([[False, False], [True, False]]),
     )
 
     assert rows[0].coverage_within_aoi == pytest.approx(1.0)
     assert rows[0].contribution_to_national_coverage == pytest.approx(0.5)
     assert rows[0].contribution_to_national_target == pytest.approx(1.0)
+    assert rows[0].absolute_held_aoi == (
+        rows[0].absolute_pre_existing_aoi + rows[0].absolute_new_prioritizr_aoi
+    )
+    assert rows[0].pre_existing_coverage_within_aoi == pytest.approx(1.0)
+    assert rows[0].new_prioritizr_coverage_within_aoi == pytest.approx(0.0)
+    assert rows[0].share_of_national_amount == pytest.approx(0.5)
+    assert rows[0].share_of_classified_aoi == pytest.approx(0.5)
     assert rows[1].coverage_within_aoi == pytest.approx(0.0)
 
 
@@ -246,13 +363,15 @@ def test_area_profile_api_matches_shared_coverage_calculation(
     solution = read_solution_raster(solution_path)
     polygon_9377 = {
         "type": "Polygon",
-        "coordinates": [[
-            [GRID.c, GRID.f - 1000],
-            [GRID.c + 2000, GRID.f - 1000],
-            [GRID.c + 2000, GRID.f],
-            [GRID.c, GRID.f],
-            [GRID.c, GRID.f - 1000],
-        ]],
+        "coordinates": [
+            [
+                [GRID.c, GRID.f - 1000],
+                [GRID.c + 2000, GRID.f - 1000],
+                [GRID.c + 2000, GRID.f],
+                [GRID.c, GRID.f],
+                [GRID.c, GRID.f - 1000],
+            ]
+        ],
     }
     geometry = transform_geom("EPSG:9377", "EPSG:4326", polygon_9377)
     artifact = RuntimeArtifact(
@@ -284,6 +403,7 @@ def test_area_profile_api_matches_shared_coverage_calculation(
 
     assert response.status_code == 200
     records = response.json()["sections"]["ecosystems"]["solution_coverage"]
+    assert len(records) == 417
     expected = calculate_ecosystem_aoi_coverage(
         coverage,
         SOLUTION_ID,
@@ -296,6 +416,52 @@ def test_area_profile_api_matches_shared_coverage_calculation(
     assert records[0]["contribution_to_national_target"] == pytest.approx(
         expected["forest"].contribution_to_national_target
     )
+    assert records[0] == {
+        "feature": "Forest",
+        "total_in_aoi": 1.0,
+        "national_total": 2.0,
+        "classified_total_in_aoi": 2.0,
+        "share_of_national_total": 0.5,
+        "share_of_classified_aoi": 0.5,
+        "held_in_aoi": 1.0,
+        "coverage_within_aoi": 1.0,
+        "pre_existing_held_in_aoi": 1.0,
+        "pre_existing_coverage_within_aoi": 1.0,
+        "new_prioritizr_held_in_aoi": 0.0,
+        "new_prioritizr_coverage_within_aoi": 0.0,
+        "contribution_to_national_coverage": 0.5,
+        "pre_existing_contribution_to_national_coverage": 0.5,
+        "new_prioritizr_contribution_to_national_coverage": 0.0,
+        "contribution_to_national_target": 1.0,
+    }
+    zero_row = records[2]
+    assert zero_row["total_in_aoi"] == 0
+    assert zero_row["coverage_within_aoi"] is None
+    assert zero_row["share_of_national_total"] is None
+    assert zero_row["pre_existing_coverage_within_aoi"] is None
+    with pytest.raises(ValueError, match="whole planning-cell count"):
+        MesaAoiCoverageRecord.model_validate({**records[0], "total_in_aoi": 0.5})
+
+
+def test_active_area_profile_fails_closed_below_417_ecosystem_rows(
+    tmp_path: Path,
+) -> None:
+    coverage, solution_path = _coverage_fixture(tmp_path)
+    coverage.targets_by_solution[SOLUTION_ID] = coverage.targets_by_solution[SOLUTION_ID][
+        :-1
+    ]
+    solution = read_solution_raster(solution_path)
+
+    with pytest.raises(
+        SolutionCoverageError,
+        match="mesa_ecosystem_coverage_incomplete:expected_417_received_416",
+    ):
+        _mesa_ecosystem_rows(
+            SimpleNamespace(mesa_coverage=coverage),
+            solution,
+            solution,
+            SOLUTION_ID,
+        )
 
 
 def test_production_validation_allows_sparse_non_golden_species_targets() -> None:
@@ -315,7 +481,9 @@ def test_production_validation_rejects_missing_golden_solution() -> None:
     coverage, manifest, fingerprint = _production_coverage_fixture()
     manifest["mesa_coverage"]["contract"]["golden_master_solution_id"] = "missing"
 
-    with pytest.raises(ArtifactValidationError, match="not present in packaged targets"):
+    with pytest.raises(
+        ArtifactValidationError, match="not present in packaged targets"
+    ):
         _validate_required_mesa_coverage(
             _production_settings(),
             manifest,
@@ -340,7 +508,9 @@ def test_production_validation_rejects_invalid_source_bindings(
     coverage, manifest, fingerprint = _production_coverage_fixture()
     coverage.source_bindings_by_solution["golden"] = binding
 
-    with pytest.raises(ArtifactValidationError, match="invalid Mesa target source binding"):
+    with pytest.raises(
+        ArtifactValidationError, match="invalid Mesa target source binding"
+    ):
         _validate_required_mesa_coverage(
             _production_settings(),
             manifest,

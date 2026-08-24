@@ -19,6 +19,7 @@ from .artifacts import (
     warmup_artifacts,
 )
 from .config import get_settings
+from .coverage_target_validation import normalize_feature_name
 from .models import (
     CustomAreaProfileRequest,
     CustomAreaProfileResponse,
@@ -454,18 +455,24 @@ def _calculate_detailed_species_coverage(
         artifact.reference_raster_path,
         payload["geometry"],
     )
+    target_for_species: Callable[[str], float | None] | None = None
+    if artifact.mesa_coverage is not None:
+        species_targets = (
+            artifact.mesa_coverage.species_targets_by_normalized_name(
+                solution_id,
+                is_cancelled=is_cancelled,
+            )
+        )
+
+        def lookup_species_target(scientific_name: str) -> float | None:
+            return species_targets.get(normalize_feature_name(scientific_name))
+
+        target_for_species = lookup_species_target
     records = artifact.species_index.detailed_coverage_records(
         aoi_raster,
         solution_raster,
         is_cancelled,
-        target_for_species=(
-            lambda scientific_name: artifact.mesa_coverage.species_target(
-                solution_id,
-                scientific_name,
-            )
-            if artifact.mesa_coverage is not None
-            else None
-        ),
+        target_for_species=target_for_species,
     )
     if state.artifact_version is None:
         raise RuntimeError("artifact_version_required")

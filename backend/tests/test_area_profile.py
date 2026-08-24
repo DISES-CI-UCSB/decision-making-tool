@@ -20,18 +20,21 @@ from app.artifacts import (
     ArtifactValidationError,
     _validate_ecosystem_grid_alignment,
 )
+from app.coverage_target_validation import normalize_feature_name
 from app.ecosystem_inventory import RuntimeEcosystemInventory, load_ecosystem_inventory
 from app.job_queue import DetailedSpeciesJobQueue
 from app.main import app
 from app import main as main_module
 from app.models import CustomAreaProfileRequest, EcosystemAreaProfileSection
 from app.species_index import (
+    SpeciesIndexQueryError,
     load_runtime_species_bitset_index,
     normalize_species_name,
     sort_species_records,
     species_dataset_id,
     stream_species_overlap_records,
 )
+from app.solution_coverage import CoverageTarget, RuntimeMesaCoverage
 from raster_metrics import read_solution_raster
 from mec_compact import build_composite_taxonomy, load_composite_crosswalk
 from sparse.species_bitset import build_species_bitset
@@ -156,16 +159,40 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     ) as dataset:
         dataset.write(np.array([[2, 1], [0, 0]], dtype=np.uint8), 1)
 
-    records = {
-        record.scientific_name: record
-        for record in cell_major.detailed_coverage_records(
-            aoi,
-            read_solution_raster(solution_path),
-            target_for_species=(
-                lambda name: 0.5 if name == "Present mammal" else None
-            ),
-        )
-    }
+    solution = read_solution_raster(solution_path)
+    coverage = RuntimeMesaCoverage(
+        ecosystem_raster_path=tmp_path / "ecosystems.tif",
+        ecosystem_catalog_path=tmp_path / "ecosystems.csv",
+        targets_by_solution={
+            "solution": (
+                CoverageTarget(
+                    feature="  PRESENT_mammal ",
+                    feature_type="species",
+                    feature_class=None,
+                    relative_target=0.5,
+                    evaluated="post-hoc",
+                ),
+            )
+        },
+        source_bindings_by_solution={},
+        species_groups=("mammals", "birds"),
+    )
+    legacy_records = cell_major.detailed_coverage_records(
+        aoi,
+        solution,
+        target_for_species=lambda name: coverage.species_target("solution", name),
+    )
+    target_lookup = coverage.species_targets_by_normalized_name("solution")
+    mapped_records = cell_major.detailed_coverage_records(
+        aoi,
+        solution,
+        target_for_species=lambda name: target_lookup.get(
+            normalize_feature_name(name)
+        ),
+    )
+
+    assert mapped_records == legacy_records
+    records = {record.scientific_name: record for record in mapped_records}
 
     mammal = records["Present mammal"]
     assert mammal.range_area_km2 == pytest.approx(2.0)
@@ -188,6 +215,108 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     assert bird.coverage_within_aoi == pytest.approx(0.0)
     assert bird.contribution_to_national_coverage == pytest.approx(0.0)
     assert bird.contribution_to_national_target is None
+
+
+def test_detailed_species_coverage_cancels_during_row_construction(
+    tmp_path: Path,
+) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    matrix_paths = {
+        group: matrix.path
+        for group, matrix in artifact.species_matrices.items()
+        if group != "threatened"
+    }
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset(matrix_paths, data_path, metadata_path)
+    index = load_runtime_species_bitset_index(data_path, metadata_path)
+    aoi = read_solution_raster(artifact.reference_raster_path)
+    cancellation_checks = 0
+
+    def is_cancelled() -> bool:
+        nonlocal cancellation_checks
+        cancellation_checks += 1
+        return cancellation_checks == 2
+
+    with pytest.raises(SpeciesIndexQueryError, match="species_coverage_cancelled"):
+        index.detailed_coverage_records(
+            aoi,
+            aoi,
+            is_cancelled=is_cancelled,
+        )
+    assert cancellation_checks == 2
+
+
+def test_detailed_species_job_builds_one_normalized_target_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeCoverage:
+        build_calls = 0
+
+        def species_targets_by_normalized_name(
+            self,
+            solution_id: str,
+            *,
+            is_cancelled,
+        ) -> dict[str, float]:
+            self.build_calls += 1
+            assert solution_id == "solution"
+            assert is_cancelled() is False
+            return {"species one": 0.5}
+
+    class FakeIndex:
+        def detailed_coverage_records(
+            self,
+            aoi_raster,
+            solution_raster,
+            is_cancelled,
+            *,
+            target_for_species,
+        ) -> list:
+            assert aoi_raster == "aoi"
+            assert solution_raster == "solution-raster"
+            assert is_cancelled() is False
+            assert target_for_species(" Species_ONE ") == 0.5
+            assert target_for_species("Species absent") is None
+            return []
+
+    coverage = FakeCoverage()
+    artifact = SimpleNamespace(
+        species_index=FakeIndex(),
+        reference_raster_path=Path("reference.tif"),
+        solution_registry=SimpleNamespace(
+            load=lambda solution_id: ("solution-raster", "checksum")
+        ),
+        mesa_coverage=coverage,
+    )
+    monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", FakeIndex)
+    monkeypatch.setattr(
+        main_module,
+        "get_artifact_state",
+        lambda settings: SimpleNamespace(artifact_version="artifact"),
+    )
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact",
+        lambda settings: artifact,
+    )
+    monkeypatch.setattr(
+        main_module,
+        "build_custom_aoi_raster",
+        lambda path, geometry: "aoi",
+    )
+
+    result = main_module._calculate_detailed_species_coverage(
+        {
+            "artifact_version": "artifact",
+            "geometry": {"type": "Polygon", "coordinates": []},
+            "solution_id": "solution",
+        },
+        lambda: False,
+    )
+
+    assert coverage.build_calls == 1
+    assert result["records"] == []
 
 
 def test_coverage_of_a_partially_covered_range_reports_true_area_and_never_exceeds_it(

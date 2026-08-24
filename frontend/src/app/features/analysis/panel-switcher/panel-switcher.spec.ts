@@ -1224,27 +1224,98 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-modal-mode-tabs')).toBeNull();
     expect(compiled.querySelector('#aoi-mec-modal-composition-tab')).toBeNull();
     expect(compiled.querySelector('#aoi-mec-modal-coverage-tab')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-sort-composition')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.sortComposition',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-sort-national')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.sortNational',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-sort-coverage')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.sortCoverage',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-sort-existing')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.sortExisting',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-sort-additional')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.sortNew',
+    );
     expect(compiled.querySelector('#aoi-mec-modal-heading-presence-group')?.textContent).toContain(
       'analysis.aoi.mec.modal.presenceGroup',
     );
     expect(compiled.querySelector('#aoi-mec-modal-heading-coverage-group')?.textContent).toContain(
-      'analysis.aoi.mec.modal.coverageGroup',
+      'analysis.aoi.mec.modal.customMesa.coverageGroup',
     );
     expect(compiled.querySelector('#aoi-mec-modal-heading-available')?.textContent).toContain(
-      'analysis.aoi.mec.modal.areaInsideAoi',
+      'analysis.aoi.mec.modal.customMesa.areaInsideAoi',
     );
     expect(compiled.querySelector('#aoi-mec-modal-heading-national-share')?.textContent).toContain(
-      'analysis.aoi.mec.modal.nationalExtentInsideAoi',
+      'analysis.aoi.mec.modal.customMesa.nationalExtentInsideAoi',
     );
     expect(compiled.querySelector('#aoi-mec-modal-heading-aoi-share')?.textContent).toContain(
-      'analysis.aoi.mec.modal.mappedAoiOccupied',
+      'analysis.aoi.mec.modal.customMesa.mappedAoiOccupied',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-heading-total-coverage')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.totalCoverage',
     );
     expect(
       compiled.querySelector('#aoi-mec-modal-heading-pre-existing-coverage')?.textContent,
-    ).toContain('analysis.aoi.mec.modal.preExistingCoverage');
+    ).toContain('analysis.aoi.mec.modal.customMesa.preExistingCoverage');
     expect(compiled.querySelector('#aoi-mec-modal-heading-new-coverage')?.textContent).toContain(
-      'analysis.aoi.mec.modal.newCoverage',
+      'analysis.aoi.mec.modal.customMesa.newCoverage',
     );
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-heading-total-coverage-help-trigger')
+        ?.getAttribute('aria-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.columnQuestions.totalCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-heading-pre-existing-coverage-help-trigger')
+        ?.getAttribute('aria-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.columnQuestions.preExistingCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-heading-new-coverage-help-trigger')
+        ?.getAttribute('aria-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.columnQuestions.newCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-total-coverage-andean-forest-bar')
+        ?.getAttribute('aria-label'),
+    ).toContain('analysis.aoi.mec.modal.customMesa.totalCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-pre-existing-coverage-andean-forest-bar')
+        ?.getAttribute('aria-label'),
+    ).toContain('analysis.aoi.mec.modal.customMesa.preExistingCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-new-coverage-andean-forest-bar')
+        ?.getAttribute('aria-label'),
+    ).toContain('analysis.aoi.mec.modal.customMesa.newCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-national-share-andean-forest')
+        ?.getAttribute('data-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.nationalExtentInsideAoi');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-aoi-share-andean-forest')?.getAttribute('data-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.mappedAoiOccupied');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-total-coverage-andean-forest')
+        ?.getAttribute('data-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.totalCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-pre-existing-coverage-andean-forest')
+        ?.getAttribute('data-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.preExistingCoverage');
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-new-coverage-andean-forest')
+        ?.getAttribute('data-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.newCoverage');
     expect(
       compiled.querySelector('#aoi-mec-modal-total-coverage-andean-forest-value')?.textContent,
     ).toContain('50%');
@@ -1256,8 +1327,31 @@ describe('PanelSwitcherComponent', () => {
     ).not.toBeNull();
     expect(
       compiled.querySelector('#aoi-mec-modal-pre-existing-coverage-andean-forest-bar'),
-    ).toBeNull();
-    expect(compiled.querySelector('#aoi-mec-modal-new-coverage-andean-forest-bar')).toBeNull();
+    ).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-new-coverage-andean-forest-bar')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-available-andean-forest')?.textContent).toContain(
+      'analysis.aoi.mec.modal.mesaPlanningCellAmount',
+    );
+    expect(
+      compiled.querySelector('#aoi-mec-modal-national-share-andean-forest-value')?.textContent,
+    ).toContain('20%');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-aoi-share-andean-forest-value')?.textContent,
+    ).toContain('80%');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-pre-existing-coverage-andean-forest-value')
+        ?.textContent,
+    ).toContain('12,5%');
+    expect(
+      compiled.querySelector('#aoi-mec-modal-new-coverage-andean-forest-value')?.textContent,
+    ).toContain('37,5%');
+    expect(compiled.querySelector('#aoi-mec-modal-row-andean-forest')?.textContent).not.toContain(
+      'analysis.common.valueUnavailable',
+    );
+    expect(
+      compiled.querySelector('#aoi-mec-modal-total-coverage-biome-region-3-zero-denominator')
+        ?.textContent,
+    ).toContain('analysis.aoi.mec.modal.zeroDenominator');
     expect(compiled.querySelector('#aoi-mec-modal-table-caption')?.textContent).toContain(
       'analysis.aoi.mec.modal.customMesaTableCaption',
     );
@@ -1331,6 +1425,20 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-modal-total-coverage-forest-bar')).toBeNull();
     expect(compiled.querySelector('#aoi-mec-modal-pre-existing-coverage-forest-bar')).toBeNull();
     expect(compiled.querySelector('#aoi-mec-modal-new-coverage-forest-bar')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-heading-total-coverage')?.textContent).toContain(
+      'analysis.aoi.mec.modal.totalCoverage',
+    );
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-heading-total-coverage-help-trigger')
+        ?.getAttribute('aria-label'),
+    ).toBe('analysis.aoi.mec.modal.columnQuestions.totalCoverage');
+    expect(compiled.querySelector('#aoi-mec-modal-table-caption')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customTableCaption',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-sort-coverage')?.textContent).toContain(
+      'analysis.aoi.mec.modal.sortCoverage',
+    );
     expect(
       compiled.querySelector('#aoi-mec-classifications-modal-body')?.textContent,
     ).not.toContain('--');
@@ -1354,6 +1462,20 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#aoi-mec-modal-total-coverage-andean-forest')?.textContent,
     ).toContain('50%');
+    expect(compiled.querySelector('#aoi-mec-modal-heading-total-coverage')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.totalCoverage',
+    );
+    expect(
+      compiled
+        .querySelector('#aoi-mec-modal-heading-total-coverage-help-trigger')
+        ?.getAttribute('aria-label'),
+    ).toBe('analysis.aoi.mec.modal.customMesa.columnQuestions.totalCoverage');
+    expect(compiled.querySelector('#aoi-mec-modal-table-caption')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesaTableCaption',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-sort-coverage')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customMesa.sortCoverage',
+    );
   });
 
   it.each([
@@ -3052,9 +3174,19 @@ function buildMesaEcosystemCoverageFixture() {
       return {
         feature: 'Andean forest',
         total_in_aoi: 8,
+        national_total: 40,
+        classified_total_in_aoi: 10,
+        share_of_national_total: 0.2,
+        share_of_classified_aoi: 0.8,
         held_in_aoi: 4,
         coverage_within_aoi: 0.5,
+        pre_existing_held_in_aoi: 1,
+        pre_existing_coverage_within_aoi: 0.125,
+        new_prioritizr_held_in_aoi: 3,
+        new_prioritizr_coverage_within_aoi: 0.375,
         contribution_to_national_coverage: 0.1,
+        pre_existing_contribution_to_national_coverage: 0.025,
+        new_prioritizr_contribution_to_national_coverage: 0.075,
         contribution_to_national_target: null,
       };
     }
@@ -3062,18 +3194,38 @@ function buildMesaEcosystemCoverageFixture() {
       return {
         feature: 'Savanna',
         total_in_aoi: 2,
+        national_total: 20,
+        classified_total_in_aoi: 10,
+        share_of_national_total: 0.1,
+        share_of_classified_aoi: 0.2,
         held_in_aoi: 1,
         coverage_within_aoi: 0.5,
+        pre_existing_held_in_aoi: 0,
+        pre_existing_coverage_within_aoi: 0,
+        new_prioritizr_held_in_aoi: 1,
+        new_prioritizr_coverage_within_aoi: 0.5,
         contribution_to_national_coverage: 0.05,
+        pre_existing_contribution_to_national_coverage: 0,
+        new_prioritizr_contribution_to_national_coverage: 0.05,
         contribution_to_national_target: 0.2,
       };
     }
     return {
       feature: `Biome region ${index + 1}`,
       total_in_aoi: 0,
+      national_total: 0,
+      classified_total_in_aoi: 10,
+      share_of_national_total: null,
+      share_of_classified_aoi: 0,
       held_in_aoi: 0,
       coverage_within_aoi: null,
+      pre_existing_held_in_aoi: 0,
+      pre_existing_coverage_within_aoi: null,
+      new_prioritizr_held_in_aoi: 0,
+      new_prioritizr_coverage_within_aoi: null,
       contribution_to_national_coverage: null,
+      pre_existing_contribution_to_national_coverage: null,
+      new_prioritizr_contribution_to_national_coverage: null,
       contribution_to_national_target: null,
     };
   });

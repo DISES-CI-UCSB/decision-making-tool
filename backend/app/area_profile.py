@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .artifacts import RuntimeArtifact
+from .coverage_target_validation import MESA_V3_ECOSYSTEM_TARGET_COUNT
 from .ecosystem_inventory import EcosystemInventoryError, build_ecosystem_inventory
 from .metric_adapters import build_custom_aoi_raster
 from .models import AreaProfileSectionName
@@ -195,13 +196,34 @@ def _mesa_ecosystem_rows(
         raster,
         solution_raster,
     )
+    if len(rows) != MESA_V3_ECOSYSTEM_TARGET_COUNT:
+        raise SolutionCoverageError(
+            "mesa_ecosystem_coverage_incomplete:"
+            f"expected_{MESA_V3_ECOSYSTEM_TARGET_COUNT}_received_{len(rows)}"
+        )
     return [
         {
             "feature": row.feature,
             "total_in_aoi": row.total_amount_aoi,
+            "national_total": row.national_total_amount,
+            "classified_total_in_aoi": row.classified_total_amount_aoi,
+            "share_of_national_total": row.share_of_national_amount,
+            "share_of_classified_aoi": row.share_of_classified_aoi,
             "held_in_aoi": row.absolute_held_aoi,
             "coverage_within_aoi": row.coverage_within_aoi,
+            "pre_existing_held_in_aoi": row.absolute_pre_existing_aoi,
+            "pre_existing_coverage_within_aoi": row.pre_existing_coverage_within_aoi,
+            "new_prioritizr_held_in_aoi": row.absolute_new_prioritizr_aoi,
+            "new_prioritizr_coverage_within_aoi": (
+                row.new_prioritizr_coverage_within_aoi
+            ),
             "contribution_to_national_coverage": row.contribution_to_national_coverage,
+            "pre_existing_contribution_to_national_coverage": (
+                row.pre_existing_contribution_to_national_coverage
+            ),
+            "new_prioritizr_contribution_to_national_coverage": (
+                row.new_prioritizr_contribution_to_national_coverage
+            ),
             "contribution_to_national_target": row.contribution_to_national_target,
         }
         for row in rows.values()

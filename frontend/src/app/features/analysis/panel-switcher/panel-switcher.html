@@ -5164,19 +5164,19 @@
             >
               @if (isCustomMecState()) {
                 <option id="aoi-mec-modal-sort-composition" value="composition">
-                  {{ 'analysis.aoi.mec.modal.sortComposition' | translate }}
+                  {{ getMecModalCopyKey('analysis.aoi.mec.modal.sortComposition') | translate }}
                 </option>
                 <option id="aoi-mec-modal-sort-national" value="national">
-                  {{ 'analysis.aoi.mec.modal.sortNational' | translate }}
+                  {{ getMecModalCopyKey('analysis.aoi.mec.modal.sortNational') | translate }}
                 </option>
                 <option id="aoi-mec-modal-sort-coverage" value="coverage">
-                  {{ 'analysis.aoi.mec.modal.sortCoverage' | translate }}
+                  {{ getMecModalCopyKey('analysis.aoi.mec.modal.sortCoverage') | translate }}
                 </option>
                 <option id="aoi-mec-modal-sort-existing" value="existing">
-                  {{ 'analysis.aoi.mec.modal.sortExisting' | translate }}
+                  {{ getMecModalCopyKey('analysis.aoi.mec.modal.sortExisting') | translate }}
                 </option>
                 <option id="aoi-mec-modal-sort-additional" value="additional">
-                  {{ 'analysis.aoi.mec.modal.sortNew' | translate }}
+                  {{ getMecModalCopyKey('analysis.aoi.mec.modal.sortNew') | translate }}
                 </option>
               } @else {
                 <option id="aoi-mec-modal-sort-coverage" value="coverage">
@@ -5201,13 +5201,14 @@
         id="aoi-mec-custom-measure-template"
         #customMecMeasure
         let-areaKm2="areaKm2"
+        let-cellCount="cellCount"
         let-color="color"
         let-ecosystemLabel="ecosystemLabel"
         let-idPrefix="idPrefix"
         let-labelKey="labelKey"
         let-percent="percent"
-        let-heldInAoi="heldInAoi"
         let-totalInAoi="totalInAoi"
+        let-zeroDenominator="zeroDenominator"
       >
         @if (percent !== null) {
           <div [id]="idPrefix + '-measure'" class="aoi-mec-measure">
@@ -5221,7 +5222,7 @@
                   ecosystemLabel,
                   percent,
                   areaKm2,
-                  heldInAoi,
+                  cellCount,
                   totalInAoi
                 )
               "
@@ -5239,10 +5240,16 @@
               {{
                 areaKm2 !== null
                   ? formatCustomMecAreaKm2(areaKm2)
-                  : formatMecCellCount(heldInAoi, totalInAoi)
+                  : totalInAoi !== null && totalInAoi !== undefined
+                    ? formatMecCellCount(cellCount, totalInAoi)
+                    : formatMecPlanningCellAmount(cellCount)
               }}
             </span>
           </div>
+        } @else if (zeroDenominator) {
+          <span [id]="idPrefix + '-zero-denominator'">
+            {{ 'analysis.aoi.mec.modal.zeroDenominator' | translate }}
+          </span>
         } @else {
           <span [id]="idPrefix + '-unavailable'">
             {{ 'analysis.common.valueUnavailable' | translate }}
@@ -5299,7 +5306,7 @@
                   {{ 'analysis.aoi.mec.modal.presenceGroup' | translate }}
                 </th>
                 <th id="aoi-mec-modal-heading-coverage-group" scope="colgroup" colspan="3">
-                  {{ 'analysis.aoi.mec.modal.coverageGroup' | translate }}
+                  {{ getMecModalCopyKey('analysis.aoi.mec.modal.coverageGroup') | translate }}
                 </th>
               </tr>
               <tr id="aoi-mec-modal-table-heading-row" class="max-[760px]:sr-only">
@@ -5307,8 +5314,8 @@
                   <th [id]="'aoi-mec-modal-heading-' + heading.id" class="top-[31px]" scope="col">
                     <app-table-header-tooltip
                       [idBase]="'aoi-mec-modal-heading-' + heading.id"
-                      [labelKey]="heading.labelKey"
-                      [questionKey]="heading.questionKey"
+                      [labelKey]="getMecModalCopyKey(heading.labelKey)"
+                      [questionKey]="getMecModalCopyKey(heading.questionKey)"
                       [align]="heading.align"
                     ></app-table-header-tooltip>
                   </th>
@@ -5347,58 +5354,74 @@
                 @if (isExpandedMecState()) {
                   <td
                     [id]="'aoi-mec-modal-available-' + row.id"
-                    [attr.data-label]="'analysis.aoi.mec.modal.areaInsideAoi' | translate"
+                    [attr.data-label]="
+                      getMecModalCopyKey('analysis.aoi.mec.modal.areaInsideAoi') | translate
+                    "
                   >
-                    {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
+                    {{ formatMecEcosystemAmount(row.ecosystemAreaKm2, row.mesaTotalInAoi ?? null) }}
                   </td>
                   <td
                     [id]="'aoi-mec-modal-national-share-' + row.id"
-                    [attr.data-label]="'analysis.aoi.mec.modal.nationalExtentInsideAoi' | translate"
+                    [attr.data-label]="
+                      getMecModalCopyKey('analysis.aoi.mec.modal.nationalExtentInsideAoi')
+                        | translate
+                    "
                   >
                     <ng-container
                       [ngTemplateOutlet]="customMecMeasure"
                       [ngTemplateOutletContext]="{
                         areaKm2: row.ecosystemAreaKm2,
+                        cellCount: row.mesaTotalInAoi ?? null,
                         color: '#64748b',
                         ecosystemLabel: row.label,
                         idPrefix: 'aoi-mec-modal-national-share-' + row.id,
-                        labelKey: 'analysis.aoi.mec.modal.nationalExtentInsideAoi',
+                        labelKey: getMecModalCopyKey(
+                          'analysis.aoi.mec.modal.nationalExtentInsideAoi'
+                        ),
                         percent: row.nationalClassPercent ?? null,
+                        zeroDenominator: row.mesaNationalTotal === 0,
                       }"
                     ></ng-container>
                   </td>
                   <td
                     [id]="'aoi-mec-modal-aoi-share-' + row.id"
-                    [attr.data-label]="'analysis.aoi.mec.modal.mappedAoiOccupied' | translate"
+                    [attr.data-label]="
+                      getMecModalCopyKey('analysis.aoi.mec.modal.mappedAoiOccupied') | translate
+                    "
                   >
                     <ng-container
                       [ngTemplateOutlet]="customMecMeasure"
                       [ngTemplateOutletContext]="{
                         areaKm2: row.ecosystemAreaKm2,
+                        cellCount: row.mesaTotalInAoi ?? null,
                         color: '#64748b',
                         ecosystemLabel: row.label,
                         idPrefix: 'aoi-mec-modal-aoi-share-' + row.id,
-                        labelKey: 'analysis.aoi.mec.modal.mappedAoiOccupied',
+                        labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.mappedAoiOccupied'),
                         percent: row.ecosystemSharePercent ?? null,
+                        zeroDenominator: row.mesaClassifiedTotalInAoi === 0,
                       }"
                     ></ng-container>
                   </td>
                   <td
                     [id]="'aoi-mec-modal-total-coverage-' + row.id"
-                    [attr.data-label]="'analysis.aoi.mec.modal.totalCoverage' | translate"
+                    [attr.data-label]="
+                      getMecModalCopyKey('analysis.aoi.mec.modal.totalCoverage') | translate
+                    "
                   >
                     @if (hasExpandedMecCoverage()) {
                       <ng-container
                         [ngTemplateOutlet]="customMecMeasure"
                         [ngTemplateOutletContext]="{
                           areaKm2: row.solutionCoverageKm2 ?? null,
+                          cellCount: row.mesaHeldInAoi ?? null,
                           color: mecAdditionalColor(),
                           ecosystemLabel: row.label,
-                          heldInAoi: row.mesaHeldInAoi ?? null,
                           idPrefix: 'aoi-mec-modal-total-coverage-' + row.id,
-                          labelKey: 'analysis.aoi.mec.modal.totalCoverage',
+                          labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.totalCoverage'),
                           percent: row.solutionCoveragePercent ?? null,
                           totalInAoi: row.mesaTotalInAoi ?? null,
+                          zeroDenominator: row.mesaTotalInAoi === 0,
                         }"
                       ></ng-container>
                     } @else {
@@ -5407,18 +5430,25 @@
                   </td>
                   <td
                     [id]="'aoi-mec-modal-pre-existing-coverage-' + row.id"
-                    [attr.data-label]="'analysis.aoi.mec.modal.preExistingCoverage' | translate"
+                    [attr.data-label]="
+                      getMecModalCopyKey('analysis.aoi.mec.modal.preExistingCoverage') | translate
+                    "
                   >
                     @if (hasExpandedMecCoverage()) {
                       <ng-container
                         [ngTemplateOutlet]="customMecMeasure"
                         [ngTemplateOutletContext]="{
                           areaKm2: row.preExistingCoverageKm2,
+                          cellCount: row.preExistingCellCountInAoi ?? null,
                           color: mecExistingColor(),
                           ecosystemLabel: row.label,
                           idPrefix: 'aoi-mec-modal-pre-existing-coverage-' + row.id,
-                          labelKey: 'analysis.aoi.mec.modal.preExistingCoverage',
+                          labelKey: getMecModalCopyKey(
+                            'analysis.aoi.mec.modal.preExistingCoverage'
+                          ),
                           percent: row.preExistingPercent,
+                          totalInAoi: row.mesaTotalInAoi ?? null,
+                          zeroDenominator: row.mesaTotalInAoi === 0,
                         }"
                       ></ng-container>
                     } @else {
@@ -5427,18 +5457,23 @@
                   </td>
                   <td
                     [id]="'aoi-mec-modal-new-coverage-' + row.id"
-                    [attr.data-label]="'analysis.aoi.mec.modal.newCoverage' | translate"
+                    [attr.data-label]="
+                      getMecModalCopyKey('analysis.aoi.mec.modal.newCoverage') | translate
+                    "
                   >
                     @if (hasExpandedMecCoverage()) {
                       <ng-container
                         [ngTemplateOutlet]="customMecMeasure"
                         [ngTemplateOutletContext]="{
                           areaKm2: row.newPrioritizrCoverageKm2,
+                          cellCount: row.newPrioritizrCellCountInAoi ?? null,
                           color: mecAdditionalColor(),
                           ecosystemLabel: row.label,
                           idPrefix: 'aoi-mec-modal-new-coverage-' + row.id,
-                          labelKey: 'analysis.aoi.mec.modal.newCoverage',
+                          labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.newCoverage'),
                           percent: row.newPrioritizrPercent,
+                          totalInAoi: row.mesaTotalInAoi ?? null,
+                          zeroDenominator: row.mesaTotalInAoi === 0,
                         }"
                       ></ng-container>
                     } @else {
@@ -5447,7 +5482,7 @@
                   </td>
                 } @else {
                   <td [id]="'aoi-mec-modal-available-' + row.id">
-                    {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
+                    {{ formatMecEcosystemAmount(row.ecosystemAreaKm2, row.mesaTotalInAoi ?? null) }}
                   </td>
                   <td [id]="'aoi-mec-modal-coverage-' + row.id">
                     <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">

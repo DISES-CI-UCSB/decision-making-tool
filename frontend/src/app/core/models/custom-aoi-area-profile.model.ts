@@ -55,10 +55,25 @@ export interface CustomAoiEcosystemRecord {
  */
 export interface MesaAoiCoverageRecord {
   feature: string;
+  /** Ecosystem planning cells inside the AOI. */
   total_in_aoi: number;
+  /** Ecosystem planning cells across the national aligned raster. */
+  national_total: number;
+  /** All valid, classified ecosystem planning cells inside the AOI. */
+  classified_total_in_aoi: number;
+  /** total_in_aoi / national_total. */
+  share_of_national_total: number | null;
+  /** total_in_aoi / classified_total_in_aoi. */
+  share_of_classified_aoi: number | null;
   held_in_aoi: number;
   coverage_within_aoi: number | null;
+  pre_existing_held_in_aoi: number;
+  pre_existing_coverage_within_aoi: number | null;
+  new_prioritizr_held_in_aoi: number;
+  new_prioritizr_coverage_within_aoi: number | null;
   contribution_to_national_coverage: number | null;
+  pre_existing_contribution_to_national_coverage: number | null;
+  new_prioritizr_contribution_to_national_coverage: number | null;
   contribution_to_national_target: number | null;
 }
 

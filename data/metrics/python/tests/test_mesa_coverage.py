@@ -76,10 +76,12 @@ def test_categorical_and_sparse_binary_evaluation_are_equivalent():
         relative_targets=0.5,
     )
     sparse = evaluate_sparse_binary_coverage(
-        features=sparse_index_from_feature_cells([
-            ("One", [0, 1, 5]),
-            ("Two", [2, 3]),
-        ]),
+        features=sparse_index_from_feature_cells(
+            [
+                ("One", [0, 1, 5]),
+                ("Two", [2, 3]),
+            ]
+        ),
         selected_mask=selected,
         scope_mask=scope,
         relative_targets=0.5,
@@ -93,10 +95,12 @@ def test_categorical_and_sparse_binary_evaluation_are_equivalent():
 
 
 def test_sparse_aoi_returns_both_approved_denominators():
-    features = sparse_index_from_feature_cells([
-        ("Forest", [0, 1, 2, 3]),
-        ("Wetland", [2, 4]),
-    ])
+    features = sparse_index_from_feature_cells(
+        [
+            ("Forest", [0, 1, 2, 3]),
+            ("Wetland", [2, 4]),
+        ]
+    )
     selected = np.array([True, False, True, False, True])
     aoi = np.array([True, True, True, False, False])
 
@@ -134,11 +138,63 @@ def test_categorical_aoi_returns_same_approved_denominators():
     assert rows[0].contribution_to_national_target == pytest.approx(1.0)
 
 
+def test_categorical_aoi_splits_held_categories_and_presence_denominators():
+    rows = evaluate_categorical_aoi(
+        category_values=np.array([[1, 2], [1, np.nan]]),
+        selected_mask=np.array([[True, True], [True, False]]),
+        pre_existing_mask=np.array([[True, False], [False, False]]),
+        new_prioritizr_mask=np.array([[False, True], [True, False]]),
+        aoi_mask=np.array([[True, True], [False, False]]),
+        feature_ids=[1, 2],
+        feature_names=["Forest", "Wetland"],
+        national_targets=[0.5, 0.5],
+    )
+
+    forest = rows[0]
+    assert forest.total_amount_aoi == 1
+    assert forest.national_total_amount == 2
+    assert forest.classified_total_amount_aoi == 2
+    assert forest.share_of_national_amount == pytest.approx(0.5)
+    assert forest.share_of_classified_aoi == pytest.approx(0.5)
+    assert forest.absolute_held_aoi == 1
+    assert forest.absolute_pre_existing_aoi == 1
+    assert forest.absolute_new_prioritizr_aoi == 0
+    assert forest.absolute_held_aoi == (
+        forest.absolute_pre_existing_aoi + forest.absolute_new_prioritizr_aoi
+    )
+    assert forest.pre_existing_contribution_to_national_coverage == pytest.approx(0.5)
+    assert forest.new_prioritizr_contribution_to_national_coverage == pytest.approx(0)
+
+
+def test_categorical_aoi_keeps_zero_denominators_null():
+    row = evaluate_categorical_aoi(
+        category_values=np.array([[1, np.nan]]),
+        selected_mask=np.array([[False, False]]),
+        pre_existing_mask=np.array([[False, False]]),
+        new_prioritizr_mask=np.array([[False, False]]),
+        aoi_mask=np.array([[False, True]]),
+        feature_ids=[2],
+        feature_names=["Absent"],
+        national_targets=[0.5],
+    )[0]
+
+    assert row.total_amount_aoi == 0
+    assert row.national_total_amount == 0
+    assert row.classified_total_amount_aoi == 0
+    assert row.coverage_within_aoi is None
+    assert row.share_of_national_amount is None
+    assert row.share_of_classified_aoi is None
+    assert row.pre_existing_coverage_within_aoi is None
+    assert row.new_prioritizr_coverage_within_aoi is None
+
+
 def test_grouped_sparse_coverage_fans_out_in_one_feature_pass():
-    features = sparse_index_from_feature_cells([
-        ("Forest", [0, 1, 2, 4]),
-        ("Wetland", [1, 3]),
-    ])
+    features = sparse_index_from_feature_cells(
+        [
+            ("Forest", [0, 1, 2, 4]),
+            ("Wetland", [1, 3]),
+        ]
+    )
     selected = np.array([True, False, True, True, False])
     boundary_ids = np.array([0, 0, 1, 1, -1])
 
@@ -157,10 +213,12 @@ def test_grouped_categorical_and_sparse_fan_out_are_equivalent():
     values = np.array([1, 2, 1, 2, np.nan])
     selected = np.array([True, False, True, True, False])
     boundary_ids = np.array([0, 0, 1, 1, -1])
-    features = sparse_index_from_feature_cells([
-        ("One", [0, 2]),
-        ("Two", [1, 3]),
-    ])
+    features = sparse_index_from_feature_cells(
+        [
+            ("One", [0, 2]),
+            ("Two", [1, 3]),
+        ]
+    )
 
     categorical = grouped_categorical_coverage(
         category_values=values,

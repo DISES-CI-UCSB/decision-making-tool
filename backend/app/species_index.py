@@ -355,7 +355,14 @@ class RuntimeSpeciesBitsetIndex:
         within_cells, held_cells = cell_counts
 
         records: list[SpeciesCoverageRecord] = []
-        for species_index in np.flatnonzero(within_area > 0):
+        present_species = np.flatnonzero(within_area > 0)
+        for record_index, species_index in enumerate(present_species):
+            if (
+                is_cancelled is not None
+                and record_index % 512 == 0
+                and is_cancelled()
+            ):
+                raise SpeciesIndexQueryError("species_coverage_cancelled")
             entry = self.metadata_document.species[int(species_index)]
             # Presence is recorded for any positive overlap, so summing whole
             # cells overstates a range that only clips the cells it touches.

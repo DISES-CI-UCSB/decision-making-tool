@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import math
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .artifacts import ArtifactState
 
@@ -41,7 +42,9 @@ class PolygonMetricsResponse(BaseModel):
 
 
 AreaProfileSectionName = Literal["species", "ecosystems"]
-AreaProfileSectionStatus = Literal["complete", "empty", "zero_cells", "unavailable", "failed"]
+AreaProfileSectionStatus = Literal[
+    "complete", "empty", "zero_cells", "unavailable", "failed"
+]
 
 
 class CustomAreaProfileRequest(BaseModel):
@@ -68,7 +71,9 @@ class CustomAreaProfileRequest(BaseModel):
 
 
 class SpeciesAreaProfileRecord(BaseModel):
-    id: str = Field(description="Dataset-scoped deterministic identifier, not an external taxon ID.")
+    id: str = Field(
+        description="Dataset-scoped deterministic identifier, not an external taxon ID."
+    )
     scientific_name: str
     group: str
     iucn_status: str
@@ -106,11 +111,114 @@ class EcosystemAreaProfileView(BaseModel):
 
 class MesaAoiCoverageRecord(BaseModel):
     feature: str
-    total_in_aoi: float
-    held_in_aoi: float
-    coverage_within_aoi: float | None
-    contribution_to_national_coverage: float | None
-    contribution_to_national_target: float | None
+    total_in_aoi: float = Field(ge=0)
+    national_total: float = Field(ge=0)
+    classified_total_in_aoi: float = Field(ge=0)
+    share_of_national_total: float | None = Field(ge=0, le=1)
+    share_of_classified_aoi: float | None = Field(ge=0, le=1)
+    held_in_aoi: float = Field(ge=0)
+    coverage_within_aoi: float | None = Field(ge=0, le=1)
+    pre_existing_held_in_aoi: float = Field(ge=0)
+    pre_existing_coverage_within_aoi: float | None = Field(ge=0, le=1)
+    new_prioritizr_held_in_aoi: float = Field(ge=0)
+    new_prioritizr_coverage_within_aoi: float | None = Field(ge=0, le=1)
+    contribution_to_national_coverage: float | None = Field(ge=0, le=1)
+    pre_existing_contribution_to_national_coverage: float | None = Field(ge=0, le=1)
+    new_prioritizr_contribution_to_national_coverage: float | None = Field(ge=0, le=1)
+    contribution_to_national_target: float | None = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_cell_count_semantics(self) -> "MesaAoiCoverageRecord":
+        for field in (
+            "total_in_aoi",
+            "national_total",
+            "classified_total_in_aoi",
+            "held_in_aoi",
+            "pre_existing_held_in_aoi",
+            "new_prioritizr_held_in_aoi",
+        ):
+            if not float(getattr(self, field)).is_integer():
+                raise ValueError(f"{field} must be a whole planning-cell count")
+        if self.total_in_aoi > self.national_total:
+            raise ValueError("total_in_aoi cannot exceed national_total")
+        if self.total_in_aoi > self.classified_total_in_aoi:
+            raise ValueError("total_in_aoi cannot exceed classified_total_in_aoi")
+        if self.held_in_aoi > self.total_in_aoi:
+            raise ValueError("held_in_aoi cannot exceed total_in_aoi")
+        if not math.isclose(
+            self.held_in_aoi,
+            self.pre_existing_held_in_aoi + self.new_prioritizr_held_in_aoi,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "held_in_aoi must equal pre_existing_held_in_aoi plus "
+                "new_prioritizr_held_in_aoi"
+            )
+
+        _validate_ratio(
+            self.share_of_national_total,
+            self.total_in_aoi,
+            self.national_total,
+            "share_of_national_total",
+        )
+        _validate_ratio(
+            self.share_of_classified_aoi,
+            self.total_in_aoi,
+            self.classified_total_in_aoi,
+            "share_of_classified_aoi",
+        )
+        _validate_ratio(
+            self.coverage_within_aoi,
+            self.held_in_aoi,
+            self.total_in_aoi,
+            "coverage_within_aoi",
+        )
+        _validate_ratio(
+            self.pre_existing_coverage_within_aoi,
+            self.pre_existing_held_in_aoi,
+            self.total_in_aoi,
+            "pre_existing_coverage_within_aoi",
+        )
+        _validate_ratio(
+            self.new_prioritizr_coverage_within_aoi,
+            self.new_prioritizr_held_in_aoi,
+            self.total_in_aoi,
+            "new_prioritizr_coverage_within_aoi",
+        )
+        _validate_ratio(
+            self.contribution_to_national_coverage,
+            self.held_in_aoi,
+            self.national_total,
+            "contribution_to_national_coverage",
+        )
+        _validate_ratio(
+            self.pre_existing_contribution_to_national_coverage,
+            self.pre_existing_held_in_aoi,
+            self.national_total,
+            "pre_existing_contribution_to_national_coverage",
+        )
+        _validate_ratio(
+            self.new_prioritizr_contribution_to_national_coverage,
+            self.new_prioritizr_held_in_aoi,
+            self.national_total,
+            "new_prioritizr_contribution_to_national_coverage",
+        )
+        return self
+
+
+def _validate_ratio(
+    value: float | None,
+    numerator: float,
+    denominator: float,
+    field: str,
+) -> None:
+    if denominator == 0:
+        if value is not None:
+            raise ValueError(f"{field} must be null when its denominator is zero")
+        return
+    expected = numerator / denominator
+    if value is None or not math.isclose(value, expected, rel_tol=1e-12, abs_tol=1e-12):
+        raise ValueError(f"{field} does not match its planning-cell denominator")
 
 
 class EcosystemAreaProfileSection(BaseModel):
@@ -137,7 +245,9 @@ class CustomAreaProfileResponse(BaseModel):
     artifact_version: str
     selection: CustomAreaProfileSelection
     requested_sections: list[AreaProfileSectionName]
-    sections: dict[AreaProfileSectionName, SpeciesAreaProfileSection | EcosystemAreaProfileSection]
+    sections: dict[
+        AreaProfileSectionName, SpeciesAreaProfileSection | EcosystemAreaProfileSection
+    ]
     solution_id: str | None = None
     solution_raster_checksum: str | None = None
 

@@ -4,6 +4,7 @@ import csv
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import rasterio
@@ -64,6 +65,37 @@ class RuntimeMesaCoverage:
             if normalize_feature_name(target.feature) == wanted:
                 return target.relative_target
         return None
+
+    def species_targets_by_normalized_name(
+        self,
+        solution_id: str,
+        *,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> dict[str, float]:
+        """Build one evaluation-scoped lookup for a solution's species targets."""
+
+        targets: dict[str, float] = {}
+        for index, target in enumerate(
+            self.targets_by_solution.get(solution_id, ())
+        ):
+            if (
+                is_cancelled is not None
+                and index % 512 == 0
+                and is_cancelled()
+            ):
+                raise SolutionCoverageError("species_coverage_cancelled")
+            if target.feature_type != "species":
+                continue
+            normalized_name = normalize_feature_name(target.feature)
+            if normalized_name in targets:
+                raise SolutionCoverageError(
+                    f"mesa_species_target_duplicate:{normalized_name}"
+                )
+            targets[normalized_name] = target.relative_target
+
+        if is_cancelled is not None and is_cancelled():
+            raise SolutionCoverageError("species_coverage_cancelled")
+        return targets
 
 
 def load_runtime_mesa_coverage(
@@ -176,6 +208,8 @@ def calculate_ecosystem_aoi_coverage(
         feature_ids=[catalog[target.feature] for target in targets],
         feature_names=[target.feature for target in targets],
         national_targets=[target.relative_target for target in targets],
+        pre_existing_mask=solution_raster.pre_existing_mask,
+        new_prioritizr_mask=solution_raster.new_prioritizr_mask,
     )
     return {normalize_feature_name(row.feature): row for row in rows}
 

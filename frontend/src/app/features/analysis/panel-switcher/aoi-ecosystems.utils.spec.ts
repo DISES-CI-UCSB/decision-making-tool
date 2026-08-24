@@ -149,15 +149,23 @@ describe('AOI ecosystems utilities', () => {
     expect(row).toMatchObject({
       id: 'forest',
       ecosystemAreaKm2: null,
-      ecosystemSharePercent: null,
-      nationalClassPercent: null,
+      ecosystemSharePercent: 66.66666666666666,
+      nationalClassPercent: 20,
       solutionCoverageKm2: null,
       solutionCoveragePercent: 25,
       preExistingCoverageKm2: null,
       newPrioritizrCoverageKm2: null,
+      preExistingPercent: 12.5,
+      newPrioritizrPercent: 12.5,
       mesaTotalInAoi: 8,
       mesaHeldInAoi: 2,
+      mesaNationalTotal: 40,
+      mesaClassifiedTotalInAoi: 12,
+      preExistingCellCountInAoi: 1,
+      newPrioritizrCellCountInAoi: 1,
       contributionToNationalCoveragePercent: 5,
+      preExistingContributionToNationalCoveragePercent: 2.5,
+      newPrioritizrContributionToNationalCoveragePercent: 2.5,
       contributionToNationalTargetPercent: null,
     });
     expect(data.scopeSummary).toMatchObject({
@@ -214,11 +222,41 @@ describe('AOI ecosystems utilities', () => {
   it.each([
     ['empty feature', { feature: '   ' }, 'has an empty feature'],
     ['non-finite total', { total_in_aoi: Number.NaN }, 'has invalid total_in_aoi'],
+    ['fractional cell count', { total_in_aoi: 7.5 }, 'has invalid total_in_aoi'],
     ['negative held count', { held_in_aoi: -1 }, 'has invalid held_in_aoi'],
     [
       'held count above total',
       { total_in_aoi: 1, held_in_aoi: 2 },
       'held_in_aoi above total_in_aoi',
+    ],
+    [
+      'category identity mismatch',
+      { pre_existing_held_in_aoi: 2 },
+      'violates held = pre-existing + new',
+    ],
+    [
+      'incorrect national denominator',
+      { share_of_national_total: 0.3 },
+      'share_of_national_total inconsistent with its denominator',
+    ],
+    [
+      'non-null zero-denominator ratio',
+      {
+        national_total: 0,
+        total_in_aoi: 0,
+        share_of_national_total: 0,
+        share_of_classified_aoi: 0,
+        held_in_aoi: 0,
+        coverage_within_aoi: null,
+        pre_existing_held_in_aoi: 0,
+        pre_existing_coverage_within_aoi: null,
+        new_prioritizr_held_in_aoi: 0,
+        new_prioritizr_coverage_within_aoi: null,
+        contribution_to_national_coverage: null,
+        pre_existing_contribution_to_national_coverage: null,
+        new_prioritizr_contribution_to_national_coverage: null,
+      },
+      'non-null share_of_national_total with a zero denominator',
     ],
     ['out-of-range AOI coverage', { coverage_within_aoi: 1.01 }, 'invalid coverage_within_aoi'],
     [
@@ -240,21 +278,27 @@ describe('AOI ecosystems utilities', () => {
     expect(() => buildCustomMecData(response)).toThrowError(expectedMessage);
   });
 
+  it('rejects normalized duplicate feature identities', () => {
+    const response = buildCustomProfileResponse();
+    const records = buildMesaCoverageFixture();
+    records[records.length - 1] = {
+      ...records[records.length - 1],
+      feature: ' FOREST ',
+    };
+    response.sections.ecosystems!.solution_coverage = records;
+
+    expect(() => buildCustomMecData(response)).toThrowError('duplicate feature " FOREST "');
+  });
+
   it('preserves null denominators and national target contributions above one', () => {
     const response = buildCustomProfileResponse();
     const records = buildMesaCoverageFixture();
-    records[0] = {
-      ...records[0],
-      coverage_within_aoi: null,
-      contribution_to_national_coverage: null,
-      contribution_to_national_target: null,
-    };
     records[1] = { ...records[1], contribution_to_national_target: 1.4 };
     response.sections.ecosystems!.solution_coverage = records;
 
     const rows = buildCustomMecData(response).rowsByView.get('biomeRegion');
 
-    expect(rows?.[0]).toMatchObject({
+    expect(rows?.[2]).toMatchObject({
       solutionCoveragePercent: null,
       contributionToNationalCoveragePercent: null,
       contributionToNationalTargetPercent: null,
@@ -388,9 +432,19 @@ function buildMesaCoverageFixture(): MesaAoiCoverageRecord[] {
   return Array.from({ length: MESA_IAVH_FEATURE_COUNT }, (_, index) => ({
     feature: index === 0 ? 'forest' : `biome-region-${index + 1}`,
     total_in_aoi: index === 0 ? 8 : 0,
+    national_total: index === 0 ? 40 : 0,
+    classified_total_in_aoi: 12,
+    share_of_national_total: index === 0 ? 0.2 : null,
+    share_of_classified_aoi: index === 0 ? 8 / 12 : 0,
     held_in_aoi: index === 0 ? 2 : 0,
     coverage_within_aoi: index === 0 ? 0.25 : null,
+    pre_existing_held_in_aoi: index === 0 ? 1 : 0,
+    pre_existing_coverage_within_aoi: index === 0 ? 0.125 : null,
+    new_prioritizr_held_in_aoi: index === 0 ? 1 : 0,
+    new_prioritizr_coverage_within_aoi: index === 0 ? 0.125 : null,
     contribution_to_national_coverage: index === 0 ? 0.05 : null,
+    pre_existing_contribution_to_national_coverage: index === 0 ? 0.025 : null,
+    new_prioritizr_contribution_to_national_coverage: index === 0 ? 0.025 : null,
     contribution_to_national_target: null,
   }));
 }

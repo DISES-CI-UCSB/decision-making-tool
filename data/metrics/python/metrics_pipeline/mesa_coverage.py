@@ -43,7 +43,7 @@ class MesaCoverageRow:
 
 @dataclass(frozen=True)
 class MesaAoiCoverageRow:
-    """Mesa-compatible AOI coverage with both requested denominators."""
+    """Mesa-compatible AOI coverage with explicit planning-cell denominators."""
 
     feature: str
     total_amount_aoi: float
@@ -51,6 +51,16 @@ class MesaAoiCoverageRow:
     coverage_within_aoi: float | None
     contribution_to_national_coverage: float | None
     contribution_to_national_target: float | None
+    national_total_amount: float
+    classified_total_amount_aoi: float | None = None
+    share_of_national_amount: float | None = None
+    share_of_classified_aoi: float | None = None
+    absolute_pre_existing_aoi: float | None = None
+    absolute_new_prioritizr_aoi: float | None = None
+    pre_existing_coverage_within_aoi: float | None = None
+    new_prioritizr_coverage_within_aoi: float | None = None
+    pre_existing_contribution_to_national_coverage: float | None = None
+    new_prioritizr_contribution_to_national_coverage: float | None = None
 
 
 @dataclass(frozen=True)
@@ -316,12 +326,20 @@ def evaluate_categorical_aoi(
     feature_ids: Sequence[int],
     feature_names: Sequence[str],
     national_targets: float | Sequence[float],
+    pre_existing_mask: np.ndarray | None = None,
+    new_prioritizr_mask: np.ndarray | None = None,
 ) -> list[MesaAoiCoverageRow]:
-    """Evaluate both AOI denominators for categorical Mesa features."""
+    """Evaluate AOI presence and category-split coverage in planning cells."""
 
     values = np.asarray(category_values)
     selected = _boolean_mask(selected_mask, values.shape, "selected_mask")
     aoi = _boolean_mask(aoi_mask, values.shape, "aoi_mask")
+    pre_existing, new_prioritizr = _optional_category_masks(
+        pre_existing_mask,
+        new_prioritizr_mask,
+        values.shape,
+        selected,
+    )
     if len(feature_ids) != len(feature_names):
         raise ValueError("feature_ids and feature_names must have equal lengths.")
     targets = _expand_values(national_targets, len(feature_ids), "national_targets")
@@ -335,9 +353,30 @@ def evaluate_categorical_aoi(
     aoi_scope = finite & aoi.ravel()
     aoi_ids = flat_values[aoi_scope].astype(np.int64, copy=False)
     held_ids = flat_values[aoi_scope & selected.ravel()].astype(np.int64, copy=False)
+    pre_existing_ids = (
+        flat_values[aoi_scope & pre_existing.ravel()].astype(np.int64, copy=False)
+        if pre_existing is not None
+        else None
+    )
+    new_prioritizr_ids = (
+        flat_values[aoi_scope & new_prioritizr.ravel()].astype(np.int64, copy=False)
+        if new_prioritizr is not None
+        else None
+    )
     national_totals = _counts_for_ids(national_ids, id_to_index, len(feature_ids))
     aoi_totals = _counts_for_ids(aoi_ids, id_to_index, len(feature_ids))
     held = _counts_for_ids(held_ids, id_to_index, len(feature_ids))
+    pre_existing_held = (
+        _counts_for_ids(pre_existing_ids, id_to_index, len(feature_ids))
+        if pre_existing_ids is not None
+        else None
+    )
+    new_prioritizr_held = (
+        _counts_for_ids(new_prioritizr_ids, id_to_index, len(feature_ids))
+        if new_prioritizr_ids is not None
+        else None
+    )
+    classified_total_aoi = float(np.count_nonzero(aoi_scope))
 
     return [
         mesa_aoi_coverage_row(
@@ -346,6 +385,17 @@ def evaluate_categorical_aoi(
             absolute_held_aoi=float(held[index]),
             national_total=float(national_totals[index]),
             national_target=targets[index],
+            classified_total_amount_aoi=classified_total_aoi,
+            absolute_pre_existing_aoi=(
+                float(pre_existing_held[index])
+                if pre_existing_held is not None
+                else None
+            ),
+            absolute_new_prioritizr_aoi=(
+                float(new_prioritizr_held[index])
+                if new_prioritizr_held is not None
+                else None
+            ),
         )
         for index, name in enumerate(feature_names)
     ]
@@ -358,6 +408,9 @@ def mesa_aoi_coverage_row(
     absolute_held_aoi: float,
     national_total: float,
     national_target: float,
+    classified_total_amount_aoi: float | None = None,
+    absolute_pre_existing_aoi: float | None = None,
+    absolute_new_prioritizr_aoi: float | None = None,
     tolerance: float = 1e-12,
 ) -> MesaAoiCoverageRow:
     """Build one AOI row using Mesa cell-count denominator semantics."""
@@ -366,10 +419,37 @@ def mesa_aoi_coverage_row(
     held = _finite_nonnegative(absolute_held_aoi, "absolute_held_aoi")
     total_national = _finite_nonnegative(national_total, "national_total")
     target = _finite_nonnegative(national_target, "national_target")
+    classified_total = (
+        _finite_nonnegative(classified_total_amount_aoi, "classified_total_amount_aoi")
+        if classified_total_amount_aoi is not None
+        else None
+    )
+    pre_existing = (
+        _finite_nonnegative(absolute_pre_existing_aoi, "absolute_pre_existing_aoi")
+        if absolute_pre_existing_aoi is not None
+        else None
+    )
+    new_prioritizr = (
+        _finite_nonnegative(absolute_new_prioritizr_aoi, "absolute_new_prioritizr_aoi")
+        if absolute_new_prioritizr_aoi is not None
+        else None
+    )
     if held > total_aoi + tolerance:
         raise ValueError("absolute_held_aoi cannot exceed total_amount_aoi.")
     if total_aoi > total_national + tolerance:
         raise ValueError("total_amount_aoi cannot exceed national_total.")
+    if classified_total is not None and total_aoi > classified_total + tolerance:
+        raise ValueError("total_amount_aoi cannot exceed classified_total_amount_aoi.")
+    if (pre_existing is None) != (new_prioritizr is None):
+        raise ValueError("Both AOI solution categories must be provided together.")
+    if (
+        pre_existing is not None
+        and new_prioritizr is not None
+        and abs((pre_existing + new_prioritizr) - held) > tolerance
+    ):
+        raise ValueError(
+            "absolute_held_aoi must equal pre-existing plus new Prioritizr held amounts."
+        )
     return MesaAoiCoverageRow(
         feature=feature,
         total_amount_aoi=total_aoi,
@@ -377,7 +457,52 @@ def mesa_aoi_coverage_row(
         coverage_within_aoi=_divide(held, total_aoi),
         contribution_to_national_coverage=_divide(held, total_national),
         contribution_to_national_target=_divide(held, total_national * target),
+        national_total_amount=total_national,
+        classified_total_amount_aoi=classified_total,
+        share_of_national_amount=_divide(total_aoi, total_national),
+        share_of_classified_aoi=(
+            _divide(total_aoi, classified_total)
+            if classified_total is not None
+            else None
+        ),
+        absolute_pre_existing_aoi=pre_existing,
+        absolute_new_prioritizr_aoi=new_prioritizr,
+        pre_existing_coverage_within_aoi=(
+            _divide(pre_existing, total_aoi) if pre_existing is not None else None
+        ),
+        new_prioritizr_coverage_within_aoi=(
+            _divide(new_prioritizr, total_aoi) if new_prioritizr is not None else None
+        ),
+        pre_existing_contribution_to_national_coverage=(
+            _divide(pre_existing, total_national) if pre_existing is not None else None
+        ),
+        new_prioritizr_contribution_to_national_coverage=(
+            _divide(new_prioritizr, total_national)
+            if new_prioritizr is not None
+            else None
+        ),
     )
+
+
+def _optional_category_masks(
+    pre_existing_mask: np.ndarray | None,
+    new_prioritizr_mask: np.ndarray | None,
+    shape: tuple[int, ...],
+    selected_mask: np.ndarray,
+) -> tuple[np.ndarray | None, np.ndarray | None]:
+    if pre_existing_mask is None and new_prioritizr_mask is None:
+        return None, None
+    if pre_existing_mask is None or new_prioritizr_mask is None:
+        raise ValueError("Both pre-existing and new Prioritizr masks are required.")
+    pre_existing = _boolean_mask(pre_existing_mask, shape, "pre_existing_mask")
+    new_prioritizr = _boolean_mask(new_prioritizr_mask, shape, "new_prioritizr_mask")
+    if np.any(pre_existing & new_prioritizr):
+        raise ValueError("AOI solution category masks must be disjoint.")
+    if not np.array_equal(pre_existing | new_prioritizr, selected_mask):
+        raise ValueError(
+            "selected_mask must equal pre-existing plus new Prioritizr masks."
+        )
+    return pre_existing, new_prioritizr
 
 
 def grouped_sparse_binary_coverage(

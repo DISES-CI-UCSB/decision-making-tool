@@ -2326,6 +2326,13 @@ export class PanelSwitcherComponent {
     return state.status === 'custom' && state.data.hasSolutionCoverage;
   }
 
+  protected getMecModalCopyKey(sharedKey: string): string {
+    const prefix = 'analysis.aoi.mec.modal.';
+    return this.hasCustomMecCoverage() && sharedKey.startsWith(prefix)
+      ? `${prefix}customMesa.${sharedKey.slice(prefix.length)}`
+      : sharedKey;
+  }
+
   protected hasExpandedMecCoverage(): boolean {
     return this.isCustomMecState() ? this.hasCustomMecCoverage() : this.isExpandedMecState();
   }
@@ -2563,6 +2570,15 @@ export class PanelSwitcherComponent {
       : this.formatAreaValue(value);
   }
 
+  protected formatMecEcosystemAmount(
+    areaKm2: number | null,
+    planningCellCount: number | null,
+  ): string {
+    return areaKm2 === null
+      ? this.formatMecPlanningCellAmount(planningCellCount)
+      : this.formatMecEcosystemArea(areaKm2);
+  }
+
   protected formatMecCoveragePercent(value: number | null): string {
     if (value === null) {
       return this.isCustomMecState()
@@ -2607,6 +2623,15 @@ export class PanelSwitcherComponent {
     return this.translate.instant('analysis.aoi.mec.modal.mesaCellCount', {
       held: this.formatNumber(heldInAoi, this.metricNumberFormatMode(), 0, 1),
       total: this.formatNumber(totalInAoi, this.metricNumberFormatMode(), 0, 1),
+    });
+  }
+
+  protected formatMecPlanningCellAmount(value: number | null): string {
+    if (value === null) {
+      return this.translate.instant('analysis.common.valueUnavailable');
+    }
+    return this.translate.instant('analysis.aoi.mec.modal.mesaPlanningCellAmount', {
+      count: this.formatNumber(value, this.metricNumberFormatMode(), 0, 1),
     });
   }
 
